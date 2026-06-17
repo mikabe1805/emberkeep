@@ -1,32 +1,30 @@
-# Codemagic CI — cloud-Mac iOS builds for Emberkeep (see ../NATIVE-iOS.md).
+# Codemagic CI — cloud-Mac iOS builds for Emberkeep → TestFlight (see ../NATIVE-iOS.md).
 #
-# REPO LAYOUT: this file sits at the ROOT of the app's git repository (the `app/`
-# folder *is* the repo root). Codemagic auto-discovers a codemagic.yaml at the
-# repo root, so no working_directory is set.
+# REPO LAYOUT: this file sits at the ROOT of the app's git repo (the `app/` folder
+# IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
 #
-# SIGNING: AUTOMATIC code signing via the App Store Connect API key. Codemagic
-# generates the Apple Distribution certificate + its PRIVATE KEY and stores them
-# as a managed code-signing identity in your Codemagic team, then reuses that
-# same identity on every build (Apple never stores the private key, which is why
-# the old `fetch-signing-files --create` flow broke on a fresh VM: it re-minted /
-# re-downloaded the cert with no usable private key). Because the App ID
-# `com.mikabe.emberkeep` and the app record now exist, Codemagic also auto-creates
-# (or reuses) the matching App Store provisioning profile.
+# SIGNING: EXPLICIT App Store Connect CLI signing (NOT the automatic ios_signing
+# block). Two hard-won facts drove this:
+#   1. The in-yaml `ios_signing` automatic block is FETCH-ONLY — it never CREATES
+#      a missing App Store provisioning profile, which caused "No matching profiles
+#      found ... distribution type app_store". Only `fetch-signing-files --create`
+#      creates the profile.
+#   2. `fetch-signing-files --create` alone re-minted a key-less cert on each fresh
+#      VM (Apple never stores private keys) → "No development certificates". Pinning
+#      the PERSISTED Distribution cert's private key with `--certificate-key
+#      @env:CERTIFICATE_PRIVATE_KEY` makes --create reuse the existing cert.
+#   Do NOT also add an `environment.ios_signing` block — mixing the two re-triggers
+#   "No matching profiles found".
 #
-# Before the FIRST run (one-time, Codemagic UI / App Store Connect):
-#   1. Teams → Integrations → App Store Connect: the API key integration named
-#      `CodemagicASC` must be connected (it already is).
-#   2. App ID `com.mikabe.emberkeep` registered + app record created (done;
-#      numeric Apple ID 6781401469 below).
+# ONE-TIME PREREQUISITES (see ../NATIVE-iOS.md):
+#   * App Store Connect API key integration named `CodemagicASC` (auto-injects auth).
+#   * A secret env var `CERTIFICATE_PRIVATE_KEY` in group `emberkeep_signing`,
+#     holding the FULL PEM (BEGIN/END lines) of the private key that pairs with the
+#     persisted Apple Distribution certificate.
+#   * App ID `com.mikabe.emberkeep` registered + app record (Apple ID 6781401469).
 #
-# PURE SPM: all plugins (firebase_core/auth, cloud_firestore) resolve as Swift
-# Packages; there is NO CocoaPods integration in the Xcode project (no Pods
-# project in the workspace, no Pods xcconfig includes, no Pods build phases). The
-# old hand-authored ios/Podfile + the `cd ios && pod install` step were the only
-# CocoaPods residue and have been removed (delete ios/Podfile in the repo). The
-# iOS 15 floor that the Podfile used to force is satisfied by the Runner target's
-# IPHONEOS_DEPLOYMENT_TARGET = 15.0 (all 3 configs); the Firebase SPM packages
-# declare their own iOS 15 minimum.
+# PURE SPM: all plugins resolve as Swift Packages; no Podfile / no `pod install`.
+# The iOS-15 floor is set by the Runner target's IPHONEOS_DEPLOYMENT_TARGET = 15.0.
 
 workflows:
   ios-testflight:
@@ -38,38 +36,42 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
-      # Automatic signing: Codemagic creates+persists the distribution cert (and
-      # its private key) and the App Store profile, keyed off the integration above.
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.mikabe.emberkeep
+      groups:
+        - emberkeep_signing # ← MUST contain the secret var CERTIFICATE_PRIVATE_KEY
       vars:
-        # numeric Apple ID of the app record
-        # (App Store Connect → App → App Information → "Apple ID")
+        BUNDLE_ID: "com.mikabe.emberkeep"
+        # numeric Apple ID of the app record (App Store Connect → App Information)
         APP_STORE_APPLE_ID: 6781401469
     scripts:
       - name: Flutter packages
         script: |
           flutter pub get
-      - name: Set up code signing settings on Xcode project
+      - name: Set up code signing (fetch + create App Store profile, key-safe)
         script: |
-          # Applies the Codemagic-managed App Store profile + distribution cert to
-          # the Runner target and writes the export options plist to
-          # $CM_EXPORT_OPTIONS_PLIST (the only step needed with automatic signing —
-          # NO keychain initialize / fetch-signing-files / add-certificates).
-          xcode-project use-profiles
+          keychain initialize
+          # --create makes the App Store profile if missing; --certificate-key pins
+          # the PERSISTED Distribution cert's private key so the CLI reuses the
+          # existing cert instead of minting a key-less one. API auth = CodemagicASC.
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
+            --create
+          keychain add-certificates
+          # use-profiles wires the fetched profile into the Runner target AND writes
+          # the export options plist to its default $HOME/export_options.plist.
+          # (Under explicit signing $CM_EXPORT_OPTIONS_PLIST is NOT set — only the
+          # automatic ios_signing block populates it — so we reference $HOME.)
+          xcode-project use-profiles \
+            --export-options-plist="$HOME/export_options.plist"
       - name: Flutter build ipa
         script: |
-          # First-build-safe build number: no prior TestFlight build (or a failed
-          # lookup) degrades to 0, so the first CI run produces build 1 and later
-          # runs auto-increment. The version NAME (1.0.0) comes from pubspec.yaml.
-          # No `pod install`: this is a pure-SPM project; `flutter build ipa`
-          # resolves the Swift packages itself (and would auto-generate a minimal
-          # Podfile only if some plugin still required CocoaPods — none do).
+          # First-build-safe build number: a missing/failed TestFlight lookup
+          # degrades to 0, so the first CI run is build 1 and later runs increment.
+          # The version NAME (1.0.0) comes from pubspec.yaml.
           LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
           flutter build ipa --release \
             --build-number=$((LATEST + 1)) \
-            --export-options-plist="$CM_EXPORT_OPTIONS_PLIST"
+            --export-options-plist="$HOME/export_options.plist"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
@@ -78,4 +80,5 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        # add beta_groups: [ "Internal" ] to auto-assign your TestFlight testers
+        # beta_groups:
+        #   - Internal
