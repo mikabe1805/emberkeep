@@ -1,0 +1,435 @@
+import 'tokens.dart';
+
+/// Safe enum-index read: clamps out-of-range / missing indices to a default
+/// instead of throwing, so a single drifted value never rejects a whole
+/// restore (round-9 resilience).
+T _enumAt<T>(List<T> values, Object? idx, T fallback) {
+  if (idx is int && idx >= 0 && idx < values.length) return values[idx];
+  return fallback;
+}
+
+/// Day-key helpers — periods are computed from local wall-clock dates.
+abstract final class Days {
+  static String key(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+  static DateTime parse(String key) {
+    final p = key.split('-');
+    return DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
+  }
+
+  /// Monday of the week containing [d].
+  static DateTime weekStart(DateTime d) =>
+      DateTime(d.year, d.month, d.day).subtract(Duration(days: d.weekday - 1));
+
+  static bool sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  static bool sameWeek(DateTime a, DateTime b) =>
+      sameDay(weekStart(a), weekStart(b));
+
+  static bool sameMonth(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month;
+}
+
+/// How often a quest recurs. Recurring quests reset when their period rolls
+/// over; [once] quests (including calendar events) complete forever.
+enum QuestSchedule {
+  once('ONCE'),
+  daily('DAILY'),
+  weekly('WEEKLY'),
+  monthly('MONTHLY');
+
+  const QuestSchedule(this.label);
+  final String label;
+}
+
+/// Proof level for a completion. Proof multiplies rewards, never gates
+/// (RESEARCH.md §5): honor is always allowed, verification pays more.
+enum Verification {
+  honor,
+
+  /// In-app wall-clock countdown — the first real proof system.
+  timer,
+}
+
+/// What kind of ambition a goal is (round-7):
+/// [become] — an ongoing practice ("maintain healthy skin"); milestones
+/// escalate forever. [achieve] — a finish line ("finish the book"); the
+/// goal completes and is celebrated.
+enum GoalKind {
+  become('BECOME', 'an ongoing practice'),
+  achieve('ACHIEVE', 'a finish line');
+
+  const GoalKind(this.label, this.blurb);
+  final String label;
+  final String blurb;
+}
+
+/// A user goal: a named ambition that linked quests feed. Progress counts
+/// linked-quest completions toward [target] — the bar the night recap fills.
+class Goal {
+  Goal({
+    required this.title,
+    required this.stat,
+    required this.target,
+    this.kind = GoalKind.become,
+    this.progress = 0,
+    this.achievedDay,
+  });
+
+  final String title;
+  final Stat stat;
+  final GoalKind kind;
+  int target;
+  int progress;
+
+  /// Day-key when an [GoalKind.achieve] goal crossed its finish line.
+  String? achievedDay;
+
+  bool get complete => achievedDay != null;
+  double get fraction => target == 0 ? 0 : (progress / target).clamp(0.0, 1.0);
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'stat': stat.index,
+        'kind': kind.index,
+        'target': target,
+        'progress': progress,
+        'achievedDay': achievedDay,
+      };
+
+  static Goal fromJson(Map<String, dynamic> j) => Goal(
+        title: (j['title'] as String?) ?? 'Goal',
+        stat: _enumAt(Stat.values, j['stat'], Stat.dis),
+        kind: _enumAt(GoalKind.values, j['kind'], GoalKind.become),
+        target: (j['target'] as int?) ?? 25,
+        progress: j['progress'] as int? ?? 0,
+        achievedDay: j['achievedDay'] as String?,
+      );
+}
+
+/// A quest: curated (goal catalog), custom (user-forged), or a calendar
+/// event / long-term goal ([schedule] == once with a [dueDate]).
+class Quest {
+  Quest({
+    required this.title,
+    required this.stat,
+    required this.difficulty,
+    this.dread = false,
+    this.ladderHint,
+    this.schedule = QuestSchedule.daily,
+    this.verification = Verification.honor,
+    this.timerMinutes = 0,
+    this.custom = false,
+    this.dueDate,
+    this.lastDoneDay,
+    this.goalTitle,
+    this.priority = false,
+    this.allDay = false,
+    this.weekdays = const [],
+    this.monthDay,
+    this.rising = false,
+    this.risingStreak = 0,
+    this.ladder,
+    this.rung = 0,
+    this.kin,
+    this.bonus = false,
+    this.origin,
+    this.workout = false,
+  });
+
+  /// Identity title — the rung-0 prescription, stable for dedup/restore even
+  /// after the quest climbs (the visible prescription comes from [displayTitle]).
+  final String title;
+
+  /// Which attribute this trains. Mutable: the manage dialog lets you re-tune
+  /// a quest you've adopted (deep personalization is the hook).
+  Stat stat;
+
+  /// 1–10 continuous difficulty. Custom quests cap at 8 (anti-abuse).
+  /// Mutable: rising quests climb a rung when the user accepts a rise.
+  int difficulty;
+
+  /// Dreaded tasks pay a courage bonus.
+  final bool dread;
+
+  /// "next rung: 5" — the visible progression ladder.
+  final String? ladderHint;
+
+  final QuestSchedule schedule;
+  final Verification verification;
+
+  /// Countdown length for timer-verified quests.
+  final int timerMinutes;
+
+  /// User-forged quests pay ×0.85 — honesty keeps the magic.
+  final bool custom;
+
+  /// Calendar events / long-term goals: when this is due.
+  final DateTime? dueDate;
+
+  /// Day-key of the last completion — drives period-based resets.
+  String? lastDoneDay;
+
+  /// Which user goal this quest feeds (matched by goal title).
+  final String? goalTitle;
+
+  /// Starred as a MAIN quest (set in the night planner; the morning
+  /// briefing leads with these).
+  bool priority;
+
+  /// All-day abstention quest ("no caffeine after 2pm"): a reminder during
+  /// the day, honestly confirmable only in the night routine's checklist.
+  final bool allDay;
+
+  /// For daily/weekly quests: restrict to these weekdays (1=Mon..7=Sun).
+  /// Empty = every day (daily) / any day (weekly).
+  final List<int> weekdays;
+
+  /// For monthly quests: the day-of-month it appears (clamped to short
+  /// months). Null = any day that month.
+  final int? monthDay;
+
+  /// Rising difficulty (round-8): training quests climb over time —
+  /// start easy, grow with the user. NOT for maintenance routines.
+  final bool rising;
+
+  /// Completions since the last rise; at [risesAt] the night routine asks
+  /// "ready to rise?".
+  int risingStreak;
+
+  /// The concrete progression for a trainable quest — the full prescription at
+  /// each rung, e.g. ['Do 2 push-ups', 'Do 5 push-ups', …]. Both the same-day
+  /// "Stoke it" encore and the night "RISE" climb this single ladder
+  /// (RESEARCH-momentum.md §2). Null = a quest that doesn't climb.
+  final List<String>? ladder;
+
+  /// Current index into [ladder]. The night RISE advances this permanently;
+  /// difficulty climbs +1 alongside it. Mutable.
+  int rung;
+
+  /// Sibling activities toward the same stat/goal — what "Switch it up" offers
+  /// (variety dodges reward-habituation + injury; RESEARCH-momentum.md §3).
+  /// Null falls back to the per-stat pool in content/ladders.dart.
+  final List<String>? kin;
+
+  /// A one-off momentum spawn (a Stoke rung or a Switch variant): banked as a
+  /// bonus for today, never a new mandatory baseline. Visually marked ⚡.
+  final bool bonus;
+
+  /// Tapping this opens the guided-workout runner instead of completing
+  /// directly — the session's outcome then flows through the normal reward
+  /// path (RESEARCH-workouts.md). Back-compat: defaults false.
+  final bool workout;
+
+  /// For a [bonus] quest: the identity title of the base quest it sprang from
+  /// — used to cap same-day encores per base (anti-overexertion, §4).
+  final String? origin;
+
+  static const risesAt = 5;
+  bool get readyToRise => rising && risingStreak >= risesAt;
+
+  /// Has somewhere left to climb on its ladder?
+  bool get canRise => ladder != null && rung < ladder!.length - 1;
+
+  bool get isEvent => schedule == QuestSchedule.once && dueDate != null;
+
+  /// What the player actually reads — the current rung's prescription if this
+  /// quest climbs, otherwise the plain title.
+  String get displayTitle {
+    final l = ladder;
+    if (l != null && l.isNotEmpty) return l[rung.clamp(0, l.length - 1)];
+    return title;
+  }
+
+  /// Is this quest on the board on [d]? (Round-7: quests only appear on
+  /// their scheduled days.)
+  bool scheduledOn(DateTime d) {
+    switch (schedule) {
+      case QuestSchedule.once:
+        return true; // events are gated by dueDate elsewhere
+      case QuestSchedule.daily:
+      case QuestSchedule.weekly:
+        return weekdays.isEmpty || weekdays.contains(d.weekday);
+      case QuestSchedule.monthly:
+        if (monthDay == null) return true;
+        final lastDay = DateTime(d.year, d.month + 1, 0).day;
+        return d.day == (monthDay! > lastDay ? lastDay : monthDay);
+    }
+  }
+
+  /// Done within the current period (today / this week / this month)?
+  bool doneFor(DateTime now) {
+    final last = lastDoneDay;
+    if (last == null) return false;
+    final d = Days.parse(last);
+    return switch (schedule) {
+      QuestSchedule.once => true,
+      QuestSchedule.daily => Days.sameDay(d, now),
+      QuestSchedule.weekly => Days.sameWeek(d, now),
+      QuestSchedule.monthly => Days.sameMonth(d, now),
+    };
+  }
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'stat': stat.index,
+        'difficulty': difficulty,
+        'dread': dread,
+        'ladderHint': ladderHint,
+        'schedule': schedule.index,
+        'verification': verification.index,
+        'timerMinutes': timerMinutes,
+        'custom': custom,
+        'dueDate': dueDate?.toIso8601String(),
+        'lastDoneDay': lastDoneDay,
+        'goalTitle': goalTitle,
+        'priority': priority,
+        'allDay': allDay,
+        'weekdays': weekdays,
+        'monthDay': monthDay,
+        'rising': rising,
+        'risingStreak': risingStreak,
+        'ladder': ladder,
+        'rung': rung,
+        'kin': kin,
+        'bonus': bonus,
+        'origin': origin,
+        'workout': workout,
+      };
+
+  static Quest fromJson(Map<String, dynamic> j) => Quest(
+        title: (j['title'] as String?) ?? 'Quest',
+        stat: _enumAt(Stat.values, j['stat'], Stat.dis),
+        difficulty: (j['difficulty'] as int?) ?? 3,
+        dread: j['dread'] as bool? ?? false,
+        ladderHint: j['ladderHint'] as String?,
+        schedule:
+            _enumAt(QuestSchedule.values, j['schedule'], QuestSchedule.daily),
+        verification:
+            _enumAt(Verification.values, j['verification'], Verification.honor),
+        timerMinutes: j['timerMinutes'] as int? ?? 0,
+        custom: j['custom'] as bool? ?? false,
+        dueDate: j['dueDate'] == null
+            ? null
+            : DateTime.parse(j['dueDate'] as String),
+        lastDoneDay: j['lastDoneDay'] as String?,
+        goalTitle: j['goalTitle'] as String?,
+        priority: j['priority'] as bool? ?? false,
+        allDay: j['allDay'] as bool? ?? false,
+        weekdays: ((j['weekdays'] as List?) ?? const []).cast<int>(),
+        monthDay: j['monthDay'] as int?,
+        rising: j['rising'] as bool? ?? false,
+        risingStreak: j['risingStreak'] as int? ?? 0,
+        ladder: (j['ladder'] as List?)?.cast<String>(),
+        rung: j['rung'] as int? ?? 0,
+        kin: (j['kin'] as List?)?.cast<String>(),
+        bonus: j['bonus'] as bool? ?? false,
+        origin: j['origin'] as String?,
+        workout: j['workout'] as bool? ?? false,
+      );
+}
+
+/// Everything one completion produced — drives the reward receipt,
+/// with each reward type keeping its own color/sound/haptic.
+class RewardBundle {
+  RewardBundle({
+    required this.xp,
+    required this.stat,
+    required this.statGain,
+    required this.questTitle,
+    required this.message,
+    required this.difficulty,
+    this.dread = false,
+    this.custom = false,
+    this.isEvent = false,
+    this.goalTitle,
+    this.critMult,
+    this.streakMult,
+    this.verifiedMult,
+    this.comebackMult,
+    this.shieldHeld = false,
+    this.firstOfDay = false,
+    this.loot,
+  });
+
+  final int xp;
+  final Stat stat;
+  final int statGain;
+
+  /// Which quest earned this (for the ledger and the epic overlay).
+  final String questTitle;
+
+  /// The personal reward line ("That keeps you sharp :)").
+  final String message;
+
+  // Quest facts carried through for achievement counters + goal progress.
+  final int difficulty;
+  final bool dread;
+  final bool custom;
+  final bool isEvent;
+  final String? goalTitle;
+
+  /// e.g. 2.3 when a crit rolled, null otherwise.
+  final double? critMult;
+
+  /// e.g. 1.4 when a streak bonus applied, null otherwise.
+  final double? streakMult;
+
+  /// 1.2 when the completion was proof-verified (timer), null otherwise.
+  final double? verifiedMult;
+
+  /// Set when this is the first completion back after a missed day — a warm
+  /// comeback bonus, never a scold (never-punish; RESEARCH-momentum.md §4).
+  final double? comebackMult;
+
+  /// True when a streak shield silently bridged a missed day to keep the
+  /// streak alive — the completion celebrates "streak safe", not a reset.
+  final bool shieldHeld;
+
+  /// The day's FIRST completion — gets a notch-brighter beat ("first ember
+  /// lit today"). One step above a normal completion, never a takeover.
+  final bool firstOfDay;
+
+  /// Loot drop name, null when nothing dropped.
+  final String? loot;
+
+  /// 0..1 celebration magnitude — parameterizes particle count, sound
+  /// layers, vibrancy (one celebration system, scaled — DESIGN.md §2).
+  double get magnitude {
+    var m = 0.25 + (xp / 200).clamp(0.0, 0.35);
+    if (critMult != null) m += 0.25;
+    if (loot != null) m += 0.15;
+    if (firstOfDay) m += 0.15; // the day's first ember burns a little brighter
+    return m.clamp(0.0, 1.0);
+  }
+}
+
+/// One line of the Me page's attribution ledger ("+10 STR — Workout").
+class LedgerEntry {
+  LedgerEntry({required this.stat, required this.amount, required this.title});
+  final Stat stat;
+  final int amount;
+  final String title;
+
+  Map<String, dynamic> toJson() =>
+      {'stat': stat.index, 'amount': amount, 'title': title};
+
+  static LedgerEntry fromJson(Map<String, dynamic> j) => LedgerEntry(
+        stat: _enumAt(Stat.values, j['stat'], Stat.dis),
+        amount: (j['amount'] as int?) ?? 0,
+        title: (j['title'] as String?) ?? '',
+      );
+}
+
+/// Result of applying XP to the level model.
+class LevelResult {
+  LevelResult({required this.leveledTo, required this.unlock});
+
+  /// Null when no level-up happened.
+  final int? leveledTo;
+
+  /// The unlock revealed at this level, if any.
+  final String? unlock;
+}

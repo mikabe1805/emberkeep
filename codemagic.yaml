@@ -1,0 +1,59 @@
+# Codemagic CI — cloud-Mac iOS builds for Emberkeep (see ../NATIVE-iOS.md).
+#
+# REPO LAYOUT: this file sits at the ROOT of the app's git repository (the `app/`
+# folder *is* the repo root — see NATIVE-iOS.md "Push to GitHub"). Codemagic
+# auto-discovers a codemagic.yaml at the repo root, so no working_directory is set.
+#
+# Before the FIRST run (all in the Codemagic UI / App Store Connect — see runbook):
+#   1. Codemagic → Teams → Integrations → add an "App Store Connect" API key and put
+#      its integration name below (replace CodemagicASC).
+#   2. Register the App ID `com.mikabe.emberkeep` and create the app record in App
+#      Store Connect, then put its numeric Apple ID in APP_STORE_APPLE_ID.
+#
+# Uses Codemagic automatic code signing (no manual certs/profiles).
+
+workflows:
+  ios-testflight:
+    name: Emberkeep iOS → TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: CodemagicASC # ← your App Store Connect integration name
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.mikabe.emberkeep
+      vars:
+        # numeric Apple ID of the app record (App Store Connect → App → App Information → "Apple ID")
+        APP_STORE_APPLE_ID: 0000000000 # ← replace before first run
+    scripts:
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+      - name: Flutter packages
+        script: |
+          flutter pub get
+      - name: Pod install
+        script: |
+          cd ios && pod install
+      - name: Flutter build ipa
+        script: |
+          # First-build-safe build number: no prior TestFlight build (or a failed
+          # lookup) degrades to 0, so the first CI run produces build 1 and later
+          # runs auto-increment. The version NAME (1.0.0) comes from pubspec.yaml.
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          flutter build ipa --release \
+            --build-number=$((LATEST + 1)) \
+            --export-options-plist=$CM_EXPORT_OPTIONS_PLIST
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # add beta_groups: [ "Internal" ] to auto-assign your TestFlight testers
