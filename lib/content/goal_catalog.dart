@@ -206,36 +206,49 @@ const goalCatalog = <GoalIdea>[
           schedule: QuestSchedule.weekly),
     ],
   ),
+  // The home/life-admin & wellbeing goals (rounds 15-16) were re-audited in
+  // round-18 against habit research: every quest below is an evidence-supported
+  // good habit (citation noted inline), deduped against the default board, with
+  // no acquire-a-pet / one-time-life-decision quests. Citations are honest —
+  // correlational/survey sources are flagged.
   GoalIdea(
     title: 'Keep your space',
     blurb:
         'A tidy room is a kinder room to wake up in. None of this has to be '
         'perfect — a made bed and one clear surface already change how the '
-        'whole day feels.',
+        'whole day feels. Homes people call cluttered rather than restful track '
+        'with a flatter daily stress-hormone rhythm; you’re not chasing '
+        'spotless, you’re lowering the noise.',
     stat: Stat.dis,
     quests: [
+      // bed-makers report steadier sleep + a daily sense of order — NSF Bedroom Poll (survey)
       QuestTemplate(
           title: 'Make your bed',
           stat: Stat.dis,
           difficulty: 1,
           ladderHint: 'TWO MINUTES · SETS THE TONE'),
+      // cluttered vs restful homes ↔ flatter daily cortisol — Saxbe & Repetti 2010, PubMed 19934011 (correlational)
       QuestTemplate(
           title: 'Ten-minute tidy',
           stat: Stat.dis,
           difficulty: 2,
           timerMinutes: 10,
           ladderHint: 'SET THE TIMER · RACE THE CLOCK'),
+      // weekly washing clears dust mites/allergens that disrupt sleep — Cleveland Clinic
       QuestTemplate(
-          title: 'Wash the dishes',
+          title: 'Fresh sheets',
           stat: Stat.dis,
-          difficulty: 3,
-          dread: true,
-          ladderHint: 'THE PILE NEVER WINS'),
+          difficulty: 2,
+          schedule: QuestSchedule.weekly,
+          ladderHint: 'ONCE A WEEK · CLIMB INTO CLEAN'),
+      // completing a finishable chore lifts mood (behavioral activation) — Cuijpers 2007, PMC4061095
       QuestTemplate(
           title: 'One load of laundry',
           stat: Stat.dis,
           difficulty: 3,
-          schedule: QuestSchedule.weekly),
+          schedule: QuestSchedule.weekly,
+          ladderHint: 'WASH · DRY · ACTUALLY PUT AWAY'),
+      // restorative homes show healthier cortisol slopes — Saxbe & Repetti 2010, PubMed 19934011 (correlational)
       QuestTemplate(
           title: 'Deep-clean one room',
           stat: Stat.dis,
@@ -248,93 +261,116 @@ const goalCatalog = <GoalIdea>[
     title: 'Tend your plants',
     blurb:
         'Looking after something green is a quiet practice — it asks for a '
-        'little, often, and gives back more than it takes. Even one windowsill '
-        'pot counts.',
+        'little, often, and gives back more than it takes. The research is '
+        'unusually kind here: tending houseplants can lower blood pressure, and '
+        'people who keep them report steadier moods and more everyday '
+        'mindfulness. Even one windowsill pot counts.',
     stat: Stat.vit,
     quests: [
+      // indoor plants ↔ more positive emotion + lower systolic BP — Han 2022, PMC9224521
       QuestTemplate(
           title: 'Bring home a plant',
           stat: Stat.vit,
           difficulty: 3,
           schedule: QuestSchedule.once,
-          ladderHint: 'THE FIRST ONE IS THE HARDEST'),
+          ladderHint: 'THE FIRST IS THE HARDEST · A FEW DOLLARS IS PLENTY'),
+      // time on houseplant care ↔ higher wellbeing + mindfulness — Ma 2022, PMC9739745
       QuestTemplate(
           title: 'Check on your plants',
           stat: Stat.vit,
           difficulty: 1,
-          ladderHint: 'WHO’S THIRSTY? WHO’S REACHING FOR LIGHT?'),
+          ladderHint: 'WHO’S THIRSTY · WHO’S REACHING FOR LIGHT'),
+      // caring for indoor plants lowered BP + raised calming alpha waves vs a screen task — Park 2023, PMC10557185
       QuestTemplate(
           title: 'Water what needs it', stat: Stat.vit, difficulty: 2),
+      // hands-in-soil transplanting cut sympathetic activity + diastolic BP vs computer work — Lee 2015, PMC4419447
       QuestTemplate(
           title: 'Give them a real tending',
           stat: Stat.vit,
           difficulty: 4,
           schedule: QuestSchedule.weekly,
-          ladderHint: 'PRUNE · ROTATE · DUST A LEAF'),
+          ladderHint: 'PRUNE · ROTATE · REPOT · DUST A LEAF'),
     ],
   ),
   GoalIdea(
     title: 'Tend your creatures',
     blurb:
         'A creature that depends on you asks for a steadier love than a plant '
-        'does — fed on time, walked in the rain, carried to the vet when it’s '
-        'scary. None of it is optional to them, and that’s exactly what makes '
-        'it count. One full bowl is a whole small act of devotion — whiskers, '
-        'scales, or feathers all welcome.',
+        'does — fed on time, walked in the rain, their teeth and their checkups '
+        'remembered even when it’s a hassle. None of it is optional to them, '
+        'and that’s exactly what makes it count. The kindest secret: a walked '
+        'dog walks you too — whiskers, scales, or feathers all welcome.',
     stat: Stat.vit,
     quests: [
+      // consistent meal times regulate a pet’s digestion/weight + reduce food anxiety — AVMA feeding guidance
       QuestTemplate(
-          title: 'Bring home a companion',
-          stat: Stat.soc,
-          difficulty: 4,
-          schedule: QuestSchedule.once,
-          ladderHint: 'NO RUSH · THE RIGHT ONE FINDS YOU'),
-      QuestTemplate(
-          title: 'Fill the bowls',
+          title: 'Feed on the same schedule',
           stat: Stat.vit,
           difficulty: 1,
-          ladderHint: 'FRESH WATER · A FULL DISH'),
+          ladderHint: 'SAME HOURS · FRESH WATER · A FULL DISH'),
+      // daily walks/play meet exercise + enrichment needs — and dog-walking ↔ ~24% lower owner mortality — Mubanga 2019; AHA 2013
       QuestTemplate(
-          title: 'A proper walk together',
+          title: 'A proper walk or play session',
           stat: Stat.vit,
           difficulty: 3,
           timerMinutes: 15,
-          ladderHint: 'THEIR FAVORITE LOOP · RAIN OR SHINE'),
+          ladderHint: 'THEIR FAVORITE LOOP · OR 15 MIN OF REAL PLAY'),
+      // most pets show dental disease by age 3; brushing is the best home defense — AVMA Pet Dental Care
+      QuestTemplate(
+          title: 'Brush their teeth or scrub a bowl',
+          stat: Stat.dis,
+          difficulty: 2,
+          ladderHint: 'PET TOOTHPASTE · OR WASH THE FOOD DISH'),
+      // reliable daily feeding is the backbone of pet welfare — AAHA enrichment guidance
       QuestTemplate(
           title: 'Everyone’s fed before you sleep',
           stat: Stat.vit,
           difficulty: 3,
           allDay: true,
           ladderHint: 'AN ALL-DAY LINE · CHECKS AT NIGHT'),
+      // annual wellness exams catch disease early, when it’s cheapest + most treatable — AAHA/AVMA
       QuestTemplate(
-          title: 'The dreaded vet run',
+          title: 'Book the vet checkup',
           stat: Stat.vit,
           difficulty: 7,
           dread: true,
-          schedule: QuestSchedule.monthly,
-          ladderHint: 'BRAVE FOR BOTH OF YOU · COUNTS EXTRA'),
+          schedule: QuestSchedule.once,
+          ladderHint: 'BRAVE FOR BOTH · COUNTS EXTRA'),
     ],
   ),
   GoalIdea(
     title: 'Feed yourself well',
     blurb:
         'Cooking for yourself is a love letter you write in real time. It '
-        'counts even when it’s simple — toast made with care beats takeout on '
-        'autopilot.',
+        'counts even when it’s simple — a plate with something green on it '
+        'beats takeout on autopilot, and future you is the one who gets fed.',
     stat: Stat.vit,
     quests: [
+      // water displacing sugary drinks ↔ lower T2D/CVD risk; hydration steadies mood/focus — PMC10050372; PMC6068860
       QuestTemplate(
           title: 'Start with a glass of water',
           stat: Stat.vit,
           difficulty: 1,
           ladderHint: 'BEFORE THE COFFEE · ONE GLASS'),
+      // cooking at home ↔ higher diet quality (more fruit/veg) — Fenland cohort, PMC5561571
       QuestTemplate(
           title: 'Cook a real meal',
           stat: Stat.vit,
           difficulty: 4,
           ladderHint: 'ACTUAL INGREDIENTS · SIMPLE IS FINE'),
+      // ~5 servings of fruit/veg a day ↔ ~13% lower early-death risk — Circulation 2021, PMID 33641343
       QuestTemplate(
-          title: 'Eat something green', stat: Stat.vit, difficulty: 2),
+          title: 'Eat something green',
+          stat: Stat.vit,
+          difficulty: 2,
+          ladderHint: 'ONE HANDFUL · LEAVES OR STALKS'),
+      // slower eating lets fullness land; fast eaters ~2× overweight odds — PMC7230501
+      QuestTemplate(
+          title: 'Eat one meal slowly, no screen',
+          stat: Stat.vit,
+          difficulty: 2,
+          ladderHint: 'PUT THE FORK DOWN · LET FULLNESS CATCH UP'),
+      // meal planning ↔ higher diet quality + lower obesity odds — NutriNet-Santé, PMC5288891
       QuestTemplate(
           title: 'Plan the week’s meals',
           stat: Stat.vit,
@@ -346,57 +382,79 @@ const goalCatalog = <GoalIdea>[
   GoalIdea(
     title: 'Tend your money',
     blurb:
-        'Money gets calmer the moment you look at it. This isn’t about '
-        'spending less for its own sake — it’s about knowing where you stand, '
-        'so the numbers stop being scary.',
+        'Money gets calmer the moment you look at it. This isn’t about spending '
+        'less for its own sake — it’s about knowing where you stand and quietly '
+        'building a little cushion, so the numbers stop being scary.',
     stat: Stat.dis,
     quests: [
+      // financial self-monitoring ↔ lower discretionary spend + better saving — CFPB; financial-tracking research
       QuestTemplate(
           title: 'Check your balance',
           stat: Stat.dis,
           difficulty: 2,
           ladderHint: 'NO JUDGMENT · JUST LOOK'),
+      // a 24-hour pause on non-essentials lets the impulse settle, cutting overspending — delay/cooling-off research
       QuestTemplate(
-          title: 'A no-spend day',
+          title: 'Sleep on it before you buy',
           stat: Stat.dis,
-          difficulty: 4,
-          dread: true,
-          ladderHint: 'BUY ONLY WHAT YOU NEED TODAY'),
+          difficulty: 3,
+          allDay: true,
+          ladderHint: 'WANT IT? WAIT A DAY'),
+      // small regular (ideally automatic) saving builds the emergency cushion that most predicts financial wellbeing — Hershfield 2020; CFPB 2022
       QuestTemplate(
-          title: 'Note what you spent', stat: Stat.dis, difficulty: 2),
+          title: 'Move a little to savings',
+          stat: Stat.dis,
+          difficulty: 3,
+          schedule: QuestSchedule.weekly,
+          rising: true,
+          ladderHint: 'TINY IS FINE · RISES AS YOU GROW 📈'),
+      // a regular review builds financial self-awareness + catches forgotten subscriptions (~$200+/yr) — CFPB Well-Being Scale
       QuestTemplate(
           title: 'Sit with the numbers',
           stat: Stat.dis,
           difficulty: 5,
           schedule: QuestSchedule.weekly,
-          ladderHint: 'FIFTEEN HONEST MINUTES'),
+          timerMinutes: 15,
+          ladderHint: 'FIFTEEN HONEST MINUTES · SCAN FOR STRAYS'),
     ],
   ),
   GoalIdea(
     title: 'Wind down well',
     blurb:
-        'Sleep is the quiet engine under every other stat. Protect the hour '
-        'before bed and the rest tends to follow — start small, the body '
-        'remembers the rhythm.',
+        'Sleep is the quiet engine under every other stat. Your body keeps '
+        'better time than any alarm — it just needs you to be regular with it. '
+        'Protect the hour before bed, rise at a steady time, and the rest tends '
+        'to follow.',
     stat: Stat.vit,
     quests: [
+      // sleep regularity beats duration — most-regular sleepers had 20-48% lower mortality — Windred 2024, SLEEP (UK Biobank)
       QuestTemplate(
           title: 'In bed by your hour',
           stat: Stat.vit,
           difficulty: 4,
           allDay: true,
           ladderHint: 'AN ALL-DAY LINE · CHECKS AT NIGHT'),
+      // a fixed wake time is the strongest circadian anchor — National Sleep Foundation consensus
+      QuestTemplate(
+          title: 'Wake at the same time',
+          stat: Stat.vit,
+          difficulty: 3,
+          allDay: true,
+          ladderHint: 'EVEN ON WEEKENDS · THE REAL ANCHOR'),
+      // evening screen light delays melatonin + lengthens time to fall asleep — Höhn 2023, PMC9974389
       QuestTemplate(
           title: 'Screens down before sleep',
           stat: Stat.dis,
           difficulty: 4,
           allDay: true,
           ladderHint: 'THE LAST 30 MINUTES ARE YOURS'),
+      // bright room light before bed suppresses melatonin ~71% — Gooley 2011, PMC3047226
       QuestTemplate(
-          title: 'No caffeine after 2pm',
-          stat: Stat.vit,
+          title: 'Dim the lights an hour before bed',
+          stat: Stat.dis,
           difficulty: 3,
-          allDay: true),
+          allDay: true,
+          ladderHint: 'ONE LAMP · NOT THE BIG LIGHT'),
     ],
   ),
 ];

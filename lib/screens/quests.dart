@@ -87,9 +87,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// runners → double reward; bug-hunt §8).
   bool _workoutRunnerOpen = false;
 
-  /// The most recent completion's undo target. Drives both the (swipe-
-  /// dismissible) undo snackbar AND a swipe-left-to-undo on the just-completed
-  /// card — a calmer, less-fiddly undo than a transient snackbar alone.
+  /// The most recent completion's undo target. Drives the swipe-left-to-undo on
+  /// the just-completed card — a calm, in-place undo (the transient snackbar
+  /// was removed).
   String? _undoTitle;
   String? _undoSnapshot;
 
@@ -309,43 +309,16 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         Duration(milliseconds: 400 + 120 * bubbles + 250), _flushCommit);
   }
 
-  /// A few-second "pressed it by accident?" undo, shown after the celebration
-  /// settles. Restoring reverts every reward the completion granted.
+  /// Arms the just-completed card so it can be swiped left to undo a misfire;
+  /// restoring reverts every reward the completion granted. The old transient
+  /// undo snackbar was removed — the card swipe is now the single undo
+  /// affordance (no redundant popup).
   void _offerUndo(String title, String snapshot) {
     if (!mounted) return;
-    // remember it so the card itself can be swiped left to undo, too
     setState(() {
       _undoTitle = title;
       _undoSnapshot = snapshot;
     });
-    final messenger = ScaffoldMessenger.of(context);
-    messenger.clearSnackBars();
-    messenger.showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-        duration: const Duration(seconds: 5),
-        // swipe it away in any direction (the card-swipe undo remains)
-        dismissDirection: DismissDirection.horizontal,
-        backgroundColor: Palette.card,
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle, size: 15, color: Palette.success),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text('“$title” done · swipe a finished quest left to undo',
-                  overflow: TextOverflow.ellipsis,
-                  style: Type.body.copyWith(fontSize: 13, color: Palette.textHi)),
-            ),
-          ],
-        ),
-        action: SnackBarAction(
-          label: 'UNDO',
-          textColor: Palette.xpLight,
-          onPressed: _undoLast,
-        ),
-      ),
-    );
   }
 
   /// Count of quests still open today (mirrors the build() filter).
@@ -1331,7 +1304,9 @@ class _RankUpBeat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(
+    // OverlaySurface gives this overlay a Material ancestor — without it every
+    // Text renders with the debug yellow-underline fallback (the "underline bug").
+    return OverlaySurface(
       child: GestureDetector(
         onTap: onDismiss,
         behavior: HitTestBehavior.opaque,
