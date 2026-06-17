@@ -10,7 +10,8 @@
 #   2. Register the App ID `com.mikabe.emberkeep` and create the app record in App
 #      Store Connect, then put its numeric Apple ID in APP_STORE_APPLE_ID.
 #
-# Uses Codemagic automatic code signing (no manual certs/profiles).
+# Signing: explicit App Store Connect API signing (fetch-signing-files --create),
+# so the distribution cert + provisioning profile are auto-created on first run.
 
 workflows:
   ios-testflight:
@@ -23,15 +24,21 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.mikabe.emberkeep
       vars:
+        BUNDLE_ID: "com.mikabe.emberkeep"
         # numeric Apple ID of the app record (App Store Connect → App → App Information → "Apple ID")
         APP_STORE_APPLE_ID: 6781401469
     scripts:
-      - name: Set up code signing
+      - name: Set up code signing (fetch + create App Store profile)
         script: |
+          # Explicit signing: fetch the App Store distribution cert + profile,
+          # CREATING them via the App Store Connect API key if they don't exist
+          # yet (--create). This is why a brand-new app with no profiles works.
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+          keychain add-certificates
           xcode-project use-profiles
       - name: Flutter packages
         script: |
