@@ -39,7 +39,13 @@ workflows:
             --type IOS_APP_STORE \
             --create
           keychain add-certificates
-          xcode-project use-profiles
+          # Writes the generated export options plist to its default location,
+          # $HOME/export_options.plist (= /Users/builder/export_options.plist on
+          # Codemagic). With EXPLICIT signing, Codemagic does NOT populate
+          # $CM_EXPORT_OPTIONS_PLIST — that var only exists with automatic
+          # environment.ios_signing — so the build step must reference $HOME.
+          xcode-project use-profiles \
+            --export-options-plist="$HOME/export_options.plist"
       - name: Flutter packages
         script: |
           flutter pub get
@@ -52,9 +58,12 @@ workflows:
           # lookup) degrades to 0, so the first CI run produces build 1 and later
           # runs auto-increment. The version NAME (1.0.0) comes from pubspec.yaml.
           LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          # Point at the plist that `xcode-project use-profiles` wrote in the
+          # signing step. Its default output path is $HOME/export_options.plist;
+          # $HOME is a built-in that survives across fresh per-step shells.
           flutter build ipa --release \
             --build-number=$((LATEST + 1)) \
-            --export-options-plist=$CM_EXPORT_OPTIONS_PLIST
+            --export-options-plist="$HOME/export_options.plist"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
