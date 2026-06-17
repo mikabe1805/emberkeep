@@ -28,7 +28,7 @@ workflows:
         bundle_identifier: com.mikabe.emberkeep
       vars:
         # numeric Apple ID of the app record (App Store Connect → App → App Information → "Apple ID")
-        APP_STORE_APPLE_ID: 0000000000 # ← replace before first run
+        APP_STORE_APPLE_ID: 6781401469
     scripts:
       - name: Set up code signing
         script: |
