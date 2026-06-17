@@ -76,6 +76,8 @@ class Goal {
     this.kind = GoalKind.become,
     this.progress = 0,
     this.achievedDay,
+    this.startedDay,
+    this.milestones = 0,
   });
 
   final String title;
@@ -87,6 +89,14 @@ class Goal {
   /// Day-key when an [GoalKind.achieve] goal crossed its finish line.
   String? achievedDay;
 
+  /// Day-key the goal was adopted/sworn — powers "days on the journey".
+  /// Null on pre-existing saves (shown as an em-dash, never a wrong number).
+  String? startedDay;
+
+  /// How many times a BECOME goal's target has doubled — the milestone count
+  /// (gold-banner moments). Tracked from when the field shipped; default 0.
+  int milestones;
+
   bool get complete => achievedDay != null;
   double get fraction => target == 0 ? 0 : (progress / target).clamp(0.0, 1.0);
 
@@ -97,16 +107,38 @@ class Goal {
         'target': target,
         'progress': progress,
         'achievedDay': achievedDay,
+        'startedDay': startedDay,
+        'milestones': milestones,
       };
 
-  static Goal fromJson(Map<String, dynamic> j) => Goal(
-        title: (j['title'] as String?) ?? 'Goal',
-        stat: _enumAt(Stat.values, j['stat'], Stat.dis),
-        kind: _enumAt(GoalKind.values, j['kind'], GoalKind.become),
-        target: (j['target'] as int?) ?? 25,
-        progress: j['progress'] as int? ?? 0,
-        achievedDay: j['achievedDay'] as String?,
-      );
+  static Goal fromJson(Map<String, dynamic> j) {
+    final kind = _enumAt(GoalKind.values, j['kind'], GoalKind.become);
+    final target = (j['target'] as int?) ?? 25;
+    var milestones = j['milestones'] as int? ?? 0;
+    // Back-fill for pre-round-20 saves (no `milestones` key): a BECOME goal
+    // always starts at 25 and only doubles, so target == 25 * 2^n — recover the
+    // count so the detail ring/caption/tile read truthfully. Never recompute
+    // when the key is present (that's a real, possibly-mid-tier saved value).
+    if (!j.containsKey('milestones') && kind == GoalKind.become && target > 25) {
+      var t = target ~/ 25;
+      var n = 0;
+      while (t > 1) {
+        t ~/= 2;
+        n++;
+      }
+      milestones = n;
+    }
+    return Goal(
+      title: (j['title'] as String?) ?? 'Goal',
+      stat: _enumAt(Stat.values, j['stat'], Stat.dis),
+      kind: kind,
+      target: target,
+      progress: j['progress'] as int? ?? 0,
+      achievedDay: j['achievedDay'] as String?,
+      startedDay: j['startedDay'] as String?,
+      milestones: milestones,
+    );
+  }
 }
 
 /// A quest: curated (goal catalog), custom (user-forged), or a calendar
@@ -124,6 +156,7 @@ class Quest {
     this.custom = false,
     this.dueDate,
     this.lastDoneDay,
+    this.snoozedDay,
     this.goalTitle,
     this.priority = false,
     this.allDay = false,
@@ -171,6 +204,11 @@ class Quest {
 
   /// Day-key of the last completion — drives period-based resets.
   String? lastDoneDay;
+
+  /// Day-key this quest was hidden "just for today" — a gentle skip that
+  /// returns it to the board tomorrow (distinct from a permanent removal).
+  /// Mutable: set from the long-press manage sheet.
+  String? snoozedDay;
 
   /// Which user goal this quest feeds (matched by goal title).
   final String? goalTitle;
@@ -284,6 +322,7 @@ class Quest {
         'custom': custom,
         'dueDate': dueDate?.toIso8601String(),
         'lastDoneDay': lastDoneDay,
+        'snoozedDay': snoozedDay,
         'goalTitle': goalTitle,
         'priority': priority,
         'allDay': allDay,
@@ -315,6 +354,7 @@ class Quest {
             ? null
             : DateTime.parse(j['dueDate'] as String),
         lastDoneDay: j['lastDoneDay'] as String?,
+        snoozedDay: j['snoozedDay'] as String?,
         goalTitle: j['goalTitle'] as String?,
         priority: j['priority'] as bool? ?? false,
         allDay: j['allDay'] as bool? ?? false,

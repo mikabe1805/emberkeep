@@ -453,6 +453,7 @@ class GameState extends ChangeNotifier {
               // ongoing practice: milestone reached, the path continues
               _milestonedQ.add((g, g.target));
               g.target *= 2;
+              g.milestones++;
             }
           }
           break;
@@ -538,6 +539,7 @@ class GameState extends ChangeNotifier {
   bool addGoal(Goal g) {
     final key = g.title.trim().toLowerCase();
     if (goals.any((e) => e.title.trim().toLowerCase() == key)) return false;
+    g.startedDay ??= Days.key(Clock.now()); // for "days on the journey"
     goals.add(g);
     notifyListeners();
     return true;

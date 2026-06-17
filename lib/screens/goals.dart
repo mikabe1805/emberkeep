@@ -8,6 +8,7 @@ import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/glass.dart';
+import 'goal_detail.dart';
 import 'goal_wizard.dart';
 
 /// A catalog section (round-16) — light grouping so the longer "adopt a path"
@@ -87,6 +88,7 @@ class GoalsPage extends StatelessWidget {
     required this.onAdd,
     required this.activeTitles,
     required this.onRemoveGoal,
+    required this.quests,
   });
 
   final GameState state;
@@ -99,6 +101,9 @@ class GoalsPage extends StatelessWidget {
 
   /// Abandons a goal and clears its linked quests.
   final void Function(Goal goal) onRemoveGoal;
+
+  /// The live board quests — threaded to the goal-detail view (quests serving it).
+  final List<Quest> quests;
 
   void _adoptGoal(BuildContext context, GoalIdea idea) {
     final created = state.addGoal(
@@ -140,7 +145,8 @@ class GoalsPage extends StatelessWidget {
           _WizardHero(state: state, onAdd: onAdd),
           const SizedBox(height: 12),
           if (state.goals.isNotEmpty) ...[
-            _YourGoals(state: state, onRemoveGoal: onRemoveGoal),
+            _YourGoals(
+                state: state, onRemoveGoal: onRemoveGoal, quests: quests),
             const SizedBox(height: 12),
           ] else ...[
             Padding(
@@ -448,9 +454,24 @@ class _WizardHero extends StatelessWidget {
 /// "YOUR GOALS" — each ambition with its bar inching toward full.
 /// Long-press a goal to abandon it (clears its quests too).
 class _YourGoals extends StatelessWidget {
-  const _YourGoals({required this.state, required this.onRemoveGoal});
+  const _YourGoals(
+      {required this.state, required this.onRemoveGoal, required this.quests});
   final GameState state;
   final void Function(Goal goal) onRemoveGoal;
+  final List<Quest> quests;
+
+  void _openDetail(BuildContext context, Goal g) {
+    Sfx.instance.play('tick');
+    HapticFeedback.selectionClick();
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => GoalDetailScreen(
+        goal: g,
+        state: state,
+        quests: quests,
+        onRemoveGoal: onRemoveGoal,
+      ),
+    ));
+  }
 
   void _confirmAbandon(BuildContext context, Goal g) {
     Sfx.instance.play('tick');
@@ -546,13 +567,15 @@ class _YourGoals extends StatelessWidget {
             children: [
               Text('YOUR GOALS', style: Type.label.copyWith(fontSize: 10)),
               const Spacer(),
-              Text('hold to edit', style: Type.label.copyWith(fontSize: 7.5)),
+              Text('tap to open · hold to abandon',
+                  style: Type.label.copyWith(fontSize: 7.5)),
             ],
           ),
           const SizedBox(height: 10),
           for (final g in state.goals) ...[
             GestureDetector(
               behavior: HitTestBehavior.opaque,
+              onTap: () => _openDetail(context, g),
               onLongPress: () => _confirmAbandon(context, g),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

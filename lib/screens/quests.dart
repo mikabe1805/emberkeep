@@ -142,7 +142,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (ps == null || pb == null) return;
     if (!identical(ps, _state)) return; // state swapped (undo/reset) → drop
     setState(() => ps.commit(pb));
-    if (_remainingToday() == 0) ps.recordPerfectDay();
+    if (_remainingToday() == 0 && !_anySnoozedToday()) ps.recordPerfectDay();
     _toastAchievements(ps, ps.checkAchievements());
     widget.onPersist();
     if (snap != null && title != null) _offerUndo(title, snap);
@@ -160,7 +160,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final pb = _pendingBundle;
     if (ps != null && pb != null && identical(ps, widget.state)) {
       ps.commit(pb);
-      if (_remainingToday() == 0) ps.recordPerfectDay();
+      if (_remainingToday() == 0 && !_anySnoozedToday()) ps.recordPerfectDay();
       ps.checkAchievements();
       widget.onPersist();
     }
@@ -324,12 +324,22 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Count of quests still open today (mirrors the build() filter).
   int _remainingToday() {
     final now = DateTime.now();
+    final today = Days.key(now);
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
     return widget.quests
-        .where((q) => q.isEvent
-            ? (!q.dueDate!.isAfter(endOfToday) && !q.doneFor(now))
-            : (q.scheduledOn(now) && !q.doneFor(now)))
+        .where((q) => q.snoozedDay != today &&
+            (q.isEvent
+                ? (!q.dueDate!.isAfter(endOfToday) && !q.doneFor(now))
+                : (q.scheduledOn(now) && !q.doneFor(now))))
         .length;
+  }
+
+  /// A perfect day must be EARNED, not snoozed: a quest hidden "just for today"
+  /// was due and not cleared, so a day cleared only by hiding quests can't mint
+  /// a perfect-day reward / streak shield.
+  bool _anySnoozedToday() {
+    final today = Days.key(DateTime.now());
+    return widget.quests.any((q) => q.snoozedDay == today);
   }
 
   /// Queue achievement banners, staggered so each gets its moment. Guarded
@@ -494,6 +504,29 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   ),
                 ),
                 const SizedBox(height: 14),
+                // A gentle skip: hide it from today's board, back tomorrow —
+                // never a penalty, just "not today."
+                GestureDetector(
+                  onTap: () {
+                    Sfx.instance.play('tick');
+                    HapticFeedback.selectionClick();
+                    setState(() => q.snoozedDay = Days.key(DateTime.now()));
+                    widget.onPersist();
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Row(
+                    children: [
+                      const Icon(Icons.bedtime_outlined,
+                          size: 18, color: Palette.textMid),
+                      const SizedBox(width: 10),
+                      Text('Hide it just for today',
+                          style: Type.body.copyWith(
+                              fontSize: 14, color: Palette.textHi)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                // The permanent remove keeps its two-tap arm.
                 GestureDetector(
                   onTap: () {
                     if (!armed) {
@@ -515,7 +548,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       Text(
                           armed
                               ? 'Tap again — gone for good'
-                              : 'Remove from the board',
+                              : 'Remove it for good',
                           style: Type.body.copyWith(
                               fontSize: 14,
                               color: armed
@@ -577,7 +610,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           e.remove();
           if (mounted && identical(s, _state)) {
             // a night-confirmed all-day line can be the day's last clear
-            if (_remainingToday() == 0) s.recordPerfectDay();
+            if (_remainingToday() == 0 && !_anySnoozedToday()) {
+              s.recordPerfectDay();
+            }
             setState(() {});
             _toastAchievements(s, s.checkAchievements());
           }
@@ -858,9 +893,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
     final visible = [
       for (final q in widget.quests)
-        if (q.isEvent
-            ? (!q.dueDate!.isAfter(endOfToday) || q.doneFor(now))
-            : (q.scheduledOn(now) || q.lastDoneDay == today))
+        // "hide just for today" skips it from the board until tomorrow
+        if (q.snoozedDay != today &&
+            (q.isEvent
+                ? (!q.dueDate!.isAfter(endOfToday) || q.doneFor(now))
+                : (q.scheduledOn(now) || q.lastDoneDay == today)))
           q,
     ]..sort((a, b) {
         // due events first, then starred MAIN quests, then the rest;

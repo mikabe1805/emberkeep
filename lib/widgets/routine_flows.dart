@@ -83,12 +83,19 @@ class _NightFlowState extends State<NightFlow> {
     );
   }
 
-  /// All-day abstention quests still unconfirmed today.
+  /// All-day abstention quests still unconfirmed today. A "hide just for
+  /// today" snooze excludes them — a line you chose to skip is never offered
+  /// for reward at night.
   List<Quest> _openAllDay() {
     final now = DateTime.now();
+    final today = Days.key(now);
     return [
       for (final q in widget.quests)
-        if (q.allDay && !q.doneFor(now) && !_slipped.contains(q)) q,
+        if (q.allDay &&
+            q.snoozedDay != today &&
+            !q.doneFor(now) &&
+            !_slipped.contains(q))
+          q,
     ];
   }
 
@@ -835,9 +842,12 @@ class MorningFlow extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final today = Days.key(now);
     final open = [
       for (final q in quests)
-        if (!q.doneFor(now) &&
+        // a "hide just for today" snooze drops it from the morning brief too
+        if (q.snoozedDay != today &&
+            !q.doneFor(now) &&
             (!q.isEvent || !q.dueDate!.isAfter(endOfToday)))
           q,
     ];
