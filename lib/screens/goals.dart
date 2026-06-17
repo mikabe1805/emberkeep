@@ -748,6 +748,63 @@ class _GoalCardState extends State<_GoalCard> {
   }
 }
 
+/// "WHY THIS HELPS" — the research behind a catalog quest, opened from the
+/// info-dot on its row. Mirrors the per-stat evidence beat on Me; reads
+/// [questWhy] (warm user-facing claim + a real source).
+void _showQuestWhy(BuildContext context, QuestTemplate t) {
+  final why = questWhy[t.title];
+  if (why == null) return;
+  Sfx.instance.play('tick');
+  HapticFeedback.selectionClick();
+  showDialog(
+    context: context,
+    barrierColor: const Color(0xCC140C06),
+    builder: (_) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(28),
+      child: GlassPanel(
+        tint: const Color(0xF22A211D),
+        glow: true,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_stories, size: 14, color: t.stat.color),
+                const SizedBox(width: 6),
+                Text('WHY THIS HELPS',
+                    style:
+                        Type.label.copyWith(fontSize: 10, color: t.stat.color)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(t.title, style: Type.display.copyWith(fontSize: 18)),
+            const SizedBox(height: 8),
+            Text(why.claim,
+                style: Type.body.copyWith(
+                    fontSize: 13, height: 1.5, color: Palette.textMid)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                const Icon(Icons.menu_book_outlined,
+                    size: 11, color: Palette.info),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(why.source,
+                      style: Type.label
+                          .copyWith(fontSize: 8, color: Palette.info)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 class _TemplateRow extends StatelessWidget {
   const _TemplateRow({
     required this.template,
@@ -770,11 +827,28 @@ class _TemplateRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(t.title,
-                    style: Type.body.copyWith(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: Palette.textHi)),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(t.title,
+                          style: Type.body.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: Palette.textHi)),
+                    ),
+                    // tap to learn the research behind this habit
+                    if (questWhy.containsKey(t.title)) ...[
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () => _showQuestWhy(context, t),
+                        behavior: HitTestBehavior.opaque,
+                        child: Icon(Icons.info_outline,
+                            size: 13,
+                            color: t.stat.color.withValues(alpha: 0.8)),
+                      ),
+                    ],
+                  ],
+                ),
                 const SizedBox(height: 2),
                 Row(
                   children: [

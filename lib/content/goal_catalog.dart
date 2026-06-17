@@ -458,3 +458,196 @@ const goalCatalog = <GoalIdea>[
     ],
   ),
 ];
+
+/// Per-quest research backing (round-19) — keyed by quest title, this powers the
+/// tappable "why this helps" info-dot on catalog quest rows. Claims are warm and
+/// user-facing; sources are real (PMC/DOI/named authority), honestly hedged where
+/// the evidence is correlational or survey-grade. The inline `// why:` comments
+/// above each quest are the terse dev note; this map is the surfaced copy.
+const questWhy = <String, ({String claim, String source})>{
+  // Keep your space
+  'Make your bed': (
+    claim:
+        'Daily bed-makers report steadier sleep and a small end-of-day sense of '
+        'accomplishment — a tiny keystone habit that anchors the day’s order.',
+    source: 'National Sleep Foundation, Bedroom Poll (survey-grade)',
+  ),
+  'Ten-minute tidy': (
+    claim:
+        'Homes people describe as cluttered rather than restful track with a '
+        'flatter daily stress-hormone rhythm — ten minutes of clearing chips '
+        'away at that load.',
+    source: 'Saxbe & Repetti 2010, PubMed 19934011 (correlational)',
+  ),
+  'Fresh sheets': (
+    claim:
+        'Weekly-washed sheets clear out the dust mites, sweat and dead skin that '
+        'trigger allergies, congestion and broken sleep.',
+    source: 'Cleveland Clinic, sleep-hygiene guidance',
+  ),
+  'One load of laundry': (
+    claim:
+        'Completing a concrete, finishable chore is exactly the kind of '
+        'scheduled activity that behavioral-activation trials show reliably '
+        'lifts mood.',
+    source: 'Cuijpers et al. 2007, behavioral-activation meta-analysis, PMC4061095',
+  ),
+  'Deep-clean one room': (
+    claim:
+        'Homes people find restorative rather than cluttered show healthier '
+        'daily cortisol slopes — one reset room turns a stressor into a refuge.',
+    source: 'Saxbe & Repetti 2010, PubMed 19934011 (correlational)',
+  ),
+  // Tend your plants
+  'Bring home a plant': (
+    claim:
+        'Indoor plants are linked to more positive emotion, less negative '
+        'feeling, and lower blood pressure — one green thing on the sill is a '
+        'real start.',
+    source: 'Han et al. 2022, systematic review & meta-analysis, PMC9224521',
+  ),
+  'Check on your plants': (
+    claim:
+        'More time spent caring for houseplants tracks with higher well-being '
+        'and more everyday mindfulness — the daily noticing is the mechanism, '
+        'not just the watering.',
+    source: 'Ma 2022, houseplant care & mindfulness, PMC9739745',
+  ),
+  'Water what needs it': (
+    claim:
+        'Caring for indoor plants lowered blood pressure and raised calming '
+        'alpha-wave activity compared with a screen-based task.',
+    source: 'Park et al. 2023, plant care & neurophysiology, PMC10557185',
+  ),
+  'Give them a real tending': (
+    claim:
+        'Hands-in-soil transplanting suppressed “fight-or-flight” activity and '
+        'lowered blood pressure versus computer work — a weekly session is where '
+        'the calm really lands.',
+    source: 'Lee et al. 2015, randomized crossover study, PMC4419447',
+  ),
+  // Tend your creatures
+  'Feed on the same schedule': (
+    claim:
+        'Consistent meal times help regulate a pet’s digestion and weight and '
+        'ease food-related anxiety — vets recommend scheduled meals over '
+        'free-feeding.',
+    source: 'American Veterinary Medical Association, feeding guidance',
+  ),
+  'A proper walk or play session': (
+    claim:
+        'Daily walks and play meet a pet’s exercise and enrichment needs — and '
+        'the walk doubles as yours: dog ownership is tied to about 24% lower '
+        'all-cause mortality.',
+    source: 'Mubanga et al. 2019 (DOI 10.1161/CIRCOUTCOMES.119.005554); AHA 2013',
+  ),
+  'Brush their teeth or scrub a bowl': (
+    claim:
+        'Most dogs and cats show dental disease by age three; brushing is the '
+        'single most effective home defense against painful, organ-straining '
+        'decay.',
+    source: 'American Veterinary Medical Association, Pet Dental Care',
+  ),
+  'Everyone’s fed before you sleep': (
+    claim:
+        'Reliable daily care — every creature fed and watered before lights-out '
+        '— is the backbone of pet welfare, and keeps a missed meal from slipping '
+        'by in a busy home.',
+    source: 'American Animal Hospital Association, enrichment guidance',
+  ),
+  'Book the vet checkup': (
+    claim:
+        'An annual wellness exam catches kidney, heart and dental disease early '
+        '— when it’s cheapest and most treatable, before your pet shows '
+        'symptoms.',
+    source: 'AAHA / AVMA preventive-care guidance',
+  ),
+  // Feed yourself well
+  'Start with a glass of water': (
+    claim:
+        'Water in place of sugary drinks is tied to lower diabetes and heart '
+        'risk — and being well-hydrated steadies mood and focus.',
+    source: 'Sugary-drink meta-analysis PMC10050372; hydration RCT PMC6068860',
+  ),
+  'Cook a real meal': (
+    claim:
+        'People who cook at home more often eat measurably better — more fruit '
+        'and veg, higher-quality diets. Simple counts.',
+    source: 'Fenland cohort, n=11,396, PMC5561571',
+  ),
+  'Eat something green': (
+    claim:
+        'Vegetables are how you quietly hit your fiber — around five servings of '
+        'fruit and veg a day tracks with about 13% lower risk of early death.',
+    source: 'Pooled cohorts, Circulation 2021, PMID 33641343',
+  ),
+  'Eat one meal slowly, no screen': (
+    claim:
+        'Slowing down lets your fullness signal land before you overshoot — '
+        'faster eaters are roughly twice as likely to carry excess weight.',
+    source: 'Multi-ethnic cohort PMC7230501; chewing & satiety PMC8323852',
+  ),
+  'Plan the week’s meals': (
+    claim:
+        'A little planning means more variety and a better diet — people who '
+        'plan their meals eat more healthfully and are less likely to be obese.',
+    source: 'NutriNet-Santé, n=40,554, PMC5288891',
+  ),
+  // Tend your money
+  'Check your balance': (
+    claim:
+        'Briefly checking your accounts is financial self-monitoring — the '
+        'awareness it builds links to lower spending, fewer overdrafts, and more '
+        'saving.',
+    source: 'CFPB Making Ends Meet survey; financial-tracking research',
+  ),
+  'Sleep on it before you buy': (
+    claim:
+        'Putting a 24-hour pause between wanting a non-essential and buying it '
+        'lets the impulse settle and your rational brain re-engage — measurably '
+        'cutting overspending.',
+    source: 'Delay / “cooling-off” spending research',
+  ),
+  'Move a little to savings': (
+    claim:
+        'Saving a small amount on a regular rhythm — ideally an automatic '
+        'transfer — is the strongest lever for the emergency cushion that most '
+        'predicts financial well-being.',
+    source: 'Hershfield, Shu & Benartzi 2020; CFPB Emergency Savings 2022',
+  ),
+  'Sit with the numbers': (
+    claim:
+        'A regular money review builds the self-awareness behind better choices '
+        '— and a quick subscription scan catches the forgotten charges people '
+        'bleed \$200+/yr on.',
+    source: 'CFPB Financial Well-Being Scale; subscription-waste surveys',
+  ),
+  // Wind down well
+  'In bed by your hour': (
+    claim:
+        'Sleep regularity matters even more than how long you sleep — the most '
+        'regular sleepers had 20–48% lower mortality than the most irregular, '
+        'independent of duration.',
+    source: 'Windred et al. 2024, SLEEP, UK Biobank (DOI 10.1093/sleep/zsad253)',
+  ),
+  'Wake at the same time': (
+    claim:
+        'A steady wake-up time is the strongest signal your body clock has — '
+        'consistent rise times track with better mood, metabolism, and heart '
+        'health.',
+    source: 'National Sleep Foundation, consensus on sleep regularity',
+  ),
+  'Screens down before sleep': (
+    claim:
+        'Evening screen light delays your melatonin and pushes sleep later — '
+        'even moderate display light before bed lengthens how long it takes to '
+        'fall asleep.',
+    source: 'Höhn et al. 2023, Communications Biology, PMC9974389',
+  ),
+  'Dim the lights an hour before bed': (
+    claim:
+        'Bright room light before bed suppresses melatonin by about 71% — '
+        'dimming the room lets the sleep signal arrive on time.',
+    source: 'Gooley et al. 2011, J Clin Endocrinol Metab, PMC3047226',
+  ),
+};

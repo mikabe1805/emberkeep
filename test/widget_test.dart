@@ -48,7 +48,7 @@ void main() {
 
     expect(find.text('LEVEL 1'), findsOneWidget);
     expect(find.text('Do 2 push-ups'), findsOneWidget);
-    expect(find.text('TODAY · 8 QUESTS LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 9 QUESTS LEFT'), findsOneWidget);
   });
 
   testWidgets('completing a quest marks it done and grants XP', (tester) async {
@@ -57,7 +57,7 @@ void main() {
     await tester.tap(find.text('Walk 10 minutes'));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('TODAY · 7 QUESTS LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 8 QUESTS LEFT'), findsOneWidget);
 
     // let receipt/particle timers and bar fill finish so no timers leak
     // (pumpAndSettle would never settle: ambient animations repeat forever)
@@ -68,22 +68,28 @@ void main() {
 
   testWidgets('undo restores a quest completed by accident', (tester) async {
     await pumpApp(tester);
-    expect(find.text('TODAY · 8 QUESTS LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 9 QUESTS LEFT'), findsOneWidget);
 
     await tester.tap(find.text('Walk 10 minutes'));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('TODAY · 7 QUESTS LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 8 QUESTS LEFT'), findsOneWidget);
 
-    // wait for the celebration to settle and the UNDO snackbar to appear
+    // wait for the deferred commit, which arms swipe-to-undo on the card
     await tester.pump(const Duration(milliseconds: 1400));
-    final undo = find.text('UNDO');
-    expect(undo, findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 800)); // settle snackbar
-    await tester.tap(undo, warnIfMissed: false);
-    await tester.pump(const Duration(milliseconds: 400));
+
+    // swipe the finished card left to undo (the undo snackbar was removed).
+    // Drive it as an explicit gesture — tester.drag doesn't reliably trip a
+    // Dismissible's dismiss threshold.
+    final card = find.byKey(const ValueKey('undo-Walk 10 minutes'));
+    expect(card, findsOneWidget);
+    await tester.ensureVisible(card);
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.fling(card, const Offset(-500, 0), 1500);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
 
     // the quest is back on the board, the completion reverted
-    expect(find.text('TODAY · 8 QUESTS LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 9 QUESTS LEFT'), findsOneWidget);
 
     // settle remaining timers
     await tester.pump(const Duration(seconds: 5));
@@ -92,25 +98,27 @@ void main() {
   testWidgets('rapid double-complete then undo keeps the first quest\'s reward',
       (tester) async {
     await pumpApp(tester);
-    expect(find.text('TODAY · 8 QUESTS LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 9 QUESTS LEFT'), findsOneWidget);
 
     // complete A, then complete B before A's deferred commit fires (~1s)
     await tester.tap(find.text('Walk 10 minutes'));
     await tester.pump(const Duration(milliseconds: 150));
     await tester.tap(find.text('Read one page'));
     await tester.pump(const Duration(milliseconds: 150));
-    expect(find.text('TODAY · 6 QUESTS LEFT'), findsOneWidget);
-
-    // wait for B's commit + the UNDO snackbar, then undo B
-    await tester.pump(const Duration(milliseconds: 1400));
-    final undo = find.text('UNDO');
-    expect(undo, findsOneWidget);
-    await tester.pump(const Duration(milliseconds: 800));
-    await tester.tap(undo, warnIfMissed: false);
-    await tester.pump(const Duration(milliseconds: 400));
-
-    // B reverted (back to 7), and A's reward was NOT destroyed
     expect(find.text('TODAY · 7 QUESTS LEFT'), findsOneWidget);
+
+    // wait for B's commit (arms swipe-to-undo on B's card), then undo B
+    await tester.pump(const Duration(milliseconds: 1400));
+    final cardB = find.byKey(const ValueKey('undo-Read one page'));
+    expect(cardB, findsOneWidget);
+    await tester.ensureVisible(cardB);
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.fling(cardB, const Offset(-500, 0), 1500);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+
+    // B reverted (back to 8), and A's reward was NOT destroyed
+    expect(find.text('TODAY · 8 QUESTS LEFT'), findsOneWidget);
     await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('LEVEL 1 · 0 XP'), findsNothing,
@@ -119,7 +127,7 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
   });
 
-  testWidgets('nav dock switches to Me, Plans and Inspiration', (tester) async {
+  testWidgets('nav dock switches to Me, Plans and Sparks', (tester) async {
     await pumpApp(tester);
 
     await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
@@ -137,7 +145,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.local_florist_outlined));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('Inspiration'), findsOneWidget);
+    expect(find.text('Sparks'), findsOneWidget);
   });
 
   testWidgets('goals page can take on a quest', (tester) async {
@@ -147,8 +155,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Take on quests!'), findsOneWidget);
 
-    // expand "Become a reader" and adopt its first quest
-    await tester.tap(find.text('Become a reader'));
+    // expand the first catalog goal (HOME & HEARTH → "Keep your space", near
+    // the top so the lazy list already has it built) and adopt its first quest
+    await tester.ensureVisible(find.text('Keep your space'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Keep your space'));
     await tester.pump(const Duration(milliseconds: 450));
     await tester.pump(const Duration(milliseconds: 150));
     final takeOn = find.text('TAKE ON').first;
@@ -159,12 +170,12 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.task_alt));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('TODAY · 9 QUESTS LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 10 QUESTS LEFT'), findsOneWidget);
 
     // the new quest is appended — scroll the lazy list to reach it
     await tester.drag(find.text('Do 2 push-ups'), const Offset(0, -500));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Pick a book that excites you'), findsOneWidget);
+    expect(find.text('Make your bed'), findsOneWidget);
 
     // settle the snackbar timer
     await tester.pump(const Duration(seconds: 2));
@@ -306,7 +317,7 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pump(const Duration(milliseconds: 400));
 
-    expect(find.text('TODAY · 9 QUESTS LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 10 QUESTS LEFT'), findsOneWidget);
     expect(find.text('Do the laundry'), findsOneWidget);
     expect(find.text('DUE TODAY'), findsOneWidget);
   });
@@ -328,7 +339,7 @@ void main() {
     // due today → leads the quest list
     await tester.tap(find.byIcon(Icons.task_alt));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('TODAY · 9 QUESTS LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 10 QUESTS LEFT'), findsOneWidget);
     expect(find.text('Finish the essay draft'), findsOneWidget);
     expect(find.text('DUE TODAY'), findsOneWidget);
   });
