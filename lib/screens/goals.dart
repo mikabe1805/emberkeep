@@ -508,50 +508,62 @@ class _YourGoals extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    GestureDetector(
-                      onTap: () => Navigator.of(ctx).pop(),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 9),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          gradient: const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                    Flexible(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(ctx).pop(),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 9),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(999),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                            ),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('KEEP IT',
+                                maxLines: 1,
+                                style: Type.label.copyWith(
+                                    fontSize: 11,
+                                    color: const Color(0xFF3A2510))),
                           ),
                         ),
-                        child: Text('KEEP IT',
-                            style: Type.label.copyWith(
-                                fontSize: 11,
-                                color: const Color(0xFF3A2510))),
                       ),
                     ),
                     const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () {
-                        if (!armed) {
-                          Sfx.instance.play('tick');
-                          setDialog(() => armed = true);
-                          return;
-                        }
-                        Sfx.instance.play('boing');
-                        onRemoveGoal(g);
-                        Navigator.of(ctx).pop();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 9),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                              color: const Color(0xFFE89090)
-                                  .withValues(alpha: armed ? 1 : 0.5)),
+                    Flexible(
+                      child: GestureDetector(
+                        onTap: () {
+                          if (!armed) {
+                            Sfx.instance.play('tick');
+                            setDialog(() => armed = true);
+                            return;
+                          }
+                          Sfx.instance.play('boing');
+                          onRemoveGoal(g);
+                          Navigator.of(ctx).pop();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 18, vertical: 9),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(
+                                color: const Color(0xFFE89090)
+                                    .withValues(alpha: armed ? 1 : 0.5)),
+                          ),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(armed ? 'TAP AGAIN' : 'ABANDON',
+                                maxLines: 1,
+                                style: Type.label.copyWith(
+                                    fontSize: 11,
+                                    color: const Color(0xFFE89090))),
+                          ),
                         ),
-                        child: Text(armed ? 'TAP AGAIN' : 'ABANDON',
-                            style: Type.label.copyWith(
-                                fontSize: 11,
-                                color: const Color(0xFFE89090))),
                       ),
                     ),
                   ],
@@ -611,16 +623,19 @@ class _YourGoals extends StatelessWidget {
                                 fontWeight: FontWeight.w600,
                                 color: Palette.textHi)),
                       ),
-                      Text(
-                          g.complete
-                              ? 'ACHIEVED'
-                              : '${g.progress}/${g.target}'
-                                  '${g.kind == GoalKind.become ? " · MILESTONE" : ""}',
-                          style: Type.label.copyWith(
-                              fontSize: 11,
-                              color: g.complete
-                                  ? Palette.xpLight
-                                  : g.stat.color)),
+                      Flexible(
+                        child: Text(
+                            g.complete
+                                ? 'ACHIEVED'
+                                : '${g.progress}/${g.target}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Type.label.copyWith(
+                                fontSize: 11,
+                                color: g.complete
+                                    ? Palette.xpLight
+                                    : g.stat.color)),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 5),
@@ -692,14 +707,25 @@ class _GoalCardState extends State<_GoalCard> {
                         color: idea.stat.color.withValues(alpha: 0.5)),
                   ),
                   child: Center(
-                    child: Text(idea.stat.abbr,
-                        style: Type.label.copyWith(
-                            fontSize: 11, color: idea.stat.color)),
+                    // scaleDown so longer domain abbrs (CRAFT, PEOPLE) shrink
+                    // to one line in the circle instead of wrapping to two.
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(idea.stat.abbr,
+                            maxLines: 1,
+                            style: Type.label.copyWith(
+                                fontSize: 11, color: idea.stat.color)),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(idea.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: Type.display.copyWith(fontSize: 18)),
                 ),
                 AnimatedRotation(

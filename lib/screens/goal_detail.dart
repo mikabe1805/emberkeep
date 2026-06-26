@@ -161,15 +161,18 @@ class GoalDetailScreen extends StatelessWidget {
                 child: Center(
                   child: goal.complete
                       ? Icon(Icons.emoji_events, size: 46, color: Palette.xpLight)
-                      : Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('${((goal.progress - _tierBase) * t).round()}',
-                                style: Type.numerals
-                                    .copyWith(fontSize: 46, color: _accent)),
-                            Text('/ ${goal.target - _tierBase}',
-                                style: Type.label.copyWith(fontSize: 11)),
-                          ],
+                      : FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('${((goal.progress - _tierBase) * t).round()}',
+                                  style: Type.numerals
+                                      .copyWith(fontSize: 46, color: _accent)),
+                              Text('/ ${goal.target - _tierBase}',
+                                  style: Type.label.copyWith(fontSize: 11)),
+                            ],
+                          ),
                         ),
                 ),
               ),
@@ -230,10 +233,17 @@ class GoalDetailScreen extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: _accent),
             const SizedBox(height: 8),
-            Text(value,
-                style: Type.numerals.copyWith(fontSize: 22, color: _accent)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(value,
+                  maxLines: 1,
+                  style: Type.numerals.copyWith(fontSize: 22, color: _accent)),
+            ),
             const SizedBox(height: 2),
-            Text(label, style: Type.label.copyWith(fontSize: 11)),
+            Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Type.label.copyWith(fontSize: 11)),
           ],
         ),
       ),
@@ -255,11 +265,11 @@ class GoalDetailScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Flexible(
+              Expanded(
                   child: Text('QUESTS SERVING THIS GOAL',
                       overflow: TextOverflow.ellipsis,
                       style: Type.label.copyWith(fontSize: 11))),
-              const Spacer(),
+              const SizedBox(width: 8),
               if (related.isNotEmpty)
                 Container(
                   padding:

@@ -119,22 +119,31 @@ class _RewardReceiptState extends State<RewardReceipt>
     final totalMs = _c.duration!.inMilliseconds.toDouble();
     final staggerMs = Motion.bubbleStagger.inMilliseconds.toDouble();
 
+    // Keep the whole bubble stack on screen: estimate its height and clamp the
+    // top so the bottom never runs off the bottom edge (stack can be ~10 tall).
+    final stackH = 60.0 * _bubbles.length;
+    final top = (widget.anchor.dy - stackH)
+        .clamp(8.0, (screen.height - stackH - 16).clamp(8.0, screen.height));
+
     return Positioned(
       left: (widget.anchor.dx - 110).clamp(8.0, screen.width - 228),
-      top: (widget.anchor.dy - 60.0 * (_bubbles.length + 1))
-          .clamp(8.0, screen.height - 300),
+      top: top,
       child: OverlaySurface(
         child: IgnorePointer(
         child: AnimatedBuilder(
           animation: _c,
           builder: (context, _) {
             final elapsed = _c.value * totalMs;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                for (var i = 0; i < _bubbles.length; i++)
-                  _bubbleView(_bubbles[i], elapsed - i * staggerMs, totalMs),
-              ],
+            return ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: screen.height - 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < _bubbles.length; i++)
+                    _bubbleView(_bubbles[i], elapsed - i * staggerMs, totalMs),
+                ],
+              ),
             );
           },
         ),
@@ -176,6 +185,11 @@ class _RewardReceiptState extends State<RewardReceipt>
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              // wide message wraps to multiple lines; keep the icon on the
+              // first line rather than vertically centered across the block.
+              crossAxisAlignment: b.wide
+                  ? CrossAxisAlignment.start
+                  : CrossAxisAlignment.center,
               children: [
                 Icon(b.icon, size: b.wide ? 13 : 16, color: b.color),
                 const SizedBox(width: 6),
@@ -190,6 +204,8 @@ class _RewardReceiptState extends State<RewardReceipt>
                         )
                       : Text(
                           b.text,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: Type.numerals
                               .copyWith(fontSize: 13, color: b.color),
                         ),

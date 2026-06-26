@@ -42,6 +42,13 @@ dependencies:
   cloud_firestore: ^6.5.0
   web: ^1.1.1
   share_plus: ^13.1.0
+  # Local notifications are NATIVE-only (no web support); all calls are behind
+  # a conditional import (platform/notifications_stub.dart on web) so the web
+  # build never compiles the plugin. timezone + flutter_timezone power the
+  # zoned daily/event scheduling.
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.9.4
+  flutter_timezone: ^3.0.1
 
 dev_dependencies:
   flutter_test:

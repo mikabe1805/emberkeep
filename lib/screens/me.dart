@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,7 @@ import '../content/evidence.dart';
 import '../content/stat_ranks.dart';
 import '../content/themes.dart';
 import '../engine.dart';
+import '../notifications.dart';
 import '../storage.dart';
 import '../tokens.dart';
 import '../widgets/glass.dart';
@@ -30,6 +32,7 @@ class MePage extends StatelessWidget {
     required this.onExport,
     required this.onImport,
     required this.onReset,
+    required this.onNotifyChanged,
     required this.onLinkAccount,
     required this.onSignIn,
     required this.onSignOut,
@@ -45,6 +48,9 @@ class MePage extends StatelessWidget {
 
   /// Erases everything and starts a fresh character (guarded by a dialog).
   final VoidCallback onReset;
+
+  /// Re-applies local reminders after a settings change (native-only).
+  final Future<void> Function() onNotifyChanged;
 
   /// Links an email/password to the current data; null = success.
   final Future<String?> Function(String email, String pw) onLinkAccount;
@@ -67,18 +73,24 @@ class MePage extends StatelessWidget {
             children: [
               Text('Me', style: Type.display.copyWith(fontSize: 30)),
               const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: Palette.xp.withValues(alpha: 0.16),
-                  border:
-                      Border.all(color: Palette.xp.withValues(alpha: 0.45)),
+              Flexible(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: Palette.xp.withValues(alpha: 0.16),
+                    border:
+                        Border.all(color: Palette.xp.withValues(alpha: 0.45)),
+                  ),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('LEVEL ${state.level} · ${state.totalXp} XP',
+                        maxLines: 1,
+                        style: Type.label
+                            .copyWith(fontSize: 11, color: Palette.xp)),
+                  ),
                 ),
-                child: Text('LEVEL ${state.level} · ${state.totalXp} XP',
-                    style:
-                        Type.label.copyWith(fontSize: 11, color: Palette.xp)),
               ),
             ],
           ),
@@ -112,6 +124,28 @@ class MePage extends StatelessWidget {
                         fontSize: 13,
                         fontStyle: FontStyle.italic,
                         color: Palette.textLo)),
+                if (state.equippedSkin != null) ...[
+                  const SizedBox(height: 8),
+                  Builder(builder: (_) {
+                    final tint = cosmeticFor(state.equippedSkin)?.aura ??
+                        Palette.unlock;
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.auto_awesome, size: 13, color: tint),
+                        const SizedBox(width: 5),
+                        Flexible(
+                          child: Text(
+                              'WEARING ${state.equippedSkin!.toUpperCase()}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Type.label
+                                  .copyWith(fontSize: 11, color: tint)),
+                        ),
+                      ],
+                    );
+                  }),
+                ],
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
@@ -192,6 +226,81 @@ class MePage extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
+          // ── reminders (native local notifications) ───────────────
+          GlassPanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('REMINDERS',
+                        style: Type.label.copyWith(fontSize: 11)),
+                    const Spacer(),
+                    Switch(
+                      value: state.notifyEnabled,
+                      activeThumbColor: Palette.xp,
+                      onChanged: (v) async {
+                        if (v) await Notifications.requestPermission();
+                        state.setNotify(enabled: v);
+                        await onNotifyChanged();
+                      },
+                    ),
+                  ],
+                ),
+                Text(
+                    kIsWeb
+                        ? 'a daily nudge + plan reminders — these ring on the installed app'
+                        : 'a daily nudge to light your first ember, plus reminders for dated plans',
+                    style: Type.body.copyWith(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: Palette.textLo)),
+                if (state.notifyEnabled) ...[
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () async {
+                      final picked = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay(
+                            hour: state.notifyHour,
+                            minute: state.notifyMinute),
+                      );
+                      if (picked == null) return;
+                      state.setNotify(
+                          hour: picked.hour, minute: picked.minute);
+                      await onNotifyChanged();
+                    },
+                    child: Row(
+                      children: [
+                        const Icon(Icons.schedule,
+                            size: 16, color: Palette.xpLight),
+                        const SizedBox(width: 8),
+                        Text('Daily nudge at',
+                            style: Type.body.copyWith(
+                                fontSize: 13, color: Palette.textMid)),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: Palette.glassEdge),
+                          ),
+                          child: Text(
+                              _fmtTime(state.notifyHour, state.notifyMinute),
+                              style: Type.numerals
+                                  .copyWith(fontSize: 14, color: Palette.xp)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
           // ── the build shape ──────────────────────────────────────
           GlassPanel(
             child: Column(
@@ -265,7 +374,7 @@ class MePage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('skins you’ve found and earned — tap to wear one',
+                  Text('skins you’ve found and earned — tap to try one on',
                       style: Type.body.copyWith(
                           fontSize: 11,
                           fontStyle: FontStyle.italic,
@@ -286,12 +395,11 @@ class MePage extends StatelessWidget {
                           final rarity = cos?.rarity ?? Rarity.common;
                           final legendary = rarity == Rarity.legendary;
                           return GestureDetector(
-                            onTap: () {
-                              Sfx.instance.play(worn ? 'tick' : 'streak');
-                              HapticFeedback.selectionClick();
-                              state.equipSkin(loot);
-                            },
-                            child: Container(
+                            onTap: () =>
+                                _showSkinPreview(context, state, loot),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 300),
+                              child: Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
@@ -322,10 +430,14 @@ class MePage extends StatelessWidget {
                                         shape: BoxShape.circle, color: tint),
                                   ),
                                   const SizedBox(width: 6),
-                                  Text(loot,
-                                      style: Type.body.copyWith(
-                                          fontSize: 13,
-                                          color: Palette.textMid)),
+                                  Flexible(
+                                    child: Text(loot,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Type.body.copyWith(
+                                            fontSize: 13,
+                                            color: Palette.textMid)),
+                                  ),
                                   if (worn) ...[
                                     const SizedBox(width: 6),
                                     Text('WORN',
@@ -338,6 +450,7 @@ class MePage extends StatelessWidget {
                                   ],
                                 ],
                               ),
+                            ),
                             ),
                           );
                         }),
@@ -433,8 +546,8 @@ class MePage extends StatelessWidget {
                             backgroundColor: Palette.card,
                             content: Text(
                                 ok
-                                    ? 'Usage log copied — on-device only. Hand it to Claude for ideas.'
-                                    : 'No usage logged yet — come back after a few days.',
+                                    ? 'Usage log copied to your clipboard — it never leaves your device.'
+                                    : 'No usage logged yet — check back after a few days.',
                                 style: Type.body
                                     .copyWith(color: Palette.textHi)),
                           ),
@@ -606,6 +719,187 @@ class MePage extends StatelessWidget {
 
 /// The "why this works" popup (RESEARCH-momentum.md §7) — the signature
 /// stats-grow-with-evidence principle, reachable right from a stat row.
+/// 24h hour/minute → a friendly 12-hour clock label ("9:00 AM").
+String _fmtTime(int hour, int minute) {
+  final ampm = hour < 12 ? 'AM' : 'PM';
+  var h = hour % 12;
+  if (h == 0) h = 12;
+  return '$h:${minute.toString().padLeft(2, '0')} $ampm';
+}
+
+/// Tap a trophy to learn what it is, how to earn it, and what it grants.
+void _showAchievementInfo(
+    BuildContext context, Achievement a, bool unlocked, (int, int)? progress) {
+  Sfx.instance.play('tick');
+  showDialog(
+    context: context,
+    barrierColor: const Color(0xCC140C06),
+    builder: (_) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(28),
+      child: GlassPanel(
+        tint: const Color(0xF22A211D),
+        glow: unlocked,
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: unlocked
+                    ? Palette.xpLight.withValues(alpha: 0.16)
+                    : Palette.glassFill,
+                border: Border.all(
+                    color: unlocked
+                        ? Palette.xpLight.withValues(alpha: 0.7)
+                        : Palette.glassEdge),
+                boxShadow: unlocked
+                    ? const [
+                        BoxShadow(color: Palette.honeyGlow, blurRadius: 16)
+                      ]
+                    : const [],
+              ),
+              child: Icon(unlocked ? a.icon : Icons.lock_outline,
+                  size: 30,
+                  color: unlocked ? Palette.xpLight : Palette.textLo),
+            ),
+            const SizedBox(height: 14),
+            Text(a.title,
+                textAlign: TextAlign.center,
+                style: Type.display.copyWith(fontSize: 20)),
+            const SizedBox(height: 8),
+            Text(a.desc,
+                textAlign: TextAlign.center,
+                style:
+                    Type.body.copyWith(fontSize: 14, color: Palette.textMid)),
+            const SizedBox(height: 14),
+            Text(
+              unlocked
+                  ? 'UNLOCKED ✓'
+                  : progress != null
+                      ? '${progress.$1} / ${progress.$2}'
+                      : 'LOCKED',
+              style: Type.label.copyWith(
+                  fontSize: 12,
+                  color: unlocked ? Palette.success : Palette.textLo),
+            ),
+            if (a.cosmetic != null) ...[
+              const SizedBox(height: 12),
+              Text('EARNS THE ${a.cosmetic!.toUpperCase()} SKIN',
+                  textAlign: TextAlign.center,
+                  style: Type.label
+                      .copyWith(fontSize: 11, color: Palette.unlock)),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Try-on a skin before wearing it: a big portrait shows the aura live, with
+/// the rarity + flavor and a wear/take-off toggle (customization you can see).
+void _showSkinPreview(BuildContext context, GameState state, String loot) {
+  final cos = cosmeticFor(loot);
+  final tint = cos?.aura ?? Palette.unlock;
+  final rarity = cos?.rarity ?? Rarity.common;
+  Sfx.instance.play('tick');
+  showDialog(
+    context: context,
+    barrierColor: const Color(0xCC140C06),
+    builder: (_) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(28),
+      child: ListenableBuilder(
+        listenable: state,
+        builder: (_, _) {
+          final worn = state.equippedSkin == loot;
+          return GlassPanel(
+            tint: const Color(0xF22A211D),
+            glow: true,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Portrait(
+                  size: 120,
+                  aura: tint,
+                  level: state.level,
+                  badge: cos?.badge ?? false,
+                  trait: state.portraitTrait,
+                ),
+                const SizedBox(height: 16),
+                Text(loot,
+                    textAlign: TextAlign.center,
+                    style: Type.display.copyWith(fontSize: 20)),
+                const SizedBox(height: 4),
+                Text(rarity.name.toUpperCase(),
+                    style: Type.label
+                        .copyWith(fontSize: 11, color: rarityColor(rarity))),
+                if (cos?.blurb != null) ...[
+                  const SizedBox(height: 8),
+                  Text(cos!.blurb!,
+                      textAlign: TextAlign.center,
+                      style: Type.body.copyWith(
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                          color: Palette.textMid)),
+                ],
+                const SizedBox(height: 20),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    Sfx.instance.play(worn ? 'tick' : 'streak');
+                    HapticFeedback.selectionClick();
+                    state.equipSkin(loot);
+                  },
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 28, vertical: 11),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      gradient: worn
+                          ? null
+                          : LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                tint.withValues(alpha: 0.92),
+                                tint.withValues(alpha: 0.6),
+                              ],
+                            ),
+                      border:
+                          worn ? Border.all(color: Palette.glassEdge) : null,
+                      boxShadow: worn
+                          ? null
+                          : [
+                              BoxShadow(
+                                  color: tint.withValues(alpha: 0.4),
+                                  blurRadius: 16),
+                            ],
+                    ),
+                    child: Text(worn ? 'TAKE IT OFF' : 'WEAR THIS',
+                        style: Type.label.copyWith(
+                            fontSize: 12,
+                            color: worn
+                                ? Palette.textLo
+                                : const Color(0xFF2A211D))),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}
+
 void _showStatEvidence(BuildContext context, Stat stat) {
   final card = evidenceForStat(stat);
   if (card == null) return;
@@ -704,7 +998,7 @@ class _StatRow extends StatelessWidget {
                             .copyWith(fontSize: 12, color: stat.color)),
                     if (toNext != null) ...[
                       const SizedBox(width: 4),
-                      Text('· +$toNext to rank up',
+                      Text('· +$toNext',
                           style: Type.label.copyWith(fontSize: 11)),
                     ],
                     // the signature beat: tap to learn why this stat matters
@@ -1001,7 +1295,11 @@ class _TrophyTile extends StatelessWidget {
     final p = progress;
     final showProgress =
         !unlocked && p != null && p.$1 > 0 && p.$1 < p.$2;
-    return Tooltip(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () =>
+          _showAchievementInfo(context, achievement, unlocked, progress),
+      child: Tooltip(
       message: achievement.desc,
       textStyle: Type.body.copyWith(fontSize: 11, color: Palette.textHi),
       decoration: BoxDecoration(
@@ -1069,6 +1367,7 @@ class _TrophyTile extends StatelessWidget {
             ],
           ],
         ),
+      ),
       ),
     );
   }

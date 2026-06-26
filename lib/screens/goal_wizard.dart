@@ -446,11 +446,15 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                     const SizedBox(width: 1),
                     Icon(Icons.flag, size: 15, color: _stat.color),
                     const SizedBox(width: 9),
-                    Text(_name.text.trim(),
-                        style: Type.body.copyWith(
-                            fontSize: 13,
-                            fontStyle: FontStyle.italic,
-                            color: _stat.color)),
+                    Expanded(
+                      child: Text(_name.text.trim(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.body.copyWith(
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                              color: _stat.color)),
+                    ),
                   ],
                 ),
               ],
@@ -555,8 +559,13 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                             style: Type.body.copyWith(
                                 fontSize: 13, color: Palette.textHi)),
                       ),
-                      Text(d.scheduleLabel,
-                          style: Type.label.copyWith(fontSize: 11)),
+                      Flexible(
+                        child: Text(d.scheduleLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
+                            style: Type.label.copyWith(fontSize: 11)),
+                      ),
                     ],
                   ),
                 ),
@@ -716,13 +725,15 @@ class _QuestForgeState extends State<_QuestForge> {
             ],
           ),
           if (schedulable) ...[
-            Row(
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
               children: [
                 for (final s in const [
                   QuestSchedule.daily,
                   QuestSchedule.weekly,
                   QuestSchedule.monthly
-                ]) ...[
+                ])
                   GestureDetector(
                     onTap: () => setState(() => _schedule = s),
                     child: Container(
@@ -745,8 +756,6 @@ class _QuestForgeState extends State<_QuestForge> {
                                   : Palette.textLo)),
                     ),
                   ),
-                  const SizedBox(width: 6),
-                ],
               ],
             ),
             const SizedBox(height: 8),

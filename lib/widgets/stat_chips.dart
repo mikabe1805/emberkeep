@@ -129,14 +129,22 @@ class _StatChipState extends State<_StatChip>
             ),
             child: Column(
               children: [
-                Text(widget.stat.abbr,
-                    style: Type.label.copyWith(fontSize: 9, color: c)),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(widget.stat.abbr,
+                      maxLines: 1,
+                      style: Type.label.copyWith(fontSize: 9, color: c)),
+                ),
                 const SizedBox(height: 2),
                 TweenAnimationBuilder<int>(
                   tween: IntTween(begin: _shownFrom, end: widget.value),
                   duration: Motion.settle,
-                  builder: (_, v, _) => Text('$v',
-                      style: Type.numerals.copyWith(fontSize: 14)),
+                  builder: (_, v, _) => FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('$v',
+                        maxLines: 1,
+                        style: Type.numerals.copyWith(fontSize: 14)),
+                  ),
                 ),
               ],
             ),

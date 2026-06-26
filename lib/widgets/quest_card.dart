@@ -125,12 +125,15 @@ class _QuestCardState extends State<QuestCard>
                                 done ? TextDecoration.lineThrough : null,
                             decorationColor: Palette.textLo,
                           ),
-                          child: Text(q.displayTitle),
+                          child: Text(q.displayTitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
                         ),
                         Builder(builder: (_) {
-                          // Each meta tag is a self-contained chip; a Wrap lets
-                          // them flow to a second line instead of overflowing a
-                          // Row on a narrow phone now that the type is larger.
+                          // Short status chips in a Wrap (reflow, never
+                          // overflow). Time-sensitive ones (due / schedule /
+                          // bonus) drop once done, so a finished card never
+                          // reads "STILL WAITING".
                           final chips = <Widget>[
                             if (q.workout)
                               _MetaChip(Icons.fitness_center, 'GUIDED',
@@ -140,16 +143,16 @@ class _QuestCardState extends State<QuestCard>
                                   Icons.star, 'MAIN', Palette.xpLight),
                             if (q.allDay)
                               _MetaChip(Icons.nightlight_round,
-                                  'ALL DAY · CHECKS AT NIGHT', Palette.unlock),
+                                  'ALL DAY', Palette.unlock),
                             if (q.rising)
                               _MetaChip(
                                   Icons.trending_up,
                                   '${q.risingStreak}/${Quest.risesAt}',
                                   Palette.streak),
-                            if (q.bonus)
+                            if (!done && q.bonus)
                               _MetaChip(Icons.bolt, 'BONUS · TODAY',
                                   Palette.streak)
-                            else if (q.isEvent)
+                            else if (!done && q.isEvent)
                               Builder(builder: (_) {
                                 final now = DateTime.now();
                                 final overdue = q.dueDate!.isBefore(DateTime(
@@ -161,24 +164,48 @@ class _QuestCardState extends State<QuestCard>
                                         ? Palette.streak
                                         : Palette.xpLight);
                               })
-                            else if (q.schedule != QuestSchedule.daily)
+                            else if (!done &&
+                                q.schedule != QuestSchedule.daily)
                               _MetaChip(null, q.schedule.label,
                                   Palette.xpLight.withValues(alpha: 0.8)),
                             if (q.verification == Verification.timer)
                               _MetaChip(Icons.timer_outlined,
                                   '${q.timerMinutes}M PROOF ×1.2',
                                   Palette.verify),
-                            if (q.ladderHint != null)
-                              _MetaChip(null, q.ladderHint!, Palette.textLo),
                           ];
-                          if (chips.isEmpty) return const SizedBox.shrink();
+                          final hint = q.ladderHint;
+                          if (chips.isEmpty && hint == null) {
+                            return const SizedBox.shrink();
+                          }
                           return Padding(
                             padding: const EdgeInsets.only(top: 5),
-                            child: Wrap(
-                              spacing: 10,
-                              runSpacing: 4,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: chips,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (chips.isNotEmpty)
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 4,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: chips,
+                                  ),
+                                // a ladder hint can be long ("WHO’S THIRSTY ·
+                                // WHO’S REACHING FOR LIGHT") — give it its own
+                                // ellipsized line so it never runs under the
+                                // XP chip on the right.
+                                if (hint != null)
+                                  Padding(
+                                    padding: EdgeInsets.only(
+                                        top: chips.isNotEmpty ? 4 : 0),
+                                    child: Text(hint,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Type.label.copyWith(
+                                            fontSize: 11,
+                                            color: Palette.textLo)),
+                                  ),
+                              ],
                             ),
                           );
                         }),

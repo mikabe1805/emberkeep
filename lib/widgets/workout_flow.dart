@@ -422,9 +422,14 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         : m.isCooldown
             ? 'COOL-DOWN'
             : 'MOVE ${_i + 1} OF ${_moves.length}';
-    return Column(
+    return LayoutBuilder(
       key: ValueKey('move-$_i'),
-      children: [
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
+            child: Column(
+              children: [
         const SizedBox(height: 4),
         // top bar: progress + pause/close
         Row(
@@ -456,6 +461,8 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         const SizedBox(height: 6),
         Text(easier ? '${m.name} · easier' : m.name,
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: Type.display.copyWith(fontSize: 26)),
         const SizedBox(height: 16),
         Expanded(
@@ -524,7 +531,11 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                     .copyWith(fontSize: 11, color: Palette.success)),
           ),
         const SizedBox(height: 6),
-      ],
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -586,10 +597,15 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           ),
         ),
         const SizedBox(height: 6),
-        Text(m.perSide ? '$_repCount / $target each side' : '$_repCount / $target',
-            style: Type.numerals.copyWith(
-                fontSize: 28,
-                color: reached ? Palette.success : Palette.textHi)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+              m.perSide ? '$_repCount / $target each side' : '$_repCount / $target',
+              maxLines: 1,
+              style: Type.numerals.copyWith(
+                  fontSize: 28,
+                  color: reached ? Palette.success : Palette.textHi)),
+        ),
         Text(reached ? 'nice — tap DONE' : 'tap the figure to count',
             style: Type.label.copyWith(fontSize: 11)),
       ],
@@ -599,10 +615,15 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
   // ── rest screen ──────────────────────────────────────────────────
   Widget _restScreen() {
     final progress = _total == 0 ? 1.0 : (1 - _remaining / _total).clamp(0.0, 1.0);
-    return Column(
+    return LayoutBuilder(
       key: const ValueKey('rest'),
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
         Text('REST', style: Type.label.copyWith(fontSize: 11, color: Palette.info)),
         const SizedBox(height: 20),
         SizedBox(
@@ -643,16 +664,25 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           _ticker?.cancel();
           _next();
         }),
-      ],
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   // ── paused screen ────────────────────────────────────────────────
   Widget _pausedScreen() {
-    return Column(
+    return LayoutBuilder(
       key: const ValueKey('paused'),
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
         const Icon(Icons.pause_circle_outline,
             size: 40, color: Palette.xpLight),
         const SizedBox(height: 12),
@@ -671,7 +701,11 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           child: Text('end early — bank what you did',
               style: Type.label.copyWith(fontSize: 11, color: Palette.streak)),
         ),
-      ],
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 

@@ -468,7 +468,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(q.displayTitle, style: Type.display.copyWith(fontSize: 17)),
+                Text(q.displayTitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.display.copyWith(fontSize: 17)),
                 if (q.goalTitle != null) ...[
                   const SizedBox(height: 2),
                   Text('part of “${q.goalTitle}”',
@@ -1079,9 +1082,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                   style: Type.label.copyWith(fontSize: 13)),
                               // clamp: pre-level-up overflow reads as a
                               // full bar, never "130 / 105"
-                              Text('${min(_state.xp, next)} / $next XP',
-                                  style: Type.numerals.copyWith(
-                                      fontSize: 16, color: Palette.xp)),
+                              Flexible(
+                                child: Text('${min(_state.xp, next)} / $next XP',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Type.numerals.copyWith(
+                                        fontSize: 16, color: Palette.xp)),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -1130,7 +1137,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             children: [
               Expanded(
                 child: Text(
-                    showFocus ? 'FOCUS MODE' : 'TODAY · $remaining QUESTS LEFT',
+                    showFocus ? 'FOCUS MODE' : 'TODAY · $remaining LEFT',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Type.label.copyWith(
@@ -1943,37 +1950,42 @@ class _MomentumChip extends StatelessWidget {
     final fg = highlight ? const Color(0xFF3A2510) : Palette.xpLight;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          gradient: highlight
-              ? const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
-                )
-              : null,
-          border: highlight
-              ? null
-              : Border.all(color: Palette.xpLight.withValues(alpha: 0.5)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: Type.label.copyWith(fontSize: 11, color: fg)),
-            if (sub != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 1),
-                child: Text(sub!,
-                    style: Type.body.copyWith(
-                        fontSize: 11,
-                        color: highlight
-                            ? const Color(0xFF3A2510)
-                            : Palette.textMid)),
-              ),
-          ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 160),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            gradient: highlight
+                ? const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                  )
+                : null,
+            border: highlight
+                ? null
+                : Border.all(color: Palette.xpLight.withValues(alpha: 0.5)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: Type.label.copyWith(fontSize: 11, color: fg)),
+              if (sub != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 1),
+                  child: Text(sub!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.body.copyWith(
+                          fontSize: 11,
+                          color: highlight
+                              ? const Color(0xFF3A2510)
+                              : Palette.textMid)),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -2012,6 +2024,8 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
             Text('TUNE THIS QUEST', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 4),
             Text(widget.quest.displayTitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: Type.display.copyWith(fontSize: 16)),
             const SizedBox(height: 12),
             Text('TRAINS', style: Type.label.copyWith(fontSize: 11)),

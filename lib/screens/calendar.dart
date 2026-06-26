@@ -180,7 +180,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     color: isToday ? Palette.xp : Palette.textMid)),
             const SizedBox(height: 2),
             SizedBox(
-              height: 6,
+              height: 11,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -282,6 +282,8 @@ class _DayPanel extends StatelessWidget {
                 child: Text(
                     '${day.day}.${day.month}.${day.year}'
                     '${Days.sameDay(day, now) ? " · TODAY" : ""}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: Type.label.copyWith(fontSize: 11)),
               ),
               if (!isPast)
@@ -343,6 +345,8 @@ class _DayPanel extends StatelessWidget {
                   const SizedBox(width: 9),
                   Expanded(
                     child: Text(e.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: Type.body.copyWith(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w600,
@@ -426,6 +430,8 @@ class _AddEventDialogState extends State<_AddEventDialog> {
           children: [
             Text(
                 'PLAN FOR ${widget.day.day}.${widget.day.month}.${widget.day.year}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 10),
             TextField(

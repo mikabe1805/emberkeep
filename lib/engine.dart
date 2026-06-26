@@ -36,6 +36,19 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Local-reminder prefs (round-22). Native-only — the scheduling no-ops on
+  /// web (see notifications.dart). Default off; default nudge at 9:00am.
+  bool notifyEnabled = false;
+  int notifyHour = 9;
+  int notifyMinute = 0;
+
+  void setNotify({bool? enabled, int? hour, int? minute}) {
+    if (enabled != null) notifyEnabled = enabled;
+    if (hour != null) notifyHour = hour;
+    if (minute != null) notifyMinute = minute;
+    notifyListeners();
+  }
+
   /// Wall-clock ms of the last save — the "newness" signal cloud sync uses
   /// to decide which copy wins (a stale device must never clobber a newer
   /// cloud save). Stamped by the shell on every persist.
@@ -579,6 +592,9 @@ class GameState extends ChangeNotifier {
         'playerName': playerName,
         'onboarded': onboarded,
         'focusMode': focusMode,
+        'notifyEnabled': notifyEnabled,
+        'notifyHour': notifyHour,
+        'notifyMinute': notifyMinute,
         'lastModified': lastModified,
         'level': level,
         'xp': xp,
@@ -625,6 +641,9 @@ class GameState extends ChangeNotifier {
     s.playerName = j['playerName'] as String?;
     s.onboarded = j['onboarded'] as bool? ?? true; // pre-existing saves skip
     s.focusMode = j['focusMode'] as bool? ?? false;
+    s.notifyEnabled = j['notifyEnabled'] as bool? ?? false;
+    s.notifyHour = j['notifyHour'] as int? ?? 9;
+    s.notifyMinute = j['notifyMinute'] as int? ?? 0;
     s.lastModified = j['lastModified'] as int? ?? 0;
     s.level = j['level'] as int? ?? 1;
     s.xp = j['xp'] as int? ?? 0;

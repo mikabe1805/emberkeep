@@ -247,48 +247,60 @@ class _NightFlowState extends State<NightFlow> {
                 for (final q in openAllDay)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(q.title,
-                              style: Type.body.copyWith(
-                                  fontSize: 13.5, color: Palette.textHi)),
-                        ),
-                        Text('+${widget.state.xpPreview(q)} XP',
-                            style: Type.numerals.copyWith(
-                                fontSize: 11, color: Palette.xp)),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => _confirmAllDay(q),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 11, vertical: 6),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                  color: Palette.success
-                                      .withValues(alpha: 0.6)),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(q.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Type.body.copyWith(
+                                      fontSize: 13.5, color: Palette.textHi)),
                             ),
-                            child: Text('HELD IT',
-                                style: Type.label.copyWith(
-                                    fontSize: 11, color: Palette.success)),
-                          ),
+                            const SizedBox(width: 8),
+                            Text('+${widget.state.xpPreview(q)} XP',
+                                style: Type.numerals.copyWith(
+                                    fontSize: 11, color: Palette.xp)),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: () => _logSlip(q),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 11, vertical: 6),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                  color: Palette.textLo
-                                      .withValues(alpha: 0.4)),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => _confirmAllDay(q),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 11, vertical: 6),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                      color: Palette.success
+                                          .withValues(alpha: 0.6)),
+                                ),
+                                child: Text('HELD IT',
+                                    style: Type.label.copyWith(
+                                        fontSize: 11, color: Palette.success)),
+                              ),
                             ),
-                            child: Text('NOT TODAY',
-                                style: Type.label.copyWith(fontSize: 11)),
-                          ),
+                            const SizedBox(width: 6),
+                            GestureDetector(
+                              onTap: () => _logSlip(q),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 11, vertical: 6),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                      color: Palette.textLo
+                                          .withValues(alpha: 0.4)),
+                                ),
+                                child: Text('NOT TODAY',
+                                    style: Type.label.copyWith(fontSize: 11)),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -345,65 +357,81 @@ class _NightFlowState extends State<NightFlow> {
                 for (final q in risers)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(q.displayTitle,
-                                  style: Type.body.copyWith(
-                                      fontSize: 13.5, color: Palette.textHi)),
-                              if (q.canRise)
-                                Text('→ ${q.ladder![q.rung + 1]}',
-                                    style: Type.body.copyWith(
-                                        fontSize: 11,
-                                        color: Palette.streak)),
-                            ],
-                          ),
-                        ),
-                        if (!q.canRise)
-                          Text('d${q.difficulty} → d${(q.difficulty + 1).clamp(1, q.custom ? 8 : 10)}',
-                              style: Type.numerals.copyWith(
-                                  fontSize: 11, color: Palette.streak)),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => _rise(q),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 11, vertical: 6),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(999),
-                              gradient: const LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Color(0xFFF2CD93),
-                                  Color(0xFFC08B4F)
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(q.displayTitle,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Type.body.copyWith(
+                                          fontSize: 13.5,
+                                          color: Palette.textHi)),
+                                  if (q.canRise)
+                                    Text('→ ${q.ladder![q.rung + 1]}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Type.body.copyWith(
+                                            fontSize: 11,
+                                            color: Palette.streak)),
                                 ],
                               ),
                             ),
-                            child: Text('RISE',
-                                style: Type.label.copyWith(
-                                    fontSize: 11,
-                                    color: const Color(0xFF3A2510))),
-                          ),
+                            if (!q.canRise) ...[
+                              const SizedBox(width: 8),
+                              Text('d${q.difficulty} → d${(q.difficulty + 1).clamp(1, q.custom ? 8 : 10)}',
+                                  style: Type.numerals.copyWith(
+                                      fontSize: 11, color: Palette.streak)),
+                            ],
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: () => _notYet(q),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 11, vertical: 6),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                  color: Palette.textLo
-                                      .withValues(alpha: 0.4)),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => _rise(q),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 11, vertical: 6),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Color(0xFFF2CD93),
+                                      Color(0xFFC08B4F)
+                                    ],
+                                  ),
+                                ),
+                                child: Text('RISE',
+                                    style: Type.label.copyWith(
+                                        fontSize: 11,
+                                        color: const Color(0xFF3A2510))),
+                              ),
                             ),
-                            child: Text('NOT YET',
-                                style: Type.label.copyWith(fontSize: 11)),
-                          ),
+                            const SizedBox(width: 6),
+                            GestureDetector(
+                              onTap: () => _notYet(q),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 11, vertical: 6),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                      color: Palette.textLo
+                                          .withValues(alpha: 0.4)),
+                                ),
+                                child: Text('NOT YET',
+                                    style: Type.label.copyWith(fontSize: 11)),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -432,6 +460,9 @@ class _NightFlowState extends State<NightFlow> {
                   '$done quest${done == 1 ? "" : "s"} · streak day ${s.streakDays}'
                   '${s.bestStreak > s.streakDays ? " · best ${s.bestStreak}" : ""}'
                   '${s.streakShields > 0 ? " · 🛡️${s.streakShields}" : ""}',
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: Type.body
                       .copyWith(fontSize: 13, color: Palette.textLo)),
               const SizedBox(height: 12),
@@ -608,8 +639,13 @@ class _NightFlowState extends State<NightFlow> {
                             style: Type.body.copyWith(
                                 fontSize: 13.5, color: Palette.textHi)),
                       ),
-                      Text(q.bonus ? 'BONUS' : (q.isEvent ? 'DUE' : q.schedule.label),
-                          style: Type.label.copyWith(fontSize: 11)),
+                      Flexible(
+                        child: Text(
+                            q.bonus ? 'BONUS' : (q.isEvent ? 'DUE' : q.schedule.label),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Type.label.copyWith(fontSize: 11)),
+                      ),
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () {
@@ -896,33 +932,53 @@ class MorningFlow extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    Column(
-                      children: [
-                        Text('ON THE TABLE',
-                            style: Type.label.copyWith(fontSize: 11)),
-                        Text('+$potential XP',
-                            style: Type.numerals.copyWith(
-                                fontSize: 22, color: Palette.xpLight)),
-                      ],
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text('ON THE TABLE',
+                              style: Type.label.copyWith(fontSize: 11)),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('+$potential XP',
+                                maxLines: 1,
+                                style: Type.numerals.copyWith(
+                                    fontSize: 22, color: Palette.xpLight)),
+                          ),
+                        ],
+                      ),
                     ),
-                    Column(
-                      children: [
-                        Text('STREAK', style: Type.label.copyWith(fontSize: 11)),
-                        Text('${state.streakDays}🔥',
-                            style: Type.numerals.copyWith(
-                                fontSize: 22, color: Palette.streak)),
-                        if (state.streakShields > 0)
-                          Text('🛡️ ${state.streakShields}',
-                              style: Type.label.copyWith(
-                                  fontSize: 11, color: Palette.verify)),
-                      ],
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text('STREAK',
+                              style: Type.label.copyWith(fontSize: 11)),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('${state.streakDays}🔥',
+                                maxLines: 1,
+                                style: Type.numerals.copyWith(
+                                    fontSize: 22, color: Palette.streak)),
+                          ),
+                          if (state.streakShields > 0)
+                            Text('🛡️ ${state.streakShields}',
+                                style: Type.label.copyWith(
+                                    fontSize: 11, color: Palette.verify)),
+                        ],
+                      ),
                     ),
-                    Column(
-                      children: [
-                        Text('QUESTS', style: Type.label.copyWith(fontSize: 11)),
-                        Text('${open.length}',
-                            style: Type.numerals.copyWith(fontSize: 22)),
-                      ],
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text('QUESTS',
+                              style: Type.label.copyWith(fontSize: 11)),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('${open.length}',
+                                maxLines: 1,
+                                style: Type.numerals.copyWith(fontSize: 22)),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

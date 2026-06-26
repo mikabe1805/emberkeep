@@ -9,6 +9,7 @@ import '../content/ladders.dart';
 import '../content/routines.dart';
 import '../engine.dart';
 import '../models.dart';
+import '../notifications.dart';
 import '../storage.dart';
 import '../tokens.dart';
 import '../widgets/glass.dart';
@@ -17,7 +18,7 @@ import '../widgets/routine_flows.dart';
 import 'calendar.dart';
 import 'goal_wizard.dart';
 import 'goals.dart';
-import 'inspiration.dart';
+import 'insights.dart';
 import 'me.dart';
 import 'quests.dart';
 
@@ -80,6 +81,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (!mounted) return;
     _maybeOnboard();
     _maybeMorning();
+    _rescheduleNotifications(); // refresh reminders for today (native-only)
   }
 
   /// (Re)build state + quests from the local save. Swaps the persist
@@ -402,7 +404,38 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (quests.any((e) => e.title.trim().toLowerCase() == key)) return false;
     setState(() => quests.add(q));
     _persist();
+    // a new dated plan should get its reminder right away (native-only)
+    if (q.isEvent && (_state?.notifyEnabled ?? false)) {
+      _rescheduleNotifications();
+    }
     return true;
+  }
+
+  /// (Re)schedule local reminders from the current prefs + dated plans.
+  /// No-ops on web (the native plugin isn't compiled there).
+  Future<void> _rescheduleNotifications() async {
+    final s = _state;
+    final q = _quests;
+    if (s == null || q == null) return;
+    if (!s.notifyEnabled) {
+      await Notifications.cancelAll();
+      return;
+    }
+    await Notifications.scheduleDailyNudge(s.notifyHour, s.notifyMinute);
+    final now = DateTime.now();
+    final events = <EventReminder>[
+      for (final quest in q)
+        if (quest.isEvent &&
+            quest.dueDate != null &&
+            !quest.doneFor(now))
+          EventReminder(
+            when: DateTime(quest.dueDate!.year, quest.dueDate!.month,
+                quest.dueDate!.day, s.notifyHour, s.notifyMinute),
+            title: 'Today: ${quest.displayTitle}',
+            body: 'A plan you set is due 🔥',
+          ),
+    ];
+    await Notifications.scheduleEvents(events);
   }
 
   void _selectTab(int i) {
@@ -446,6 +479,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                         onExport: _export,
                         onImport: _import,
                         onReset: _reset,
+                        onNotifyChanged: _rescheduleNotifications,
                         onLinkAccount: _linkAccount,
                         onSignIn: _signIn,
                         onSignOut: _signOut),
@@ -468,7 +502,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                     ),
                     CalendarPage(
                         state: state, quests: quests, onAdd: _addQuest),
-                    InspirationPage(state: state),
+                    InsightsPage(state: state),
                   ],
                 ),
               ),
@@ -511,8 +545,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                           onTap: () => _selectTab(3),
                         ),
                         _DockItem(
-                          icon: Icons.local_florist_outlined,
-                          label: 'SPARKS',
+                          icon: Icons.insights_outlined,
+                          label: 'INSIGHTS',
                           selected: _tab == 4,
                           onTap: () => _selectTab(4),
                         ),
