@@ -132,11 +132,17 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
     await tester.pump(const Duration(milliseconds: 500));
+    // the Me page is a lazy ListView; the readability pass made the header
+    // taller, so scroll the Me scrollable until each marker is built rather
+    // than assuming a fixed position above the fold.
+    final meList = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(find.text('YOUR BUILD'), 120,
+        scrollable: meList);
     expect(find.text('YOUR BUILD'), findsOneWidget);
 
     // trophy case sits further down the lazy list
-    await tester.drag(find.text('Me'), const Offset(0, -700));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.scrollUntilVisible(find.text('TROPHY CASE'), 200,
+        scrollable: meList);
     expect(find.text('TROPHY CASE'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.calendar_month_outlined));
@@ -172,8 +178,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('TODAY · 10 QUESTS LEFT'), findsOneWidget);
 
-    // the new quest is appended — scroll the lazy list to reach it
-    await tester.drag(find.text('Do 2 push-ups'), const Offset(0, -500));
+    // the new quest is appended at the bottom — scroll the board to reach it.
+    // (cards got taller in the mobile-readability pass; a big single drag
+    // clamps at the list's end regardless of exact card height.)
+    await tester.drag(find.text('Do 2 push-ups'), const Offset(0, -1000));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Make your bed'), findsOneWidget);
 
@@ -234,11 +242,17 @@ void main() {
     expect(find.text('Goodnight'), findsOneWidget);
     expect(find.text('TODAY YOU EARNED'), findsOneWidget);
 
-    // "just sleep" sits at the bottom of the scrollable recap
-    final sleep = find.text('just sleep');
-    await tester.ensureVisible(sleep);
+    // "just sleep" sits at the bottom of the recap's lazy ListView; the
+    // random night-line length (+ taller readability type) can push it past
+    // the build window, so ensureVisible would throw "No element". Scroll the
+    // recap's own scrollable until it's built, then tap.
+    final recapScroll = find.descendant(
+        of: find.byKey(const ValueKey('recap')),
+        matching: find.byType(Scrollable));
+    await tester.scrollUntilVisible(find.text('just sleep'), 200,
+        scrollable: recapScroll);
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(sleep);
+    await tester.tap(find.text('just sleep'));
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Goodnight'), findsNothing);
 

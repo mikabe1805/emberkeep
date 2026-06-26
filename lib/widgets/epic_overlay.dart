@@ -160,7 +160,7 @@ class _EpicOverlayState extends State<EpicOverlay>
                       Opacity(
                         opacity: _detail.value * 0.6,
                         child: Text('tap to keep going →',
-                            style: Type.label.copyWith(fontSize: 10)),
+                            style: Type.label.copyWith(fontSize: 11)),
                       ),
                     ],
                   ),

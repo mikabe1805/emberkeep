@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'engine.dart';
 import 'models.dart';
+import 'tokens.dart';
 
 /// Local-first persistence (zero-cost infra): one JSON blob in
 /// shared_preferences (localStorage on web). Graduates to Drift/SQLite in
@@ -179,5 +180,96 @@ abstract final class Storage {
       debugPrint('Storage.importRaw rejected: $e');
       return false;
     }
+  }
+
+  // ── local usage log (round-21: "data taking agents") ──────────────────
+  // A privacy-first, on-device event log the owner can EXPORT and hand to
+  // Claude to find improvement ideas. Kept in a SEPARATE shared_preferences
+  // key — NOT in the save blob — so it is never mirrored to the cloud
+  // (CloudSync only pushes [_key]) and never inflates the Firestore doc.
+  static const _usageKey = 'emberkeep_usage_v1';
+  static const usageSchema = 1;
+  static const _usageCap = 2000; // ~capped ring; oldest fall off first
+  static List<dynamic>? _usage; // in-memory cache (lazy)
+
+  /// FNV-1a 32-bit — a stable, non-reversible hash so a CUSTOM quest's title
+  /// (which can hold personal text) never leaves the device in the clear.
+  static String hashTitle(String t) {
+    var h = 0x811c9dc5;
+    for (final c in t.codeUnits) {
+      h = ((h ^ c) * 0x01000193) & 0xFFFFFFFF;
+    }
+    return 'c#${h.toRadixString(16).padLeft(8, '0')}';
+  }
+
+  static Future<List<dynamic>> _usageList() async {
+    if (_usage != null) return _usage!;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_usageKey);
+      _usage = raw == null
+          ? <dynamic>[]
+          : (((jsonDecode(raw) as Map)['events'] as List?)?.toList() ??
+              <dynamic>[]);
+    } catch (_) {
+      _usage = <dynamic>[];
+    }
+    return _usage!;
+  }
+
+  /// Append one compact event: [dayKey, hour, type, ...payload]. Coarse time
+  /// (day + hour, never an exact timestamp) keeps the export low-stakes to
+  /// share. Fire-and-forget; a logging failure never affects gameplay.
+  static Future<void> logEvent(String type, [List<Object?> payload = const []]) async {
+    try {
+      final now = DateTime.now();
+      final buf = await _usageList();
+      buf.add(<Object?>[Days.key(now), now.hour, type, ...payload]);
+      if (buf.length > _usageCap) {
+        buf.removeRange(0, buf.length - _usageCap);
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+          _usageKey, jsonEncode({'schema': usageSchema, 'events': buf}));
+    } catch (e) {
+      debugPrint('Storage.logEvent failed: $e');
+    }
+  }
+
+  /// A self-describing export of the usage log — the JSON the owner copies and
+  /// hands to Claude. Includes the legend so it's interpretable on its own.
+  static Future<String?> usageExport() async {
+    try {
+      final buf = await _usageList();
+      return const JsonEncoder.withIndent('  ').convert({
+        'app': 'emberkeep-usage',
+        'schema': usageSchema,
+        'note':
+            'On-device only — nothing was sent anywhere. Each event is '
+                '[dayKey, hour(0-23), type, ...payload]. Custom quest titles '
+                'are hashed (c#…) for privacy; catalog/default titles are plain.',
+        'statLabels': [for (final s in Stat.values) s.abbr],
+        'typeLegend': const {
+          'open': 'app opened/resumed',
+          'done': '[title|hash, statIndex, difficulty, verified(0/1)]',
+          'snooze': '[title|hash] — hidden just for today',
+          'undo': '[title|hash] — a completion undone',
+          'goalAdd': '[goalTitle]',
+        },
+        'events': buf,
+      });
+    } catch (e) {
+      debugPrint('Storage.usageExport failed: $e');
+      return null;
+    }
+  }
+
+  /// Wipes the usage log (called on "start over" — reset means erase me).
+  static Future<void> clearUsage() async {
+    _usage = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_usageKey);
+    } catch (_) {/* best effort */}
   }
 }

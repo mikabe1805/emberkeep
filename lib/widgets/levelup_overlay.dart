@@ -178,7 +178,7 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                     Opacity(
                       opacity: _unlockIn.value * 0.6,
                       child: Text('onward →',
-                          style: Type.label.copyWith(fontSize: 10)),
+                          style: Type.label.copyWith(fontSize: 11)),
                     ),
                   ],
                 ),

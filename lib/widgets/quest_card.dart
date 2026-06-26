@@ -83,7 +83,7 @@ class _QuestCardState extends State<QuestCard>
             AnimatedContainer(
               duration: Motion.settle,
               curve: Motion.respond,
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: done
                     ? Palette.glassFill.withValues(alpha: 0.38)
@@ -118,7 +118,7 @@ class _QuestCardState extends State<QuestCard>
                         AnimatedDefaultTextStyle(
                           duration: Motion.settle,
                           style: Type.body.copyWith(
-                            fontSize: 15,
+                            fontSize: 17,
                             fontWeight: FontWeight.w600,
                             color: done ? Palette.textLo : Palette.textHi,
                             decoration:
@@ -127,102 +127,61 @@ class _QuestCardState extends State<QuestCard>
                           ),
                           child: Text(q.displayTitle),
                         ),
-                        if (q.ladderHint != null ||
-                            q.verification == Verification.timer ||
-                            q.schedule != QuestSchedule.daily ||
-                            q.priority ||
-                            q.allDay ||
-                            q.bonus ||
-                            q.rising) ...[
-                          const SizedBox(height: 3),
-                          Row(
-                            children: [
-                              if (q.workout) ...[
-                                Icon(Icons.fitness_center,
-                                    size: 9, color: q.stat.color),
-                                const SizedBox(width: 2),
-                                Text('GUIDED',
-                                    style: Type.label.copyWith(
-                                        fontSize: 8, color: q.stat.color)),
-                                const SizedBox(width: 6),
-                              ],
-                              if (q.priority) ...[
-                                const Icon(Icons.star,
-                                    size: 9, color: Palette.xpLight),
-                                const SizedBox(width: 2),
-                                Text('MAIN',
-                                    style: Type.label.copyWith(
-                                        fontSize: 8,
-                                        color: Palette.xpLight)),
-                                const SizedBox(width: 6),
-                              ],
-                              if (q.allDay) ...[
-                                const Icon(Icons.nightlight_round,
-                                    size: 9, color: Palette.unlock),
-                                const SizedBox(width: 2),
-                                Text('ALL DAY · CHECKS AT NIGHT',
-                                    style: Type.label.copyWith(
-                                        fontSize: 8, color: Palette.unlock)),
-                                const SizedBox(width: 6),
-                              ],
-                              if (q.rising) ...[
-                                const Icon(Icons.trending_up,
-                                    size: 9, color: Palette.streak),
-                                const SizedBox(width: 2),
-                                Text('${q.risingStreak}/${Quest.risesAt}',
-                                    style: Type.label.copyWith(
-                                        fontSize: 8, color: Palette.streak)),
-                                const SizedBox(width: 6),
-                              ],
-                              if (q.bonus) ...[
-                                const Icon(Icons.bolt,
-                                    size: 9, color: Palette.streak),
-                                const SizedBox(width: 2),
-                                Text('BONUS · TODAY',
-                                    style: Type.label.copyWith(
-                                        fontSize: 8, color: Palette.streak)),
-                                const SizedBox(width: 6),
-                              ] else if (q.isEvent) ...[
-                                Builder(builder: (_) {
-                                  final now = DateTime.now();
-                                  final overdue = q.dueDate!.isBefore(
-                                      DateTime(now.year, now.month, now.day));
-                                  return Text(
-                                      overdue ? 'STILL WAITING' : 'DUE TODAY',
-                                      style: Type.label.copyWith(
-                                          fontSize: 8,
-                                          color: overdue
-                                              ? Palette.streak
-                                              : Palette.xpLight));
-                                }),
-                                const SizedBox(width: 6),
-                              ] else if (q.schedule != QuestSchedule.daily) ...[
-                                Text(q.schedule.label,
-                                    style: Type.label.copyWith(
-                                        fontSize: 8,
-                                        color: Palette.xpLight
-                                            .withValues(alpha: 0.8))),
-                                const SizedBox(width: 6),
-                              ],
-                              if (q.verification == Verification.timer) ...[
-                                const Icon(Icons.timer_outlined,
-                                    size: 9, color: Palette.verify),
-                                const SizedBox(width: 2),
-                                Text('${q.timerMinutes}M PROOF ×1.2',
-                                    style: Type.label.copyWith(
-                                        fontSize: 8, color: Palette.verify)),
-                                const SizedBox(width: 6),
-                              ],
-                              if (q.ladderHint != null)
-                                Flexible(
-                                  child: Text(q.ladderHint!,
-                                      overflow: TextOverflow.ellipsis,
-                                      style:
-                                          Type.label.copyWith(fontSize: 8)),
-                                ),
-                            ],
-                          ),
-                        ],
+                        Builder(builder: (_) {
+                          // Each meta tag is a self-contained chip; a Wrap lets
+                          // them flow to a second line instead of overflowing a
+                          // Row on a narrow phone now that the type is larger.
+                          final chips = <Widget>[
+                            if (q.workout)
+                              _MetaChip(Icons.fitness_center, 'GUIDED',
+                                  q.stat.color),
+                            if (q.priority)
+                              _MetaChip(
+                                  Icons.star, 'MAIN', Palette.xpLight),
+                            if (q.allDay)
+                              _MetaChip(Icons.nightlight_round,
+                                  'ALL DAY · CHECKS AT NIGHT', Palette.unlock),
+                            if (q.rising)
+                              _MetaChip(
+                                  Icons.trending_up,
+                                  '${q.risingStreak}/${Quest.risesAt}',
+                                  Palette.streak),
+                            if (q.bonus)
+                              _MetaChip(Icons.bolt, 'BONUS · TODAY',
+                                  Palette.streak)
+                            else if (q.isEvent)
+                              Builder(builder: (_) {
+                                final now = DateTime.now();
+                                final overdue = q.dueDate!.isBefore(DateTime(
+                                    now.year, now.month, now.day));
+                                return _MetaChip(
+                                    null,
+                                    overdue ? 'STILL WAITING' : 'DUE TODAY',
+                                    overdue
+                                        ? Palette.streak
+                                        : Palette.xpLight);
+                              })
+                            else if (q.schedule != QuestSchedule.daily)
+                              _MetaChip(null, q.schedule.label,
+                                  Palette.xpLight.withValues(alpha: 0.8)),
+                            if (q.verification == Verification.timer)
+                              _MetaChip(Icons.timer_outlined,
+                                  '${q.timerMinutes}M PROOF ×1.2',
+                                  Palette.verify),
+                            if (q.ladderHint != null)
+                              _MetaChip(null, q.ladderHint!, Palette.textLo),
+                          ];
+                          if (chips.isEmpty) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 5),
+                            child: Wrap(
+                              spacing: 10,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: chips,
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -232,7 +191,7 @@ class _QuestCardState extends State<QuestCard>
                       // storm-in-steel, NOT the ember flame — that pair
                       // belongs exclusively to the streak mechanic
                       child: Icon(Icons.thunderstorm,
-                          size: 17,
+                          size: 20,
                           color: done
                               ? Palette.dread.withValues(alpha: 0.4)
                               : Palette.dread),
@@ -243,8 +202,11 @@ class _QuestCardState extends State<QuestCard>
                       behavior: HitTestBehavior.opaque,
                       child: Container(
                         margin: const EdgeInsets.only(left: 4),
+                        constraints:
+                            const BoxConstraints(minHeight: 44, minWidth: 44),
+                        alignment: Alignment.center,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 9, vertical: 7),
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
@@ -254,11 +216,11 @@ class _QuestCardState extends State<QuestCard>
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.bolt,
-                                size: 12, color: Palette.streak),
-                            const SizedBox(width: 3),
+                                size: 15, color: Palette.streak),
+                            const SizedBox(width: 4),
                             Text('MORE',
                                 style: Type.label.copyWith(
-                                    fontSize: 8, color: Palette.streak)),
+                                    fontSize: 11, color: Palette.streak)),
                           ],
                         ),
                       ),
@@ -308,14 +270,14 @@ class _CheckRing extends StatelessWidget {
     return AnimatedContainer(
       duration: Motion.quick,
       curve: Curves.easeOutBack,
-      width: 28,
-      height: 28,
+      width: 32,
+      height: 32,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: done ? Palette.success : Colors.transparent,
         border: Border.all(
           color: done ? Palette.success : stat.color,
-          width: 2,
+          width: 2.4,
         ),
         // Keep a constant-blur shadow in BOTH states (alpha→0 when done)
         // rather than toggling to an empty list — the easeOutBack overshoot
@@ -328,8 +290,32 @@ class _CheckRing extends StatelessWidget {
         ],
       ),
       child: done
-          ? const Icon(Icons.check, size: 18, color: Palette.parchment)
+          ? const Icon(Icons.check, size: 20, color: Palette.parchment)
           : null,
+    );
+  }
+}
+
+/// One meta tag under a quest title (GUIDED / MAIN / ALL DAY / proof / …).
+/// A self-contained pill so the parent can lay these out in a Wrap that
+/// reflows instead of overflowing once the type is at a readable size.
+class _MetaChip extends StatelessWidget {
+  const _MetaChip(this.icon, this.text, this.color);
+  final IconData? icon;
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 3),
+        ],
+        Text(text, style: Type.label.copyWith(fontSize: 11, color: color)),
+      ],
     );
   }
 }
@@ -348,7 +334,7 @@ class _XpChip extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             color: Palette.xpLight.withValues(alpha: 0.35 * alpha),
@@ -358,13 +344,13 @@ class _XpChip extends StatelessWidget {
           child: Text(
             '+$xp XP',
             style: Type.numerals.copyWith(
-                fontSize: 12, color: Palette.xp.withValues(alpha: alpha)),
+                fontSize: 15, color: Palette.xp.withValues(alpha: alpha)),
           ),
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 4),
         Text(word,
             style: Type.label.copyWith(
-                fontSize: 8,
+                fontSize: 11,
                 color: Palette.textLo.withValues(alpha: alpha))),
       ],
     );

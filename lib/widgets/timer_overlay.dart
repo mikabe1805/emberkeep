@@ -104,7 +104,7 @@ class _TimerOverlayState extends State<TimerOverlay>
             children: [
               Text('PROOF IN PROGRESS',
                   style:
-                      Type.label.copyWith(fontSize: 10, color: Palette.verify)),
+                      Type.label.copyWith(fontSize: 11, color: Palette.verify)),
               const SizedBox(height: 6),
               Text(widget.questTitle,
                   textAlign: TextAlign.center,
@@ -137,20 +137,26 @@ class _TimerOverlayState extends State<TimerOverlay>
                 children: [
                   const Icon(Icons.verified, size: 13, color: Palette.verify),
                   const SizedBox(width: 5),
-                  Text('FINISH FOR ×1.2 VERIFIED XP',
-                      style: Type.label
-                          .copyWith(fontSize: 9, color: Palette.verify)),
+                  Flexible(
+                    child: Text('FINISH FOR ×1.2 VERIFIED XP',
+                        textAlign: TextAlign.center,
+                        style: Type.label
+                            .copyWith(fontSize: 11, color: Palette.verify)),
+                  ),
                 ],
               ),
               const SizedBox(height: 6),
               Text('real-time clock — locking your phone is fine',
+                  textAlign: TextAlign.center,
                   style: Type.body.copyWith(
-                      fontSize: 10.5,
+                      fontSize: 11,
                       fontStyle: FontStyle.italic,
                       color: Palette.textLo)),
               const SizedBox(height: 18),
-              Row(
-                mainAxisSize: MainAxisSize.min,
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 10,
                 children: [
                   GestureDetector(
                     onTap: () {
@@ -166,10 +172,9 @@ class _TimerOverlayState extends State<TimerOverlay>
                             color: Palette.textLo.withValues(alpha: 0.4)),
                       ),
                       child:
-                          Text('NOT NOW', style: Type.label.copyWith(fontSize: 10)),
+                          Text('NOT NOW', style: Type.label.copyWith(fontSize: 11)),
                     ),
                   ),
-                  const SizedBox(width: 10),
                   // proof multiplies, never gates — honor path always open
                   GestureDetector(
                     onTap: () {
@@ -186,7 +191,7 @@ class _TimerOverlayState extends State<TimerOverlay>
                       ),
                       child: Text('I ALREADY DID IT',
                           style: Type.label.copyWith(
-                              fontSize: 10, color: Palette.success)),
+                              fontSize: 11, color: Palette.success)),
                     ),
                   ),
                 ],

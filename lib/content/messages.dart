@@ -47,12 +47,12 @@ abstract final class RewardMessages {
       'Relationships are a stat too — and you just trained it.',
     ],
     Stat.dis: [
-      'You did the thing you didn’t want to do. That’s the whole game.',
-      'The dread never stood a chance.',
-      'Discipline is a stat most people never train. Look at you.',
-      'Did it anyway. That’s the only sentence that matters.',
-      'You kept a promise to yourself. Those are the loudest kind.',
-      'Motivation’s nice. You used discipline. Sturdier stuff.',
+      'Your space just got a little more yours.',
+      'A tended home is a quieter mind. You earned some quiet.',
+      'Nobody sees this one but you — which is exactly why it counts.',
+      'Home doesn’t keep itself. Today, you kept it.',
+      'Small upkeep now, no avalanche later. Smart.',
+      'Order, one small act at a time. The room thanks you.',
     ],
   };
 

@@ -243,7 +243,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
       key: const ValueKey(0),
       children: [
         const SizedBox(height: 18),
-        Text('THE AMBITION', style: Type.label.copyWith(fontSize: 10)),
+        Text('THE AMBITION', style: Type.label.copyWith(fontSize: 11)),
         const SizedBox(height: 8),
         Text('What do you want\nto be able to do?',
             style: Type.display.copyWith(fontSize: 30, height: 1.15)),
@@ -310,13 +310,13 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                         const SizedBox(height: 6),
                         Text(k.label,
                             style: Type.label.copyWith(
-                                fontSize: 10,
+                                fontSize: 11,
                                 color: _kind == k
                                     ? Palette.xpLight
                                     : Palette.textMid)),
                         Text(k.blurb,
                             style: Type.body.copyWith(
-                                fontSize: 10.5, color: Palette.textLo)),
+                                fontSize: 11, color: Palette.textLo)),
                       ],
                     ),
                   ),
@@ -327,7 +327,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
           ],
         ),
         const SizedBox(height: 20),
-        Text('THIS SHAPES…', style: Type.label.copyWith(fontSize: 9)),
+        Text('THIS SHAPES…', style: Type.label.copyWith(fontSize: 11)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 7,
@@ -361,7 +361,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                   ),
                   child: Text('${s.abbr} · ${s.label}',
                       style:
-                          Type.label.copyWith(fontSize: 9, color: s.color)),
+                          Type.label.copyWith(fontSize: 11, color: s.color)),
                 ),
               ),
           ],
@@ -378,14 +378,14 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
       key: const ValueKey(1),
       children: [
         const SizedBox(height: 18),
-        Text('THE PATH', style: Type.label.copyWith(fontSize: 10)),
+        Text('THE PATH', style: Type.label.copyWith(fontSize: 11)),
         const SizedBox(height: 8),
         Text('What gets you there?',
             style: Type.display.copyWith(fontSize: 28)),
         const SizedBox(height: 4),
         Text('small repeatable quests — scheduled to their days',
             style: Type.body.copyWith(
-                fontSize: 12,
+                fontSize: 13,
                 fontStyle: FontStyle.italic,
                 color: Palette.textLo)),
         const SizedBox(height: 14),
@@ -429,7 +429,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                                   '${_drafts[i].scheduleLabel} · d${_drafts[i].difficulty}'
                                   '${_drafts[i].allDay ? " · ALL-DAY LINE" : ""}'
                                   '${_drafts[i].timerMinutes > 0 ? " · ${_drafts[i].timerMinutes}M PROOF" : ""}',
-                                  style: Type.label.copyWith(fontSize: 8)),
+                                  style: Type.label.copyWith(fontSize: 11)),
                             ],
                           ),
                         ),
@@ -448,7 +448,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                     const SizedBox(width: 9),
                     Text(_name.text.trim(),
                         style: Type.body.copyWith(
-                            fontSize: 12,
+                            fontSize: 13,
                             fontStyle: FontStyle.italic,
                             color: _stat.color)),
                   ],
@@ -478,7 +478,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
       key: const ValueKey(2),
       children: [
         const SizedBox(height: 18),
-        Text('THE OATH', style: Type.label.copyWith(fontSize: 10)),
+        Text('THE OATH', style: Type.label.copyWith(fontSize: 11)),
         const SizedBox(height: 14),
         GlassPanel(
           blur: true,
@@ -509,7 +509,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                       : 'a finish line — done after $_target quest completions',
                   textAlign: TextAlign.center,
                   style: Type.body.copyWith(
-                      fontSize: 12, color: Palette.textMid)),
+                      fontSize: 13, color: Palette.textMid)),
               if (_kind == GoalKind.achieve) ...[
                 const SizedBox(height: 10),
                 Row(
@@ -556,7 +556,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                                 fontSize: 13, color: Palette.textHi)),
                       ),
                       Text(d.scheduleLabel,
-                          style: Type.label.copyWith(fontSize: 7.5)),
+                          style: Type.label.copyWith(fontSize: 11)),
                     ],
                   ),
                 ),
@@ -651,7 +651,7 @@ class _QuestForgeState extends State<_QuestForge> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('FORGE A QUEST FOR THIS PATH',
-              style: Type.label.copyWith(fontSize: 9)),
+              style: Type.label.copyWith(fontSize: 11)),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -701,7 +701,7 @@ class _QuestForgeState extends State<_QuestForge> {
           Row(
             children: [
               Text('d${_difficulty.round()}',
-                  style: Type.label.copyWith(fontSize: 9, color: Palette.xp)),
+                  style: Type.label.copyWith(fontSize: 11, color: Palette.xp)),
               Expanded(
                 child: Slider(
                   value: _difficulty,
@@ -739,7 +739,7 @@ class _QuestForgeState extends State<_QuestForge> {
                       ),
                       child: Text(s.label,
                           style: Type.label.copyWith(
-                              fontSize: 8.5,
+                              fontSize: 11,
                               color: _schedule == s
                                   ? Palette.xpLight
                                   : Palette.textLo)),
@@ -755,13 +755,13 @@ class _QuestForgeState extends State<_QuestForge> {
                   _schedule == QuestSchedule.daily
                       ? 'ON THESE DAYS (empty = every day)'
                       : 'ANCHOR DAY (empty = any day that week)',
-                  style: Type.label.copyWith(fontSize: 8)),
+                  style: Type.label.copyWith(fontSize: 11)),
               const SizedBox(height: 6),
               Row(
                 children: [
                   for (var d = 1; d <= 7; d++)
                     Padding(
-                      padding: const EdgeInsets.only(right: 6),
+                      padding: const EdgeInsets.only(right: 4),
                       child: GestureDetector(
                         onTap: () {
                           Sfx.instance.play('tick');
@@ -777,8 +777,8 @@ class _QuestForgeState extends State<_QuestForge> {
                           });
                         },
                         child: Container(
-                          width: 30,
-                          height: 30,
+                          width: 34,
+                          height: 34,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: _weekdays.contains(d)
@@ -793,7 +793,7 @@ class _QuestForgeState extends State<_QuestForge> {
                           child: Center(
                             child: Text(_dayLetters[d - 1],
                                 style: Type.label.copyWith(
-                                    fontSize: 9,
+                                    fontSize: 11,
                                     color: _weekdays.contains(d)
                                         ? widget.stat.color
                                         : Palette.textLo)),
@@ -806,7 +806,7 @@ class _QuestForgeState extends State<_QuestForge> {
             ] else ...[
               Row(
                 children: [
-                  Text('ON DAY', style: Type.label.copyWith(fontSize: 8)),
+                  Text('ON DAY', style: Type.label.copyWith(fontSize: 11)),
                   Expanded(
                     child: Slider(
                       value: _monthDay.toDouble(),
@@ -881,7 +881,7 @@ class _QuestForgeState extends State<_QuestForge> {
                       ),
                       child: Text('${m}M',
                           style: Type.label
-                              .copyWith(fontSize: 8.5, color: Palette.verify)),
+                              .copyWith(fontSize: 11, color: Palette.verify)),
                     ),
                   ),
               ],
@@ -911,7 +911,7 @@ class _MiniToggle extends StatelessWidget {
       children: [
         Expanded(
           child: Text(label,
-              style: Type.body.copyWith(fontSize: 12, color: Palette.textMid)),
+              style: Type.body.copyWith(fontSize: 13, color: Palette.textMid)),
         ),
         Switch(
           value: value,

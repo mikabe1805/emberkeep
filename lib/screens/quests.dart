@@ -15,9 +15,11 @@ import '../content/stat_ranks.dart';
 import '../engine.dart';
 import '../haptics.dart';
 import '../models.dart';
+import '../storage.dart';
 import '../tokens.dart';
 import '../widgets/workout_flow.dart';
 import '../widgets/achievement_toast.dart';
+import '../widgets/day_picker.dart';
 import '../widgets/epic_overlay.dart';
 import '../widgets/glass.dart';
 import '../widgets/install_hint.dart';
@@ -30,6 +32,10 @@ import '../widgets/routine_flows.dart';
 import '../widgets/stat_chips.dart';
 import '../widgets/timer_overlay.dart';
 import '../widgets/xp_bar.dart';
+
+/// Focus-mode ordering lens: ease in with quick wins, or take the hardest
+/// (most-dreaded / heaviest) first. Ephemeral — resets to easeIn each session.
+enum _FocusLens { quickWin, hardest }
 
 /// The Quests page: glass header HUD over today's quest list. Orchestrates
 /// the completion sequence end to end (DESIGN.md §3 + §11):
@@ -93,11 +99,22 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   String? _undoTitle;
   String? _undoSnapshot;
 
+  /// Focus mode's ordering lens (ephemeral; the on/off itself lives on state).
+  _FocusLens _focusLens = _FocusLens.quickWin;
+
+  void _toggleFocus() {
+    _state.setFocusMode(!_state.focusMode);
+    widget.onPersist();
+    Haptics.tap();
+    setState(() {});
+  }
+
   void _undoLast() {
     final snap = _undoSnapshot;
     if (snap == null) return;
     Sfx.instance.play('boing');
     HapticFeedback.selectionClick();
+    if (_undoTitle != null) Storage.logEvent('undo', [_undoTitle]);
     setState(() {
       _undoTitle = null;
       _undoSnapshot = null;
@@ -239,6 +256,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // capture the pre-completion state so an accidental tap can be undone
     final snapshot = widget.onSnapshot();
     final bundle = s.roll(q, verified: verified);
+    Storage.logEvent('done', [
+      q.custom ? Storage.hashTitle(q.title) : q.title,
+      q.stat.index,
+      q.difficulty,
+      verified ? 1 : 0,
+    ]);
     setState(() {}); // card done-state + quests-left counter
     _beam(); // the portrait shares the moment with you
 
@@ -511,6 +534,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     Sfx.instance.play('tick');
                     HapticFeedback.selectionClick();
                     setState(() => q.snoozedDay = Days.key(DateTime.now()));
+                    Storage.logEvent('snooze',
+                        [q.custom ? Storage.hashTitle(q.title) : q.title]);
                     widget.onPersist();
                     Navigator.of(ctx).pop();
                   },
@@ -796,11 +821,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   children: [
                     Text('GOOD MORNING',
                         style: Type.label
-                            .copyWith(fontSize: 8, color: Palette.streak)),
+                            .copyWith(fontSize: 11, color: Palette.streak)),
                     const SizedBox(height: 2),
                     Text('tap to see what’s ahead today ☀️',
                         style: Type.body
-                            .copyWith(fontSize: 12.5, color: Palette.textHi)),
+                            .copyWith(fontSize: 13.5, color: Palette.textHi)),
                   ],
                 ),
               ),
@@ -858,11 +883,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 children: [
                   Text('TODAY’S SPARK',
                       style: Type.label
-                          .copyWith(fontSize: 8, color: Palette.xpLight)),
+                          .copyWith(fontSize: 11, color: Palette.xpLight)),
                   const SizedBox(height: 2),
                   Text(line,
                       style: Type.body
-                          .copyWith(fontSize: 12.5, color: Palette.textHi)),
+                          .copyWith(fontSize: 13.5, color: Palette.textHi)),
                 ],
               ),
             ),
@@ -879,6 +904,76 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           ],
         ),
       ),
+    );
+  }
+
+  /// Focus mode's body: one suggested quest, a calm queued-count, the all-day
+  /// footer, and a way back to the full board. Completing runs the normal
+  /// reward path; the next quest surfaces on the rebuild.
+  Widget _focusBody(List<Quest> pool, int allDayLeft, DateTime now) {
+    final q = pool.first;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 2, 6, 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text('NEXT UP · 1 OF ${pool.length}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.label
+                        .copyWith(fontSize: 12, color: Palette.streak)),
+              ),
+              const SizedBox(width: 8),
+              _FocusLensToggle(
+                lens: _focusLens,
+                onChanged: (l) => setState(() => _focusLens = l),
+              ),
+            ],
+          ),
+        ),
+        QuestCard(
+          quest: q,
+          done: false,
+          xpPreview: _state.xpPreview(q),
+          onComplete: (pos) => _completeQuest(q, pos),
+          onManage: () => _manageQuest(q),
+        ),
+        const SizedBox(height: 16),
+        if (pool.length > 1)
+          Center(
+            child: Text('${pool.length - 1} more waiting — one at a time',
+                textAlign: TextAlign.center,
+                style: Type.body.copyWith(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo)),
+          ),
+        if (allDayLeft > 0) ...[
+          const SizedBox(height: 10),
+          Center(
+            child: Text('$allDayLeft all-day · checked tonight',
+                style:
+                    Type.label.copyWith(fontSize: 11, color: Palette.unlock)),
+          ),
+        ],
+        const SizedBox(height: 22),
+        Center(
+          child: GestureDetector(
+            onTap: _toggleFocus,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Text('SEE THE FULL BOARD',
+                  style:
+                      Type.label.copyWith(fontSize: 11, color: Palette.textLo)),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -907,6 +1002,42 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         return rank(a).compareTo(rank(b));
       });
     final remaining = visible.where((q) => !q.doneFor(now)).length;
+
+    // Focus mode: the actionable pool (all-day lines have nothing to tap until
+    // night, so they're never the "next" focus — shown as a footer count).
+    // Tiered order: overdue events → due-today events → starred MAIN → the
+    // rest (by the energy lens) → bonus last.
+    final actionable = [
+      for (final q in visible)
+        if (!q.doneFor(now) && !q.allDay) q
+    ]..sort((a, b) {
+        int tier(Quest q) {
+          if (q.isEvent) {
+            return q.dueDate!
+                    .isBefore(DateTime(now.year, now.month, now.day))
+                ? 0
+                : 1;
+          }
+          if (q.priority) return 2;
+          if (q.bonus) return 4;
+          return 3;
+        }
+
+        final ta = tier(a), tb = tier(b);
+        if (ta != tb) return ta.compareTo(tb);
+        // within a tier, the energy lens decides
+        if (a.dread != b.dread) {
+          if (_focusLens == _FocusLens.hardest) return a.dread ? -1 : 1;
+          return a.dread ? 1 : -1;
+        }
+        final xa = _state.xpPreview(a), xb = _state.xpPreview(b);
+        return _focusLens == _FocusLens.hardest
+            ? xb.compareTo(xa)
+            : xa.compareTo(xb);
+      });
+    final allDayLeft =
+        visible.where((q) => q.allDay && !q.doneFor(now)).length;
+    final showFocus = _state.focusMode && actionable.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -945,12 +1076,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text('LEVEL ${_state.level}',
-                                  style: Type.label.copyWith(fontSize: 11)),
+                                  style: Type.label.copyWith(fontSize: 13)),
                               // clamp: pre-level-up overflow reads as a
                               // full bar, never "130 / 105"
                               Text('${min(_state.xp, next)} / $next XP',
                                   style: Type.numerals.copyWith(
-                                      fontSize: 13, color: Palette.xp)),
+                                      fontSize: 16, color: Palette.xp)),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -966,11 +1097,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                     _state.nextUnlockLabel() != null
                                         ? Icons.lock_outline
                                         : Icons.trending_up,
-                                    size: 11,
+                                    size: 13,
                                     color: Palette.textLo),
                                 const SizedBox(width: 4),
                                 Text('NEXT · ${_state.nextChaseLabel()}',
-                                    style: Type.label.copyWith(fontSize: 9)),
+                                    style: Type.label.copyWith(fontSize: 12)),
                               ],
                             ),
                           ],
@@ -993,44 +1124,58 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
         // ── Quest list ──────────────────────────────────────────
         Padding(
-          padding: const EdgeInsets.fromLTRB(22, 14, 22, 6),
+          padding: const EdgeInsets.fromLTRB(22, 8, 14, 2),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('TODAY · $remaining QUESTS LEFT',
-                  style: Type.label.copyWith(fontSize: 10)),
+              Expanded(
+                child: Text(
+                    showFocus ? 'FOCUS MODE' : 'TODAY · $remaining QUESTS LEFT',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.label.copyWith(
+                        fontSize: 12,
+                        color: showFocus ? Palette.streak : null)),
+              ),
               Row(
                 children: [
-                  GestureDetector(
-                    onTap: _quickAdd,
-                    child: const Icon(Icons.add_circle_outline,
-                        size: 18, color: Palette.xpLight),
+                  // one-quest-at-a-time toggle (round-21): tames the overwhelm
+                  _HeaderAction(
+                    icon: _state.focusMode
+                        ? Icons.center_focus_strong
+                        : Icons.center_focus_weak,
+                    color:
+                        _state.focusMode ? Palette.streak : Palette.xpLight,
+                    onTap: _toggleFocus,
                   ),
-                  const SizedBox(width: 14),
+                  _HeaderAction(
+                    icon: Icons.add_circle_outline,
+                    color: Palette.xpLight,
+                    onTap: _quickAdd,
+                  ),
                   // the day's bookends: sun while a morning briefing is
                   // reachable (always tappable, not just on auto-show),
                   // moon until tonight's close-out is done
                   if (_state.morningAvailable)
-                    GestureDetector(
+                    _HeaderAction(
+                      icon: Icons.wb_twilight,
+                      color: Palette.streak,
                       onTap: _openMorning,
-                      child: const Icon(Icons.wb_twilight,
-                          size: 18, color: Palette.streak),
                     )
                   else if (_state.nightDoneDay != today)
-                    GestureDetector(
+                    _HeaderAction(
+                      icon: Icons.nightlight_round,
+                      color: Palette.xpLight,
                       onTap: _openNight,
-                      child: const Icon(Icons.nightlight_round,
-                          size: 17, color: Palette.xpLight),
                     )
                   else
-                    const Icon(Icons.nightlight_round,
-                        size: 17, color: Palette.textLo),
-                  const SizedBox(width: 14),
+                    const _HeaderAction(
+                        icon: Icons.nightlight_round, color: Palette.textLo),
                   // the momentum spark: cleared something? push further.
-                  GestureDetector(
+                  _HeaderAction(
+                    icon: Icons.bolt,
+                    color: Palette.xpLight,
                     onTap: _openMomentum,
-                    child: const Icon(Icons.bolt,
-                        size: 18, color: Palette.xpLight),
                   ),
                 ],
               ),
@@ -1038,7 +1183,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           ),
         ),
         Expanded(
-          child: ListView.separated(
+          child: showFocus
+              ? _focusBody(actionable, allDayLeft, now)
+              : ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
             itemCount:
                 visible.isEmpty ? 1 : visible.length + (remaining == 0 ? 1 : 0),
@@ -1060,7 +1207,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           'light the first ember and the day tilts your way',
                           textAlign: TextAlign.center,
                           style: Type.body.copyWith(
-                              fontSize: 12.5,
+                              fontSize: 13.5,
                               fontStyle: FontStyle.italic,
                               color: Palette.textLo)),
                       const SizedBox(height: 12),
@@ -1077,7 +1224,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           ),
                           child: Text('ADD A QUEST',
                               style: Type.label.copyWith(
-                                  fontSize: 9, color: Palette.xpLight)),
+                                  fontSize: 11, color: Palette.xpLight)),
                         ),
                       ),
                     ],
@@ -1101,7 +1248,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               ? 'rest well — tomorrow is already taking shape'
                               : 'nothing left but the goodnight',
                           style: Type.body.copyWith(
-                              fontSize: 12.5,
+                              fontSize: 13.5,
                               fontStyle: FontStyle.italic,
                               color: Palette.textLo)),
                       // peak-end: you cleared it — still hot? push further
@@ -1116,7 +1263,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             const SizedBox(width: 4),
                             Text('keep the fire going',
                                 style: Type.label.copyWith(
-                                    fontSize: 9, color: Palette.streak)),
+                                    fontSize: 11, color: Palette.streak)),
                           ],
                         ),
                       ),
@@ -1135,7 +1282,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             ),
                             child: Text('CLOSE OUT THE DAY 🌙',
                                 style: Type.label.copyWith(
-                                    fontSize: 9,
+                                    fontSize: 11,
                                     color: Palette.xpLight)),
                           ),
                         ),
@@ -1184,7 +1331,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                         const SizedBox(width: 6),
                         Text('UNDO',
                             style: Type.label.copyWith(
-                                fontSize: 10, color: Palette.xpLight)),
+                                fontSize: 11, color: Palette.xpLight)),
                       ],
                     ),
                   ),
@@ -1197,6 +1344,73 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A board-header action: an icon inside a 44pt tap target (iOS HIG minimum).
+/// Omit [onTap] for a disabled/indicator state (e.g. the spent moon).
+class _HeaderAction extends StatelessWidget {
+  const _HeaderAction({required this.icon, required this.color, this.onTap});
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        width: 44,
+        height: 44,
+        child: Icon(icon, size: 23, color: color),
+      ),
+    );
+  }
+}
+
+/// Focus mode's energy-lens segmented pill: EASE IN (quick wins first) vs
+/// HARDEST (most-dreaded / heaviest first). A gentle either/or, not raw sorts.
+class _FocusLensToggle extends StatelessWidget {
+  const _FocusLensToggle({required this.lens, required this.onChanged});
+  final _FocusLens lens;
+  final ValueChanged<_FocusLens> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget seg(_FocusLens l, String label) {
+      final on = lens == l;
+      return GestureDetector(
+        onTap: () => onChanged(l),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: Motion.quick,
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            color: on ? Palette.xpLight.withValues(alpha: 0.22) : null,
+          ),
+          child: Text(label,
+              style: Type.label.copyWith(
+                  fontSize: 10,
+                  color: on ? Palette.xpLight : Palette.textLo)),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Palette.glassEdge),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          seg(_FocusLens.quickWin, 'EASE IN'),
+          seg(_FocusLens.hardest, 'HARDEST'),
+        ],
+      ),
     );
   }
 }
@@ -1365,7 +1579,7 @@ class _RankUpBeat extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text('${stat.abbr} RANKED UP',
                         style:
-                            Type.label.copyWith(fontSize: 10, color: stat.color)),
+                            Type.label.copyWith(fontSize: 11, color: stat.color)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -1373,7 +1587,7 @@ class _RankUpBeat extends StatelessWidget {
                     style: Type.display.copyWith(fontSize: 24)),
                 const SizedBox(height: 16),
                 Text('WHY THIS WORKS',
-                    style: Type.label.copyWith(fontSize: 9, color: Palette.info)),
+                    style: Type.label.copyWith(fontSize: 11, color: Palette.info)),
                 const SizedBox(height: 6),
                 Text(card.title, style: Type.display.copyWith(fontSize: 16)),
                 const SizedBox(height: 6),
@@ -1389,14 +1603,14 @@ class _RankUpBeat extends StatelessWidget {
                     Expanded(
                       child: Text(card.source,
                           style: Type.label
-                              .copyWith(fontSize: 8, color: Palette.info)),
+                              .copyWith(fontSize: 11, color: Palette.info)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Center(
                   child: Text('tap to keep going →',
-                      style: Type.label.copyWith(fontSize: 10)),
+                      style: Type.label.copyWith(fontSize: 11)),
                 ),
               ],
             ),
@@ -1533,7 +1747,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                   const SizedBox(width: 6),
                   Text('KEEP THE FIRE GOING',
                       style: Type.label
-                          .copyWith(fontSize: 10, color: Palette.xpLight)),
+                          .copyWith(fontSize: 11, color: Palette.xpLight)),
                 ],
               ),
               const SizedBox(height: 4),
@@ -1565,7 +1779,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                                 Expanded(
                                   child: Text('$t — on the board',
                                       style: Type.body.copyWith(
-                                          fontSize: 12,
+                                          fontSize: 13,
                                           color: Palette.textMid)),
                                 ),
                               ],
@@ -1586,18 +1800,23 @@ class _MomentumSheetState extends State<_MomentumSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
-                    onTap: _shuffle,
-                    child: Text(
-                        _shuffled == null
-                            ? 'shuffle the board'
-                            : _shuffled == 0
-                                ? 'board’s all here'
-                                : 'pulled $_shuffled back',
-                        style: Type.label.copyWith(
-                            fontSize: 9,
-                            color: Palette.textLo.withValues(alpha: 0.8))),
+                  Flexible(
+                    child: GestureDetector(
+                      onTap: _shuffle,
+                      child: Text(
+                          _shuffled == null
+                              ? 'shuffle the board'
+                              : _shuffled == 0
+                                  ? 'board’s all here'
+                                  : 'pulled $_shuffled back',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.label.copyWith(
+                              fontSize: 11,
+                              color: Palette.textLo.withValues(alpha: 0.8))),
+                    ),
                   ),
+                  const SizedBox(width: 10),
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(),
                     child: Container(
@@ -1619,7 +1838,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                       ),
                       child: Text(_spawned.isEmpty ? 'NOT NOW' : 'LET’S GO',
                           style: Type.label.copyWith(
-                              fontSize: 10, color: const Color(0xFF3A2510))),
+                              fontSize: 11, color: const Color(0xFF3A2510))),
                     ),
                   ),
                 ],
@@ -1743,13 +1962,13 @@ class _MomentumChip extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: Type.label.copyWith(fontSize: 9, color: fg)),
+            Text(label, style: Type.label.copyWith(fontSize: 11, color: fg)),
             if (sub != null)
               Padding(
                 padding: const EdgeInsets.only(top: 1),
                 child: Text(sub!,
                     style: Type.body.copyWith(
-                        fontSize: 10.5,
+                        fontSize: 11,
                         color: highlight
                             ? const Color(0xFF3A2510)
                             : Palette.textMid)),
@@ -1775,6 +1994,7 @@ class _EditQuestDialog extends StatefulWidget {
 class _EditQuestDialogState extends State<_EditQuestDialog> {
   late double _difficulty = widget.quest.difficulty.toDouble();
   late Stat _stat = widget.quest.stat;
+  late List<int> _weekdays = List.of(widget.quest.weekdays);
 
   @override
   Widget build(BuildContext context) {
@@ -1789,12 +2009,12 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('TUNE THIS QUEST', style: Type.label.copyWith(fontSize: 10)),
+            Text('TUNE THIS QUEST', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 4),
             Text(widget.quest.displayTitle,
                 style: Type.display.copyWith(fontSize: 16)),
             const SizedBox(height: 12),
-            Text('TRAINS', style: Type.label.copyWith(fontSize: 8)),
+            Text('TRAINS', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 6),
             Wrap(
               spacing: 6,
@@ -1817,7 +2037,7 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                       ),
                       child: Text(s.abbr,
                           style: Type.label
-                              .copyWith(fontSize: 8.5, color: s.color)),
+                              .copyWith(fontSize: 11, color: s.color)),
                     ),
                   ),
               ],
@@ -1826,7 +2046,7 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
             Row(
               children: [
                 Text('d${_difficulty.round()}',
-                    style: Type.label.copyWith(fontSize: 9, color: Palette.xp)),
+                    style: Type.label.copyWith(fontSize: 11, color: Palette.xp)),
                 Expanded(
                   child: Slider(
                     value: _difficulty.clamp(1, maxD.toDouble()),
@@ -1840,6 +2060,40 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                 ),
               ],
             ),
+            if (widget.quest.schedule == QuestSchedule.weekly) ...[
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Text('LANDS ON', style: Type.label.copyWith(fontSize: 11)),
+                  const SizedBox(width: 12),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () async {
+                      final day = await pickWeekday(context,
+                          accent: _stat.color,
+                          questTitle: widget.quest.title,
+                          initial:
+                              _weekdays.isNotEmpty ? _weekdays.first : null);
+                      if (day == null) return;
+                      setState(() => _weekdays = day == 0 ? [] : [day]);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                            color: _stat.color.withValues(alpha: 0.6)),
+                      ),
+                      child: Text(weekdayLabel(_weekdays),
+                          style: Type.label
+                              .copyWith(fontSize: 11, color: _stat.color)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+            ],
             Center(
               child: GestureDetector(
                 onTap: () {
@@ -1847,6 +2101,7 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                   HapticFeedback.selectionClick();
                   widget.quest.difficulty = _difficulty.round();
                   widget.quest.stat = _stat;
+                  widget.quest.weekdays = _weekdays;
                   widget.onSaved();
                   Navigator.of(context).pop();
                 },
@@ -1869,7 +2124,7 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                   ),
                   child: Text('SAVE',
                       style: Type.label.copyWith(
-                          fontSize: 10, color: const Color(0xFF3A2510))),
+                          fontSize: 11, color: const Color(0xFF3A2510))),
                 ),
               ),
             ),
@@ -1939,7 +2194,7 @@ class _QuickAddDialogState extends State<_QuickAddDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('JUST FOR TODAY', style: Type.label.copyWith(fontSize: 10)),
+            Text('JUST FOR TODAY', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 10),
             TextField(
               controller: _title,
@@ -1987,7 +2242,7 @@ class _QuickAddDialogState extends State<_QuickAddDialog> {
                       ),
                       child: Text(s.abbr,
                           style: Type.label
-                              .copyWith(fontSize: 8.5, color: s.color)),
+                              .copyWith(fontSize: 11, color: s.color)),
                     ),
                   ),
               ],
@@ -1996,7 +2251,7 @@ class _QuickAddDialogState extends State<_QuickAddDialog> {
               children: [
                 Text('d${_difficulty.round()}',
                     style:
-                        Type.label.copyWith(fontSize: 9, color: Palette.xp)),
+                        Type.label.copyWith(fontSize: 11, color: Palette.xp)),
                 Expanded(
                   child: Slider(
                     value: _difficulty,
@@ -2032,7 +2287,7 @@ class _QuickAddDialogState extends State<_QuickAddDialog> {
                   ),
                   child: Text('ON THE BOARD',
                       style: Type.label.copyWith(
-                          fontSize: 10, color: const Color(0xFF3A2510))),
+                          fontSize: 11, color: const Color(0xFF3A2510))),
                 ),
               ),
             ),

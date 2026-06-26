@@ -30,6 +30,8 @@ class QuestTemplate {
     this.timerMinutes = 0,
     this.allDay = false,
     this.rising = false,
+    this.weekdays = const [],
+    this.monthDay,
   });
 
   final String title;
@@ -42,7 +44,15 @@ class QuestTemplate {
   final bool allDay;
   final bool rising;
 
-  Quest build({String? goalTitle}) => Quest(
+  /// Default schedule anchors; usually empty (the adopt-time day picker fills
+  /// them in for weekly/monthly quests).
+  final List<int> weekdays;
+  final int? monthDay;
+
+  /// [weekdays]/[monthDay] override the template defaults — the day picker
+  /// passes the chosen anchor here at adopt time.
+  Quest build({String? goalTitle, List<int>? weekdays, int? monthDay}) =>
+      Quest(
         title: title,
         stat: stat,
         difficulty: difficulty,
@@ -55,6 +65,8 @@ class QuestTemplate {
         goalTitle: goalTitle,
         allDay: allDay,
         rising: rising,
+        weekdays: weekdays ?? this.weekdays,
+        monthDay: monthDay ?? this.monthDay,
       );
 }
 
@@ -188,6 +200,39 @@ const goalCatalog = <GoalIdea>[
           timerMinutes: 25),
       QuestTemplate(
           title: 'Phone-free meal', stat: Stat.foc, difficulty: 3),
+    ],
+  ),
+  GoalIdea(
+    title: 'Keep a journal',
+    blurb:
+        'Five minutes with a pen does more than it looks like — for your '
+        'mood, your sleep, and how well you actually know yourself.',
+    stat: Stat.intl,
+    quests: [
+      QuestTemplate(
+          title: 'One line a day',
+          stat: Stat.intl,
+          difficulty: 1,
+          ladderHint: 'ONE HONEST SENTENCE COUNTS'),
+      QuestTemplate(
+          title: 'Name three good things',
+          stat: Stat.intl,
+          difficulty: 2),
+      QuestTemplate(
+          title: 'Empty your head before bed',
+          stat: Stat.intl,
+          difficulty: 2),
+      QuestTemplate(
+          title: 'Write it all out',
+          stat: Stat.intl,
+          difficulty: 4,
+          schedule: QuestSchedule.weekly,
+          ladderHint: '~15 MIN · WHATEVER IS HEAVY'),
+      QuestTemplate(
+          title: 'Look back on your week',
+          stat: Stat.intl,
+          difficulty: 3,
+          schedule: QuestSchedule.weekly),
     ],
   ),
   GoalIdea(
@@ -465,6 +510,43 @@ const goalCatalog = <GoalIdea>[
 /// the evidence is correlational or survey-grade. The inline `// why:` comments
 /// above each quest are the terse dev note; this map is the surfaced copy.
 const questWhy = <String, ({String claim, String source})>{
+  // Keep a journal
+  'One line a day': (
+    claim:
+        'You don’t need pages — naming the day in one honest sentence builds '
+        'self-awareness and the small daily habit that deeper reflection grows '
+        'from. The barrier is the point: keep it low and you’ll keep it.',
+    source: 'Expressive-writing research, Pennebaker 1997 (low-dose; general)',
+  ),
+  'Name three good things': (
+    claim:
+        'Writing down three things that went well — and why — measurably lifted '
+        'mood and lowered depressive symptoms for up to six months in a '
+        'randomized trial. It trains attention toward what’s working.',
+    source: 'Seligman, Steen, Park & Peterson 2005, American Psychologist (RCT)',
+  ),
+  'Empty your head before bed': (
+    claim:
+        'People who spent five minutes writing tomorrow’s to-do list before bed '
+        'fell asleep faster than those who journaled about finished tasks — '
+        'offloading the open loops quiets a racing mind.',
+    source: 'Scullin et al. 2018, J. Experimental Psychology: General (RCT)',
+  ),
+  'Write it all out': (
+    claim:
+        'Writing continuously about something stressful for ~15 minutes, a few '
+        'times, is linked to better mood and even physical-health markers in '
+        'the months after — putting feelings into words helps you process them. '
+        '(It can feel heavier in the moment; that’s normal.)',
+    source: 'Pennebaker & Beall 1986; Pennebaker 1997 (expressive writing)',
+  ),
+  'Look back on your week': (
+    claim:
+        'Reflecting on what happened and what you learned beat spending that '
+        'same time on more doing, in controlled experiments — naming the lesson '
+        'is what makes experience actually stick.',
+    source: 'Di Stefano, Gino, Pisano & Staats 2016, Harvard Business School',
+  ),
   // Keep your space
   'Make your bed': (
     claim:

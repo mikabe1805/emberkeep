@@ -81,10 +81,10 @@ abstract final class Ladders {
       'Make a plan with a friend',
     ],
     Stat.dis: [
-      'Do the dreaded thing first',
       'Make the bed',
-      'Cold-start the task you keep dodging',
-      'Keep one tiny promise to yourself',
+      'Wipe down one surface',
+      'Clear one flat surface',
+      'Take the trash out',
     ],
   };
 

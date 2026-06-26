@@ -19,6 +19,35 @@ class Sfx {
   final Map<String, AudioPool> _pools = {};
 
   Future<void> init() async {
+    // FIRST, before any pool ever activates the audio session: make our SFX
+    // mix WITH the user's own music instead of evicting it. audioplayers
+    // defaults the iOS AVAudioSession to `.playback` (non-mixable), so the
+    // first sound at launch was stopping the user's Spotify/Apple Music.
+    // `ambient` is the canonical category for incidental game sound: it mixes
+    // over other audio and respects the hardware Ring/Silent switch (we lose
+    // nothing if muted — see the class doc). On Android we never grab audio
+    // focus, so background music is never ducked or paused.
+    try {
+      await AudioPlayer.global.setAudioContext(AudioContext(
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.ambient,
+          // Do NOT pass mixWithOthers explicitly here: for the `ambient`
+          // category iOS mixes implicitly, and AudioContextIOS asserts in
+          // debug if options are combined with a non-playback category.
+          options: const {},
+        ),
+        android: const AudioContextAndroid(
+          isSpeakerphoneOn: false,
+          stayAwake: false,
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.assistanceSonification,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+      ));
+    } catch (e) {
+      debugPrint('Sfx audio context (continuing): $e');
+    }
+
     // Parallel loads; each pool becomes playable as soon as it lands, and
     // one failed asset never mutes the others.
     await Future.wait(_all.map((name) async {

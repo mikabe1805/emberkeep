@@ -222,12 +222,13 @@ class Quest {
   final bool allDay;
 
   /// For daily/weekly quests: restrict to these weekdays (1=Mon..7=Sun).
-  /// Empty = every day (daily) / any day (weekly).
-  final List<int> weekdays;
+  /// Empty = every day (daily) / any day (weekly). Mutable: set at adopt-time
+  /// by the day picker and editable later (like [difficulty]/[stat]).
+  List<int> weekdays;
 
   /// For monthly quests: the day-of-month it appears (clamped to short
-  /// months). Null = any day that month.
-  final int? monthDay;
+  /// months). Null = any day that month. Mutable (adopt/edit).
+  int? monthDay;
 
   /// Rising difficulty (round-8): training quests climb over time —
   /// start easy, grow with the user. NOT for maintenance routines.

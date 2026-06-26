@@ -34,14 +34,17 @@ abstract final class Palette {
   static const honeyGlow = Color(0x52E0A865); // warm halo for CTAs
 }
 
-/// The six attributes — luminous warm hues for the night canvas.
+/// The six LIFE DOMAINS you level up — tangible parts of a life, not abstract
+/// RPG attributes (the owner wanted to "level up my home, my caretaking").
+/// The enum identifiers stay (str/vit/… ) so saves — which store the index —
+/// and every switch/title key keep working; only the names/abbrs are domains.
 enum Stat {
-  str('STR', 'Strength', Color(0xFFE89090)), // ember rose
-  vit('VIT', 'Vitality', Color(0xFF9BC08F)), // moss light
-  intl('INT', 'Intellect', Color(0xFF85B7CE)), // moonlit teal-blue
-  foc('FOC', 'Focus', Color(0xFFB79BC8)), // dusty lilac
-  soc('SOC', 'Social', Color(0xFFF0AFAF)), // bloom light
-  dis('DIS', 'Discipline', Color(0xFFB3A897)); // pale bark
+  str('BODY', 'Body', Color(0xFFE89090)), // ember rose — move it, train it
+  vit('CARE', 'Care', Color(0xFF9BC08F)), // moss — food, sleep, plants, pets
+  intl('MIND', 'Mind', Color(0xFF85B7CE)), // teal-blue — read, learn, reflect
+  foc('CRAFT', 'Craft', Color(0xFFB79BC8)), // lilac — work, focus, projects
+  soc('PEOPLE', 'People', Color(0xFFF0AFAF)), // bloom — reach out, relationships
+  dis('HOME', 'Home', Color(0xFFB3A897)); // warm bark — chores, space, upkeep
 
   const Stat(this.abbr, this.label, this.color);
   final String abbr;
@@ -71,27 +74,40 @@ abstract final class Motion {
 
 /// Typography: Fraunces for display numerals/headers (the owner's editorial
 /// serif), Inter for body, mono-style ALL-CAPS for labels.
+///
+/// Each base style now carries a DEFAULT fontSize sized for a phone held at
+/// arm's length — the floor of a readable scale (mobile accessibility pass).
+/// Call sites may still .copyWith(fontSize:) for hero numerals etc., but the
+/// floor below keeps anything unspecified from rendering hairline-thin, and
+/// [Type.minLabel] is the smallest size any caps-label should ever use.
 abstract final class Type {
+  /// Smallest readable caps-label on the dark canvas. Nothing below this.
+  static const double minLabel = 11;
+
   /// Numbers are the heroes: big, animated count-ups, soft serif warmth.
   static TextStyle get numerals => GoogleFonts.fraunces(
         fontFeatures: const [FontFeature.tabularFigures()],
         fontWeight: FontWeight.w700,
+        fontSize: 18,
         letterSpacing: 0.2,
         color: Palette.textHi,
       );
 
   static TextStyle get display => GoogleFonts.fraunces(
         fontWeight: FontWeight.w600,
+        fontSize: 22,
         color: Palette.textHi,
       );
 
   static TextStyle get body => GoogleFonts.inter(
         fontWeight: FontWeight.w500,
+        fontSize: 16,
         color: Palette.textMid,
       );
 
   static TextStyle get label => GoogleFonts.jetBrainsMono(
         fontWeight: FontWeight.w600,
+        fontSize: minLabel,
         letterSpacing: 1.1,
         color: Palette.textLo,
       );

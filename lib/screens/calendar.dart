@@ -103,7 +103,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         Expanded(
                           child: Center(
                             child: Text(d,
-                                style: Type.label.copyWith(fontSize: 9)),
+                                style: Type.label.copyWith(fontSize: 11)),
                           ),
                         ),
                     ],
@@ -282,7 +282,7 @@ class _DayPanel extends StatelessWidget {
                 child: Text(
                     '${day.day}.${day.month}.${day.year}'
                     '${Days.sameDay(day, now) ? " · TODAY" : ""}',
-                    style: Type.label.copyWith(fontSize: 10)),
+                    style: Type.label.copyWith(fontSize: 11)),
               ),
               if (!isPast)
                 GestureDetector(
@@ -300,7 +300,7 @@ class _DayPanel extends StatelessWidget {
                     ),
                     child: Text('+ PLAN',
                         style: Type.label.copyWith(
-                            fontSize: 9, color: const Color(0xFF3A2510))),
+                            fontSize: 11, color: const Color(0xFF3A2510))),
                   ),
                 ),
             ],
@@ -327,7 +327,7 @@ class _DayPanel extends StatelessWidget {
                     ? 'A quiet day.'
                     : 'Nothing planned yet — every empty day is a side quest waiting.',
                 style: Type.body.copyWith(
-                    fontSize: 12.5,
+                    fontSize: 13.5,
                     fontStyle: FontStyle.italic,
                     color: Palette.textLo)),
           for (final e in events)
@@ -354,7 +354,7 @@ class _DayPanel extends StatelessWidget {
                                 : null)),
                   ),
                   Text('d${e.difficulty}',
-                      style: Type.label.copyWith(fontSize: 9)),
+                      style: Type.label.copyWith(fontSize: 11)),
                 ],
               ),
             ),
@@ -426,7 +426,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
           children: [
             Text(
                 'PLAN FOR ${widget.day.day}.${widget.day.month}.${widget.day.year}',
-                style: Type.label.copyWith(fontSize: 10)),
+                style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 10),
             TextField(
               controller: _title,
@@ -471,7 +471,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                       ),
                       child: Text(s.abbr,
                           style: Type.label
-                              .copyWith(fontSize: 9, color: s.color)),
+                              .copyWith(fontSize: 11, color: s.color)),
                     ),
                   ),
               ],
@@ -480,9 +480,9 @@ class _AddEventDialogState extends State<_AddEventDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('DIFFICULTY', style: Type.label.copyWith(fontSize: 9)),
+                Text('DIFFICULTY', style: Type.label.copyWith(fontSize: 11)),
                 Text('d${_difficulty.round()}',
-                    style: Type.label.copyWith(fontSize: 9, color: Palette.xp)),
+                    style: Type.label.copyWith(fontSize: 11, color: Palette.xp)),
               ],
             ),
             Slider(
@@ -516,7 +516,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                   ),
                   child: Text('PLAN IT',
                       style: Type.label.copyWith(
-                          fontSize: 10, color: const Color(0xFF3A2510))),
+                          fontSize: 11, color: const Color(0xFF3A2510))),
                 ),
               ),
             ),

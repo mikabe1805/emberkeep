@@ -107,6 +107,47 @@ const evidenceCards = <EvidenceCard>[
         'other half of getting stronger.',
     source: 'Recovery & adaptation, ACSM',
   ),
+  // Why the app is built the way it is — mechanisms that especially help
+  // brains that resist getting started (the "push the research front" set).
+  EvidenceCard(
+    stat: Stat.intl,
+    title: 'Get it out of your head',
+    text:
+        'Working memory only holds a few things at once, and every undone task '
+        'you’re trying to remember quietly taxes it. Writing them down — onto a '
+        'board like this — frees that capacity for actually doing them. People '
+        'who offload reminders perform better and feel less loaded.',
+    source: 'Risko & Gilbert 2016, Trends in Cognitive Sciences',
+  ),
+  EvidenceCard(
+    stat: Stat.foc,
+    title: 'One thing at a time isn’t slower',
+    text:
+        'Every time you switch tasks you pay a hidden cost in time and mistakes '
+        '— juggling two things is measurably slower than finishing one, then '
+        'the next. Doing a single quest at a time isn’t old-fashioned; it’s the '
+        'efficient way. (That’s what Focus mode is for.)',
+    source: 'Rubinstein, Meyer & Evans 2001, J. Experimental Psychology',
+  ),
+  EvidenceCard(
+    stat: Stat.vit,
+    title: 'Going easy on yourself works better',
+    text:
+        'After a slip, guilt makes you more likely to quit; self-compassion '
+        'makes you more likely to try again. In experiments, people who were '
+        'kind to themselves about a setback then worked harder to improve. '
+        'That’s why this app never punishes you for a missed day.',
+    source: 'Breines & Chen 2012, Personality & Social Psychology Bulletin',
+  ),
+  EvidenceCard(
+    stat: Stat.dis,
+    title: 'Decide the when, not just the what',
+    text:
+        '“I’ll exercise more” rarely sticks. “After I pour my coffee, I’ll do '
+        'two push-ups” roughly doubles follow-through — naming the exact cue '
+        'and action in advance does the remembering for you.',
+    source: 'Gollwitzer & Sheeran 2006 meta-analysis, 94 studies',
+  ),
 ];
 
 /// First evidence card that speaks to [stat] — powers the "why this works"

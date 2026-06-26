@@ -78,7 +78,7 @@ class MePage extends StatelessWidget {
                 ),
                 child: Text('LEVEL ${state.level} · ${state.totalXp} XP',
                     style:
-                        Type.label.copyWith(fontSize: 10, color: Palette.xp)),
+                        Type.label.copyWith(fontSize: 11, color: Palette.xp)),
               ),
             ],
           ),
@@ -109,7 +109,7 @@ class MePage extends StatelessWidget {
                         ? '${state.playerName ?? "you"} · every legend starts at zero'
                         : '${state.playerName ?? "you"} · built from ${state.totalXp} XP of real life',
                     style: Type.body.copyWith(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontStyle: FontStyle.italic,
                         color: Palette.textLo)),
                 const SizedBox(height: 16),
@@ -141,17 +141,17 @@ class MePage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('THEMES', style: Type.label.copyWith(fontSize: 10)),
+                    Text('THEMES', style: Type.label.copyWith(fontSize: 11)),
                     const Spacer(),
                     if (state.level < 5)
                       Row(
                         children: [
                           const Icon(Icons.lock_outline,
-                              size: 11, color: Palette.textLo),
+                              size: 12, color: Palette.textLo),
                           const SizedBox(width: 3),
                           Text('LV 5',
                               style: Type.label
-                                  .copyWith(fontSize: 8, color: Palette.textLo)),
+                                  .copyWith(fontSize: 11, color: Palette.textLo)),
                         ],
                       ),
                   ],
@@ -199,7 +199,7 @@ class MePage extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text('YOUR BUILD',
-                      style: Type.label.copyWith(fontSize: 10)),
+                      style: Type.label.copyWith(fontSize: 11)),
                 ),
                 const SizedBox(height: 4),
                 Center(child: StatRadar(values: state.stats)),
@@ -218,7 +218,7 @@ class MePage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('TROPHY CASE', style: Type.label.copyWith(fontSize: 10)),
+                    Text('TROPHY CASE', style: Type.label.copyWith(fontSize: 11)),
                     const Spacer(),
                     Text(
                         '${state.unlockedAchievements.length} / ${achievements.length}',
@@ -257,7 +257,7 @@ class MePage extends StatelessWidget {
                   Row(
                     children: [
                       Text('WARDROBE',
-                          style: Type.label.copyWith(fontSize: 10)),
+                          style: Type.label.copyWith(fontSize: 11)),
                       const Spacer(),
                       Text('${state.collectedLoot.length}/${cosmetics.length}',
                           style: Type.numerals
@@ -316,25 +316,25 @@ class MePage extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Container(
-                                    width: 9,
-                                    height: 9,
+                                    width: 10,
+                                    height: 10,
                                     decoration: BoxDecoration(
                                         shape: BoxShape.circle, color: tint),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(loot,
                                       style: Type.body.copyWith(
-                                          fontSize: 12,
+                                          fontSize: 13,
                                           color: Palette.textMid)),
                                   if (worn) ...[
                                     const SizedBox(width: 6),
                                     Text('WORN',
                                         style: Type.label.copyWith(
-                                            fontSize: 7, color: tint)),
+                                            fontSize: 11, color: tint)),
                                   ] else if (legendary) ...[
                                     const SizedBox(width: 5),
                                     const Icon(Icons.auto_awesome,
-                                        size: 9, color: Palette.xpLight),
+                                        size: 13, color: Palette.xpLight),
                                   ],
                                 ],
                               ),
@@ -363,7 +363,7 @@ class MePage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('YOUR SAVE IS YOURS',
-                    style: Type.label.copyWith(fontSize: 10)),
+                    style: Type.label.copyWith(fontSize: 11)),
                 const SizedBox(height: 6),
                 Text(
                     'Your fire’s saved to the cloud on its own. For a copy '
@@ -374,7 +374,9 @@ class MePage extends StatelessWidget {
                         fontStyle: FontStyle.italic,
                         color: Palette.textLo)),
                 const SizedBox(height: 10),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     _DataButton(
                       label: 'STASH A COPY',
@@ -397,7 +399,6 @@ class MePage extends StatelessWidget {
                         );
                       },
                     ),
-                    const SizedBox(width: 8),
                     _DataButton(
                       label: 'RESTORE',
                       icon: Icons.download_outlined,
@@ -408,6 +409,35 @@ class MePage extends StatelessWidget {
                           barrierColor: const Color(0xCC140C06),
                           builder: (_) =>
                               _RestoreDialog(onImport: onImport),
+                        );
+                      },
+                    ),
+                    // round-21: the on-device usage log, for the owner to hand
+                    // to Claude for improvement ideas. Stored locally only,
+                    // never uploaded — copied out only when you choose to.
+                    _DataButton(
+                      label: 'USAGE LOG',
+                      icon: Icons.insights_outlined,
+                      onTap: () async {
+                        final raw = await Storage.usageExport();
+                        if (!context.mounted) return;
+                        final ok = raw != null && raw.isNotEmpty;
+                        if (ok) {
+                          await Clipboard.setData(ClipboardData(text: raw));
+                        }
+                        if (!context.mounted) return;
+                        Sfx.instance.play(ok ? 'streak' : 'boing');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            backgroundColor: Palette.card,
+                            content: Text(
+                                ok
+                                    ? 'Usage log copied — on-device only. Hand it to Claude for ideas.'
+                                    : 'No usage logged yet — come back after a few days.',
+                                style: Type.body
+                                    .copyWith(color: Palette.textHi)),
+                          ),
                         );
                       },
                     ),
@@ -444,7 +474,7 @@ class MePage extends StatelessWidget {
                     onTap: () => _confirmReset(context),
                     child: Text('start over',
                         style: Type.label.copyWith(
-                            fontSize: 9,
+                            fontSize: 11,
                             color: const Color(0xFFE89090)
                                 .withValues(alpha: 0.7))),
                   ),
@@ -459,7 +489,7 @@ class MePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('RECENT GAINS', style: Type.label.copyWith(fontSize: 10)),
+                Text('RECENT GAINS', style: Type.label.copyWith(fontSize: 11)),
                 const SizedBox(height: 10),
                 if (state.ledger.isEmpty)
                   Text('Complete a quest and your story starts here.',
@@ -519,10 +549,12 @@ class MePage extends StatelessWidget {
                   'trophy — gone for good. Copy a backup first if unsure.',
                   textAlign: TextAlign.center,
                   style: Type.body.copyWith(
-                      fontSize: 12.5, color: Palette.textMid)),
+                      fontSize: 13.5, color: Palette.textMid)),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 10,
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.of(ctx).pop(),
@@ -539,10 +571,9 @@ class MePage extends StatelessWidget {
                       ),
                       child: Text('KEEP MY FIRE',
                           style: Type.label.copyWith(
-                              fontSize: 10, color: const Color(0xFF3A2510))),
+                              fontSize: 11, color: const Color(0xFF3A2510))),
                     ),
                   ),
-                  const SizedBox(width: 10),
                   GestureDetector(
                     onTap: () {
                       Navigator.of(ctx).pop();
@@ -560,7 +591,7 @@ class MePage extends StatelessWidget {
                       ),
                       child: Text('ERASE EVERYTHING',
                           style: Type.label.copyWith(
-                              fontSize: 10, color: const Color(0xFFE89090))),
+                              fontSize: 11, color: const Color(0xFFE89090))),
                     ),
                   ),
                 ],
@@ -598,7 +629,7 @@ void _showStatEvidence(BuildContext context, Stat stat) {
                 Icon(Icons.auto_stories, size: 14, color: stat.color),
                 const SizedBox(width: 6),
                 Text('WHY ${stat.abbr} MATTERS',
-                    style: Type.label.copyWith(fontSize: 10, color: stat.color)),
+                    style: Type.label.copyWith(fontSize: 11, color: stat.color)),
               ],
             ),
             const SizedBox(height: 10),
@@ -616,7 +647,7 @@ void _showStatEvidence(BuildContext context, Stat stat) {
                 Expanded(
                   child: Text(card.source,
                       style: Type.label
-                          .copyWith(fontSize: 8, color: Palette.info)),
+                          .copyWith(fontSize: 11, color: Palette.info)),
                 ),
               ],
             ),
@@ -643,15 +674,15 @@ class _StatRow extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 9,
-            height: 9,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(shape: BoxShape.circle, color: stat.color),
           ),
           const SizedBox(width: 8),
           SizedBox(
-            width: 34,
+            width: 38,
             child: Text(stat.abbr,
-                style: Type.label.copyWith(fontSize: 10, color: stat.color)),
+                style: Type.label.copyWith(fontSize: 11, color: stat.color)),
           ),
           Expanded(
             child: Column(
@@ -659,11 +690,14 @@ class _StatRow extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text(rank.label,
-                        style: Type.body.copyWith(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w600,
-                            color: Palette.textHi)),
+                    Flexible(
+                      child: Text(rank.label,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.body.copyWith(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w600,
+                              color: Palette.textHi)),
+                    ),
                     const Spacer(),
                     Text('$value',
                         style: Type.numerals
@@ -671,7 +705,7 @@ class _StatRow extends StatelessWidget {
                     if (toNext != null) ...[
                       const SizedBox(width: 4),
                       Text('· +$toNext to rank up',
-                          style: Type.label.copyWith(fontSize: 7.5)),
+                          style: Type.label.copyWith(fontSize: 11)),
                     ],
                     // the signature beat: tap to learn why this stat matters
                     if (evidenceForStat(stat) != null) ...[
@@ -755,7 +789,7 @@ class _ShareButton extends StatelessWidget {
             const SizedBox(width: 7),
             Text('SHARE MY BUILD',
                 style: Type.label
-                    .copyWith(fontSize: 10, color: const Color(0xFF3A2510))),
+                    .copyWith(fontSize: 11, color: const Color(0xFF3A2510))),
           ],
         ),
       ),
@@ -860,13 +894,13 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                   const SizedBox(height: 6),
                   Text('${state.totalXp} XP of real life',
                       style: Type.body.copyWith(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontStyle: FontStyle.italic,
                           color: Palette.textLo)),
                   const SizedBox(height: 4),
                   Text('🔥 emberkeep',
                       style: Type.label.copyWith(
-                          fontSize: 8, color: Palette.textLo)),
+                          fontSize: 11, color: Palette.textLo)),
                 ],
               ),
             ),
@@ -902,7 +936,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                       const SizedBox(width: 6),
                       Text(_busy ? 'SAVING…' : 'SHARE IMAGE',
                           style: Type.label.copyWith(
-                              fontSize: 10, color: const Color(0xFF3A2510))),
+                              fontSize: 11, color: const Color(0xFF3A2510))),
                     ],
                   ),
                 ),
@@ -920,7 +954,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                   ),
                   child: Text('COPY TEXT',
                       style: Type.label
-                          .copyWith(fontSize: 10, color: Palette.textHi)),
+                          .copyWith(fontSize: 11, color: Palette.textHi)),
                 ),
               ),
             ],
@@ -975,7 +1009,7 @@ class _TrophyTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: SizedBox(
-        width: 72,
+        width: 78,
         child: Column(
           children: [
             Container(
@@ -1018,7 +1052,7 @@ class _TrophyTile extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Type.label.copyWith(
-                fontSize: 7.5,
+                fontSize: 11,
                 color: unlocked
                     ? Palette.textMid
                     : Palette.textLo.withValues(alpha: 0.7),
@@ -1028,7 +1062,7 @@ class _TrophyTile extends StatelessWidget {
               const SizedBox(height: 2),
               Text('${p.$1}/${p.$2}',
                   style: Type.numerals.copyWith(
-                      fontSize: 8,
+                      fontSize: 11,
                       color: closest
                           ? Palette.streak
                           : Palette.textLo.withValues(alpha: 0.8))),
@@ -1059,7 +1093,7 @@ class _ThemeSwatch extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 72,
+        width: 78,
         child: Column(
           children: [
             Container(
@@ -1122,7 +1156,7 @@ class _ThemeSwatch extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Type.label.copyWith(
-                    fontSize: 7.5,
+                    fontSize: 11,
                     color: selected ? Palette.xpLight : Palette.textLo)),
           ],
         ),
@@ -1152,14 +1186,14 @@ class _LockedSlot extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(unlocked ? Icons.check_circle : Icons.lock_outline,
-              size: 10,
+              size: 13,
               color: unlocked
                   ? Palette.xpLight
                   : Palette.textLo.withValues(alpha: 0.7)),
           const SizedBox(width: 4),
           Text(label,
               style: Type.label.copyWith(
-                  fontSize: 8,
+                  fontSize: 11,
                   color: unlocked
                       ? Palette.xpLight
                       : Palette.textLo.withValues(alpha: 0.8))),
@@ -1214,7 +1248,7 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
                     const SizedBox(width: 6),
                     Text('WE CAUGHT A FALLING SAVE',
                         style: Type.label
-                            .copyWith(fontSize: 9, color: Palette.streak)),
+                            .copyWith(fontSize: 11, color: Palette.streak)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -1224,7 +1258,9 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
                     style: Type.body
                         .copyWith(fontSize: 11, color: Palette.textMid)),
                 const SizedBox(height: 8),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     _DataButton(
                       label: 'COPY IT',
@@ -1244,7 +1280,6 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
                         );
                       },
                     ),
-                    const SizedBox(width: 8),
                     _DataButton(
                       label: 'DISMISS',
                       icon: Icons.close,
@@ -1291,11 +1326,11 @@ class _DataButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: Palette.textMid),
+            Icon(icon, size: 14, color: Palette.textMid),
             const SizedBox(width: 6),
             Text(label,
                 style:
-                    Type.label.copyWith(fontSize: 9, color: Palette.textMid)),
+                    Type.label.copyWith(fontSize: 11, color: Palette.textMid)),
           ],
         ),
       ),
@@ -1351,7 +1386,7 @@ class _RestoreDialogState extends State<_RestoreDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('RESTORE A BACKUP', style: Type.label.copyWith(fontSize: 10)),
+            Text('RESTORE A BACKUP', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 6),
             Text('this replaces what’s on this device',
                 style: Type.body.copyWith(
@@ -1369,7 +1404,7 @@ class _RestoreDialogState extends State<_RestoreDialog> {
               decoration: InputDecoration(
                 hintText: 'paste your backup here…',
                 hintStyle:
-                    Type.body.copyWith(fontSize: 12, color: Palette.textLo),
+                    Type.body.copyWith(fontSize: 13, color: Palette.textLo),
                 errorText: _error,
                 errorStyle: Type.body
                     .copyWith(fontSize: 11, color: const Color(0xFFE89090)),
@@ -1398,7 +1433,7 @@ class _RestoreDialogState extends State<_RestoreDialog> {
                   ),
                   child: Text(_busy ? 'RESTORING…' : 'RESTORE',
                       style: Type.label.copyWith(
-                          fontSize: 10, color: const Color(0xFF3A2510))),
+                          fontSize: 11, color: const Color(0xFF3A2510))),
                 ),
               ),
             ),
@@ -1455,10 +1490,12 @@ class _AccountPanel extends StatelessWidget {
                   'account’s cloud save is kept safe.',
                   textAlign: TextAlign.center,
                   style:
-                      Type.body.copyWith(fontSize: 12.5, color: Palette.textMid)),
+                      Type.body.copyWith(fontSize: 13.5, color: Palette.textMid)),
               const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 10,
                 children: [
                   GestureDetector(
                     onTap: () => Navigator.of(ctx).pop(),
@@ -1475,10 +1512,9 @@ class _AccountPanel extends StatelessWidget {
                       ),
                       child: Text('KEEP MY FIRE',
                           style: Type.label.copyWith(
-                              fontSize: 10, color: const Color(0xFF3A2510))),
+                              fontSize: 11, color: const Color(0xFF3A2510))),
                     ),
                   ),
-                  const SizedBox(width: 10),
                   GestureDetector(
                     onTap: () async {
                       Navigator.of(ctx).pop();
@@ -1494,7 +1530,7 @@ class _AccountPanel extends StatelessWidget {
                             color: Palette.textLo.withValues(alpha: 0.5)),
                       ),
                       child: Text('SIGN OUT',
-                          style: Type.label.copyWith(fontSize: 10)),
+                          style: Type.label.copyWith(fontSize: 11)),
                     ),
                   ),
                 ],
@@ -1524,7 +1560,7 @@ class _AccountPanel extends StatelessWidget {
                       size: 14, color: Palette.xpLight),
                   const SizedBox(width: 6),
                   Text(signedIn ? 'YOUR ACCOUNT' : 'YOUR FIRE, EVERYWHERE',
-                      style: Type.label.copyWith(fontSize: 10)),
+                      style: Type.label.copyWith(fontSize: 11)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -1545,7 +1581,7 @@ class _AccountPanel extends StatelessWidget {
                   onTap: () => _confirmSignOut(context),
                   child: Text('sign out',
                       style: Type.label.copyWith(
-                          fontSize: 9,
+                          fontSize: 11,
                           color: Palette.textLo.withValues(alpha: 0.8))),
                 ),
               ] else ...[
@@ -1557,7 +1593,9 @@ class _AccountPanel extends StatelessWidget {
                         fontStyle: FontStyle.italic,
                         color: Palette.textLo)),
                 const SizedBox(height: 10),
-                Row(
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     _DataButton(
                       label: 'CREATE ACCOUNT',
@@ -1566,7 +1604,6 @@ class _AccountPanel extends StatelessWidget {
                           ? () => _openForm(context, signIn: false)
                           : () {},
                     ),
-                    const SizedBox(width: 8),
                     _DataButton(
                       label: 'SIGN IN',
                       icon: Icons.login,
@@ -1579,7 +1616,7 @@ class _AccountPanel extends StatelessWidget {
                 if (!CloudSync.instance.ready) ...[
                   const SizedBox(height: 6),
                   Text('(the cloud’s out of reach — try again once you’re back online)',
-                      style: Type.label.copyWith(fontSize: 8)),
+                      style: Type.label.copyWith(fontSize: 11)),
                 ],
               ],
             ],
@@ -1663,7 +1700,7 @@ class _AccountDialogState extends State<_AccountDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.signIn ? 'SIGN IN' : 'CREATE ACCOUNT',
-                style: Type.label.copyWith(fontSize: 10)),
+                style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 4),
             Text(
                 widget.signIn
@@ -1725,7 +1762,7 @@ class _AccountDialogState extends State<_AccountDialog> {
                               ? 'SIGN IN'
                               : 'CREATE ACCOUNT',
                       style: Type.label.copyWith(
-                          fontSize: 10, color: const Color(0xFF3A2510))),
+                          fontSize: 11, color: const Color(0xFF3A2510))),
                 ),
               ),
             ),

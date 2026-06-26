@@ -91,7 +91,7 @@ class _InspirationPageState extends State<InspirationPage> {
           Center(
             child: Text(
                 'the rest of the archive opens at level ${InspirationPage.archiveGate}',
-                style: Type.label.copyWith(fontSize: 9, color: Palette.textLo)),
+                style: Type.label.copyWith(fontSize: 11, color: Palette.textLo)),
           ),
         ],
       ],
@@ -126,7 +126,7 @@ class _EvidenceTile extends StatelessWidget {
                 ),
                 child: Text(card.stat.abbr,
                     style: Type.label
-                        .copyWith(fontSize: 9, color: card.stat.color)),
+                        .copyWith(fontSize: 11, color: card.stat.color)),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -143,14 +143,14 @@ class _EvidenceTile extends StatelessWidget {
                   ),
                   child: Text('NEW',
                       style: Type.label
-                          .copyWith(fontSize: 7.5, color: Palette.streak)),
+                          .copyWith(fontSize: 11, color: Palette.streak)),
                 ),
                 const SizedBox(width: 6),
               ],
               if (forYou)
                 Text('FOR YOU',
                     style: Type.label
-                        .copyWith(fontSize: 8, color: Palette.xpLight)),
+                        .copyWith(fontSize: 11, color: Palette.xpLight)),
             ],
           ),
           const SizedBox(height: 8),
@@ -161,13 +161,13 @@ class _EvidenceTile extends StatelessWidget {
           Row(
             children: [
               const Icon(Icons.menu_book_outlined,
-                  size: 11, color: Palette.info),
+                  size: 13, color: Palette.info),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(card.source,
                     overflow: TextOverflow.ellipsis,
                     style:
-                        Type.label.copyWith(fontSize: 8, color: Palette.info)),
+                        Type.label.copyWith(fontSize: 11, color: Palette.info)),
               ),
             ],
           ),
@@ -198,7 +198,7 @@ class _LockedCard extends StatelessWidget {
                     color: Palette.textLo.withValues(alpha: 0.7))),
           ),
           Text('LV 4',
-              style: Type.label.copyWith(fontSize: 8, color: Palette.textLo)),
+              style: Type.label.copyWith(fontSize: 11, color: Palette.textLo)),
         ],
       ),
     );

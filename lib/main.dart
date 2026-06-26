@@ -84,6 +84,14 @@ class LifeRpgApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
+      // Honor the phone's Text Size accessibility setting (the app ignored it
+      // before), but clamp the upper end so the dense candlelit cards don't
+      // shatter. A low-vision user finally gets larger type; layouts stay sane.
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        minScaleFactor: 1.0,
+        maxScaleFactor: 1.3,
+        child: child ?? const SizedBox.shrink(),
+      ),
       home: const AppShell(),
     );
   }

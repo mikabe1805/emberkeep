@@ -7,6 +7,7 @@ import '../content/routines.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
+import '../widgets/day_picker.dart';
 import '../widgets/glass.dart';
 import 'goal_detail.dart';
 import 'goal_wizard.dart';
@@ -66,7 +67,7 @@ final _goalCategories = <_GoalCategory>[
     blurb: 'attention and the turning page',
     icon: Icons.auto_stories_outlined,
     accent: Stat.foc.color,
-    goalTitles: const ['Become a reader', 'Deep focus'],
+    goalTitles: const ['Become a reader', 'Deep focus', 'Keep a journal'],
   ),
   _GoalCategory(
     label: 'PEOPLE',
@@ -109,8 +110,14 @@ class GoalsPage extends StatelessWidget {
     final created = state.addGoal(
         Goal(title: idea.title, stat: idea.stat, target: 25));
     var added = 0;
+    // Whole-goal adopt: don't stack a modal per weekly quest — anchor each
+    // weekly to today by default (editable later via the quest's tune sheet).
+    final today = DateTime.now().weekday;
     for (final t in idea.quests) {
-      if (onAdd(t.build(goalTitle: idea.title))) added++;
+      final q = t.schedule == QuestSchedule.weekly
+          ? t.build(goalTitle: idea.title, weekdays: [today])
+          : t.build(goalTitle: idea.title);
+      if (onAdd(q)) added++;
     }
     Sfx.instance.play(created || added > 0 ? 'levelup' : 'boing');
     HapticFeedback.mediumImpact();
@@ -154,7 +161,7 @@ class GoalsPage extends StatelessWidget {
               child: Text(
                   'no oaths sworn yet — forge one above, or adopt a ready-made path below',
                   style: Type.body.copyWith(
-                      fontSize: 12,
+                      fontSize: 13,
                       fontStyle: FontStyle.italic,
                       color: Palette.textLo)),
             ),
@@ -374,7 +381,7 @@ class _GuidedWorkoutsCard extends StatelessWidget {
                       style: Type.display.copyWith(fontSize: 19)),
                   Text('gentle, beginner sessions — we walk you through it',
                       style: Type.body.copyWith(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontStyle: FontStyle.italic,
                           color: Palette.textLo)),
                 ],
@@ -436,7 +443,7 @@ class _WizardHero extends StatelessWidget {
                       style: Type.display.copyWith(fontSize: 19)),
                   Text('name it · forge its path · swear the oath',
                       style: Type.body.copyWith(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontStyle: FontStyle.italic,
                           color: Palette.textLo)),
                 ],
@@ -496,7 +503,7 @@ class _YourGoals extends StatelessWidget {
                 Text('The goal and every quest serving it leave the board.',
                     textAlign: TextAlign.center,
                     style: Type.body.copyWith(
-                        fontSize: 12.5, color: Palette.textMid)),
+                        fontSize: 13.5, color: Palette.textMid)),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -516,7 +523,7 @@ class _YourGoals extends StatelessWidget {
                         ),
                         child: Text('KEEP IT',
                             style: Type.label.copyWith(
-                                fontSize: 10,
+                                fontSize: 11,
                                 color: const Color(0xFF3A2510))),
                       ),
                     ),
@@ -543,7 +550,7 @@ class _YourGoals extends StatelessWidget {
                         ),
                         child: Text(armed ? 'TAP AGAIN' : 'ABANDON',
                             style: Type.label.copyWith(
-                                fontSize: 10,
+                                fontSize: 11,
                                 color: const Color(0xFFE89090))),
                       ),
                     ),
@@ -565,10 +572,14 @@ class _YourGoals extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('YOUR GOALS', style: Type.label.copyWith(fontSize: 10)),
+              Text('YOUR GOALS', style: Type.label.copyWith(fontSize: 11)),
               const Spacer(),
-              Text('tap to open · hold to abandon',
-                  style: Type.label.copyWith(fontSize: 7.5)),
+              Flexible(
+                child: Text('tap to open · hold to abandon',
+                    textAlign: TextAlign.right,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.label.copyWith(fontSize: 11)),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -606,7 +617,7 @@ class _YourGoals extends StatelessWidget {
                               : '${g.progress}/${g.target}'
                                   '${g.kind == GoalKind.become ? " · MILESTONE" : ""}',
                           style: Type.label.copyWith(
-                              fontSize: 8,
+                              fontSize: 11,
                               color: g.complete
                                   ? Palette.xpLight
                                   : g.stat.color)),
@@ -683,7 +694,7 @@ class _GoalCardState extends State<_GoalCard> {
                   child: Center(
                     child: Text(idea.stat.abbr,
                         style: Type.label.copyWith(
-                            fontSize: 9, color: idea.stat.color)),
+                            fontSize: 11, color: idea.stat.color)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -713,7 +724,7 @@ class _GoalCardState extends State<_GoalCard> {
                 children: [
                   Text(idea.blurb,
                       style: Type.body.copyWith(
-                          fontSize: 12.5,
+                          fontSize: 13.5,
                           height: 1.5,
                           color: Palette.textMid)),
                   const SizedBox(height: 10),
@@ -753,7 +764,7 @@ class _GoalCardState extends State<_GoalCard> {
                               ? 'GOAL UNDERWAY ✓'
                               : 'ADOPT WHOLE GOAL',
                           style: Type.label.copyWith(
-                              fontSize: 9,
+                              fontSize: 11,
                               color: widget.adopted
                                   ? Palette.success
                                   : const Color(0xFF3A2510)),
@@ -799,7 +810,7 @@ void _showQuestWhy(BuildContext context, QuestTemplate t) {
                 const SizedBox(width: 6),
                 Text('WHY THIS HELPS',
                     style:
-                        Type.label.copyWith(fontSize: 10, color: t.stat.color)),
+                        Type.label.copyWith(fontSize: 11, color: t.stat.color)),
               ],
             ),
             const SizedBox(height: 10),
@@ -817,7 +828,7 @@ void _showQuestWhy(BuildContext context, QuestTemplate t) {
                 Expanded(
                   child: Text(why.source,
                       style: Type.label
-                          .copyWith(fontSize: 8, color: Palette.info)),
+                          .copyWith(fontSize: 11, color: Palette.info)),
                 ),
               ],
             ),
@@ -873,25 +884,21 @@ class _TemplateRow extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 2),
-                Row(
+                Wrap(
+                  spacing: 5,
+                  runSpacing: 5,
                   children: [
                     _MiniChip(label: t.schedule.label),
-                    if (t.timerMinutes > 0) ...[
-                      const SizedBox(width: 5),
+                    if (t.timerMinutes > 0)
                       _MiniChip(
                           label: '⏱ ${t.timerMinutes}M',
                           color: Palette.verify),
-                    ],
-                    if (t.allDay) ...[
-                      const SizedBox(width: 5),
+                    if (t.allDay)
                       const _MiniChip(
                           label: 'CHECKS AT NIGHT', color: Palette.unlock),
-                    ],
-                    if (t.dread) ...[
-                      const SizedBox(width: 5),
+                    if (t.dread)
                       const _MiniChip(
                           label: 'COUNTS EXTRA', color: Palette.dread),
-                    ],
                   ],
                 ),
               ],
@@ -900,8 +907,21 @@ class _TemplateRow extends StatelessWidget {
           GestureDetector(
             onTap: taken
                 ? null
-                : () {
-                    final ok = onAdd(t.build());
+                : () async {
+                    // Weekly quests ask which day they should land on (the
+                    // "weekly shot" feedback) — default-selected to today.
+                    Quest quest;
+                    if (t.schedule == QuestSchedule.weekly) {
+                      final day = await pickWeekday(context,
+                          accent: t.stat.color, questTitle: t.title);
+                      if (day == null) return; // dismissed → don't adopt
+                      quest =
+                          t.build(weekdays: day == 0 ? const [] : [day]);
+                    } else {
+                      quest = t.build();
+                    }
+                    if (!context.mounted) return;
+                    final ok = onAdd(quest);
                     if (ok) {
                       Sfx.instance.play('streak');
                       HapticFeedback.selectionClick();
@@ -941,7 +961,7 @@ class _TemplateRow extends StatelessWidget {
               child: Text(
                 taken ? 'TAKEN ✓' : 'TAKE ON',
                 style: Type.label.copyWith(
-                    fontSize: 9,
+                    fontSize: 11,
                     color: taken
                         ? Palette.success
                         : const Color(0xFF3A2510)),
@@ -969,7 +989,7 @@ class _MiniChip extends StatelessWidget {
         border: Border.all(color: c.withValues(alpha: 0.4)),
       ),
       child: Text(label,
-          style: Type.label.copyWith(fontSize: 7.5, color: c)),
+          style: Type.label.copyWith(fontSize: 11, color: c)),
     );
   }
 }

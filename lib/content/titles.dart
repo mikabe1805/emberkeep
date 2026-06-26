@@ -4,31 +4,34 @@ import 'stat_ranks.dart';
 /// Build titles — your top two stats name you. Silly but earnest: the
 /// identity layer that makes a build personal and shareable.
 abstract final class BuildTitles {
+  // Keys are <stat.name>+<stat.name> in enum order (str<vit<intl<foc<soc<dis).
+  // Stats now read as domains: str=Body vit=Care intl=Mind foc=Craft
+  // soc=People dis=Home.
   static const _pairs = <String, String>{
-    'str+vit': 'IRONBLOOD',
-    'str+intl': 'WARRIOR SCHOLAR',
-    'str+foc': 'SILENT HAMMER',
-    'str+soc': 'GENTLE GIANT',
-    'str+dis': 'FORGED WILL',
-    'vit+intl': 'CLEAR SPRING',
-    'vit+foc': 'STEADY FLAME',
-    'vit+soc': 'SUNSHINE SOUL',
-    'vit+dis': 'EVERGREEN',
-    'intl+foc': 'DEEP CURRENT',
-    'intl+soc': 'STORYTELLER',
-    'intl+dis': 'QUIET MASTER',
-    'foc+soc': 'PRESENT HEART',
-    'foc+dis': 'UNSHAKEABLE',
-    'soc+dis': 'KEPT PROMISE',
+    'str+vit': 'LIONHEART', // Body + Care
+    'str+intl': 'WARRIOR SCHOLAR', // Body + Mind
+    'str+foc': 'SILENT HAMMER', // Body + Craft
+    'str+soc': 'GENTLE GIANT', // Body + People
+    'str+dis': 'HOMESTEADER', // Body + Home
+    'vit+intl': 'CLEAR SPRING', // Care + Mind
+    'vit+foc': 'STEADY FLAME', // Care + Craft
+    'vit+soc': 'SUNSHINE SOUL', // Care + People
+    'vit+dis': 'EVERGREEN', // Care + Home
+    'intl+foc': 'DEEP CURRENT', // Mind + Craft
+    'intl+soc': 'STORYTELLER', // Mind + People
+    'intl+dis': 'QUIET MASTER', // Mind + Home
+    'foc+soc': 'PRESENT HEART', // Craft + People
+    'foc+dis': 'UNSHAKEABLE', // Craft + Home
+    'soc+dis': 'OPEN HEARTH', // People + Home
   };
 
   static const _solo = <Stat, String>{
-    Stat.str: 'BRAWLER',
-    Stat.vit: 'WELLSPRING',
-    Stat.intl: 'SCHOLAR',
-    Stat.foc: 'MONK',
-    Stat.soc: 'FRIEND',
-    Stat.dis: 'KEEPER',
+    Stat.str: 'BRAWLER', // Body
+    Stat.vit: 'WELLSPRING', // Care
+    Stat.intl: 'SCHOLAR', // Mind
+    Stat.foc: 'MAKER', // Craft
+    Stat.soc: 'FRIEND', // People
+    Stat.dis: 'KEEPER', // Home
   };
 
   /// Title for a stat spread. Needs two stats trained to earn a pair title;

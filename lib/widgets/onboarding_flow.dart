@@ -140,7 +140,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           child: TextButton(
             onPressed: _next,
             child: Text('rather not say',
-                style: Type.label.copyWith(fontSize: 10)),
+                style: Type.label.copyWith(fontSize: 11)),
           ),
         ),
       ],
@@ -160,7 +160,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         Text('a few starter quests are already on your board',
             textAlign: TextAlign.center,
             style: Type.body.copyWith(
-                fontSize: 12.5,
+                fontSize: 13.5,
                 fontStyle: FontStyle.italic,
                 color: Palette.textLo)),
         const SizedBox(height: 24),
@@ -173,7 +173,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           child: TextButton(
             onPressed: () => _finish(forge: false),
             child: Text('I’ll explore first',
-                style: Type.label.copyWith(fontSize: 10)),
+                style: Type.label.copyWith(fontSize: 11)),
           ),
         ),
       ],

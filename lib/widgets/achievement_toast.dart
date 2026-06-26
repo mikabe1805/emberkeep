@@ -92,7 +92,7 @@ class _AchievementToastState extends State<AchievementToast>
                         children: [
                           Text('ACHIEVEMENT',
                               style: Type.label.copyWith(
-                                  fontSize: 7.5, color: Palette.xp)),
+                                  fontSize: 11, color: Palette.xp)),
                           Text(widget.achievement.title,
                               style: Type.display.copyWith(fontSize: 15)),
                         ],

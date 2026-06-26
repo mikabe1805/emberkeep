@@ -56,6 +56,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     final q = _quests;
     if (s == null || q == null) return;
     if (lifecycle == AppLifecycleState.resumed) {
+      Storage.logEvent('open');
       // a new day may have started while we were away
       if (s.rollover(q)) setState(() {});
       _maybeMorning();
@@ -71,6 +72,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   Future<void> _load() async {
     await _loadFromStorage();
+    Storage.logEvent('open');
     // Defer the welcome/morning overlays until the cloud has settled, so a
     // recovered cloud save can suppress a spurious first-run welcome on a
     // reinstalled device. (Cloud-disabled path settles near-instantly.)
@@ -257,6 +259,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     final old = _state;
     old?.removeListener(_persist);
     CloudSync.instance.cancelPending(); // drop any stale pre-reset push
+    Storage.clearUsage(); // reset means erase me — wipe the usage log too
     final fresh = GameState()..rollover([]);
     fresh.addListener(_persist);
     setState(() {
@@ -547,7 +550,9 @@ class _DockItem extends StatelessWidget {
       child: AnimatedContainer(
         duration: Motion.settle,
         curve: Motion.respond,
-        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+        constraints: const BoxConstraints(minHeight: 48),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(999),
           gradient: selected
@@ -567,15 +572,16 @@ class _DockItem extends StatelessWidget {
               : const [],
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon,
-                size: 18,
+                size: 23,
                 color: selected ? const Color(0xFF4A2F1A) : Palette.textLo),
             if (selected) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: 7),
               Text(label,
                   style: Type.label.copyWith(
-                      fontSize: 9, color: const Color(0xFF4A2F1A))),
+                      fontSize: 12, color: const Color(0xFF4A2F1A))),
             ],
           ],
         ),

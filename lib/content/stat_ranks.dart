@@ -13,12 +13,18 @@ const _thresholds = [0, 10, 25, 50, 100, 200];
 
 /// Per-stat rank names, indexed by tier 0..5.
 const _rankNames = <Stat, List<String>>{
+  // BODY
   Stat.str: ['Soft', 'Limber', 'Trained', 'Strong', 'Mighty', 'Titan'],
+  // CARE
   Stat.vit: ['Frail', 'Steady', 'Hale', 'Vital', 'Radiant', 'Undimmed'],
+  // MIND
   Stat.intl: ['Curious', 'Learner', 'Sharp', 'Astute', 'Sage', 'Luminary'],
-  Stat.foc: ['Scattered', 'Settling', 'Centered', 'Locked-in', 'Deep', 'Unbroken'],
+  // CRAFT — leveling a craft / career
+  Stat.foc: ['Novice', 'Apprentice', 'Practiced', 'Skilled', 'Expert', 'Master'],
+  // PEOPLE
   Stat.soc: ['Quiet', 'Warming', 'Kind', 'Beloved', 'Magnetic', 'Beacon'],
-  Stat.dis: ['Wavering', 'Trying', 'Steady', 'Reliable', 'Iron', 'Unyielding'],
+  // HOME — clutter to sanctuary
+  Stat.dis: ['Cluttered', 'Tidying', 'Kept', 'Homey', 'Welcoming', 'Sanctuary'],
 };
 
 StatRank rankFor(Stat stat, int value) {

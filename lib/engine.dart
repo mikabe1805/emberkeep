@@ -26,6 +26,16 @@ class GameState extends ChangeNotifier {
   /// First-run welcome completed?
   bool onboarded = false;
 
+  /// Opt-in "one quest at a time" Focus mode (round-21): collapses the board
+  /// to a single suggested quest to fight overwhelm. Default off (full board).
+  bool focusMode = false;
+
+  void setFocusMode(bool v) {
+    if (focusMode == v) return;
+    focusMode = v;
+    notifyListeners();
+  }
+
   /// Wall-clock ms of the last save — the "newness" signal cloud sync uses
   /// to decide which copy wins (a stale device must never clobber a newer
   /// cloud save). Stamped by the shell on every persist.
@@ -568,6 +578,7 @@ class GameState extends ChangeNotifier {
   Map<String, dynamic> toJson() => {
         'playerName': playerName,
         'onboarded': onboarded,
+        'focusMode': focusMode,
         'lastModified': lastModified,
         'level': level,
         'xp': xp,
@@ -613,6 +624,7 @@ class GameState extends ChangeNotifier {
     final s = GameState();
     s.playerName = j['playerName'] as String?;
     s.onboarded = j['onboarded'] as bool? ?? true; // pre-existing saves skip
+    s.focusMode = j['focusMode'] as bool? ?? false;
     s.lastModified = j['lastModified'] as int? ?? 0;
     s.level = j['level'] as int? ?? 1;
     s.xp = j['xp'] as int? ?? 0;

@@ -139,14 +139,14 @@ class _NightFlowState extends State<NightFlow> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('WAITING FOR TOMORROW',
-                style: Type.label.copyWith(fontSize: 9, color: Palette.streak)),
+                style: Type.label.copyWith(fontSize: 11, color: Palette.streak)),
             const SizedBox(height: 6),
             for (final h in hooks)
               Padding(
                 padding: const EdgeInsets.only(bottom: 3),
                 child: Text(h,
                     style: Type.body.copyWith(
-                        fontSize: 12.5, color: Palette.textMid)),
+                        fontSize: 13.5, color: Palette.textMid)),
               ),
           ],
         ),
@@ -234,7 +234,7 @@ class _NightFlowState extends State<NightFlow> {
                     const SizedBox(width: 6),
                     Text('HOW DID THE ALL-DAY LINE GO?',
                         style: Type.label.copyWith(
-                            fontSize: 9, color: Palette.unlock)),
+                            fontSize: 11, color: Palette.unlock)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -271,7 +271,7 @@ class _NightFlowState extends State<NightFlow> {
                             ),
                             child: Text('HELD IT',
                                 style: Type.label.copyWith(
-                                    fontSize: 9, color: Palette.success)),
+                                    fontSize: 11, color: Palette.success)),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -287,7 +287,7 @@ class _NightFlowState extends State<NightFlow> {
                                       .withValues(alpha: 0.4)),
                             ),
                             child: Text('NOT TODAY',
-                                style: Type.label.copyWith(fontSize: 9)),
+                                style: Type.label.copyWith(fontSize: 11)),
                           ),
                         ),
                       ],
@@ -305,7 +305,7 @@ class _NightFlowState extends State<NightFlow> {
                           child: Text(
                               '${q.title} — logged. you did your best today; tomorrow’s line is fresh.',
                               style: Type.body.copyWith(
-                                  fontSize: 12,
+                                  fontSize: 13,
                                   fontStyle: FontStyle.italic,
                                   color: Palette.textLo)),
                         ),
@@ -332,7 +332,7 @@ class _NightFlowState extends State<NightFlow> {
                     const SizedBox(width: 6),
                     Text('READY TO RISE?',
                         style: Type.label.copyWith(
-                            fontSize: 9, color: Palette.streak)),
+                            fontSize: 11, color: Palette.streak)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -385,7 +385,7 @@ class _NightFlowState extends State<NightFlow> {
                             ),
                             child: Text('RISE',
                                 style: Type.label.copyWith(
-                                    fontSize: 9,
+                                    fontSize: 11,
                                     color: const Color(0xFF3A2510))),
                           ),
                         ),
@@ -402,7 +402,7 @@ class _NightFlowState extends State<NightFlow> {
                                       .withValues(alpha: 0.4)),
                             ),
                             child: Text('NOT YET',
-                                style: Type.label.copyWith(fontSize: 9)),
+                                style: Type.label.copyWith(fontSize: 11)),
                           ),
                         ),
                       ],
@@ -418,7 +418,7 @@ class _NightFlowState extends State<NightFlow> {
         GlassPanel(
           child: Column(
             children: [
-              Text('TODAY YOU EARNED', style: Type.label.copyWith(fontSize: 9)),
+              Text('TODAY YOU EARNED', style: Type.label.copyWith(fontSize: 11)),
               const SizedBox(height: 6),
               TweenAnimationBuilder<int>(
                 tween: IntTween(begin: 0, end: s.todayXp),
@@ -433,7 +433,7 @@ class _NightFlowState extends State<NightFlow> {
                   '${s.bestStreak > s.streakDays ? " · best ${s.bestStreak}" : ""}'
                   '${s.streakShields > 0 ? " · 🛡️${s.streakShields}" : ""}',
                   style: Type.body
-                      .copyWith(fontSize: 12, color: Palette.textLo)),
+                      .copyWith(fontSize: 13, color: Palette.textLo)),
               const SizedBox(height: 12),
               MomentumStrip(history: s.history),
               if (s.todayStats.isNotEmpty) ...[
@@ -476,7 +476,7 @@ class _NightFlowState extends State<NightFlow> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('YOUR GOALS, CLOSER',
-                    style: Type.label.copyWith(fontSize: 9)),
+                    style: Type.label.copyWith(fontSize: 11)),
                 const SizedBox(height: 10),
                 for (final g in s.goals.take(4)) ...[
                   Row(
@@ -518,7 +518,7 @@ class _NightFlowState extends State<NightFlow> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('CLEARED TODAY', style: Type.label.copyWith(fontSize: 9)),
+                Text('CLEARED TODAY', style: Type.label.copyWith(fontSize: 11)),
                 const SizedBox(height: 8),
                 for (final t in s.todayQuestTitles.take(8))
                   Padding(
@@ -557,7 +557,7 @@ class _NightFlowState extends State<NightFlow> {
           child: TextButton(
             onPressed: _finish,
             child: Text('just sleep',
-                style: Type.label.copyWith(fontSize: 10)),
+                style: Type.label.copyWith(fontSize: 11)),
           ),
         ),
       ],
@@ -578,7 +578,7 @@ class _NightFlowState extends State<NightFlow> {
         Center(
           child: Text('star what matters most — the morning leads with it',
               style: Type.body.copyWith(
-                  fontSize: 12,
+                  fontSize: 13,
                   fontStyle: FontStyle.italic,
                   color: Palette.textLo)),
         ),
@@ -588,7 +588,7 @@ class _NightFlowState extends State<NightFlow> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('ALREADY ON THE BOARD',
-                  style: Type.label.copyWith(fontSize: 9)),
+                  style: Type.label.copyWith(fontSize: 11)),
               const SizedBox(height: 8),
               for (final q in tomorrow)
                 Padding(
@@ -609,7 +609,7 @@ class _NightFlowState extends State<NightFlow> {
                                 fontSize: 13.5, color: Palette.textHi)),
                       ),
                       Text(q.bonus ? 'BONUS' : (q.isEvent ? 'DUE' : q.schedule.label),
-                          style: Type.label.copyWith(fontSize: 7.5)),
+                          style: Type.label.copyWith(fontSize: 11)),
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () {
@@ -692,7 +692,7 @@ class _TomorrowAdderState extends State<_TomorrowAdder> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('ADD A QUEST FOR TOMORROW',
-              style: Type.label.copyWith(fontSize: 9)),
+              style: Type.label.copyWith(fontSize: 11)),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -736,12 +736,12 @@ class _TomorrowAdderState extends State<_TomorrowAdder> {
             ],
           ),
           const SizedBox(height: 6),
-          Row(
+          Wrap(
+            spacing: 5,
+            runSpacing: 5,
             children: [
               for (final s in Stat.values)
-                Padding(
-                  padding: const EdgeInsets.only(right: 5),
-                  child: GestureDetector(
+                GestureDetector(
                     onTap: () => setState(() => _stat = s),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -757,9 +757,8 @@ class _TomorrowAdderState extends State<_TomorrowAdder> {
                       ),
                       child: Text(s.abbr,
                           style: Type.label
-                              .copyWith(fontSize: 8, color: s.color)),
+                              .copyWith(fontSize: 11, color: s.color)),
                     ),
-                  ),
                 ),
             ],
           ),
@@ -770,9 +769,12 @@ class _TomorrowAdderState extends State<_TomorrowAdder> {
                 children: [
                   const Icon(Icons.star, size: 12, color: Palette.xpLight),
                   const SizedBox(width: 6),
-                  Text(t,
-                      style: Type.body
-                          .copyWith(fontSize: 12, color: Palette.textMid)),
+                  Expanded(
+                    child: Text(t,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.body
+                            .copyWith(fontSize: 13, color: Palette.textMid)),
+                  ),
                 ],
               ),
             ),
@@ -811,7 +813,7 @@ class MorningFlow extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('SO CLOSE', style: Type.label.copyWith(fontSize: 9)),
+            Text('SO CLOSE', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 8),
             for (final g in near)
               Padding(
@@ -828,7 +830,7 @@ class MorningFlow extends StatelessWidget {
                     ),
                     Text('${g.target - g.progress} to go',
                         style: Type.label
-                            .copyWith(fontSize: 8, color: g.stat.color)),
+                            .copyWith(fontSize: 11, color: g.stat.color)),
                   ],
                 ),
               ),
@@ -897,7 +899,7 @@ class MorningFlow extends StatelessWidget {
                     Column(
                       children: [
                         Text('ON THE TABLE',
-                            style: Type.label.copyWith(fontSize: 8)),
+                            style: Type.label.copyWith(fontSize: 11)),
                         Text('+$potential XP',
                             style: Type.numerals.copyWith(
                                 fontSize: 22, color: Palette.xpLight)),
@@ -905,19 +907,19 @@ class MorningFlow extends StatelessWidget {
                     ),
                     Column(
                       children: [
-                        Text('STREAK', style: Type.label.copyWith(fontSize: 8)),
+                        Text('STREAK', style: Type.label.copyWith(fontSize: 11)),
                         Text('${state.streakDays}🔥',
                             style: Type.numerals.copyWith(
                                 fontSize: 22, color: Palette.streak)),
                         if (state.streakShields > 0)
                           Text('🛡️ ${state.streakShields}',
                               style: Type.label.copyWith(
-                                  fontSize: 8, color: Palette.verify)),
+                                  fontSize: 11, color: Palette.verify)),
                       ],
                     ),
                     Column(
                       children: [
-                        Text('QUESTS', style: Type.label.copyWith(fontSize: 8)),
+                        Text('QUESTS', style: Type.label.copyWith(fontSize: 11)),
                         Text('${open.length}',
                             style: Type.numerals.copyWith(fontSize: 22)),
                       ],
@@ -942,7 +944,7 @@ class MorningFlow extends StatelessWidget {
                           const SizedBox(width: 6),
                           Text('MAIN QUESTS',
                               style: Type.label.copyWith(
-                                  fontSize: 9, color: Palette.xpLight)),
+                                  fontSize: 11, color: Palette.xpLight)),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -989,7 +991,7 @@ class MorningFlow extends StatelessWidget {
                           const SizedBox(width: 6),
                           Text('HOLD THE LINE TODAY',
                               style: Type.label.copyWith(
-                                  fontSize: 9, color: Palette.unlock)),
+                                  fontSize: 11, color: Palette.unlock)),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -1014,7 +1016,7 @@ class MorningFlow extends StatelessWidget {
                               ),
                               Text('CHECKS TONIGHT',
                                   style:
-                                      Type.label.copyWith(fontSize: 7)),
+                                      Type.label.copyWith(fontSize: 11)),
                             ],
                           ),
                         ),
@@ -1088,7 +1090,7 @@ class MomentumStrip extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(_dow[(day.weekday - 1) % 7],
                       style: Type.label.copyWith(
-                          fontSize: 7,
+                          fontSize: 11,
                           color: isToday ? Palette.xp : Palette.textLo)),
                 ],
               ),

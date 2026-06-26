@@ -125,7 +125,7 @@ class GoalDetailScreen extends StatelessWidget {
               border: Border.all(color: _accent.withValues(alpha: 0.45)),
             ),
             child: Text(kindLabel,
-                style: Type.label.copyWith(fontSize: 9, color: _accent)),
+                style: Type.label.copyWith(fontSize: 11, color: _accent)),
           ),
         ],
       ),
@@ -179,9 +179,12 @@ class GoalDetailScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(capIcon, size: 12, color: _accent.withValues(alpha: 0.85)),
+              Icon(capIcon, size: 13, color: _accent.withValues(alpha: 0.85)),
               const SizedBox(width: 6),
-              Text(caption, style: Type.label.copyWith(fontSize: 9)),
+              Flexible(
+                  child: Text(caption,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.label.copyWith(fontSize: 11))),
             ],
           ),
         ],
@@ -230,7 +233,7 @@ class GoalDetailScreen extends StatelessWidget {
             Text(value,
                 style: Type.numerals.copyWith(fontSize: 22, color: _accent)),
             const SizedBox(height: 2),
-            Text(label, style: Type.label.copyWith(fontSize: 8)),
+            Text(label, style: Type.label.copyWith(fontSize: 11)),
           ],
         ),
       ),
@@ -252,8 +255,10 @@ class GoalDetailScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('QUESTS SERVING THIS GOAL',
-                  style: Type.label.copyWith(fontSize: 10)),
+              Flexible(
+                  child: Text('QUESTS SERVING THIS GOAL',
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.label.copyWith(fontSize: 11))),
               const Spacer(),
               if (related.isNotEmpty)
                 Container(
@@ -265,7 +270,7 @@ class GoalDetailScreen extends StatelessWidget {
                     border: Border.all(color: _accent.withValues(alpha: 0.4)),
                   ),
                   child: Text('$doneToday / $denom TODAY',
-                      style: Type.label.copyWith(fontSize: 8, color: _accent)),
+                      style: Type.label.copyWith(fontSize: 11, color: _accent)),
                 ),
             ],
           ),
@@ -274,7 +279,7 @@ class GoalDetailScreen extends StatelessWidget {
             Text(
                 'No quests feed this goal right now — take some on to fuel it.',
                 style: Type.body.copyWith(
-                    fontSize: 12.5,
+                    fontSize: 13.5,
                     fontStyle: FontStyle.italic,
                     color: Palette.textLo))
           else
@@ -309,21 +314,15 @@ class GoalDetailScreen extends StatelessWidget {
                           fontWeight: FontWeight.w600,
                           color: Palette.textHi)),
                   const SizedBox(height: 2),
-                  Row(
+                  Wrap(
+                    spacing: 5,
+                    runSpacing: 5,
                     children: [
                       _chip(q.schedule.label),
-                      if (q.timerMinutes > 0) ...[
-                        const SizedBox(width: 5),
+                      if (q.timerMinutes > 0)
                         _chip('⏱ ${q.timerMinutes}M', Palette.verify),
-                      ],
-                      if (q.allDay) ...[
-                        const SizedBox(width: 5),
-                        _chip('CHECKS AT NIGHT', Palette.unlock),
-                      ],
-                      if (q.dread) ...[
-                        const SizedBox(width: 5),
-                        _chip('COUNTS EXTRA', Palette.dread),
-                      ],
+                      if (q.allDay) _chip('CHECKS AT NIGHT', Palette.unlock),
+                      if (q.dread) _chip('COUNTS EXTRA', Palette.dread),
                     ],
                   ),
                 ],
@@ -350,7 +349,7 @@ class GoalDetailScreen extends StatelessWidget {
         border: Border.all(color: c.withValues(alpha: 0.4)),
       ),
       child:
-          Text(label, style: Type.label.copyWith(fontSize: 7.5, color: c)),
+          Text(label, style: Type.label.copyWith(fontSize: 11, color: c)),
     );
   }
 
@@ -365,7 +364,7 @@ class GoalDetailScreen extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           child: Text(label,
               style: Type.label.copyWith(
-                  fontSize: 9,
+                  fontSize: 11,
                   color: const Color(0xFFE89090).withValues(alpha: 0.7))),
         ),
       ),
@@ -395,7 +394,7 @@ class GoalDetailScreen extends StatelessWidget {
                 Text('The goal and every quest serving it leave the board.',
                     textAlign: TextAlign.center,
                     style: Type.body
-                        .copyWith(fontSize: 12.5, color: Palette.textMid)),
+                        .copyWith(fontSize: 13.5, color: Palette.textMid)),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -415,7 +414,7 @@ class GoalDetailScreen extends StatelessWidget {
                         ),
                         child: Text('KEEP IT',
                             style: Type.label.copyWith(
-                                fontSize: 10, color: const Color(0xFF3A2510))),
+                                fontSize: 11, color: const Color(0xFF3A2510))),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -442,7 +441,7 @@ class GoalDetailScreen extends StatelessWidget {
                         ),
                         child: Text(armed ? 'TAP AGAIN' : 'ABANDON',
                             style: Type.label.copyWith(
-                                fontSize: 10,
+                                fontSize: 11,
                                 color: const Color(0xFFE89090))),
                       ),
                     ),

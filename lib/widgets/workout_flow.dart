@@ -211,7 +211,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('MOVE', style: Type.label.copyWith(fontSize: 10)),
+            Text('MOVE', style: Type.label.copyWith(fontSize: 11)),
             GestureDetector(
               onTap: widget.onClose,
               child:
@@ -225,7 +225,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         const SizedBox(height: 4),
         Text('gentle, guided, and yours to leave anytime — no gym required',
             style: Type.body.copyWith(
-                fontSize: 12.5,
+                fontSize: 13.5,
                 fontStyle: FontStyle.italic,
                 color: Palette.textLo)),
         const SizedBox(height: 16),
@@ -238,7 +238,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         Center(
           child: Text(
               'general fitness guidance — not medical advice',
-              style: Type.label.copyWith(fontSize: 8)),
+              style: Type.label.copyWith(fontSize: 11)),
         ),
       ],
     );
@@ -281,14 +281,14 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                         const SizedBox(width: 6),
                         Text('FOR YOU',
                             style: Type.label.copyWith(
-                                fontSize: 7.5, color: Palette.xpLight)),
+                                fontSize: 11, color: Palette.xpLight)),
                       ],
                     ],
                   ),
                   const SizedBox(height: 2),
                   Text('~${r.minutes} min · ${r.workMoves} moves · ${r.stat.abbr}'
                       '${r.restDay ? " · rest day" : ""}',
-                      style: Type.label.copyWith(fontSize: 8)),
+                      style: Type.label.copyWith(fontSize: 11)),
                 ],
               ),
             ),
@@ -313,7 +313,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
             children: [
               const Icon(Icons.chevron_left, size: 18, color: Palette.textLo),
               Text('choose another',
-                  style: Type.label.copyWith(fontSize: 9)),
+                  style: Type.label.copyWith(fontSize: 11)),
             ],
           ),
         ),
@@ -321,7 +321,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         Text(r.title, style: Type.display.copyWith(fontSize: 28)),
         const SizedBox(height: 4),
         Text('~${r.minutes} min · start smaller than you think',
-            style: Type.label.copyWith(fontSize: 9)),
+            style: Type.label.copyWith(fontSize: 11)),
         const SizedBox(height: 10),
         Text(r.blurb,
             style: Type.body.copyWith(
@@ -339,14 +339,14 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                   const SizedBox(width: 6),
                   Text('WHY THIS WORKS',
                       style: Type.label
-                          .copyWith(fontSize: 9, color: Palette.info)),
+                          .copyWith(fontSize: 11, color: Palette.info)),
                 ]),
                 const SizedBox(height: 6),
                 Text(card.title, style: Type.display.copyWith(fontSize: 15)),
                 const SizedBox(height: 4),
                 Text(card.text,
                     style: Type.body.copyWith(
-                        fontSize: 12.5, height: 1.45, color: Palette.textMid)),
+                        fontSize: 13.5, height: 1.45, color: Palette.textMid)),
               ],
             ),
           ),
@@ -356,7 +356,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
             children: [
               const Icon(Icons.speed, size: 15, color: Palette.xpLight),
               const SizedBox(width: 8),
-              Text('PACE', style: Type.label.copyWith(fontSize: 9)),
+              Text('PACE', style: Type.label.copyWith(fontSize: 11)),
               const Spacer(),
               _paceChip('Relaxed', _relaxed, () => setState(() => _relaxed = true)),
               const SizedBox(width: 6),
@@ -381,7 +381,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           child: TextButton(
             onPressed: widget.onClose,
             child:
-                Text('not now', style: Type.label.copyWith(fontSize: 10)),
+                Text('not now', style: Type.label.copyWith(fontSize: 11)),
           ),
         ),
       ],
@@ -403,7 +403,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         ),
         child: Text(label,
             style: Type.label.copyWith(
-                fontSize: 9,
+                fontSize: 11,
                 color: on ? Palette.xpLight : Palette.textLo)),
       ),
     );
@@ -451,7 +451,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         const SizedBox(height: 18),
         Text(kicker,
             style: Type.label.copyWith(
-                fontSize: 9,
+                fontSize: 11,
                 color: m.isWork ? _routine!.stat.color : Palette.textLo)),
         const SizedBox(height: 6),
         Text(easier ? '${m.name} · easier' : m.name,
@@ -470,7 +470,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
             children: [
               Text(easier ? 'EASIER VERSION' : 'FORM',
                   style: Type.label.copyWith(
-                      fontSize: 8,
+                      fontSize: 11,
                       color: easier ? Palette.success : Palette.textLo)),
               const SizedBox(height: 4),
               Text(easier ? m.easier : m.cue,
@@ -480,7 +480,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                 const SizedBox(height: 6),
                 Text(m.caution!,
                     style: Type.body.copyWith(
-                        fontSize: 10.5,
+                        fontSize: 11,
                         fontStyle: FontStyle.italic,
                         color: Palette.textLo)),
               ],
@@ -521,7 +521,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
             },
             child: Text('I already did it →',
                 style: Type.label
-                    .copyWith(fontSize: 10, color: Palette.success)),
+                    .copyWith(fontSize: 11, color: Palette.success)),
           ),
         const SizedBox(height: 6),
       ],
@@ -591,7 +591,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                 fontSize: 28,
                 color: reached ? Palette.success : Palette.textHi)),
         Text(reached ? 'nice — tap DONE' : 'tap the figure to count',
-            style: Type.label.copyWith(fontSize: 8)),
+            style: Type.label.copyWith(fontSize: 11)),
       ],
     );
   }
@@ -660,7 +660,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         const SizedBox(height: 6),
         Text('take all the time you need',
             style: Type.body.copyWith(
-                fontSize: 12.5,
+                fontSize: 13.5,
                 fontStyle: FontStyle.italic,
                 color: Palette.textLo)),
         const SizedBox(height: 24),
@@ -669,7 +669,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         TextButton(
           onPressed: () => _finish(endedEarly: true),
           child: Text('end early — bank what you did',
-              style: Type.label.copyWith(fontSize: 10, color: Palette.streak)),
+              style: Type.label.copyWith(fontSize: 11, color: Palette.streak)),
         ),
       ],
     );
@@ -710,7 +710,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           border: Border.all(color: color.withValues(alpha: 0.5)),
         ),
         child: Text(label,
-            style: Type.label.copyWith(fontSize: 9, color: color)),
+            style: Type.label.copyWith(fontSize: 11, color: color)),
       ),
     );
   }
