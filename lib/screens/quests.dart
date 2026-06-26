@@ -20,6 +20,7 @@ import '../tokens.dart';
 import '../widgets/workout_flow.dart';
 import '../widgets/achievement_toast.dart';
 import '../widgets/day_picker.dart';
+import '../widgets/ember_sheet.dart';
 import '../widgets/epic_overlay.dart';
 import '../widgets/glass.dart';
 import '../widgets/install_hint.dart';
@@ -614,14 +615,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// Quick capture for real life ("laundry, today, no schedule"): one
   /// field, smart defaults, lands at the top of today as a due event.
-  void _quickAdd() {
+  void _quickAdd() async {
     Sfx.instance.play('tick');
     HapticFeedback.selectionClick();
-    showDialog(
-      context: context,
-      barrierColor: const Color(0xCC140C06),
-      builder: (_) => _QuickAddDialog(onAdd: widget.onAdd),
-    );
+    final q = await showEmberSheet(
+        context, const EmberSheetConfig(surface: EmberSurface.board));
+    if (q != null) widget.onAdd(q);
   }
 
   void _openNight() {
@@ -2137,169 +2136,6 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                     ],
                   ),
                   child: Text('SAVE',
-                      style: Type.label.copyWith(
-                          fontSize: 11, color: const Color(0xFF3A2510))),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// One field, smart defaults: a one-time quest due today. For the laundry
-/// moments — capture in five seconds, get back to your life.
-class _QuickAddDialog extends StatefulWidget {
-  const _QuickAddDialog({required this.onAdd});
-  final bool Function(Quest) onAdd;
-
-  @override
-  State<_QuickAddDialog> createState() => _QuickAddDialogState();
-}
-
-class _QuickAddDialogState extends State<_QuickAddDialog> {
-  final _title = TextEditingController();
-  Stat _stat = Stat.dis;
-  double _difficulty = 3;
-  String? _error;
-
-  @override
-  void dispose() {
-    _title.dispose();
-    super.dispose();
-  }
-
-  void _add() {
-    final title = _title.text.trim();
-    if (title.isEmpty) {
-      Sfx.instance.play('boing');
-      setState(() => _error = 'what needs doing?');
-      return;
-    }
-    final now = DateTime.now();
-    final ok = widget.onAdd(Quest(
-      title: title,
-      stat: _stat,
-      difficulty: _difficulty.round(),
-      schedule: QuestSchedule.once,
-      dueDate: DateTime(now.year, now.month, now.day),
-    ));
-    if (!ok) {
-      Sfx.instance.play('boing');
-      setState(() => _error = 'already on your list');
-      return;
-    }
-    Sfx.instance.play('streak');
-    HapticFeedback.selectionClick();
-    Navigator.of(context).pop();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(24),
-      child: GlassPanel(
-        tint: const Color(0xF22A211D),
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('JUST FOR TODAY', style: Type.label.copyWith(fontSize: 11)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _title,
-              autofocus: true,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _add(),
-              onChanged: (_) {
-                if (_error != null) setState(() => _error = null);
-              },
-              style: Type.body.copyWith(fontSize: 15, color: Palette.textHi),
-              decoration: InputDecoration(
-                hintText: 'e.g. Do the laundry',
-                hintStyle:
-                    Type.body.copyWith(fontSize: 15, color: Palette.textLo),
-                errorText: _error,
-                errorStyle: Type.body
-                    .copyWith(fontSize: 11, color: const Color(0xFFE89090)),
-                filled: true,
-                fillColor: Palette.glassFill,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Palette.glassEdge),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final s in Stat.values)
-                  GestureDetector(
-                    onTap: () => setState(() => _stat = s),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        color: _stat == s
-                            ? s.color.withValues(alpha: 0.22)
-                            : Colors.transparent,
-                        border: Border.all(
-                            color: s.color
-                                .withValues(alpha: _stat == s ? 0.8 : 0.3)),
-                      ),
-                      child: Text(s.abbr,
-                          style: Type.label
-                              .copyWith(fontSize: 11, color: s.color)),
-                    ),
-                  ),
-              ],
-            ),
-            Row(
-              children: [
-                Text('d${_difficulty.round()}',
-                    style:
-                        Type.label.copyWith(fontSize: 11, color: Palette.xp)),
-                Expanded(
-                  child: Slider(
-                    value: _difficulty,
-                    min: 1,
-                    max: 8,
-                    divisions: 7,
-                    activeColor: Palette.xp,
-                    inactiveColor: const Color(0x1FF2CD93),
-                    onChanged: (v) => setState(() => _difficulty = v),
-                  ),
-                ),
-              ],
-            ),
-            Center(
-              child: GestureDetector(
-                onTap: _add,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 10),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                          color: Palette.honeyGlow,
-                          blurRadius: 14,
-                          offset: Offset(0, 4)),
-                    ],
-                  ),
-                  child: Text('ON THE BOARD',
                       style: Type.label.copyWith(
                           fontSize: 11, color: const Color(0xFF3A2510))),
                 ),

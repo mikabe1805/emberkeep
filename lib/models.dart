@@ -210,8 +210,10 @@ class Quest {
   /// Mutable: set from the long-press manage sheet.
   String? snoozedDay;
 
-  /// Which user goal this quest feeds (matched by goal title).
-  final String? goalTitle;
+  /// Which user goal this quest feeds (matched by goal title). Mutable so the
+  /// oath wizard can re-stamp it if the goal's name/domain changes before the
+  /// oath is sworn.
+  String? goalTitle;
 
   /// Starred as a MAIN quest (set in the night planner; the morning
   /// briefing leads with these).

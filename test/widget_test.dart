@@ -189,46 +189,43 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
   });
 
-  testWidgets('oath wizard walks ambition → path → oath', (tester) async {
+  testWidgets('oath wizard: name, add a quest via the sheet, swear',
+      (tester) async {
     await pumpApp(tester);
 
     await tester.tap(find.byIcon(Icons.explore_outlined));
     await tester.pump(const Duration(milliseconds: 500));
     await tester.tap(find.text('Begin a new goal'));
     await settle(tester);
-    expect(find.text('THE AMBITION'), findsOneWidget);
+    expect(find.text('A NEW OATH'), findsOneWidget);
 
+    // name the oath (the only TextField until the sheet opens)
     await tester.enterText(
         find.byType(TextField).first, 'Maintain healthy skin');
-    await tester.tap(find.text('FORGE THE PATH →'));
-    await settle(tester);
-    expect(find.text('THE PATH'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // add a path-quest through the shared Ember Sheet
+    await tester.ensureVisible(find.text('Add a quest'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Add a quest'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('NEW QUEST'), findsOneWidget);
 
     await tester.enterText(
-        find.byKey(const Key('forge-title')), 'Morning skincare ritual');
+        find.byKey(const Key('ember-title')), 'Morning skincare');
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.ensureVisible(find.text('Add →'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Add →'));
+    await tester.pump(); // pop + add to the trail
+    await tester.pump(const Duration(milliseconds: 500)); // sheet slides away
+    await tester.pump(const Duration(milliseconds: 100));
 
-    // the CTA is the lazy list's last child — scroll it into existence
-    await tester.drag(find.byKey(const Key('forge-title')),
-        const Offset(0, -400));
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('READY THE OATH →'), findsOneWidget);
-
-    await tester.tap(find.text('READY THE OATH →'));
-    await settle(tester);
-    expect(find.text('THE OATH'), findsOneWidget);
-
-    // same lazy-list situation on the oath step
-    await tester.drag(find.text('THE OATH'), const Offset(0, -400));
-    await tester.pump(const Duration(milliseconds: 300));
-    final swear = find.text('⚔ SWEAR THE OATH');
-    await tester.tap(swear);
+    // swear the oath (the pinned footer button)
+    await tester.tap(find.text('⚔ SWEAR THE OATH'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('OATH SWORN'), findsOneWidget);
-    // seal holds ~1.4s then pops back to the goals page; the new goal
-    // shows up in YOUR GOALS (and its quests elsewhere) — at least once
+    // seal holds ~1.4s then pops back to the goals page; the new goal shows up
     await tester.pump(const Duration(milliseconds: 1600));
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Maintain healthy skin'), findsWidgets);
@@ -325,11 +322,24 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.add_circle_outline));
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('JUST FOR TODAY'), findsOneWidget);
+    expect(find.text('NEW QUEST'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField).last, 'Do the laundry');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pump(const Duration(milliseconds: 400));
+    // the Ember Sheet: name it, pick "Just today", tap Add (keyboard "done"
+    // no longer auto-creates).
+    await tester.enterText(
+        find.byKey(const Key('ember-title')), 'Do the laundry');
+    await tester.pump(const Duration(milliseconds: 100));
+    // "Just today" is the last chip in a horizontal scroll — bring it on-screen
+    await tester.ensureVisible(find.text('Just today'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Just today'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.ensureVisible(find.text('Add to today →'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.text('Add to today →'));
+    await tester.pump(); // pop + onAdd
+    await tester.pump(const Duration(milliseconds: 500)); // sheet slides away
+    await tester.pump(const Duration(milliseconds: 100)); // route removed
 
     expect(find.text('TODAY · 10 LEFT'), findsOneWidget);
     expect(find.text('Do the laundry'), findsOneWidget);

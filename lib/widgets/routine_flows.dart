@@ -8,6 +8,7 @@ import '../content/messages.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
+import 'ember_sheet.dart';
 import 'glass.dart';
 
 /// The night routine (round-5): goodnight → animated recap of today's haul
@@ -685,37 +686,16 @@ class _TomorrowAdder extends StatefulWidget {
 }
 
 class _TomorrowAdderState extends State<_TomorrowAdder> {
-  final _title = TextEditingController();
-  Stat _stat = Stat.foc;
   final List<String> _added = [];
 
-  @override
-  void dispose() {
-    _title.dispose();
-    super.dispose();
-  }
-
-  void _add() {
-    final title = _title.text.trim();
-    if (title.isEmpty) {
-      Sfx.instance.play('boing');
-      return;
-    }
-    final tomorrow = DateTime.now().add(const Duration(days: 1));
-    final ok = widget.onAdd(Quest(
-      title: title,
-      stat: _stat,
-      difficulty: 4,
-      schedule: QuestSchedule.once,
-      dueDate: DateTime(tomorrow.year, tomorrow.month, tomorrow.day),
-      priority: true,
-    ));
+  void _add() async {
+    final q = await showEmberSheet(
+        context, const EmberSheetConfig(surface: EmberSurface.tomorrow));
+    if (q == null) return;
+    final ok = widget.onAdd(q);
     if (ok) {
       Sfx.instance.play('streak');
-      setState(() {
-        _added.add(title);
-        _title.clear();
-      });
+      setState(() => _added.add(q.title));
     } else {
       Sfx.instance.play('boing');
     }
@@ -727,83 +707,13 @@ class _TomorrowAdderState extends State<_TomorrowAdder> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ADD A QUEST FOR TOMORROW',
-              style: Type.label.copyWith(fontSize: 11)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _title,
-                  style: Type.body
-                      .copyWith(fontSize: 14, color: Palette.textHi),
-                  decoration: InputDecoration(
-                    hintText: 'e.g. Call the dentist',
-                    hintStyle: Type.body
-                        .copyWith(fontSize: 14, color: Palette.textLo),
-                    isDense: true,
-                    filled: true,
-                    fillColor: Palette.glassFill,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide:
-                          const BorderSide(color: Palette.glassEdge),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: _add,
-                child: Container(
-                  padding: const EdgeInsets.all(9),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
-                    ),
-                  ),
-                  child: const Icon(Icons.add,
-                      size: 18, color: Color(0xFF3A2510)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 5,
-            runSpacing: 5,
-            children: [
-              for (final s in Stat.values)
-                GestureDetector(
-                    onTap: () => setState(() => _stat = s),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 3),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        color: _stat == s
-                            ? s.color.withValues(alpha: 0.22)
-                            : Colors.transparent,
-                        border: Border.all(
-                            color: s.color
-                                .withValues(alpha: _stat == s ? 0.8 : 0.3)),
-                      ),
-                      child: Text(s.abbr,
-                          style: Type.label
-                              .copyWith(fontSize: 11, color: s.color)),
-                    ),
-                ),
-            ],
-          ),
+          Text('TOMORROW, PLANNED', style: Type.label.copyWith(fontSize: 11)),
           for (final t in _added)
             Padding(
-              padding: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.only(top: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.star, size: 12, color: Palette.xpLight),
+                  const Icon(Icons.star, size: 14, color: Palette.xpLight),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(t,
@@ -814,6 +724,31 @@ class _TomorrowAdderState extends State<_TomorrowAdder> {
                 ],
               ),
             ),
+          const SizedBox(height: 10),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _add,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                color: Palette.glassFill,
+                border: Border.all(color: Palette.glassEdge),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.add, size: 16, color: Palette.xpLight),
+                  const SizedBox(width: 8),
+                  Text('Add a quest for tomorrow',
+                      style: Type.body
+                          .copyWith(fontSize: 14, color: Palette.textMid)),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

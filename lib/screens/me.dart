@@ -810,7 +810,7 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
   showDialog(
     context: context,
     barrierColor: const Color(0xCC140C06),
-    builder: (_) => Dialog(
+    builder: (dialogCtx) => Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(28),
       child: ListenableBuilder(
@@ -855,6 +855,7 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
                     Sfx.instance.play(worn ? 'tick' : 'streak');
                     HapticFeedback.selectionClick();
                     state.equipSkin(loot);
+                    Navigator.of(dialogCtx).pop();
                   },
                   child: Container(
                     constraints: const BoxConstraints(minHeight: 48),
@@ -974,9 +975,15 @@ class _StatRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           SizedBox(
-            width: 38,
-            child: Text(stat.abbr,
-                style: Type.label.copyWith(fontSize: 11, color: stat.color)),
+            width: 44,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(stat.abbr,
+                  maxLines: 1,
+                  style:
+                      Type.label.copyWith(fontSize: 11, color: stat.color)),
+            ),
           ),
           Expanded(
             child: Column(

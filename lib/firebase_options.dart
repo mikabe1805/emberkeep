@@ -26,10 +26,7 @@ class DefaultFirebaseOptions {
           'you can reconfigure this by running the FlutterFire CLI again.',
         );
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -60,5 +57,15 @@ class DefaultFirebaseOptions {
     authDomain: 'emberkeep-5b33b.firebaseapp.com',
     storageBucket: 'emberkeep-5b33b.firebasestorage.app',
     measurementId: 'G-1HWEPBXCNG',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyAeaXkUpcbU4myfH9ZCdKy4J8YTTB0Tzjg',
+    appId: '1:8350777780:ios:e4fc1ecdff26553f4e32e1',
+    messagingSenderId: '8350777780',
+    projectId: 'emberkeep-5b33b',
+    storageBucket: 'emberkeep-5b33b.firebasestorage.app',
+    iosClientId: '8350777780-jvqgo0tid79a61iksl4sfehs4vhfhtq4.apps.googleusercontent.com',
+    iosBundleId: 'com.mikabe.emberkeep',
   );
 }

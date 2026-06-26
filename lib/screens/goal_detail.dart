@@ -365,17 +365,19 @@ class GoalDetailScreen extends StatelessWidget {
 
   // ── abandon (the existing two-step warm confirm) ──────────────────
   Widget _abandonLink(BuildContext context) {
-    final label = goal.complete ? 'retire this trophy' : 'abandon this goal';
+    // Deliberately understated and gated behind a long-press — quitting a goal
+    // shouldn't feel like a casual one-tap button (owner feedback).
+    final label = goal.complete ? 'hold to retire' : 'hold to abandon';
     return Center(
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => _confirmAbandon(context),
+        onLongPress: () => _confirmAbandon(context),
         child: Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
           child: Text(label,
               style: Type.label.copyWith(
-                  fontSize: 11,
-                  color: const Color(0xFFE89090).withValues(alpha: 0.7))),
+                  fontSize: 9,
+                  color: Palette.textLo.withValues(alpha: 0.32))),
         ),
       ),
     );
