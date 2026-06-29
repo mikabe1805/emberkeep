@@ -284,4 +284,16 @@ void main() {
     expect(back.goals.first.notes.single.text, 'week one, kitchen done');
     expect(back.goals.first.notes.single.context, 'starting out');
   });
+
+  test('todays shape recaps which domains were tended', () {
+    today = DateTime(2026, 6, 15);
+    final s = GameState();
+    expect(s.todaysShape(), contains('every ember')); // nothing done yet
+    complete(s, Quest(title: 'Push-ups', stat: Stat.str, difficulty: 2));
+    expect(s.todaysShape(), contains('Body'));
+    complete(s, Quest(title: 'Tidy up', stat: Stat.dis, difficulty: 2));
+    final two = s.todaysShape();
+    expect(two, contains('Body'));
+    expect(two, contains('Home'));
+  });
 }

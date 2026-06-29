@@ -575,6 +575,27 @@ class GameState extends ChangeNotifier {
     return changed;
   }
 
+  /// A warm one-line recap of the day just cleared — which life domains you
+  /// tended, reflected back so the peak-end is personal (round-32). Ranked by
+  /// how much each domain got today.
+  String todaysShape() {
+    final worked = Stat.values.where((s) => (todayStats[s] ?? 0) > 0).toList()
+      ..sort((a, b) => (todayStats[b] ?? 0).compareTo(todayStats[a] ?? 0));
+    final n = todayQuestTitles.length;
+    final plural = n == 1 ? 'quest' : 'quests';
+    if (worked.isEmpty) return 'A day cleared — every ember you light counts.';
+    if (worked.length == 1) {
+      return 'You poured today into ${worked.first.label} — '
+          '$n $plural, all in one direction.';
+    }
+    if (worked.length == 2) {
+      return 'You tended ${worked[0].label} and ${worked[1].label} today — '
+          '$n $plural, a balanced day.';
+    }
+    return 'You moved across ${worked.length} parts of your life today — '
+        '$n $plural, a full and varied day.';
+  }
+
   /// Adds a goal; refuses duplicate titles.
   bool addGoal(Goal g) {
     final key = g.title.trim().toLowerCase();

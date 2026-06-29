@@ -1609,6 +1609,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 'Day cleared ✨',
                                 style: Type.display.copyWith(fontSize: 20),
                               ),
+                              const SizedBox(height: 8),
+                              // the day reflected back — which domains you
+                              // tended, in the app's warm voice (round-32)
+                              Text(
+                                _state.todaysShape(),
+                                textAlign: TextAlign.center,
+                                style: Type.body.copyWith(
+                                  fontSize: 14,
+                                  height: 1.4,
+                                  color: Palette.textMid,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               Text(
                                 _state.nightDoneDay == today
