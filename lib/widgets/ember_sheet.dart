@@ -6,6 +6,7 @@ import '../models.dart';
 import '../tokens.dart';
 import 'domain_hint.dart';
 import 'glass.dart';
+import 'honey_button.dart';
 
 /// Where the sheet is being opened from — drives smart defaults.
 enum EmberSurface { board, goal, tomorrow }
@@ -931,41 +932,6 @@ class _Cta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedOpacity(
-        duration: Motion.quick,
-        opacity: dim ? 0.45 : 1,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
-            ),
-            boxShadow: dim
-                ? const []
-                : const [
-                    BoxShadow(
-                      color: Palette.honeyGlow,
-                      blurRadius: 18,
-                      offset: Offset(0, 6),
-                    ),
-                  ],
-          ),
-          child: Text(
-            label,
-            style: Type.label.copyWith(
-              fontSize: 12,
-              color: const Color(0xFF3A2510),
-            ),
-          ),
-        ),
-      ),
-    );
+    return HoneyButton(label: label, onTap: onTap, enabled: !dim, glow: !dim);
   }
 }

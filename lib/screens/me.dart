@@ -249,6 +249,10 @@ class MePage extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
+          // ── recent gains (near the build — both are your progress) ──
+          _ledgerPanel(),
+          const SizedBox(height: 14),
+
           // ── trophy case ──────────────────────────────────────────
           GlassPanel(
             child: Column(
@@ -583,60 +587,61 @@ class MePage extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 14),
-
-          // ── attribution ledger ───────────────────────────────────
-          GlassPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('RECENT GAINS', style: Type.label.copyWith(fontSize: 11)),
-                const SizedBox(height: 10),
-                if (state.ledger.isEmpty)
-                  Text(
-                    'Complete a quest and your story starts here.',
-                    style: Type.body.copyWith(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textLo,
-                    ),
-                  )
-                else
-                  for (final e in state.ledger)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          Text(
-                            '+${e.amount} ${e.stat.abbr}',
-                            style: Type.numerals.copyWith(
-                              fontSize: 13,
-                              color: e.stat.color,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              e.title,
-                              overflow: TextOverflow.ellipsis,
-                              style: Type.body.copyWith(
-                                fontSize: 13,
-                                color: Palette.textMid,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
   /// One tap must never erase a life. Reset asks twice — in words.
+  // ── recent gains (kept near the build — both are your progress) ──
+  Widget _ledgerPanel() {
+    return GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('RECENT GAINS', style: Type.label.copyWith(fontSize: 11)),
+          const SizedBox(height: 10),
+          if (state.ledger.isEmpty)
+            Text(
+              'Complete a quest and your story starts here.',
+              style: Type.body.copyWith(
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            )
+          else
+            for (final e in state.ledger)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Text(
+                      '+${e.amount} ${e.stat.abbr}',
+                      style: Type.numerals.copyWith(
+                        fontSize: 13,
+                        color: e.stat.color,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        e.title,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.body.copyWith(
+                          fontSize: 13,
+                          color: Palette.textMid,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
   // ── settings panels (grouped at the bottom; the page leads with identity) ──
   Widget _themesPanel() {
     return GlassPanel(

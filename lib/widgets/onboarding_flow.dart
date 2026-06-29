@@ -5,6 +5,7 @@ import '../audio.dart';
 import '../engine.dart';
 import '../tokens.dart';
 import 'glass.dart';
+import 'honey_button.dart';
 import 'portrait.dart';
 
 /// First-run welcome (round-9): three warm beats — the hearth, your name,
@@ -83,20 +84,27 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         const SizedBox(height: 24),
         Text('Emberkeep', style: Type.display.copyWith(fontSize: 34)),
         const SizedBox(height: 8),
-        Text('your life is the game worth playing',
-            textAlign: TextAlign.center,
-            style: Type.body.copyWith(
-                fontSize: 14,
-                fontStyle: FontStyle.italic,
-                color: Palette.textLo)),
+        Text(
+          'your life is the game worth playing',
+          textAlign: TextAlign.center,
+          style: Type.body.copyWith(
+            fontSize: 14,
+            fontStyle: FontStyle.italic,
+            color: Palette.textLo,
+          ),
+        ),
         const SizedBox(height: 14),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-              'Real quests. Real XP. A fire banked each night,\nrekindled each morning.',
-              textAlign: TextAlign.center,
-              style: Type.body.copyWith(
-                  fontSize: 13, height: 1.6, color: Palette.textMid)),
+            'Real quests. Real XP. A fire banked each night,\nrekindled each morning.',
+            textAlign: TextAlign.center,
+            style: Type.body.copyWith(
+              fontSize: 13,
+              height: 1.6,
+              color: Palette.textMid,
+            ),
+          ),
         ),
         const SizedBox(height: 36),
         _Cta(label: 'BEGIN', onTap: _next),
@@ -110,9 +118,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('What should the fire\ncall you?',
-            textAlign: TextAlign.center,
-            style: Type.display.copyWith(fontSize: 28, height: 1.2)),
+        Text(
+          'What should the fire\ncall you?',
+          textAlign: TextAlign.center,
+          style: Type.display.copyWith(fontSize: 28, height: 1.2),
+        ),
         const SizedBox(height: 20),
         TextField(
           controller: _name,
@@ -124,11 +134,15 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           decoration: InputDecoration(
             hintText: 'your name',
             hintStyle: Type.display.copyWith(
-                fontSize: 22, color: Palette.textLo.withValues(alpha: 0.5)),
+              fontSize: 22,
+              color: Palette.textLo.withValues(alpha: 0.5),
+            ),
             filled: true,
             fillColor: Palette.glassFill,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(color: Palette.glassEdge),
@@ -136,13 +150,17 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ),
         ),
         const SizedBox(height: 28),
-        Center(child: _Cta(label: 'CONTINUE', onTap: _next)),
+        Center(
+          child: _Cta(label: 'CONTINUE', onTap: _next),
+        ),
         const SizedBox(height: 8),
         Center(
           child: TextButton(
             onPressed: _next,
-            child: Text('rather not say',
-                style: Type.label.copyWith(fontSize: 11)),
+            child: Text(
+              'rather not say',
+              style: Type.label.copyWith(fontSize: 11),
+            ),
           ),
         ),
       ],
@@ -155,27 +173,31 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('Light your first fire',
-            textAlign: TextAlign.center,
-            style: Type.display.copyWith(fontSize: 28)),
-        const SizedBox(height: 8),
-        Text('a few starter quests are already on your board',
-            textAlign: TextAlign.center,
-            style: Type.body.copyWith(
-                fontSize: 13.5,
-                fontStyle: FontStyle.italic,
-                color: Palette.textLo)),
-        const SizedBox(height: 24),
-        _Cta(
-          label: 'FORGE MY FIRST GOAL',
-          onTap: () => _finish(forge: true),
+        Text(
+          'Light your first fire',
+          textAlign: TextAlign.center,
+          style: Type.display.copyWith(fontSize: 28),
         ),
+        const SizedBox(height: 8),
+        Text(
+          'a few starter quests are already on your board',
+          textAlign: TextAlign.center,
+          style: Type.body.copyWith(
+            fontSize: 13.5,
+            fontStyle: FontStyle.italic,
+            color: Palette.textLo,
+          ),
+        ),
+        const SizedBox(height: 24),
+        _Cta(label: 'FORGE MY FIRST GOAL', onTap: () => _finish(forge: true)),
         const SizedBox(height: 10),
         Center(
           child: TextButton(
             onPressed: () => _finish(forge: false),
-            child: Text('I’ll explore first',
-                style: Type.label.copyWith(fontSize: 11)),
+            child: Text(
+              'I’ll explore first',
+              style: Type.label.copyWith(fontSize: 11),
+            ),
           ),
         ),
       ],
@@ -191,29 +213,7 @@ class _Cta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
-            ),
-            boxShadow: const [
-              BoxShadow(
-                  color: Palette.honeyGlow,
-                  blurRadius: 20,
-                  offset: Offset(0, 6)),
-            ],
-          ),
-          child: Text(label,
-              style: Type.label
-                  .copyWith(fontSize: 12, color: const Color(0xFF3A2510))),
-        ),
-      ),
+      child: HoneyButton(label: label, onTap: onTap),
     );
   }
 }
