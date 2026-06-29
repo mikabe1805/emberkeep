@@ -5,6 +5,7 @@ import '../audio.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
+import '../widgets/domain_hint.dart';
 import '../widgets/ember_sheet.dart';
 import '../widgets/glass.dart';
 import '../widgets/particles.dart';
@@ -289,6 +290,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                         ),
                     ],
                   ),
+                  DomainHint(_stat),
                   const SizedBox(height: 20),
                   const Divider(color: Palette.glassEdge, height: 1),
                   const SizedBox(height: 16),
@@ -496,7 +498,7 @@ class _CtaButton extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+              colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
             ),
             boxShadow: dim
                 ? const []

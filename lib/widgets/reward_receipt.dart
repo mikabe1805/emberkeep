@@ -31,13 +31,17 @@ class RewardReceipt extends StatefulWidget {
 
 class _Bubble {
   _Bubble(this.text, this.icon, this.color, this.sound,
-      {this.haptic = false, this.wide = false});
+      {this.haptic = false, this.wide = false, this.hero = false});
   final String text;
   final IconData icon;
   final Color color;
   final String? sound;
   final bool haptic;
   final bool wide;
+
+  /// The headline rewards (XP, crit, loot) — rendered larger, the joy
+  /// hierarchy made visible rather than every pill the same weight.
+  final bool hero;
 }
 
 class _RewardReceiptState extends State<RewardReceipt>
@@ -53,7 +57,7 @@ class _RewardReceiptState extends State<RewardReceipt>
       if (b.firstOfDay)
         _Bubble('FIRST EMBER OF THE DAY 🔥', Icons.local_fire_department,
             Palette.streak, 'streak'),
-      _Bubble('+${b.xp} XP', Icons.bolt, Palette.xp, null),
+      _Bubble('+${b.xp} XP', Icons.bolt, Palette.xp, null, hero: true),
       // per-stat pitched blip (§8: pitch varies by stat)
       _Bubble('+${b.statGain} ${b.stat.abbr}', Icons.trending_up,
           b.stat.color, 'stat_${b.stat.index}'),
@@ -70,13 +74,15 @@ class _RewardReceiptState extends State<RewardReceipt>
         _Bubble('STREAK SAFE 🛡️', Icons.shield, Palette.verify, 'streak'),
       if (b.critMult != null)
         _Bubble('CRITICAL! ×${b.critMult!.toStringAsFixed(1)}',
-            Icons.flash_on, Palette.unlock, 'crit', haptic: true),
+            Icons.flash_on, Palette.unlock, 'crit',
+            haptic: true, hero: true),
       if (b.loot != null)
         _Bubble(
             '${(cosmeticFor(b.loot)?.rarity ?? Rarity.common) == Rarity.rare ? "RARE" : "LOOT"} · ${b.loot}',
             Icons.card_giftcard,
             rarityColor(cosmeticFor(b.loot)?.rarity ?? Rarity.common),
-            'loot'),
+            'loot',
+            hero: true),
       // the personal voice — last, wider, no sound (DESIGN.md §11.2)
       _Bubble(b.message, Icons.favorite, b.stat.color, null, wide: true),
     ];
@@ -169,16 +175,31 @@ class _RewardReceiptState extends State<RewardReceipt>
           alignment: Alignment.centerLeft,
           child: Container(
             margin: const EdgeInsets.only(bottom: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: EdgeInsets.symmetric(
+                horizontal: 13, vertical: b.hero ? 10 : 8),
             constraints: BoxConstraints(maxWidth: b.wide ? 230 : 220),
             decoration: BoxDecoration(
-              color: Palette.card.withValues(alpha: 0.95),
+              // each bubble glows its OWN colour (a tint of the espresso base),
+              // brighter at the top — a little gem of light, not a brown pill
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.alphaBlend(
+                      b.color.withValues(alpha: b.hero ? 0.30 : 0.20),
+                      Palette.card),
+                  Color.alphaBlend(
+                      b.color.withValues(alpha: 0.10), Palette.card),
+                ],
+              ),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: b.color.withValues(alpha: 0.55)),
+              border: Border.all(
+                  color: b.color.withValues(alpha: b.hero ? 0.85 : 0.6),
+                  width: b.hero ? 1.4 : 1.0),
               boxShadow: [
                 BoxShadow(
-                  color: b.color.withValues(alpha: 0.22),
-                  blurRadius: 12,
+                  color: b.color.withValues(alpha: b.hero ? 0.40 : 0.22),
+                  blurRadius: b.hero ? 18 : 12,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -191,7 +212,13 @@ class _RewardReceiptState extends State<RewardReceipt>
                   ? CrossAxisAlignment.start
                   : CrossAxisAlignment.center,
               children: [
-                Icon(b.icon, size: b.wide ? 13 : 16, color: b.color),
+                Icon(b.icon,
+                    size: b.wide
+                        ? 13
+                        : b.hero
+                            ? 19
+                            : 16,
+                    color: b.color),
                 const SizedBox(width: 6),
                 Flexible(
                   child: b.wide
@@ -206,8 +233,8 @@ class _RewardReceiptState extends State<RewardReceipt>
                           b.text,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Type.numerals
-                              .copyWith(fontSize: 13, color: b.color),
+                          style: Type.numerals.copyWith(
+                              fontSize: b.hero ? 18 : 13, color: b.color),
                         ),
                 ),
               ],

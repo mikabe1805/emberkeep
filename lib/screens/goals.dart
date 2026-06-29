@@ -89,6 +89,7 @@ class GoalsPage extends StatelessWidget {
     required this.onAdd,
     required this.activeTitles,
     required this.onRemoveGoal,
+    required this.onPersist,
     required this.quests,
   });
 
@@ -102,6 +103,9 @@ class GoalsPage extends StatelessWidget {
 
   /// Abandons a goal and clears its linked quests.
   final void Function(Goal goal) onRemoveGoal;
+
+  /// Persists the save — used when a goal's journal changes in the detail view.
+  final VoidCallback onPersist;
 
   /// The live board quests — threaded to the goal-detail view (quests serving it).
   final List<Quest> quests;
@@ -153,7 +157,10 @@ class GoalsPage extends StatelessWidget {
           const SizedBox(height: 12),
           if (state.goals.isNotEmpty) ...[
             _YourGoals(
-                state: state, onRemoveGoal: onRemoveGoal, quests: quests),
+                state: state,
+                onRemoveGoal: onRemoveGoal,
+                onPersist: onPersist,
+                quests: quests),
             const SizedBox(height: 12),
           ] else ...[
             Padding(
@@ -462,9 +469,13 @@ class _WizardHero extends StatelessWidget {
 /// Long-press a goal to abandon it (clears its quests too).
 class _YourGoals extends StatelessWidget {
   const _YourGoals(
-      {required this.state, required this.onRemoveGoal, required this.quests});
+      {required this.state,
+      required this.onRemoveGoal,
+      required this.onPersist,
+      required this.quests});
   final GameState state;
   final void Function(Goal goal) onRemoveGoal;
+  final VoidCallback onPersist;
   final List<Quest> quests;
 
   void _openDetail(BuildContext context, Goal g) {
@@ -476,6 +487,7 @@ class _YourGoals extends StatelessWidget {
         state: state,
         quests: quests,
         onRemoveGoal: onRemoveGoal,
+        onPersist: onPersist,
       ),
     ));
   }
@@ -519,7 +531,7 @@ class _YourGoals extends StatelessWidget {
                             gradient: const LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                              colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
                             ),
                           ),
                           child: FittedBox(
@@ -775,7 +787,8 @@ class _GoalCardState extends State<_GoalCard> {
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Color(0xFFF2CD93),
+                                    Color(0xFFF6D9A2),
+                                    Color(0xFFEFC074),
                                     Color(0xFFC08B4F)
                                   ],
                                 ),
@@ -977,7 +990,7 @@ class _TemplateRow extends StatelessWidget {
                     : const LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                        colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
                       ),
                 border: taken
                     ? Border.all(

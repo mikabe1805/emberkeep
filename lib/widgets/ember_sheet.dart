@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../models.dart';
 import '../tokens.dart';
+import 'domain_hint.dart';
 import 'glass.dart';
 
 /// Where the sheet is being opened from — drives smart defaults.
@@ -84,20 +85,36 @@ Future<Quest?> showEmberSheet(BuildContext context, EmberSheetConfig config) {
   );
 }
 
-enum _Freq { everyDay, weekdays, onceWeek, onceMonth, justToday }
+enum _Freq { everyDay, weekdays, onceWeek, onceMonth, justToday, untilDone }
 
 const _freqLabels = {
   _Freq.everyDay: 'Every day',
-  _Freq.weekdays: 'Weekdays',
+  _Freq.weekdays: 'Certain days',
   _Freq.onceWeek: 'Once a week',
   _Freq.onceMonth: 'Once a month',
   _Freq.justToday: 'Just today',
+  _Freq.untilDone: 'Until it’s done',
 };
 
 const _dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const _dayNames = [
   'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
 ];
+const _dayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+/// Human label for a custom set of weekdays: "every day" / "weekdays" /
+/// "weekends" / "Mon · Wed · Fri".
+String _customDaysLabel(Set<int> days) {
+  if (days.isEmpty || days.length == 7) return 'every day';
+  if (days.length == 5 && !days.contains(6) && !days.contains(7)) {
+    return 'weekdays';
+  }
+  if (days.length == 2 && days.contains(6) && days.contains(7)) {
+    return 'weekends';
+  }
+  final sorted = days.toList()..sort();
+  return sorted.map((d) => _dayShort[d - 1]).join(' · ');
+}
 
 class _EmberSheet extends StatefulWidget {
   const _EmberSheet({required this.config});
@@ -112,6 +129,9 @@ class _EmberSheetState extends State<_EmberSheet> {
   _Freq _freq = _Freq.everyDay;
   late int _weekday; // for onceWeek
   late int _monthDay; // for onceMonth
+  // for the "Certain days" custom pattern (e.g. a Mon/Wed/Fri habit); defaults
+  // to the classic weekdays set so that preset is still one tap away.
+  final Set<int> _customDays = {1, 2, 3, 4, 5};
   int _difficulty = 4; // Small=2 · A real effort=4 · A big push=7
   Stat? _statOverride;
   bool _dread = false;
@@ -159,13 +179,15 @@ class _EmberSheetState extends State<_EmberSheet> {
       case _Freq.everyDay:
         return 'every day';
       case _Freq.weekdays:
-        return 'weekdays';
+        return _customDaysLabel(_customDays);
       case _Freq.onceWeek:
         return 'every ${_dayNames[_weekday - 1]}';
       case _Freq.onceMonth:
         return 'on the ${_monthDay}th';
       case _Freq.justToday:
         return 'just today';
+      case _Freq.untilDone:
+        return 'until it’s done';
     }
   }
 
@@ -186,7 +208,10 @@ class _EmberSheetState extends State<_EmberSheet> {
           schedule = QuestSchedule.daily;
         case _Freq.weekdays:
           schedule = QuestSchedule.daily;
-          weekdays = const [1, 2, 3, 4, 5];
+          // custom which-days; an empty set falls back to every day
+          weekdays = _customDays.isEmpty
+              ? const []
+              : (_customDays.toList()..sort());
         case _Freq.onceWeek:
           schedule = QuestSchedule.weekly;
           weekdays = [_weekday];
@@ -196,6 +221,11 @@ class _EmberSheetState extends State<_EmberSheet> {
         case _Freq.justToday:
           schedule = QuestSchedule.once;
           dueDate = DateTime(now.year, now.month, now.day);
+        case _Freq.untilDone:
+          // a persistent to-do: no due date, so it lingers on the board every
+          // day until completed (then rollover clears it) — never an overdue
+          // scold, and covered by the one daily nudge like any open quest.
+          schedule = QuestSchedule.once;
       }
     }
 
@@ -375,6 +405,66 @@ class _EmberSheetState extends State<_EmberSheet> {
   }
 
   Widget _freqDetail(Color accent) {
+    if (_freq == _Freq.weekdays) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('WHICH DAYS?', style: Type.label.copyWith(fontSize: 10)),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (var d = 1; d <= 7; d++)
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      Sfx.instance.play('tick');
+                      setState(() {
+                        // keep at least one day selected — an empty set would
+                        // silently mean "every day", which the label can't show
+                        if (_customDays.contains(d)) {
+                          if (_customDays.length > 1) _customDays.remove(d);
+                        } else {
+                          _customDays.add(d);
+                        }
+                      });
+                    },
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _customDays.contains(d)
+                            ? accent.withValues(alpha: 0.28)
+                            : Palette.glassFill,
+                        border: Border.all(
+                            color: _customDays.contains(d)
+                                ? accent
+                                : Palette.glassEdge),
+                      ),
+                      child: Text(_dayLetters[d - 1],
+                          style: Type.label.copyWith(
+                              fontSize: 12,
+                              color: _customDays.contains(d)
+                                  ? accent
+                                  : Palette.textLo)),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(_customDaysLabel(_customDays),
+                style: Type.body.copyWith(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo)),
+          ],
+        ),
+      );
+    }
     if (_freq == _Freq.onceWeek) {
       return Padding(
         padding: const EdgeInsets.only(top: 10),
@@ -533,6 +623,7 @@ class _EmberSheetState extends State<_EmberSheet> {
                   ),
               ],
             ),
+            DomainHint(_effectiveStat),
           ],
           const SizedBox(height: 10),
           _Toggle(
@@ -718,7 +809,7 @@ class _Cta extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+              colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
             ),
             boxShadow: dim
                 ? const []

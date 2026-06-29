@@ -60,7 +60,7 @@ class _ParticleBurstState extends State<ParticleBurst>
         (rng.nextDouble() - 0.5) * 6,
       );
     });
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 750))
+    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 850))
       ..addStatusListener((s) {
         if (s == AnimationStatus.completed) widget.onDone?.call();
       })
@@ -107,27 +107,34 @@ class _BurstPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const gravity = 110.0;
+    // embers RISE and waver (candlelit), not confetti that falls — the
+    // celebration shares a visual family with the firefly motes on the canvas.
+    const lift = 72.0;
     final fade = (1 - t).clamp(0.0, 1.0);
     final paint = Paint();
     for (final p in particles) {
-      // ease-out travel with drag, slight gravity pull
+      // ease-out outward travel with drag, then a gentle decelerating rise
       final travel = 1 - pow(1 - t, 3).toDouble();
+      final flick = sin(t * 7 + p.spin) * 4 * t; // sideways ember flicker
       final pos = origin +
           p.velocity * travel * p.drag +
-          Offset(0, gravity * t * t);
-      paint.color =
-          p.color.withValues(alpha: fade * (0.6 + 0.4 * vibrancy).clamp(0, 1));
+          Offset(flick, -lift * travel);
+      final a = fade * (0.6 + 0.4 * vibrancy).clamp(0.0, 1.0);
+      paint.color = p.color.withValues(alpha: a);
       canvas.save();
       canvas.translate(pos.dx, pos.dy);
       canvas.rotate(p.spin * t);
-      // mix of sparks (rects) and dots
       if (p.size > 4) {
+        // a crisp spark fleck
+        paint.maskFilter = null;
         canvas.drawRect(
-            Rect.fromCenter(center: Offset.zero, width: p.size, height: p.size * 0.4),
+            Rect.fromCenter(
+                center: Offset.zero, width: p.size, height: p.size * 0.4),
             paint);
       } else {
-        canvas.drawCircle(Offset.zero, p.size * fade, paint);
+        // a glowing ember mote — soft bloom, like the ambient fireflies
+        paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.6);
+        canvas.drawCircle(Offset.zero, p.size * (0.6 + 0.6 * fade), paint);
       }
       canvas.restore();
     }

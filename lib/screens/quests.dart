@@ -20,6 +20,7 @@ import '../tokens.dart';
 import '../widgets/workout_flow.dart';
 import '../widgets/achievement_toast.dart';
 import '../widgets/day_picker.dart';
+import '../widgets/domain_hint.dart';
 import '../widgets/ember_sheet.dart';
 import '../widgets/epic_overlay.dart';
 import '../widgets/glass.dart';
@@ -27,6 +28,7 @@ import '../widgets/install_hint.dart';
 import '../widgets/levelup_overlay.dart';
 import '../widgets/particles.dart';
 import '../widgets/portrait.dart';
+import '../widgets/notes_sheet.dart';
 import '../widgets/quest_card.dart';
 import '../widgets/reward_receipt.dart';
 import '../widgets/routine_flows.dart';
@@ -99,6 +101,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// was removed).
   String? _undoTitle;
   String? _undoSnapshot;
+
+  /// When a weekly quest is cleared on a day other than its anchor, we offer
+  /// (gently, inline) to make THIS the day going forward. The candidate quest
+  /// and the day it was done on; null when there's no pending offer.
+  Quest? _reAnchorQuest;
+  int? _reAnchorDay;
+
+  /// Day-key whose "board cleared" flourish has already played, so the gentle
+  /// whole-board ember wash fires once per day, not on every idle rebuild.
+  String? _clearedDay;
+
+  /// The most-recently-completed quest stays put (where swipe-to-undo lives and
+  /// the win is still fresh); only OLDER finished quests bank to the bottom.
+  /// Set the instant a completion starts, so the card never visibly jumps.
+  String? _pinnedDoneTitle;
 
   /// Focus mode's ordering lens (ephemeral; the on/off itself lives on state).
   _FocusLens _focusLens = _FocusLens.quickWin;
@@ -212,8 +229,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           behavior: SnackBarBehavior.floating,
           backgroundColor: Palette.card,
           duration: const Duration(milliseconds: 2000),
-          content: Text('Noted — you’re holding the line. Tonight it counts 🌙',
-              style: Type.body.copyWith(color: Palette.textHi)),
+          content: Text(
+            'Noted — you’re holding the line. Tonight it counts 🌙',
+            style: Type.body.copyWith(color: Palette.textHi),
+          ),
         ),
       );
       return;
@@ -257,6 +276,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // capture the pre-completion state so an accidental tap can be undone
     final snapshot = widget.onSnapshot();
     final bundle = s.roll(q, verified: verified);
+    _pinnedDoneTitle = q.title; // keep this fresh win in place (undo lives here)
     Storage.logEvent('done', [
       q.custom ? Storage.hashTitle(q.title) : q.title,
       q.stat.index,
@@ -264,6 +284,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       verified ? 1 : 0,
     ]);
     setState(() {}); // card done-state + quests-left counter
+    _maybeOfferReAnchor(q); // "did your Tuesday quest on Thursday? move it?"
+    _celebrateDayClearedIfDone(q); // a warm wash when the last ember is lit
     _beam(); // the portrait shares the moment with you
 
     Sfx.instance.play('complete');
@@ -275,26 +297,28 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
     final overlay = Overlay.of(context);
 
-    // Particle burst — count/vibrancy scale with magnitude.
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (!mounted) return;
-      late final OverlayEntry burst;
-      burst = OverlayEntry(
-        builder: (_) => ParticleBurst(
-          origin: tapPos,
-          colors: cosmeticFor(s.equippedSkin)?.particles ??
-              [q.stat.color, Palette.xp, Palette.xpLight],
-          count: (14 + 40 * bundle.magnitude).round(),
-          vibrancy: 0.5 + bundle.magnitude,
-          onDone: () => burst.remove(),
-        ),
-      );
-      overlay.insert(burst);
-    });
+    // Particle burst — fires NOW, coincident with the squash + sound + haptic,
+    // so the embers ARE the tap's exhaust rather than a beat behind it. [tapPos]
+    // resolves to the check-ring centre (quest_card), so the spray ignites from
+    // the ring that just filled, not a random thumb spot.
+    late final OverlayEntry burst;
+    burst = OverlayEntry(
+      builder: (_) => ParticleBurst(
+        origin: tapPos,
+        colors:
+            cosmeticFor(s.equippedSkin)?.particles ??
+            [q.stat.color, Palette.xp, Palette.xpLight],
+        count: (14 + 40 * bundle.magnitude).round(),
+        vibrancy: 0.5 + bundle.magnitude,
+        onDone: () => burst.remove(),
+      ),
+    );
+    overlay.insert(burst);
 
-    // The reward receipt; epic + level-ups resolve once it finishes so big
-    // moments never land on top of mid-flight bubbles.
-    Future.delayed(const Duration(milliseconds: 400), () {
+    // The reward receipt starts quickly so there's no dead gap after the tap;
+    // epic + level-ups still resolve once it finishes so big moments never
+    // land on top of mid-flight bubbles.
+    Future.delayed(const Duration(milliseconds: 240), () {
       if (!mounted) return;
       late final OverlayEntry receipt;
       receipt = OverlayEntry(
@@ -314,23 +338,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       overlay.insert(receipt);
     });
 
-    // Commit once the last bubble has entered: NOW the bar fills and the
-    // stat chip pulses, as their bubbles point at them. Held as a flushable
-    // pending commit (see _flushCommit) so it can never be half-applied.
-    final bubbles = 3 + // xp + stat + message
-        (bundle.firstOfDay ? 1 : 0) +
-        (bundle.streakMult != null ? 1 : 0) +
-        (bundle.verifiedMult != null ? 1 : 0) +
-        (bundle.comebackMult != null ? 1 : 0) +
-        (bundle.shieldHeld ? 1 : 0) +
-        (bundle.critMult != null ? 1 : 0) +
-        (bundle.loot != null ? 1 : 0);
+    // Commit early — right as the XP bubble lands — so the RISING XP BAR is the
+    // first payoff and the multiplier bubbles cascade on top of an already-
+    // moving bar (decoupled from bubble count; the bar was the slowest, most
+    // satisfying element and used to fire last). Flushable/atomic as before.
     _pendingState = s;
     _pendingBundle = bundle;
     _pendingSnapshot = snapshot;
     _pendingTitle = q.title;
-    _commitTimer = Timer(
-        Duration(milliseconds: 400 + 120 * bubbles + 250), _flushCommit);
+    _commitTimer = Timer(const Duration(milliseconds: 520), _flushCommit);
   }
 
   /// Arms the just-completed card so it can be swiped left to undo a misfire;
@@ -351,10 +367,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final today = Days.key(now);
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
     return widget.quests
-        .where((q) => q.snoozedDay != today &&
-            (q.isEvent
-                ? (!q.dueDate!.isAfter(endOfToday) && !q.doneFor(now))
-                : (q.scheduledOn(now) && !q.doneFor(now))))
+        .where(
+          (q) =>
+              q.snoozedDay != today &&
+              (q.isEvent
+                  ? (!q.dueDate!.isAfter(endOfToday) && !q.doneFor(now))
+                  : (q.scheduledOn(now) && !q.doneFor(now))),
+        )
         .length;
   }
 
@@ -469,17 +488,22 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(q.displayTitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Type.display.copyWith(fontSize: 17)),
+                Text(
+                  q.displayTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.display.copyWith(fontSize: 17),
+                ),
                 if (q.goalTitle != null) ...[
                   const SizedBox(height: 2),
-                  Text('part of “${q.goalTitle}”',
-                      style: Type.body.copyWith(
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
-                          color: Palette.textLo)),
+                  Text(
+                    'part of “${q.goalTitle}”',
+                    style: Type.body.copyWith(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 14),
                 GestureDetector(
@@ -491,15 +515,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   },
                   child: Row(
                     children: [
-                      Icon(q.priority ? Icons.star : Icons.star_border,
-                          size: 18, color: Palette.xpLight),
+                      Icon(
+                        q.priority ? Icons.star : Icons.star_border,
+                        size: 18,
+                        color: Palette.xpLight,
+                      ),
                       const SizedBox(width: 10),
                       Text(
-                          q.priority
-                              ? 'Unstar — back to side quest'
-                              : 'Star as a MAIN quest',
-                          style: Type.body.copyWith(
-                              fontSize: 14, color: Palette.textHi)),
+                        q.priority
+                            ? 'Unstar — back to side quest'
+                            : 'Star as a MAIN quest',
+                        style: Type.body.copyWith(
+                          fontSize: 14,
+                          color: Palette.textHi,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -524,9 +554,66 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     children: [
                       const Icon(Icons.tune, size: 18, color: Palette.xpLight),
                       const SizedBox(width: 10),
-                      Text('Tune difficulty & stat',
-                          style: Type.body.copyWith(
-                              fontSize: 14, color: Palette.textHi)),
+                      Text(
+                        'Tune difficulty & stat',
+                        style: Type.body.copyWith(
+                          fontSize: 14,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                // The running log: little timestamped notes kept on this quest
+                // (which side, how much, where) — context that travels with it.
+                GestureDetector(
+                  onTap: () {
+                    Sfx.instance.play('tick');
+                    Navigator.of(ctx).pop();
+                    final last = q.lastDoneDay;
+                    showNotesSheet(
+                      context,
+                      kicker: 'LOG',
+                      title: q.displayTitle,
+                      icon: Icons.sticky_note_2_outlined,
+                      accent: q.stat.color,
+                      subtitle: last != null
+                          ? 'last done ${relativeWhen(Days.parse(last))}'
+                          : null,
+                      emptyHint:
+                          'Nothing logged yet. Jot whatever you’ll want to '
+                          'remember next time — which side, how much, where.',
+                      read: () => q.log,
+                      onAdd: (text) {
+                        q.addNote(text, DateTime.now());
+                        setState(() {});
+                        widget.onPersist();
+                      },
+                      onDelete: (n) {
+                        q.log = q.log.without(n);
+                        setState(() {});
+                        widget.onPersist();
+                      },
+                    );
+                  },
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.sticky_note_2_outlined,
+                        size: 18,
+                        color: q.stat.color,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        q.log.isEmpty
+                            ? 'Keep a note / log'
+                            : 'Notes & log (${q.log.length})',
+                        style: Type.body.copyWith(
+                          fontSize: 14,
+                          color: Palette.textHi,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -538,19 +625,27 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     Sfx.instance.play('tick');
                     HapticFeedback.selectionClick();
                     setState(() => q.snoozedDay = Days.key(DateTime.now()));
-                    Storage.logEvent('snooze',
-                        [q.custom ? Storage.hashTitle(q.title) : q.title]);
+                    Storage.logEvent('snooze', [
+                      q.custom ? Storage.hashTitle(q.title) : q.title,
+                    ]);
                     widget.onPersist();
                     Navigator.of(ctx).pop();
                   },
                   child: Row(
                     children: [
-                      const Icon(Icons.bedtime_outlined,
-                          size: 18, color: Palette.textMid),
+                      const Icon(
+                        Icons.bedtime_outlined,
+                        size: 18,
+                        color: Palette.textMid,
+                      ),
                       const SizedBox(width: 10),
-                      Text('Hide it just for today',
-                          style: Type.body.copyWith(
-                              fontSize: 14, color: Palette.textHi)),
+                      Text(
+                        'Hide it just for today',
+                        style: Type.body.copyWith(
+                          fontSize: 14,
+                          color: Palette.textHi,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -569,20 +664,25 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   },
                   child: Row(
                     children: [
-                      Icon(Icons.delete_outline,
-                          size: 18,
-                          color: const Color(0xFFE89090)
-                              .withValues(alpha: armed ? 1 : 0.7)),
+                      Icon(
+                        Icons.delete_outline,
+                        size: 18,
+                        color: const Color(
+                          0xFFE89090,
+                        ).withValues(alpha: armed ? 1 : 0.7),
+                      ),
                       const SizedBox(width: 10),
                       Text(
-                          armed
-                              ? 'Tap again — gone for good'
-                              : 'Remove it for good',
-                          style: Type.body.copyWith(
-                              fontSize: 14,
-                              color: armed
-                                  ? const Color(0xFFE89090)
-                                  : Palette.textHi)),
+                        armed
+                            ? 'Tap again — gone for good'
+                            : 'Remove it for good',
+                        style: Type.body.copyWith(
+                          fontSize: 14,
+                          color: armed
+                              ? const Color(0xFFE89090)
+                              : Palette.textHi,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -619,7 +719,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     Sfx.instance.play('tick');
     HapticFeedback.selectionClick();
     final q = await showEmberSheet(
-        context, const EmberSheetConfig(surface: EmberSurface.board));
+      context,
+      const EmberSheetConfig(surface: EmberSurface.board),
+    );
     if (q != null) widget.onAdd(q);
   }
 
@@ -684,19 +786,24 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           e.remove();
           _workoutRunnerOpen = false;
         },
-        onFinish: ({
-          required Routine routine,
-          required bool verified,
-          required bool endedEarly,
-          required int workMovesDone,
-        }) {
-          e.remove();
-          _workoutRunnerOpen = false;
-          _finishWorkout(launcher, routine, tapPos,
-              verified: verified,
-              endedEarly: endedEarly,
-              workMovesDone: workMovesDone);
-        },
+        onFinish:
+            ({
+              required Routine routine,
+              required bool verified,
+              required bool endedEarly,
+              required int workMovesDone,
+            }) {
+              e.remove();
+              _workoutRunnerOpen = false;
+              _finishWorkout(
+                launcher,
+                routine,
+                tapPos,
+                verified: verified,
+                endedEarly: endedEarly,
+                workMovesDone: workMovesDone,
+              );
+            },
       ),
     );
     Overlay.of(context).insert(e);
@@ -707,10 +814,14 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// proved, ticks the strength goal) and run the normal completion. Difficulty
   /// scales down fairly for an early exit. The launcher is marked done AFTER
   /// the snapshot is captured, so Undo reverts both the reward and the tick.
-  void _finishWorkout(Quest launcher, Routine routine, Offset tapPos,
-      {required bool verified,
-      required bool endedEarly,
-      required int workMovesDone}) {
+  void _finishWorkout(
+    Quest launcher,
+    Routine routine,
+    Offset tapPos, {
+    required bool verified,
+    required bool endedEarly,
+    required int workMovesDone,
+  }) {
     if (!mounted) return;
     final frac = routine.workMoves == 0
         ? 1.0
@@ -803,6 +914,178 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     Overlay.of(context).insert(beat);
   }
 
+  /// Clearing the whole board is the peak of the daily loop — it deserves more
+  /// than a quiet card. When the last actionable quest is done, a gentle warm
+  /// ember wash sweeps the board + a flourish haptic (once per day). It lands
+  /// after the per-quest celebration so the two don't collide.
+  void _celebrateDayClearedIfDone(Quest justDone) {
+    // all-day lines confirm at night, so clearing the tappable board still
+    // counts even if an all-day reminder remains; but don't fire ON an all-day
+    // "completion" (it isn't really one until the night check).
+    if (justDone.allDay) return;
+    final today = Days.key(DateTime.now());
+    if (_clearedDay == today || _remainingToday() != 0) return;
+    _clearedDay = today;
+    Future.delayed(const Duration(milliseconds: 720), () {
+      if (!mounted || _remainingToday() != 0) return;
+      Haptics.flourish();
+      Sfx.instance.play('streak');
+      final size = MediaQuery.sizeOf(context);
+      late final OverlayEntry wash;
+      wash = OverlayEntry(
+        builder: (_) => ParticleBurst(
+          origin: Offset(size.width / 2, size.height * 0.3),
+          colors: const [Palette.xpLight, Palette.xp, Palette.streak],
+          count: 34,
+          vibrancy: 0.6,
+          spread: size.width * 0.85,
+          onDone: () => wash.remove(),
+        ),
+      );
+      Overlay.of(context).insert(wash);
+    });
+  }
+
+  /// A weekly quest cleared on a day other than its anchor: stash a gentle,
+  /// dismissible offer to make THIS the day going forward — the board learning
+  /// your real rhythm (round-21). Only single-anchor weeklies; a deliberate
+  /// multi-day pattern is left alone.
+  void _maybeOfferReAnchor(Quest q) {
+    if (q.schedule != QuestSchedule.weekly || q.weekdays.length != 1) return;
+    final today = DateTime.now().weekday;
+    if (q.weekdays.first == today) return; // done on its day — nothing to offer
+    setState(() {
+      _reAnchorQuest = q;
+      _reAnchorDay = today;
+    });
+  }
+
+  /// The inline re-anchor offer — calm, optional, never a modal. Lives in the
+  /// page body so it waits politely behind the completion celebration and is
+  /// trivially ignorable (never-punish: a suggestion, not a correction).
+  Widget _reAnchorPanel() {
+    final q = _reAnchorQuest;
+    final day = _reAnchorDay;
+    if (q == null || day == null) return const SizedBox.shrink();
+    void dismiss() {
+      setState(() {
+        _reAnchorQuest = null;
+        _reAnchorDay = null;
+      });
+    }
+
+    final plural = weekdayLabel([day]); // "Thursdays"
+    final singular = plural.substring(0, plural.length - 1); // "Thursday"
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: GlassPanel(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.event_repeat, size: 18, color: q.stat.color),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'You finished this on a $singular — want it to land on '
+                    '$plural from now on?',
+                    style: Type.body.copyWith(
+                      fontSize: 13.5,
+                      color: Palette.textHi,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'now lands on ${weekdayLabel(q.weekdays)}',
+              style: Type.body.copyWith(
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: dismiss,
+                    child: Container(
+                      alignment: Alignment.center,
+                      constraints: const BoxConstraints(minHeight: 44),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: Palette.glassEdge),
+                      ),
+                      child: Text(
+                        'KEEP IT',
+                        style: Type.label.copyWith(
+                          fontSize: 12,
+                          color: Palette.textLo,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      Sfx.instance.play('streak');
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        q.weekdays = [day];
+                        _reAnchorQuest = null;
+                        _reAnchorDay = null;
+                      });
+                      widget.onPersist();
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      constraints: const BoxConstraints(minHeight: 44),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0xFFF6D9A2),
+                            Color(0xFFEFC074),
+                            Color(0xFFC08B4F),
+                          ],
+                        ),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Palette.honeyGlow,
+                            blurRadius: 14,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        'MOVE TO ${plural.toUpperCase()}',
+                        style: Type.label.copyWith(
+                          fontSize: 12,
+                          color: const Color(0xFF4A2F1A),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// A clear, tappable "good morning" prompt whenever the briefing is owed —
   /// so a missed auto-show never leaves the morning unreachable (user report).
   Widget _morningPanel() {
@@ -821,13 +1104,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('GOOD MORNING',
-                        style: Type.label
-                            .copyWith(fontSize: 11, color: Palette.streak)),
+                    Text(
+                      'GOOD MORNING',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.streak,
+                      ),
+                    ),
                     const SizedBox(height: 2),
-                    Text('tap to see what’s ahead today ☀️',
-                        style: Type.body
-                            .copyWith(fontSize: 13.5, color: Palette.textHi)),
+                    Text(
+                      'tap to see what’s ahead today ☀️',
+                      style: Type.body.copyWith(
+                        fontSize: 13.5,
+                        color: Palette.textHi,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -883,13 +1174,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('TODAY’S SPARK',
-                      style: Type.label
-                          .copyWith(fontSize: 11, color: Palette.xpLight)),
+                  Text(
+                    'TODAY’S SPARK',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.xpLight,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(line,
-                      style: Type.body
-                          .copyWith(fontSize: 13.5, color: Palette.textHi)),
+                  Text(
+                    line,
+                    style: Type.body.copyWith(
+                      fontSize: 13.5,
+                      color: Palette.textHi,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -923,11 +1222,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Flexible(
-                child: Text('NEXT UP · 1 OF ${pool.length}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Type.label
-                        .copyWith(fontSize: 12, color: Palette.streak)),
+                child: Text(
+                  'NEXT UP · 1 OF ${pool.length}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: 12,
+                    color: Palette.streak,
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
               _FocusLensToggle(
@@ -947,19 +1250,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         const SizedBox(height: 16),
         if (pool.length > 1)
           Center(
-            child: Text('${pool.length - 1} more waiting — one at a time',
-                textAlign: TextAlign.center,
-                style: Type.body.copyWith(
-                    fontSize: 13,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo)),
+            child: Text(
+              '${pool.length - 1} more waiting — one at a time',
+              textAlign: TextAlign.center,
+              style: Type.body.copyWith(
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
           ),
         if (allDayLeft > 0) ...[
           const SizedBox(height: 10),
           Center(
-            child: Text('$allDayLeft all-day · checked tonight',
-                style:
-                    Type.label.copyWith(fontSize: 11, color: Palette.unlock)),
+            child: Text(
+              '$allDayLeft all-day · checked tonight',
+              style: Type.label.copyWith(fontSize: 11, color: Palette.unlock),
+            ),
           ),
         ],
         const SizedBox(height: 22),
@@ -969,9 +1276,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.all(10),
-              child: Text('SEE THE FULL BOARD',
-                  style:
-                      Type.label.copyWith(fontSize: 11, color: Palette.textLo)),
+              child: Text(
+                'SEE THE FULL BOARD',
+                style: Type.label.copyWith(fontSize: 11, color: Palette.textLo),
+              ),
             ),
           ),
         ),
@@ -988,57 +1296,64 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // events only once due. Due/overdue events lead the list.
     final today = Days.key(now);
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
-    final visible = [
-      for (final q in widget.quests)
-        // "hide just for today" skips it from the board until tomorrow
-        if (q.snoozedDay != today &&
-            (q.isEvent
-                ? (!q.dueDate!.isAfter(endOfToday) || q.doneFor(now))
-                : (q.scheduledOn(now) || q.lastDoneDay == today)))
-          q,
-    ]..sort((a, b) {
-        // due events first, then starred MAIN quests, then the rest;
-        // all-day reminders last (nothing to tap until tonight)
-        int rank(Quest q) =>
-            q.allDay ? 3 : (q.isEvent ? 0 : (q.priority ? 1 : 2));
-        return rank(a).compareTo(rank(b));
-      });
+    final visible =
+        [
+          for (final q in widget.quests)
+            // "hide just for today" skips it from the board until tomorrow
+            if (q.snoozedDay != today &&
+                (q.isEvent
+                    ? (!q.dueDate!.isAfter(endOfToday) || q.doneFor(now))
+                    : (q.scheduledOn(now) || q.lastDoneDay == today)))
+              q,
+        ]..sort((a, b) {
+          // finished quests sink to the bottom so the board visibly shrinks
+          // toward the top as you clear it — banked wins, not interleaved
+          // clutter. The most-recent win stays put (undo lives on it).
+          bool banked(Quest q) =>
+              q.doneFor(now) && q.title != _pinnedDoneTitle;
+          final ad = banked(a), bd = banked(b);
+          if (ad != bd) return ad ? 1 : -1;
+          // then: due events first, starred MAIN next, the rest, all-day last
+          // (nothing to tap on an all-day line until tonight)
+          int rank(Quest q) =>
+              q.allDay ? 3 : (q.isEvent ? 0 : (q.priority ? 1 : 2));
+          return rank(a).compareTo(rank(b));
+        });
     final remaining = visible.where((q) => !q.doneFor(now)).length;
 
     // Focus mode: the actionable pool (all-day lines have nothing to tap until
     // night, so they're never the "next" focus — shown as a footer count).
     // Tiered order: overdue events → due-today events → starred MAIN → the
     // rest (by the energy lens) → bonus last.
-    final actionable = [
-      for (final q in visible)
-        if (!q.doneFor(now) && !q.allDay) q
-    ]..sort((a, b) {
-        int tier(Quest q) {
-          if (q.isEvent) {
-            return q.dueDate!
-                    .isBefore(DateTime(now.year, now.month, now.day))
-                ? 0
-                : 1;
+    final actionable =
+        [
+          for (final q in visible)
+            if (!q.doneFor(now) && !q.allDay) q,
+        ]..sort((a, b) {
+          int tier(Quest q) {
+            if (q.isEvent) {
+              return q.dueDate!.isBefore(DateTime(now.year, now.month, now.day))
+                  ? 0
+                  : 1;
+            }
+            if (q.priority) return 2;
+            if (q.bonus) return 4;
+            return 3;
           }
-          if (q.priority) return 2;
-          if (q.bonus) return 4;
-          return 3;
-        }
 
-        final ta = tier(a), tb = tier(b);
-        if (ta != tb) return ta.compareTo(tb);
-        // within a tier, the energy lens decides
-        if (a.dread != b.dread) {
-          if (_focusLens == _FocusLens.hardest) return a.dread ? -1 : 1;
-          return a.dread ? 1 : -1;
-        }
-        final xa = _state.xpPreview(a), xb = _state.xpPreview(b);
-        return _focusLens == _FocusLens.hardest
-            ? xb.compareTo(xa)
-            : xa.compareTo(xb);
-      });
-    final allDayLeft =
-        visible.where((q) => q.allDay && !q.doneFor(now)).length;
+          final ta = tier(a), tb = tier(b);
+          if (ta != tb) return ta.compareTo(tb);
+          // within a tier, the energy lens decides
+          if (a.dread != b.dread) {
+            if (_focusLens == _FocusLens.hardest) return a.dread ? -1 : 1;
+            return a.dread ? 1 : -1;
+          }
+          final xa = _state.xpPreview(a), xb = _state.xpPreview(b);
+          return _focusLens == _FocusLens.hardest
+              ? xb.compareTo(xa)
+              : xa.compareTo(xb);
+        });
+    final allDayLeft = visible.where((q) => q.allDay && !q.doneFor(now)).length;
     final showFocus = _state.focusMode && actionable.isNotEmpty;
 
     return Column(
@@ -1058,16 +1373,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       progress: (_state.xp / next).clamp(0.0, 1.0),
                       child: Portrait(
                         size: 44,
-                        mood: _beaming
-                            ? PortraitMood.happy
-                            : PortraitMood.idle,
-                        aura: cosmeticFor(_state.equippedSkin)?.aura ??
+                        mood: _beaming ? PortraitMood.happy : PortraitMood.idle,
+                        aura:
+                            cosmeticFor(_state.equippedSkin)?.aura ??
                             _state.dominantStat?.color,
                         level: _state.level,
-                        badge:
-                            cosmeticFor(_state.equippedSkin)?.badge ?? false,
+                        badge: cosmeticFor(_state.equippedSkin)?.badge ?? false,
                       ),
-
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -1077,16 +1389,22 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('LEVEL ${_state.level}',
-                                  style: Type.label.copyWith(fontSize: 13)),
+                              Text(
+                                'LEVEL ${_state.level}',
+                                style: Type.label.copyWith(fontSize: 13),
+                              ),
                               // clamp: pre-level-up overflow reads as a
                               // full bar, never "130 / 105"
                               Flexible(
-                                child: Text('${min(_state.xp, next)} / $next XP',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Type.numerals.copyWith(
-                                        fontSize: 16, color: Palette.xp)),
+                                child: Text(
+                                  '${min(_state.xp, next)} / $next XP',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Type.numerals.copyWith(
+                                    fontSize: 16,
+                                    color: Palette.xp,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -1100,14 +1418,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             Row(
                               children: [
                                 Icon(
-                                    _state.nextUnlockLabel() != null
-                                        ? Icons.lock_outline
-                                        : Icons.trending_up,
-                                    size: 13,
-                                    color: Palette.textLo),
+                                  _state.nextUnlockLabel() != null
+                                      ? Icons.lock_outline
+                                      : Icons.trending_up,
+                                  size: 13,
+                                  color: Palette.textLo,
+                                ),
                                 const SizedBox(width: 4),
-                                Text('NEXT · ${_state.nextChaseLabel()}',
-                                    style: Type.label.copyWith(fontSize: 12)),
+                                Text(
+                                  'NEXT · ${_state.nextChaseLabel()}',
+                                  style: Type.label.copyWith(fontSize: 12),
+                                ),
                               ],
                             ),
                           ],
@@ -1126,6 +1447,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         const SizedBox(height: 8),
         const InstallHint(),
         _morningPanel(),
+        _reAnchorPanel(),
         _sparkPanel(),
 
         // ── Quest list ──────────────────────────────────────────
@@ -1136,12 +1458,14 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             children: [
               Expanded(
                 child: Text(
-                    showFocus ? 'FOCUS MODE' : 'TODAY · $remaining LEFT',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Type.label.copyWith(
-                        fontSize: 12,
-                        color: showFocus ? Palette.streak : null)),
+                  showFocus ? 'FOCUS MODE' : 'TODAY · $remaining LEFT',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: 12,
+                    color: showFocus ? Palette.streak : null,
+                  ),
+                ),
               ),
               Row(
                 children: [
@@ -1150,8 +1474,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     icon: _state.focusMode
                         ? Icons.center_focus_strong
                         : Icons.center_focus_weak,
-                    color:
-                        _state.focusMode ? Palette.streak : Palette.xpLight,
+                    color: _state.focusMode ? Palette.streak : Palette.xpLight,
                     onTap: _toggleFocus,
                   ),
                   _HeaderAction(
@@ -1176,7 +1499,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     )
                   else
                     const _HeaderAction(
-                        icon: Icons.nightlight_round, color: Palette.textLo),
+                      icon: Icons.nightlight_round,
+                      color: Palette.textLo,
+                    ),
                   // the momentum spark: cleared something? push further.
                   _HeaderAction(
                     icon: Icons.bolt,
@@ -1192,162 +1517,223 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           child: showFocus
               ? _focusBody(actionable, allDayLeft, now)
               : ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
-            itemCount:
-                visible.isEmpty ? 1 : visible.length + (remaining == 0 ? 1 : 0),
-            separatorBuilder: (_, _) => const SizedBox(height: 10),
-            itemBuilder: (_, i) {
-              // a board with nothing on it — invite the first ember, don't
-              // pretend a day was "cleared" when none was
-              if (visible.isEmpty) {
-                return GlassPanel(
-                  child: Column(
-                    children: [
-                      const Icon(Icons.local_fire_department_outlined,
-                          size: 26, color: Palette.xpLight),
-                      const SizedBox(height: 8),
-                      Text('A clear board',
-                          style: Type.display.copyWith(fontSize: 20)),
-                      const SizedBox(height: 4),
-                      Text('add a quest with + above, or take on a goal — '
-                          'light the first ember and the day tilts your way',
-                          textAlign: TextAlign.center,
-                          style: Type.body.copyWith(
-                              fontSize: 13.5,
-                              fontStyle: FontStyle.italic,
-                              color: Palette.textLo)),
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: _quickAdd,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 9),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                                color:
-                                    Palette.xpLight.withValues(alpha: 0.6)),
-                          ),
-                          child: Text('ADD A QUEST',
-                              style: Type.label.copyWith(
-                                  fontSize: 11, color: Palette.xpLight)),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              // the day, cleared — celebrate and hand off to the night
-              if (remaining == 0 && i == 0) {
-                return GlassPanel(
-                  glow: true,
-                  child: Column(
-                    children: [
-                      const Icon(Icons.auto_awesome,
-                          size: 26, color: Palette.xpLight),
-                      const SizedBox(height: 8),
-                      Text('Day cleared ✨',
-                          style: Type.display.copyWith(fontSize: 20)),
-                      const SizedBox(height: 4),
-                      Text(
-                          _state.nightDoneDay == today
-                              ? 'rest well — tomorrow is already taking shape'
-                              : 'nothing left but the goodnight',
-                          style: Type.body.copyWith(
-                              fontSize: 13.5,
-                              fontStyle: FontStyle.italic,
-                              color: Palette.textLo)),
-                      // peak-end: you cleared it — still hot? push further
-                      const SizedBox(height: 10),
-                      GestureDetector(
-                        onTap: _openMomentum,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
+                  itemCount: visible.isEmpty
+                      ? 1
+                      : visible.length + (remaining == 0 ? 1 : 0),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                  itemBuilder: (_, i) {
+                    // a board with nothing on it — invite the first ember, don't
+                    // pretend a day was "cleared" when none was
+                    if (visible.isEmpty) {
+                      return GlassPanel(
+                        child: Column(
                           children: [
-                            const Icon(Icons.bolt,
-                                size: 13, color: Palette.streak),
-                            const SizedBox(width: 4),
-                            Text('keep the fire going',
-                                style: Type.label.copyWith(
-                                    fontSize: 11, color: Palette.streak)),
+                            const Icon(
+                              Icons.local_fire_department_outlined,
+                              size: 26,
+                              color: Palette.xpLight,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'A clear board',
+                              style: Type.display.copyWith(fontSize: 20),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'add a quest with + above, or take on a goal — '
+                              'light the first ember and the day tilts your way',
+                              textAlign: TextAlign.center,
+                              style: Type.body.copyWith(
+                                fontSize: 13.5,
+                                fontStyle: FontStyle.italic,
+                                color: Palette.textLo,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            GestureDetector(
+                              onTap: _quickAdd,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 9,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: Palette.xpLight.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  'ADD A QUEST',
+                                  style: Type.label.copyWith(
+                                    fontSize: 11,
+                                    color: Palette.xpLight,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                      if (_state.nightDoneDay != today) ...[
-                        const SizedBox(height: 12),
-                        GestureDetector(
-                          onTap: _openNight,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 18, vertical: 9),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                  color: Palette.xpLight
-                                      .withValues(alpha: 0.6)),
-                            ),
-                            child: Text('CLOSE OUT THE DAY 🌙',
-                                style: Type.label.copyWith(
-                                    fontSize: 11,
-                                    color: Palette.xpLight)),
+                      );
+                    }
+                    // the day, cleared — celebrate and hand off to the night
+                    if (remaining == 0 && i == 0) {
+                      return TweenAnimationBuilder<double>(
+                        // a gentle pop-in: the candles flaring up as the day closes
+                        tween: Tween(begin: 0, end: 1),
+                        duration: Motion.takeover,
+                        curve: Curves.easeOutBack,
+                        builder: (_, t, child) => Opacity(
+                          opacity: t.clamp(0.0, 1.0),
+                          child: Transform.scale(
+                            scale: 0.9 + 0.1 * t,
+                            child: child,
                           ),
                         ),
-                      ],
-                    ],
-                  ),
-                );
-              }
-              final q = visible[remaining == 0 ? i - 1 : i];
-              final isDone = q.doneFor(now);
-              final card = QuestCard(
-                quest: q,
-                done: isDone,
-                xpPreview: _state.xpPreview(q),
-                onComplete: (pos) => _completeQuest(q, pos),
-                onManage: () => _manageQuest(q),
-                // a finished, still-climbable quest offers the next rung
-                // right on the card
-                onEncore: (isDone && !q.bonus && !q.workout && q.canRise)
-                    ? _openMomentum
-                    : null,
-              );
-              // the latest finished quest can be swiped left to undo (a calmer
-              // affordance than chasing the snackbar)
-              if (isDone &&
-                  _undoSnapshot != null &&
-                  q.title == _undoTitle) {
-                return Dismissible(
-                  key: ValueKey('undo-${q.title}'),
-                  direction: DismissDirection.endToStart,
-                  dismissThresholds: const {
-                    DismissDirection.endToStart: 0.42
+                        child: GlassPanel(
+                          glow: true,
+                          child: Column(
+                            children: [
+                              const Icon(
+                                Icons.auto_awesome,
+                                size: 26,
+                                color: Palette.xpLight,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Day cleared ✨',
+                                style: Type.display.copyWith(fontSize: 20),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _state.nightDoneDay == today
+                                    ? 'rest well — tomorrow is already taking shape'
+                                    : 'nothing left but the goodnight',
+                                style: Type.body.copyWith(
+                                  fontSize: 13.5,
+                                  fontStyle: FontStyle.italic,
+                                  color: Palette.textLo,
+                                ),
+                              ),
+                              // peak-end: you cleared it — still hot? push further
+                              const SizedBox(height: 10),
+                              GestureDetector(
+                                onTap: _openMomentum,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.bolt,
+                                      size: 13,
+                                      color: Palette.streak,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'keep the fire going',
+                                      style: Type.label.copyWith(
+                                        fontSize: 11,
+                                        color: Palette.streak,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (_state.nightDoneDay != today) ...[
+                                const SizedBox(height: 12),
+                                GestureDetector(
+                                  onTap: _openNight,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 9,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: Palette.xpLight.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'CLOSE OUT THE DAY 🌙',
+                                      style: Type.label.copyWith(
+                                        fontSize: 11,
+                                        color: Palette.xpLight,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    final q = visible[remaining == 0 ? i - 1 : i];
+                    final isDone = q.doneFor(now);
+                    final card = QuestCard(
+                      // stable key so a card's squash/state follows it as the list
+                      // re-sorts a finished quest down to the bottom
+                      key: ValueKey('card-${q.title}'),
+                      quest: q,
+                      done: isDone,
+                      xpPreview: _state.xpPreview(q),
+                      onComplete: (pos) => _completeQuest(q, pos),
+                      onManage: () => _manageQuest(q),
+                      // a finished, still-climbable quest offers the next rung
+                      // right on the card
+                      onEncore: (isDone && !q.bonus && !q.workout && q.canRise)
+                          ? _openMomentum
+                          : null,
+                    );
+                    // the latest finished quest can be swiped left to undo (a calmer
+                    // affordance than chasing the snackbar)
+                    if (isDone &&
+                        _undoSnapshot != null &&
+                        q.title == _undoTitle) {
+                      return Dismissible(
+                        key: ValueKey('undo-${q.title}'),
+                        direction: DismissDirection.endToStart,
+                        dismissThresholds: const {
+                          DismissDirection.endToStart: 0.42,
+                        },
+                        confirmDismiss: (_) async {
+                          _undoLast();
+                          return false; // restore handles the state change
+                        },
+                        secondaryBackground: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 26),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.undo,
+                                size: 16,
+                                color: Palette.xpLight,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'UNDO',
+                                style: Type.label.copyWith(
+                                  fontSize: 11,
+                                  color: Palette.xpLight,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        background: const SizedBox.shrink(),
+                        child: card,
+                      );
+                    }
+                    return card;
                   },
-                  confirmDismiss: (_) async {
-                    _undoLast();
-                    return false; // restore handles the state change
-                  },
-                  secondaryBackground: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 26),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.undo,
-                            size: 16, color: Palette.xpLight),
-                        const SizedBox(width: 6),
-                        Text('UNDO',
-                            style: Type.label.copyWith(
-                                fontSize: 11, color: Palette.xpLight)),
-                      ],
-                    ),
-                  ),
-                  background: const SizedBox.shrink(),
-                  child: card,
-                );
-              }
-              return card;
-            },
-          ),
+                ),
         ),
       ],
     );
@@ -1397,10 +1783,13 @@ class _FocusLensToggle extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             color: on ? Palette.xpLight.withValues(alpha: 0.22) : null,
           ),
-          child: Text(label,
-              style: Type.label.copyWith(
-                  fontSize: 10,
-                  color: on ? Palette.xpLight : Palette.textLo)),
+          child: Text(
+            label,
+            style: Type.label.copyWith(
+              fontSize: 10,
+              color: on ? Palette.xpLight : Palette.textLo,
+            ),
+          ),
         ),
       );
     }
@@ -1458,8 +1847,9 @@ class _LevelRingState extends State<_LevelRing>
         animation: _breathe,
         builder: (context, child) {
           // quantized so shouldRepaint dedupes to ~20 repaints/s
-          final wave =
-              Motion.ambient.transform((_breathe.value * 56).round() / 56);
+          final wave = Motion.ambient.transform(
+            (_breathe.value * 56).round() / 56,
+          );
           return Transform.scale(
             scale: 1 + 0.02 * wave,
             child: TweenAnimationBuilder<double>(
@@ -1583,40 +1973,62 @@ class _RankUpBeat extends StatelessWidget {
                   children: [
                     Icon(Icons.trending_up, size: 16, color: stat.color),
                     const SizedBox(width: 6),
-                    Text('${stat.abbr} RANKED UP',
-                        style:
-                            Type.label.copyWith(fontSize: 11, color: stat.color)),
+                    Text(
+                      '${stat.abbr} RANKED UP',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: stat.color,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text('You’re ${rank.label} now',
-                    style: Type.display.copyWith(fontSize: 24)),
+                Text(
+                  'You’re ${rank.label} now',
+                  style: Type.display.copyWith(fontSize: 24),
+                ),
                 const SizedBox(height: 16),
-                Text('WHY THIS WORKS',
-                    style: Type.label.copyWith(fontSize: 11, color: Palette.info)),
+                Text(
+                  'WHY THIS WORKS',
+                  style: Type.label.copyWith(fontSize: 11, color: Palette.info),
+                ),
                 const SizedBox(height: 6),
                 Text(card.title, style: Type.display.copyWith(fontSize: 16)),
                 const SizedBox(height: 6),
-                Text(card.text,
-                    style: Type.body.copyWith(
-                        fontSize: 13, height: 1.5, color: Palette.textMid)),
+                Text(
+                  card.text,
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: Palette.textMid,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    const Icon(Icons.menu_book_outlined,
-                        size: 11, color: Palette.info),
+                    const Icon(
+                      Icons.menu_book_outlined,
+                      size: 11,
+                      color: Palette.info,
+                    ),
                     const SizedBox(width: 5),
                     Expanded(
-                      child: Text(card.source,
-                          style: Type.label
-                              .copyWith(fontSize: 11, color: Palette.info)),
+                      child: Text(
+                        card.source,
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: Palette.info,
+                        ),
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
                 Center(
-                  child: Text('tap to keep going →',
-                      style: Type.label.copyWith(fontSize: 11)),
+                  child: Text(
+                    'tap to keep going →',
+                    style: Type.label.copyWith(fontSize: 11),
+                  ),
                 ),
               ],
             ),
@@ -1664,33 +2076,34 @@ class _MomentumSheetState extends State<_MomentumSheet> {
   /// bonus that pays the session reward on a bare tap (bug-hunt §6). They
   /// progress via the night RISE and the runner's own picker instead.
   List<Quest> _sources() => [
-        for (final q in widget.quests)
-          if (!q.allDay && !q.bonus && !q.workout && q.doneFor(_now)) q,
-      ];
+    for (final q in widget.quests)
+      if (!q.allDay && !q.bonus && !q.workout && q.doneFor(_now)) q,
+  ];
 
   int _bonusCount(String root) =>
       widget.quests.where((q) => q.bonus && q.origin == root).length;
 
-  Iterable<String> _boardTitles() =>
-      widget.quests.map((q) => q.displayTitle);
+  Iterable<String> _boardTitles() => widget.quests.map((q) => q.displayTitle);
 
   void _stoke(Quest q) {
     final l = q.ladder;
     if (l == null) return;
     final next = (q.rung + 1).clamp(0, l.length - 1);
     final root = q.origin ?? q.title;
-    final ok = widget.onAdd(Quest(
-      title: l[next],
-      stat: q.stat,
-      difficulty: (q.difficulty + 1).clamp(1, 10),
-      schedule: QuestSchedule.once,
-      dueDate: DateTime(_now.year, _now.month, _now.day),
-      bonus: true,
-      origin: root,
-      ladder: q.ladder,
-      rung: next,
-      kin: q.kin,
-    ));
+    final ok = widget.onAdd(
+      Quest(
+        title: l[next],
+        stat: q.stat,
+        difficulty: (q.difficulty + 1).clamp(1, 10),
+        schedule: QuestSchedule.once,
+        dueDate: DateTime(_now.year, _now.month, _now.day),
+        bonus: true,
+        origin: root,
+        ladder: q.ladder,
+        rung: next,
+        kin: q.kin,
+      ),
+    );
     _afterSpawn(ok, l[next]);
   }
 
@@ -1698,15 +2111,17 @@ class _MomentumSheetState extends State<_MomentumSheet> {
     final variants = Ladders.variantsFor(q, _boardTitles());
     if (variants.isEmpty) return;
     final pick = variants.first;
-    final ok = widget.onAdd(Quest(
-      title: pick,
-      stat: q.stat,
-      difficulty: q.difficulty,
-      schedule: QuestSchedule.once,
-      dueDate: DateTime(_now.year, _now.month, _now.day),
-      bonus: true,
-      origin: q.origin ?? q.title,
-    ));
+    final ok = widget.onAdd(
+      Quest(
+        title: pick,
+        stat: q.stat,
+        difficulty: q.difficulty,
+        schedule: QuestSchedule.once,
+        dueDate: DateTime(_now.year, _now.month, _now.day),
+        bonus: true,
+        origin: q.origin ?? q.title,
+      ),
+    );
     _afterSpawn(ok, pick);
   }
 
@@ -1742,7 +2157,8 @@ class _MomentumSheetState extends State<_MomentumSheet> {
         padding: const EdgeInsets.all(18),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * 0.7),
+            maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1751,20 +2167,26 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                 children: [
                   const Icon(Icons.bolt, size: 16, color: Palette.xpLight),
                   const SizedBox(width: 6),
-                  Text('KEEP THE FIRE GOING',
-                      style: Type.label
-                          .copyWith(fontSize: 11, color: Palette.xpLight)),
+                  Text(
+                    'KEEP THE FIRE GOING',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.xpLight,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                  sources.isEmpty
-                      ? 'clear a quest first — then come back to push further'
-                      : 'your wins are already banked · this is just for momentum, today only',
-                  style: Type.body.copyWith(
-                      fontSize: 11.5,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textLo)),
+                sources.isEmpty
+                    ? 'clear a quest first — then come back to push further'
+                    : 'your wins are already banked · this is just for momentum, today only',
+                style: Type.body.copyWith(
+                  fontSize: 11.5,
+                  fontStyle: FontStyle.italic,
+                  color: Palette.textLo,
+                ),
+              ),
               const SizedBox(height: 14),
               Flexible(
                 child: SingleChildScrollView(
@@ -1779,14 +2201,20 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                             padding: const EdgeInsets.only(bottom: 5),
                             child: Row(
                               children: [
-                                const Icon(Icons.bolt,
-                                    size: 13, color: Palette.streak),
+                                const Icon(
+                                  Icons.bolt,
+                                  size: 13,
+                                  color: Palette.streak,
+                                ),
                                 const SizedBox(width: 6),
                                 Expanded(
-                                  child: Text('$t — on the board',
-                                      style: Type.body.copyWith(
-                                          fontSize: 13,
-                                          color: Palette.textMid)),
+                                  child: Text(
+                                    '$t — on the board',
+                                    style: Type.body.copyWith(
+                                      fontSize: 13,
+                                      color: Palette.textMid,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1798,9 +2226,13 @@ class _MomentumSheetState extends State<_MomentumSheet> {
               ),
               if (_note != null) ...[
                 const SizedBox(height: 6),
-                Text(_note!,
-                    style: Type.body.copyWith(
-                        fontSize: 11, color: const Color(0xFFE89090))),
+                Text(
+                  _note!,
+                  style: Type.body.copyWith(
+                    fontSize: 11,
+                    color: const Color(0xFFE89090),
+                  ),
+                ),
               ],
               const SizedBox(height: 12),
               Row(
@@ -1810,16 +2242,18 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                     child: GestureDetector(
                       onTap: _shuffle,
                       child: Text(
-                          _shuffled == null
-                              ? 'shuffle the board'
-                              : _shuffled == 0
-                                  ? 'board’s all here'
-                                  : 'pulled $_shuffled back',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Type.label.copyWith(
-                              fontSize: 11,
-                              color: Palette.textLo.withValues(alpha: 0.8))),
+                        _shuffled == null
+                            ? 'shuffle the board'
+                            : _shuffled == 0
+                            ? 'board’s all here'
+                            : 'pulled $_shuffled back',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: Palette.textLo.withValues(alpha: 0.8),
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1827,24 +2261,35 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                     onTap: () => Navigator.of(context).pop(),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 22, vertical: 10),
+                        horizontal: 22,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         gradient: const LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                          colors: [
+                            Color(0xFFF6D9A2),
+                            Color(0xFFEFC074),
+                            Color(0xFFC08B4F),
+                          ],
                         ),
                         boxShadow: const [
                           BoxShadow(
-                              color: Palette.honeyGlow,
-                              blurRadius: 14,
-                              offset: Offset(0, 4)),
+                            color: Palette.honeyGlow,
+                            blurRadius: 14,
+                            offset: Offset(0, 4),
+                          ),
                         ],
                       ),
-                      child: Text(_spawned.isEmpty ? 'NOT NOW' : 'LET’S GO',
-                          style: Type.label.copyWith(
-                              fontSize: 11, color: const Color(0xFF3A2510))),
+                      child: Text(
+                        _spawned.isEmpty ? 'NOT NOW' : 'LET’S GO',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: const Color(0xFF3A2510),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1882,27 +2327,36 @@ class _MomentumSheetState extends State<_MomentumSheet> {
               Icon(Icons.check_circle, size: 14, color: q.stat.color),
               const SizedBox(width: 7),
               Expanded(
-                child: Text(q.displayTitle,
-                    style: Type.body.copyWith(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: Palette.textHi)),
+                child: Text(
+                  q.displayTitle,
+                  style: Type.body.copyWith(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: Palette.textHi,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
           if (capped)
-            Text('you’ve stoked this plenty today — rest is part of the build',
-                style: Type.body.copyWith(
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo))
+            Text(
+              'you’ve stoked this plenty today — rest is part of the build',
+              style: Type.body.copyWith(
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            )
           else if (!canStoke && !canSwitch)
-            Text('already covered — every variant’s on the board',
-                style: Type.body.copyWith(
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo))
+            Text(
+              'already covered — every variant’s on the board',
+              style: Type.body.copyWith(
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            )
           else
             Wrap(
               spacing: 8,
@@ -1959,7 +2413,11 @@ class _MomentumChip extends StatelessWidget {
                 ? const LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                    colors: [
+                      Color(0xFFF6D9A2),
+                      Color(0xFFEFC074),
+                      Color(0xFFC08B4F),
+                    ],
                   )
                 : null,
             border: highlight
@@ -1974,14 +2432,17 @@ class _MomentumChip extends StatelessWidget {
               if (sub != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 1),
-                  child: Text(sub!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Type.body.copyWith(
-                          fontSize: 11,
-                          color: highlight
-                              ? const Color(0xFF3A2510)
-                              : Palette.textMid)),
+                  child: Text(
+                    sub!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.body.copyWith(
+                      fontSize: 11,
+                      color: highlight
+                          ? const Color(0xFF3A2510)
+                          : Palette.textMid,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -2022,10 +2483,12 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
           children: [
             Text('TUNE THIS QUEST', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 4),
-            Text(widget.quest.displayTitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Type.display.copyWith(fontSize: 16)),
+            Text(
+              widget.quest.displayTitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Type.display.copyWith(fontSize: 16),
+            ),
             const SizedBox(height: 12),
             Text('TRAINS', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 6),
@@ -2038,28 +2501,39 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                     onTap: () => setState(() => _stat = s),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 9, vertical: 4),
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         color: _stat == s
                             ? s.color.withValues(alpha: 0.22)
                             : Colors.transparent,
                         border: Border.all(
-                            color: s.color
-                                .withValues(alpha: _stat == s ? 0.8 : 0.3)),
+                          color: s.color.withValues(
+                            alpha: _stat == s ? 0.8 : 0.3,
+                          ),
+                        ),
                       ),
-                      child: Text(s.abbr,
-                          style: Type.label
-                              .copyWith(fontSize: 11, color: s.color)),
+                      child: Text(
+                        s.abbr,
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: s.color,
+                        ),
+                      ),
                     ),
                   ),
               ],
             ),
+            DomainHint(_stat),
             const SizedBox(height: 10),
             Row(
               children: [
-                Text('d${_difficulty.round()}',
-                    style: Type.label.copyWith(fontSize: 11, color: Palette.xp)),
+                Text(
+                  'd${_difficulty.round()}',
+                  style: Type.label.copyWith(fontSize: 11, color: Palette.xp),
+                ),
                 Expanded(
                   child: Slider(
                     value: _difficulty.clamp(1, maxD.toDouble()),
@@ -2082,25 +2556,33 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () async {
-                      final day = await pickWeekday(context,
-                          accent: _stat.color,
-                          questTitle: widget.quest.title,
-                          initial:
-                              _weekdays.isNotEmpty ? _weekdays.first : null);
+                      final day = await pickWeekday(
+                        context,
+                        accent: _stat.color,
+                        questTitle: widget.quest.title,
+                        initial: _weekdays.isNotEmpty ? _weekdays.first : null,
+                      );
                       if (day == null) return;
                       setState(() => _weekdays = day == 0 ? [] : [day]);
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
-                            color: _stat.color.withValues(alpha: 0.6)),
+                          color: _stat.color.withValues(alpha: 0.6),
+                        ),
                       ),
-                      child: Text(weekdayLabel(_weekdays),
-                          style: Type.label
-                              .copyWith(fontSize: 11, color: _stat.color)),
+                      child: Text(
+                        weekdayLabel(_weekdays),
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: _stat.color,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -2120,24 +2602,35 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 10),
+                    horizontal: 24,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                      colors: [
+                        Color(0xFFF6D9A2),
+                        Color(0xFFEFC074),
+                        Color(0xFFC08B4F),
+                      ],
                     ),
                     boxShadow: const [
                       BoxShadow(
-                          color: Palette.honeyGlow,
-                          blurRadius: 14,
-                          offset: Offset(0, 4)),
+                        color: Palette.honeyGlow,
+                        blurRadius: 14,
+                        offset: Offset(0, 4),
+                      ),
                     ],
                   ),
-                  child: Text('SAVE',
-                      style: Type.label.copyWith(
-                          fontSize: 11, color: const Color(0xFF3A2510))),
+                  child: Text(
+                    'SAVE',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: const Color(0xFF3A2510),
+                    ),
+                  ),
                 ),
               ),
             ),

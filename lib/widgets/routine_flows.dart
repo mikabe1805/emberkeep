@@ -405,7 +405,8 @@ class _NightFlowState extends State<NightFlow> {
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
                                     colors: [
-                                      Color(0xFFF2CD93),
+                                      Color(0xFFF6D9A2),
+                                      Color(0xFFEFC074),
                                       Color(0xFFC08B4F)
                                     ],
                                   ),
@@ -1129,7 +1130,7 @@ class _BigButton extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+            colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
           ),
           boxShadow: const [
             BoxShadow(

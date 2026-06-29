@@ -29,27 +29,66 @@ abstract final class Palette {
   // Glass recipe — dark glass holding warm light
   static const glassFill = Color(0x17FFF2DC); // rgba(255,242,220,.09)
   static const glassEdge = Color(0x2EFFEFD2); // warm edge highlight
+  static const glassRim = Color(0x24140C06); // dark lower rim (the pane's shadow)
   static const specular = Color(0xFFFFF4D9); // cream drop-of-light
   static const warmShadow = Color(0x59140C06); // deep espresso shadow
   static const honeyGlow = Color(0x52E0A865); // warm halo for CTAs
+
+  // A pane of glass is brighter where the candlelight catches its top lip and
+  // dimmer toward the bottom — a vertical fill gradient reads as a lit surface
+  // rather than a painted rectangle (round-24 depth pass).
+  static const glassTop = Color(0x22FFF2DC); // top: catching the light
+  static const glassBottom = Color(0x0BFFF2DC); // bottom: settling into shadow
+
+  // The one honey CTA gradient — a lozenge of warm glass with a top sheen, dim
+  // amber base. Tokenized so every gold button reads identically (was inlined
+  // ~8 places). [onHoney] is the ink that sits on it.
+  static const honeyGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
+    stops: [0.0, 0.5, 1.0],
+  );
+  static const onHoney = Color(0xFF4A2F1A);
 }
 
 /// The six LIFE DOMAINS you level up — tangible parts of a life, not abstract
 /// RPG attributes (the owner wanted to "level up my home, my caretaking").
 /// The enum identifiers stay (str/vit/… ) so saves — which store the index —
 /// and every switch/title key keep working; only the names/abbrs are domains.
+///
+/// [blurb] (one warm line of meaning) and [examples] (a few concrete things,
+/// chosen to draw clean lines between the easily-confused domains — BODY is
+/// exertion, CARE is keeping living things well, HOME is the physical space)
+/// are surfaced wherever you pick a domain, so "which one is this?" answers
+/// itself at categorization time.
 enum Stat {
-  str('BODY', 'Body', Color(0xFFE89090)), // ember rose — move it, train it
-  vit('CARE', 'Care', Color(0xFF9BC08F)), // moss — food, sleep, plants, pets
-  intl('MIND', 'Mind', Color(0xFF85B7CE)), // teal-blue — read, learn, reflect
-  foc('CRAFT', 'Craft', Color(0xFFB79BC8)), // lilac — work, focus, projects
-  soc('PEOPLE', 'People', Color(0xFFF0AFAF)), // bloom — reach out, relationships
-  dis('HOME', 'Home', Color(0xFFB3A897)); // warm bark — chores, space, upkeep
+  str('BODY', 'Body', Color(0xFFE89090), // ember rose
+      'Moving and training your body.', 'workouts, walks, sports, stretching'),
+  vit('CARE', 'Care', Color(0xFF9BC08F), // moss
+      'Keeping yourself and what you tend alive and well.',
+      'meals, sleep, water, meds, plants, pets'),
+  intl('MIND', 'Mind', Color(0xFF85B7CE), // teal-blue
+      'Feeding your head.', 'reading, learning, reflecting'),
+  foc('CRAFT', 'Craft', Color(0xFFB79BC8), // lilac
+      'Focused work and making things.',
+      'deep work, projects, practice, skills'),
+  soc('PEOPLE', 'People', Color(0xFFF0AFAF), // bloom
+      'Tending the people in your life.',
+      'reaching out, friends, family, plans'),
+  dis('HOME', 'Home', Color(0xFFB3A897), // warm bark
+      'Keeping your space in order.', 'chores, tidying, errands, repairs');
 
-  const Stat(this.abbr, this.label, this.color);
+  const Stat(this.abbr, this.label, this.color, this.blurb, this.examples);
   final String abbr;
   final String label;
   final Color color;
+
+  /// One warm line: what this domain is for.
+  final String blurb;
+
+  /// A few concrete things that belong here — the disambiguator.
+  final String examples;
 }
 
 /// Motion vocabulary. The 100ms rule: first feedback frame lands inside
@@ -59,8 +98,8 @@ abstract final class Motion {
   static const quick = Duration(milliseconds: 220); // checkmark, squash
   static const settle = Duration(milliseconds: 420); // card sweep, chip pulse
   static const barFill = Duration(milliseconds: 650); // XP bar fill
-  static const bubbleStagger = Duration(milliseconds: 120);
-  static const bubbleLife = Duration(milliseconds: 1900);
+  static const bubbleStagger = Duration(milliseconds: 85); // tighter cascade
+  static const bubbleLife = Duration(milliseconds: 1500);
   static const takeover = Duration(milliseconds: 700); // level-up slam
 
   static const respond = Curves.easeOutCubic;
@@ -123,7 +162,16 @@ abstract final class Glass {
     bool glow = false,
   }) =>
       BoxDecoration(
-        color: tint ?? Palette.glassFill,
+        // a vertical fill — lit at the top lip, settling into shadow below —
+        // unless an opaque [tint] is requested (dialogs want a solid surface).
+        color: tint,
+        gradient: tint == null
+            ? const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Palette.glassTop, Palette.glassBottom],
+              )
+            : null,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: Palette.glassEdge, width: 1.2),
         boxShadow: [

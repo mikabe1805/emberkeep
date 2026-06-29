@@ -11,16 +11,18 @@ import '../platform/share_stub.dart'
     if (dart.library.js_interop) '../platform/share_web.dart';
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
-import '../content/evidence.dart';
 import '../content/stat_ranks.dart';
 import '../content/themes.dart';
 import '../engine.dart';
 import '../notifications.dart';
 import '../storage.dart';
 import '../tokens.dart';
+import '../widgets/domain_hint.dart';
+import '../models.dart';
 import '../widgets/glass.dart';
 import '../widgets/portrait.dart';
 import '../widgets/radar.dart';
+import 'domain_detail.dart';
 
 /// The "Me" page: your character. Reactive portrait, your build title,
 /// the stats radar, the attribution ledger — and the share card, because a
@@ -29,6 +31,8 @@ class MePage extends StatelessWidget {
   const MePage({
     super.key,
     required this.state,
+    required this.quests,
+    required this.onPersist,
     required this.onExport,
     required this.onImport,
     required this.onReset,
@@ -39,6 +43,12 @@ class MePage extends StatelessWidget {
   });
 
   final GameState state;
+
+  /// The live board quests — threaded to a domain's base page (quests serving it).
+  final List<Quest> quests;
+
+  /// Persists the save after a domain journal edit.
+  final VoidCallback onPersist;
 
   /// Copies the raw save to the clipboard; returns false if none exists.
   final Future<bool> Function() onExport;
@@ -75,20 +85,27 @@ class MePage extends StatelessWidget {
               const Spacer(),
               Flexible(
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     color: Palette.xp.withValues(alpha: 0.16),
-                    border:
-                        Border.all(color: Palette.xp.withValues(alpha: 0.45)),
+                    border: Border.all(
+                      color: Palette.xp.withValues(alpha: 0.45),
+                    ),
                   ),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text('LEVEL ${state.level} · ${state.totalXp} XP',
-                        maxLines: 1,
-                        style: Type.label
-                            .copyWith(fontSize: 11, color: Palette.xp)),
+                    child: Text(
+                      'LEVEL ${state.level} · ${state.totalXp} XP',
+                      maxLines: 1,
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.xp,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -103,48 +120,65 @@ class MePage extends StatelessWidget {
               children: [
                 Portrait(
                   size: 96,
-                  aura: cosmeticFor(state.equippedSkin)?.aura ??
+                  aura:
+                      cosmeticFor(state.equippedSkin)?.aura ??
                       state.dominantStat?.color,
                   level: state.level,
                   badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
                   trait: state.portraitTrait,
+                  // on the one screen that's all about you, your companion is
+                  // proud of you when the fire's lit (on a streak)
+                  mood: state.streakDays > 0
+                      ? PortraitMood.happy
+                      : PortraitMood.idle,
                 ),
                 const SizedBox(height: 12),
-                Text(state.buildTitle,
-                    style: Type.display.copyWith(
-                        fontSize: 22,
-                        color: state.dominantStat?.color ?? Palette.xpLight,
-                        letterSpacing: 2)),
+                Text(
+                  state.buildTitle,
+                  style: Type.display.copyWith(
+                    fontSize: 22,
+                    color: state.dominantStat?.color ?? Palette.xpLight,
+                    letterSpacing: 2,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
-                    state.totalXp == 0
-                        ? '${state.playerName ?? "you"} · every legend starts at zero'
-                        : '${state.playerName ?? "you"} · built from ${state.totalXp} XP of real life',
-                    style: Type.body.copyWith(
-                        fontSize: 13,
-                        fontStyle: FontStyle.italic,
-                        color: Palette.textLo)),
+                  state.totalXp == 0
+                      ? '${state.playerName ?? "you"} · every legend starts at zero'
+                      : '${state.playerName ?? "you"} · built from ${state.totalXp} XP of real life',
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
+                  ),
+                ),
                 if (state.equippedSkin != null) ...[
                   const SizedBox(height: 8),
-                  Builder(builder: (_) {
-                    final tint = cosmeticFor(state.equippedSkin)?.aura ??
-                        Palette.unlock;
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.auto_awesome, size: 13, color: tint),
-                        const SizedBox(width: 5),
-                        Flexible(
-                          child: Text(
+                  Builder(
+                    builder: (_) {
+                      final tint =
+                          cosmeticFor(state.equippedSkin)?.aura ??
+                          Palette.unlock;
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_awesome, size: 13, color: tint),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
                               'WEARING ${state.equippedSkin!.toUpperCase()}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: Type.label
-                                  .copyWith(fontSize: 11, color: tint)),
-                        ),
-                      ],
-                    );
-                  }),
+                              style: Type.label.copyWith(
+                                fontSize: 11,
+                                color: tint,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ],
                 const SizedBox(height: 16),
                 Wrap(
@@ -180,25 +214,34 @@ class MePage extends StatelessWidget {
                     if (state.level < 5)
                       Row(
                         children: [
-                          const Icon(Icons.lock_outline,
-                              size: 12, color: Palette.textLo),
+                          const Icon(
+                            Icons.lock_outline,
+                            size: 12,
+                            color: Palette.textLo,
+                          ),
                           const SizedBox(width: 3),
-                          Text('LV 5',
-                              style: Type.label
-                                  .copyWith(fontSize: 11, color: Palette.textLo)),
+                          Text(
+                            'LV 5',
+                            style: Type.label.copyWith(
+                              fontSize: 11,
+                              color: Palette.textLo,
+                            ),
+                          ),
                         ],
                       ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                    state.level < 5
-                        ? 'pick your candlelit canvas — opens at level 5'
-                        : 'pick the night you build by',
-                    style: Type.body.copyWith(
-                        fontSize: 11,
-                        fontStyle: FontStyle.italic,
-                        color: Palette.textLo)),
+                  state.level < 5
+                      ? 'pick your candlelit canvas — opens at level 5'
+                      : 'pick the night you build by',
+                  style: Type.body.copyWith(
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
+                  ),
+                ),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 10,
@@ -233,8 +276,7 @@ class MePage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('REMINDERS',
-                        style: Type.label.copyWith(fontSize: 11)),
+                    Text('REMINDERS', style: Type.label.copyWith(fontSize: 11)),
                     const Spacer(),
                     Switch(
                       value: state.notifyEnabled,
@@ -248,13 +290,15 @@ class MePage extends StatelessWidget {
                   ],
                 ),
                 Text(
-                    kIsWeb
-                        ? 'a daily nudge + plan reminders — these ring on the installed app'
-                        : 'a daily nudge to light your first ember, plus reminders for dated plans',
-                    style: Type.body.copyWith(
-                        fontSize: 11,
-                        fontStyle: FontStyle.italic,
-                        color: Palette.textLo)),
+                  kIsWeb
+                      ? 'a daily nudge + plan reminders — these ring on the installed app'
+                      : 'a daily nudge to light your first ember, plus reminders for dated plans',
+                  style: Type.body.copyWith(
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
+                  ),
+                ),
                 if (state.notifyEnabled) ...[
                   const SizedBox(height: 12),
                   GestureDetector(
@@ -263,34 +307,46 @@ class MePage extends StatelessWidget {
                       final picked = await showTimePicker(
                         context: context,
                         initialTime: TimeOfDay(
-                            hour: state.notifyHour,
-                            minute: state.notifyMinute),
+                          hour: state.notifyHour,
+                          minute: state.notifyMinute,
+                        ),
                       );
                       if (picked == null) return;
-                      state.setNotify(
-                          hour: picked.hour, minute: picked.minute);
+                      state.setNotify(hour: picked.hour, minute: picked.minute);
                       await onNotifyChanged();
                     },
                     child: Row(
                       children: [
-                        const Icon(Icons.schedule,
-                            size: 16, color: Palette.xpLight),
+                        const Icon(
+                          Icons.schedule,
+                          size: 16,
+                          color: Palette.xpLight,
+                        ),
                         const SizedBox(width: 8),
-                        Text('Daily nudge at',
-                            style: Type.body.copyWith(
-                                fontSize: 13, color: Palette.textMid)),
+                        Text(
+                          'Daily nudge at',
+                          style: Type.body.copyWith(
+                            fontSize: 13,
+                            color: Palette.textMid,
+                          ),
+                        ),
                         const Spacer(),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(color: Palette.glassEdge),
                           ),
                           child: Text(
-                              _fmtTime(state.notifyHour, state.notifyMinute),
-                              style: Type.numerals
-                                  .copyWith(fontSize: 14, color: Palette.xp)),
+                            _fmtTime(state.notifyHour, state.notifyMinute),
+                            style: Type.numerals.copyWith(
+                              fontSize: 14,
+                              color: Palette.xp,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -305,16 +361,39 @@ class MePage extends StatelessWidget {
           GlassPanel(
             child: Column(
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('YOUR BUILD',
-                      style: Type.label.copyWith(fontSize: 11)),
+                Row(
+                  children: [
+                    Text(
+                      'YOUR BUILD',
+                      style: Type.label.copyWith(fontSize: 11),
+                    ),
+                    const Spacer(),
+                    const DomainLegendButton(),
+                  ],
                 ),
                 const SizedBox(height: 4),
                 Center(child: StatRadar(values: state.stats)),
                 const SizedBox(height: 10),
                 for (final s in Stat.values)
-                  _StatRow(stat: s, value: state.stats[s] ?? 0),
+                  _StatRow(
+                    stat: s,
+                    value: state.stats[s] ?? 0,
+                    noteCount: state.notesFor(s).length,
+                    onOpen: () {
+                      Sfx.instance.play('tick');
+                      HapticFeedback.selectionClick();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => DomainDetailScreen(
+                            stat: s,
+                            state: state,
+                            quests: quests,
+                            onPersist: onPersist,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
               ],
             ),
           ),
@@ -327,12 +406,18 @@ class MePage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('TROPHY CASE', style: Type.label.copyWith(fontSize: 11)),
+                    Text(
+                      'TROPHY CASE',
+                      style: Type.label.copyWith(fontSize: 11),
+                    ),
                     const Spacer(),
                     Text(
-                        '${state.unlockedAchievements.length} / ${achievements.length}',
-                        style: Type.numerals
-                            .copyWith(fontSize: 12, color: Palette.xp)),
+                      '${state.unlockedAchievements.length} / ${achievements.length}',
+                      style: Type.numerals.copyWith(
+                        fontSize: 12,
+                        color: Palette.xp,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -343,8 +428,7 @@ class MePage extends StatelessWidget {
                     for (final a in achievements)
                       _TrophyTile(
                         achievement: a,
-                        unlocked:
-                            state.unlockedAchievements.contains(a.id),
+                        unlocked: state.unlockedAchievements.contains(a.id),
                         closest: a.id == _closestTrophyId(state),
                         progress: state.unlockedAchievements.contains(a.id)
                             ? null
@@ -365,95 +449,128 @@ class MePage extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text('WARDROBE',
-                          style: Type.label.copyWith(fontSize: 11)),
+                      Text(
+                        'WARDROBE',
+                        style: Type.label.copyWith(fontSize: 11),
+                      ),
                       const Spacer(),
-                      Text('${state.collectedLoot.length}/${cosmetics.length}',
-                          style: Type.numerals
-                              .copyWith(fontSize: 12, color: Palette.xp)),
+                      Text(
+                        '${state.collectedLoot.length}/${cosmetics.length}',
+                        style: Type.numerals.copyWith(
+                          fontSize: 12,
+                          color: Palette.xp,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Text('skins you’ve found and earned — tap to try one on',
-                      style: Type.body.copyWith(
-                          fontSize: 11,
-                          fontStyle: FontStyle.italic,
-                          color: Palette.textLo)),
+                  Text(
+                    'skins you’ve found and earned — tap to try one on',
+                    style: Type.body.copyWith(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
                       // legendary first, then rare, then common
-                      for (final loot in state.collectedLoot.toList()
-                        ..sort((a, b) => (cosmeticFor(b)?.rarity.index ?? 0)
-                            .compareTo(cosmeticFor(a)?.rarity.index ?? 0)))
-                        Builder(builder: (_) {
-                          final worn = state.equippedSkin == loot;
-                          final cos = cosmeticFor(loot);
-                          final tint = cos?.aura ?? Palette.unlock;
-                          final rarity = cos?.rarity ?? Rarity.common;
-                          final legendary = rarity == Rarity.legendary;
-                          return GestureDetector(
-                            onTap: () =>
-                                _showSkinPreview(context, state, loot),
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 300),
-                              child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(999),
-                                color: tint.withValues(
-                                    alpha: worn ? 0.28 : 0.10),
-                                border: Border.all(
-                                    color: worn
-                                        ? tint.withValues(alpha: 0.9)
-                                        : rarityColor(rarity)
-                                            .withValues(alpha: 0.55),
-                                    width: worn ? 1.4 : 1),
-                                boxShadow: legendary
-                                    ? const [
-                                        BoxShadow(
-                                            color: Palette.honeyGlow,
-                                            blurRadius: 10),
-                                      ]
-                                    : const [],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                        shape: BoxShape.circle, color: tint),
+                      for (final loot
+                          in state.collectedLoot.toList()..sort(
+                            (a, b) => (cosmeticFor(b)?.rarity.index ?? 0)
+                                .compareTo(cosmeticFor(a)?.rarity.index ?? 0),
+                          ))
+                        Builder(
+                          builder: (_) {
+                            final worn = state.equippedSkin == loot;
+                            final cos = cosmeticFor(loot);
+                            final tint = cos?.aura ?? Palette.unlock;
+                            final rarity = cos?.rarity ?? Rarity.common;
+                            final legendary = rarity == Rarity.legendary;
+                            return GestureDetector(
+                              onTap: () =>
+                                  _showSkinPreview(context, state, loot),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 300,
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
                                   ),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(loot,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Type.body.copyWith(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(999),
+                                    color: tint.withValues(
+                                      alpha: worn ? 0.28 : 0.10,
+                                    ),
+                                    border: Border.all(
+                                      color: worn
+                                          ? tint.withValues(alpha: 0.9)
+                                          : rarityColor(
+                                              rarity,
+                                            ).withValues(alpha: 0.55),
+                                      width: worn ? 1.4 : 1,
+                                    ),
+                                    boxShadow: legendary
+                                        ? const [
+                                            BoxShadow(
+                                              color: Palette.honeyGlow,
+                                              blurRadius: 10,
+                                            ),
+                                          ]
+                                        : const [],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: tint,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Flexible(
+                                        child: Text(
+                                          loot,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Type.body.copyWith(
                                             fontSize: 13,
-                                            color: Palette.textMid)),
+                                            color: Palette.textMid,
+                                          ),
+                                        ),
+                                      ),
+                                      if (worn) ...[
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'WORN',
+                                          style: Type.label.copyWith(
+                                            fontSize: 11,
+                                            color: tint,
+                                          ),
+                                        ),
+                                      ] else if (legendary) ...[
+                                        const SizedBox(width: 5),
+                                        const Icon(
+                                          Icons.auto_awesome,
+                                          size: 13,
+                                          color: Palette.xpLight,
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                  if (worn) ...[
-                                    const SizedBox(width: 6),
-                                    Text('WORN',
-                                        style: Type.label.copyWith(
-                                            fontSize: 11, color: tint)),
-                                  ] else if (legendary) ...[
-                                    const SizedBox(width: 5),
-                                    const Icon(Icons.auto_awesome,
-                                        size: 13, color: Palette.xpLight),
-                                  ],
-                                ],
+                                ),
                               ),
-                            ),
-                            ),
-                          );
-                        }),
+                            );
+                          },
+                        ),
                     ],
                   ),
                 ],
@@ -475,17 +592,21 @@ class MePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('YOUR SAVE IS YOURS',
-                    style: Type.label.copyWith(fontSize: 11)),
+                Text(
+                  'YOUR SAVE IS YOURS',
+                  style: Type.label.copyWith(fontSize: 11),
+                ),
                 const SizedBox(height: 6),
                 Text(
-                    'Your fire’s saved to the cloud on its own. For a copy '
-                    'nothing can touch — even a cleared browser — stash a '
-                    'manual one too.',
-                    style: Type.body.copyWith(
-                        fontSize: 11.5,
-                        fontStyle: FontStyle.italic,
-                        color: Palette.textLo)),
+                  'Your fire’s saved to the cloud on its own. For a copy '
+                  'nothing can touch — even a cleared browser — stash a '
+                  'manual one too.',
+                  style: Type.body.copyWith(
+                    fontSize: 11.5,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
@@ -503,11 +624,11 @@ class MePage extends StatelessWidget {
                             behavior: SnackBarBehavior.floating,
                             backgroundColor: Palette.card,
                             content: Text(
-                                ok
-                                    ? 'Copied — stash it somewhere safe.'
-                                    : 'Nothing to stash yet — go earn some XP.',
-                                style: Type.body
-                                    .copyWith(color: Palette.textHi)),
+                              ok
+                                  ? 'Copied — stash it somewhere safe.'
+                                  : 'Nothing to stash yet — go earn some XP.',
+                              style: Type.body.copyWith(color: Palette.textHi),
+                            ),
                           ),
                         );
                       },
@@ -520,8 +641,7 @@ class MePage extends StatelessWidget {
                         showDialog(
                           context: context,
                           barrierColor: const Color(0xCC140C06),
-                          builder: (_) =>
-                              _RestoreDialog(onImport: onImport),
+                          builder: (_) => _RestoreDialog(onImport: onImport),
                         );
                       },
                     ),
@@ -545,11 +665,11 @@ class MePage extends StatelessWidget {
                             behavior: SnackBarBehavior.floating,
                             backgroundColor: Palette.card,
                             content: Text(
-                                ok
-                                    ? 'Usage log copied to your clipboard — it never leaves your device.'
-                                    : 'No usage logged yet — check back after a few days.',
-                                style: Type.body
-                                    .copyWith(color: Palette.textHi)),
+                              ok
+                                  ? 'Usage log copied to your clipboard — it never leaves your device.'
+                                  : 'No usage logged yet — check back after a few days.',
+                              style: Type.body.copyWith(color: Palette.textHi),
+                            ),
                           ),
                         );
                       },
@@ -573,9 +693,12 @@ class MePage extends StatelessWidget {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                            'your fire’s safe in the cloud · ${CloudSync.instance.status}',
-                            style: Type.body.copyWith(
-                                fontSize: 11, color: Palette.textLo)),
+                          'your fire’s safe in the cloud · ${CloudSync.instance.status}',
+                          style: Type.body.copyWith(
+                            fontSize: 11,
+                            color: Palette.textLo,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -585,11 +708,13 @@ class MePage extends StatelessWidget {
                 Center(
                   child: GestureDetector(
                     onTap: () => _confirmReset(context),
-                    child: Text('start over',
-                        style: Type.label.copyWith(
-                            fontSize: 11,
-                            color: const Color(0xFFE89090)
-                                .withValues(alpha: 0.7))),
+                    child: Text(
+                      'start over',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: const Color(0xFFE89090).withValues(alpha: 0.7),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -605,26 +730,37 @@ class MePage extends StatelessWidget {
                 Text('RECENT GAINS', style: Type.label.copyWith(fontSize: 11)),
                 const SizedBox(height: 10),
                 if (state.ledger.isEmpty)
-                  Text('Complete a quest and your story starts here.',
-                      style: Type.body.copyWith(
-                          fontSize: 13,
-                          fontStyle: FontStyle.italic,
-                          color: Palette.textLo))
+                  Text(
+                    'Complete a quest and your story starts here.',
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  )
                 else
                   for (final e in state.ledger)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
                         children: [
-                          Text('+${e.amount} ${e.stat.abbr}',
-                              style: Type.numerals.copyWith(
-                                  fontSize: 13, color: e.stat.color)),
+                          Text(
+                            '+${e.amount} ${e.stat.abbr}',
+                            style: Type.numerals.copyWith(
+                              fontSize: 13,
+                              color: e.stat.color,
+                            ),
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text(e.title,
-                                overflow: TextOverflow.ellipsis,
-                                style: Type.body.copyWith(
-                                    fontSize: 13, color: Palette.textMid)),
+                            child: Text(
+                              e.title,
+                              overflow: TextOverflow.ellipsis,
+                              style: Type.body.copyWith(
+                                fontSize: 13,
+                                color: Palette.textMid,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -651,18 +787,26 @@ class MePage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  size: 26, color: Palette.streak),
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 26,
+                color: Palette.streak,
+              ),
               const SizedBox(height: 10),
-              Text('Start completely over?',
-                  style: Type.display.copyWith(fontSize: 18)),
+              Text(
+                'Start completely over?',
+                style: Type.display.copyWith(fontSize: 18),
+              ),
               const SizedBox(height: 6),
               Text(
-                  'Level ${state.level}, ${state.totalXp} XP, every goal and '
-                  'trophy — gone for good. Copy a backup first if unsure.',
-                  textAlign: TextAlign.center,
-                  style: Type.body.copyWith(
-                      fontSize: 13.5, color: Palette.textMid)),
+                'Level ${state.level}, ${state.totalXp} XP, every goal and '
+                'trophy — gone for good. Copy a backup first if unsure.',
+                textAlign: TextAlign.center,
+                style: Type.body.copyWith(
+                  fontSize: 13.5,
+                  color: Palette.textMid,
+                ),
+              ),
               const SizedBox(height: 16),
               Wrap(
                 alignment: WrapAlignment.center,
@@ -673,18 +817,28 @@ class MePage extends StatelessWidget {
                     onTap: () => Navigator.of(ctx).pop(),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 9),
+                        horizontal: 18,
+                        vertical: 9,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         gradient: const LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                          colors: [
+                            Color(0xFFF6D9A2),
+                            Color(0xFFEFC074),
+                            Color(0xFFC08B4F),
+                          ],
                         ),
                       ),
-                      child: Text('KEEP MY FIRE',
-                          style: Type.label.copyWith(
-                              fontSize: 11, color: const Color(0xFF3A2510))),
+                      child: Text(
+                        'KEEP MY FIRE',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: const Color(0xFF3A2510),
+                        ),
+                      ),
                     ),
                   ),
                   GestureDetector(
@@ -695,16 +849,22 @@ class MePage extends StatelessWidget {
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 9),
+                        horizontal: 18,
+                        vertical: 9,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
-                            color: const Color(0xFFE89090)
-                                .withValues(alpha: 0.6)),
+                          color: const Color(0xFFE89090).withValues(alpha: 0.6),
+                        ),
                       ),
-                      child: Text('ERASE EVERYTHING',
-                          style: Type.label.copyWith(
-                              fontSize: 11, color: const Color(0xFFE89090))),
+                      child: Text(
+                        'ERASE EVERYTHING',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: const Color(0xFFE89090),
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -729,7 +889,11 @@ String _fmtTime(int hour, int minute) {
 
 /// Tap a trophy to learn what it is, how to earn it, and what it grants.
 void _showAchievementInfo(
-    BuildContext context, Achievement a, bool unlocked, (int, int)? progress) {
+  BuildContext context,
+  Achievement a,
+  bool unlocked,
+  (int, int)? progress,
+) {
   Sfx.instance.play('tick');
   showDialog(
     context: context,
@@ -753,45 +917,53 @@ void _showAchievementInfo(
                     ? Palette.xpLight.withValues(alpha: 0.16)
                     : Palette.glassFill,
                 border: Border.all(
-                    color: unlocked
-                        ? Palette.xpLight.withValues(alpha: 0.7)
-                        : Palette.glassEdge),
+                  color: unlocked
+                      ? Palette.xpLight.withValues(alpha: 0.7)
+                      : Palette.glassEdge,
+                ),
                 boxShadow: unlocked
                     ? const [
-                        BoxShadow(color: Palette.honeyGlow, blurRadius: 16)
+                        BoxShadow(color: Palette.honeyGlow, blurRadius: 16),
                       ]
                     : const [],
               ),
-              child: Icon(unlocked ? a.icon : Icons.lock_outline,
-                  size: 30,
-                  color: unlocked ? Palette.xpLight : Palette.textLo),
+              child: Icon(
+                unlocked ? a.icon : Icons.lock_outline,
+                size: 30,
+                color: unlocked ? Palette.xpLight : Palette.textLo,
+              ),
             ),
             const SizedBox(height: 14),
-            Text(a.title,
-                textAlign: TextAlign.center,
-                style: Type.display.copyWith(fontSize: 20)),
+            Text(
+              a.title,
+              textAlign: TextAlign.center,
+              style: Type.display.copyWith(fontSize: 20),
+            ),
             const SizedBox(height: 8),
-            Text(a.desc,
-                textAlign: TextAlign.center,
-                style:
-                    Type.body.copyWith(fontSize: 14, color: Palette.textMid)),
+            Text(
+              a.desc,
+              textAlign: TextAlign.center,
+              style: Type.body.copyWith(fontSize: 14, color: Palette.textMid),
+            ),
             const SizedBox(height: 14),
             Text(
               unlocked
                   ? 'UNLOCKED ✓'
                   : progress != null
-                      ? '${progress.$1} / ${progress.$2}'
-                      : 'LOCKED',
+                  ? '${progress.$1} / ${progress.$2}'
+                  : 'LOCKED',
               style: Type.label.copyWith(
-                  fontSize: 12,
-                  color: unlocked ? Palette.success : Palette.textLo),
+                fontSize: 12,
+                color: unlocked ? Palette.success : Palette.textLo,
+              ),
             ),
             if (a.cosmetic != null) ...[
               const SizedBox(height: 12),
-              Text('EARNS THE ${a.cosmetic!.toUpperCase()} SKIN',
-                  textAlign: TextAlign.center,
-                  style: Type.label
-                      .copyWith(fontSize: 11, color: Palette.unlock)),
+              Text(
+                'EARNS THE ${a.cosmetic!.toUpperCase()} SKIN',
+                textAlign: TextAlign.center,
+                style: Type.label.copyWith(fontSize: 11, color: Palette.unlock),
+              ),
             ],
           ],
         ),
@@ -832,21 +1004,30 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
                   trait: state.portraitTrait,
                 ),
                 const SizedBox(height: 16),
-                Text(loot,
-                    textAlign: TextAlign.center,
-                    style: Type.display.copyWith(fontSize: 20)),
+                Text(
+                  loot,
+                  textAlign: TextAlign.center,
+                  style: Type.display.copyWith(fontSize: 20),
+                ),
                 const SizedBox(height: 4),
-                Text(rarity.name.toUpperCase(),
-                    style: Type.label
-                        .copyWith(fontSize: 11, color: rarityColor(rarity))),
+                Text(
+                  rarity.name.toUpperCase(),
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    color: rarityColor(rarity),
+                  ),
+                ),
                 if (cos?.blurb != null) ...[
                   const SizedBox(height: 8),
-                  Text(cos!.blurb!,
-                      textAlign: TextAlign.center,
-                      style: Type.body.copyWith(
-                          fontSize: 14,
-                          fontStyle: FontStyle.italic,
-                          color: Palette.textMid)),
+                  Text(
+                    cos!.blurb!,
+                    textAlign: TextAlign.center,
+                    style: Type.body.copyWith(
+                      fontSize: 14,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textMid,
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 20),
                 GestureDetector(
@@ -861,7 +1042,9 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
                     constraints: const BoxConstraints(minHeight: 48),
                     alignment: Alignment.center,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 28, vertical: 11),
+                      horizontal: 28,
+                      vertical: 11,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
                       gradient: worn
@@ -874,22 +1057,25 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
                                 tint.withValues(alpha: 0.6),
                               ],
                             ),
-                      border:
-                          worn ? Border.all(color: Palette.glassEdge) : null,
+                      border: worn
+                          ? Border.all(color: Palette.glassEdge)
+                          : null,
                       boxShadow: worn
                           ? null
                           : [
                               BoxShadow(
-                                  color: tint.withValues(alpha: 0.4),
-                                  blurRadius: 16),
+                                color: tint.withValues(alpha: 0.4),
+                                blurRadius: 16,
+                              ),
                             ],
                     ),
-                    child: Text(worn ? 'TAKE IT OFF' : 'WEAR THIS',
-                        style: Type.label.copyWith(
-                            fontSize: 12,
-                            color: worn
-                                ? Palette.textLo
-                                : const Color(0xFF2A211D))),
+                    child: Text(
+                      worn ? 'TAKE IT OFF' : 'WEAR THIS',
+                      style: Type.label.copyWith(
+                        fontSize: 12,
+                        color: worn ? Palette.textLo : const Color(0xFF2A211D),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -901,140 +1087,137 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
   );
 }
 
-void _showStatEvidence(BuildContext context, Stat stat) {
-  final card = evidenceForStat(stat);
-  if (card == null) return;
-  Sfx.instance.play('tick');
-  showDialog(
-    context: context,
-    barrierColor: const Color(0xCC140C06),
-    builder: (_) => Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(28),
-      child: GlassPanel(
-        tint: const Color(0xF22A211D),
-        glow: true,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.auto_stories, size: 14, color: stat.color),
-                const SizedBox(width: 6),
-                Text('WHY ${stat.abbr} MATTERS',
-                    style: Type.label.copyWith(fontSize: 11, color: stat.color)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(card.title, style: Type.display.copyWith(fontSize: 18)),
-            const SizedBox(height: 8),
-            Text(card.text,
-                style: Type.body.copyWith(
-                    fontSize: 13, height: 1.5, color: Palette.textMid)),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.menu_book_outlined,
-                    size: 11, color: Palette.info),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(card.source,
-                      style: Type.label
-                          .copyWith(fontSize: 11, color: Palette.info)),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
 /// One stat as a row: dot, name, rank title, value, and a thin bar toward
 /// the next tier — makes each attribute feel like its own little ladder.
 class _StatRow extends StatelessWidget {
-  const _StatRow({required this.stat, required this.value});
+  const _StatRow({
+    required this.stat,
+    required this.value,
+    required this.noteCount,
+    required this.onOpen,
+  });
   final Stat stat;
   final int value;
+
+  /// How many journal entries this domain holds — a small ✎ count appears when
+  /// >0, so people discover the base page and feel their writing accumulate.
+  final int noteCount;
+
+  /// Opens this domain's "base" page (growth + journal + quests + evidence).
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
     final rank = rankFor(stat, value);
     final toNext = toNextTier(value);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 9),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: stat.color),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 44,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(stat.abbr,
-                  maxLines: 1,
-                  style:
-                      Type.label.copyWith(fontSize: 11, color: stat.color)),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onOpen,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 9),
+        child: Row(
+          children: [
+            // shares its tag with the domain base header, so the dot flies in
+            // when you open the page — a spatial "this row → that room" cue
+            Hero(
+              tag: 'domainDot-${stat.index}',
+              child: Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: stat.color,
+                ),
+              ),
             ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(rank.label,
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 44,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  stat.abbr,
+                  maxLines: 1,
+                  style: Type.label.copyWith(fontSize: 11, color: stat.color),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          rank.label,
                           overflow: TextOverflow.ellipsis,
                           style: Type.body.copyWith(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              color: Palette.textHi)),
-                    ),
-                    const Spacer(),
-                    Text('$value',
-                        style: Type.numerals
-                            .copyWith(fontSize: 12, color: stat.color)),
-                    if (toNext != null) ...[
-                      const SizedBox(width: 4),
-                      Text('· +$toNext',
-                          style: Type.label.copyWith(fontSize: 11)),
-                    ],
-                    // the signature beat: tap to learn why this stat matters
-                    if (evidenceForStat(stat) != null) ...[
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w600,
+                            color: Palette.textHi,
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '$value',
+                        style: Type.numerals.copyWith(
+                          fontSize: 12,
+                          color: stat.color,
+                        ),
+                      ),
+                      if (toNext != null) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '· +$toNext',
+                          style: Type.label.copyWith(fontSize: 11),
+                        ),
+                      ],
+                      // a small ✎ count when this domain holds journal entries —
+                      // the writing made visible, and a nudge to open the base
+                      if (noteCount > 0) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.auto_stories_outlined,
+                          size: 12,
+                          color: stat.color.withValues(alpha: 0.85),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          '$noteCount',
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            color: stat.color,
+                          ),
+                        ),
+                      ],
+                      // opens the domain's "base" — growth, journal, quests,
+                      // and the "why this matters" evidence in one place
                       const SizedBox(width: 6),
-                      GestureDetector(
-                        onTap: () => _showStatEvidence(context, stat),
-                        behavior: HitTestBehavior.opaque,
-                        child: Icon(Icons.info_outline,
-                            size: 12,
-                            color: stat.color.withValues(alpha: 0.75)),
+                      const Icon(
+                        Icons.chevron_right,
+                        size: 16,
+                        color: Palette.textLo,
                       ),
                     ],
-                  ],
-                ),
-                const SizedBox(height: 3),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: rankProgress(value),
-                    minHeight: 4,
-                    backgroundColor: const Color(0x1FF2CD93),
-                    color: stat.color,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 3),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: LinearProgressIndicator(
+                      value: rankProgress(value),
+                      minHeight: 4,
+                      backgroundColor: const Color(0x1FF2CD93),
+                      color: stat.color,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1063,8 +1246,8 @@ class _ShareButton extends StatelessWidget {
         showDialog(
           context: context,
           barrierColor: const Color(0xCC140C06),
-          builder: (_) => _ShareCardDialog(
-              state: state, summary: _buildSummary()),
+          builder: (_) =>
+              _ShareCardDialog(state: state, summary: _buildSummary()),
         );
       },
       child: Container(
@@ -1074,13 +1257,14 @@ class _ShareButton extends StatelessWidget {
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+            colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
           ),
           boxShadow: const [
             BoxShadow(
-                color: Palette.honeyGlow,
-                blurRadius: 18,
-                offset: Offset(0, 5)),
+              color: Palette.honeyGlow,
+              blurRadius: 18,
+              offset: Offset(0, 5),
+            ),
           ],
         ),
         child: Row(
@@ -1088,9 +1272,13 @@ class _ShareButton extends StatelessWidget {
           children: [
             const Icon(Icons.ios_share, size: 15, color: Color(0xFF3A2510)),
             const SizedBox(width: 7),
-            Text('SHARE MY BUILD',
-                style: Type.label
-                    .copyWith(fontSize: 11, color: const Color(0xFF3A2510))),
+            Text(
+              'SHARE MY BUILD',
+              style: Type.label.copyWith(
+                fontSize: 11,
+                color: const Color(0xFF3A2510),
+              ),
+            ),
           ],
         ),
       ),
@@ -1123,9 +1311,13 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
       final image = await boundary.toImage(pixelRatio: 3);
       final data = await image.toByteData(format: ui.ImageByteFormat.png);
       image.dispose();
-      final ok = data != null &&
-          await sharePng(data.buffer.asUint8List(), 'emberkeep-build.png',
-              widget.summary);
+      final ok =
+          data != null &&
+          await sharePng(
+            data.buffer.asUint8List(),
+            'emberkeep-build.png',
+            widget.summary,
+          );
       if (!mounted) return;
       Sfx.instance.play(ok ? 'streak' : 'boing');
       if (ok) {
@@ -1150,8 +1342,10 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
-        content: Text('Build copied — go show it off 🔥',
-            style: Type.body.copyWith(color: Palette.textHi)),
+        content: Text(
+          'Build copied — go show it off 🔥',
+          style: Type.body.copyWith(color: Palette.textHi),
+        ),
       ),
     );
   }
@@ -1175,33 +1369,47 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Portrait(
-                      size: 84,
-                      aura: cosmeticFor(state.equippedSkin)?.aura ??
-                          state.dominantStat?.color,
-                      level: state.level,
-                      badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
-                      trait: state.portraitTrait),
+                    size: 84,
+                    aura:
+                        cosmeticFor(state.equippedSkin)?.aura ??
+                        state.dominantStat?.color,
+                    level: state.level,
+                    badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
+                    trait: state.portraitTrait,
+                  ),
                   const SizedBox(height: 12),
-                  Text(state.buildTitle,
-                      style: Type.display.copyWith(
-                          fontSize: 24,
-                          color: state.dominantStat?.color ?? Palette.xpLight,
-                          letterSpacing: 2)),
+                  Text(
+                    state.buildTitle,
+                    style: Type.display.copyWith(
+                      fontSize: 24,
+                      color: state.dominantStat?.color ?? Palette.xpLight,
+                      letterSpacing: 2,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text('LEVEL ${state.level}',
-                      style: Type.label.copyWith(fontSize: 11)),
+                  Text(
+                    'LEVEL ${state.level}',
+                    style: Type.label.copyWith(fontSize: 11),
+                  ),
                   const SizedBox(height: 10),
                   StatRadar(values: state.stats, size: 170),
                   const SizedBox(height: 6),
-                  Text('${state.totalXp} XP of real life',
-                      style: Type.body.copyWith(
-                          fontSize: 13,
-                          fontStyle: FontStyle.italic,
-                          color: Palette.textLo)),
+                  Text(
+                    '${state.totalXp} XP of real life',
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  ),
                   const SizedBox(height: 4),
-                  Text('🔥 emberkeep',
-                      style: Type.label.copyWith(
-                          fontSize: 11, color: Palette.textLo)),
+                  Text(
+                    '🔥 emberkeep',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.textLo,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1214,30 +1422,44 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                 onTap: _shareImage,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 10),
+                    horizontal: 20,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                      colors: [
+                        Color(0xFFF6D9A2),
+                        Color(0xFFEFC074),
+                        Color(0xFFC08B4F),
+                      ],
                     ),
                     boxShadow: const [
                       BoxShadow(
-                          color: Palette.honeyGlow,
-                          blurRadius: 14,
-                          offset: Offset(0, 4)),
+                        color: Palette.honeyGlow,
+                        blurRadius: 14,
+                        offset: Offset(0, 4),
+                      ),
                     ],
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.ios_share,
-                          size: 13, color: Color(0xFF3A2510)),
+                      const Icon(
+                        Icons.ios_share,
+                        size: 13,
+                        color: Color(0xFF3A2510),
+                      ),
                       const SizedBox(width: 6),
-                      Text(_busy ? 'SAVING…' : 'SHARE IMAGE',
-                          style: Type.label.copyWith(
-                              fontSize: 11, color: const Color(0xFF3A2510))),
+                      Text(
+                        _busy ? 'SAVING…' : 'SHARE IMAGE',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: const Color(0xFF3A2510),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1247,15 +1469,21 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                 onTap: _copyText,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: 10),
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     color: Palette.glassFill,
                     border: Border.all(color: Palette.glassEdge),
                   ),
-                  child: Text('COPY TEXT',
-                      style: Type.label
-                          .copyWith(fontSize: 11, color: Palette.textHi)),
+                  child: Text(
+                    'COPY TEXT',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.textHi,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1300,81 +1528,83 @@ class _TrophyTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = progress;
-    final showProgress =
-        !unlocked && p != null && p.$1 > 0 && p.$1 < p.$2;
+    final showProgress = !unlocked && p != null && p.$1 > 0 && p.$1 < p.$2;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () =>
           _showAchievementInfo(context, achievement, unlocked, progress),
       child: Tooltip(
-      message: achievement.desc,
-      textStyle: Type.body.copyWith(fontSize: 11, color: Palette.textHi),
-      decoration: BoxDecoration(
-        color: Palette.card,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: SizedBox(
-        width: 78,
-        child: Column(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: unlocked
-                    ? Palette.xpLight.withValues(alpha: 0.16)
-                    : closest
-                        ? Palette.streak.withValues(alpha: 0.12)
-                        : Palette.glassFill,
-                border: Border.all(
-                  color: unlocked
-                      ? Palette.xpLight.withValues(alpha: 0.7)
-                      : closest
-                          ? Palette.streak.withValues(alpha: 0.7)
-                          : Palette.glassEdge,
-                ),
-                boxShadow: unlocked
-                    ? const [
-                        BoxShadow(color: Palette.honeyGlow, blurRadius: 12),
-                      ]
-                    : const [],
-              ),
-              child: Icon(
-                unlocked ? achievement.icon : Icons.lock_outline,
-                size: 20,
-                color: unlocked
-                    ? Palette.xpLight
-                    : closest
-                        ? Palette.streak
-                        : Palette.textLo.withValues(alpha: 0.6),
-              ),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              achievement.title,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Type.label.copyWith(
-                fontSize: 11,
-                color: unlocked
-                    ? Palette.textMid
-                    : Palette.textLo.withValues(alpha: 0.7),
-              ),
-            ),
-            if (showProgress) ...[
-              const SizedBox(height: 2),
-              Text('${p.$1}/${p.$2}',
-                  style: Type.numerals.copyWith(
-                      fontSize: 11,
-                      color: closest
-                          ? Palette.streak
-                          : Palette.textLo.withValues(alpha: 0.8))),
-            ],
-          ],
+        message: achievement.desc,
+        textStyle: Type.body.copyWith(fontSize: 11, color: Palette.textHi),
+        decoration: BoxDecoration(
+          color: Palette.card,
+          borderRadius: BorderRadius.circular(10),
         ),
-      ),
+        child: SizedBox(
+          width: 78,
+          child: Column(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: unlocked
+                      ? Palette.xpLight.withValues(alpha: 0.16)
+                      : closest
+                      ? Palette.streak.withValues(alpha: 0.12)
+                      : Palette.glassFill,
+                  border: Border.all(
+                    color: unlocked
+                        ? Palette.xpLight.withValues(alpha: 0.7)
+                        : closest
+                        ? Palette.streak.withValues(alpha: 0.7)
+                        : Palette.glassEdge,
+                  ),
+                  boxShadow: unlocked
+                      ? const [
+                          BoxShadow(color: Palette.honeyGlow, blurRadius: 12),
+                        ]
+                      : const [],
+                ),
+                child: Icon(
+                  unlocked ? achievement.icon : Icons.lock_outline,
+                  size: 20,
+                  color: unlocked
+                      ? Palette.xpLight
+                      : closest
+                      ? Palette.streak
+                      : Palette.textLo.withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                achievement.title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Type.label.copyWith(
+                  fontSize: 11,
+                  color: unlocked
+                      ? Palette.textMid
+                      : Palette.textLo.withValues(alpha: 0.7),
+                ),
+              ),
+              if (showProgress) ...[
+                const SizedBox(height: 2),
+                Text(
+                  '${p.$1}/${p.$2}',
+                  style: Type.numerals.copyWith(
+                    fontSize: 11,
+                    color: closest
+                        ? Palette.streak
+                        : Palette.textLo.withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1434,36 +1664,47 @@ class _ThemeSwatch extends StatelessWidget {
                       height: 16,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: RadialGradient(colors: [
-                          theme.glows[0].withValues(alpha: 1),
-                          theme.glows[0].withValues(alpha: 0),
-                        ]),
+                        gradient: RadialGradient(
+                          colors: [
+                            theme.glows[0].withValues(alpha: 1),
+                            theme.glows[0].withValues(alpha: 0),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                   if (locked)
                     const Center(
-                      child: Icon(Icons.lock_outline,
-                          size: 16, color: Palette.textLo),
+                      child: Icon(
+                        Icons.lock_outline,
+                        size: 16,
+                        color: Palette.textLo,
+                      ),
                     ),
                   if (selected)
                     const Positioned(
                       right: 4,
                       bottom: 4,
-                      child: Icon(Icons.check_circle,
-                          size: 13, color: Palette.xpLight),
+                      child: Icon(
+                        Icons.check_circle,
+                        size: 13,
+                        color: Palette.xpLight,
+                      ),
                     ),
                 ],
               ),
             ),
             const SizedBox(height: 4),
-            Text(theme.name,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Type.label.copyWith(
-                    fontSize: 11,
-                    color: selected ? Palette.xpLight : Palette.textLo)),
+            Text(
+              theme.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Type.label.copyWith(
+                fontSize: 11,
+                color: selected ? Palette.xpLight : Palette.textLo,
+              ),
+            ),
           ],
         ),
       ),
@@ -1484,25 +1725,31 @@ class _LockedSlot extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         color: unlocked ? Palette.xpLight.withValues(alpha: 0.14) : null,
         border: Border.all(
-            color: unlocked
-                ? Palette.xpLight.withValues(alpha: 0.7)
-                : Palette.textLo.withValues(alpha: 0.35)),
+          color: unlocked
+              ? Palette.xpLight.withValues(alpha: 0.7)
+              : Palette.textLo.withValues(alpha: 0.35),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(unlocked ? Icons.check_circle : Icons.lock_outline,
-              size: 13,
+          Icon(
+            unlocked ? Icons.check_circle : Icons.lock_outline,
+            size: 13,
+            color: unlocked
+                ? Palette.xpLight
+                : Palette.textLo.withValues(alpha: 0.7),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: Type.label.copyWith(
+              fontSize: 11,
               color: unlocked
                   ? Palette.xpLight
-                  : Palette.textLo.withValues(alpha: 0.7)),
-          const SizedBox(width: 4),
-          Text(label,
-              style: Type.label.copyWith(
-                  fontSize: 11,
-                  color: unlocked
-                      ? Palette.xpLight
-                      : Palette.textLo.withValues(alpha: 0.8))),
+                  : Palette.textLo.withValues(alpha: 0.8),
+            ),
+          ),
         ],
       ),
     );
@@ -1540,8 +1787,7 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: Palette.streak.withValues(alpha: 0.5)),
+              border: Border.all(color: Palette.streak.withValues(alpha: 0.5)),
               color: Palette.streak.withValues(alpha: 0.08),
             ),
             child: Column(
@@ -1549,20 +1795,26 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.healing,
-                        size: 13, color: Palette.streak),
+                    const Icon(Icons.healing, size: 13, color: Palette.streak),
                     const SizedBox(width: 6),
-                    Text('WE CAUGHT A FALLING SAVE',
-                        style: Type.label
-                            .copyWith(fontSize: 11, color: Palette.streak)),
+                    Text(
+                      'WE CAUGHT A FALLING SAVE',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.streak,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                    'An older save wouldn’t open, so we set it aside — safe and '
-                    'whole. Copy it out to keep, then dismiss.',
-                    style: Type.body
-                        .copyWith(fontSize: 11, color: Palette.textMid)),
+                  'An older save wouldn’t open, so we set it aside — safe and '
+                  'whole. Copy it out to keep, then dismiss.',
+                  style: Type.body.copyWith(
+                    fontSize: 11,
+                    color: Palette.textMid,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -1579,9 +1831,10 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
                           SnackBar(
                             behavior: SnackBarBehavior.floating,
                             backgroundColor: Palette.card,
-                            content: Text('Recovered save copied',
-                                style: Type.body
-                                    .copyWith(color: Palette.textHi)),
+                            content: Text(
+                              'Recovered save copied',
+                              style: Type.body.copyWith(color: Palette.textHi),
+                            ),
                           ),
                         );
                       },
@@ -1634,9 +1887,10 @@ class _DataButton extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: Palette.textMid),
             const SizedBox(width: 6),
-            Text(label,
-                style:
-                    Type.label.copyWith(fontSize: 11, color: Palette.textMid)),
+            Text(
+              label,
+              style: Type.label.copyWith(fontSize: 11, color: Palette.textMid),
+            ),
           ],
         ),
       ),
@@ -1694,11 +1948,14 @@ class _RestoreDialogState extends State<_RestoreDialog> {
           children: [
             Text('RESTORE A BACKUP', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 6),
-            Text('this replaces what’s on this device',
-                style: Type.body.copyWith(
-                    fontSize: 11.5,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo)),
+            Text(
+              'this replaces what’s on this device',
+              style: Type.body.copyWith(
+                fontSize: 11.5,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
             const SizedBox(height: 10),
             TextField(
               controller: _raw,
@@ -1709,11 +1966,15 @@ class _RestoreDialogState extends State<_RestoreDialog> {
               style: Type.body.copyWith(fontSize: 11, color: Palette.textHi),
               decoration: InputDecoration(
                 hintText: 'paste your backup here…',
-                hintStyle:
-                    Type.body.copyWith(fontSize: 13, color: Palette.textLo),
+                hintStyle: Type.body.copyWith(
+                  fontSize: 13,
+                  color: Palette.textLo,
+                ),
                 errorText: _error,
-                errorStyle: Type.body
-                    .copyWith(fontSize: 11, color: const Color(0xFFE89090)),
+                errorStyle: Type.body.copyWith(
+                  fontSize: 11,
+                  color: const Color(0xFFE89090),
+                ),
                 filled: true,
                 fillColor: Palette.glassFill,
                 border: OutlineInputBorder(
@@ -1728,18 +1989,28 @@ class _RestoreDialogState extends State<_RestoreDialog> {
                 onTap: _restore,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 22, vertical: 10),
+                    horizontal: 22,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                      colors: [
+                        Color(0xFFF6D9A2),
+                        Color(0xFFEFC074),
+                        Color(0xFFC08B4F),
+                      ],
                     ),
                   ),
-                  child: Text(_busy ? 'RESTORING…' : 'RESTORE',
-                      style: Type.label.copyWith(
-                          fontSize: 11, color: const Color(0xFF3A2510))),
+                  child: Text(
+                    _busy ? 'RESTORING…' : 'RESTORE',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: const Color(0xFF3A2510),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1768,10 +2039,8 @@ class _AccountPanel extends StatelessWidget {
     showDialog(
       context: context,
       barrierColor: const Color(0xCC140C06),
-      builder: (_) => _AccountDialog(
-        signIn: signIn,
-        action: signIn ? onSignIn : onLink,
-      ),
+      builder: (_) =>
+          _AccountDialog(signIn: signIn, action: signIn ? onSignIn : onLink),
     );
   }
 
@@ -1791,12 +2060,15 @@ class _AccountPanel extends StatelessWidget {
               Text('Sign out?', style: Type.display.copyWith(fontSize: 18)),
               const SizedBox(height: 6),
               Text(
-                  'Your character stays on this device — you’ll just stop '
-                  'syncing to your account until you sign in again. Your '
-                  'account’s cloud save is kept safe.',
-                  textAlign: TextAlign.center,
-                  style:
-                      Type.body.copyWith(fontSize: 13.5, color: Palette.textMid)),
+                'Your character stays on this device — you’ll just stop '
+                'syncing to your account until you sign in again. Your '
+                'account’s cloud save is kept safe.',
+                textAlign: TextAlign.center,
+                style: Type.body.copyWith(
+                  fontSize: 13.5,
+                  color: Palette.textMid,
+                ),
+              ),
               const SizedBox(height: 16),
               Wrap(
                 alignment: WrapAlignment.center,
@@ -1807,18 +2079,28 @@ class _AccountPanel extends StatelessWidget {
                     onTap: () => Navigator.of(ctx).pop(),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 9),
+                        horizontal: 18,
+                        vertical: 9,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         gradient: const LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                          colors: [
+                            Color(0xFFF6D9A2),
+                            Color(0xFFEFC074),
+                            Color(0xFFC08B4F),
+                          ],
                         ),
                       ),
-                      child: Text('KEEP MY FIRE',
-                          style: Type.label.copyWith(
-                              fontSize: 11, color: const Color(0xFF3A2510))),
+                      child: Text(
+                        'KEEP MY FIRE',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: const Color(0xFF3A2510),
+                        ),
+                      ),
                     ),
                   ),
                   GestureDetector(
@@ -1829,14 +2111,19 @@ class _AccountPanel extends StatelessWidget {
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 9),
+                        horizontal: 18,
+                        vertical: 9,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
-                            color: Palette.textLo.withValues(alpha: 0.5)),
+                          color: Palette.textLo.withValues(alpha: 0.5),
+                        ),
                       ),
-                      child: Text('SIGN OUT',
-                          style: Type.label.copyWith(fontSize: 11)),
+                      child: Text(
+                        'SIGN OUT',
+                        style: Type.label.copyWith(fontSize: 11),
+                      ),
                     ),
                   ),
                 ],
@@ -1862,42 +2149,58 @@ class _AccountPanel extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(signedIn ? Icons.verified_user : Icons.devices,
-                      size: 14, color: Palette.xpLight),
+                  Icon(
+                    signedIn ? Icons.verified_user : Icons.devices,
+                    size: 14,
+                    color: Palette.xpLight,
+                  ),
                   const SizedBox(width: 6),
-                  Text(signedIn ? 'YOUR ACCOUNT' : 'YOUR FIRE, EVERYWHERE',
-                      style: Type.label.copyWith(fontSize: 11)),
+                  Text(
+                    signedIn ? 'YOUR ACCOUNT' : 'YOUR FIRE, EVERYWHERE',
+                    style: Type.label.copyWith(fontSize: 11),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
               if (signedIn) ...[
-                Text(email,
-                    style: Type.body.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Palette.textHi)),
+                Text(
+                  email,
+                  style: Type.body.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Palette.textHi,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text('Your fire follows you to any device you sign in on.',
-                    style: Type.body.copyWith(
-                        fontSize: 11.5,
-                        fontStyle: FontStyle.italic,
-                        color: Palette.textLo)),
+                Text(
+                  'Your fire follows you to any device you sign in on.',
+                  style: Type.body.copyWith(
+                    fontSize: 11.5,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () => _confirmSignOut(context),
-                  child: Text('sign out',
-                      style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: Palette.textLo.withValues(alpha: 0.8))),
+                  child: Text(
+                    'sign out',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.textLo.withValues(alpha: 0.8),
+                    ),
+                  ),
                 ),
               ] else ...[
                 Text(
-                    'Create a free account so your character survives a lost '
-                    'phone or a cleared browser — and follows you anywhere.',
-                    style: Type.body.copyWith(
-                        fontSize: 11.5,
-                        fontStyle: FontStyle.italic,
-                        color: Palette.textLo)),
+                  'Create a free account so your character survives a lost '
+                  'phone or a cleared browser — and follows you anywhere.',
+                  style: Type.body.copyWith(
+                    fontSize: 11.5,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
+                  ),
+                ),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
@@ -1921,8 +2224,10 @@ class _AccountPanel extends StatelessWidget {
                 ),
                 if (!CloudSync.instance.ready) ...[
                   const SizedBox(height: 6),
-                  Text('(the cloud’s out of reach — try again once you’re back online)',
-                      style: Type.label.copyWith(fontSize: 11)),
+                  Text(
+                    '(the cloud’s out of reach — try again once you’re back online)',
+                    style: Type.label.copyWith(fontSize: 11),
+                  ),
                 ],
               ],
             ],
@@ -1985,10 +2290,11 @@ class _AccountDialogState extends State<_AccountDialog> {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
         content: Text(
-            widget.signIn
-                ? 'Signed in — welcome back 🔥'
-                : 'Account created — your fire’s safe now 🔥',
-            style: Type.body.copyWith(color: Palette.textHi)),
+          widget.signIn
+              ? 'Signed in — welcome back 🔥'
+              : 'Account created — your fire’s safe now 🔥',
+          style: Type.body.copyWith(color: Palette.textHi),
+        ),
       ),
     );
   }
@@ -2005,18 +2311,22 @@ class _AccountDialogState extends State<_AccountDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.signIn ? 'SIGN IN' : 'CREATE ACCOUNT',
-                style: Type.label.copyWith(fontSize: 11)),
+            Text(
+              widget.signIn ? 'SIGN IN' : 'CREATE ACCOUNT',
+              style: Type.label.copyWith(fontSize: 11),
+            ),
             const SizedBox(height: 4),
             Text(
-                widget.signIn
-                    ? 'Loads your account’s character onto this device, '
+              widget.signIn
+                  ? 'Loads your account’s character onto this device, '
                         'replacing what’s here now.'
-                    : 'Keeps your current progress and syncs it everywhere.',
-                style: Type.body.copyWith(
-                    fontSize: 11.5,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo)),
+                  : 'Keeps your current progress and syncs it everywhere.',
+              style: Type.body.copyWith(
+                fontSize: 11.5,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _email,
@@ -2045,30 +2355,40 @@ class _AccountDialogState extends State<_AccountDialog> {
               child: GestureDetector(
                 onTap: _submit,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 11,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                      colors: [
+                        Color(0xFFF6D9A2),
+                        Color(0xFFEFC074),
+                        Color(0xFFC08B4F),
+                      ],
                     ),
                     boxShadow: const [
                       BoxShadow(
-                          color: Palette.honeyGlow,
-                          blurRadius: 16,
-                          offset: Offset(0, 5)),
+                        color: Palette.honeyGlow,
+                        blurRadius: 16,
+                        offset: Offset(0, 5),
+                      ),
                     ],
                   ),
                   child: Text(
-                      _busy
-                          ? '…'
-                          : widget.signIn
-                              ? 'SIGN IN'
-                              : 'CREATE ACCOUNT',
-                      style: Type.label.copyWith(
-                          fontSize: 11, color: const Color(0xFF3A2510))),
+                    _busy
+                        ? '…'
+                        : widget.signIn
+                        ? 'SIGN IN'
+                        : 'CREATE ACCOUNT',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: const Color(0xFF3A2510),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -2079,16 +2399,18 @@ class _AccountDialogState extends State<_AccountDialog> {
   }
 
   InputDecoration _dec(String hint, {String? error}) => InputDecoration(
-        hintText: hint,
-        hintStyle: Type.body.copyWith(fontSize: 14, color: Palette.textLo),
-        errorText: error,
-        errorStyle:
-            Type.body.copyWith(fontSize: 11, color: const Color(0xFFE89090)),
-        filled: true,
-        fillColor: Palette.glassFill,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Palette.glassEdge),
-        ),
-      );
+    hintText: hint,
+    hintStyle: Type.body.copyWith(fontSize: 14, color: Palette.textLo),
+    errorText: error,
+    errorStyle: Type.body.copyWith(
+      fontSize: 11,
+      color: const Color(0xFFE89090),
+    ),
+    filled: true,
+    fillColor: Palette.glassFill,
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Palette.glassEdge),
+    ),
+  );
 }

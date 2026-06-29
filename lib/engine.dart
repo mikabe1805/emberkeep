@@ -59,6 +59,23 @@ class GameState extends ChangeNotifier {
   int totalXp = 0;
   final Map<Stat, int> stats = {for (final s in Stat.values) s: 0};
 
+  /// Per-domain journal — notes the user keeps on a whole life domain (their
+  /// "base" for Home, Care, Craft…). Sparse: only domains with entries appear.
+  /// Lists are replaced wholesale (see [NoteList]) so callers never mutate in
+  /// place. The keystone of notes-with-consequence (round-24): a domain page
+  /// gathers its notes + the quests serving it + its growth in one place.
+  final Map<Stat, List<Note>> domainNotes = {};
+
+  List<Note> notesFor(Stat s) => domainNotes[s] ?? const [];
+  void setDomainNotes(Stat s, List<Note> notes) {
+    if (notes.isEmpty) {
+      domainNotes.remove(s);
+    } else {
+      domainNotes[s] = notes;
+    }
+    notifyListeners();
+  }
+
   /// Recent gains, newest first — the Me page's attribution ledger.
   final List<LedgerEntry> ledger = [];
 
@@ -600,6 +617,12 @@ class GameState extends ChangeNotifier {
         'xp': xp,
         'totalXp': totalXp,
         'stats': [for (final s in Stat.values) stats[s] ?? 0],
+        // per-domain notes, by Stat order (parallel to 'stats'); empty lists
+        // for domains with nothing kept, so a restore maps cleanly by index.
+        'domainNotes': [
+          for (final s in Stat.values)
+            [for (final n in domainNotes[s] ?? const []) n.toJson()]
+        ],
         'ledger': [for (final e in ledger) e.toJson()],
         'streakDays': streakDays,
         'bestStreak': bestStreak,
@@ -651,6 +674,14 @@ class GameState extends ChangeNotifier {
     final st = (j['stats'] as List?)?.cast<int>() ?? const [];
     for (var i = 0; i < Stat.values.length && i < st.length; i++) {
       s.stats[Stat.values[i]] = st[i];
+    }
+    final dn = (j['domainNotes'] as List?) ?? const [];
+    for (var i = 0; i < Stat.values.length && i < dn.length; i++) {
+      final list = [
+        for (final e in (dn[i] as List?) ?? const [])
+          Note.fromJson((e as Map).cast<String, dynamic>())
+      ];
+      if (list.isNotEmpty) s.domainNotes[Stat.values[i]] = list;
     }
     for (final e in (j['ledger'] as List?) ?? const []) {
       s.ledger.add(LedgerEntry.fromJson((e as Map).cast<String, dynamic>()));

@@ -58,6 +58,42 @@ class GlassPanel extends StatelessWidget {
               ),
             ),
           panel,
+          // the wet lip — a bright line of candlelight catching the glass's
+          // top inner edge; what reads as "a pane" rather than a tinted box
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(radius),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Palette.specular.withValues(alpha: 0.10),
+                      Palette.specular.withValues(alpha: 0.0),
+                    ],
+                    stops: const [0.0, 0.12],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // the lower rim — the pane's own soft shadow, grounding it in depth
+          Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(radius),
+                  gradient: const LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [Palette.glassRim, Color(0x00140C06)],
+                    stops: [0.0, 0.16],
+                  ),
+                ),
+              ),
+            ),
+          ),
           // specular drop of light, top-left — every glass element has one
           Positioned.fill(
             child: IgnorePointer(
@@ -68,7 +104,7 @@ class GlassPanel extends StatelessWidget {
                     center: const Alignment(-0.75, -0.85),
                     radius: 1.1,
                     colors: [
-                      Palette.specular.withValues(alpha: 0.14),
+                      Palette.specular.withValues(alpha: 0.16),
                       Palette.specular.withValues(alpha: 0.0),
                     ],
                     stops: const [0.0, 0.55],
@@ -87,12 +123,21 @@ class GlassPanel extends StatelessWidget {
 /// The candlelit desk: deep espresso→plum-dusk gradient, soft glowing color
 /// pools, and drifting firefly motes — the night is alive but never busy.
 class WarmBackground extends StatelessWidget {
-  const WarmBackground({super.key, required this.child, this.themeId});
+  const WarmBackground(
+      {super.key, required this.child, this.themeId, this.tint});
   final Widget child;
 
   /// The active canvas theme id (null → default Walnut Night). Resolved here
   /// so callers only pass a string.
   final String? themeId;
+
+  /// Optional colour to lean the glow pools toward — a domain's "base" page
+  /// uses its own hue so each of the six feels like a different room of a life
+  /// (round-25), not the same template recoloured by one accent.
+  final Color? tint;
+
+  Color _glow(Color base) =>
+      tint == null ? base : Color.lerp(base, tint, 0.42)!;
 
   @override
   Widget build(BuildContext context) {
@@ -109,24 +154,42 @@ class WarmBackground extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // pools of warm light — recolored by the theme — glowing in the dark
+          // pools of warm light — recolored by the theme — glowing in the dark.
+          // Each breathes on its own slow rhythm (out of phase) so the room is
+          // lit by candlelight that wavers, not a printed gradient.
           Positioned(
             top: -70, left: -60,
-            child: _Glow(color: theme.glows[0], size: 320),
+            child: _Glow(color: _glow(theme.glows[0]), size: 320, phase: 0.0),
           ),
           Positioned(
             top: 200, right: -90,
-            child: _Glow(color: theme.glows[1], size: 280),
+            child: _Glow(color: _glow(theme.glows[1]), size: 280, phase: 0.35),
           ),
           Positioned(
             bottom: 40, left: -50,
-            child: _Glow(color: theme.glows[2], size: 260),
+            child: _Glow(color: _glow(theme.glows[2]), size: 260, phase: 0.6),
           ),
           Positioned(
             bottom: 240, right: 30,
-            child: _Glow(color: theme.glows[3], size: 180),
+            child: _Glow(color: _glow(theme.glows[3]), size: 180, phase: 0.85),
           ),
           const Positioned.fill(child: _Fireflies()),
+          // a soft vignette: the center where content lives feels lit, the
+          // corners recede — editorial depth, not a flat fill.
+          const Positioned.fill(
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.center,
+                    radius: 1.15,
+                    colors: [Color(0x00140C06), Color(0x3A140C06)],
+                    stops: [0.55, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
           child,
         ],
       ),
@@ -134,22 +197,62 @@ class WarmBackground extends StatelessWidget {
   }
 }
 
-class _Glow extends StatelessWidget {
-  const _Glow({required this.color, required this.size});
+class _Glow extends StatefulWidget {
+  const _Glow({required this.color, required this.size, this.phase = 0});
   final Color color;
   final double size;
 
+  /// 0..1 offset into the breath cycle, so the pools waver out of sync.
+  final double phase;
+
+  @override
+  State<_Glow> createState() => _GlowState();
+}
+
+class _GlowState extends State<_Glow> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 11),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final base = widget.color;
     return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withValues(alpha: 0)],
-          ),
+      child: RepaintBoundary(
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (_, _) {
+            // quantize to ~15 steps so the swell is smooth but cheap
+            final t = sin(2 * pi *
+                ((_c.value * 15).round() / 15 + widget.phase));
+            final scale = 1 + 0.07 * t; // gentle swell
+            // brighten/dim by modulating the gradient's own alpha — no Opacity
+            // save-layer over a 320px area each frame.
+            final a = (base.a * (0.8 + 0.2 * (0.5 + 0.5 * t))).clamp(0.0, 1.0);
+            return Transform.scale(
+              scale: scale,
+              child: Container(
+                width: widget.size,
+                height: widget.size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      base.withValues(alpha: a),
+                      base.withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

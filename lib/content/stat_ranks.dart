@@ -54,3 +54,11 @@ int? toNextTier(int value) {
   }
   return null;
 }
+
+/// The rank one tier above [value]'s current tier (clamped at the top) — for
+/// "climbing toward {next}" captions, so thresholds live only here.
+StatRank nextRank(Stat stat, int value) {
+  final cur = rankFor(stat, value).tier;
+  final next = (cur + 1).clamp(0, _thresholds.length - 1);
+  return StatRank(next, _rankNames[stat]![next]);
+}

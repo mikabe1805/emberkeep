@@ -476,6 +476,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                   children: [
                     MePage(
                         state: state,
+                        quests: quests,
+                        onPersist: _persist,
                         onExport: _export,
                         onImport: _import,
                         onReset: _reset,
@@ -498,6 +500,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       onAdd: _addQuest,
                       activeTitles: {for (final q in quests) q.title},
                       onRemoveGoal: _removeGoal,
+                      onPersist: _persist,
                       quests: quests,
                     ),
                     CalendarPage(

@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'dart:math' show min;
+
 import '../models.dart';
 import '../tokens.dart';
+import 'day_picker.dart' show weekdayLabel;
+import 'notes_sheet.dart' show relativeWhen;
 import 'pressable.dart';
 
 /// One quest row as a warm glass card: stat-colored check ring, title,
@@ -43,10 +47,18 @@ class _QuestCardState extends State<QuestCard>
     duration: Motion.quick,
   );
 
+  /// Resolves the check ring's on-screen centre so the celebration ignites
+  /// from the ring that just filled, not wherever the thumb happened to land.
+  final GlobalKey _ringKey = GlobalKey();
+
   void _handleTap(Offset globalPos) {
     if (widget.done) return;
     _squash.forward(from: 0).then((_) => _squash.reverse());
-    widget.onComplete(globalPos);
+    final box = _ringKey.currentContext?.findRenderObject() as RenderBox?;
+    final origin = box != null
+        ? box.localToGlobal(box.size.center(Offset.zero))
+        : globalPos;
+    widget.onComplete(origin);
   }
 
   @override
@@ -85,31 +97,47 @@ class _QuestCardState extends State<QuestCard>
               curve: Motion.respond,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
+                // a finished quest is BANKED, not greyed-out clutter: a soft
+                // moss wash + a faint moss glow so it reads as a sealed win
                 color: done
-                    ? Palette.glassFill.withValues(alpha: 0.38)
+                    ? Palette.success.withValues(alpha: 0.10)
                     : Palette.glassFill,
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: done
-                      ? Palette.success.withValues(alpha: 0.3)
+                      ? Palette.success.withValues(alpha: 0.4)
                       : q.priority
-                          ? Palette.xpLight.withValues(alpha: 0.55)
-                          : Palette.glassEdge,
+                      ? Palette.xpLight.withValues(alpha: 0.55)
+                      : Palette.glassEdge,
                   width: 1.2,
                 ),
                 boxShadow: done
-                    ? const []
-                    : const [
+                    ? [
                         BoxShadow(
+                          color: Palette.success.withValues(alpha: 0.12),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ]
+                    : [
+                        const BoxShadow(
                           color: Palette.warmShadow,
                           blurRadius: 14,
                           offset: Offset(0, 5),
                         ),
+                        // a starred MAIN quest glows honey — the priority tier
+                        // is felt at a glance, not read off a border tint
+                        if (q.priority)
+                          const BoxShadow(
+                            color: Palette.honeyGlow,
+                            blurRadius: 20,
+                            offset: Offset(0, 6),
+                          ),
                       ],
               ),
               child: Row(
                 children: [
-                  _CheckRing(stat: q.stat, done: done),
+                  _CheckRing(key: _ringKey, stat: q.stat, done: done),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -121,94 +149,194 @@ class _QuestCardState extends State<QuestCard>
                             fontSize: 17,
                             fontWeight: FontWeight.w600,
                             color: done ? Palette.textLo : Palette.textHi,
-                            decoration:
-                                done ? TextDecoration.lineThrough : null,
+                            decoration: done
+                                ? TextDecoration.lineThrough
+                                : null,
                             decorationColor: Palette.textLo,
                           ),
-                          child: Text(q.displayTitle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            q.displayTitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        Builder(builder: (_) {
-                          // Short status chips in a Wrap (reflow, never
-                          // overflow). Time-sensitive ones (due / schedule /
-                          // bonus) drop once done, so a finished card never
-                          // reads "STILL WAITING".
-                          final chips = <Widget>[
-                            if (q.workout)
-                              _MetaChip(Icons.fitness_center, 'GUIDED',
-                                  q.stat.color),
-                            if (q.priority)
-                              _MetaChip(
-                                  Icons.star, 'MAIN', Palette.xpLight),
-                            if (q.allDay)
-                              _MetaChip(Icons.nightlight_round,
-                                  'ALL DAY', Palette.unlock),
-                            if (q.rising)
-                              _MetaChip(
+                        Builder(
+                          builder: (_) {
+                            // Short status chips in a Wrap (reflow, never
+                            // overflow). Time-sensitive ones (due / schedule /
+                            // bonus) drop once done, so a finished card never
+                            // reads "STILL WAITING".
+                            final chips = <Widget>[
+                              if (q.workout)
+                                _MetaChip(
+                                  Icons.fitness_center,
+                                  'GUIDED',
+                                  q.stat.color,
+                                ),
+                              if (q.priority)
+                                _MetaChip(Icons.star, 'MAIN', Palette.xpLight),
+                              if (q.allDay)
+                                _MetaChip(
+                                  Icons.nightlight_round,
+                                  'ALL DAY',
+                                  Palette.unlock,
+                                ),
+                              if (q.rising)
+                                _MetaChip(
                                   Icons.trending_up,
                                   '${q.risingStreak}/${Quest.risesAt}',
-                                  Palette.streak),
-                            if (!done && q.bonus)
-                              _MetaChip(Icons.bolt, 'BONUS · TODAY',
-                                  Palette.streak)
-                            else if (!done && q.isEvent)
-                              Builder(builder: (_) {
-                                final now = DateTime.now();
-                                final overdue = q.dueDate!.isBefore(DateTime(
-                                    now.year, now.month, now.day));
-                                return _MetaChip(
-                                    null,
-                                    overdue ? 'STILL WAITING' : 'DUE TODAY',
-                                    overdue
-                                        ? Palette.streak
-                                        : Palette.xpLight);
-                              })
-                            else if (!done &&
-                                q.schedule != QuestSchedule.daily)
-                              _MetaChip(null, q.schedule.label,
-                                  Palette.xpLight.withValues(alpha: 0.8)),
-                            if (q.verification == Verification.timer)
-                              _MetaChip(Icons.timer_outlined,
+                                  Palette.streak,
+                                ),
+                              if (!done && q.bonus)
+                                _MetaChip(
+                                  Icons.bolt,
+                                  'BONUS · TODAY',
+                                  Palette.streak,
+                                )
+                              else if (!done && q.isEvent)
+                                Builder(
+                                  builder: (_) {
+                                    final now = DateTime.now();
+                                    final overdue = q.dueDate!.isBefore(
+                                      DateTime(now.year, now.month, now.day),
+                                    );
+                                    return _MetaChip(
+                                      null,
+                                      overdue ? 'STILL WAITING' : 'DUE TODAY',
+                                      overdue
+                                          ? Palette.streak
+                                          : Palette.xpLight,
+                                    );
+                                  },
+                                )
+                              else if (!done &&
+                                  q.schedule == QuestSchedule.weekly &&
+                                  q.weekdays.isNotEmpty)
+                                Builder(
+                                  builder: (_) {
+                                    // an anchored weekly names its day; once that
+                                    // day has passed it reads "STILL THIS WEEK" —
+                                    // a calm carry-forward, never a red miss.
+                                    final anchor = q.weekdays.reduce(min);
+                                    final lingering =
+                                        DateTime.now().weekday > anchor;
+                                    return _MetaChip(
+                                      lingering ? Icons.east : null,
+                                      lingering
+                                          ? 'STILL THIS WEEK'
+                                          : weekdayLabel(
+                                              q.weekdays,
+                                            ).toUpperCase(),
+                                      lingering
+                                          ? Palette.info
+                                          : Palette.xpLight.withValues(
+                                              alpha: 0.8,
+                                            ),
+                                    );
+                                  },
+                                )
+                              else if (!done &&
+                                  q.schedule == QuestSchedule.once)
+                                // a kept to-do (no due date) — it waits patiently
+                                // until done, never an overdue scold
+                                _MetaChip(
+                                  Icons.push_pin_outlined,
+                                  'UNTIL DONE',
+                                  Palette.info,
+                                )
+                              else if (!done &&
+                                  q.schedule != QuestSchedule.daily)
+                                _MetaChip(
+                                  null,
+                                  q.schedule.label,
+                                  Palette.xpLight.withValues(alpha: 0.8),
+                                ),
+                              if (q.verification == Verification.timer)
+                                _MetaChip(
+                                  Icons.timer_outlined,
                                   '${q.timerMinutes}M PROOF ×1.2',
-                                  Palette.verify),
-                          ];
-                          final hint = q.ladderHint;
-                          if (chips.isEmpty && hint == null) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 5),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (chips.isNotEmpty)
-                                  Wrap(
-                                    spacing: 10,
-                                    runSpacing: 4,
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    children: chips,
-                                  ),
-                                // a ladder hint can be long ("WHO’S THIRSTY ·
-                                // WHO’S REACHING FOR LIGHT") — give it its own
-                                // ellipsized line so it never runs under the
-                                // XP chip on the right.
-                                if (hint != null)
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                        top: chips.isNotEmpty ? 4 : 0),
-                                    child: Text(hint,
+                                  Palette.verify,
+                                ),
+                            ];
+                            final hint = q.ladderHint;
+                            final note = q.latestNote;
+                            if (chips.isEmpty && hint == null && note == null) {
+                              return const SizedBox.shrink();
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 5),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (chips.isNotEmpty)
+                                    Wrap(
+                                      spacing: 10,
+                                      runSpacing: 4,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: chips,
+                                    ),
+                                  // the latest log note — the "last watered 3
+                                  // days ago · front bed" context, right where
+                                  // you decide whether to do it again. Only when
+                                  // a quest is actually being logged.
+                                  if (note != null)
+                                    Padding(
+                                      padding: EdgeInsets.only(
+                                        top: chips.isNotEmpty ? 4 : 0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.sticky_note_2_outlined,
+                                            size: 12,
+                                            color: Palette.textLo.withValues(
+                                              alpha: done ? 0.5 : 0.9,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Flexible(
+                                            child: Text(
+                                              '${note.text} · ${relativeWhen(note.at)}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: Type.label.copyWith(
+                                                fontSize: 11,
+                                                letterSpacing: 0.2,
+                                                color: Palette.textLo
+                                                    .withValues(
+                                                      alpha: done ? 0.5 : 1.0,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  // a ladder hint can be long ("WHO’S THIRSTY ·
+                                  // WHO’S REACHING FOR LIGHT") — give it its own
+                                  // ellipsized line so it never runs under the
+                                  // XP chip on the right.
+                                  if (hint != null)
+                                    Padding(
+                                      padding: EdgeInsets.only(
+                                        top: chips.isNotEmpty ? 4 : 0,
+                                      ),
+                                      child: Text(
+                                        hint,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                         style: Type.label.copyWith(
-                                            fontSize: 11,
-                                            color: Palette.textLo)),
-                                  ),
-                              ],
-                            ),
-                          );
-                        }),
+                                          fontSize: 11,
+                                          color: Palette.textLo,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -217,11 +345,13 @@ class _QuestCardState extends State<QuestCard>
                       padding: const EdgeInsets.only(right: 8),
                       // storm-in-steel, NOT the ember flame — that pair
                       // belongs exclusively to the streak mechanic
-                      child: Icon(Icons.thunderstorm,
-                          size: 20,
-                          color: done
-                              ? Palette.dread.withValues(alpha: 0.4)
-                              : Palette.dread),
+                      child: Icon(
+                        Icons.thunderstorm,
+                        size: 20,
+                        color: done
+                            ? Palette.dread.withValues(alpha: 0.4)
+                            : Palette.dread,
+                      ),
                     ),
                   if (done && widget.onEncore != null)
                     GestureDetector(
@@ -229,25 +359,37 @@ class _QuestCardState extends State<QuestCard>
                       behavior: HitTestBehavior.opaque,
                       child: Container(
                         margin: const EdgeInsets.only(left: 4),
-                        constraints:
-                            const BoxConstraints(minHeight: 44, minWidth: 44),
+                        constraints: const BoxConstraints(
+                          minHeight: 44,
+                          minWidth: 44,
+                        ),
                         alignment: Alignment.center,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
-                              color: Palette.streak.withValues(alpha: 0.6)),
+                            color: Palette.streak.withValues(alpha: 0.6),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.bolt,
-                                size: 15, color: Palette.streak),
+                            const Icon(
+                              Icons.bolt,
+                              size: 15,
+                              color: Palette.streak,
+                            ),
                             const SizedBox(width: 4),
-                            Text('MORE',
-                                style: Type.label.copyWith(
-                                    fontSize: 11, color: Palette.streak)),
+                            Text(
+                              'MORE',
+                              style: Type.label.copyWith(
+                                fontSize: 11,
+                                color: Palette.streak,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -259,6 +401,28 @@ class _QuestCardState extends State<QuestCard>
                       dim: done,
                     ),
                 ],
+              ),
+            ),
+            // stat-colored spine — the board reads as a spectrum of life
+            // domains at a glance, reinforcing the six-domains spine of the app
+            Positioned(
+              left: 0,
+              top: 12,
+              bottom: 12,
+              child: Container(
+                width: 3,
+                decoration: BoxDecoration(
+                  color: q.stat.color.withValues(alpha: done ? 0.3 : 0.95),
+                  borderRadius: BorderRadius.circular(3),
+                  boxShadow: done
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: q.stat.color.withValues(alpha: 0.5),
+                            blurRadius: 6,
+                          ),
+                        ],
+                ),
               ),
             ),
             // specular drop of light
@@ -288,7 +452,7 @@ class _QuestCardState extends State<QuestCard>
 }
 
 class _CheckRing extends StatelessWidget {
-  const _CheckRing({required this.stat, required this.done});
+  const _CheckRing({super.key, required this.stat, required this.done});
   final Stat stat;
   final bool done;
 
@@ -366,19 +530,25 @@ class _XpChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             color: Palette.xpLight.withValues(alpha: 0.35 * alpha),
             border: Border.all(
-                color: Palette.xp.withValues(alpha: 0.35 * alpha)),
+              color: Palette.xp.withValues(alpha: 0.35 * alpha),
+            ),
           ),
           child: Text(
             '+$xp XP',
             style: Type.numerals.copyWith(
-                fontSize: 15, color: Palette.xp.withValues(alpha: alpha)),
+              fontSize: 15,
+              color: Palette.xp.withValues(alpha: alpha),
+            ),
           ),
         ),
         const SizedBox(height: 4),
-        Text(word,
-            style: Type.label.copyWith(
-                fontSize: 11,
-                color: Palette.textLo.withValues(alpha: alpha))),
+        Text(
+          word,
+          style: Type.label.copyWith(
+            fontSize: 11,
+            color: Palette.textLo.withValues(alpha: alpha),
+          ),
+        ),
       ],
     );
   }

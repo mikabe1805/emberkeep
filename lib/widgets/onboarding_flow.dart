@@ -53,8 +53,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   @override
   Widget build(BuildContext context) {
     return OverlaySurface(
-      child: Container(
-        color: const Color(0xFA191210),
+      // the living candlelit canvas from frame one — the first glass-and-ember
+      // moment a new user sees should be the hero, not a flat espresso wall
+      child: WarmBackground(
+        themeId: widget.state.canvasTheme,
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -165,7 +167,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 color: Palette.textLo)),
         const SizedBox(height: 24),
         _Cta(
-          label: '⚔ FORGE MY FIRST GOAL',
+          label: 'FORGE MY FIRST GOAL',
           onTap: () => _finish(forge: true),
         ),
         const SizedBox(height: 10),
@@ -198,7 +200,7 @@ class _Cta extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+              colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
             ),
             boxShadow: const [
               BoxShadow(

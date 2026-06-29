@@ -5,6 +5,7 @@ import '../audio.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
+import '../widgets/domain_hint.dart';
 import '../widgets/glass.dart';
 
 /// The Plans page: a warm month calendar. Honey dots = your completion
@@ -297,7 +298,7 @@ class _DayPanel extends StatelessWidget {
                       gradient: const LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                        colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
                       ),
                     ),
                     child: Text('+ PLAN',
@@ -482,6 +483,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                   ),
               ],
             ),
+            DomainHint(_stat),
             const SizedBox(height: 10),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -511,7 +513,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF2CD93), Color(0xFFC08B4F)],
+                      colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
                     ),
                     boxShadow: const [
                       BoxShadow(

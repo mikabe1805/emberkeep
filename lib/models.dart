@@ -78,6 +78,7 @@ class Goal {
     this.achievedDay,
     this.startedDay,
     this.milestones = 0,
+    this.notes = const [],
   });
 
   final String title;
@@ -85,6 +86,10 @@ class Goal {
   final GoalKind kind;
   int target;
   int progress;
+
+  /// The goal's journal — timestamped reflections on the journey (replaced
+  /// wholesale, never mutated in place; see [NoteList]).
+  List<Note> notes;
 
   /// Day-key when an [GoalKind.achieve] goal crossed its finish line.
   String? achievedDay;
@@ -109,6 +114,7 @@ class Goal {
         'achievedDay': achievedDay,
         'startedDay': startedDay,
         'milestones': milestones,
+        if (notes.isNotEmpty) 'notes': [for (final n in notes) n.toJson()],
       };
 
   static Goal fromJson(Map<String, dynamic> j) {
@@ -137,8 +143,56 @@ class Goal {
       achievedDay: j['achievedDay'] as String?,
       startedDay: j['startedDay'] as String?,
       milestones: milestones,
+      notes: [
+        for (final e in (j['notes'] as List?) ?? const [])
+          Note.fromJson((e as Map).cast<String, dynamic>())
+      ],
     );
   }
+}
+
+/// One timestamped note — the atom of "notes-with-consequence" (round-24). The
+/// SAME note type attaches to a quest's running log ("R deltoid", "fed ½ cup"),
+/// a goal's journal ("week three, finally enjoying this"), a life-domain's base,
+/// or a free-form day reflection. It never floats alone: every note sits ON
+/// something the game already gives meaning to — that connection is the whole
+/// thesis (Notion-done-right, because the thing it's pinned to has stakes).
+class Note {
+  Note({required this.at, required this.text, this.context});
+
+  /// When the note was written (full timestamp — finer than a day).
+  final DateTime at;
+  final String text;
+
+  /// A tiny "where I was" marker captured at write time — e.g. a domain's rank
+  /// ("Frail") or a goal's standing ("milestone 2"). Lets a journal show proof
+  /// of becoming ("written when CARE was Frail — now Vital"), the payoff that
+  /// makes notes-with-consequence felt rather than described. Null for plain
+  /// quest logs.
+  final String? context;
+
+  Map<String, dynamic> toJson() => {
+        'at': at.toIso8601String(),
+        'text': text,
+        if (context != null) 'context': context,
+      };
+
+  static Note fromJson(Map<String, dynamic> j) => Note(
+        // a drifted/missing timestamp sorts to the epoch rather than throwing
+        // (round-9 restore resilience), never rejecting the whole save.
+        at: DateTime.tryParse(j['at'] as String? ?? '') ?? DateTime(2000),
+        text: (j['text'] as String?) ?? '',
+        context: j['context'] as String?,
+      );
+}
+
+/// Shared helpers for a list of [Note]s held by an owner (quest/goal/domain).
+/// Lists are always replaced wholesale (never mutated in place) so a `const []`
+/// default is safe to share across instances.
+extension NoteList on List<Note> {
+  List<Note> withNote(String text, DateTime at, {String? context}) =>
+      [...this, Note(at: at, text: text, context: context)];
+  List<Note> without(Note n) => where((e) => e != n).toList();
 }
 
 /// A quest: curated (goal catalog), custom (user-forged), or a calendar
@@ -170,6 +224,7 @@ class Quest {
     this.bonus = false,
     this.origin,
     this.workout = false,
+    this.log = const [],
   });
 
   /// Identity title — the rung-0 prescription, stable for dedup/restore even
@@ -268,6 +323,17 @@ class Quest {
   /// — used to cap same-day encores per base (anti-overexertion, §4).
   final String? origin;
 
+  /// Running log of little timestamped notes the user keeps on this quest
+  /// (newest appended last). Mutable, but always replaced wholesale (never
+  /// mutated in place) so the `const []` default is safe — see [addNote].
+  List<Note> log;
+
+  /// Append a note without mutating the (possibly const) existing list.
+  void addNote(String text, DateTime at) => log = log.withNote(text, at);
+
+  /// The most recent note, or null if the log is empty.
+  Note? get latestNote => log.isEmpty ? null : log.last;
+
   static const risesAt = 5;
   bool get readyToRise => rising && risingStreak >= risesAt;
 
@@ -291,8 +357,18 @@ class Quest {
       case QuestSchedule.once:
         return true; // events are gated by dueDate elsewhere
       case QuestSchedule.daily:
-      case QuestSchedule.weekly:
+        // A daily restricted to certain weekdays (e.g. a M/W/F habit) appears
+        // on exactly those days and resets every day — unchanged.
         return weekdays.isEmpty || weekdays.contains(d.weekday);
+      case QuestSchedule.weekly:
+        // A weekly's period is the whole WEEK, so an anchored one lingers from
+        // its chosen day through the end of that week rather than vanishing the
+        // moment its day passes (round-21). Missing your Tuesday slot leaves it
+        // quietly open Wed–Sun — "still this week", never a red "missed" scold
+        // (never-punish). It resets cleanly next week, before its anchor.
+        if (weekdays.isEmpty) return true; // any day this week
+        final anchor = weekdays.reduce((a, b) => a < b ? a : b);
+        return d.weekday >= anchor;
       case QuestSchedule.monthly:
         if (monthDay == null) return true;
         final lastDay = DateTime(d.year, d.month + 1, 0).day;
@@ -339,6 +415,7 @@ class Quest {
         'bonus': bonus,
         'origin': origin,
         'workout': workout,
+        if (log.isNotEmpty) 'log': [for (final n in log) n.toJson()],
       };
 
   static Quest fromJson(Map<String, dynamic> j) => Quest(
@@ -371,6 +448,10 @@ class Quest {
         bonus: j['bonus'] as bool? ?? false,
         origin: j['origin'] as String?,
         workout: j['workout'] as bool? ?? false,
+        log: [
+          for (final e in (j['log'] as List?) ?? const [])
+            Note.fromJson((e as Map).cast<String, dynamic>())
+        ],
       );
 }
 
