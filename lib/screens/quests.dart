@@ -276,7 +276,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // capture the pre-completion state so an accidental tap can be undone
     final snapshot = widget.onSnapshot();
     final bundle = s.roll(q, verified: verified);
-    _pinnedDoneTitle = q.title; // keep this fresh win in place (undo lives here)
+    _pinnedDoneTitle =
+        q.title; // keep this fresh win in place (undo lives here)
     Storage.logEvent('done', [
       q.custom ? Storage.hashTitle(q.title) : q.title,
       q.stat.index,
@@ -1309,8 +1310,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           // finished quests sink to the bottom so the board visibly shrinks
           // toward the top as you clear it — banked wins, not interleaved
           // clutter. The most-recent win stays put (undo lives on it).
-          bool banked(Quest q) =>
-              q.doneFor(now) && q.title != _pinnedDoneTitle;
+          bool banked(Quest q) => q.doneFor(now) && q.title != _pinnedDoneTitle;
           final ad = banked(a), bd = banked(b);
           if (ad != bd) return ad ? 1 : -1;
           // then: due events first, starred MAIN next, the rest, all-day last
@@ -1369,8 +1369,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 Row(
                   children: [
                     _LevelRing(
-                      level: _state.level,
-                      progress: (_state.xp / next).clamp(0.0, 1.0),
+                      // today's clear-progress — the ring fills as you go
+                      progress: visible.isEmpty
+                          ? 0.0
+                          : (visible.length - remaining) / visible.length,
                       child: Portrait(
                         size: 44,
                         mood: _beaming ? PortraitMood.happy : PortraitMood.idle,
@@ -1813,13 +1815,11 @@ class _FocusLensToggle extends StatelessWidget {
 /// The portrait inside a slowly breathing ring that mirrors XP progress.
 /// Keyed by level (like XpBar's generation) so a level-up refills from 0
 /// instead of draining backwards; the breathe is the §2 ambient idle motion.
+/// The portrait's ring now tracks TODAY'S clear-progress (it fills as you clear
+/// the board), not XP — XP already lives in the bar + numeral right beside it,
+/// so the ring earns its own job (round-31: no triple-encoding one value).
 class _LevelRing extends StatefulWidget {
-  const _LevelRing({
-    required this.level,
-    required this.progress,
-    required this.child,
-  });
-  final int level;
+  const _LevelRing({required this.progress, required this.child});
   final double progress;
   final Widget child;
 
@@ -1853,7 +1853,6 @@ class _LevelRingState extends State<_LevelRing>
           return Transform.scale(
             scale: 1 + 0.02 * wave,
             child: TweenAnimationBuilder<double>(
-              key: ValueKey(widget.level),
               tween: Tween(begin: 0, end: widget.progress),
               duration: Motion.barFill,
               curve: Motion.barCurve,
