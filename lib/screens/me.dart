@@ -33,6 +33,7 @@ class MePage extends StatelessWidget {
     required this.state,
     required this.quests,
     required this.onPersist,
+    required this.onAddQuest,
     required this.onExport,
     required this.onImport,
     required this.onReset,
@@ -49,6 +50,9 @@ class MePage extends StatelessWidget {
 
   /// Persists the save after a domain journal edit.
   final VoidCallback onPersist;
+
+  /// Adds a quest — used by a domain journal's "make this a quest".
+  final bool Function(Quest quest) onAddQuest;
 
   /// Copies the raw save to the clipboard; returns false if none exists.
   final Future<bool> Function() onExport;
@@ -234,6 +238,7 @@ class MePage extends StatelessWidget {
                             state: state,
                             quests: quests,
                             onPersist: onPersist,
+                            onAddQuest: onAddQuest,
                           ),
                         ),
                       );

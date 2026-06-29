@@ -160,6 +160,7 @@ class GoalsPage extends StatelessWidget {
                 state: state,
                 onRemoveGoal: onRemoveGoal,
                 onPersist: onPersist,
+                onAddQuest: onAdd,
                 quests: quests),
             const SizedBox(height: 12),
           ] else ...[
@@ -472,10 +473,12 @@ class _YourGoals extends StatelessWidget {
       {required this.state,
       required this.onRemoveGoal,
       required this.onPersist,
+      required this.onAddQuest,
       required this.quests});
   final GameState state;
   final void Function(Goal goal) onRemoveGoal;
   final VoidCallback onPersist;
+  final bool Function(Quest quest) onAddQuest;
   final List<Quest> quests;
 
   void _openDetail(BuildContext context, Goal g) {
@@ -488,6 +491,7 @@ class _YourGoals extends StatelessWidget {
         quests: quests,
         onRemoveGoal: onRemoveGoal,
         onPersist: onPersist,
+        onAddQuest: onAddQuest,
       ),
     ));
   }

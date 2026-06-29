@@ -17,9 +17,14 @@ class EmberSheetConfig {
     this.goalTitle,
     this.lockStat = false,
     this.accent,
+    this.defaultTitle,
   });
 
   final EmberSurface surface;
+
+  /// Pre-fills the quest name — e.g. when turning a journal reflection ("call
+  /// Mom") straight into a quest (round-29 notes-with-consequence loop-closer).
+  final String? defaultTitle;
 
   /// Pre-lit life domain. Inside a goal this is the goal's domain.
   final Stat? defaultStat;
@@ -39,33 +44,94 @@ Stat guessStat(String title) {
   final t = title.toLowerCase();
   bool has(List<String> words) => words.any(t.contains);
   if (has(const [
-    'run', 'jog', 'gym', 'walk', 'stretch', 'push-up', 'pushup', 'workout',
-    'lift', 'yoga', 'exercise', 'steps', 'cardio', 'plank', 'squat'
+    'run',
+    'jog',
+    'gym',
+    'walk',
+    'stretch',
+    'push-up',
+    'pushup',
+    'workout',
+    'lift',
+    'yoga',
+    'exercise',
+    'steps',
+    'cardio',
+    'plank',
+    'squat',
   ])) {
     return Stat.str; // BODY
   }
   if (has(const [
-    'water', 'sleep', 'meal', 'eat', 'cook', 'skin', 'med', 'pill', 'floss',
-    'brush', 'plant', 'pet', 'dog', 'cat', 'shower', 'hydrate', 'vitamin',
-    'breathe', 'rest'
+    'water',
+    'sleep',
+    'meal',
+    'eat',
+    'cook',
+    'skin',
+    'med',
+    'pill',
+    'floss',
+    'brush',
+    'plant',
+    'pet',
+    'dog',
+    'cat',
+    'shower',
+    'hydrate',
+    'vitamin',
+    'breathe',
+    'rest',
   ])) {
     return Stat.vit; // CARE
   }
   if (has(const [
-    'read', 'book', 'learn', 'study', 'journal', 'reflect', 'meditate',
-    'language', 'course', 'note', 'chapter', 'page'
+    'read',
+    'book',
+    'learn',
+    'study',
+    'journal',
+    'reflect',
+    'meditate',
+    'language',
+    'course',
+    'note',
+    'chapter',
+    'page',
   ])) {
     return Stat.intl; // MIND
   }
   if (has(const [
-    'work', 'code', 'write', 'practice', 'project', 'design', 'draft',
-    'email', 'client', 'focus', 'deep work', 'side project', 'portfolio'
+    'work',
+    'code',
+    'write',
+    'practice',
+    'project',
+    'design',
+    'draft',
+    'email',
+    'client',
+    'focus',
+    'deep work',
+    'side project',
+    'portfolio',
   ])) {
     return Stat.foc; // CRAFT
   }
   if (has(const [
-    'call', 'text', 'friend', 'family', 'reach out', 'visit', 'message',
-    'date', 'hang', 'check in', 'partner', 'mom', 'dad'
+    'call',
+    'text',
+    'friend',
+    'family',
+    'reach out',
+    'visit',
+    'message',
+    'date',
+    'hang',
+    'check in',
+    'partner',
+    'mom',
+    'dad',
   ])) {
     return Stat.soc; // PEOPLE
   }
@@ -98,7 +164,13 @@ const _freqLabels = {
 
 const _dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const _dayNames = [
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
 ];
 const _dayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -149,6 +221,7 @@ class _EmberSheetState extends State<_EmberSheet> {
     final now = DateTime.now();
     _weekday = now.weekday;
     _monthDay = now.day.clamp(1, 28);
+    _title.text = widget.config.defaultTitle ?? ''; // pre-fill (journal→quest)
     _title.addListener(() => setState(() {})); // live preview + CTA enable
   }
 
@@ -160,9 +233,8 @@ class _EmberSheetState extends State<_EmberSheet> {
 
   Stat get _effectiveStat =>
       widget.config.defaultStat != null && widget.config.lockStat
-          ? widget.config.defaultStat!
-          : _statOverride ??
-              (widget.config.defaultStat ?? guessStat(_title.text));
+      ? widget.config.defaultStat!
+      : _statOverride ?? (widget.config.defaultStat ?? guessStat(_title.text));
 
   /// Per-completion XP for the chosen difficulty (mirrors engine.xpPreview at
   /// base streak, custom-damped — honest, updates live).
@@ -276,16 +348,17 @@ class _EmberSheetState extends State<_EmberSheet> {
             children: [
               Row(
                 children: [
-                  Text(_isTomorrow ? 'FOR TOMORROW' : 'NEW QUEST',
-                      style: Type.label.copyWith(fontSize: 11)),
+                  Text(
+                    _isTomorrow ? 'FOR TOMORROW' : 'NEW QUEST',
+                    style: Type.label.copyWith(fontSize: 11),
+                  ),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(),
                     behavior: HitTestBehavior.opaque,
                     child: const Padding(
                       padding: EdgeInsets.all(4),
-                      child: Icon(Icons.close,
-                          size: 18, color: Palette.textLo),
+                      child: Icon(Icons.close, size: 18, color: Palette.textLo),
                     ),
                   ),
                 ],
@@ -301,13 +374,17 @@ class _EmberSheetState extends State<_EmberSheet> {
                 style: Type.body.copyWith(fontSize: 17, color: Palette.textHi),
                 decoration: InputDecoration(
                   hintText: 'e.g. Drink a glass of water',
-                  hintStyle:
-                      Type.body.copyWith(fontSize: 17, color: Palette.textLo),
+                  hintStyle: Type.body.copyWith(
+                    fontSize: 17,
+                    color: Palette.textLo,
+                  ),
                   isDense: true,
                   filled: true,
                   fillColor: Palette.glassFill,
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: Palette.glassEdge),
@@ -318,8 +395,9 @@ class _EmberSheetState extends State<_EmberSheet> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide:
-                        BorderSide(color: accent.withValues(alpha: 0.7)),
+                    borderSide: BorderSide(
+                      color: accent.withValues(alpha: 0.7),
+                    ),
                   ),
                 ),
               ),
@@ -347,20 +425,24 @@ class _EmberSheetState extends State<_EmberSheet> {
                     width: 8,
                     height: 8,
                     decoration: BoxDecoration(
-                        shape: BoxShape.circle, color: _effectiveStat.color),
+                      shape: BoxShape.circle,
+                      color: _effectiveStat.color,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                        ready
-                            ? '${_title.text.trim()} · $_freqPreview'
-                            : 'name it above',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Type.body.copyWith(
-                            fontSize: 13,
-                            fontStyle: FontStyle.italic,
-                            color: Palette.textLo)),
+                      ready
+                          ? '${_title.text.trim()} · $_freqPreview'
+                          : 'name it above',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.body.copyWith(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                        color: Palette.textLo,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -374,8 +456,11 @@ class _EmberSheetState extends State<_EmberSheet> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text('More', style: Type.label.copyWith(fontSize: 11)),
-                      Icon(_more ? Icons.expand_less : Icons.expand_more,
-                          size: 16, color: Palette.textLo),
+                      Icon(
+                        _more ? Icons.expand_less : Icons.expand_more,
+                        size: 16,
+                        color: Palette.textLo,
+                      ),
                     ],
                   ),
                 ),
@@ -441,26 +526,33 @@ class _EmberSheetState extends State<_EmberSheet> {
                             ? accent.withValues(alpha: 0.28)
                             : Palette.glassFill,
                         border: Border.all(
-                            color: _customDays.contains(d)
-                                ? accent
-                                : Palette.glassEdge),
+                          color: _customDays.contains(d)
+                              ? accent
+                              : Palette.glassEdge,
+                        ),
                       ),
-                      child: Text(_dayLetters[d - 1],
-                          style: Type.label.copyWith(
-                              fontSize: 12,
-                              color: _customDays.contains(d)
-                                  ? accent
-                                  : Palette.textLo)),
+                      child: Text(
+                        _dayLetters[d - 1],
+                        style: Type.label.copyWith(
+                          fontSize: 12,
+                          color: _customDays.contains(d)
+                              ? accent
+                              : Palette.textLo,
+                        ),
+                      ),
                     ),
                   ),
               ],
             ),
             const SizedBox(height: 6),
-            Text(_customDaysLabel(_customDays),
-                style: Type.body.copyWith(
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo)),
+            Text(
+              _customDaysLabel(_customDays),
+              style: Type.body.copyWith(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
           ],
         ),
       );
@@ -493,13 +585,16 @@ class _EmberSheetState extends State<_EmberSheet> {
                             ? accent.withValues(alpha: 0.28)
                             : Palette.glassFill,
                         border: Border.all(
-                            color: _weekday == d ? accent : Palette.glassEdge),
+                          color: _weekday == d ? accent : Palette.glassEdge,
+                        ),
                       ),
-                      child: Text(_dayLetters[d - 1],
-                          style: Type.label.copyWith(
-                              fontSize: 12,
-                              color:
-                                  _weekday == d ? accent : Palette.textLo)),
+                      child: Text(
+                        _dayLetters[d - 1],
+                        style: Type.label.copyWith(
+                          fontSize: 12,
+                          color: _weekday == d ? accent : Palette.textLo,
+                        ),
+                      ),
                     ),
                   ),
               ],
@@ -527,9 +622,11 @@ class _EmberSheetState extends State<_EmberSheet> {
             ),
             SizedBox(
               width: 28,
-              child: Text('$_monthDay',
-                  textAlign: TextAlign.right,
-                  style: Type.numerals.copyWith(fontSize: 14, color: accent)),
+              child: Text(
+                '$_monthDay',
+                textAlign: TextAlign.right,
+                style: Type.numerals.copyWith(fontSize: 14, color: accent),
+              ),
             ),
           ],
         ),
@@ -546,11 +643,12 @@ class _EmberSheetState extends State<_EmberSheet> {
         children: [
           Row(
             children: [
-              Text('HOW BIG A LIFT?',
-                  style: Type.label.copyWith(fontSize: 11)),
+              Text('HOW BIG A LIFT?', style: Type.label.copyWith(fontSize: 11)),
               const Spacer(),
-              Text('+${_xpFor(_difficulty)} XP each',
-                  style: Type.numerals.copyWith(fontSize: 13, color: Palette.xp)),
+              Text(
+                '+${_xpFor(_difficulty)} XP each',
+                style: Type.numerals.copyWith(fontSize: 13, color: Palette.xp),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -575,18 +673,23 @@ class _EmberSheetState extends State<_EmberSheet> {
                             ? Palette.xpLight.withValues(alpha: 0.2)
                             : Colors.transparent,
                         border: Border.all(
-                            color: Palette.xp.withValues(
-                                alpha: _difficulty == step.$2 ? 0.7 : 0.25)),
+                          color: Palette.xp.withValues(
+                            alpha: _difficulty == step.$2 ? 0.7 : 0.25,
+                          ),
+                        ),
                       ),
-                      child: Text(step.$1,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Type.label.copyWith(
-                              fontSize: 10,
-                              color: _difficulty == step.$2
-                                  ? Palette.xpLight
-                                  : Palette.textLo)),
+                      child: Text(
+                        step.$1,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.label.copyWith(
+                          fontSize: 10,
+                          color: _difficulty == step.$2
+                              ? Palette.xpLight
+                              : Palette.textLo,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -606,19 +709,27 @@ class _EmberSheetState extends State<_EmberSheet> {
                     onTap: () => setState(() => _statOverride = s),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         color: _effectiveStat == s
                             ? s.color.withValues(alpha: 0.22)
                             : Colors.transparent,
                         border: Border.all(
-                            color: s.color.withValues(
-                                alpha: _effectiveStat == s ? 0.8 : 0.3)),
+                          color: s.color.withValues(
+                            alpha: _effectiveStat == s ? 0.8 : 0.3,
+                          ),
+                        ),
                       ),
-                      child: Text(s.abbr,
-                          style: Type.label
-                              .copyWith(fontSize: 10, color: s.color)),
+                      child: Text(
+                        s.abbr,
+                        style: Type.label.copyWith(
+                          fontSize: 10,
+                          color: s.color,
+                        ),
+                      ),
                     ),
                   ),
               ],
@@ -660,19 +771,27 @@ class _EmberSheetState extends State<_EmberSheet> {
                       onTap: () => setState(() => _minutes = m),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 5),
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(999),
                           color: _minutes == m
                               ? Palette.verify.withValues(alpha: 0.18)
                               : Colors.transparent,
                           border: Border.all(
-                              color: Palette.verify.withValues(
-                                  alpha: _minutes == m ? 0.8 : 0.3)),
+                            color: Palette.verify.withValues(
+                              alpha: _minutes == m ? 0.8 : 0.3,
+                            ),
+                          ),
                         ),
-                        child: Text('${m}m',
-                            style: Type.label.copyWith(
-                                fontSize: 11, color: Palette.verify)),
+                        child: Text(
+                          '${m}m',
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            color: Palette.verify,
+                          ),
+                        ),
                       ),
                     ),
                 ],
@@ -693,8 +812,11 @@ class _EmberSheetState extends State<_EmberSheet> {
 }
 
 class _FreqChips extends StatelessWidget {
-  const _FreqChips(
-      {required this.value, required this.accent, required this.onChanged});
+  const _FreqChips({
+    required this.value,
+    required this.accent,
+    required this.onChanged,
+  });
   final _Freq value;
   final Color accent;
   final ValueChanged<_Freq> onChanged;
@@ -713,22 +835,28 @@ class _FreqChips extends StatelessWidget {
                 onChanged(f);
               },
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
                   color: value == f
                       ? accent.withValues(alpha: 0.22)
                       : Palette.glassFill,
                   border: Border.all(
-                      color: value == f
-                          ? accent.withValues(alpha: 0.8)
-                          : Palette.glassEdge),
+                    color: value == f
+                        ? accent.withValues(alpha: 0.8)
+                        : Palette.glassEdge,
+                  ),
                 ),
-                child: Text(_freqLabels[f]!,
-                    style: Type.label.copyWith(
-                        fontSize: 11,
-                        color: value == f ? accent : Palette.textLo)),
+                child: Text(
+                  _freqLabels[f]!,
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    color: value == f ? accent : Palette.textLo,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 7),
@@ -765,12 +893,20 @@ class _Toggle extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: Type.body
-                        .copyWith(fontSize: 13.5, color: Palette.textMid)),
-                Text(sub,
-                    style: Type.body.copyWith(
-                        fontSize: 11, color: Palette.textLo)),
+                Text(
+                  label,
+                  style: Type.body.copyWith(
+                    fontSize: 13.5,
+                    color: Palette.textMid,
+                  ),
+                ),
+                Text(
+                  sub,
+                  style: Type.body.copyWith(
+                    fontSize: 11,
+                    color: Palette.textLo,
+                  ),
+                ),
               ],
             ),
           ),
@@ -815,14 +951,19 @@ class _Cta extends StatelessWidget {
                 ? const []
                 : const [
                     BoxShadow(
-                        color: Palette.honeyGlow,
-                        blurRadius: 18,
-                        offset: Offset(0, 6)),
+                      color: Palette.honeyGlow,
+                      blurRadius: 18,
+                      offset: Offset(0, 6),
+                    ),
                   ],
           ),
-          child: Text(label,
-              style: Type.label
-                  .copyWith(fontSize: 12, color: const Color(0xFF3A2510))),
+          child: Text(
+            label,
+            style: Type.label.copyWith(
+              fontSize: 12,
+              color: const Color(0xFF3A2510),
+            ),
+          ),
         ),
       ),
     );

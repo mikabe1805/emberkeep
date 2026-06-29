@@ -9,6 +9,7 @@ import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
+import '../widgets/ember_sheet.dart';
 import '../widgets/glass.dart';
 import '../widgets/notes_sheet.dart';
 
@@ -24,6 +25,7 @@ class GoalDetailScreen extends StatelessWidget {
     required this.quests,
     required this.onRemoveGoal,
     required this.onPersist,
+    required this.onAddQuest,
   });
 
   final Goal goal;
@@ -35,6 +37,9 @@ class GoalDetailScreen extends StatelessWidget {
 
   /// Persists the save after a journal edit.
   final VoidCallback onPersist;
+
+  /// Adds a quest — used by the journal's "make this a quest".
+  final bool Function(Quest quest) onAddQuest;
 
   Color get _accent => goal.complete ? Palette.xpLight : goal.stat.color;
 
@@ -127,6 +132,21 @@ class GoalDetailScreen extends StatelessWidget {
                       onDelete: (n) {
                         goal.notes = goal.notes.without(n);
                         onPersist();
+                      },
+                      onMakeQuest: (text) async {
+                        // turn a reflection into a quest that serves this goal
+                        final q = await showEmberSheet(
+                          context,
+                          EmberSheetConfig(
+                            surface: EmberSurface.goal,
+                            defaultTitle: text,
+                            defaultStat: goal.stat,
+                            lockStat: true,
+                            goalTitle: goal.title,
+                            accent: _accent,
+                          ),
+                        );
+                        if (q != null) onAddQuest(q);
                       },
                     ),
                     const SizedBox(height: 16),

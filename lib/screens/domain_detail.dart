@@ -8,6 +8,7 @@ import '../models.dart';
 import '../tokens.dart';
 import '../widgets/count_up.dart';
 import '../widgets/detail_header.dart';
+import '../widgets/ember_sheet.dart';
 import '../widgets/glass.dart';
 import '../widgets/notes_sheet.dart';
 
@@ -23,12 +24,14 @@ class DomainDetailScreen extends StatefulWidget {
     required this.state,
     required this.quests,
     required this.onPersist,
+    required this.onAddQuest,
   });
 
   final Stat stat;
   final GameState state;
   final List<Quest> quests;
   final VoidCallback onPersist;
+  final bool Function(Quest quest) onAddQuest;
 
   @override
   State<DomainDetailScreen> createState() => _DomainDetailScreenState();
@@ -110,6 +113,19 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                           widget.state.notesFor(_stat).without(n),
                         );
                         widget.onPersist();
+                      },
+                      onMakeQuest: (text) async {
+                        // a reflection becomes board action — pre-fill the
+                        // quest with the note, pre-lit to this domain
+                        final q = await showEmberSheet(
+                          context,
+                          EmberSheetConfig(
+                            defaultTitle: text,
+                            defaultStat: _stat,
+                            accent: _accent,
+                          ),
+                        );
+                        if (q != null) widget.onAddQuest(q);
                       },
                     ),
                     const SizedBox(height: 16),

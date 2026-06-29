@@ -327,6 +327,13 @@ class InsightsPage extends StatelessWidget {
     for (var i = 1; i < 7; i++) {
       if (byWeekday[i] > byWeekday[bestWd]) bestWd = i;
     }
+    // the single strongest day in the 14-day window — a peak for the eye
+    var bestIdx = -1;
+    for (var i = 0; i < days.length; i++) {
+      if (days[i].$2 > 0 && (bestIdx < 0 || days[i].$2 > days[bestIdx].$2)) {
+        bestIdx = i;
+      }
+    }
     return GlassPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,36 +351,68 @@ class InsightsPage extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           SizedBox(
-            height: 64,
+            height: 80,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                for (final d in days)
+                for (var i = 0; i < days.length; i++)
                   Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          height: 6 + 44 * (d.$2 / maxC),
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            color: d.$2 > 0
-                                ? Palette.streak.withValues(
-                                    alpha: 0.45 + 0.45 * (d.$2 / maxC),
-                                  )
-                                : Palette.glassFill,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _weekdayShort[d.$1.weekday - 1],
-                          style: Type.label.copyWith(
-                            fontSize: 8,
-                            color: Palette.textLo,
-                          ),
-                        ),
-                      ],
+                    child: Builder(
+                      builder: (_) {
+                        final d = days[i];
+                        final frac = d.$2 / maxC;
+                        final isBest = i == bestIdx;
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // a small dot crowns the strongest day
+                            if (isBest)
+                              Container(
+                                width: 4,
+                                height: 4,
+                                margin: const EdgeInsets.only(bottom: 3),
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Palette.xpLight,
+                                ),
+                              ),
+                            Container(
+                              height: 6 + 44 * frac,
+                              margin: const EdgeInsets.symmetric(horizontal: 2),
+                              decoration: BoxDecoration(
+                                color: d.$2 == 0
+                                    ? Palette.glassFill
+                                    : isBest
+                                    ? Palette.xpLight
+                                    : Palette.streak.withValues(
+                                        alpha: 0.45 + 0.45 * frac,
+                                      ),
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: isBest
+                                    ? [
+                                        BoxShadow(
+                                          color: Palette.xpLight.withValues(
+                                            alpha: 0.5,
+                                          ),
+                                          blurRadius: 6,
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _weekdayShort[d.$1.weekday - 1],
+                              style: Type.label.copyWith(
+                                fontSize: 10,
+                                color: isBest
+                                    ? Palette.xpLight
+                                    : Palette.textLo,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
               ],

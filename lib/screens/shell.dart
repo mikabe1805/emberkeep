@@ -478,6 +478,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                         state: state,
                         quests: quests,
                         onPersist: _persist,
+                        onAddQuest: _addQuest,
                         onExport: _export,
                         onImport: _import,
                         onReset: _reset,

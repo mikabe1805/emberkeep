@@ -54,6 +54,7 @@ Future<void> showNotesSheet(
   String? subtitle,
   String hint = 'Add a note…',
   String emptyHint = 'Nothing here yet. Jot whatever you’ll want to remember.',
+  void Function(String text)? onMakeQuest,
 }) {
   return showModalBottomSheet<void>(
     context: context,
@@ -70,6 +71,7 @@ Future<void> showNotesSheet(
       subtitle: subtitle,
       hint: hint,
       emptyHint: emptyHint,
+      onMakeQuest: onMakeQuest,
     ),
   );
 }
@@ -90,6 +92,7 @@ class JournalPanel extends StatefulWidget {
     required this.emptyHint,
     this.subtitle,
     this.hint = 'How’s it going?',
+    this.onMakeQuest,
   });
 
   final String title;
@@ -97,6 +100,9 @@ class JournalPanel extends StatefulWidget {
   final List<Note> Function() read;
   final void Function(String text) onAdd;
   final void Function(Note note) onDelete;
+
+  /// Optional — turns a journal entry into a quest (notes-with-consequence).
+  final void Function(String text)? onMakeQuest;
 
   /// In-panel prompt when there are no entries yet.
   final String emptyPreview;
@@ -131,6 +137,7 @@ class _JournalPanelState extends State<JournalPanel> {
         widget.onDelete(n);
         if (mounted) setState(() {});
       },
+      onMakeQuest: widget.onMakeQuest,
     );
   }
 
@@ -233,6 +240,7 @@ class _NotesSheet extends StatefulWidget {
     required this.subtitle,
     required this.hint,
     required this.emptyHint,
+    required this.onMakeQuest,
   });
   final String kicker;
   final String title;
@@ -244,6 +252,7 @@ class _NotesSheet extends StatefulWidget {
   final String? subtitle;
   final String hint;
   final String emptyHint;
+  final void Function(String text)? onMakeQuest;
 
   @override
   State<_NotesSheet> createState() => _NotesSheetState();
@@ -349,6 +358,14 @@ class _NotesSheetState extends State<_NotesSheet> {
                         note: notes[i],
                         accent: widget.accent,
                         onDelete: () => _delete(notes[i]),
+                        onMakeQuest: widget.onMakeQuest == null
+                            ? null
+                            : () {
+                                // close the sheet first so the creation sheet
+                                // opens cleanly (not modal-over-modal)
+                                Navigator.of(context).pop();
+                                widget.onMakeQuest!(notes[i].text);
+                              },
                       ),
                     ),
                   ),
@@ -456,10 +473,14 @@ class _NoteRow extends StatelessWidget {
     required this.note,
     required this.accent,
     required this.onDelete,
+    this.onMakeQuest,
   });
   final Note note;
   final Color accent;
   final VoidCallback onDelete;
+
+  /// When set, a small "→ quest" affordance turns this reflection into a quest.
+  final VoidCallback? onMakeQuest;
 
   @override
   Widget build(BuildContext context) {
@@ -522,6 +543,15 @@ class _NoteRow extends StatelessWidget {
               ],
             ),
           ),
+          if (onMakeQuest != null)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onMakeQuest,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Icon(Icons.bolt, size: 16, color: accent),
+              ),
+            ),
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: onDelete,
