@@ -202,161 +202,6 @@ class MePage extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // ── canvas theme (the THEMES unlock, Lv 5) ───────────────
-          GlassPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('THEMES', style: Type.label.copyWith(fontSize: 11)),
-                    const Spacer(),
-                    if (state.level < 5)
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.lock_outline,
-                            size: 12,
-                            color: Palette.textLo,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            'LV 5',
-                            style: Type.label.copyWith(
-                              fontSize: 11,
-                              color: Palette.textLo,
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  state.level < 5
-                      ? 'pick your candlelit canvas — opens at level 5'
-                      : 'pick the night you build by',
-                  style: Type.body.copyWith(
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    for (final t in canvasThemes)
-                      _ThemeSwatch(
-                        theme: t,
-                        selected: state.canvasTheme == t.id,
-                        locked: t.locked && state.level < 5,
-                        onTap: () {
-                          if (t.locked && state.level < 5) {
-                            Sfx.instance.play('boing');
-                            return;
-                          }
-                          Sfx.instance.play('tick');
-                          HapticFeedback.selectionClick();
-                          state.setTheme(t.id);
-                        },
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // ── reminders (native local notifications) ───────────────
-          GlassPanel(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text('REMINDERS', style: Type.label.copyWith(fontSize: 11)),
-                    const Spacer(),
-                    Switch(
-                      value: state.notifyEnabled,
-                      activeThumbColor: Palette.xp,
-                      onChanged: (v) async {
-                        if (v) await Notifications.requestPermission();
-                        state.setNotify(enabled: v);
-                        await onNotifyChanged();
-                      },
-                    ),
-                  ],
-                ),
-                Text(
-                  kIsWeb
-                      ? 'a daily nudge + plan reminders — these ring on the installed app'
-                      : 'a daily nudge to light your first ember, plus reminders for dated plans',
-                  style: Type.body.copyWith(
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo,
-                  ),
-                ),
-                if (state.notifyEnabled) ...[
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () async {
-                      final picked = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay(
-                          hour: state.notifyHour,
-                          minute: state.notifyMinute,
-                        ),
-                      );
-                      if (picked == null) return;
-                      state.setNotify(hour: picked.hour, minute: picked.minute);
-                      await onNotifyChanged();
-                    },
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.schedule,
-                          size: 16,
-                          color: Palette.xpLight,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Daily nudge at',
-                          style: Type.body.copyWith(
-                            fontSize: 13,
-                            color: Palette.textMid,
-                          ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: Palette.glassEdge),
-                          ),
-                          child: Text(
-                            _fmtTime(state.notifyHour, state.notifyMinute),
-                            style: Type.numerals.copyWith(
-                              fontSize: 14,
-                              color: Palette.xp,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-
           // ── the build shape ──────────────────────────────────────
           GlassPanel(
             child: Column(
@@ -579,6 +424,19 @@ class MePage extends StatelessWidget {
             const SizedBox(height: 14),
           ],
 
+          // ── settings (demoted below the identity content) ────────
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 6, bottom: 8),
+            child: Text(
+              'SETTINGS',
+              style: Type.label.copyWith(fontSize: 11, color: Palette.textLo),
+            ),
+          ),
+          _themesPanel(),
+          const SizedBox(height: 14),
+          _remindersPanel(context),
+          const SizedBox(height: 14),
+
           // ── account (sync across devices) ─────────────────────────
           _AccountPanel(
             onLink: onLinkAccount,
@@ -774,6 +632,158 @@ class MePage extends StatelessWidget {
   }
 
   /// One tap must never erase a life. Reset asks twice — in words.
+  // ── settings panels (grouped at the bottom; the page leads with identity) ──
+  Widget _themesPanel() {
+    return GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('THEMES', style: Type.label.copyWith(fontSize: 11)),
+              const Spacer(),
+              if (state.level < 5)
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.lock_outline,
+                      size: 12,
+                      color: Palette.textLo,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      'LV 5',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            state.level < 5
+                ? 'pick your candlelit canvas — opens at level 5'
+                : 'pick the night you build by',
+            style: Type.body.copyWith(
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: Palette.textLo,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              for (final t in canvasThemes)
+                _ThemeSwatch(
+                  theme: t,
+                  selected: state.canvasTheme == t.id,
+                  locked: t.locked && state.level < 5,
+                  onTap: () {
+                    if (t.locked && state.level < 5) {
+                      Sfx.instance.play('boing');
+                      return;
+                    }
+                    Sfx.instance.play('tick');
+                    HapticFeedback.selectionClick();
+                    state.setTheme(t.id);
+                  },
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _remindersPanel(BuildContext context) {
+    return GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('REMINDERS', style: Type.label.copyWith(fontSize: 11)),
+              const Spacer(),
+              Switch(
+                value: state.notifyEnabled,
+                activeThumbColor: Palette.xp,
+                onChanged: (v) async {
+                  if (v) await Notifications.requestPermission();
+                  state.setNotify(enabled: v);
+                  await onNotifyChanged();
+                },
+              ),
+            ],
+          ),
+          Text(
+            kIsWeb
+                ? 'a daily nudge + plan reminders — these ring on the installed app'
+                : 'a daily nudge to light your first ember, plus reminders for dated plans',
+            style: Type.body.copyWith(
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
+              color: Palette.textLo,
+            ),
+          ),
+          if (state.notifyEnabled) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () async {
+                final picked = await showTimePicker(
+                  context: context,
+                  initialTime: TimeOfDay(
+                    hour: state.notifyHour,
+                    minute: state.notifyMinute,
+                  ),
+                );
+                if (picked == null) return;
+                state.setNotify(hour: picked.hour, minute: picked.minute);
+                await onNotifyChanged();
+              },
+              child: Row(
+                children: [
+                  const Icon(Icons.schedule, size: 16, color: Palette.xpLight),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Daily nudge at',
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      color: Palette.textMid,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(color: Palette.glassEdge),
+                    ),
+                    child: Text(
+                      _fmtTime(state.notifyHour, state.notifyMinute),
+                      style: Type.numerals.copyWith(
+                        fontSize: 14,
+                        color: Palette.xp,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   void _confirmReset(BuildContext context) {
     Sfx.instance.play('tick');
     showDialog(
