@@ -1,4 +1,4 @@
-import 'dart:math' show sin;
+import 'dart:math' show sin, pi;
 
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
@@ -22,6 +22,7 @@ class HomeRoom extends StatelessWidget {
     this.wall = _defaultWall,
     this.floor = _defaultFloor,
     this.window = 'moon',
+    this.petAwake = false,
   });
 
   /// Furniture piece-ids the player owns (GameState.ownedFurniture) — what
@@ -40,6 +41,9 @@ class HomeRoom extends StatelessWidget {
   /// The scene painted outside the window (content/window_scenes.dart).
   final String window;
 
+  /// Whether the companion is awake + happy (on a streak) vs cozily asleep.
+  final bool petAwake;
+
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
@@ -50,7 +54,8 @@ class HomeRoom extends StatelessWidget {
           children: [
             Positioned.fill(
               child: CustomPaint(
-                  painter: _RoomPainter(unlocked, wall, floor, window)),
+                  painter:
+                      _RoomPainter(unlocked, wall, floor, window, petAwake)),
             ),
             // the avatar, standing on the floor in the middle of the room
             Align(
@@ -68,11 +73,12 @@ class HomeRoom extends StatelessWidget {
 }
 
 class _RoomPainter extends CustomPainter {
-  _RoomPainter(this.unlocked, this.wall, this.floor, this.window);
+  _RoomPainter(this.unlocked, this.wall, this.floor, this.window, this.petAwake);
   final Set<String> unlocked;
   final List<Color> wall;
   final List<Color> floor;
   final String window;
+  final bool petAwake;
   bool has(String id) => unlocked.contains(id);
 
   // furniture wood tone (independent of the chosen wall/floor)
@@ -120,7 +126,7 @@ class _RoomPainter extends CustomPainter {
     if (has('chair')) _chair(canvas, w, h, floorY);
     if (has('candles')) _candles(canvas, w, h, floorY);
     if (has('plant')) _plant(canvas, w, h, floorY);
-    if (has('pet')) _pet(canvas, w, h, floorY);
+    if (has('pet')) _pet(canvas, w, h, floorY, petAwake);
   }
 
   void _window(Canvas canvas, double w, double h) {
@@ -330,37 +336,153 @@ class _RoomPainter extends CustomPainter {
     }
   }
 
-  void _pet(Canvas canvas, double w, double h, double floorY) {
-    final x = w * 0.66, y = floorY + (h - floorY) * 0.74;
-    final col = Paint()..color = const Color(0xFFC9A06E);
-    // curled body
+  // A little companion (round-50): curled cozily asleep, or — when you're on a
+  // streak — awake and beaming up at you. Never-punish: sleeping is rest, not
+  // a scold; the warmth is the reward for showing up.
+  void _pet(Canvas canvas, double w, double h, double floorY, bool awake) {
+    final u = h - floorY;
+    final cx = w * 0.66;
+    final baseY = floorY + u * 0.92;
+    final tan = Paint()..color = const Color(0xFFCBA471);
+    final tanLight = const Color(0xFFE0C091);
+    const ink = Color(0xFF5A4030);
+
+    // contact shadow
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(x, y), width: w * 0.13, height: (h - floorY) * 0.34),
-      col,
+      Rect.fromCenter(
+          center: Offset(cx, baseY), width: w * 0.17, height: u * 0.06),
+      Paint()..color = const Color(0x33000000),
     );
-    // head
-    final hx = x - w * 0.05;
-    canvas.drawCircle(Offset(hx, y - 2), w * 0.035, col);
-    // ears
-    for (final s in [-1.0, 1.0]) {
-      final ear = Path()
-        ..moveTo(hx + s * w * 0.02, y - w * 0.04)
-        ..lineTo(hx + s * w * 0.04, y - w * 0.075)
-        ..lineTo(hx + s * w * 0.045, y - w * 0.03)
+
+    void ear(Offset c, double s, double size) {
+      final p = Path()
+        ..moveTo(c.dx + s * size * 0.4, c.dy + size * 0.3)
+        ..lineTo(c.dx + s * size, c.dy - size)
+        ..lineTo(c.dx + s * size * 1.5, c.dy + size * 0.1)
         ..close();
-      canvas.drawPath(ear, col);
+      canvas.drawPath(p, tan);
     }
-    // a sleepy closed eye
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(hx, y - 3), radius: w * 0.012),
-      0,
-      3.14,
-      false,
-      Paint()
+
+    if (!awake) {
+      // ── asleep: a curled, rounded loaf with a tail wrapped to the front ──
+      final bodyC = Offset(cx, baseY - u * 0.1);
+      canvas.drawOval(
+        Rect.fromCenter(
+            center: bodyC, width: w * 0.17, height: u * 0.24),
+        tan,
+      );
+      // tail curling around the front
+      final tail = Path()
+        ..moveTo(cx + w * 0.08, baseY - u * 0.06)
+        ..quadraticBezierTo(
+            cx + w * 0.12, baseY - u * 0.2, cx + w * 0.02, baseY - u * 0.16);
+      canvas.drawPath(
+        tail,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = u * 0.08
+          ..strokeCap = StrokeCap.round
+          ..color = const Color(0xFFE0C091),
+      );
+      // head resting on the left
+      final hc = Offset(cx - w * 0.06, baseY - u * 0.13);
+      canvas.drawCircle(hc, w * 0.042, tan);
+      ear(hc.translate(-w * 0.025, -w * 0.02), -1, w * 0.03);
+      ear(hc.translate(w * 0.01, -w * 0.025), 1, w * 0.03);
+      // a sleepy closed eye
+      canvas.drawArc(
+        Rect.fromCircle(center: hc.translate(w * 0.005, 0), radius: w * 0.014),
+        0,
+        pi,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4
+          ..strokeCap = StrokeCap.round
+          ..color = ink,
+      );
+      // Zzz drifting up
+      final z = Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4
-        ..color = const Color(0xFF5A4030),
-    );
+        ..strokeWidth = 1.2
+        ..strokeCap = StrokeCap.round
+        ..color = Palette.xpLight.withValues(alpha: 0.6);
+      for (var i = 0; i < 3; i++) {
+        final s = w * (0.018 - i * 0.004);
+        final zx = hc.dx + w * 0.04 + i * w * 0.025;
+        final zy = hc.dy - u * 0.12 - i * u * 0.07;
+        canvas.drawLine(Offset(zx, zy), Offset(zx + s, zy), z);
+        canvas.drawLine(Offset(zx + s, zy), Offset(zx, zy + s), z);
+        canvas.drawLine(Offset(zx, zy + s), Offset(zx + s, zy + s), z);
+      }
+    } else {
+      // ── awake: sitting up, beaming up at you ──
+      // tail to the side
+      final tail = Path()
+        ..moveTo(cx + w * 0.05, baseY - u * 0.06)
+        ..quadraticBezierTo(
+            cx + w * 0.13, baseY - u * 0.04, cx + w * 0.11, baseY - u * 0.2);
+      canvas.drawPath(
+        tail,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = u * 0.06
+          ..strokeCap = StrokeCap.round
+          ..color = const Color(0xFFE0C091),
+      );
+      // body sitting
+      final bodyC = Offset(cx, baseY - u * 0.16);
+      canvas.drawOval(
+        Rect.fromCenter(
+            center: bodyC, width: w * 0.12, height: u * 0.3),
+        tan,
+      );
+      // belly highlight
+      canvas.drawOval(
+        Rect.fromCenter(
+            center: bodyC.translate(0, u * 0.04),
+            width: w * 0.07,
+            height: u * 0.16),
+        Paint()..color = tanLight.withValues(alpha: 0.6),
+      );
+      // head up
+      final hc = Offset(cx, baseY - u * 0.34);
+      canvas.drawCircle(hc, w * 0.058, tan);
+      ear(hc.translate(-w * 0.05, -w * 0.01), -1, w * 0.038);
+      ear(hc.translate(w * 0.012, -w * 0.01), 1, w * 0.038);
+      // big eyes with catchlights, looking up toward the ember
+      for (final s in [-1.0, 1.0]) {
+        final ec = hc.translate(s * w * 0.025, -w * 0.004);
+        canvas.drawOval(
+          Rect.fromCenter(
+              center: ec, width: w * 0.018, height: w * 0.024),
+          Paint()..color = ink,
+        );
+        canvas.drawCircle(ec.translate(-w * 0.004, -w * 0.006), w * 0.006,
+            Paint()..color = Colors.white.withValues(alpha: 0.9));
+      }
+      // a happy little smile
+      canvas.drawArc(
+        Rect.fromCenter(
+            center: hc.translate(0, w * 0.02),
+            width: w * 0.03,
+            height: w * 0.022),
+        pi * 0.1,
+        pi * 0.8,
+        false,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.3
+          ..strokeCap = StrokeCap.round
+          ..color = ink,
+      );
+      // rosy cheeks
+      final blush = Paint()
+        ..color = const Color(0x44D88A8A)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+      canvas.drawCircle(hc.translate(-w * 0.045, w * 0.012), w * 0.014, blush);
+      canvas.drawCircle(hc.translate(w * 0.045, w * 0.012), w * 0.014, blush);
+    }
   }
 
   // a string of warm bulbs draped across the upper wall (sags in the middle)
@@ -453,6 +575,7 @@ class _RoomPainter extends CustomPainter {
   bool shouldRepaint(_RoomPainter old) =>
       old.unlocked != unlocked ||
       old.window != window ||
+      old.petAwake != petAwake ||
       !listEquals(old.wall, wall) ||
       !listEquals(old.floor, floor);
 }

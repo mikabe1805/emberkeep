@@ -172,6 +172,31 @@ void main() {
     );
   });
 
+  testWidgets('companion: asleep vs awake', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(560, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const furn = {'rug', 'pet', 'plant', 'lamp', 'shelf'};
+    Widget room(bool awake) => SizedBox(
+          width: 500,
+          child: HomeRoom(
+            unlocked: furn,
+            petAwake: awake,
+            child: const Portrait(size: 100, level: 8, mood: PortraitMood.idle),
+          ),
+        );
+    await _shoot(
+      tester,
+      _stage(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [room(false), const SizedBox(height: 16), room(true)],
+        ),
+        pad: 16,
+      ),
+      'companion',
+    );
+  });
+
   testWidgets('window scenes', (tester) async {
     await tester.binding.setSurfaceSize(const Size(560, 520));
     addTearDown(() => tester.binding.setSurfaceSize(null));

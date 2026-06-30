@@ -149,6 +149,7 @@ class ShopScreen extends StatelessWidget {
                                 wall: wallColorsFor(state),
                                 floor: floorColorsFor(state),
                                 window: state.windowScene,
+                                petAwake: state.streakDays > 0,
                                 child: Portrait(
                                   size: 80,
                                   aura: state.dominantStat?.color,
