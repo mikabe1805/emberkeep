@@ -5,6 +5,7 @@
 // then open test/goldens/*.png. Not a pass/fail guard — purely a render dump.
 import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/furniture.dart';
+import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/home_room.dart';
 import 'package:emberkeep/widgets/portrait.dart';
@@ -19,6 +20,27 @@ Widget _stage(Widget child, {Color bg = const Color(0xFF241A20), double pad = 28
       body: Center(child: Padding(padding: EdgeInsets.all(pad), child: child)),
     ),
   );
+}
+
+/// Paints a window scene + frame, for the scene-grid screenshot.
+class _ScenePainter extends CustomPainter {
+  _ScenePainter(this.scene);
+  final String scene;
+  @override
+  void paint(Canvas canvas, Size size) {
+    paintWindowScene(canvas, scene, Offset.zero & size);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          (Offset.zero & size).deflate(1), const Radius.circular(6)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = const Color(0xFF5A4536),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
 // Golden renders are platform-fragile, so the PNG capture is OFF by default:
@@ -147,6 +169,31 @@ void main() {
         ),
       ),
       'portrait_small',
+    );
+  });
+
+  testWidgets('window scenes', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(560, 520));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _shoot(
+      tester,
+      _stage(
+        bg: const Color(0xFF1C141A),
+        pad: 14,
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final v in windowViews)
+              SizedBox(
+                width: 160,
+                height: 120,
+                child: CustomPaint(painter: _ScenePainter(v.id)),
+              ),
+          ],
+        ),
+      ),
+      'window_scenes',
     );
   });
 

@@ -1,3 +1,5 @@
+import 'dart:math' show sin;
+
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
@@ -19,6 +21,7 @@ class HomeRoom extends StatelessWidget {
     this.aspect = 1.7,
     this.wall = _defaultWall,
     this.floor = _defaultFloor,
+    this.window = 'moon',
   });
 
   /// Furniture piece-ids the player owns (GameState.ownedFurniture) — what
@@ -34,6 +37,9 @@ class HomeRoom extends StatelessWidget {
   final List<Color> wall;
   final List<Color> floor;
 
+  /// The scene painted outside the window (content/window_scenes.dart).
+  final String window;
+
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
@@ -43,7 +49,8 @@ class HomeRoom extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              child: CustomPaint(painter: _RoomPainter(unlocked, wall, floor)),
+              child: CustomPaint(
+                  painter: _RoomPainter(unlocked, wall, floor, window)),
             ),
             // the avatar, standing on the floor in the middle of the room
             Align(
@@ -61,10 +68,11 @@ class HomeRoom extends StatelessWidget {
 }
 
 class _RoomPainter extends CustomPainter {
-  _RoomPainter(this.unlocked, this.wall, this.floor);
+  _RoomPainter(this.unlocked, this.wall, this.floor, this.window);
   final Set<String> unlocked;
   final List<Color> wall;
   final List<Color> floor;
+  final String window;
   bool has(String id) => unlocked.contains(id);
 
   // furniture wood tone (independent of the chosen wall/floor)
@@ -117,25 +125,11 @@ class _RoomPainter extends CustomPainter {
 
   void _window(Canvas canvas, double w, double h) {
     final fx = w * 0.07, fy = h * 0.13, fw = w * 0.26, fh = h * 0.3;
-    final r = RRect.fromRectAndRadius(
-      Rect.fromLTWH(fx, fy, fw, fh),
-      const Radius.circular(6),
-    );
-    canvas.drawRRect(r, Paint()..color = const Color(0xFF14100C)); // night sky
-    // crescent moon
-    final mc = Offset(fx + fw * 0.64, fy + fh * 0.34);
-    canvas.drawCircle(mc, fw * 0.14, Paint()..color = Palette.xpLight);
-    canvas.drawCircle(
-      mc.translate(fw * 0.07, -fw * 0.04),
-      fw * 0.14,
-      Paint()..color = const Color(0xFF14100C),
-    );
-    // stars
-    final star = Paint()..color = Palette.xpLight.withValues(alpha: 0.8);
-    canvas.drawCircle(Offset(fx + fw * 0.24, fy + fh * 0.28), 1.4, star);
-    canvas.drawCircle(Offset(fx + fw * 0.36, fy + fh * 0.58), 1.1, star);
-    canvas.drawCircle(Offset(fx + fw * 0.2, fy + fh * 0.62), 1.0, star);
-    // frame + mullions
+    final rect = Rect.fromLTWH(fx, fy, fw, fh);
+    final r = RRect.fromRectAndRadius(rect, const Radius.circular(6));
+    // the view outside (clipped to the pane)
+    paintWindowScene(canvas, window, rect);
+    // frame + mullions on top
     final edge = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3
@@ -458,6 +452,167 @@ class _RoomPainter extends CustomPainter {
   @override
   bool shouldRepaint(_RoomPainter old) =>
       old.unlocked != unlocked ||
+      old.window != window ||
       !listEquals(old.wall, wall) ||
       !listEquals(old.floor, floor);
+}
+
+/// Paints the landscape inside a window pane [rect] for the chosen [scene]
+/// (content/window_scenes.dart). Public so the shop's preview swatch can reuse
+/// it. Clips to the pane; the caller draws the frame on top.
+void paintWindowScene(Canvas canvas, String scene, Rect rect) {
+  final fx = rect.left, fy = rect.top, fw = rect.width, fh = rect.height;
+  final rr = RRect.fromRectAndRadius(rect, const Radius.circular(6));
+  canvas.save();
+  canvas.clipRRect(rr);
+
+  Offset at(double x, double y) => Offset(fx + fw * x, fy + fh * y);
+  final star = Paint()..color = Palette.xpLight.withValues(alpha: 0.85);
+  void stars(List<Offset> pts) {
+    for (var i = 0; i < pts.length; i++) {
+      canvas.drawCircle(at(pts[i].dx, pts[i].dy), 1.3 - (i.isOdd ? 0.4 : 0), star);
+    }
+  }
+
+  void sky(List<Color> colors) => canvas.drawRect(
+        rect,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: colors,
+          ).createShader(rect),
+      );
+  void fullMoon(double x, double y, double rFrac) =>
+      canvas.drawCircle(at(x, y), fw * rFrac, Paint()..color = Palette.xpLight);
+
+  switch (scene) {
+    case 'city':
+      sky(const [Color(0xFF161A2E), Color(0xFF241A2A)]);
+      stars(const [Offset(0.18, 0.18), Offset(0.42, 0.12), Offset(0.8, 0.2)]);
+      fullMoon(0.2, 0.24, 0.08);
+      // skyline silhouette with lit windows
+      final sil = Paint()..color = const Color(0xFF0A0C16);
+      final lit = Paint()..color = const Color(0xFFE8C77A);
+      const bx = [0.08, 0.26, 0.42, 0.58, 0.74, 0.88];
+      const bh = [0.34, 0.5, 0.28, 0.46, 0.36, 0.24];
+      for (var i = 0; i < bx.length; i++) {
+        final bw = fw * 0.13;
+        final top = fy + fh * (1 - bh[i]);
+        canvas.drawRect(
+            Rect.fromLTWH(fx + fw * bx[i] - bw / 2, top, bw, fh), sil);
+        for (var r = 0; r < 3; r++) {
+          for (var c = 0; c < 2; c++) {
+            if ((i + r + c).isEven) continue;
+            canvas.drawRect(
+              Rect.fromLTWH(fx + fw * bx[i] - bw * 0.28 + c * bw * 0.34,
+                  top + fh * 0.06 + r * fh * 0.1, fw * 0.022, fh * 0.04),
+              lit,
+            );
+          }
+        }
+      }
+    case 'forest':
+      sky(const [Color(0xFF101A14), Color(0xFF16140E)]);
+      stars(const [Offset(0.2, 0.18), Offset(0.5, 0.14), Offset(0.34, 0.3)]);
+      fullMoon(0.72, 0.26, 0.11);
+      final tree = Paint()..color = const Color(0xFF0A140E);
+      const tx = [0.1, 0.26, 0.44, 0.62, 0.8, 0.94];
+      const th = [0.42, 0.56, 0.46, 0.6, 0.5, 0.4];
+      for (var i = 0; i < tx.length; i++) {
+        final baseY = fy + fh;
+        final topY = fy + fh * (1 - th[i]);
+        final cxp = fx + fw * tx[i], halfW = fw * 0.07;
+        final p = Path()
+          ..moveTo(cxp, topY)
+          ..lineTo(cxp - halfW, baseY)
+          ..lineTo(cxp + halfW, baseY)
+          ..close();
+        canvas.drawPath(p, tree);
+      }
+    case 'mountains':
+      sky(const [Color(0xFF1A2236), Color(0xFF2A2438)]);
+      stars(const [Offset(0.16, 0.16), Offset(0.6, 0.12), Offset(0.84, 0.22)]);
+      fullMoon(0.78, 0.22, 0.09);
+      final back = Paint()..color = const Color(0xFF2C3450);
+      final front = Paint()..color = const Color(0xFF161C2C);
+      Path ridge(double baseFrac, List<double> peaks) {
+        final p = Path()..moveTo(fx, fy + fh);
+        final n = peaks.length;
+        for (var i = 0; i < n; i++) {
+          p.lineTo(fx + fw * (i / (n - 1)), fy + fh * (1 - peaks[i]));
+        }
+        p..lineTo(fx + fw, fy + fh)..close();
+        return p;
+      }
+      canvas.drawPath(ridge(0, const [0.3, 0.5, 0.36, 0.56, 0.34]), back);
+      canvas.drawPath(ridge(0, const [0.18, 0.34, 0.22, 0.4, 0.2, 0.36]), front);
+    case 'rain':
+      sky(const [Color(0xFF14100C), Color(0xFF181820)]);
+      // dim crescent behind the rain
+      canvas.drawCircle(at(0.66, 0.3), fw * 0.12,
+          Paint()..color = Palette.xpLight.withValues(alpha: 0.7));
+      canvas.drawCircle(at(0.72, 0.27), fw * 0.12,
+          Paint()..color = const Color(0xFF14100C));
+      final drop = Paint()
+        ..color = const Color(0xFFAEB8D0).withValues(alpha: 0.5)
+        ..strokeWidth = 1;
+      for (var i = 0; i < 22; i++) {
+        final x = fx + fw * ((i * 0.137) % 1.0);
+        final y = fy + fh * ((i * 0.231) % 1.0);
+        canvas.drawLine(Offset(x, y), Offset(x - fw * 0.03, y + fh * 0.1), drop);
+      }
+    case 'dawn':
+      sky(const [Color(0xFF3A2A4A), Color(0xFFB5683E), Color(0xFFE8B570)]);
+      // a low sun with a soft glow
+      canvas.drawCircle(at(0.3, 0.62), fw * 0.3,
+          Paint()
+            ..color = const Color(0xFFF6D79A).withValues(alpha: 0.4)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+      canvas.drawCircle(
+          at(0.3, 0.62), fw * 0.13, Paint()..color = const Color(0xFFFFE9B8));
+      // hill silhouette
+      final hill = Path()
+        ..moveTo(fx, fy + fh)
+        ..lineTo(fx, fy + fh * 0.78)
+        ..quadraticBezierTo(
+            fx + fw * 0.5, fy + fh * 0.66, fx + fw, fy + fh * 0.8)
+        ..lineTo(fx + fw, fy + fh)
+        ..close();
+      canvas.drawPath(hill, Paint()..color = const Color(0xFF6E4A38));
+    case 'aurora':
+      sky(const [Color(0xFF0A1220), Color(0xFF101A26)]);
+      stars(const [
+        Offset(0.2, 0.2), Offset(0.5, 0.14), Offset(0.8, 0.24), Offset(0.66, 0.4)
+      ]);
+      // wavy aurora bands, blurred
+      for (final band in [
+        (0.28, const Color(0xFF6FE0A0)),
+        (0.5, const Color(0xFF8FD0E0)),
+        (0.72, const Color(0xFFB58AE0)),
+      ]) {
+        final p = Path()..moveTo(fx, fy + fh * 0.5);
+        for (var i = 0; i <= 6; i++) {
+          final x = fx + fw * (i / 6);
+          final y = fy +
+              fh * (0.34 + 0.12 * sin(i * 1.3 + band.$1 * 6) + band.$1 * 0.18);
+          p.lineTo(x, y);
+        }
+        canvas.drawPath(
+          p,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = fh * 0.08
+            ..color = band.$2.withValues(alpha: 0.45)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, fh * 0.04),
+        );
+      }
+    default: // 'moon' — the classic moonlit night
+      canvas.drawRect(rect, Paint()..color = const Color(0xFF14100C));
+      canvas.drawCircle(at(0.64, 0.34), fw * 0.14, Paint()..color = Palette.xpLight);
+      canvas.drawCircle(at(0.64, 0.34).translate(fw * 0.07, -fw * 0.04),
+          fw * 0.14, Paint()..color = const Color(0xFF14100C));
+      stars(const [Offset(0.24, 0.28), Offset(0.36, 0.58), Offset(0.2, 0.62)]);
+  }
+  canvas.restore();
 }

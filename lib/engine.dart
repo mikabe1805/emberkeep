@@ -126,6 +126,26 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Window views (round-49) — the landscape outside your room's window, the
+  /// owner's "landscape behind avatar." Exclusive (one view at a time); the
+  /// free default 'moon' is implicitly owned.
+  final Set<String> ownedWindows = {};
+  String windowScene = 'moon';
+
+  bool buyWindow(String id, int price, {bool allowed = true}) {
+    if (!allowed || embers < price || ownedWindows.contains(id)) return false;
+    embers -= price;
+    ownedWindows.add(id);
+    windowScene = id;
+    notifyListeners();
+    return true;
+  }
+
+  void applyWindow(String id) {
+    windowScene = id;
+    notifyListeners();
+  }
+
   /// Per-domain journal — notes the user keeps on a whole life domain (their
   /// "base" for Home, Care, Craft…). Sparse: only domains with entries appear.
   /// Lists are replaced wholesale (see [NoteList]) so callers never mutate in
@@ -791,6 +811,8 @@ class GameState extends ChangeNotifier {
     'floorStyle': floorStyle,
     'ownedSkins': ownedSkins.toList(),
     'creatureSkin': creatureSkin,
+    'ownedWindows': ownedWindows.toList(),
+    'windowScene': windowScene,
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
     // per-domain notes, by Stat order (parallel to 'stats'); empty lists
     // for domains with nothing kept, so a restore maps cleanly by index.
@@ -856,6 +878,8 @@ class GameState extends ChangeNotifier {
     s.floorStyle = j['floorStyle'] as String? ?? 'floor_oak';
     s.ownedSkins.addAll(((j['ownedSkins'] as List?) ?? const []).cast());
     s.creatureSkin = j['creatureSkin'] as String? ?? 'ember_amber';
+    s.ownedWindows.addAll(((j['ownedWindows'] as List?) ?? const []).cast());
+    s.windowScene = j['windowScene'] as String? ?? 'moon';
     final st = (j['stats'] as List?)?.cast<int>() ?? const [];
     for (var i = 0; i < Stat.values.length && i < st.length; i++) {
       s.stats[Stat.values[i]] = st[i];

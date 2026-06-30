@@ -5,6 +5,7 @@ import '../audio.dart';
 import '../content/creature_skins.dart';
 import '../content/furniture.dart';
 import '../content/room_styles.dart';
+import '../content/window_scenes.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
@@ -82,6 +83,26 @@ class ShopScreen extends StatelessWidget {
     onPersist();
   }
 
+  void _buyWindow(WindowView v) {
+    final ok =
+        state.buyWindow(v.id, v.price, allowed: windowUnlocked(v, state));
+    if (ok) {
+      Sfx.instance.play('loot');
+      HapticFeedback.mediumImpact();
+      onPersist();
+    } else {
+      Sfx.instance.play('tick');
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  void _applyWindow(WindowView v) {
+    state.applyWindow(v.id);
+    Sfx.instance.play('tick');
+    HapticFeedback.selectionClick();
+    onPersist();
+  }
+
   Widget _sectionHeader(String label) => Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 8, top: 2),
         child: Text(
@@ -127,6 +148,7 @@ class ShopScreen extends StatelessWidget {
                                 unlocked: state.ownedFurniture,
                                 wall: wallColorsFor(state),
                                 floor: floorColorsFor(state),
+                                window: state.windowScene,
                                 child: Portrait(
                                   size: 80,
                                   aura: state.dominantStat?.color,
@@ -178,6 +200,17 @@ class ShopScreen extends StatelessWidget {
                             state: state,
                             onBuy: () => _buyStyle(st),
                             onApply: () => _applyStyle(st),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        const SizedBox(height: 8),
+                        _sectionHeader('THE VIEW'),
+                        for (final v in windowViews) ...[
+                          _WindowCard(
+                            view: v,
+                            state: state,
+                            onBuy: () => _buyWindow(v),
+                            onApply: () => _applyWindow(v),
                           ),
                           const SizedBox(height: 10),
                         ],
@@ -508,6 +541,167 @@ class _StyleCard extends StatelessWidget {
           ],
         ),
       );
+}
+
+/// A window-view row: a live painted swatch of the scene + buy / apply states.
+class _WindowCard extends StatelessWidget {
+  const _WindowCard({
+    required this.view,
+    required this.state,
+    required this.onBuy,
+    required this.onApply,
+  });
+
+  final WindowView view;
+  final GameState state;
+  final VoidCallback onBuy;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final applied = isWindowApplied(state, view);
+    return GlassPanel(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(7),
+            child: SizedBox(
+              width: 64,
+              height: 46,
+              child: CustomPaint(painter: _WindowSwatchPainter(view.id)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(view.name,
+                    style: Type.label
+                        .copyWith(fontSize: 13, color: Palette.textHi)),
+                const SizedBox(height: 4),
+                Text(
+                  view.id == 'moon'
+                      ? 'the original night sky'
+                      : 'a new view outside your window',
+                  style:
+                      Type.body.copyWith(fontSize: 11.5, color: Palette.textLo),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          _cta(applied),
+        ],
+      ),
+    );
+  }
+
+  Widget _cta(bool applied) {
+    if (applied) {
+      return _pill(Palette.success, Icons.check_rounded, 'on now');
+    }
+    if (isWindowOwned(state, view)) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onApply,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Palette.xp.withValues(alpha: 0.6)),
+          ),
+          child: Text('Apply',
+              style: Type.label.copyWith(fontSize: 11, color: Palette.xpLight)),
+        ),
+      );
+    }
+    if (!windowUnlocked(view, state)) {
+      return _lockedPill(windowGateLabel(view) ?? 'a trophy');
+    }
+    if (state.embers >= view.price) {
+      return HoneyButton(label: '✦ ${view.price}', onTap: onBuy);
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text('✦ ${view.price}',
+            style: Type.display.copyWith(fontSize: 17, color: Palette.xp)),
+        const SizedBox(height: 1),
+        Text('${view.price - state.embers} to go',
+            style: Type.body.copyWith(fontSize: 10, color: Palette.textLo)),
+      ],
+    );
+  }
+
+  Widget _pill(Color c, IconData icon, String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: c.withValues(alpha: 0.15),
+          border: Border.all(color: c.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: c),
+            const SizedBox(width: 5),
+            Text(label, style: Type.label.copyWith(fontSize: 10, color: c)),
+          ],
+        ),
+      );
+
+  Widget _lockedPill(String trophy) => Container(
+        constraints: const BoxConstraints(maxWidth: 124),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.black.withValues(alpha: 0.16),
+          border: Border.all(color: Palette.textLo.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 13, color: Palette.textLo),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text('earn “$trophy”',
+                  style:
+                      Type.body.copyWith(fontSize: 10, color: Palette.textLo)),
+            ),
+          ],
+        ),
+      );
+}
+
+class _WindowSwatchPainter extends CustomPainter {
+  _WindowSwatchPainter(this.scene);
+  final String scene;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    paintWindowScene(canvas, scene, rect);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect.deflate(0.5), const Radius.circular(6)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFF5A4536),
+    );
+    final bar = Paint()
+      ..color = const Color(0xFF5A4536)
+      ..strokeWidth = 1.2;
+    canvas.drawLine(
+        Offset(0, size.height / 2), Offset(size.width, size.height / 2), bar);
+    canvas.drawLine(
+        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), bar);
+  }
+
+  @override
+  bool shouldRepaint(_WindowSwatchPainter old) => old.scene != scene;
 }
 
 /// A creature-skin row: a live mini-ember in that colour + buy / wear / locked

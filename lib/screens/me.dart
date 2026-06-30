@@ -133,6 +133,7 @@ class MePage extends StatelessWidget {
                   unlocked: state.ownedFurniture,
                   wall: wallColorsFor(state),
                   floor: floorColorsFor(state),
+                  window: state.windowScene,
                   child: Portrait(
                     size: 96,
                     aura:

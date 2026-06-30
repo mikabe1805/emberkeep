@@ -501,4 +501,29 @@ void main() {
     expect(loaded!.$1.ownedSkins, contains('mint_glass'));
     expect(loaded.$1.creatureSkin, 'ember_amber');
   });
+
+  test('window views: buy applies, apply switches, gate + persist', () async {
+    SharedPreferences.setMockInitialValues({});
+    final state = GameState()..embers = 500;
+    expect(state.windowScene, 'moon'); // free default
+
+    expect(state.buyWindow('city', 140), isTrue);
+    expect(state.embers, 360);
+    expect(state.ownedWindows, contains('city'));
+    expect(state.windowScene, 'city');
+    expect(state.buyWindow('city', 140), isFalse);
+
+    state.applyWindow('moon'); // back to the free default, no charge
+    expect(state.windowScene, 'moon');
+    expect(state.embers, 360);
+
+    expect(state.buyWindow('aurora', 280, allowed: false), isFalse);
+    expect(state.ownedWindows, isNot(contains('aurora')));
+
+    await Storage.save(state, const []);
+    final loaded = await Storage.load();
+    expect(loaded, isNotNull);
+    expect(loaded!.$1.ownedWindows, contains('city'));
+    expect(loaded.$1.windowScene, 'moon');
+  });
 }
