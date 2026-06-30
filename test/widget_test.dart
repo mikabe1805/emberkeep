@@ -418,4 +418,28 @@ void main() {
     expect(loaded!.$1.embers, 175);
     expect(loaded.$1.ownedFurniture, containsAll(['rug', 'lamp', 'plant']));
   });
+
+  test('journal: free entries persist alongside attached notes', () async {
+    SharedPreferences.setMockInitialValues({});
+    final state = GameState()..playerName = 'Mika';
+    state.setJournal(state.journal
+        .withNote('first thought', DateTime(2026, 6, 28))
+        .withNote('second thought', DateTime(2026, 6, 29)));
+    expect(state.journal.length, 2);
+    // a domain note coexists — the hub aggregates both
+    state.setDomainNotes(
+        Stat.vit, [Note(at: DateTime(2026, 6, 27), text: 'ran a 5k')]);
+
+    await Storage.save(state, const []);
+    final loaded = await Storage.load();
+    expect(loaded, isNotNull);
+    expect(loaded!.$1.journal.map((n) => n.text),
+        containsAll(['first thought', 'second thought']));
+    expect(loaded.$1.notesFor(Stat.vit).first.text, 'ran a 5k');
+
+    // deleting a free entry sticks
+    loaded.$1.setJournal(loaded.$1.journal.without(loaded.$1.journal.first));
+    expect(loaded.$1.journal.length, 1);
+    expect(loaded.$1.journal.first.text, 'second thought');
+  });
 }

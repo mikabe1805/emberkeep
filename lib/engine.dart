@@ -95,6 +95,15 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// The free-form journal (round-45) — notes not tied to any one quest, goal
+  /// or domain. The standalone "maybe even a journal" the owner asked for, and
+  /// the writing home of the Journal hub that finally makes notes discoverable.
+  List<Note> journal = const [];
+  void setJournal(List<Note> notes) {
+    journal = notes;
+    notifyListeners();
+  }
+
   /// Recent gains, newest first — the Me page's attribution ledger.
   final List<LedgerEntry> ledger = [];
 
@@ -733,6 +742,7 @@ class GameState extends ChangeNotifier {
       for (final s in Stat.values)
         [for (final n in domainNotes[s] ?? const []) n.toJson()],
     ],
+    'journal': [for (final n in journal) n.toJson()],
     'ledger': [for (final e in ledger) e.toJson()],
     'streakDays': streakDays,
     'bestStreak': bestStreak,
@@ -797,6 +807,10 @@ class GameState extends ChangeNotifier {
       ];
       if (list.isNotEmpty) s.domainNotes[Stat.values[i]] = list;
     }
+    s.journal = [
+      for (final e in (j['journal'] as List?) ?? const [])
+        Note.fromJson((e as Map).cast<String, dynamic>()),
+    ];
     for (final e in (j['ledger'] as List?) ?? const []) {
       s.ledger.add(LedgerEntry.fromJson((e as Map).cast<String, dynamic>()));
     }

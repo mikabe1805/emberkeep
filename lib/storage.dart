@@ -16,7 +16,7 @@ abstract final class Storage {
   /// Save-format version. BUMP whenever new persisted fields are added so the
   /// cloud-merge can refuse to adopt an OLDER build's save that would have
   /// silently stripped fields it doesn't know about (bug-hunt §5).
-  static const schema = 7; // r42: + embers & ownedFurniture (shop currency)
+  static const schema = 8; // r45: + journal (free-form notes for the hub)
 
   /// Where an unparseable save is quarantined before a fresh start, so a
   /// corrupt blob is never silently destroyed (it may be hand-recoverable).

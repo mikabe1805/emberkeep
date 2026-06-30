@@ -2,19 +2,32 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../audio.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/glass.dart';
+import 'journal_hub.dart';
 
 /// The Insights tab (round-22): what your fire is telling you — trends drawn
 /// from your OWN data (history, stat totals, rhythm, streaks). Replaces the
 /// old passive Sparks feed; evidence now lives where it matters (stat popups,
 /// the per-quest "why this helps"). Everything here is computed locally.
 class InsightsPage extends StatelessWidget {
-  const InsightsPage({super.key, required this.state});
+  const InsightsPage({
+    super.key,
+    required this.state,
+    required this.quests,
+    required this.onPersist,
+  });
 
   final GameState state;
+
+  /// Live board quests — threaded so the Journal hub can gather quest logs.
+  final List<Quest> quests;
+
+  /// Persists the save after a journal edit in the hub.
+  final VoidCallback onPersist;
 
   static const _weekdayShort = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   static const _weekdayFull = [
@@ -45,6 +58,8 @@ class InsightsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          _journalCard(context),
+          const SizedBox(height: 14),
           if (state.totalCompletions == 0)
             _empty()
           else ...[
@@ -61,6 +76,79 @@ class InsightsPage extends StatelessWidget {
             _activity(),
           ],
         ],
+      ),
+    );
+  }
+
+  int _noteCount() {
+    var n = state.journal.length;
+    for (final s in Stat.values) {
+      n += state.notesFor(s).length;
+    }
+    for (final g in state.goals) {
+      n += g.notes.length;
+    }
+    for (final q in quests) {
+      n += q.log.length;
+    }
+    return n;
+  }
+
+  /// The discoverable home for notes (round-45): a prominent, always-visible
+  /// card into the Journal hub — the fix for "I don't see the notes feature
+  /// anywhere." Lives at the top of Insights, where the owner looked for it.
+  Widget _journalCard(BuildContext context) {
+    final n = _noteCount();
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Sfx.instance.play('tick');
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => JournalHubScreen(
+              state: state,
+              quests: quests,
+              onPersist: onPersist,
+            ),
+          ),
+        );
+      },
+      child: GlassPanel(
+        glow: true,
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Palette.xp.withValues(alpha: 0.16),
+                border: Border.all(color: Palette.xp.withValues(alpha: 0.4)),
+              ),
+              child: const Icon(Icons.auto_stories_outlined,
+                  size: 20, color: Palette.xpLight),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Your Journal',
+                      style: Type.display.copyWith(fontSize: 18)),
+                  const SizedBox(height: 2),
+                  Text(
+                    n == 0
+                        ? 'write a thought · read everything you’ve kept'
+                        : '$n ${n == 1 ? "note" : "notes"} kept · tap to read & write',
+                    style:
+                        Type.body.copyWith(fontSize: 12, color: Palette.textLo),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
+          ],
+        ),
       ),
     );
   }

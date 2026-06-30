@@ -506,7 +506,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                     ),
                     CalendarPage(
                         state: state, quests: quests, onAdd: _addQuest),
-                    InsightsPage(state: state),
+                    InsightsPage(
+                      state: state,
+                      quests: quests,
+                      onPersist: _persist,
+                    ),
                   ],
                 ),
               ),
