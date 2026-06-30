@@ -11,6 +11,48 @@ import '../widgets/glass.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/particles.dart';
 
+/// Tiny Fogg-floor starter quests per life domain — tapped to pre-fill the
+/// Ember Sheet, so a new user forging a goal never faces a blank quest field
+/// (round-35: the wizard helps instead of interrogating).
+const _questIdeas = <Stat, List<String>>{
+  Stat.str: [
+    'Stretch for two minutes',
+    'Take a short walk',
+    'Ten push-ups',
+    'Stand and move each hour',
+  ],
+  Stat.vit: [
+    'Drink a glass of water',
+    'Eat something green',
+    'Wind down before bed',
+    'A proper night’s sleep',
+  ],
+  Stat.intl: [
+    'Read one page',
+    'Write one line',
+    'Name three good things',
+    'Learn one new thing',
+  ],
+  Stat.foc: [
+    'One focused 25-minute block',
+    'Tidy your workspace',
+    'Practice for ten minutes',
+    'Plan tomorrow tonight',
+  ],
+  Stat.soc: [
+    'Text someone you miss',
+    'Call a friend',
+    'Check in on family',
+    'Plan a hangout',
+  ],
+  Stat.dis: [
+    'Make your bed',
+    'A ten-minute tidy',
+    'Wash the dishes',
+    'One load of laundry',
+  ],
+};
+
 /// The Oath Wizard (round-23 rewrite): goal creation as ONE warm scroll, not a
 /// 3-step form. Name your oath → keep-practicing or finish-line → its domain →
 /// add the quests that get you there (via the shared Ember Sheet) → swear it.
@@ -52,7 +94,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
     super.dispose();
   }
 
-  void _addQuest() async {
+  void _addQuest({String? title}) async {
     if (_name.text.trim().isEmpty) {
       Sfx.instance.play('boing');
       setState(() => _error = 'name your oath first');
@@ -62,6 +104,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
       context,
       EmberSheetConfig(
         surface: EmberSurface.goal,
+        defaultTitle: title, // a tapped suggestion pre-fills the sheet
         defaultStat: _stat,
         lockStat: true,
         goalTitle: _name.text.trim(),
@@ -69,6 +112,68 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
       ),
     );
     if (q != null) setState(() => _quests.add(q));
+  }
+
+  /// A few tappable starter-quest ideas for the chosen domain (minus any
+  /// already added) — the cure for the blank-quest-field on a user's first goal.
+  Widget _suggestionChips() {
+    final taken = _quests.map((q) => q.title.toLowerCase()).toSet();
+    final ideas = (_questIdeas[_stat] ?? const <String>[])
+        .where((t) => !taken.contains(t.toLowerCase()))
+        .take(3)
+        .toList();
+    if (ideas.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'NEED IDEAS? TAP ONE',
+            style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final t in ideas)
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _addQuest(title: t),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      color: _stat.color.withValues(alpha: 0.10),
+                      border: Border.all(
+                        color: _stat.color.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add, size: 13, color: _stat.color),
+                        const SizedBox(width: 5),
+                        Text(
+                          t,
+                          style: Type.body.copyWith(
+                            fontSize: 12.5,
+                            color: Palette.textMid,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _swear() async {
@@ -371,6 +476,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                       ),
                     ),
                   ),
+                  _suggestionChips(),
                   const SizedBox(height: 10),
                   if (_quests.isEmpty)
                     Text(
