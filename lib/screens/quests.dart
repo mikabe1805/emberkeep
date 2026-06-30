@@ -1087,6 +1087,73 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// A clear, tappable "good morning" prompt whenever the briefing is owed —
   /// so a missed auto-show never leaves the morning unreachable (user report).
+  /// A once-a-week look-back the first time you open the board in a new week —
+  /// last week's days-lit + total, vs the week before. Dismissible, never nags.
+  Widget _weekRecapPanel() {
+    if (!_state.weekRecapDue) return const SizedBox.shrink();
+    final r = _state.weeklyRecap();
+    final deltaLine = r.delta > 0
+        ? '▲ ${r.delta} more than the week before — your strongest stretch yet.'
+        : r.delta < 0
+        ? 'a quieter week than the one before — this new one is yours to claim.'
+        : 'steady with the week before — consistency is its own win.';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: GlassPanel(
+        glow: true,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.calendar_today, size: 17, color: Palette.xpLight),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'LAST WEEK',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.xpLight,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'You lit ${r.litDays} of 7 days — ${r.total} '
+                    'quest${r.total == 1 ? '' : 's'}.',
+                    style: Type.body.copyWith(
+                      fontSize: 13.5,
+                      color: Palette.textHi,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    deltaLine,
+                    style: Type.body.copyWith(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Sfx.instance.play('tick');
+                _state.dismissWeekRecap();
+                widget.onPersist();
+              },
+              child: const Icon(Icons.close, size: 15, color: Palette.textLo),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _morningPanel() {
     if (!_state.morningAvailable) return const SizedBox.shrink();
     return Padding(
@@ -1447,6 +1514,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         const SizedBox(height: 8),
         const InstallHint(),
         _morningPanel(),
+        _weekRecapPanel(),
         _reAnchorPanel(),
         _sparkPanel(),
 

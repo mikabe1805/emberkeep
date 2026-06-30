@@ -296,4 +296,24 @@ void main() {
     expect(two, contains('Body'));
     expect(two, contains('Home'));
   });
+
+  test('weekly recap looks back at last week from history', () {
+    today = DateTime(2026, 6, 22); // a Monday — start of a fresh week
+    final s = GameState();
+    // last week (Mon 6/15 .. Sun 6/21)
+    s.history['2026-06-15'] = 3;
+    s.history['2026-06-17'] = 2;
+    s.history['2026-06-20'] = 1;
+    // the week before (2 completions)
+    s.history['2026-06-09'] = 2;
+
+    expect(s.weekRecapDue, isTrue);
+    final r = s.weeklyRecap();
+    expect(r.litDays, 3);
+    expect(r.total, 6);
+    expect(r.delta, 4); // 6 last week − 2 the week before
+
+    s.dismissWeekRecap();
+    expect(s.weekRecapDue, isFalse); // once per week, never nags
+  });
 }

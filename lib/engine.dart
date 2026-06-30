@@ -217,6 +217,52 @@ class GameState extends ChangeNotifier {
   /// delight shows once per day, never nags (RESEARCH §3 / scout pick #1).
   String? sparkSeenDay;
 
+  /// Monday-key of the week whose "last week" recap has been seen — the weekly
+  /// temporal-landmark card shows once per new week, never nags (round-37).
+  String? weekRecapSeenWeek;
+
+  int _weekTotal(int weeksAgo) {
+    final start = Days.weekStart(
+      Clock.now(),
+    ).subtract(Duration(days: 7 * weeksAgo));
+    var total = 0;
+    for (var i = 0; i < 7; i++) {
+      total += history[Days.key(start.add(Duration(days: i)))] ?? 0;
+    }
+    return total;
+  }
+
+  int _weekLitDays(int weeksAgo) {
+    final start = Days.weekStart(
+      Clock.now(),
+    ).subtract(Duration(days: 7 * weeksAgo));
+    var lit = 0;
+    for (var i = 0; i < 7; i++) {
+      if ((history[Days.key(start.add(Duration(days: i)))] ?? 0) > 0) lit++;
+    }
+    return lit;
+  }
+
+  /// True on the first open of a new week, once last week had any activity to
+  /// look back on (and it hasn't been dismissed yet).
+  bool get weekRecapDue {
+    final wk = Days.key(Days.weekStart(Clock.now()));
+    return weekRecapSeenWeek != wk && _weekTotal(1) > 0;
+  }
+
+  /// Last week's shape: days lit (of 7), total completions, and the change vs
+  /// the week before.
+  ({int litDays, int total, int delta}) weeklyRecap() => (
+    litDays: _weekLitDays(1),
+    total: _weekTotal(1),
+    delta: _weekTotal(1) - _weekTotal(2),
+  );
+
+  void dismissWeekRecap() {
+    weekRecapSeenWeek = Days.key(Days.weekStart(Clock.now()));
+    notifyListeners();
+  }
+
   /// Morning briefing AUTO-shows once a night is armed AND enough time has
   /// passed since you wound down that you've plausibly slept — so a 3am night
   /// still earns a morning when you wake, and closing the night at 3am doesn't
@@ -678,6 +724,7 @@ class GameState extends ChangeNotifier {
         'morningArmed': morningArmed,
         'nightDoneAt': nightDoneAt,
         'sparkSeenDay': sparkSeenDay,
+        'weekRecapSeenWeek': weekRecapSeenWeek,
       };
 
   static GameState fromJson(Map<String, dynamic> j) {
@@ -758,6 +805,7 @@ class GameState extends ChangeNotifier {
         (j['nightDoneDay'] != null &&
             j['morningDoneDay'] != Days.key(Clock.now()));
     s.sparkSeenDay = j['sparkSeenDay'] as String?;
+    s.weekRecapSeenWeek = j['weekRecapSeenWeek'] as String?;
     return s;
   }
 }
