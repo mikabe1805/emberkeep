@@ -97,6 +97,10 @@ void main() {
 
   testWidgets('rapid double-complete then undo keeps the first quest\'s reward',
       (tester) async {
+    // a tall surface so the full board (+ the Ember-of-the-Day card) fits and
+    // both quests + the undo card stay built (no lazy-list scroll fragility)
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await pumpApp(tester);
     expect(find.text('TODAY · 9 LEFT'), findsOneWidget);
 

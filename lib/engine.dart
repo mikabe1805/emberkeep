@@ -163,7 +163,8 @@ class GameState extends ChangeNotifier {
 
   /// ACHIEVE goals that just crossed the finish line, awaiting their takeover.
   final List<Goal> _achievedQ = [];
-  Goal? takeJustAchieved() => _achievedQ.isEmpty ? null : _achievedQ.removeAt(0);
+  Goal? takeJustAchieved() =>
+      _achievedQ.isEmpty ? null : _achievedQ.removeAt(0);
 
   /// BECOME-goal milestones reached (carries the milestone value).
   final List<(Goal, int)> _milestonedQ = [];
@@ -260,6 +261,15 @@ class GameState extends ChangeNotifier {
 
   void dismissWeekRecap() {
     weekRecapSeenWeek = Days.key(Days.weekStart(Clock.now()));
+    notifyListeners();
+  }
+
+  /// Day-key the "Ember of the Day" offer was acted on/dismissed — so the daily
+  /// bonus shows once per day, never nags.
+  String? emberSeenDay;
+  bool get emberDue => emberSeenDay != Days.key(Clock.now());
+  void dismissEmber() {
+    emberSeenDay = Days.key(Clock.now());
     notifyListeners();
   }
 
@@ -364,9 +374,12 @@ class GameState extends ChangeNotifier {
       return (gap: false, missed: 0, covered: false);
     }
     final d = Days.parse(last);
-    final missed = DateTime(now.year, now.month, now.day)
-            .difference(DateTime(d.year, d.month, d.day))
-            .inDays -
+    final missed =
+        DateTime(
+          now.year,
+          now.month,
+          now.day,
+        ).difference(DateTime(d.year, d.month, d.day)).inDays -
         1;
     if (missed <= 0) return (gap: false, missed: 0, covered: false);
     return (gap: true, missed: missed, covered: streakShields >= missed);
@@ -436,11 +449,14 @@ class GameState extends ChangeNotifier {
       stat: q.stat,
       statGain: gain.round() + (q.dread ? 3 : 0),
       questTitle: q.displayTitle,
-      message: RewardMessages.pick(q.stat, _rng,
-          hour: now.hour,
-          dread: q.dread,
-          countToday: (history[nowKey] ?? 0) + 1,
-          comeback: isComeback),
+      message: RewardMessages.pick(
+        q.stat,
+        _rng,
+        hour: now.hour,
+        dread: q.dread,
+        countToday: (history[nowKey] ?? 0) + 1,
+        comeback: isComeback,
+      ),
       difficulty: q.difficulty,
       dread: q.dread,
       custom: q.custom,
@@ -482,7 +498,9 @@ class GameState extends ChangeNotifier {
       _rankedUpQ.add((b.stat, afterRank));
     }
     ledger.insert(
-        0, LedgerEntry(stat: b.stat, amount: b.statGain, title: b.questTitle));
+      0,
+      LedgerEntry(stat: b.stat, amount: b.statGain, title: b.questTitle),
+    );
     if (ledger.length > 8) ledger.removeLast();
 
     // streak: consecutive days with at least one completion — a shield
@@ -602,16 +620,17 @@ class GameState extends ChangeNotifier {
     final today = Days.key(now);
     final changed = lastActiveDay != today;
     final startOfToday = DateTime(now.year, now.month, now.day);
-    quests.removeWhere((q) =>
-        q.schedule == QuestSchedule.once &&
-        q.lastDoneDay != null &&
-        q.lastDoneDay != today);
+    quests.removeWhere(
+      (q) =>
+          q.schedule == QuestSchedule.once &&
+          q.lastDoneDay != null &&
+          q.lastDoneDay != today,
+    );
     // momentum bonuses are a today-only gift — an unfinished one quietly
     // expires at dawn rather than lingering as an "overdue" obligation.
-    quests.removeWhere((q) =>
-        q.bonus &&
-        q.dueDate != null &&
-        q.dueDate!.isBefore(startOfToday));
+    quests.removeWhere(
+      (q) => q.bonus && q.dueDate != null && q.dueDate!.isBefore(startOfToday),
+    );
     if (changed) {
       todayXp = 0;
       todayStats.clear();
@@ -673,59 +692,60 @@ class GameState extends ChangeNotifier {
 
   // ── persistence ──────────────────────────────────────────────────
   Map<String, dynamic> toJson() => {
-        'playerName': playerName,
-        'onboarded': onboarded,
-        'focusMode': focusMode,
-        'notifyEnabled': notifyEnabled,
-        'notifyHour': notifyHour,
-        'notifyMinute': notifyMinute,
-        'lastModified': lastModified,
-        'level': level,
-        'xp': xp,
-        'totalXp': totalXp,
-        'stats': [for (final s in Stat.values) stats[s] ?? 0],
-        // per-domain notes, by Stat order (parallel to 'stats'); empty lists
-        // for domains with nothing kept, so a restore maps cleanly by index.
-        'domainNotes': [
-          for (final s in Stat.values)
-            [for (final n in domainNotes[s] ?? const []) n.toJson()]
-        ],
-        'ledger': [for (final e in ledger) e.toJson()],
-        'streakDays': streakDays,
-        'bestStreak': bestStreak,
-        'streakShields': streakShields,
-        'shieldUnlockGranted': shieldUnlockGranted,
-        'lastCompletionDay': lastCompletionDay,
-        'lastActiveDay': lastActiveDay,
-        'totalCompletions': totalCompletions,
-        'verifiedCompletions': verifiedCompletions,
-        'dreadCompletions': dreadCompletions,
-        'epicCompletions': epicCompletions,
-        'eventCompletions': eventCompletions,
-        'customCompletions': customCompletions,
-        'comebacks': comebacks,
-        'dawnCompletions': dawnCompletions,
-        'duskCompletions': duskCompletions,
-        'perfectDays': perfectDays,
-        'lastPerfectDay': lastPerfectDay,
-        'removedDefaults': removedDefaults.toList(),
-        'collectedLoot': collectedLoot.toList(),
-        'equippedSkin': equippedSkin,
-        'seenEvidence': seenEvidence.toList(),
-        'canvasTheme': canvasTheme,
-        'unlockedAchievements': unlockedAchievements.toList(),
-        'history': history,
-        'goals': [for (final g in goals) g.toJson()],
-        'todayXp': todayXp,
-        'todayStats': [for (final s in Stat.values) todayStats[s] ?? 0],
-        'todayQuestTitles': todayQuestTitles,
-        'nightDoneDay': nightDoneDay,
-        'morningDoneDay': morningDoneDay,
-        'morningArmed': morningArmed,
-        'nightDoneAt': nightDoneAt,
-        'sparkSeenDay': sparkSeenDay,
-        'weekRecapSeenWeek': weekRecapSeenWeek,
-      };
+    'playerName': playerName,
+    'onboarded': onboarded,
+    'focusMode': focusMode,
+    'notifyEnabled': notifyEnabled,
+    'notifyHour': notifyHour,
+    'notifyMinute': notifyMinute,
+    'lastModified': lastModified,
+    'level': level,
+    'xp': xp,
+    'totalXp': totalXp,
+    'stats': [for (final s in Stat.values) stats[s] ?? 0],
+    // per-domain notes, by Stat order (parallel to 'stats'); empty lists
+    // for domains with nothing kept, so a restore maps cleanly by index.
+    'domainNotes': [
+      for (final s in Stat.values)
+        [for (final n in domainNotes[s] ?? const []) n.toJson()],
+    ],
+    'ledger': [for (final e in ledger) e.toJson()],
+    'streakDays': streakDays,
+    'bestStreak': bestStreak,
+    'streakShields': streakShields,
+    'shieldUnlockGranted': shieldUnlockGranted,
+    'lastCompletionDay': lastCompletionDay,
+    'lastActiveDay': lastActiveDay,
+    'totalCompletions': totalCompletions,
+    'verifiedCompletions': verifiedCompletions,
+    'dreadCompletions': dreadCompletions,
+    'epicCompletions': epicCompletions,
+    'eventCompletions': eventCompletions,
+    'customCompletions': customCompletions,
+    'comebacks': comebacks,
+    'dawnCompletions': dawnCompletions,
+    'duskCompletions': duskCompletions,
+    'perfectDays': perfectDays,
+    'lastPerfectDay': lastPerfectDay,
+    'removedDefaults': removedDefaults.toList(),
+    'collectedLoot': collectedLoot.toList(),
+    'equippedSkin': equippedSkin,
+    'seenEvidence': seenEvidence.toList(),
+    'canvasTheme': canvasTheme,
+    'unlockedAchievements': unlockedAchievements.toList(),
+    'history': history,
+    'goals': [for (final g in goals) g.toJson()],
+    'todayXp': todayXp,
+    'todayStats': [for (final s in Stat.values) todayStats[s] ?? 0],
+    'todayQuestTitles': todayQuestTitles,
+    'nightDoneDay': nightDoneDay,
+    'morningDoneDay': morningDoneDay,
+    'morningArmed': morningArmed,
+    'nightDoneAt': nightDoneAt,
+    'sparkSeenDay': sparkSeenDay,
+    'weekRecapSeenWeek': weekRecapSeenWeek,
+    'emberSeenDay': emberSeenDay,
+  };
 
   static GameState fromJson(Map<String, dynamic> j) {
     final s = GameState();
@@ -747,7 +767,7 @@ class GameState extends ChangeNotifier {
     for (var i = 0; i < Stat.values.length && i < dn.length; i++) {
       final list = [
         for (final e in (dn[i] as List?) ?? const [])
-          Note.fromJson((e as Map).cast<String, dynamic>())
+          Note.fromJson((e as Map).cast<String, dynamic>()),
       ];
       if (list.isNotEmpty) s.domainNotes[Stat.values[i]] = list;
     }
@@ -771,15 +791,16 @@ class GameState extends ChangeNotifier {
     s.duskCompletions = j['duskCompletions'] as int? ?? 0;
     s.perfectDays = j['perfectDays'] as int? ?? 0;
     s.lastPerfectDay = j['lastPerfectDay'] as String?;
-    s.removedDefaults
-        .addAll(((j['removedDefaults'] as List?) ?? const []).cast());
-    s.collectedLoot
-        .addAll(((j['collectedLoot'] as List?) ?? const []).cast());
+    s.removedDefaults.addAll(
+      ((j['removedDefaults'] as List?) ?? const []).cast(),
+    );
+    s.collectedLoot.addAll(((j['collectedLoot'] as List?) ?? const []).cast());
     s.equippedSkin = j['equippedSkin'] as String?;
     s.seenEvidence.addAll(((j['seenEvidence'] as List?) ?? const []).cast());
     s.canvasTheme = j['canvasTheme'] as String? ?? 'walnut';
-    s.unlockedAchievements
-        .addAll(((j['unlockedAchievements'] as List?) ?? const []).cast());
+    s.unlockedAchievements.addAll(
+      ((j['unlockedAchievements'] as List?) ?? const []).cast(),
+    );
     for (final e
         in (((j['history'] as Map?) ?? const {}).cast<String, dynamic>())
             .entries) {
@@ -793,19 +814,22 @@ class GameState extends ChangeNotifier {
     for (var i = 0; i < Stat.values.length && i < ts.length; i++) {
       if (ts[i] > 0) s.todayStats[Stat.values[i]] = ts[i];
     }
-    s.todayQuestTitles
-        .addAll(((j['todayQuestTitles'] as List?) ?? const []).cast());
+    s.todayQuestTitles.addAll(
+      ((j['todayQuestTitles'] as List?) ?? const []).cast(),
+    );
     s.nightDoneDay = j['nightDoneDay'] as String?;
     s.morningDoneDay = j['morningDoneDay'] as String?;
     s.nightDoneAt = j['nightDoneAt'] as int? ?? 0;
     // Bridge older saves (no morningArmed key): if a night was closed and you
     // haven't been greeted today, arm the morning so it surfaces after this
     // update (e.g. a 3am wind-down before the field existed) — user report.
-    s.morningArmed = j['morningArmed'] as bool? ??
+    s.morningArmed =
+        j['morningArmed'] as bool? ??
         (j['nightDoneDay'] != null &&
             j['morningDoneDay'] != Days.key(Clock.now()));
     s.sparkSeenDay = j['sparkSeenDay'] as String?;
     s.weekRecapSeenWeek = j['weekRecapSeenWeek'] as String?;
+    s.emberSeenDay = j['emberSeenDay'] as String?;
     return s;
   }
 }

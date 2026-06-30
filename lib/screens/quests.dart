@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
+import '../content/embers.dart';
 import '../content/evidence.dart';
 import '../content/ladders.dart';
 import '../content/routines.dart';
@@ -1087,6 +1088,115 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// A clear, tappable "good morning" prompt whenever the briefing is owed —
   /// so a missed auto-show never leaves the morning unreachable (user report).
+  /// The "Ember of the Day" — a small, fun, today-only bonus quest offered once
+  /// a day (domain rotates). Tap ADD to drop it on the board as a ⚡ bonus
+  /// (expires at dawn); or dismiss. Pure novelty, never an obligation.
+  Widget _emberPanel() {
+    if (!_state.emberDue) return const SizedBox.shrink();
+    final now = DateTime.now();
+    final e = emberOfDay(now);
+    void dismiss() {
+      _state.dismissEmber();
+      widget.onPersist();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: GlassPanel(
+        child: Row(
+          children: [
+            Icon(Icons.local_fire_department, size: 18, color: e.stat.color),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'EMBER OF THE DAY',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: e.stat.color,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        e.stat.abbr,
+                        style: Type.label.copyWith(
+                          fontSize: 10,
+                          color: Palette.textLo,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    e.title,
+                    style: Type.body.copyWith(
+                      fontSize: 13.5,
+                      color: Palette.textHi,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                final ok = widget.onAdd(
+                  Quest(
+                    title: e.title,
+                    stat: e.stat,
+                    difficulty: 2,
+                    schedule: QuestSchedule.once,
+                    dueDate: DateTime(now.year, now.month, now.day),
+                    bonus: true,
+                    custom: true,
+                  ),
+                );
+                if (ok) {
+                  Sfx.instance.play('streak');
+                  HapticFeedback.selectionClick();
+                }
+                dismiss();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: e.stat.color.withValues(alpha: 0.6),
+                  ),
+                ),
+                child: Text(
+                  'ADD',
+                  style: Type.label.copyWith(fontSize: 11, color: e.stat.color),
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Sfx.instance.play('tick');
+                dismiss();
+              },
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(Icons.close, size: 15, color: Palette.textLo),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// A once-a-week look-back the first time you open the board in a new week —
   /// last week's days-lit + total, vs the week before. Dismissible, never nags.
   Widget _weekRecapPanel() {
@@ -1515,6 +1625,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         const InstallHint(),
         _morningPanel(),
         _weekRecapPanel(),
+        _emberPanel(),
         _reAnchorPanel(),
         _sparkPanel(),
 

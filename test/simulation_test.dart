@@ -5,6 +5,7 @@
 import 'dart:convert';
 
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/content/embers.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/tokens.dart';
@@ -315,5 +316,19 @@ void main() {
 
     s.dismissWeekRecap();
     expect(s.weekRecapDue, isFalse); // once per week, never nags
+  });
+
+  test('ember of the day is deterministic + valid, and shows once per day', () {
+    final e = emberOfDay(DateTime(2026, 6, 15));
+    expect(emberPool[e.stat]!.contains(e.title), isTrue); // a real pick
+    expect(emberOfDay(DateTime(2026, 6, 15)).title, e.title); // stable that day
+
+    today = DateTime(2026, 6, 15);
+    final s = GameState();
+    expect(s.emberDue, isTrue);
+    s.dismissEmber();
+    expect(s.emberDue, isFalse);
+    today = today.add(const Duration(days: 1));
+    expect(s.emberDue, isTrue); // new day, new ember
   });
 }
