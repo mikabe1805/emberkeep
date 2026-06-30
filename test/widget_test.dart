@@ -371,4 +371,51 @@ void main() {
     expect(find.text('Finish the essay draft'), findsOneWidget);
     expect(find.text('DUE TODAY'), findsOneWidget);
   });
+
+  test('embers: earned on completion, then spent in the shop with a gate',
+      () async {
+    final state = GameState();
+    expect(state.embers, 0);
+    expect(state.ownedFurniture, isEmpty);
+
+    // earning: a completion adds embers alongside XP (~a third, min 1)
+    final bundle =
+        state.roll(Quest(title: 'Read', stat: Stat.intl, difficulty: 3));
+    state.commit(bundle);
+    expect(state.embers, bundle.xp ~/ 3 < 1 ? 1 : bundle.xp ~/ 3);
+    expect(state.embers, greaterThan(0));
+
+    // spending: too poor → no buy; topped up → buys once, deducts, owns it
+    state.embers = 30;
+    expect(state.buyFurniture('rug', 40), isFalse); // can't afford
+    expect(state.ownedFurniture, isEmpty);
+    state.embers = 100;
+    expect(state.buyFurniture('rug', 40), isTrue);
+    expect(state.embers, 60);
+    expect(state.ownedFurniture, contains('rug'));
+    expect(state.buyFurniture('rug', 40), isFalse); // owned → no recharge
+    expect(state.embers, 60);
+
+    // gating: an achievement-locked piece stays unbuyable until allowed,
+    // even with the embers in hand
+    state.embers = 1000;
+    expect(state.buyFurniture('hearth', 600, allowed: false), isFalse);
+    expect(state.ownedFurniture, isNot(contains('hearth')));
+    expect(state.buyFurniture('hearth', 600, allowed: true), isTrue);
+    expect(state.ownedFurniture, contains('hearth'));
+  });
+
+  test('embers and owned furniture survive a save/load round-trip', () async {
+    SharedPreferences.setMockInitialValues({});
+    final state = GameState()
+      ..embers = 175
+      ..playerName = 'Mika';
+    state.ownedFurniture.addAll(['rug', 'lamp', 'plant']);
+    await Storage.save(state, const []);
+
+    final loaded = await Storage.load();
+    expect(loaded, isNotNull);
+    expect(loaded!.$1.embers, 175);
+    expect(loaded.$1.ownedFurniture, containsAll(['rug', 'lamp', 'plant']));
+  });
 }

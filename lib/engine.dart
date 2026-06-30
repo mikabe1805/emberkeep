@@ -59,6 +59,25 @@ class GameState extends ChangeNotifier {
   int totalXp = 0;
   final Map<Stat, int> stats = {for (final s in Stat.values) s: 0};
 
+  /// Embers — the earn-by-play currency (round-41). Spent in the shop on
+  /// furniture for "Your Space" (never bought with money; the locked rule).
+  /// Earned on every completion alongside XP.
+  int embers = 0;
+
+  /// Furniture pieces bought (ids from content/furniture.dart) — what the room
+  /// draws. Owned forever once purchased.
+  final Set<String> ownedFurniture = {};
+
+  /// Buy a piece if affordable and allowed (the caller resolves any
+  /// achievement gate). Returns true on success.
+  bool buyFurniture(String id, int price, {bool allowed = true}) {
+    if (!allowed || embers < price || ownedFurniture.contains(id)) return false;
+    embers -= price;
+    ownedFurniture.add(id);
+    notifyListeners();
+    return true;
+  }
+
   /// Per-domain journal — notes the user keeps on a whole life domain (their
   /// "base" for Home, Care, Craft…). Sparse: only domains with entries appear.
   /// Lists are replaced wholesale (see [NoteList]) so callers never mutate in
@@ -490,6 +509,9 @@ class GameState extends ChangeNotifier {
   void commit(RewardBundle b) {
     xp += b.xp;
     totalXp += b.xp;
+    // earn embers alongside XP — the shop currency for "Your Space" furniture.
+    // ~a third of the XP, min 1, so every win nudges the balance up.
+    embers += max(1, b.xp ~/ 3);
     // stat gain, watching for a rank-tier crossing (fires the evidence beat)
     final beforeRank = rankFor(b.stat, stats[b.stat]!);
     stats[b.stat] = stats[b.stat]! + b.statGain;
@@ -702,6 +724,8 @@ class GameState extends ChangeNotifier {
     'level': level,
     'xp': xp,
     'totalXp': totalXp,
+    'embers': embers,
+    'ownedFurniture': ownedFurniture.toList(),
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
     // per-domain notes, by Stat order (parallel to 'stats'); empty lists
     // for domains with nothing kept, so a restore maps cleanly by index.
@@ -759,6 +783,8 @@ class GameState extends ChangeNotifier {
     s.level = j['level'] as int? ?? 1;
     s.xp = j['xp'] as int? ?? 0;
     s.totalXp = j['totalXp'] as int? ?? 0;
+    s.embers = j['embers'] as int? ?? 0;
+    s.ownedFurniture.addAll(((j['ownedFurniture'] as List?) ?? const []).cast());
     final st = (j['stats'] as List?)?.cast<int>() ?? const [];
     for (var i = 0; i < Stat.values.length && i < st.length; i++) {
       s.stats[Stat.values[i]] = st[i];

@@ -23,9 +23,11 @@ import '../models.dart';
 import '../widgets/glass.dart';
 import '../widgets/glass_switch.dart';
 import '../widgets/home_room.dart';
+import '../widgets/honey_button.dart';
 import '../widgets/portrait.dart';
 import '../widgets/radar.dart';
 import 'domain_detail.dart';
+import 'shop.dart';
 
 /// The "Me" page: your character. Reactive portrait, your build title,
 /// the stats radar, the attribution ledger — and the share card, because a
@@ -126,7 +128,7 @@ class MePage extends StatelessWidget {
             child: Column(
               children: [
                 HomeRoom(
-                  unlocked: unlockedFurniture(state),
+                  unlocked: state.ownedFurniture,
                   child: Portrait(
                     size: 96,
                     aura:
@@ -142,24 +144,47 @@ class MePage extends StatelessWidget {
                         : PortraitMood.idle,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Builder(
-                  builder: (_) {
-                    final next = nextFurniture(state);
-                    final have = unlockedFurniture(state).length;
-                    return Text(
-                      next == null
-                          ? 'YOUR SPACE · $have/${furniture.length} · fully furnished ✦'
-                          : 'YOUR SPACE · $have/${furniture.length} · next: ${next.name} (${next.hint})',
-                      textAlign: TextAlign.center,
-                      style: Type.label.copyWith(
-                        fontSize: 10,
-                        color: Palette.textLo,
-                      ),
-                    );
-                  },
+                const SizedBox(height: 10),
+                // currency + a way into the shop — furniture is now CHOSEN,
+                // bought with the embers each quest earns (round-42)
+                Row(
+                  children: [
+                    Builder(
+                      builder: (_) {
+                        final next = nextToBuy(state);
+                        final have = state.ownedFurniture.length;
+                        return Expanded(
+                          child: Text(
+                            next == null
+                                ? '✦ ${state.embers} · $have/${furniture.length} · your space is full'
+                                : '✦ ${state.embers} · saving up for ${next.name} (✦${next.price})',
+                            style: Type.label.copyWith(
+                              fontSize: 10,
+                              color: Palette.textLo,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 10),
+                    HoneyButton(
+                      label: 'FURNISH',
+                      icon: Icons.chair_outlined,
+                      fontSize: 11,
+                      glow: false,
+                      onTap: () {
+                        Sfx.instance.play('tick');
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ShopScreen(state: state, onPersist: onPersist),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Text(
                   state.buildTitle,
                   style: Type.display.copyWith(
