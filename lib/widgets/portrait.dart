@@ -183,9 +183,21 @@ class _EmberPainter extends CustomPainter {
     // a soft flame sway so the creature feels alive
     final sway = sin(t * 2 * pi) * s * 0.012;
 
-    // body geometry — a soft, slightly egg-shaped blob (head+body in one)
-    final bodyC = Offset(cx, s * 0.54);
-    final bodyW = s * 0.62, bodyH = s * 0.64;
+    // ── aliveness: a slow breath (squash/stretch) + a gentle bob, bouncier
+    // when it's happy. Quantized via [t] (~20fps) so it stays cheap. ──
+    final breathe = sin(t * 2 * pi);
+    final excite = happy ? 1.03 : 1.0;
+    final bob = sin(t * 2 * pi + 1.2) * s * (happy ? 0.03 : 0.016);
+    // resting floor line (where the contact shadow stays as the body lifts)
+    final restY = s * 0.54;
+    final baseY = restY + s * 0.64 * excite * 0.5;
+    final lift = (-bob / (s * 0.03)).clamp(0.0, 1.0);
+
+    // body geometry — a soft, slightly egg-shaped blob (head+body in one),
+    // breathing (wider on the inhale, a touch shorter) and bobbing
+    final bodyC = Offset(cx, restY + bob);
+    final bodyW = s * 0.62 * excite * (1 + 0.025 * breathe);
+    final bodyH = s * 0.64 * excite * (1 - 0.02 * breathe);
     final bodyTop = bodyC.dy - bodyH / 2;
 
     // ── aura: your build, glowing around you (brighter happy / higher tier) ──
@@ -231,15 +243,16 @@ class _EmberPainter extends CustomPainter {
           stops: [0.0, 0.34, 0.76, 1.0],
         ).createShader(bodyRect),
     );
-    // grounding shadow under the body
+    // grounding shadow — stays on the floor (shrinks + fades as it lifts), so
+    // the bob reads as the creature gently hopping rather than sliding
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(cx, bodyC.dy + bodyH * 0.5),
-        width: bodyW * 0.78,
-        height: s * 0.06,
+        center: Offset(cx, baseY + s * 0.01),
+        width: bodyW * 0.78 * (1 - 0.16 * lift),
+        height: s * 0.055,
       ),
       Paint()
-        ..color = const Color(0x33000000)
+        ..color = Color.fromRGBO(0, 0, 0, 0.2 * (1 - 0.35 * lift))
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.012),
     );
     // soft belly — a lighter tummy that reads as "soft creature"

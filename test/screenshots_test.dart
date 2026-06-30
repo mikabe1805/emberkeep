@@ -79,6 +79,33 @@ void main() {
     );
   });
 
+  testWidgets('portrait: evolution ladder', (tester) async {
+    await _shoot(
+      tester,
+      _stage(
+        bg: const Color(0xFF1C141A),
+        pad: 14,
+        const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Portrait(size: 104, level: 1, mood: PortraitMood.happy),
+            SizedBox(width: 8),
+            Portrait(size: 104, level: 6, aura: Palette.success),
+            SizedBox(width: 8),
+            Portrait(size: 104, level: 11, aura: Palette.verify),
+            SizedBox(width: 8),
+            Portrait(size: 104, level: 16, aura: Palette.streak),
+            SizedBox(width: 8),
+            Portrait(size: 104, level: 24, aura: Palette.unlock),
+            SizedBox(width: 8),
+            Portrait(size: 104, level: 34, aura: Palette.dread),
+          ],
+        ),
+      ),
+      'portrait_evolution',
+    );
+  });
+
   testWidgets('portrait: small HUD sizes', (tester) async {
     await _shoot(
       tester,
