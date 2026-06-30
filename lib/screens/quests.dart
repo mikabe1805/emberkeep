@@ -117,6 +117,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Set the instant a completion starts, so the card never visibly jumps.
   String? _pinnedDoneTitle;
 
+  /// Back-to-back clears build warmth (never-punish: pure bonus, no timer
+  /// pressure). [_combo] is consecutive completions inside [_comboWindow];
+  /// it brightens the burst and fires an "ON A ROLL" flourish at ×2+.
+  int _combo = 0;
+  DateTime? _lastCompleteAt;
+  static const _comboWindow = Duration(seconds: 15);
+
   /// Focus mode's ordering lens (ephemeral; the on/off itself lives on state).
   _FocusLens _focusLens = _FocusLens.quickWin;
 
@@ -285,6 +292,14 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       verified ? 1 : 0,
     ]);
     setState(() {}); // card done-state + quests-left counter
+    // back-to-back clears build a combo (pure warmth, no penalty for pausing)
+    final nowT = DateTime.now();
+    _combo =
+        (_lastCompleteAt != null &&
+            nowT.difference(_lastCompleteAt!) < _comboWindow)
+        ? _combo + 1
+        : 1;
+    _lastCompleteAt = nowT;
     _maybeOfferReAnchor(q); // "did your Tuesday quest on Thursday? move it?"
     _celebrateDayClearedIfDone(q); // a warm wash when the last ember is lit
     _beam(); // the portrait shares the moment with you
@@ -302,6 +317,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // so the embers ARE the tap's exhaust rather than a beat behind it. [tapPos]
     // resolves to the check-ring centre (quest_card), so the spray ignites from
     // the ring that just filled, not a random thumb spot.
+    final comboBoost = min(_combo - 1, 5); // a roll brightens the burst
     late final OverlayEntry burst;
     burst = OverlayEntry(
       builder: (_) => ParticleBurst(
@@ -309,11 +325,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         colors:
             cosmeticFor(s.equippedSkin)?.particles ??
             [q.stat.color, Palette.xp, Palette.xpLight],
-        count: (14 + 40 * bundle.magnitude).round(),
-        vibrancy: 0.5 + bundle.magnitude,
+        count: (14 + 40 * bundle.magnitude).round() + comboBoost * 8,
+        vibrancy: 0.5 + bundle.magnitude + comboBoost * 0.12,
         onDone: () => burst.remove(),
       ),
     );
+    // a flourish for a roll of clears — escalating warmth, never a takeover
+    if (_combo >= 2) {
+      Haptics.rise();
+      late final OverlayEntry flourish;
+      flourish = OverlayEntry(
+        builder: (_) =>
+            _ComboFlourish(combo: _combo, onDone: () => flourish.remove()),
+      );
+      overlay.insert(flourish);
+    }
     overlay.insert(burst);
 
     // The reward receipt starts quickly so there's no dead gap after the tap;
@@ -1827,6 +1853,116 @@ class _FocusLensToggle extends StatelessWidget {
 /// The portrait inside a slowly breathing ring that mirrors XP progress.
 /// Keyed by level (like XpBar's generation) so a level-up refills from 0
 /// instead of draining backwards; the breathe is the §2 ambient idle motion.
+/// The "ON A ROLL ×N" flourish for back-to-back clears — a warm pill that pops
+/// near the top, the word escalating with the combo, then fades. Never a
+/// takeover; pure momentum warmth (round-33).
+class _ComboFlourish extends StatefulWidget {
+  const _ComboFlourish({required this.combo, required this.onDone});
+  final int combo;
+  final VoidCallback onDone;
+
+  @override
+  State<_ComboFlourish> createState() => _ComboFlourishState();
+}
+
+class _ComboFlourishState extends State<_ComboFlourish>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1300),
+      )..addStatusListener((s) {
+        if (s == AnimationStatus.completed) widget.onDone();
+      });
+
+  @override
+  void initState() {
+    super.initState();
+    _c.forward();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  static String _word(int n) {
+    if (n >= 5) return 'UNSTOPPABLE';
+    if (n == 4) return 'BLAZING';
+    if (n == 3) return 'ON FIRE';
+    return 'ON A ROLL';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Positioned.fill is the overlay entry's top-level (the Overlay theatre is
+    // a Stack); position the pill within it via Align, not a bare Positioned.
+    return Positioned.fill(
+      child: OverlaySurface(
+        child: IgnorePointer(
+          child: AnimatedBuilder(
+            animation: _c,
+            builder: (_, _) {
+              final t = _c.value;
+              final inP = Curves.easeOutBack.transform(
+                (t / 0.22).clamp(0.0, 1.0),
+              );
+              final out = ((t - 0.72) / 0.28).clamp(0.0, 1.0);
+              return Align(
+                alignment: Alignment(0, -0.62 - 0.06 * out),
+                child: Opacity(
+                  opacity: (1 - out).clamp(0.0, 1.0),
+                  child: Transform.scale(
+                    scale: 0.7 + 0.3 * inP,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(999),
+                        color: Palette.card.withValues(alpha: 0.92),
+                        border: Border.all(
+                          color: Palette.streak.withValues(alpha: 0.7),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Palette.streak.withValues(alpha: 0.4),
+                            blurRadius: 16,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.local_fire_department,
+                            size: 16,
+                            color: Palette.streak,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${_word(widget.combo)} · ×${widget.combo}',
+                            style: Type.label.copyWith(
+                              fontSize: 13,
+                              color: Palette.streak,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// The portrait's ring now tracks TODAY'S clear-progress (it fills as you clear
 /// the board), not XP — XP already lives in the bar + numeral right beside it,
 /// so the ring earns its own job (round-31: no triple-encoding one value).
