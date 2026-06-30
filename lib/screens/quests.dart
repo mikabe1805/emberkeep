@@ -1088,6 +1088,27 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// A clear, tappable "good morning" prompt whenever the briefing is owed —
   /// so a missed auto-show never leaves the morning unreachable (user report).
+  /// Wraps a dismissible board card so it can be SWIPED away (satisfying and
+  /// freeing — clears the deck so the quests come forward), not just poked at a
+  /// tiny ×. [onGone] stamps it seen; the swipe slides it off then rebuilds.
+  Widget _swipeAway({
+    required String dismissKey,
+    required VoidCallback onGone,
+    required Widget child,
+  }) {
+    return Dismissible(
+      key: ValueKey('board-$dismissKey'),
+      direction: DismissDirection.horizontal,
+      onDismissed: (_) {
+        Sfx.instance.play('tick');
+        HapticFeedback.selectionClick();
+        setState(onGone);
+        widget.onPersist();
+      },
+      child: child,
+    );
+  }
+
   /// The "Ember of the Day" — a small, fun, today-only bonus quest offered once
   /// a day (domain rotates). Tap ADD to drop it on the board as a ⚡ bonus
   /// (expires at dawn); or dismiss. Pure novelty, never an obligation.
@@ -1100,98 +1121,105 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       widget.onPersist();
     }
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: GlassPanel(
-        child: Row(
-          children: [
-            Icon(Icons.local_fire_department, size: 18, color: e.stat.color),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'EMBER OF THE DAY',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: e.stat.color,
+    return _swipeAway(
+      dismissKey: 'ember',
+      onGone: () => _state.emberSeenDay = Days.key(now),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: GlassPanel(
+          child: Row(
+            children: [
+              Icon(Icons.local_fire_department, size: 18, color: e.stat.color),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'EMBER OF THE DAY',
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            color: e.stat.color,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        e.stat.abbr,
-                        style: Type.label.copyWith(
-                          fontSize: 10,
-                          color: Palette.textLo,
+                        const SizedBox(width: 6),
+                        Text(
+                          e.stat.abbr,
+                          style: Type.label.copyWith(
+                            fontSize: 10,
+                            color: Palette.textLo,
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      e.title,
+                      style: Type.body.copyWith(
+                        fontSize: 13.5,
+                        color: Palette.textHi,
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  final ok = widget.onAdd(
+                    Quest(
+                      title: e.title,
+                      stat: e.stat,
+                      difficulty: 2,
+                      schedule: QuestSchedule.once,
+                      dueDate: DateTime(now.year, now.month, now.day),
+                      bonus: true,
+                      custom: true,
+                    ),
+                  );
+                  if (ok) {
+                    Sfx.instance.play('streak');
+                    HapticFeedback.selectionClick();
+                  }
+                  dismiss();
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    e.title,
-                    style: Type.body.copyWith(
-                      fontSize: 13.5,
-                      color: Palette.textHi,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: e.stat.color.withValues(alpha: 0.6),
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                final ok = widget.onAdd(
-                  Quest(
-                    title: e.title,
-                    stat: e.stat,
-                    difficulty: 2,
-                    schedule: QuestSchedule.once,
-                    dueDate: DateTime(now.year, now.month, now.day),
-                    bonus: true,
-                    custom: true,
-                  ),
-                );
-                if (ok) {
-                  Sfx.instance.play('streak');
-                  HapticFeedback.selectionClick();
-                }
-                dismiss();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: e.stat.color.withValues(alpha: 0.6),
+                  child: Text(
+                    'ADD',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: e.stat.color,
+                    ),
                   ),
                 ),
-                child: Text(
-                  'ADD',
-                  style: Type.label.copyWith(fontSize: 11, color: e.stat.color),
+              ),
+              const SizedBox(width: 4),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  Sfx.instance.play('tick');
+                  dismiss();
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Icon(Icons.close, size: 16, color: Palette.textLo),
                 ),
               ),
-            ),
-            const SizedBox(width: 4),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                Sfx.instance.play('tick');
-                dismiss();
-              },
-              child: const Padding(
-                padding: EdgeInsets.all(6),
-                child: Icon(Icons.close, size: 15, color: Palette.textLo),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1207,58 +1235,70 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         : r.delta < 0
         ? 'a quieter week than the one before — this new one is yours to claim.'
         : 'steady with the week before — consistency is its own win.';
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: GlassPanel(
-        glow: true,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.calendar_today, size: 17, color: Palette.xpLight),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'LAST WEEK',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: Palette.xpLight,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'You lit ${r.litDays} of 7 days — ${r.total} '
-                    'quest${r.total == 1 ? '' : 's'}.',
-                    style: Type.body.copyWith(
-                      fontSize: 13.5,
-                      color: Palette.textHi,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    deltaLine,
-                    style: Type.body.copyWith(
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textLo,
-                    ),
-                  ),
-                ],
+    return _swipeAway(
+      dismissKey: 'weekrecap',
+      onGone: () =>
+          _state.weekRecapSeenWeek = Days.key(Days.weekStart(DateTime.now())),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: GlassPanel(
+          glow: true,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.calendar_today,
+                size: 17,
+                color: Palette.xpLight,
               ),
-            ),
-            const SizedBox(width: 6),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                Sfx.instance.play('tick');
-                _state.dismissWeekRecap();
-                widget.onPersist();
-              },
-              child: const Icon(Icons.close, size: 15, color: Palette.textLo),
-            ),
-          ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'LAST WEEK',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'You lit ${r.litDays} of 7 days — ${r.total} '
+                      'quest${r.total == 1 ? '' : 's'}.',
+                      style: Type.body.copyWith(
+                        fontSize: 13.5,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      deltaLine,
+                      style: Type.body.copyWith(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  Sfx.instance.play('tick');
+                  _state.dismissWeekRecap();
+                  widget.onPersist();
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Icon(Icons.close, size: 16, color: Palette.textLo),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1338,47 +1378,54 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       nearGoalGap: nearGap,
       evidenceTitle: dom == null ? null : evidenceForStat(dom)?.title,
     );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: GlassPanel(
-        glow: true,
-        child: Row(
-          children: [
-            const Icon(Icons.auto_awesome, size: 16, color: Palette.xpLight),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'TODAY’S SPARK',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: Palette.xpLight,
+    return _swipeAway(
+      dismissKey: 'spark',
+      onGone: () => _state.sparkSeenDay = today,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: GlassPanel(
+          glow: true,
+          child: Row(
+            children: [
+              const Icon(Icons.auto_awesome, size: 16, color: Palette.xpLight),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TODAY’S SPARK',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.xpLight,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    line,
-                    style: Type.body.copyWith(
-                      fontSize: 13.5,
-                      color: Palette.textHi,
+                    const SizedBox(height: 2),
+                    Text(
+                      line,
+                      style: Type.body.copyWith(
+                        fontSize: 13.5,
+                        color: Palette.textHi,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 6),
-            GestureDetector(
-              onTap: () {
-                Sfx.instance.play('tick');
-                HapticFeedback.selectionClick();
-                setState(() => _state.sparkSeenDay = today);
-                widget.onPersist();
-              },
-              child: const Icon(Icons.close, size: 15, color: Palette.textLo),
-            ),
-          ],
+              const SizedBox(width: 6),
+              GestureDetector(
+                onTap: () {
+                  Sfx.instance.play('tick');
+                  HapticFeedback.selectionClick();
+                  setState(() => _state.sparkSeenDay = today);
+                  widget.onPersist();
+                },
+                child: const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Icon(Icons.close, size: 16, color: Palette.textLo),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1416,12 +1463,22 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             ],
           ),
         ),
-        QuestCard(
-          quest: q,
-          done: false,
-          xpPreview: _state.xpPreview(q),
-          onComplete: (pos) => _completeQuest(q, pos),
-          onManage: () => _manageQuest(q),
+        // swap with a soft cross-fade so toggling the lens is visibly felt
+        AnimatedSwitcher(
+          duration: Motion.settle,
+          switchInCurve: Motion.respond,
+          transitionBuilder: (child, anim) => FadeTransition(
+            opacity: anim,
+            child: SizeTransition(sizeFactor: anim, child: child),
+          ),
+          child: QuestCard(
+            key: ValueKey('focus-${q.title}'),
+            quest: q,
+            done: false,
+            xpPreview: _state.xpPreview(q),
+            onComplete: (pos) => _completeQuest(q, pos),
+            onManage: () => _manageQuest(q),
+          ),
         ),
         const SizedBox(height: 16),
         if (pool.length > 1)
@@ -1505,15 +1562,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           for (final q in visible)
             if (!q.doneFor(now) && !q.allDay) q,
         ]..sort((a, b) {
+          // Time-sensitive events float to the top; everything else (incl.
+          // starred MAIN quests) is ordered by the chosen lens, so toggling
+          // EASE IN / HARDEST visibly changes the focused quest (the lens IS
+          // your stated preference in focus mode). Bonus spawns sink last.
           int tier(Quest q) {
             if (q.isEvent) {
               return q.dueDate!.isBefore(DateTime(now.year, now.month, now.day))
                   ? 0
                   : 1;
             }
-            if (q.priority) return 2;
-            if (q.bonus) return 4;
-            return 3;
+            if (q.bonus) return 3;
+            return 2;
           }
 
           final ta = tier(a), tb = tier(b);

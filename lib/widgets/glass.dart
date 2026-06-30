@@ -123,8 +123,12 @@ class GlassPanel extends StatelessWidget {
 /// The candlelit desk: deep espresso→plum-dusk gradient, soft glowing color
 /// pools, and drifting firefly motes — the night is alive but never busy.
 class WarmBackground extends StatelessWidget {
-  const WarmBackground(
-      {super.key, required this.child, this.themeId, this.tint});
+  const WarmBackground({
+    super.key,
+    required this.child,
+    this.themeId,
+    this.tint,
+  });
   final Widget child;
 
   /// The active canvas theme id (null → default Walnut Night). Resolved here
@@ -154,23 +158,26 @@ class WarmBackground extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // pools of warm light — recolored by the theme — glowing in the dark.
-          // Each breathes on its own slow rhythm (out of phase) so the room is
-          // lit by candlelight that wavers, not a printed gradient.
+          // pools of warm light — recolored by the theme — glowing in the dark
+          // (static; the drifting fireflies carry the motion, cheaply).
           Positioned(
-            top: -70, left: -60,
+            top: -70,
+            left: -60,
             child: _Glow(color: _glow(theme.glows[0]), size: 320, phase: 0.0),
           ),
           Positioned(
-            top: 200, right: -90,
+            top: 200,
+            right: -90,
             child: _Glow(color: _glow(theme.glows[1]), size: 280, phase: 0.35),
           ),
           Positioned(
-            bottom: 40, left: -50,
+            bottom: 40,
+            left: -50,
             child: _Glow(color: _glow(theme.glows[2]), size: 260, phase: 0.6),
           ),
           Positioned(
-            bottom: 240, right: 30,
+            bottom: 240,
+            right: 30,
             child: _Glow(color: _glow(theme.glows[3]), size: 180, phase: 0.85),
           ),
           const Positioned.fill(child: _Fireflies()),
@@ -197,62 +204,26 @@ class WarmBackground extends StatelessWidget {
   }
 }
 
-class _Glow extends StatefulWidget {
+/// A static warm light-pool. Deliberately NOT animated: the drifting fireflies
+/// carry the ambient motion, and four per-frame breathing controllers per
+/// WarmBackground (× every pushed route) made navigation feel laggy on real
+/// devices (round-39 perf pass — owner feedback). The [phase] is now unused but
+/// kept so call sites don't churn.
+class _Glow extends StatelessWidget {
   const _Glow({required this.color, required this.size, this.phase = 0});
   final Color color;
   final double size;
-
-  /// 0..1 offset into the breath cycle, so the pools waver out of sync.
   final double phase;
 
   @override
-  State<_Glow> createState() => _GlowState();
-}
-
-class _GlowState extends State<_Glow> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 11),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final base = widget.color;
     return IgnorePointer(
-      child: RepaintBoundary(
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (_, _) {
-            // quantize to ~15 steps so the swell is smooth but cheap
-            final t = sin(2 * pi *
-                ((_c.value * 15).round() / 15 + widget.phase));
-            final scale = 1 + 0.07 * t; // gentle swell
-            // brighten/dim by modulating the gradient's own alpha — no Opacity
-            // save-layer over a 320px area each frame.
-            final a = (base.a * (0.8 + 0.2 * (0.5 + 0.5 * t))).clamp(0.0, 1.0);
-            return Transform.scale(
-              scale: scale,
-              child: Container(
-                width: widget.size,
-                height: widget.size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      base.withValues(alpha: a),
-                      base.withValues(alpha: 0),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
         ),
       ),
     );
@@ -270,14 +241,14 @@ class _Fireflies extends StatefulWidget {
 
 class _Mote {
   _Mote(Random rng)
-      : x = rng.nextDouble(),
-        y = rng.nextDouble(),
-        size = 1.4 + rng.nextDouble() * 2.2,
-        driftX = (rng.nextDouble() - 0.5) * 0.018,
-        driftY = -0.006 - rng.nextDouble() * 0.014,
-        phase = rng.nextDouble(),
-        twinkle = 0.5 + rng.nextDouble() * 1.5,
-        warm = rng.nextDouble() < 0.75;
+    : x = rng.nextDouble(),
+      y = rng.nextDouble(),
+      size = 1.4 + rng.nextDouble() * 2.2,
+      driftX = (rng.nextDouble() - 0.5) * 0.018,
+      driftY = -0.006 - rng.nextDouble() * 0.014,
+      phase = rng.nextDouble(),
+      twinkle = 0.5 + rng.nextDouble() * 1.5,
+      warm = rng.nextDouble() < 0.75;
 
   final double x, y, size, driftX, driftY, phase, twinkle;
   final bool warm;
@@ -285,7 +256,7 @@ class _Mote {
 
 class _FirefliesState extends State<_Fireflies>
     with SingleTickerProviderStateMixin {
-  static const _count = 16;
+  static const _count = 12; // trimmed (round-39 perf): fewer blurred motes
   late final List<_Mote> _motes;
   late final AnimationController _c;
 
@@ -294,8 +265,7 @@ class _FirefliesState extends State<_Fireflies>
     super.initState();
     final rng = Random(7);
     _motes = List.generate(_count, (_) => _Mote(rng));
-    _c = AnimationController(
-        vsync: this, duration: const Duration(seconds: 60))
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 60))
       ..repeat();
   }
 
@@ -315,7 +285,9 @@ class _FirefliesState extends State<_Fireflies>
             size: Size.infinite,
             // quantize: ~20 repaints/s is invisible for slow motes
             painter: _MotePainter(
-                motes: _motes, t: (_c.value * 1200).round() / 1200),
+              motes: _motes,
+              t: (_c.value * 1200).round() / 1200,
+            ),
           ),
         ),
       ),
@@ -337,7 +309,8 @@ class _MotePainter extends CustomPainter {
       final y = ((m.y + m.driftY * t * 60) % 1.0 + 1.0) % 1.0 * size.height;
       // twinkle: each mote breathes on its own rhythm
       final glow =
-          0.25 + 0.75 * (0.5 + 0.5 * sin(2 * pi * (t * 60 * m.twinkle / 8 + m.phase)));
+          0.25 +
+          0.75 * (0.5 + 0.5 * sin(2 * pi * (t * 60 * m.twinkle / 8 + m.phase)));
       final color = m.warm
           ? Palette.xpLight.withValues(alpha: 0.5 * glow)
           : Palette.unlock.withValues(alpha: 0.35 * glow);

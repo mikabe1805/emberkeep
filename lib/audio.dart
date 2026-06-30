@@ -13,9 +13,43 @@ class Sfx {
   static final Sfx instance = Sfx._();
 
   static const _all = [
-    'tick', 'complete', 'streak', 'crit', 'loot', 'levelup', 'boing',
-    'stat_0', 'stat_1', 'stat_2', 'stat_3', 'stat_4', 'stat_5',
+    'tick',
+    'complete',
+    'streak',
+    'crit',
+    'loot',
+    'levelup',
+    'boing',
+    'stat_0',
+    'stat_1',
+    'stat_2',
+    'stat_3',
+    'stat_4',
+    'stat_5',
   ];
+
+  /// Per-sound volume — the palette plays SOFT (owner feedback: it felt harsh).
+  /// The press 'tick' fires on every tap, so it's nearly a whisper; reward
+  /// beats sit gently above it; only the rare big moments approach full.
+  /// (True high-fidelity samples are a future asset swap; this just tames the
+  /// loudness/harshness of the current set.)
+  static const _volume = <String, double>{
+    'tick': 0.3,
+    'complete': 0.55,
+    'streak': 0.55,
+    'boing': 0.4,
+    'stat_0': 0.45,
+    'stat_1': 0.45,
+    'stat_2': 0.45,
+    'stat_3': 0.45,
+    'stat_4': 0.45,
+    'stat_5': 0.45,
+    'crit': 0.75,
+    'loot': 0.65,
+    'levelup': 0.7,
+  };
+  static double _volFor(String name) => _volume[name] ?? 0.55;
+
   final Map<String, AudioPool> _pools = {};
 
   Future<void> init() async {
@@ -28,46 +62,51 @@ class Sfx {
     // nothing if muted — see the class doc). On Android we never grab audio
     // focus, so background music is never ducked or paused.
     try {
-      await AudioPlayer.global.setAudioContext(AudioContext(
-        iOS: AudioContextIOS(
-          category: AVAudioSessionCategory.ambient,
-          // Do NOT pass mixWithOthers explicitly here: for the `ambient`
-          // category iOS mixes implicitly, and AudioContextIOS asserts in
-          // debug if options are combined with a non-playback category.
-          options: const {},
+      await AudioPlayer.global.setAudioContext(
+        AudioContext(
+          iOS: AudioContextIOS(
+            category: AVAudioSessionCategory.ambient,
+            // Do NOT pass mixWithOthers explicitly here: for the `ambient`
+            // category iOS mixes implicitly, and AudioContextIOS asserts in
+            // debug if options are combined with a non-playback category.
+            options: const {},
+          ),
+          android: const AudioContextAndroid(
+            isSpeakerphoneOn: false,
+            stayAwake: false,
+            contentType: AndroidContentType.sonification,
+            usageType: AndroidUsageType.assistanceSonification,
+            audioFocus: AndroidAudioFocus.none,
+          ),
         ),
-        android: const AudioContextAndroid(
-          isSpeakerphoneOn: false,
-          stayAwake: false,
-          contentType: AndroidContentType.sonification,
-          usageType: AndroidUsageType.assistanceSonification,
-          audioFocus: AndroidAudioFocus.none,
-        ),
-      ));
+      );
     } catch (e) {
       debugPrint('Sfx audio context (continuing): $e');
     }
 
     // Parallel loads; each pool becomes playable as soon as it lands, and
     // one failed asset never mutes the others.
-    await Future.wait(_all.map((name) async {
-      try {
-        _pools[name] = await AudioPool.createFromAsset(
-          path: 'sfx/$name.wav',
-          maxPlayers: 4,
-        );
-      } catch (e) {
-        debugPrint('Sfx pool "$name" failed (continuing silent): $e');
-      }
-    }));
+    await Future.wait(
+      _all.map((name) async {
+        try {
+          _pools[name] = await AudioPool.createFromAsset(
+            path: 'sfx/$name.wav',
+            maxPlayers: 4,
+          );
+        } catch (e) {
+          debugPrint('Sfx pool "$name" failed (continuing silent): $e');
+        }
+      }),
+    );
   }
 
   /// names: tick, complete, streak, crit, loot, levelup, boing, stat_0..5
   void play(String name) {
     try {
+      final vol = _volFor(name);
       final pool = _pools[name];
       if (pool != null) {
-        pool.start().catchError((Object e) {
+        pool.start(volume: vol).catchError((Object e) {
           debugPrint('Sfx "$name" failed: $e');
           return () async {};
         });
@@ -75,7 +114,9 @@ class Sfx {
         // Pool missing (failed or still loading): best-effort one-shot.
         final p = AudioPlayer();
         p.onPlayerComplete.first.then((_) => p.dispose());
-        p.play(AssetSource('sfx/$name.wav')).catchError((Object e) {
+        p.play(AssetSource('sfx/$name.wav'), volume: vol).catchError((
+          Object e,
+        ) {
           debugPrint('Sfx "$name" fallback failed: $e');
           p.dispose();
         });
