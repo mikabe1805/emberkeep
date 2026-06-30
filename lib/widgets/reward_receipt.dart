@@ -61,6 +61,9 @@ class _RewardReceiptState extends State<RewardReceipt>
       // per-stat pitched blip (§8: pitch varies by stat)
       _Bubble('+${b.statGain} ${b.stat.abbr}', Icons.trending_up,
           b.stat.color, 'stat_${b.stat.index}'),
+      // embers earned — makes the shop currency felt every completion (r48)
+      if (b.embers > 0)
+        _Bubble('+${b.embers} ✦', Icons.auto_awesome, Palette.xpLight, null),
       if (b.verifiedMult != null)
         _Bubble('VERIFIED ×${b.verifiedMult!.toStringAsFixed(1)}',
             Icons.verified, Palette.verify, null),

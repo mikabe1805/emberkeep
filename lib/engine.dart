@@ -522,6 +522,9 @@ class GameState extends ChangeNotifier {
 
     return RewardBundle(
       xp: earned.round(),
+      // embers track XP (~a third, min 1) — the one source for both the
+      // receipt bubble and what commit() banks
+      embers: max(1, earned.round() ~/ 3),
       stat: q.stat,
       statGain: gain.round() + (q.dread ? 3 : 0),
       questTitle: q.displayTitle,
@@ -566,9 +569,9 @@ class GameState extends ChangeNotifier {
   void commit(RewardBundle b) {
     xp += b.xp;
     totalXp += b.xp;
-    // earn embers alongside XP — the shop currency for "Your Space" furniture.
-    // ~a third of the XP, min 1, so every win nudges the balance up.
-    embers += max(1, b.xp ~/ 3);
+    // bank the embers the roll computed (shown in the receipt) — the shop
+    // currency for "Your Space"; every win nudges the balance up.
+    embers += b.embers;
     // stat gain, watching for a rank-tier crossing (fires the evidence beat)
     final beforeRank = rankFor(b.stat, stats[b.stat]!);
     stats[b.stat] = stats[b.stat]! + b.statGain;

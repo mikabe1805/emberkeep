@@ -470,6 +470,7 @@ class RewardBundle {
     required this.questTitle,
     required this.message,
     required this.difficulty,
+    this.embers = 0,
     this.dread = false,
     this.custom = false,
     this.isEvent = false,
@@ -486,6 +487,10 @@ class RewardBundle {
   final int xp;
   final Stat stat;
   final int statGain;
+
+  /// Embers earned by this completion — the shop currency (round-48: shown in
+  /// the receipt so the earn loop is felt, not silent).
+  final int embers;
 
   /// Which quest earned this (for the ledger and the epic overlay).
   final String questTitle;
