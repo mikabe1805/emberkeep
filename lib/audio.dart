@@ -31,8 +31,9 @@ class Sfx {
   /// Per-sound volume — the palette plays SOFT (owner feedback: it felt harsh).
   /// The press 'tick' fires on every tap, so it's nearly a whisper; reward
   /// beats sit gently above it; only the rare big moments approach full.
-  /// (True high-fidelity samples are a future asset swap; this just tames the
-  /// loudness/harshness of the current set.)
+  /// (round-51: the assets themselves were replaced with synthesized warm
+  /// marimba/music-box/bell tones — smooth click-free envelopes + light reverb
+  /// — so softness now comes from the timbre too, not just these multipliers.)
   static const _volume = <String, double>{
     'tick': 0.3,
     'complete': 0.55,
