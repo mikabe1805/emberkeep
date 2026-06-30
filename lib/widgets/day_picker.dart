@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../audio.dart';
 import '../tokens.dart';
 import 'glass.dart';
+import 'honey_button.dart';
 
 const _dayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const _dayNames = [
@@ -144,34 +145,13 @@ class _WeekdaySheetState extends State<_WeekdaySheet> {
                   const SizedBox(width: 10),
                   Expanded(
                     flex: 2,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
+                    child: HoneyButton(
+                      label: 'PIN TO ${_dayNames[_sel - 1].toUpperCase()}',
+                      expand: true,
                       onTap: () {
                         Sfx.instance.play('streak');
                         Navigator.of(context).pop(_sel);
                       },
-                      child: Container(
-                        alignment: Alignment.center,
-                        constraints: const BoxConstraints(minHeight: 48),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          gradient: const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                                color: Palette.honeyGlow,
-                                blurRadius: 16,
-                                offset: Offset(0, 4)),
-                          ],
-                        ),
-                        child: Text('PIN TO ${_dayNames[_sel - 1].toUpperCase()}',
-                            style: Type.label.copyWith(
-                                fontSize: 12,
-                                color: const Color(0xFF4A2F1A))),
-                      ),
                     ),
                   ),
                 ],

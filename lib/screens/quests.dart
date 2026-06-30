@@ -24,6 +24,7 @@ import '../widgets/domain_hint.dart';
 import '../widgets/ember_sheet.dart';
 import '../widgets/epic_overlay.dart';
 import '../widgets/glass.dart';
+import '../widgets/honey_button.dart';
 import '../widgets/install_hint.dart';
 import '../widgets/levelup_overlay.dart';
 import '../widgets/particles.dart';
@@ -1061,8 +1062,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 const SizedBox(width: 10),
                 Expanded(
                   flex: 2,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
+                  child: HoneyButton(
+                    label: 'MOVE TO ${plural.toUpperCase()}',
+                    expand: true,
                     onTap: () {
                       Sfx.instance.play('streak');
                       HapticFeedback.selectionClick();
@@ -1073,36 +1075,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       });
                       widget.onPersist();
                     },
-                    child: Container(
-                      alignment: Alignment.center,
-                      constraints: const BoxConstraints(minHeight: 44),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0xFFF6D9A2),
-                            Color(0xFFEFC074),
-                            Color(0xFFC08B4F),
-                          ],
-                        ),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Palette.honeyGlow,
-                            blurRadius: 14,
-                            offset: Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Text(
-                        'MOVE TO ${plural.toUpperCase()}',
-                        style: Type.label.copyWith(
-                          fontSize: 12,
-                          color: const Color(0xFF4A2F1A),
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ],
