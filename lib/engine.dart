@@ -78,6 +78,33 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
+  /// Room styling (round-46) — wall/floor looks you choose. Unlike furniture
+  /// (additive), a style is exclusive per surface: own many, display one.
+  /// Free default styles ('wall_walnut'/'floor_oak') are implicitly owned.
+  final Set<String> ownedStyles = {};
+  String wallStyle = 'wall_walnut';
+  String floorStyle = 'floor_oak';
+
+  /// Buy a style (affordable + allowed + not already owned) and put it on.
+  bool buyStyle(String id, int price, RoomStyleKind kind,
+      {bool allowed = true}) {
+    if (!allowed || embers < price || ownedStyles.contains(id)) return false;
+    embers -= price;
+    ownedStyles.add(id);
+    applyStyle(id, kind);
+    return true;
+  }
+
+  /// Put an already-owned style on the wall or floor.
+  void applyStyle(String id, RoomStyleKind kind) {
+    if (kind == RoomStyleKind.wall) {
+      wallStyle = id;
+    } else {
+      floorStyle = id;
+    }
+    notifyListeners();
+  }
+
   /// Per-domain journal — notes the user keeps on a whole life domain (their
   /// "base" for Home, Care, Craft…). Sparse: only domains with entries appear.
   /// Lists are replaced wholesale (see [NoteList]) so callers never mutate in
@@ -735,6 +762,9 @@ class GameState extends ChangeNotifier {
     'totalXp': totalXp,
     'embers': embers,
     'ownedFurniture': ownedFurniture.toList(),
+    'ownedStyles': ownedStyles.toList(),
+    'wallStyle': wallStyle,
+    'floorStyle': floorStyle,
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
     // per-domain notes, by Stat order (parallel to 'stats'); empty lists
     // for domains with nothing kept, so a restore maps cleanly by index.
@@ -795,6 +825,9 @@ class GameState extends ChangeNotifier {
     s.totalXp = j['totalXp'] as int? ?? 0;
     s.embers = j['embers'] as int? ?? 0;
     s.ownedFurniture.addAll(((j['ownedFurniture'] as List?) ?? const []).cast());
+    s.ownedStyles.addAll(((j['ownedStyles'] as List?) ?? const []).cast());
+    s.wallStyle = j['wallStyle'] as String? ?? 'wall_walnut';
+    s.floorStyle = j['floorStyle'] as String? ?? 'floor_oak';
     final st = (j['stats'] as List?)?.cast<int>() ?? const [];
     for (var i = 0; i < Stat.values.length && i < st.length; i++) {
       s.stats[Stat.values[i]] = st[i];

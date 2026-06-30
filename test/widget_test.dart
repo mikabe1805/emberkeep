@@ -442,4 +442,36 @@ void main() {
     expect(loaded.$1.journal.length, 1);
     expect(loaded.$1.journal.first.text, 'second thought');
   });
+
+  test('room styles: buy applies, apply switches, gate + persist', () async {
+    SharedPreferences.setMockInitialValues({});
+    final state = GameState()..embers = 500;
+    expect(state.wallStyle, 'wall_walnut'); // free defaults
+    expect(state.floorStyle, 'floor_oak');
+
+    // buying a style owns it, puts it on, and deducts embers
+    expect(state.buyStyle('wall_plum', 140, RoomStyleKind.wall), isTrue);
+    expect(state.embers, 360);
+    expect(state.ownedStyles, contains('wall_plum'));
+    expect(state.wallStyle, 'wall_plum');
+    expect(state.buyStyle('wall_plum', 140, RoomStyleKind.wall), isFalse);
+
+    // switch back to the free default — owned, so no charge
+    state.applyStyle('wall_walnut', RoomStyleKind.wall);
+    expect(state.wallStyle, 'wall_walnut');
+    expect(state.embers, 360);
+
+    // an achievement-gated style stays unbuyable until allowed
+    expect(
+        state.buyStyle('wall_indigo', 220, RoomStyleKind.wall, allowed: false),
+        isFalse);
+    expect(state.ownedStyles, isNot(contains('wall_indigo')));
+
+    await Storage.save(state, const []);
+    final loaded = await Storage.load();
+    expect(loaded, isNotNull);
+    expect(loaded!.$1.ownedStyles, contains('wall_plum'));
+    expect(loaded.$1.wallStyle, 'wall_walnut');
+    expect(loaded.$1.floorStyle, 'floor_oak');
+  });
 }

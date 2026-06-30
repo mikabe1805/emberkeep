@@ -195,6 +195,11 @@ extension NoteList on List<Note> {
   List<Note> without(Note n) => where((e) => e != n).toList();
 }
 
+/// Which surface a room style repaints — walls or the floor (round-46, room
+/// customization). Lives here (not content/) so the engine can take it without
+/// a content→engine→content import cycle.
+enum RoomStyleKind { wall, floor }
+
 /// A quest: curated (goal catalog), custom (user-forged), or a calendar
 /// event / long-term goal ([schedule] == once with a [dueDate]).
 class Quest {

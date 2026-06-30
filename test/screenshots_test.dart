@@ -125,6 +125,41 @@ void main() {
     );
   });
 
+  testWidgets('room: style variants', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(520, 920));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const furn = {'rug', 'lamp', 'plant', 'shelf', 'picture', 'garland'};
+    Widget room(List<Color> wall, List<Color> floor) => SizedBox(
+          width: 460,
+          child: HomeRoom(
+            unlocked: furn,
+            wall: wall,
+            floor: floor,
+            child: const Portrait(size: 96, level: 8, mood: PortraitMood.happy),
+          ),
+        );
+    await _shoot(
+      tester,
+      _stage(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            room(const [Color(0xFF312339), Color(0xFF3E2E48)],
+                const [Color(0xFF3C2C20), Color(0xFF2A1D14)]), // plum / oak
+            const SizedBox(height: 14),
+            room(const [Color(0xFF27302A), Color(0xFF333E36)],
+                const [Color(0xFF4A2C1E), Color(0xFF31180E)]), // sage / terra
+            const SizedBox(height: 14),
+            room(const [Color(0xFF232A3C), Color(0xFF2F3A55)],
+                const [Color(0xFF2C1E16), Color(0xFF1C120C)]), // midnight / walnut
+          ],
+        ),
+        pad: 16,
+      ),
+      'room_styles',
+    );
+  });
+
   testWidgets('room: empty', (tester) async {
     await _shoot(
       tester,

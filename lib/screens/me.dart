@@ -12,6 +12,7 @@ import '../platform/share_stub.dart'
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
 import '../content/furniture.dart';
+import '../content/room_styles.dart';
 import '../content/stat_ranks.dart';
 import '../content/themes.dart';
 import '../engine.dart';
@@ -129,6 +130,8 @@ class MePage extends StatelessWidget {
               children: [
                 HomeRoom(
                   unlocked: state.ownedFurniture,
+                  wall: wallColorsFor(state),
+                  floor: floorColorsFor(state),
                   child: Portrait(
                     size: 96,
                     aura:

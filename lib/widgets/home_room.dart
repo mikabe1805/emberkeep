@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
@@ -7,12 +8,17 @@ import '../tokens.dart';
 /// painter switches on the unlocked piece-ids from content/furniture.dart.
 /// Phase 1: a warm room + window + the pieces; later phases add placement,
 /// nicer art, and visiting others' rooms.
+const _defaultWall = [Color(0xFF2E2229), Color(0xFF3A2C2A)];
+const _defaultFloor = [Color(0xFF3C2C20), Color(0xFF2A1D14)];
+
 class HomeRoom extends StatelessWidget {
   const HomeRoom({
     super.key,
     required this.unlocked,
     required this.child,
     this.aspect = 1.7,
+    this.wall = _defaultWall,
+    this.floor = _defaultFloor,
   });
 
   /// Furniture piece-ids the player owns (GameState.ownedFurniture) — what
@@ -23,6 +29,11 @@ class HomeRoom extends StatelessWidget {
   final Widget child;
   final double aspect;
 
+  /// The chosen wall / floor gradient colours (content/room_styles.dart) — two
+  /// stops each. Default = the original Walnut/Oak look.
+  final List<Color> wall;
+  final List<Color> floor;
+
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
@@ -32,7 +43,7 @@ class HomeRoom extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              child: CustomPaint(painter: _RoomPainter(unlocked)),
+              child: CustomPaint(painter: _RoomPainter(unlocked, wall, floor)),
             ),
             // the avatar, standing on the floor in the middle of the room
             Align(
@@ -50,14 +61,13 @@ class HomeRoom extends StatelessWidget {
 }
 
 class _RoomPainter extends CustomPainter {
-  _RoomPainter(this.unlocked);
+  _RoomPainter(this.unlocked, this.wall, this.floor);
   final Set<String> unlocked;
+  final List<Color> wall;
+  final List<Color> floor;
   bool has(String id) => unlocked.contains(id);
 
-  // warm room palette
-  static const _wall = Color(0xFF2E2229);
-  static const _wallLow = Color(0xFF3A2C2A);
-  static const _floor = Color(0xFF3C2C20);
+  // furniture wood tone (independent of the chosen wall/floor)
   static const _wood = Color(0xFF4A3A2C);
 
   @override
@@ -65,23 +75,23 @@ class _RoomPainter extends CustomPainter {
     final w = size.width, h = size.height;
     final floorY = h * 0.66;
 
-    // ── walls + floor ──────────────────────────────────────────────
+    // ── walls + floor (recoloured by the chosen room style) ─────────
     canvas.drawRect(
       Rect.fromLTRB(0, 0, w, floorY),
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [_wall, _wallLow],
+          colors: wall,
         ).createShader(Rect.fromLTRB(0, 0, w, floorY)),
     );
     canvas.drawRect(
       Rect.fromLTRB(0, floorY, w, h),
       Paint()
-        ..shader = const LinearGradient(
+        ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [_floor, Color(0xFF2A1D14)],
+          colors: floor,
         ).createShader(Rect.fromLTRB(0, floorY, w, h)),
     );
     // baseboard shadow
@@ -446,5 +456,8 @@ class _RoomPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_RoomPainter old) => old.unlocked != unlocked;
+  bool shouldRepaint(_RoomPainter old) =>
+      old.unlocked != unlocked ||
+      !listEquals(old.wall, wall) ||
+      !listEquals(old.floor, floor);
 }
