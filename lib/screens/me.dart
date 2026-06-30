@@ -20,6 +20,7 @@ import '../tokens.dart';
 import '../widgets/domain_hint.dart';
 import '../models.dart';
 import '../widgets/glass.dart';
+import '../widgets/glass_switch.dart';
 import '../widgets/portrait.dart';
 import '../widgets/radar.dart';
 import 'domain_detail.dart';
@@ -719,9 +720,8 @@ class MePage extends StatelessWidget {
             children: [
               Text('REMINDERS', style: Type.label.copyWith(fontSize: 11)),
               const Spacer(),
-              Switch(
+              GlassSwitch(
                 value: state.notifyEnabled,
-                activeThumbColor: Palette.xp,
                 onChanged: (v) async {
                   if (v) await Notifications.requestPermission();
                   state.setNotify(enabled: v);
