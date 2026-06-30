@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -242,6 +243,77 @@ class CloudSync extends ChangeNotifier {
       status = 'on (last push failed)';
       notifyListeners();
       debugPrint('CloudSync push failed: $e');
+    }
+  }
+
+  // ── shared spaces (round-52, social) ─────────────────────────────
+  static const _codeAlpha = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no I/O/0/1
+  final _rng = Random();
+
+  String _genCode() =>
+      List.generate(6, (_) => _codeAlpha[_rng.nextInt(_codeAlpha.length)])
+          .join();
+
+  CollectionReference<Map<String, dynamic>> get _rooms =>
+      FirebaseFirestore.instance.collection('rooms');
+
+  /// Publish (or update) your space's appearance to a public room doc. Pass the
+  /// existing [code] to refresh it in place; otherwise a fresh short code is
+  /// reserved (retrying on the astronomically-rare collision). Returns the
+  /// share code, or null if the cloud is offline / it failed.
+  Future<String?> shareRoom(Map<String, dynamic> display, {String? code}) async {
+    if (!ready || _uid == null) return null;
+    final data = {
+      ...display,
+      'uid': _uid,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    try {
+      if (code != null && code.isNotEmpty) {
+        await _rooms.doc(code).set(data);
+        return code;
+      }
+      for (var i = 0; i < 6; i++) {
+        final c = _genCode();
+        try {
+          // set() on an ABSENT doc is a create (allowed); on someone else's
+          // it's an update → permission-denied → try another code.
+          await _rooms.doc(c).set(data);
+          return c;
+        } on FirebaseException catch (e) {
+          if (e.code == 'permission-denied') continue;
+          rethrow;
+        }
+      }
+      return null;
+    } catch (e) {
+      debugPrint('shareRoom failed: $e');
+      return null;
+    }
+  }
+
+  /// Read a shared space by code (case-insensitive). Null = not found / error.
+  Future<Map<String, dynamic>?> fetchRoom(String code) async {
+    if (!ready) return null;
+    final c = code.trim().toUpperCase();
+    if (c.isEmpty) return null;
+    try {
+      final snap =
+          await _rooms.doc(c).get().timeout(const Duration(seconds: 8));
+      return snap.data();
+    } catch (e) {
+      debugPrint('fetchRoom failed: $e');
+      return null;
+    }
+  }
+
+  /// Take your space down (only your own — the rules enforce it).
+  Future<void> unshareRoom(String code) async {
+    if (!ready || code.isEmpty) return;
+    try {
+      await _rooms.doc(code).delete();
+    } catch (e) {
+      debugPrint('unshareRoom failed: $e');
     }
   }
 

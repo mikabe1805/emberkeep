@@ -1,6 +1,7 @@
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/main.dart';
 import 'package:emberkeep/models.dart';
+import 'package:emberkeep/social.dart';
 import 'package:emberkeep/storage.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:flutter/material.dart';
@@ -525,5 +526,36 @@ void main() {
     expect(loaded, isNotNull);
     expect(loaded!.$1.ownedWindows, contains('city'));
     expect(loaded.$1.windowScene, 'moon');
+  });
+
+  test('shared space: roomDisplay is appearance-only (no private data)', () {
+    final s = GameState()
+      ..playerName = 'Mika'
+      ..level = 9
+      ..creatureSkin = 'mint_glass'
+      ..wallStyle = 'wall_plum'
+      ..windowScene = 'aurora';
+    s.ownedFurniture.addAll(['rug', 'lamp']);
+    s.setJournal(s.journal.withNote('a private thought', DateTime(2026, 6, 28)));
+
+    final d = roomDisplay(s);
+    expect(d['name'], 'Mika');
+    expect(d['level'], 9);
+    expect(d['skin'], 'mint_glass');
+    expect(d['wall'], 'wall_plum');
+    expect(d['window'], 'aurora');
+    expect((d['furniture'] as List), containsAll(['rug', 'lamp']));
+    // crucial: never leak quests/notes/account into a public room doc
+    expect(d.containsKey('journal'), isFalse);
+    expect(d.toString().contains('private thought'), isFalse);
+  });
+
+  test('shared space: roomCode persists', () async {
+    SharedPreferences.setMockInitialValues({});
+    final s = GameState()..roomCode = 'AB23CD';
+    await Storage.save(s, const []);
+    final loaded = await Storage.load();
+    expect(loaded, isNotNull);
+    expect(loaded!.$1.roomCode, 'AB23CD');
   });
 }

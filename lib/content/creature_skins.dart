@@ -107,3 +107,7 @@ String? skinGateLabel(CreatureSkin sk) {
 /// skin (falls back to Ember).
 List<Color> creatureColorsFor(GameState s) =>
     (creatureSkinById(s.creatureSkin) ?? _amber).colors;
+
+/// By-id lookup (used to render a VISITED space, which has no GameState).
+List<Color> creatureColorsById(String? id) =>
+    (creatureSkinById(id ?? '') ?? _amber).colors;

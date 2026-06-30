@@ -5,6 +5,7 @@
 // then open test/goldens/*.png. Not a pass/fail guard — purely a render dump.
 import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/furniture.dart';
+import 'package:emberkeep/content/room_styles.dart';
 import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/home_room.dart';
@@ -169,6 +170,41 @@ void main() {
         ),
       ),
       'portrait_small',
+    );
+  });
+
+  testWidgets('visited room (from share data)', (tester) async {
+    // exercises the by-id render path VisitRoomScreen uses on a friend's data
+    final room = <String, dynamic>{
+      'furniture': ['rug', 'lamp', 'plant', 'shelf', 'picture', 'garland',
+          'chair', 'pet'],
+      'wall': 'wall_plum',
+      'floor': 'floor_terra',
+      'skin': 'mint_glass',
+      'window': 'aurora',
+      'awake': true,
+    };
+    await _shoot(
+      tester,
+      _stage(
+        SizedBox(
+          width: 480,
+          child: HomeRoom(
+            unlocked: (room['furniture'] as List).cast<String>().toSet(),
+            wall: wallColorsById(room['wall'] as String?),
+            floor: floorColorsById(room['floor'] as String?),
+            window: room['window'] as String? ?? 'moon',
+            petAwake: room['awake'] == true,
+            child: Portrait(
+              size: 104,
+              level: 14,
+              mood: PortraitMood.happy,
+              skin: creatureColorsById(room['skin'] as String?),
+            ),
+          ),
+        ),
+      ),
+      'visited_room',
     );
   });
 

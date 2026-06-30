@@ -28,6 +28,7 @@ import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/portrait.dart';
 import '../widgets/radar.dart';
+import '../social.dart';
 import 'domain_detail.dart';
 import 'shop.dart';
 
@@ -188,6 +189,31 @@ class MePage extends StatelessWidget {
                           ),
                         );
                       },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // share your space / visit a friend's (round-52, social)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _SpaceLink(
+                      icon: Icons.ios_share,
+                      label: state.roomCode == null
+                          ? 'Share my space'
+                          : 'Shared · ${state.roomCode}',
+                      onTap: () => shareSpace(context, state, onPersist),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 14,
+                      margin: const EdgeInsets.symmetric(horizontal: 14),
+                      color: Palette.textLo.withValues(alpha: 0.3),
+                    ),
+                    _SpaceLink(
+                      icon: Icons.travel_explore,
+                      label: 'Visit a space',
+                      onTap: () => visitSpace(context),
                     ),
                   ],
                 ),
@@ -1164,6 +1190,40 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
 
 /// One stat as a row: dot, name, rank title, value, and a thin bar toward
 /// the next tier — makes each attribute feel like its own little ladder.
+/// A small icon+label text link for the Share / Visit space actions.
+class _SpaceLink extends StatelessWidget {
+  const _SpaceLink({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Palette.xpLight),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: Type.label.copyWith(fontSize: 11, color: Palette.xpLight),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StatRow extends StatelessWidget {
   const _StatRow({
     required this.stat,

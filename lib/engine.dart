@@ -146,6 +146,10 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Share code for "Your Space" once published (round-52, social) — null until
+  /// you first share. Stable so re-sharing updates the same public room doc.
+  String? roomCode;
+
   /// Per-domain journal — notes the user keeps on a whole life domain (their
   /// "base" for Home, Care, Craft…). Sparse: only domains with entries appear.
   /// Lists are replaced wholesale (see [NoteList]) so callers never mutate in
@@ -813,6 +817,7 @@ class GameState extends ChangeNotifier {
     'creatureSkin': creatureSkin,
     'ownedWindows': ownedWindows.toList(),
     'windowScene': windowScene,
+    'roomCode': roomCode,
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
     // per-domain notes, by Stat order (parallel to 'stats'); empty lists
     // for domains with nothing kept, so a restore maps cleanly by index.
@@ -880,6 +885,7 @@ class GameState extends ChangeNotifier {
     s.creatureSkin = j['creatureSkin'] as String? ?? 'ember_amber';
     s.ownedWindows.addAll(((j['ownedWindows'] as List?) ?? const []).cast());
     s.windowScene = j['windowScene'] as String? ?? 'moon';
+    s.roomCode = j['roomCode'] as String?;
     final st = (j['stats'] as List?)?.cast<int>() ?? const [];
     for (var i = 0; i < Stat.values.length && i < st.length; i++) {
       s.stats[Stat.values[i]] = st[i];

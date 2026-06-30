@@ -142,3 +142,15 @@ List<Color> floorColorsFor(GameState s) {
   final st = roomStyleById(s.floorStyle) ?? _oakFloor;
   return [st.a, st.b];
 }
+
+/// By-id colour lookups (used to render a VISITED space from its share data,
+/// where there's no local GameState).
+List<Color> wallColorsById(String? id) {
+  final st = roomStyleById(id ?? '') ?? _walnutWall;
+  return [st.a, st.b];
+}
+
+List<Color> floorColorsById(String? id) {
+  final st = roomStyleById(id ?? '') ?? _oakFloor;
+  return [st.a, st.b];
+}
