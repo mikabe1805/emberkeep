@@ -11,6 +11,7 @@ import '../platform/share_stub.dart'
     if (dart.library.js_interop) '../platform/share_web.dart';
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
+import '../content/creature_skins.dart';
 import '../content/furniture.dart';
 import '../content/room_styles.dart';
 import '../content/stat_ranks.dart';
@@ -140,6 +141,7 @@ class MePage extends StatelessWidget {
                     level: state.level,
                     badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
                     trait: state.portraitTrait,
+                    skin: creatureColorsFor(state),
                     // on the one screen that's all about you, your companion is
                     // proud of you when the fire's lit (on a streak)
                     mood: state.streakDays > 0
@@ -1072,6 +1074,7 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
                   level: state.level,
                   badge: cos?.badge ?? false,
                   trait: state.portraitTrait,
+                  skin: creatureColorsFor(state),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -1446,6 +1449,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                     level: state.level,
                     badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
                     trait: state.portraitTrait,
+                    skin: creatureColorsFor(state),
                   ),
                   const SizedBox(height: 12),
                   Text(

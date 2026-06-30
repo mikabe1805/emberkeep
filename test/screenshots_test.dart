@@ -3,6 +3,7 @@
 // what the CustomPainters produce instead of shipping blind. Regenerate with:
 //   flutter test --update-goldens test/screenshots_test.dart
 // then open test/goldens/*.png. Not a pass/fail guard — purely a render dump.
+import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/furniture.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/home_room.dart';
@@ -103,6 +104,30 @@ void main() {
         ),
       ),
       'portrait_evolution',
+    );
+  });
+
+  testWidgets('portrait: skins', (tester) async {
+    await _shoot(
+      tester,
+      _stage(
+        bg: const Color(0xFF1C141A),
+        pad: 14,
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final sk in creatureSkins) ...[
+              Portrait(
+                  size: 96,
+                  level: 8,
+                  mood: PortraitMood.happy,
+                  skin: sk.colors),
+              const SizedBox(width: 8),
+            ],
+          ],
+        ),
+      ),
+      'portrait_skins',
     );
   });
 

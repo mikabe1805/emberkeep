@@ -1,10 +1,19 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
 
 enum PortraitMood { idle, happy }
+
+/// The default warm Ember body palette (light→dark) when no skin is worn.
+const _emberAmber = [
+  Color(0xFFFFF4D9),
+  Color(0xFFF2CD93),
+  Color(0xFFC58A4E),
+  Color(0xFF6E451F),
+];
 
 /// A growth stage the character reaches at a level — the cosmetic-unlock
 /// promise made real (RESEARCH-momentum.md §7). Reaching the level visibly
@@ -47,6 +56,7 @@ class Portrait extends StatefulWidget {
     this.level = 1,
     this.badge = false,
     this.trait,
+    this.skin,
   });
 
   final double size;
@@ -54,6 +64,10 @@ class Portrait extends StatefulWidget {
 
   /// Dominant-stat color (or an equipped skin's color); defaults to honey.
   final Color? aura;
+
+  /// The four body-gradient colours (light→dark) of the worn creature skin
+  /// (content/creature_skins.dart). Null = the default warm Ember amber.
+  final List<Color>? skin;
 
   /// Character level — drives the earned growth stage (flame crest).
   final int level;
@@ -107,6 +121,7 @@ class _PortraitState extends State<Portrait>
                 tier: tier,
                 trait: widget.trait,
                 t: t,
+                skin: widget.skin ?? _emberAmber,
               ),
             ),
           );
@@ -158,6 +173,7 @@ class _EmberPainter extends CustomPainter {
     required this.aura,
     required this.tier,
     required this.t,
+    required this.skin,
     this.trait,
   });
 
@@ -168,11 +184,15 @@ class _EmberPainter extends CustomPainter {
   final double t;
   final Stat? trait;
 
-  // warm glass palette
-  static const _cream = Color(0xFFFFF4D9);
-  static const _honey = Color(0xFFF2CD93);
-  static const _amber = Color(0xFFC58A4E);
-  static const _rim = Color(0xFF6E451F);
+  /// Four body-gradient stops, light→dark (the worn creature skin).
+  final List<Color> skin;
+
+  // the glass palette derives from the skin so the whole creature recolours
+  // together; only the ink (eyes/mouth) stays a universal warm dark.
+  Color get _cream => skin[0];
+  Color get _honey => skin[1];
+  Color get _amber => skin[2];
+  Color get _rim => skin[3];
   static const _ink = Color(0xFF3A2410);
 
   @override
@@ -217,7 +237,7 @@ class _EmberPainter extends CustomPainter {
 
     // ── feet: two little nubs so it stands ──
     if (detail) {
-      final footPaint = Paint()..color = const Color(0xFFA9743E);
+      final footPaint = Paint()..color = Color.lerp(_amber, _rim, 0.45)!;
       for (final dx in [-0.16, 0.16]) {
         canvas.drawOval(
           Rect.fromCenter(
@@ -236,11 +256,11 @@ class _EmberPainter extends CustomPainter {
     canvas.drawOval(
       bodyRect,
       Paint()
-        ..shader = const RadialGradient(
-          center: Alignment(-0.4, -0.55),
+        ..shader = RadialGradient(
+          center: const Alignment(-0.4, -0.55),
           radius: 1.05,
           colors: [_cream, _honey, _amber, _rim],
-          stops: [0.0, 0.34, 0.76, 1.0],
+          stops: const [0.0, 0.34, 0.76, 1.0],
         ).createShader(bodyRect),
     );
     // grounding shadow — stays on the floor (shrinks + fades as it lifts), so
@@ -314,23 +334,23 @@ class _EmberPainter extends CustomPainter {
             fx + fw * 0.55, baseY - fh * 0.55, fx + fw / 2, baseY)
         ..quadraticBezierTo(fx, baseY + fh * 0.12, fx - fw / 2, baseY)
         ..close();
-      // glow
+      // glow — tinted to the skin so a mint or rose ember glows in its own hue
       canvas.drawPath(
         path,
         Paint()
-          ..color = Palette.honeyGlow.withValues(alpha: 0.7)
+          ..color = _honey.withValues(alpha: 0.7)
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.03),
       );
-      // body of the flame
+      // body of the flame (deep → mid → light, matching the body)
       final fr = Rect.fromLTWH(fx - fw, baseY - fh, fw * 2, fh);
       canvas.drawPath(
         path,
         Paint()
-          ..shader = const LinearGradient(
+          ..shader = LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
-            colors: [Color(0xFFE9A24B), _honey, _cream],
-            stops: [0.0, 0.5, 1.0],
+            colors: [_amber, _honey, _cream],
+            stops: const [0.0, 0.5, 1.0],
           ).createShader(fr),
       );
     }
@@ -490,5 +510,6 @@ class _EmberPainter extends CustomPainter {
       old.tier != tier ||
       old.aura != aura ||
       old.trait != trait ||
-      old.t != t;
+      old.t != t ||
+      !listEquals(old.skin, skin);
 }

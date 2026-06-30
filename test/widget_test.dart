@@ -474,4 +474,31 @@ void main() {
     expect(loaded.$1.wallStyle, 'wall_walnut');
     expect(loaded.$1.floorStyle, 'floor_oak');
   });
+
+  test('creature skins: buy wears, apply switches, gate + persist', () async {
+    SharedPreferences.setMockInitialValues({});
+    final state = GameState()..embers = 500;
+    expect(state.creatureSkin, 'ember_amber'); // free default
+
+    expect(state.buySkin('mint_glass', 180), isTrue);
+    expect(state.embers, 320);
+    expect(state.ownedSkins, contains('mint_glass'));
+    expect(state.creatureSkin, 'mint_glass');
+    expect(state.buySkin('mint_glass', 180), isFalse);
+
+    // wear the free default again — no charge
+    state.applySkin('ember_amber');
+    expect(state.creatureSkin, 'ember_amber');
+    expect(state.embers, 320);
+
+    // a gated skin stays unbuyable until earned
+    expect(state.buySkin('gilded', 320, allowed: false), isFalse);
+    expect(state.ownedSkins, isNot(contains('gilded')));
+
+    await Storage.save(state, const []);
+    final loaded = await Storage.load();
+    expect(loaded, isNotNull);
+    expect(loaded!.$1.ownedSkins, contains('mint_glass'));
+    expect(loaded.$1.creatureSkin, 'ember_amber');
+  });
 }

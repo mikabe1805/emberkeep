@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../content/creature_skins.dart';
 import '../content/furniture.dart';
 import '../content/room_styles.dart';
 import '../engine.dart';
@@ -62,6 +63,25 @@ class ShopScreen extends StatelessWidget {
     onPersist();
   }
 
+  void _buySkin(CreatureSkin sk) {
+    final ok = state.buySkin(sk.id, sk.price, allowed: skinUnlocked(sk, state));
+    if (ok) {
+      Sfx.instance.play('loot');
+      HapticFeedback.mediumImpact();
+      onPersist();
+    } else {
+      Sfx.instance.play('tick');
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  void _applySkin(CreatureSkin sk) {
+    state.applySkin(sk.id);
+    Sfx.instance.play('tick');
+    HapticFeedback.selectionClick();
+    onPersist();
+  }
+
   Widget _sectionHeader(String label) => Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 8, top: 2),
         child: Text(
@@ -112,6 +132,7 @@ class ShopScreen extends StatelessWidget {
                                   aura: state.dominantStat?.color,
                                   level: state.level,
                                   trait: state.portraitTrait,
+                                  skin: creatureColorsFor(state),
                                   mood: PortraitMood.happy,
                                 ),
                               ),
@@ -129,6 +150,17 @@ class ShopScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        _sectionHeader('YOUR EMBER'),
+                        for (final sk in creatureSkins) ...[
+                          _SkinCard(
+                            skin: sk,
+                            state: state,
+                            onBuy: () => _buySkin(sk),
+                            onApply: () => _applySkin(sk),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+                        const SizedBox(height: 8),
                         _sectionHeader('FURNITURE'),
                         for (final f in furniture) ...[
                           _ShopCard(
@@ -437,6 +469,143 @@ class _StyleCard extends StatelessWidget {
               fontSize: 8, color: Palette.xp, letterSpacing: 1),
         ),
       );
+
+  Widget _pill(Color c, IconData icon, String label) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: c.withValues(alpha: 0.15),
+          border: Border.all(color: c.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: c),
+            const SizedBox(width: 5),
+            Text(label, style: Type.label.copyWith(fontSize: 10, color: c)),
+          ],
+        ),
+      );
+
+  Widget _lockedPill(String trophy) => Container(
+        constraints: const BoxConstraints(maxWidth: 124),
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: Colors.black.withValues(alpha: 0.16),
+          border: Border.all(color: Palette.textLo.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.lock_outline, size: 13, color: Palette.textLo),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text('earn “$trophy”',
+                  style:
+                      Type.body.copyWith(fontSize: 10, color: Palette.textLo)),
+            ),
+          ],
+        ),
+      );
+}
+
+/// A creature-skin row: a live mini-ember in that colour + buy / wear / locked
+/// states. Skins are exclusive (wear one), so buying wears it and owned ones
+/// offer "Wear" to switch.
+class _SkinCard extends StatelessWidget {
+  const _SkinCard({
+    required this.skin,
+    required this.state,
+    required this.onBuy,
+    required this.onApply,
+  });
+
+  final CreatureSkin skin;
+  final GameState state;
+  final VoidCallback onBuy;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final applied = isSkinApplied(state, skin);
+    return GlassPanel(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      child: Row(
+        children: [
+          // a real little ember in this colour — see it before you buy
+          SizedBox(
+            width: 50,
+            height: 50,
+            child: Portrait(
+                size: 50,
+                level: 8,
+                mood: PortraitMood.happy,
+                skin: skin.colors),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(skin.name,
+                    style: Type.label
+                        .copyWith(fontSize: 13, color: Palette.textHi)),
+                const SizedBox(height: 4),
+                Text(
+                  skin.id == 'ember_amber'
+                      ? 'the original ember'
+                      : 'a colour all your own',
+                  style:
+                      Type.body.copyWith(fontSize: 11.5, color: Palette.textLo),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          _cta(applied),
+        ],
+      ),
+    );
+  }
+
+  Widget _cta(bool applied) {
+    if (applied) {
+      return _pill(Palette.success, Icons.check_rounded, 'worn');
+    }
+    if (isSkinOwned(state, skin)) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onApply,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Palette.xp.withValues(alpha: 0.6)),
+          ),
+          child: Text('Wear',
+              style: Type.label.copyWith(fontSize: 11, color: Palette.xpLight)),
+        ),
+      );
+    }
+    if (!skinUnlocked(skin, state)) {
+      return _lockedPill(skinGateLabel(skin) ?? 'a trophy');
+    }
+    if (state.embers >= skin.price) {
+      return HoneyButton(label: '✦ ${skin.price}', onTap: onBuy);
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text('✦ ${skin.price}',
+            style: Type.display.copyWith(fontSize: 17, color: Palette.xp)),
+        const SizedBox(height: 1),
+        Text('${skin.price - state.embers} to go',
+            style: Type.body.copyWith(fontSize: 10, color: Palette.textLo)),
+      ],
+    );
+  }
 
   Widget _pill(Color c, IconData icon, String label) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),

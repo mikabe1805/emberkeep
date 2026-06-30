@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
+import '../content/creature_skins.dart';
 import '../content/embers.dart';
 import '../content/evidence.dart';
 import '../content/ladders.dart';
@@ -1616,6 +1617,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             _state.dominantStat?.color,
                         level: _state.level,
                         badge: cosmeticFor(_state.equippedSkin)?.badge ?? false,
+                        skin: creatureColorsFor(_state),
                       ),
                     ),
                     const SizedBox(width: 14),

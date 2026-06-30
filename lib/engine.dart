@@ -105,6 +105,27 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Creature skins (round-47) — the colour of the ember itself, chosen in the
+  /// shop. Exclusive like room styles (own many, wear one). The free default
+  /// 'ember_amber' is implicitly owned. Distinct from [equippedSkin], which is
+  /// an earned cosmetic that only tints the aura/badge.
+  final Set<String> ownedSkins = {};
+  String creatureSkin = 'ember_amber';
+
+  bool buySkin(String id, int price, {bool allowed = true}) {
+    if (!allowed || embers < price || ownedSkins.contains(id)) return false;
+    embers -= price;
+    ownedSkins.add(id);
+    creatureSkin = id;
+    notifyListeners();
+    return true;
+  }
+
+  void applySkin(String id) {
+    creatureSkin = id;
+    notifyListeners();
+  }
+
   /// Per-domain journal — notes the user keeps on a whole life domain (their
   /// "base" for Home, Care, Craft…). Sparse: only domains with entries appear.
   /// Lists are replaced wholesale (see [NoteList]) so callers never mutate in
@@ -765,6 +786,8 @@ class GameState extends ChangeNotifier {
     'ownedStyles': ownedStyles.toList(),
     'wallStyle': wallStyle,
     'floorStyle': floorStyle,
+    'ownedSkins': ownedSkins.toList(),
+    'creatureSkin': creatureSkin,
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
     // per-domain notes, by Stat order (parallel to 'stats'); empty lists
     // for domains with nothing kept, so a restore maps cleanly by index.
@@ -828,6 +851,8 @@ class GameState extends ChangeNotifier {
     s.ownedStyles.addAll(((j['ownedStyles'] as List?) ?? const []).cast());
     s.wallStyle = j['wallStyle'] as String? ?? 'wall_walnut';
     s.floorStyle = j['floorStyle'] as String? ?? 'floor_oak';
+    s.ownedSkins.addAll(((j['ownedSkins'] as List?) ?? const []).cast());
+    s.creatureSkin = j['creatureSkin'] as String? ?? 'ember_amber';
     final st = (j['stats'] as List?)?.cast<int>() ?? const [];
     for (var i = 0; i < Stat.values.length && i < st.length; i++) {
       s.stats[Stat.values[i]] = st[i];
