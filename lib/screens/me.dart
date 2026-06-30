@@ -11,6 +11,7 @@ import '../platform/share_stub.dart'
     if (dart.library.js_interop) '../platform/share_web.dart';
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
+import '../content/furniture.dart';
 import '../content/stat_ranks.dart';
 import '../content/themes.dart';
 import '../engine.dart';
@@ -21,6 +22,7 @@ import '../widgets/domain_hint.dart';
 import '../models.dart';
 import '../widgets/glass.dart';
 import '../widgets/glass_switch.dart';
+import '../widgets/home_room.dart';
 import '../widgets/portrait.dart';
 import '../widgets/radar.dart';
 import 'domain_detail.dart';
@@ -118,24 +120,44 @@ class MePage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // ── portrait + identity ──────────────────────────────────
+          // ── your space: the avatar in a room that fills as you grow ──
           GlassPanel(
             blur: true,
             child: Column(
               children: [
-                Portrait(
-                  size: 96,
-                  aura:
-                      cosmeticFor(state.equippedSkin)?.aura ??
-                      state.dominantStat?.color,
-                  level: state.level,
-                  badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
-                  trait: state.portraitTrait,
-                  // on the one screen that's all about you, your companion is
-                  // proud of you when the fire's lit (on a streak)
-                  mood: state.streakDays > 0
-                      ? PortraitMood.happy
-                      : PortraitMood.idle,
+                HomeRoom(
+                  unlocked: unlockedFurniture(state),
+                  child: Portrait(
+                    size: 96,
+                    aura:
+                        cosmeticFor(state.equippedSkin)?.aura ??
+                        state.dominantStat?.color,
+                    level: state.level,
+                    badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
+                    trait: state.portraitTrait,
+                    // on the one screen that's all about you, your companion is
+                    // proud of you when the fire's lit (on a streak)
+                    mood: state.streakDays > 0
+                        ? PortraitMood.happy
+                        : PortraitMood.idle,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Builder(
+                  builder: (_) {
+                    final next = nextFurniture(state);
+                    final have = unlockedFurniture(state).length;
+                    return Text(
+                      next == null
+                          ? 'YOUR SPACE · $have/${furniture.length} · fully furnished ✦'
+                          : 'YOUR SPACE · $have/${furniture.length} · next: ${next.name} (${next.hint})',
+                      textAlign: TextAlign.center,
+                      style: Type.label.copyWith(
+                        fontSize: 10,
+                        color: Palette.textLo,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 Text(
