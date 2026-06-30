@@ -6,9 +6,10 @@ import '../tokens.dart';
 
 enum PortraitMood { idle, happy }
 
-/// A portrait frame earned at a level — the cosmetic-unlock promise made
-/// real (RESEARCH-momentum.md §7). Reaching the level visibly changes the
-/// character; the Me page's appearance slots read from this same list.
+/// A growth stage the character reaches at a level — the cosmetic-unlock
+/// promise made real (RESEARCH-momentum.md §7). Reaching the level visibly
+/// changes the creature (its flame crest grows); the Me page's appearance
+/// slots read from this same list.
 class PortraitFrame {
   const PortraitFrame(this.level, this.name);
   final int level;
@@ -16,14 +17,14 @@ class PortraitFrame {
 }
 
 const portraitFrames = <PortraitFrame>[
-  PortraitFrame(5, 'Ember Ring'),
-  PortraitFrame(10, 'Bright Frame'),
-  PortraitFrame(16, 'Gilt Crown'),
-  PortraitFrame(24, 'Solar Halo'),
-  PortraitFrame(34, 'Eternal Crown'),
+  PortraitFrame(5, 'First Spark'),
+  PortraitFrame(10, 'Steady Flame'),
+  PortraitFrame(16, 'Bright Crest'),
+  PortraitFrame(24, 'Twin Fire'),
+  PortraitFrame(34, 'Everflame'),
 ];
 
-/// How many frames a level has earned (0 = bare bead).
+/// How many stages a level has earned (0 = a tiny new ember).
 int frameTierForLevel(int level) {
   var t = 0;
   for (final f in portraitFrames) {
@@ -32,10 +33,11 @@ int frameTierForLevel(int level) {
   return t;
 }
 
-/// The character — an amber glass bead with a face that lives. Blinks on its
-/// own rhythm, beams when you complete a quest, wears an aura in your
-/// dominant stat's color, and grows a frame as you level — the portrait
-/// reacts to how you build yourself (DESIGN.md §11 / round-2 feedback).
+/// The character — a little ember creature you grow: a soft amber-glass body
+/// with big bright eyes, rosy cheeks, and a flame crest that rises taller as
+/// you level. It blinks on its own rhythm, beams when you complete a quest,
+/// glows in your dominant stat's colour, and visibly evolves as you build
+/// yourself (the owner's #1 ask: a lovable character that grows with you).
 class Portrait extends StatefulWidget {
   const Portrait({
     super.key,
@@ -53,7 +55,7 @@ class Portrait extends StatefulWidget {
   /// Dominant-stat color (or an equipped skin's color); defaults to honey.
   final Color? aura;
 
-  /// Character level — drives the earned frame tier.
+  /// Character level — drives the earned growth stage (flame crest).
   final int level;
 
   /// Pin the founder badge (an equipped cosmetic).
@@ -69,7 +71,8 @@ class Portrait extends StatefulWidget {
 
 class _PortraitState extends State<Portrait>
     with SingleTickerProviderStateMixin {
-  // one slow loop drives blinking; quantized + repaint-bounded
+  // one slow loop drives blinking + the flame's gentle sway; quantized +
+  // repaint-bounded so it costs almost nothing
   late final AnimationController _life = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 4200),
@@ -93,43 +96,18 @@ class _PortraitState extends State<Portrait>
           // blink: eyes shut briefly near the end of each loop
           final blinking = t > 0.92 && t < 0.965;
           final happy = widget.mood == PortraitMood.happy;
-          final core = AnimatedContainer(
-            duration: Motion.settle,
-            curve: Motion.respond,
+          final core = SizedBox(
             width: widget.size,
             height: widget.size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const RadialGradient(
-                center: Alignment(-0.45, -0.55),
-                colors: [
-                  Color(0xFFFFF4D9), // cream specular
-                  Color(0xFFF2CD93),
-                  Color(0xFFB97F46),
-                  Color(0xFF53351A), // walnut rim
-                ],
-                stops: [0.0, 0.32, 0.78, 1.0],
-              ),
-              boxShadow: [
-                // the aura — your build, glowing around you; richer with tier
-                BoxShadow(
-                  color: aura.withValues(
-                      alpha: (happy ? 0.65 : 0.38) + 0.06 * tier),
-                  blurRadius: (happy ? 26 : 16) + 4.0 * tier,
-                  spreadRadius: (happy ? 2 : 0) + tier.toDouble(),
-                ),
-                const BoxShadow(
-                    color: Color(0x66140C06),
-                    blurRadius: 6,
-                    offset: Offset(0, 3)),
-              ],
-            ),
             child: CustomPaint(
-              painter: _FacePainter(
-                  happy: happy, blinking: blinking, trait: widget.trait),
-              foregroundPainter: tier > 0
-                  ? _FramePainter(tier: tier, aura: aura)
-                  : null,
+              painter: _EmberPainter(
+                happy: happy,
+                blinking: blinking,
+                aura: aura,
+                tier: tier,
+                trait: widget.trait,
+                t: t,
+              ),
             ),
           );
           if (!widget.badge) return core;
@@ -141,24 +119,24 @@ class _PortraitState extends State<Portrait>
               children: [
                 core,
                 Positioned(
-                  right: -widget.size * 0.04,
-                  bottom: -widget.size * 0.04,
+                  right: -widget.size * 0.02,
+                  bottom: widget.size * 0.04,
                   child: Container(
-                    width: widget.size * 0.34,
-                    height: widget.size * 0.34,
+                    width: widget.size * 0.3,
+                    height: widget.size * 0.3,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const RadialGradient(
                         colors: [Color(0xFFFFF4D9), Color(0xFFC08B4F)],
                       ),
-                      border: Border.all(
-                          color: const Color(0xFF3A2510), width: 1),
+                      border:
+                          Border.all(color: const Color(0xFF3A2510), width: 1),
                       boxShadow: const [
                         BoxShadow(color: Palette.honeyGlow, blurRadius: 8),
                       ],
                     ),
                     child: Icon(Icons.star,
-                        size: widget.size * 0.2,
+                        size: widget.size * 0.18,
                         color: const Color(0xFF3A2510)),
                   ),
                 ),
@@ -171,103 +149,223 @@ class _PortraitState extends State<Portrait>
   }
 }
 
-/// The earned frame: concentric rim rings that accrue with level — a visible,
-/// honest cosmetic that grows as you do.
-class _FramePainter extends CustomPainter {
-  _FramePainter({required this.tier, required this.aura});
-  final int tier;
+/// Draws the whole creature: aura, flame crest, soft body with a glassy
+/// sheen, little feet, the face, and any build-trait flourish.
+class _EmberPainter extends CustomPainter {
+  _EmberPainter({
+    required this.happy,
+    required this.blinking,
+    required this.aura,
+    required this.tier,
+    required this.t,
+    this.trait,
+  });
+
+  final bool happy;
+  final bool blinking;
   final Color aura;
+  final int tier;
+  final double t;
+  final Stat? trait;
+
+  // warm glass palette
+  static const _cream = Color(0xFFFFF4D9);
+  static const _honey = Color(0xFFF2CD93);
+  static const _amber = Color(0xFFC58A4E);
+  static const _rim = Color(0xFF6E451F);
+  static const _ink = Color(0xFF3A2410);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final r = size.width / 2;
-    const honey = Color(0xFFF2CD93);
-    const cream = Color(0xFFFFF4D9);
-    // base rim — warm at low tiers, aura-tinted from tier 3
-    final ringColor = tier >= 3 ? aura : honey;
+    final s = size.width;
+    final cx = s * 0.5;
+    final detail = s >= 56; // feet/fine detail only when it won't muddy
+    // a soft flame sway so the creature feels alive
+    final sway = sin(t * 2 * pi) * s * 0.012;
+
+    // body geometry — a soft, slightly egg-shaped blob (head+body in one)
+    final bodyC = Offset(cx, s * 0.54);
+    final bodyW = s * 0.62, bodyH = s * 0.64;
+    final bodyTop = bodyC.dy - bodyH / 2;
+
+    // ── aura: your build, glowing around you (brighter happy / higher tier) ──
     canvas.drawCircle(
-      c,
-      r - size.width * 0.03,
+      bodyC,
+      s * 0.5,
       Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = size.width * (0.018 + 0.005 * tier)
-        ..color = ringColor.withValues(alpha: 0.85)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * 0.01),
+        ..color = aura.withValues(
+            alpha: (happy ? 0.42 : 0.24) + 0.035 * tier)
+        ..maskFilter = MaskFilter.blur(
+            BlurStyle.normal, s * (happy ? 0.13 : 0.10)),
     );
-    // tier 2+: an inner cream ring
-    if (tier >= 2) {
-      canvas.drawCircle(
-        c,
-        r - size.width * 0.075,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = size.width * 0.012
-          ..color = cream.withValues(alpha: 0.55),
-      );
-    }
-    // tier 4+: a laurel of small dots around the rim (12 at the top tier)
-    if (tier >= 4) {
-      final n = tier >= 5 ? 12 : 8;
-      final dotR = size.width * (tier >= 5 ? 0.022 : 0.018);
-      final ringR = r - size.width * 0.03;
-      final dotPaint = Paint()
-        ..color = (tier >= 5 ? cream : honey).withValues(alpha: 0.9)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * 0.006);
-      for (var i = 0; i < n; i++) {
-        final a = (i / n) * 2 * pi - pi / 2;
-        canvas.drawCircle(
-            c + Offset(cos(a) * ringR, sin(a) * ringR), dotR, dotPaint);
+
+    // ── flame crest (the growth stage) — rises above the head, taller with
+    // each tier; tier 0 is a single shy spark, the top tiers a real blaze ──
+    _crest(canvas, s, cx, bodyTop, sway);
+
+    // ── feet: two little nubs so it stands ──
+    if (detail) {
+      final footPaint = Paint()..color = const Color(0xFFA9743E);
+      for (final dx in [-0.16, 0.16]) {
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(cx + dx * s, bodyC.dy + bodyH * 0.46),
+            width: s * 0.2,
+            height: s * 0.12,
+          ),
+          footPaint,
+        );
       }
     }
-    // tier 5: a second, outer gilded ring
-    if (tier >= 5) {
-      canvas.drawCircle(
-        c,
-        r - size.width * 0.005,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = size.width * 0.01
-          ..color = honey.withValues(alpha: 0.75)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, size.width * 0.012),
-      );
+
+    // ── body: glassy radial-shaded blob ──
+    final bodyRect = Rect.fromCenter(
+        center: bodyC, width: bodyW, height: bodyH);
+    canvas.drawOval(
+      bodyRect,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(-0.4, -0.55),
+          radius: 1.05,
+          colors: [_cream, _honey, _amber, _rim],
+          stops: [0.0, 0.34, 0.76, 1.0],
+        ).createShader(bodyRect),
+    );
+    // grounding shadow under the body
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx, bodyC.dy + bodyH * 0.5),
+        width: bodyW * 0.78,
+        height: s * 0.06,
+      ),
+      Paint()
+        ..color = const Color(0x33000000)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.012),
+    );
+    // soft belly — a lighter tummy that reads as "soft creature"
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx, bodyC.dy + bodyH * 0.12),
+        width: bodyW * 0.5,
+        height: bodyH * 0.42,
+      ),
+      Paint()
+        ..color = _cream.withValues(alpha: 0.18)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.03),
+    );
+    // a crisp top-left specular highlight (the glass "drop of light")
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx - bodyW * 0.22, bodyTop + bodyH * 0.2),
+        width: bodyW * 0.26,
+        height: bodyH * 0.18,
+      ),
+      Paint()
+        ..color = _cream.withValues(alpha: 0.5)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.02),
+    );
+
+    _face(canvas, s, cx, bodyC, bodyW, detail);
+
+    // ── high-tier sparkle motes drifting around the blaze ──
+    if (tier >= 4) {
+      final sp = Paint()
+        ..color = _cream.withValues(alpha: 0.85)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.006);
+      for (final p in const [
+        Offset(0.2, 0.28),
+        Offset(0.82, 0.34),
+        Offset(0.74, 0.6),
+      ]) {
+        canvas.drawCircle(
+            Offset(p.dx * s, p.dy * s), s * 0.014, sp);
+      }
     }
   }
 
-  @override
-  bool shouldRepaint(_FramePainter old) =>
-      old.tier != tier || old.aura != aura;
-}
+  void _crest(Canvas canvas, double s, double cx, double bodyTop, double sway) {
+    // how tall the flame stands, by stage
+    final h = s * (0.1 + tier * 0.05);
+    final baseY = bodyTop + s * 0.06;
 
-class _FacePainter extends CustomPainter {
-  _FacePainter({required this.happy, required this.blinking, this.trait});
-  final bool happy;
-  final bool blinking;
-  final Stat? trait;
+    void flame(double dx, double scale, double lean) {
+      final fx = cx + dx + sway * scale;
+      final fh = h * scale;
+      final fw = s * 0.12 * scale;
+      final tipX = fx + lean;
+      final path = Path()
+        ..moveTo(fx - fw / 2, baseY)
+        ..quadraticBezierTo(
+            fx - fw * 0.55, baseY - fh * 0.55, tipX, baseY - fh)
+        ..quadraticBezierTo(
+            fx + fw * 0.55, baseY - fh * 0.55, fx + fw / 2, baseY)
+        ..quadraticBezierTo(fx, baseY + fh * 0.12, fx - fw / 2, baseY)
+        ..close();
+      // glow
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = Palette.honeyGlow.withValues(alpha: 0.7)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.03),
+      );
+      // body of the flame
+      final fr = Rect.fromLTWH(fx - fw, baseY - fh, fw * 2, fh);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [Color(0xFFE9A24B), _honey, _cream],
+            stops: [0.0, 0.5, 1.0],
+          ).createShader(fr),
+      );
+    }
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final s = size.width;
-    final ink = Paint()
-      ..color = const Color(0xFF35230F)
-      ..style = PaintingStyle.fill;
+    // side flames first (so the central one sits in front), added by tier
+    if (tier >= 3) flame(-s * 0.11, 0.62, -s * 0.02);
+    if (tier >= 2) flame(s * 0.11, 0.7, s * 0.02);
+    flame(0, 1.0, sway * 0.6); // the main flame, always present
+  }
+
+  void _face(Canvas canvas, double s, double cx, Offset bodyC, double bodyW,
+      bool detail) {
+    final eyeY = bodyC.dy - s * 0.02;
+    final eyeDx = s * 0.135;
+    final ink = Paint()..color = _ink;
     final stroke = Paint()
-      ..color = const Color(0xFF35230F)
+      ..color = _ink
       ..style = PaintingStyle.stroke
       ..strokeWidth = s * 0.035
       ..strokeCap = StrokeCap.round;
 
-    final eyeY = -s * 0.04;
-    final eyeDx = s * 0.15;
-    if (happy || blinking) {
-      // happy arcs (^ ^) — also doubles as the blink shape
+    // cheeks — a soft always-on warmth, blooming when happy
+    final blush = Paint()
+      ..color = Color(happy ? 0x66E08A7A : 0x44D88A8A)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.018);
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(cx - s * 0.2, eyeY + s * 0.1),
+          width: s * 0.13,
+          height: s * 0.085),
+      blush,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(cx + s * 0.2, eyeY + s * 0.1),
+          width: s * 0.13,
+          height: s * 0.085),
+      blush,
+    );
+
+    if (blinking) {
+      // gentle closed arcs
       for (final dx in [-eyeDx, eyeDx]) {
         canvas.drawArc(
           Rect.fromCenter(
-              center: c + Offset(dx, eyeY),
+              center: Offset(cx + dx, eyeY),
               width: s * 0.13,
-              height: s * 0.10),
+              height: s * 0.1),
           pi,
           pi,
           false,
@@ -275,92 +373,109 @@ class _FacePainter extends CustomPainter {
         );
       }
     } else {
-      canvas.drawCircle(c + Offset(-eyeDx, eyeY), s * 0.038, ink);
-      canvas.drawCircle(c + Offset(eyeDx, eyeY), s * 0.038, ink);
+      // big round eyes with catchlights — the heart of the cuteness
+      final eyeR = s * (happy ? 0.085 : 0.078);
+      for (final dx in [-eyeDx, eyeDx]) {
+        final ec = Offset(cx + dx, eyeY);
+        canvas.drawOval(
+          Rect.fromCenter(center: ec, width: eyeR * 1.7, height: eyeR * 2.0),
+          ink,
+        );
+        // big upper catchlight
+        canvas.drawCircle(
+          ec.translate(-eyeR * 0.32, -eyeR * 0.5),
+          eyeR * 0.42,
+          Paint()..color = _cream.withValues(alpha: 0.95),
+        );
+        // small lower sparkle
+        canvas.drawCircle(
+          ec.translate(eyeR * 0.34, eyeR * 0.55),
+          eyeR * 0.2,
+          Paint()..color = _cream.withValues(alpha: 0.7),
+        );
+      }
     }
 
-    // smile — wider when happy
+    // mouth — a soft smile, wider and rounder when happy
     canvas.drawArc(
       Rect.fromCenter(
-          center: c + Offset(0, s * (happy ? 0.09 : 0.10)),
-          width: s * (happy ? 0.34 : 0.24),
-          height: s * (happy ? 0.22 : 0.14)),
-      pi * 0.12,
-      pi * 0.76,
+          center: Offset(cx, eyeY + s * (happy ? 0.135 : 0.125)),
+          width: s * (happy ? 0.24 : 0.17),
+          height: s * (happy ? 0.17 : 0.1)),
+      pi * 0.1,
+      pi * 0.8,
       false,
       stroke,
     );
 
-    // blush when happy
-    if (happy) {
-      final blush = Paint()
-        ..color = const Color(0x55D88A8A)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-      canvas.drawCircle(
-          c + Offset(-s * 0.24, s * 0.07), s * 0.05, blush);
-      canvas.drawCircle(c + Offset(s * 0.24, s * 0.07), s * 0.05, blush);
-    }
+    _trait(canvas, s, cx, eyeY, eyeDx, detail);
+  }
 
-    // build-trait flourish — only at larger sizes so the tiny HUD stays clean
+  void _trait(Canvas canvas, double s, double cx, double eyeY, double eyeDx,
+      bool detail) {
     final tr = trait;
-    if (tr != null && s >= 70) {
-      final tc = tr.color;
-      final acc = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = s * 0.03
-        ..strokeCap = StrokeCap.round
-        ..color = tc;
-      switch (tr) {
-        case Stat.intl: // round glasses
-          final r = s * 0.072;
-          canvas.drawCircle(c + Offset(-eyeDx, eyeY), r, acc);
-          canvas.drawCircle(c + Offset(eyeDx, eyeY), r, acc);
-          canvas.drawLine(
-              c + Offset(-eyeDx + r, eyeY), c + Offset(eyeDx - r, eyeY), acc);
-          canvas.drawLine(c + Offset(-eyeDx - r, eyeY),
-              c + Offset(-eyeDx - r - s * 0.06, eyeY - s * 0.02), acc);
-          canvas.drawLine(c + Offset(eyeDx + r, eyeY),
-              c + Offset(eyeDx + r + s * 0.06, eyeY - s * 0.02), acc);
-        case Stat.str: // a headband across the brow + knot tails
-          final band = Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = s * 0.055
-            ..strokeCap = StrokeCap.round
-            ..color = tc;
-          final by = -s * 0.20;
-          canvas.drawLine(c + Offset(-s * 0.22, by), c + Offset(s * 0.22, by), band);
-          canvas.drawLine(c + Offset(s * 0.20, by),
-              c + Offset(s * 0.30, by + s * 0.05), acc);
-          canvas.drawLine(c + Offset(s * 0.20, by),
-              c + Offset(s * 0.30, by - s * 0.03), acc);
-        case Stat.foc: // a calm focus dot above the brows
-          canvas.drawCircle(
-              c + Offset(0, -s * 0.17), s * 0.028, Paint()..color = tc);
-        case Stat.soc: // brighter, always-on bloom cheeks
-          final b = Paint()
-            ..color = tc.withValues(alpha: 0.5)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-          canvas.drawCircle(c + Offset(-s * 0.24, s * 0.07), s * 0.055, b);
-          canvas.drawCircle(c + Offset(s * 0.24, s * 0.07), s * 0.055, b);
-        case Stat.vit: // a tiny sprout above the head
-          canvas.drawLine(
-              c + Offset(0, -s * 0.30), c + Offset(-s * 0.05, -s * 0.37), acc);
-          canvas.drawLine(
-              c + Offset(0, -s * 0.30), c + Offset(s * 0.05, -s * 0.37), acc);
-          canvas.drawLine(
-              c + Offset(0, -s * 0.27), c + Offset(0, -s * 0.33), acc);
-        case Stat.dis: // determined brows
-          canvas.drawLine(c + Offset(-eyeDx - s * 0.05, eyeY - s * 0.10),
-              c + Offset(-eyeDx + s * 0.04, eyeY - s * 0.06), acc);
-          canvas.drawLine(c + Offset(eyeDx + s * 0.05, eyeY - s * 0.10),
-              c + Offset(eyeDx - s * 0.04, eyeY - s * 0.06), acc);
-      }
+    if (tr == null || !detail) return;
+    final c = Offset(cx, eyeY);
+    final tc = tr.color;
+    final acc = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s * 0.028
+      ..strokeCap = StrokeCap.round
+      ..color = tc;
+    switch (tr) {
+      case Stat.intl: // round glasses
+        final r = s * 0.085;
+        canvas.drawCircle(c + Offset(-eyeDx, 0), r, acc);
+        canvas.drawCircle(c + Offset(eyeDx, 0), r, acc);
+        canvas.drawLine(
+            c + Offset(-eyeDx + r, 0), c + Offset(eyeDx - r, 0), acc);
+      case Stat.str: // headband across the brow + knot tails
+        final band = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = s * 0.05
+          ..strokeCap = StrokeCap.round
+          ..color = tc;
+        final by = eyeY - s * 0.14;
+        canvas.drawLine(
+            Offset(cx - s * 0.2, by), Offset(cx + s * 0.2, by), band);
+        canvas.drawLine(Offset(cx + s * 0.18, by),
+            Offset(cx + s * 0.28, by + s * 0.05), acc);
+        canvas.drawLine(Offset(cx + s * 0.18, by),
+            Offset(cx + s * 0.28, by - s * 0.03), acc);
+      case Stat.foc: // a calm focus dot on the brow
+        canvas.drawCircle(
+            Offset(cx, eyeY - s * 0.12), s * 0.026, Paint()..color = tc);
+      case Stat.soc: // brighter, larger bloom cheeks
+        final b = Paint()
+          ..color = tc.withValues(alpha: 0.5)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.02);
+        canvas.drawCircle(Offset(cx - s * 0.2, eyeY + s * 0.1), s * 0.05, b);
+        canvas.drawCircle(Offset(cx + s * 0.2, eyeY + s * 0.1), s * 0.05, b);
+      case Stat.vit: // a tiny leaf sprig on one cheek (clear of the flame)
+        final lx = cx + s * 0.26, ly = eyeY + s * 0.02;
+        canvas.drawLine(Offset(lx, ly + s * 0.05), Offset(lx, ly - s * 0.06),
+            acc..strokeWidth = s * 0.02);
+        canvas.drawOval(
+          Rect.fromCenter(
+              center: Offset(lx + s * 0.03, ly - s * 0.02),
+              width: s * 0.06,
+              height: s * 0.035),
+          Paint()..color = tc,
+        );
+      case Stat.dis: // determined brows
+        canvas.drawLine(Offset(cx - eyeDx - s * 0.05, eyeY - s * 0.11),
+            Offset(cx - eyeDx + s * 0.04, eyeY - s * 0.07), acc);
+        canvas.drawLine(Offset(cx + eyeDx + s * 0.05, eyeY - s * 0.11),
+            Offset(cx + eyeDx - s * 0.04, eyeY - s * 0.07), acc);
     }
   }
 
   @override
-  bool shouldRepaint(_FacePainter old) =>
+  bool shouldRepaint(_EmberPainter old) =>
       old.happy != happy ||
       old.blinking != blinking ||
-      old.trait != trait;
+      old.tier != tier ||
+      old.aura != aura ||
+      old.trait != trait ||
+      old.t != t;
 }

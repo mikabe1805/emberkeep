@@ -34,11 +34,11 @@ class HomeRoom extends StatelessWidget {
             Positioned.fill(
               child: CustomPaint(painter: _RoomPainter(unlocked)),
             ),
-            // the avatar, standing on the rug
+            // the avatar, standing on the floor in the middle of the room
             Align(
-              alignment: const Alignment(0, 0.5),
+              alignment: const Alignment(0, 0.7),
               child: FractionallySizedBox(
-                heightFactor: 0.58,
+                heightFactor: 0.52,
                 child: FittedBox(child: child),
               ),
             ),

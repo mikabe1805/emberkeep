@@ -46,3 +46,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# local visual-harness reference renders (regenerate with screenshots_test.dart)
+test/goldens/
