@@ -133,6 +133,12 @@ class GoalDetailScreen extends StatelessWidget {
                         goal.notes = goal.notes.without(n);
                         onPersist();
                       },
+                      onEdit: (orig, text) {
+                        goal.notes = goal.notes.replacing(
+                          orig.copyWith(text: text, editedAt: DateTime.now()),
+                        );
+                        onPersist();
+                      },
                       onMakeQuest: (text) async {
                         // turn a reflection into a quest that serves this goal
                         final q = await showEmberSheet(
@@ -172,7 +178,8 @@ class GoalDetailScreen extends StatelessWidget {
   // ── hero: the progress ring ───────────────────────────────────────
   Widget _heroRing() {
     final caption = goal.complete
-        ? 'ACHIEVED · ${goal.achievedDay ?? ''}'.trim()
+        // warm, human time — "ACHIEVED · 3 days ago", never a raw day-key
+        ? 'ACHIEVED · ${relativeWhen(Days.parse(goal.achievedDay!))}'
         : (goal.kind == GoalKind.achieve
               ? 'TOWARD THE FINISH LINE'
               : 'TOWARD MILESTONE ${goal.milestones + 1}');

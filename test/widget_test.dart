@@ -1,4 +1,5 @@
 import 'package:emberkeep/engine.dart';
+import 'package:emberkeep/journal_doc.dart';
 import 'package:emberkeep/main.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/social.dart';
@@ -442,6 +443,77 @@ void main() {
     loaded.$1.setJournal(loaded.$1.journal.without(loaded.$1.journal.first));
     expect(loaded.$1.journal.length, 1);
     expect(loaded.$1.journal.first.text, 'second thought');
+  });
+
+  test('journal: an entry is editable in place (by id) and survives reload',
+      () async {
+    SharedPreferences.setMockInitialValues({});
+    final state = GameState()..playerName = 'Mika';
+    final original = Note(
+      at: DateTime(2026, 6, 28),
+      text: 'rough first draft',
+      context: 'Frail',
+    );
+    state.setJournal([original]);
+
+    // edit it — same identity, body changes, original timestamp + context kept
+    final revised = original.copyWith(
+      text: 'a fuller, edited reflection',
+      editedAt: DateTime(2026, 6, 30),
+    );
+    state.setJournal(state.journal.replacing(revised));
+    expect(state.journal.length, 1, reason: 'edit replaces, never duplicates');
+    expect(state.journal.first.id, original.id, reason: 'identity is stable');
+    expect(state.journal.first.text, 'a fuller, edited reflection');
+    expect(state.journal.first.at, DateTime(2026, 6, 28));
+    expect(state.journal.first.context, 'Frail');
+    expect(state.journal.first.editedAt, isNotNull);
+
+    // the edit (and the edited marker) round-trips through a save/load
+    await Storage.save(state, const []);
+    final loaded = await Storage.load();
+    final back = loaded!.$1.journal.single;
+    expect(back.text, 'a fuller, edited reflection');
+    expect(back.id, original.id);
+    expect(back.editedAt, DateTime(2026, 6, 30));
+  });
+
+  test('journal: a rich entry (text + inline photos) round-trips', () async {
+    SharedPreferences.setMockInitialValues({});
+    // a page with a paragraph, a photo, then another paragraph
+    final doc = [
+      const JournalBlock.text('Morning walk by the river.'),
+      const JournalBlock.image('jimg_1.jpg'),
+      const JournalBlock.text('The light was unreal.'),
+    ];
+    expect(JournalDoc.images(doc), ['jimg_1.jpg']);
+    expect(JournalDoc.plainText(doc),
+        'Morning walk by the river.\n\nThe light was unreal.');
+
+    final state = GameState()..playerName = 'Mika';
+    state.setJournal([
+      Note(
+        at: DateTime(2026, 6, 30),
+        text: JournalDoc.plainText(doc),
+        rich: JournalDoc.encode(doc),
+        images: JournalDoc.images(doc),
+      ),
+    ]);
+
+    await Storage.save(state, const []);
+    final back = (await Storage.load())!.$1.journal.single;
+    // text (for the feed) + the photo list + the structured doc all survive
+    expect(back.text, contains('Morning walk'));
+    expect(back.images, ['jimg_1.jpg']);
+    final blocks = JournalDoc.decode(back.rich);
+    expect(blocks.length, 3);
+    expect(blocks[1].isImage, isTrue);
+    expect(blocks[1].image, 'jimg_1.jpg');
+    expect(blocks[2].text, 'The light was unreal.');
+
+    // decode never throws on garbage — restore resilience
+    expect(JournalDoc.decode('not json'), isEmpty);
+    expect(JournalDoc.decode(null), isEmpty);
   });
 
   test('room styles: buy applies, apply switches, gate + persist', () async {

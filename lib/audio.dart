@@ -31,9 +31,12 @@ class Sfx {
   /// Per-sound volume — the palette plays SOFT (owner feedback: it felt harsh).
   /// The press 'tick' fires on every tap, so it's nearly a whisper; reward
   /// beats sit gently above it; only the rare big moments approach full.
-  /// (round-51: the assets themselves were replaced with synthesized warm
-  /// marimba/music-box/bell tones — smooth click-free envelopes + light reverb
-  /// — so softness now comes from the timbre too, not just these multipliers.)
+  /// (round-53: the assets are now rendered from REAL recorded notes — soft
+  /// Marimba + Glockenspiel from VCSL, the CC0 Versilian Community Sample
+  /// Library (github.com/sgossner/VCSL) — trimmed, enveloped and lightly
+  /// reverbed by tools/gen_sfx_samples.py. Real wood/bell timbre is warm in a
+  /// way synth sines never were; softness now comes from the sound itself, not
+  /// just these multipliers. Superseded round-51's synthesized tones.)
   static const _volume = <String, double>{
     'tick': 0.3,
     'complete': 0.55,

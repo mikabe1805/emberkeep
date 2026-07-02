@@ -537,34 +537,40 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 ],
                 const SizedBox(height: 14),
                 GestureDetector(
+                  // full-width, 44pt target (a11y pass) — was an 18px row
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     Sfx.instance.play('tick');
                     setState(() => q.priority = !q.priority);
                     widget.onPersist();
                     Navigator.of(ctx).pop();
                   },
-                  child: Row(
-                    children: [
-                      Icon(
-                        q.priority ? Icons.star : Icons.star_border,
-                        size: 18,
-                        color: Palette.xpLight,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        q.priority
-                            ? 'Unstar — back to side quest'
-                            : 'Star as a MAIN quest',
-                        style: Type.body.copyWith(
-                          fontSize: 14,
-                          color: Palette.textHi,
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        Icon(
+                          q.priority ? Icons.star : Icons.star_border,
+                          size: 18,
+                          color: Palette.xpLight,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Text(
+                          q.priority
+                              ? 'Unstar — back to side quest'
+                              : 'Star as a MAIN quest',
+                          style: Type.body.copyWith(
+                            fontSize: 14,
+                            color: Palette.textHi,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 14),
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     Sfx.instance.play('tick');
                     Navigator.of(ctx).pop();
@@ -580,24 +586,28 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       ),
                     );
                   },
-                  child: Row(
-                    children: [
-                      const Icon(Icons.tune, size: 18, color: Palette.xpLight),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Tune difficulty & stat',
-                        style: Type.body.copyWith(
-                          fontSize: 14,
-                          color: Palette.textHi,
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.tune, size: 18, color: Palette.xpLight),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Tune difficulty & stat',
+                          style: Type.body.copyWith(
+                            fontSize: 14,
+                            color: Palette.textHi,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 14),
                 // The running log: little timestamped notes kept on this quest
                 // (which side, how much, where) — context that travels with it.
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     Sfx.instance.play('tick');
                     Navigator.of(ctx).pop();
@@ -625,32 +635,43 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                         setState(() {});
                         widget.onPersist();
                       },
+                      onEdit: (orig, text) {
+                        q.log = q.log.replacing(
+                          orig.copyWith(text: text, editedAt: DateTime.now()),
+                        );
+                        setState(() {});
+                        widget.onPersist();
+                      },
                     );
                   },
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.sticky_note_2_outlined,
-                        size: 18,
-                        color: q.stat.color,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        q.log.isEmpty
-                            ? 'Keep a note / log'
-                            : 'Notes & log (${q.log.length})',
-                        style: Type.body.copyWith(
-                          fontSize: 14,
-                          color: Palette.textHi,
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.sticky_note_2_outlined,
+                          size: 18,
+                          color: q.stat.color,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Text(
+                          q.log.isEmpty
+                              ? 'Keep a note / log'
+                              : 'Notes & log (${q.log.length})',
+                          style: Type.body.copyWith(
+                            fontSize: 14,
+                            color: Palette.textHi,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 14),
                 // A gentle skip: hide it from today's board, back tomorrow —
                 // never a penalty, just "not today."
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     Sfx.instance.play('tick');
                     HapticFeedback.selectionClick();
@@ -661,27 +682,37 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     widget.onPersist();
                     Navigator.of(ctx).pop();
                   },
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.bedtime_outlined,
-                        size: 18,
-                        color: Palette.textMid,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Hide it just for today',
-                        style: Type.body.copyWith(
-                          fontSize: 14,
-                          color: Palette.textHi,
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.bedtime_outlined,
+                          size: 18,
+                          color: Palette.textMid,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Text(
+                          'Hide it just for today',
+                          style: Type.body.copyWith(
+                            fontSize: 14,
+                            color: Palette.textHi,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 14),
+                // a quiet fence before the one destructive action, so a fast
+                // thumb never lands on it by rhythm alone
+                Divider(
+                  height: 18,
+                  color: Palette.textLo.withValues(alpha: 0.15),
+                ),
                 // The permanent remove keeps its two-tap arm.
                 GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () {
                     if (!armed) {
                       Sfx.instance.play('tick');
@@ -692,28 +723,32 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     widget.onRemove(q);
                     Navigator.of(ctx).pop();
                   },
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.delete_outline,
-                        size: 18,
-                        color: const Color(
-                          0xFFE89090,
-                        ).withValues(alpha: armed ? 1 : 0.7),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        armed
-                            ? 'Tap again — gone for good'
-                            : 'Remove it for good',
-                        style: Type.body.copyWith(
-                          fontSize: 14,
-                          color: armed
-                              ? const Color(0xFFE89090)
-                              : Palette.textHi,
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.delete_outline,
+                          size: 18,
+                          color: const Color(
+                            0xFFE89090,
+                          ).withValues(alpha: armed ? 1 : 0.7),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 10),
+                        Text(
+                          armed
+                              ? 'Tap again — gone for good'
+                              : 'Remove it for good',
+                          style: Type.body.copyWith(
+                            fontSize: 14,
+                            color: armed
+                                ? const Color(0xFFE89090)
+                                : Palette.textHi,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -993,6 +1028,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// The inline re-anchor offer — calm, optional, never a modal. Lives in the
   /// page body so it waits politely behind the completion celebration and is
   /// trivially ignorable (never-punish: a suggestion, not a correction).
+  /// The single mantel: exactly one hearth banner shows, by priority —
+  /// morning briefing > re-anchor offer > week recap > daily ember > spark.
+  /// Each panel keeps its own seen/dismiss stamps, so a lower-priority banner
+  /// simply waits for a quieter day instead of stacking.
+  Widget _hearthPanel() {
+    if (_state.morningAvailable) return _morningPanel();
+    if (_reAnchorQuest != null && _reAnchorDay != null) return _reAnchorPanel();
+    if (_state.weekRecapDue) return _weekRecapPanel();
+    if (_state.emberDue) return _emberPanel();
+    return _sparkPanel();
+  }
+
   Widget _reAnchorPanel() {
     final q = _reAnchorQuest;
     final day = _reAnchorDay;
@@ -1685,11 +1732,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
         const SizedBox(height: 8),
         const InstallHint(),
-        _morningPanel(),
-        _weekRecapPanel(),
-        _emberPanel(),
-        _reAnchorPanel(),
-        _sparkPanel(),
+        // ONE banner at a time — the hearth has a single mantel. Whichever is
+        // due wins by priority; the others keep their own seen-stamps and get
+        // their own quiet day (audit: three stacked panels pushed the quest
+        // list below the fold on smaller phones).
+        _hearthPanel(),
 
         // ── Quest list ──────────────────────────────────────────
         Padding(
@@ -1716,11 +1763,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                         ? Icons.center_focus_strong
                         : Icons.center_focus_weak,
                     color: _state.focusMode ? Palette.streak : Palette.xpLight,
+                    label: _state.focusMode
+                        ? 'Leave focus mode'
+                        : 'Focus mode — one quest at a time',
                     onTap: _toggleFocus,
                   ),
                   _HeaderAction(
                     icon: Icons.add_circle_outline,
                     color: Palette.xpLight,
+                    label: 'Add a quest',
                     onTap: _quickAdd,
                   ),
                   // the day's bookends: sun while a morning briefing is
@@ -1730,23 +1781,27 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     _HeaderAction(
                       icon: Icons.wb_twilight,
                       color: Palette.streak,
+                      label: 'Morning briefing',
                       onTap: _openMorning,
                     )
                   else if (_state.nightDoneDay != today)
                     _HeaderAction(
                       icon: Icons.nightlight_round,
                       color: Palette.xpLight,
+                      label: 'Close out the day',
                       onTap: _openNight,
                     )
                   else
                     const _HeaderAction(
                       icon: Icons.nightlight_round,
                       color: Palette.textLo,
+                      label: 'Day closed out — see you tomorrow',
                     ),
                   // the momentum spark: cleared something? push further.
                   _HeaderAction(
                     icon: Icons.bolt,
                     color: Palette.xpLight,
+                    label: 'Keep the fire going — encores & variety',
                     onTap: _openMomentum,
                   ),
                 ],
@@ -1981,7 +2036,40 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           ),
                         ),
                         background: const SizedBox.shrink(),
-                        child: card,
+                        // a whisper of the affordance — without it the swipe
+                        // undo is invisible and a fat-finger "done" feels
+                        // unrecoverable (the calm alternative to a snackbar)
+                        child: Stack(
+                          children: [
+                            card,
+                            Positioned(
+                              right: 20,
+                              top: 0,
+                              bottom: 0,
+                              child: IgnorePointer(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.chevron_left,
+                                      size: 13,
+                                      color: Palette.textLo
+                                          .withValues(alpha: 0.55),
+                                    ),
+                                    Text(
+                                      'undo',
+                                      style: Type.label.copyWith(
+                                        fontSize: 9,
+                                        color: Palette.textLo
+                                            .withValues(alpha: 0.55),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       );
                     }
                     return card;
@@ -1996,20 +2084,36 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 /// A board-header action: an icon inside a 44pt tap target (iOS HIG minimum).
 /// Omit [onTap] for a disabled/indicator state (e.g. the spent moon).
 class _HeaderAction extends StatelessWidget {
-  const _HeaderAction({required this.icon, required this.color, this.onTap});
+  const _HeaderAction({
+    required this.icon,
+    required this.color,
+    required this.label,
+    this.onTap,
+  });
   final IconData icon;
   final Color color;
+
+  /// What this glyph does — a long-press tooltip for everyone and the
+  /// VoiceOver name (a11y pass: five mystery icons, zero labels before).
+  final String label;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: SizedBox(
-        width: 44,
-        height: 44,
-        child: Icon(icon, size: 23, color: color),
+    return Semantics(
+      button: onTap != null,
+      label: label,
+      child: Tooltip(
+        message: label,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(icon, size: 23, color: color),
+          ),
+        ),
       ),
     );
   }

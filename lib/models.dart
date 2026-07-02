@@ -158,31 +158,103 @@ class Goal {
 /// something the game already gives meaning to — that connection is the whole
 /// thesis (Notion-done-right, because the thing it's pinned to has stakes).
 class Note {
-  Note({required this.at, required this.text, this.context});
+  Note({
+    required this.at,
+    required this.text,
+    this.context,
+    this.editedAt,
+    this.images = const [],
+    this.rich,
+    String? id,
+  }) : id = id ?? _freshId(at);
 
-  /// When the note was written (full timestamp — finer than a day).
+  /// Stable identity for an entry (round-53). Lets a note be EDITED in place —
+  /// replaced by id — and reliably deleted, rather than the old object-identity
+  /// matching that broke the instant a note's text changed. Generated once at
+  /// creation and persisted; legacy saves (written before ids) get one assigned
+  /// on load, which is then saved back.
+  final String id;
+
+  /// When the note was first written (full timestamp — finer than a day).
   final DateTime at;
+
+  /// The body. Immutable here — an edit produces a NEW Note via [copyWith], so
+  /// the wholesale-replace invariant (and the `const []` default) still holds.
   final String text;
 
   /// A tiny "where I was" marker captured at write time — e.g. a domain's rank
   /// ("Frail") or a goal's standing ("milestone 2"). Lets a journal show proof
   /// of becoming ("written when CARE was Frail — now Vital"), the payoff that
   /// makes notes-with-consequence felt rather than described. Null for plain
-  /// quest logs.
+  /// quest logs. Preserved across edits (it stamps when you FIRST wrote it).
   final String? context;
 
+  /// When the entry was last edited, if ever — drives a quiet "· edited" marker
+  /// so a revised reflection still reads honestly. Null = never touched since
+  /// it was written.
+  final DateTime? editedAt;
+
+  /// Local media attached to this entry — filenames into the app's journal
+  /// images directory, in display order. Empty = a plain text note. (Stored
+  /// on-device; media does not ride the cloud-synced save blob.)
+  final List<String> images;
+
+  /// A structured journal document — JSON of an interleaved list of text and
+  /// image blocks (see [JournalDoc]) — so a free entry reads like a page you
+  /// wrote, with photos sitting between paragraphs. Null on plain notes (quest
+  /// logs, domain/goal notes) and legacy entries, which use [text] alone; when
+  /// set, [text] holds the plain-text flattening (for previews/search).
+  final String? rich;
+
+  /// An edited copy that keeps the same identity, original timestamp and
+  /// context. NOTE: null args mean "keep the current value" — [editedAt] is
+  /// only changed when explicitly passed (an autosave of a brand-new entry
+  /// must not stamp it), and no field can be cleared back to null through
+  /// this method.
+  Note copyWith({
+    String? text,
+    DateTime? editedAt,
+    List<String>? images,
+    String? rich,
+  }) =>
+      Note(
+        id: id,
+        at: at,
+        context: context,
+        text: text ?? this.text,
+        editedAt: editedAt ?? this.editedAt,
+        images: images ?? this.images,
+        rich: rich ?? this.rich,
+      );
+
+  // microsecond timestamp + a monotonic per-process suffix → unique even for
+  // two notes created within the same microsecond.
+  static int _seq = 0;
+  static String _freshId(DateTime at) =>
+      '${at.microsecondsSinceEpoch.toRadixString(36)}_${(_seq++).toRadixString(36)}';
+
   Map<String, dynamic> toJson() => {
+        'id': id,
         'at': at.toIso8601String(),
         'text': text,
         if (context != null) 'context': context,
+        if (editedAt != null) 'editedAt': editedAt!.toIso8601String(),
+        if (images.isNotEmpty) 'images': images,
+        if (rich != null) 'rich': rich,
       };
 
   static Note fromJson(Map<String, dynamic> j) => Note(
+        id: j['id'] as String?,
         // a drifted/missing timestamp sorts to the epoch rather than throwing
         // (round-9 restore resilience), never rejecting the whole save.
         at: DateTime.tryParse(j['at'] as String? ?? '') ?? DateTime(2000),
         text: (j['text'] as String?) ?? '',
         context: j['context'] as String?,
+        editedAt: DateTime.tryParse(j['editedAt'] as String? ?? ''),
+        images: [
+          for (final e in (j['images'] as List?) ?? const []) e as String,
+        ],
+        rich: j['rich'] as String?,
       );
 }
 
@@ -192,7 +264,12 @@ class Note {
 extension NoteList on List<Note> {
   List<Note> withNote(String text, DateTime at, {String? context}) =>
       [...this, Note(at: at, text: text, context: context)];
-  List<Note> without(Note n) => where((e) => e != n).toList();
+
+  /// Replace the note sharing [updated]'s id — an identity-stable edit.
+  List<Note> replacing(Note updated) =>
+      [for (final e in this) e.id == updated.id ? updated : e];
+
+  List<Note> without(Note n) => where((e) => e.id != n.id).toList();
 }
 
 /// Which surface a room style repaints — walls or the floor (round-46, room

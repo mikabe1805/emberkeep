@@ -26,6 +26,7 @@ import '../widgets/glass.dart';
 import '../widgets/glass_switch.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
+import '../widgets/mascot_sprite.dart';
 import '../widgets/portrait.dart';
 import '../widgets/radar.dart';
 import '../social.dart';
@@ -136,8 +137,9 @@ class MePage extends StatelessWidget {
                   floor: floorColorsFor(state),
                   window: state.windowScene,
                   petAwake: state.streakDays > 0,
-                  child: Portrait(
+                  child: MascotSprite(
                     size: 96,
+                    skinId: state.creatureSkin,
                     aura:
                         cosmeticFor(state.equippedSkin)?.aura ??
                         state.dominantStat?.color,
@@ -1096,8 +1098,9 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Portrait(
+                MascotSprite(
                   size: 120,
+                  skinId: state.creatureSkin,
                   aura: tint,
                   level: state.level,
                   badge: cos?.badge ?? false,
@@ -1503,8 +1506,9 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Portrait(
+                  MascotSprite(
                     size: 84,
+                    skinId: state.creatureSkin,
                     aura:
                         cosmeticFor(state.equippedSkin)?.aura ??
                         state.dominantStat?.color,

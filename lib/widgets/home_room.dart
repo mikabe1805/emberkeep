@@ -89,30 +89,54 @@ class _RoomPainter extends CustomPainter {
     final w = size.width, h = size.height;
     final floorY = h * 0.66;
 
-    // ── walls + floor (recoloured by the chosen room style) ─────────
+    // ── back wall (recoloured by the chosen room style) ─────────────
+    final wallRect = Rect.fromLTRB(0, 0, w, floorY);
     canvas.drawRect(
-      Rect.fromLTRB(0, 0, w, floorY),
+      wallRect,
       Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: wall,
-        ).createShader(Rect.fromLTRB(0, 0, w, floorY)),
+        ).createShader(wallRect),
     );
+    // a warm light pool washing the upper wall (window moonlight + candle glow)
+    // so the wall reads as a LIT surface, not a flat panel
+    canvas.drawCircle(
+      Offset(w * 0.32, h * 0.18),
+      w * 0.4,
+      Paint()
+        ..color = Palette.honeyGlow.withValues(alpha: 0.18)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.17),
+    );
+
+    // ── floor (recoloured) + a warm sheen pooling where the avatar stands ──
+    final floorRect = Rect.fromLTRB(0, floorY, w, h);
     canvas.drawRect(
-      Rect.fromLTRB(0, floorY, w, h),
+      floorRect,
       Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: floor,
-        ).createShader(Rect.fromLTRB(0, floorY, w, h)),
+        ).createShader(floorRect),
     );
-    // baseboard shadow
-    canvas.drawRect(
-      Rect.fromLTWH(0, floorY - 1.5, w, 3),
-      Paint()..color = const Color(0x44000000),
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.5, floorY + (h - floorY) * 0.55),
+        width: w * 0.72,
+        height: (h - floorY) * 0.95,
+      ),
+      Paint()
+        ..color = Palette.honeyGlow.withValues(alpha: 0.10)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.08),
     );
+
+    // baseboard — a thin warm highlight over a soft shadow, grounding the wall
+    canvas.drawRect(Rect.fromLTWH(0, floorY - 2, w, 3),
+        Paint()..color = const Color(0x55000000));
+    canvas.drawRect(Rect.fromLTWH(0, floorY - 2.5, w, 1),
+        Paint()..color = Palette.xpLight.withValues(alpha: 0.10));
 
     _window(canvas, w, h);
     // back-to-front so nearer pieces overlap farther ones
@@ -127,6 +151,20 @@ class _RoomPainter extends CustomPainter {
     if (has('candles')) _candles(canvas, w, h, floorY);
     if (has('plant')) _plant(canvas, w, h, floorY);
     if (has('pet')) _pet(canvas, w, h, floorY, petAwake);
+
+    // ── a soft vignette: the corners settle into shadow so the lit centre
+    // (where the avatar lives) reads as the warm heart of the room ──
+    final all = Rect.fromLTWH(0, 0, w, h);
+    canvas.drawRect(
+      all,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0, -0.05),
+          radius: 0.98,
+          colors: const [Color(0x00140C06), Color(0x4D140C06)],
+          stops: const [0.62, 1.0],
+        ).createShader(all),
+    );
   }
 
   void _window(Canvas canvas, double w, double h) {
@@ -227,33 +265,57 @@ class _RoomPainter extends CustomPainter {
 
   void _picture(Canvas canvas, double w, double h) {
     final x = w * 0.46, y = h * 0.14, pw = w * 0.16, ph = h * 0.16;
-    final frame = Rect.fromLTWH(x, y, pw, ph);
-    canvas.drawRect(frame, Paint()..color = const Color(0xFF1A1410));
-    canvas.drawRect(
-      frame,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..color = Palette.xp.withValues(alpha: 0.7),
+    final outer = Rect.fromLTWH(x, y, pw, ph);
+    // carved wood frame + inner mat
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(outer, const Radius.circular(3)),
+      Paint()..color = const Color(0xFF5A4536),
     );
-    // a tiny scene: a sun + a hill
+    final inner = outer.deflate(pw * 0.07);
+    // a cozy framed dusk: warm gradient sky, a soft moon, a gentle hill
+    canvas.save();
+    canvas.clipRRect(RRect.fromRectAndRadius(inner, const Radius.circular(2)));
+    canvas.drawRect(
+      inner,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF45324F), Color(0xFFB5683E), Color(0xFFE8B570)],
+        ).createShader(inner),
+    );
     canvas.drawCircle(
-      Offset(x + pw * 0.7, y + ph * 0.35),
-      pw * 0.1,
-      Paint()..color = Palette.xpLight.withValues(alpha: 0.8),
+      Offset(inner.left + inner.width * 0.68, inner.top + inner.height * 0.34),
+      inner.width * 0.1,
+      Paint()..color = const Color(0xFFFFE9B8),
     );
     final hill = Path()
-      ..moveTo(x, y + ph)
-      ..lineTo(x + pw * 0.5, y + ph * 0.5)
-      ..lineTo(x + pw, y + ph)
+      ..moveTo(inner.left, inner.bottom)
+      ..lineTo(inner.left, inner.bottom - inner.height * 0.28)
+      ..quadraticBezierTo(
+          inner.left + inner.width * 0.5, inner.bottom - inner.height * 0.55,
+          inner.right, inner.bottom - inner.height * 0.22)
+      ..lineTo(inner.right, inner.bottom)
       ..close();
-    canvas.drawPath(hill, Paint()..color = Palette.success.withValues(alpha: 0.7));
+    canvas.drawPath(hill, Paint()..color = const Color(0xFF6E4A38));
+    canvas.restore();
   }
 
   void _chair(Canvas canvas, double w, double h, double floorY) {
     final x = w * 0.76, seatY = floorY + (h - floorY) * 0.2;
     final cw = w * 0.16, seatH = (h - floorY) * 0.3;
     final col = Paint()..color = const Color(0xFF7A4F44);
+    // contact shadow on the floor — grounds the chair
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(x + cw * 0.5, seatY + seatH * 0.62),
+        width: cw * 1.5,
+        height: (h - floorY) * 0.12,
+      ),
+      Paint()
+        ..color = const Color(0x40000000)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
     // back
     canvas.drawRRect(
       RRect.fromRectAndRadius(
@@ -274,6 +336,17 @@ class _RoomPainter extends CustomPainter {
 
   void _plant(Canvas canvas, double w, double h, double floorY) {
     final x = w * 0.88, baseY = floorY + (h - floorY) * 0.55;
+    // contact shadow — grounds the pot on the floor
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(x, baseY + (h - floorY) * 0.3),
+        width: w * 0.11,
+        height: (h - floorY) * 0.1,
+      ),
+      Paint()
+        ..color = const Color(0x40000000)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
     // pot
     final pot = Path()
       ..moveTo(x - w * 0.04, baseY)
@@ -314,26 +387,49 @@ class _RoomPainter extends CustomPainter {
       topRight: const Radius.circular(18),
     );
     canvas.drawRRect(open, Paint()..color = const Color(0xFF120C08));
-    // fire glow + flames
+    // ── fire: warm glow → glowing log bed → layered ember flames → hot core ──
+    final fb = y - hh * 0.06; // flame base (the log bed)
     canvas.drawCircle(
       Offset(x, y - hh * 0.12),
-      hw * 0.4,
+      hw * 0.52,
       Paint()
-        ..color = Palette.streak.withValues(alpha: 0.5)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+        ..color = Palette.streak.withValues(alpha: 0.45)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
     );
-    for (final dx in [-0.18, 0.0, 0.18]) {
-      final fx = x + dx * hw;
+    // smouldering logs at the base
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(x, fb), width: hw * 0.62, height: hh * 0.1),
+      Paint()..color = const Color(0xFF5E3219),
+    );
+    for (final spec in [(-0.16, 0.72), (0.0, 1.0), (0.16, 0.74)]) {
+      final fx = x + spec.$1 * hw;
+      final fhh = hh * 0.46 * spec.$2;
       final flame = Path()
-        ..moveTo(fx - 5, y - hh * 0.06)
-        ..quadraticBezierTo(fx - 7, y - hh * 0.3, fx, y - hh * 0.4)
-        ..quadraticBezierTo(fx + 7, y - hh * 0.3, fx + 5, y - hh * 0.06)
+        ..moveTo(fx - hw * 0.07, fb)
+        ..quadraticBezierTo(fx - hw * 0.085, fb - fhh * 0.6, fx, fb - fhh)
+        ..quadraticBezierTo(fx + hw * 0.085, fb - fhh * 0.6, fx + hw * 0.07, fb)
         ..close();
+      final fr = Rect.fromLTWH(fx - hw * 0.1, fb - fhh, hw * 0.2, fhh);
       canvas.drawPath(
         flame,
-        Paint()..color = Palette.xpLight.withValues(alpha: 0.9),
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [Color(0xFFE8915A), Color(0xFFF2CD93), Color(0xFFFFF4D9)],
+            stops: [0.0, 0.55, 1.0],
+          ).createShader(fr),
       );
     }
+    // a bright hot heart low in the fire
+    canvas.drawCircle(
+      Offset(x, fb - hh * 0.1),
+      hw * 0.1,
+      Paint()
+        ..color = const Color(0xFFFFF4D9).withValues(alpha: 0.85)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
   }
 
   // A little companion (round-50): curled cozily asleep, or — when you're on a

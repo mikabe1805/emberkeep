@@ -114,6 +114,18 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                         );
                         widget.onPersist();
                       },
+                      onEdit: (orig, text) {
+                        widget.state.setDomainNotes(
+                          _stat,
+                          widget.state.notesFor(_stat).replacing(
+                                orig.copyWith(
+                                  text: text,
+                                  editedAt: DateTime.now(),
+                                ),
+                              ),
+                        );
+                        widget.onPersist();
+                      },
                       onMakeQuest: (text) async {
                         // a reflection becomes board action — pre-fill the
                         // quest with the note, pre-lit to this domain

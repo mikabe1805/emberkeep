@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'audio.dart';
 import 'platform/persist_stub.dart'
@@ -10,6 +11,21 @@ import 'tokens.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // The brand fonts ship IN the app (assets/google_fonts/) — an offline first
+  // launch must not fall back to system type. No runtime fetching, ever; and
+  // the OFL licenses ride along in the license registry as the OFL requires.
+  GoogleFonts.config.allowRuntimeFetching = false;
+  LicenseRegistry.addLicense(() async* {
+    for (final f in const [
+      'OFL-Fraunces.txt',
+      'OFL-Inter.txt',
+      'OFL-JetBrainsMono.txt',
+    ]) {
+      final text = await rootBundle.loadString('assets/google_fonts/$f');
+      yield LicenseEntryWithLineBreaks(const ['google_fonts'], text);
+    }
+  });
 
   // Crash safety: a widget build error shows a warm panel, never a raw red
   // box or a white screen — and one bad frame never takes the app down.

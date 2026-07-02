@@ -49,6 +49,8 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
   flutter_timezone: ^3.0.1
+  image_picker: ^1.2.3
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:
@@ -62,15 +64,15 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
 
-# App launcher icons (the ember brand). Regenerate after changing the source:
+# App launcher icons — the painterly mascot on the candlelit canvas, from a
+# true 1024² master (tools/gen_icon_mascot.py). Regenerate after changing:
 #   dart run flutter_launcher_icons
-# NOTE: source is 512²; provide a 1024² master before App Store submission.
 flutter_launcher_icons:
   ios: true
   android: false
   remove_alpha_ios: true
   background_color_ios: "#191210"
-  image_path: "web/icons/Icon-512.png"
+  image_path: "web/icons/Icon-1024.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -85,6 +87,14 @@ flutter:
 
   assets:
     - assets/sfx/
+    - assets/google_fonts/
+    - assets/mascot/ember_amber/
+    - assets/mascot/rose_quartz/
+    - assets/mascot/mint_glass/
+    - assets/mascot/periwinkle/
+    - assets/mascot/lilac/
+    - assets/mascot/slate/
+    - assets/mascot/gilded/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Emberkeep adds the photos you choose into your journal entries. They stay on your device.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Emberkeep lets you snap a photo straight into a journal entry. Photos stay on your device.</string>
 </dict>
 </plist>

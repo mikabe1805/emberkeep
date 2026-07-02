@@ -220,32 +220,57 @@ class _EmberPainter extends CustomPainter {
     final bodyH = s * 0.64 * excite * (1 - 0.02 * breathe);
     final bodyTop = bodyC.dy - bodyH / 2;
 
-    // ── aura: your build, glowing around you (brighter happy / higher tier) ──
+    // ── aura: a two-layer warm halo — a soft wide bloom + a tighter inner
+    // glow — so your build reads as candlelight pooling around you, not a flat
+    // disc (brighter happy / higher tier). ──
     canvas.drawCircle(
       bodyC,
-      s * 0.5,
+      s * 0.52,
       Paint()
-        ..color = aura.withValues(
-            alpha: (happy ? 0.42 : 0.24) + 0.035 * tier)
-        ..maskFilter = MaskFilter.blur(
-            BlurStyle.normal, s * (happy ? 0.13 : 0.10)),
+        ..color = aura.withValues(alpha: (happy ? 0.34 : 0.20) + 0.03 * tier)
+        ..maskFilter =
+            MaskFilter.blur(BlurStyle.normal, s * (happy ? 0.16 : 0.13)),
+    );
+    canvas.drawCircle(
+      bodyC,
+      s * 0.34,
+      Paint()
+        ..color = aura.withValues(alpha: (happy ? 0.20 : 0.11) + 0.02 * tier)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.09),
     );
 
     // ── flame crest (the growth stage) — rises above the head, taller with
     // each tier; tier 0 is a single shy spark, the top tiers a real blaze ──
     _crest(canvas, s, cx, bodyTop, sway);
 
-    // ── feet: two little nubs so it stands ──
+    // grounding shadow FIRST — on the floor, beneath the body (shrinks + fades
+    // as it lifts), so the bob reads as a gentle hop rather than a slide.
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx, baseY + s * 0.01),
+        width: bodyW * 0.78 * (1 - 0.16 * lift),
+        height: s * 0.06,
+      ),
+      Paint()
+        ..color = Color.fromRGBO(0, 0, 0, 0.24 * (1 - 0.35 * lift))
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.018),
+    );
+
+    // ── feet: two little nubs so it stands (radial-shaded so they read 3-D) ──
     if (detail) {
-      final footPaint = Paint()..color = Color.lerp(_amber, _rim, 0.45)!;
       for (final dx in [-0.16, 0.16]) {
+        final fc = Offset(cx + dx * s, bodyC.dy + bodyH * 0.46);
+        final fr = Rect.fromCenter(center: fc, width: s * 0.2, height: s * 0.12);
         canvas.drawOval(
-          Rect.fromCenter(
-            center: Offset(cx + dx * s, bodyC.dy + bodyH * 0.46),
-            width: s * 0.2,
-            height: s * 0.12,
-          ),
-          footPaint,
+          fr,
+          Paint()
+            ..shader = RadialGradient(
+              center: const Alignment(-0.2, -0.6),
+              colors: [
+                Color.lerp(_amber, _cream, 0.35)!,
+                Color.lerp(_amber, _rim, 0.55)!,
+              ],
+            ).createShader(fr),
         );
       }
     }
@@ -263,18 +288,35 @@ class _EmberPainter extends CustomPainter {
           stops: const [0.0, 0.34, 0.76, 1.0],
         ).createShader(bodyRect),
     );
-    // grounding shadow — stays on the floor (shrinks + fades as it lifts), so
-    // the bob reads as the creature gently hopping rather than sliding
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(cx, baseY + s * 0.01),
-        width: bodyW * 0.78 * (1 - 0.16 * lift),
-        height: s * 0.055,
-      ),
+
+    // ── subsurface candle-glow: a warm light low inside the body, so it reads
+    // as glowing glass holding a flame rather than a painted ball. Clipped to
+    // the body so it never bleeds past the silhouette. ──
+    canvas.save();
+    canvas.clipPath(Path()..addOval(bodyRect));
+    canvas.drawCircle(
+      Offset(cx, bodyC.dy + bodyH * 0.22),
+      bodyW * 0.42,
       Paint()
-        ..color = Color.fromRGBO(0, 0, 0, 0.2 * (1 - 0.35 * lift))
+        ..color = Color.lerp(_honey, _cream, 0.3)!
+            .withValues(alpha: happy ? 0.42 : 0.32)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.06),
+    );
+    // a warm back-light rim along the lower-right edge (candlelight wrapping
+    // the form) — the touch that sells "lit", not "flat".
+    canvas.drawArc(
+      bodyRect.deflate(s * 0.012),
+      pi * 0.1,
+      pi * 0.62,
+      false,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.03
+        ..color = Color.lerp(_honey, _cream, 0.5)!.withValues(alpha: 0.55)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.012),
     );
+    canvas.restore();
+
     // soft belly — a lighter tummy that reads as "soft creature"
     canvas.drawOval(
       Rect.fromCenter(
@@ -283,19 +325,26 @@ class _EmberPainter extends CustomPainter {
         height: bodyH * 0.42,
       ),
       Paint()
-        ..color = _cream.withValues(alpha: 0.18)
+        ..color = _cream.withValues(alpha: 0.16)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.03),
     );
-    // a crisp top-left specular highlight (the glass "drop of light")
+    // a crisp top-left specular highlight (the glass "drop of light") + a tiny
+    // near-white hotspot — the single sharp glint that makes glass read as glass
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(cx - bodyW * 0.22, bodyTop + bodyH * 0.2),
-        width: bodyW * 0.26,
-        height: bodyH * 0.18,
+        center: Offset(cx - bodyW * 0.2, bodyTop + bodyH * 0.22),
+        width: bodyW * 0.22,
+        height: bodyH * 0.16,
       ),
       Paint()
-        ..color = _cream.withValues(alpha: 0.5)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.02),
+        ..color = _cream.withValues(alpha: 0.6)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.016),
+    );
+    canvas.drawCircle(
+      Offset(cx - bodyW * 0.24, bodyTop + bodyH * 0.17),
+      s * 0.02,
+      Paint()..color = Color.lerp(_cream, Colors.white, 0.65)!
+          .withValues(alpha: 0.9),
     );
 
     _face(canvas, s, cx, bodyC, bodyW, detail);
@@ -317,47 +366,70 @@ class _EmberPainter extends CustomPainter {
   }
 
   void _crest(Canvas canvas, double s, double cx, double bodyTop, double sway) {
-    // how tall the flame stands, by stage
-    final h = s * (0.1 + tier * 0.05);
-    final baseY = bodyTop + s * 0.06;
+    // how tall the flame stands, by stage — tier 0 is now a real little flame
+    // (not a shy nub), the top tiers a proper blaze.
+    final h = s * (0.15 + tier * 0.05);
+    final baseY = bodyTop + s * 0.08;
+    // a gentle flicker in height so the flame feels alive
+    final flick = 1 + 0.06 * sin(t * 2 * pi * 1.7);
+
+    Path teardrop(double fx, double fw, double fh, double tipX) => Path()
+      ..moveTo(fx - fw / 2, baseY)
+      ..quadraticBezierTo(
+          fx - fw * 0.62, baseY - fh * 0.5, tipX - fw * 0.14, baseY - fh * 0.82)
+      ..quadraticBezierTo(tipX, baseY - fh, tipX + fw * 0.14, baseY - fh * 0.82)
+      ..quadraticBezierTo(fx + fw * 0.62, baseY - fh * 0.5, fx + fw / 2, baseY)
+      ..quadraticBezierTo(fx, baseY + fh * 0.14, fx - fw / 2, baseY)
+      ..close();
 
     void flame(double dx, double scale, double lean) {
       final fx = cx + dx + sway * scale;
-      final fh = h * scale;
-      final fw = s * 0.12 * scale;
+      final fh = h * scale * flick;
+      final fw = s * 0.145 * scale;
       final tipX = fx + lean;
-      final path = Path()
-        ..moveTo(fx - fw / 2, baseY)
-        ..quadraticBezierTo(
-            fx - fw * 0.55, baseY - fh * 0.55, tipX, baseY - fh)
-        ..quadraticBezierTo(
-            fx + fw * 0.55, baseY - fh * 0.55, fx + fw / 2, baseY)
-        ..quadraticBezierTo(fx, baseY + fh * 0.12, fx - fw / 2, baseY)
-        ..close();
-      // glow — tinted to the skin so a mint or rose ember glows in its own hue
-      canvas.drawPath(
-        path,
+      final body = teardrop(fx, fw, fh, tipX);
+      // a soft heat-bloom at the base + the flame's own halo, both in the skin's
+      // hue so a mint or rose ember glows in its own colour (not generic orange).
+      canvas.drawCircle(
+        Offset(fx, baseY - fh * 0.3),
+        fw * 1.05,
         Paint()
-          ..color = _honey.withValues(alpha: 0.7)
+          ..color = _honey.withValues(alpha: 0.4)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.055),
+      );
+      canvas.drawPath(
+        body,
+        Paint()
+          ..color = _amber.withValues(alpha: 0.6)
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.03),
       );
-      // body of the flame (deep → mid → light, matching the body)
-      final fr = Rect.fromLTWH(fx - fw, baseY - fh, fw * 2, fh);
+      // flame body (deep amber base → warm honey → cream tip, in the skin's hue)
+      final fr = Rect.fromLTWH(fx - fw, baseY - fh, fw * 2, fh * 1.16);
       canvas.drawPath(
-        path,
+        body,
         Paint()
           ..shader = LinearGradient(
             begin: Alignment.bottomCenter,
             end: Alignment.topCenter,
             colors: [_amber, _honey, _cream],
-            stops: const [0.0, 0.5, 1.0],
+            stops: const [0.0, 0.55, 1.0],
           ).createShader(fr),
+      );
+      // a soft hot heart — small + low + slightly blurred so the warm gradient
+      // still reads and the flame stops looking like a pale solid spike
+      final coreW = fw * 0.42, coreH = fh * 0.5;
+      canvas.drawPath(
+        teardrop(fx, coreW, coreH, fx),
+        Paint()
+          ..color = Color.lerp(_cream, Colors.white, 0.4)!
+              .withValues(alpha: 0.7)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.006),
       );
     }
 
     // side flames first (so the central one sits in front), added by tier
-    if (tier >= 3) flame(-s * 0.11, 0.62, -s * 0.02);
-    if (tier >= 2) flame(s * 0.11, 0.7, s * 0.02);
+    if (tier >= 3) flame(-s * 0.12, 0.6, -s * 0.02);
+    if (tier >= 2) flame(s * 0.12, 0.68, s * 0.02);
     flame(0, 1.0, sway * 0.6); // the main flame, always present
   }
 

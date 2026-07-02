@@ -51,6 +51,7 @@ Future<void> showNotesSheet(
   required List<Note> Function() read,
   required void Function(String text) onAdd,
   required void Function(Note note) onDelete,
+  void Function(Note original, String newText)? onEdit,
   String? subtitle,
   String hint = 'Add a note…',
   String emptyHint = 'Nothing here yet. Jot whatever you’ll want to remember.',
@@ -68,6 +69,7 @@ Future<void> showNotesSheet(
       read: read,
       onAdd: onAdd,
       onDelete: onDelete,
+      onEdit: onEdit,
       subtitle: subtitle,
       hint: hint,
       emptyHint: emptyHint,
@@ -90,6 +92,7 @@ class JournalPanel extends StatefulWidget {
     required this.onDelete,
     required this.emptyPreview,
     required this.emptyHint,
+    this.onEdit,
     this.subtitle,
     this.hint = 'How’s it going?',
     this.onMakeQuest,
@@ -100,6 +103,9 @@ class JournalPanel extends StatefulWidget {
   final List<Note> Function() read;
   final void Function(String text) onAdd;
   final void Function(Note note) onDelete;
+
+  /// Optional — edit an existing entry in place (replace by id).
+  final void Function(Note original, String newText)? onEdit;
 
   /// Optional — turns a journal entry into a quest (notes-with-consequence).
   final void Function(String text)? onMakeQuest;
@@ -137,6 +143,12 @@ class _JournalPanelState extends State<JournalPanel> {
         widget.onDelete(n);
         if (mounted) setState(() {});
       },
+      onEdit: widget.onEdit == null
+          ? null
+          : (orig, t) {
+              widget.onEdit!(orig, t);
+              if (mounted) setState(() {});
+            },
       onMakeQuest: widget.onMakeQuest,
     );
   }
@@ -237,6 +249,7 @@ class _NotesSheet extends StatefulWidget {
     required this.read,
     required this.onAdd,
     required this.onDelete,
+    required this.onEdit,
     required this.subtitle,
     required this.hint,
     required this.emptyHint,
@@ -249,6 +262,7 @@ class _NotesSheet extends StatefulWidget {
   final List<Note> Function() read;
   final void Function(String text) onAdd;
   final void Function(Note note) onDelete;
+  final void Function(Note original, String newText)? onEdit;
   final String? subtitle;
   final String hint;
   final String emptyHint;
@@ -262,6 +276,9 @@ class _NotesSheetState extends State<_NotesSheet> {
   final _controller = TextEditingController();
   final _focus = FocusNode();
 
+  /// When set, the composer is editing this existing entry rather than adding.
+  Note? _editing;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -269,18 +286,47 @@ class _NotesSheetState extends State<_NotesSheet> {
     super.dispose();
   }
 
-  void _add() {
+  void _submit() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
     Sfx.instance.play('tick');
     HapticFeedback.selectionClick();
-    widget.onAdd(text);
-    setState(() => _controller.clear());
+    final editing = _editing;
+    if (editing != null && widget.onEdit != null) {
+      widget.onEdit!(editing, text);
+    } else {
+      widget.onAdd(text);
+    }
+    setState(() {
+      _controller.clear();
+      _editing = null;
+    });
     _focus.requestFocus(); // stay ready to jot another
+  }
+
+  void _startEdit(Note note) {
+    setState(() {
+      _editing = note;
+      _controller.text = note.text;
+      _controller.selection =
+          TextSelection.collapsed(offset: note.text.length);
+    });
+    _focus.requestFocus();
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _editing = null;
+      _controller.clear();
+    });
   }
 
   void _delete(Note note) {
     Sfx.instance.play('boing');
+    if (_editing?.id == note.id) {
+      _editing = null;
+      _controller.clear();
+    }
     widget.onDelete(note);
     setState(() {});
   }
@@ -357,7 +403,11 @@ class _NotesSheetState extends State<_NotesSheet> {
                       itemBuilder: (_, i) => _NoteRow(
                         note: notes[i],
                         accent: widget.accent,
+                        editing: _editing?.id == notes[i].id,
                         onDelete: () => _delete(notes[i]),
+                        onEdit: widget.onEdit == null
+                            ? null
+                            : () => _startEdit(notes[i]),
                         onMakeQuest: widget.onMakeQuest == null
                             ? null
                             : () {
@@ -371,7 +421,38 @@ class _NotesSheetState extends State<_NotesSheet> {
                   ),
                 const SizedBox(height: 12),
 
-                // ── add a note ──────────────────────────────────────
+                // ── editing banner (tap an entry to revise it) ──────
+                if (_editing != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit_outlined,
+                            size: 14, color: widget.accent),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Editing entry',
+                          style: Type.label.copyWith(
+                              fontSize: 11, color: widget.accent),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _cancelEdit,
+                          child: Padding(
+                            padding: const EdgeInsets.all(2),
+                            child: Text(
+                              'cancel',
+                              style: Type.label.copyWith(
+                                  fontSize: 11, color: Palette.textLo),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // ── add / save a note ───────────────────────────────
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -426,7 +507,7 @@ class _NotesSheetState extends State<_NotesSheet> {
                     const SizedBox(width: 10),
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: _add,
+                      onTap: _submit,
                       child: Container(
                         width: 46,
                         height: 46,
@@ -450,10 +531,10 @@ class _NotesSheetState extends State<_NotesSheet> {
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.add,
+                        child: Icon(
+                          _editing != null ? Icons.check : Icons.add,
                           size: 22,
-                          color: Color(0xFF4A2F1A),
+                          color: const Color(0xFF4A2F1A),
                         ),
                       ),
                     ),
@@ -473,23 +554,33 @@ class _NoteRow extends StatelessWidget {
     required this.note,
     required this.accent,
     required this.onDelete,
+    this.editing = false,
+    this.onEdit,
     this.onMakeQuest,
   });
   final Note note;
   final Color accent;
   final VoidCallback onDelete;
 
+  /// Whether this row is the one currently loaded in the composer for editing.
+  final bool editing;
+
+  /// When set, tapping the row loads it into the composer to revise in place.
+  final VoidCallback? onEdit;
+
   /// When set, a small "→ quest" affordance turns this reflection into a quest.
   final VoidCallback? onMakeQuest;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final row = Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Palette.glassFill,
-        border: Border.all(color: Palette.glassEdge),
+        color: editing ? accent.withValues(alpha: 0.10) : Palette.glassFill,
+        border: Border.all(
+          color: editing ? accent.withValues(alpha: 0.6) : Palette.glassEdge,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,6 +629,14 @@ class _NoteRow extends StatelessWidget {
                         color: Palette.textLo,
                       ),
                     ),
+                    if (note.editedAt != null)
+                      Text(
+                        '  ·  edited',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: Palette.textLo,
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -562,6 +661,12 @@ class _NoteRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+    if (onEdit == null) return row;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onEdit,
+      child: row,
     );
   }
 }

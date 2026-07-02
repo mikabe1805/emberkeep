@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../clock.dart';
 import '../engine.dart';
+import '../journal_media.dart' as media;
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/glass.dart';
 import '../widgets/notes_sheet.dart' show relativeWhen;
+import 'journal_entry.dart';
 
 /// The Journal hub (round-45) — the discoverable home for notes. The feature
 /// always existed but lived buried (long-press a quest, a goal's panel, a
@@ -42,17 +43,7 @@ class _Entry {
 }
 
 class _JournalHubScreenState extends State<JournalHubScreen> {
-  final _controller = TextEditingController();
-  final _focus = FocusNode();
-
   GameState get _s => widget.state;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focus.dispose();
-    super.dispose();
-  }
 
   List<_Entry> _all() {
     final out = <_Entry>[];
@@ -78,22 +69,61 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     return out;
   }
 
-  void _add() {
-    final text = _controller.text.trim();
-    if (text.isEmpty) return;
+  /// Open the full-page editor — for a brand-new entry, or to keep writing an
+  /// existing one (notes are editable now, not write-once).
+  void _openEditor({Note? entry}) {
     Sfx.instance.play('tick');
-    HapticFeedback.selectionClick();
-    // stamp who you were when you wrote it — proof of becoming
-    _s.setJournal(
-      _s.journal.withNote(text, Clock.now(), context: _s.buildTitle),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => JournalEntryScreen(
+          initial: entry,
+          accent: Palette.xp,
+          themeId: _s.canvasTheme,
+          heading: 'Journal',
+          hint: 'What’s on your mind today?',
+          commit: _commit,
+          onDelete: _deleteJournal,
+        ),
+      ),
     );
-    widget.onPersist();
-    _controller.clear();
-    _focus.requestFocus();
   }
 
+  /// Insert-or-replace, persist, and hand the saved Note back so the editor
+  /// keeps autosaving into the same entry. Silent (autosave fires often).
+  Note _commit(JournalPayload payload, Note? existing, bool markEdited) {
+    if (existing == null) {
+      // stamp who you were when you wrote it — proof of becoming
+      final note = Note(
+        at: Clock.now(),
+        text: payload.text,
+        context: _s.buildTitle,
+        rich: payload.rich,
+        images: payload.images,
+      );
+      _s.setJournal([..._s.journal, note]);
+      widget.onPersist();
+      return note;
+    }
+    // markEdited only when this entry pre-existed the editor session; passing
+    // null to copyWith leaves the original editedAt untouched.
+    final updated = existing.copyWith(
+      text: payload.text,
+      rich: payload.rich,
+      images: payload.images,
+      editedAt: markEdited ? Clock.now() : null,
+    );
+    _s.setJournal(_s.journal.replacing(updated));
+    widget.onPersist();
+    return updated;
+  }
+
+  /// Remove an entry AND its device-local photos (they'd be orphaned forever
+  /// otherwise — nothing else references the files). Silent: the editor's
+  /// confirmed delete plays its own sound, and the autosave path is quiet.
   void _deleteJournal(Note n) {
-    Sfx.instance.play('boing');
+    for (final f in n.images) {
+      media.delete(f);
+    }
     _s.setJournal(_s.journal.without(n));
     widget.onPersist();
   }
@@ -179,64 +209,47 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     );
   }
 
-  Widget _composer() => GlassPanel(
-        blur: true,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.auto_stories_outlined,
-                    size: 16, color: Palette.xp),
-                const SizedBox(width: 8),
-                Text('NEW ENTRY',
-                    style: Type.label.copyWith(fontSize: 12, color: Palette.xp)),
-              ],
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _controller,
-              focusNode: _focus,
-              maxLines: null,
-              minLines: 2,
-              textCapitalization: TextCapitalization.sentences,
-              style: Type.body.copyWith(fontSize: 14, color: Palette.textHi),
-              cursorColor: Palette.xp,
-              decoration: InputDecoration(
-                hintText: 'What’s on your mind today?',
-                hintStyle:
-                    Type.body.copyWith(fontSize: 14, color: Palette.textLo),
-                border: InputBorder.none,
-                isDense: true,
+  /// A prominent invitation into the full-page editor — a whole page to write
+  /// on, not a cramped two-line box. (round-53)
+  Widget _composer() => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _openEditor(),
+        child: GlassPanel(
+          glow: true,
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: Palette.honeyGradient,
+                  boxShadow: const [
+                    BoxShadow(color: Palette.honeyGlow, blurRadius: 14),
+                  ],
+                ),
+                child: const Icon(Icons.edit_note,
+                    size: 26, color: Palette.onHoney),
               ),
-            ),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: _add,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 9),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    gradient: Palette.honeyGradient,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.add, size: 16, color: Palette.onHoney),
-                      const SizedBox(width: 5),
-                      Text('Keep it',
-                          style: Type.label.copyWith(
-                              fontSize: 12, color: Palette.onHoney)),
-                    ],
-                  ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Write a new entry',
+                        style: Type.display.copyWith(fontSize: 17)),
+                    const SizedBox(height: 2),
+                    Text(
+                      'a whole page to think out loud — saved as you go',
+                      style: Type.body.copyWith(
+                          fontSize: 12.5, color: Palette.textLo),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
+              const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
+            ],
+          ),
         ),
       );
 
@@ -264,52 +277,83 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         ),
       );
 
-  Widget _row(_Entry e) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Flexible(child: _chip(e.source, e.color)),
-                const SizedBox(width: 8),
-                Text(
-                  relativeWhen(e.note.at),
-                  style: Type.label.copyWith(
-                      fontSize: 10, color: Palette.textLo),
-                ),
-                const Spacer(),
-                if (e.journal)
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _deleteJournal(e.note),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(Icons.close,
-                          size: 15, color: Palette.textLo),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              e.note.text,
-              style: Type.body.copyWith(
-                  fontSize: 14, color: Palette.textHi, height: 1.3),
-            ),
-            if (e.note.context != null && e.note.context!.isNotEmpty) ...[
-              const SizedBox(height: 3),
+  Widget _row(_Entry e) {
+    final body = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Flexible(child: _chip(e.source, e.color)),
+              const SizedBox(width: 8),
               Text(
-                'written as ${e.note.context}',
-                style: Type.label.copyWith(
-                  fontSize: 9.5,
-                  color: e.color.withValues(alpha: 0.8),
-                ),
+                relativeWhen(e.note.at),
+                style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
               ),
+              if (e.note.editedAt != null)
+                Text(
+                  '  ·  edited',
+                  style:
+                      Type.label.copyWith(fontSize: 10, color: Palette.textLo),
+                ),
+              if (e.note.images.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                Icon(Icons.photo_outlined, size: 12, color: e.color),
+                const SizedBox(width: 2),
+                Text('${e.note.images.length}',
+                    style: Type.label.copyWith(fontSize: 10, color: e.color)),
+              ],
+              const Spacer(),
+              // no one-tap delete here — a whole page of writing dies too
+              // easily to a 15px X. The row opens the editor, whose delete
+              // asks first (and cleans up the entry's photos).
+              if (e.journal)
+                const Icon(Icons.chevron_right,
+                    size: 15, color: Palette.textLo),
             ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            // a photo-only entry still reads nicely in the feed
+            e.note.text.isEmpty && e.note.images.isNotEmpty
+                ? 'Photo entry'
+                : e.note.text,
+            // entries can be whole pages now — show a tidy preview in the feed.
+            maxLines: 6,
+            overflow: TextOverflow.ellipsis,
+            style: Type.body.copyWith(
+              fontSize: 14,
+              color: e.note.text.isEmpty && e.note.images.isNotEmpty
+                  ? Palette.textLo
+                  : Palette.textHi,
+              height: 1.3,
+              fontStyle: e.note.text.isEmpty && e.note.images.isNotEmpty
+                  ? FontStyle.italic
+                  : FontStyle.normal,
+            ),
+          ),
+          if (e.note.context != null && e.note.context!.isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(
+              'written as ${e.note.context}',
+              style: Type.label.copyWith(
+                fontSize: 9.5,
+                color: e.color.withValues(alpha: 0.8),
+              ),
+            ),
           ],
-        ),
-      );
+        ],
+      ),
+    );
+    if (!e.journal) return body;
+    // a free journal entry opens back up to keep writing — tap to continue.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openEditor(entry: e.note),
+      child: body,
+    );
+  }
 
   Widget _chip(String label, Color c) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),

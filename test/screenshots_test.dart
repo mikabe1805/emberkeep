@@ -9,6 +9,7 @@ import 'package:emberkeep/content/room_styles.dart';
 import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/home_room.dart';
+import 'package:emberkeep/widgets/mascot_sprite.dart';
 import 'package:emberkeep/widgets/portrait.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -324,5 +325,42 @@ void main() {
       ),
       'room_full',
     );
+  });
+
+  // the new SDXL/FLUX-rendered ember sprite, in the room, at two growth stages
+  testWidgets('mascot: amber sprite in room, by stage', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(560, 780));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const furn = {'rug', 'lamp', 'plant', 'shelf', 'picture', 'pet'};
+    Widget room(int lvl, PortraitMood mood) => SizedBox(
+          width: 500,
+          child: HomeRoom(
+            unlocked: furn,
+            petAwake: true,
+            child: MascotSprite(
+                size: 120, skinId: 'ember_amber', level: lvl, mood: mood),
+          ),
+        );
+    await tester.pumpWidget(_stage(
+      Column(mainAxisSize: MainAxisSize.min, children: [
+        room(2, PortraitMood.idle),
+        const SizedBox(height: 14),
+        room(34, PortraitMood.happy),
+      ]),
+      pad: 16,
+    ));
+    // precache the sprite assets so the golden captures them, not a blank frame
+    final ctx = tester.element(find.byType(MascotSprite).first);
+    await tester.runAsync(() async {
+      for (var n = 0; n < 6; n++) {
+        await precacheImage(
+            AssetImage('assets/mascot/ember_amber/s${n}_idle_00.png'), ctx);
+      }
+    });
+    await tester.pump(const Duration(milliseconds: 200));
+    if (_capture) {
+      await expectLater(find.byType(MaterialApp),
+          matchesGoldenFile('goldens/mascot_room.png'));
+    }
   });
 }

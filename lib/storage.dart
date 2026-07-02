@@ -16,7 +16,7 @@ abstract final class Storage {
   /// Save-format version. BUMP whenever new persisted fields are added so the
   /// cloud-merge can refuse to adopt an OLDER build's save that would have
   /// silently stripped fields it doesn't know about (bug-hunt §5).
-  static const schema = 12; // r52: + roomCode (shared-space share code)
+  static const schema = 14; // r53: Note gains rich (block journal doc w/ photos)
 
   /// Where an unparseable save is quarantined before a fresh start, so a
   /// corrupt blob is never silently destroyed (it may be hand-recoverable).

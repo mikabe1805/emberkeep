@@ -6,6 +6,7 @@ import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
+import '../widgets/mascot_sprite.dart';
 import '../widgets/portrait.dart';
 
 /// A read-only look at someone else's "Your Space" (round-52, social). Built
@@ -50,8 +51,12 @@ class VisitRoomScreen extends StatelessWidget {
                         floor: floorColorsById(room['floor'] as String?),
                         window: room['window'] as String? ?? 'moon',
                         petAwake: room['awake'] == true,
-                        child: Portrait(
+                        child: MascotSprite(
                           size: 110,
+                          // the FRIEND's skin — non-amber skins have no frames
+                          // yet, so they fall back to the recoloured procedural
+                          // ember automatically
+                          skinId: (room['skin'] as String?) ?? 'ember_amber',
                           level: level,
                           mood: PortraitMood.happy,
                           skin: creatureColorsById(room['skin'] as String?),

@@ -824,6 +824,9 @@ class _NightFlowState extends State<NightFlow> {
                           Sfx.instance.play('tick');
                           HapticFeedback.selectionClick();
                           setState(() => q.priority = !q.priority);
+                          // persist NOW — backing out via "NOT YET" is a
+                          // supported exit and must not drop tonight's stars
+                          widget.onPersist();
                         },
                         child: Icon(
                           q.priority ? Icons.star : Icons.star_border,
@@ -1029,7 +1032,25 @@ class MorningFlow extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: ListView(
               children: [
-                const SizedBox(height: 18),
+                // a quiet way out — mornings are sometimes a sprint, and the
+                // sun icon in the header reopens the brief any time today
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onClose,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Text(
+                        'LATER',
+                        style: Type.label.copyWith(
+                          fontSize: 12,
+                          color: Palette.textLo,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 const Center(
                   child: Icon(
                     Icons.wb_twilight,

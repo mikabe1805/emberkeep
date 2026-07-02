@@ -13,6 +13,7 @@ import '../widgets/detail_header.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
+import '../widgets/mascot_sprite.dart';
 import '../widgets/portrait.dart';
 
 /// "Your Space" shop (round-42): spend the Embers (✦) you earn by playing on
@@ -150,8 +151,9 @@ class ShopScreen extends StatelessWidget {
                                 floor: floorColorsFor(state),
                                 window: state.windowScene,
                                 petAwake: state.streakDays > 0,
-                                child: Portrait(
+                                child: MascotSprite(
                                   size: 80,
+                                  skinId: state.creatureSkin,
                                   aura: state.dominantStat?.color,
                                   level: state.level,
                                   trait: state.portraitTrait,
