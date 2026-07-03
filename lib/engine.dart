@@ -276,6 +276,19 @@ class GameState extends ChangeNotifier {
   (Stat, StatRank)? takeJustRankedUp() =>
       _rankedUpQ.isEmpty ? null : _rankedUpQ.removeAt(0);
 
+  /// Streak milestones reached (7/30/100 days), awaiting their full-screen
+  /// chest celebration. Carries the milestone day-count.
+  final List<int> _streakMilestoneQ = [];
+  int? takeJustStreakMilestone() =>
+      _streakMilestoneQ.isEmpty ? null : _streakMilestoneQ.removeAt(0);
+
+  /// Ember chest payouts for each streak milestone (DESIGN.md §7).
+  static const streakMilestones = <int, int>{
+    7: 50,   // a week — a warm chest
+    30: 200, // a month — a proper haul
+    100: 800, // a season — legendary
+  };
+
   // ── today's haul (the night recap's raw material; reset on rollover) ──
   int todayXp = 0;
   final Map<Stat, int> todayStats = {};
@@ -634,6 +647,12 @@ class GameState extends ChangeNotifier {
       lastCompletionDay = today;
     }
     if (streakDays > bestStreak) bestStreak = streakDays;
+
+    // streak milestone — a 7/30/100 day crossing queues a chest celebration
+    if (streakMilestones.containsKey(streakDays)) {
+      _streakMilestoneQ.add(streakDays);
+      embers += streakMilestones[streakDays]!;
+    }
 
     // time-of-day flair
     if (now.hour < 8) dawnCompletions++;

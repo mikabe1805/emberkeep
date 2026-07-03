@@ -37,6 +37,7 @@ import '../widgets/reward_receipt.dart';
 import '../widgets/routine_flows.dart';
 import '../widgets/stat_chips.dart';
 import '../widgets/timer_overlay.dart';
+import '../widgets/streak_milestone_overlay.dart';
 import '../widgets/xp_bar.dart';
 
 /// Focus-mode ordering lens: ease in with quick wins, or take the hardest
@@ -917,7 +918,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final result = s.applyLevelUps();
     widget.onPersist();
     if (result.leveledTo == null) {
-      _afterRankThenToasts(s);
+      _resolveStreakMilestone(s);
       return;
     }
 
@@ -937,13 +938,43 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           takeover.remove();
           if (mounted && identical(s, _state)) {
             setState(() {});
-            // the rank-up evidence beat, then achievements, after the takeover
-            _afterRankThenToasts(s);
+            // streak milestone (if any), then rank-ups, then achievements
+            _resolveStreakMilestone(s);
           }
         },
       ),
     );
     Overlay.of(context).insert(takeover);
+  }
+
+  /// Streak milestone check — if the just-completed quest pushed the streak
+  /// across 7/30/100 days, show the full-screen chest celebration before
+  /// continuing to rank-ups and achievement toasts.
+  void _resolveStreakMilestone(GameState s) {
+    if (!mounted || !identical(s, _state)) return;
+    final days = s.takeJustStreakMilestone();
+    if (days == null) {
+      _afterRankThenToasts(s);
+      return;
+    }
+    final embers = GameState.streakMilestones[days] ?? 0;
+    widget.onPersist();
+    late final OverlayEntry milestone;
+    milestone = OverlayEntry(
+      builder: (_) => StreakMilestoneOverlay(
+        days: days,
+        embers: embers,
+        onDismiss: () {
+          milestone.remove();
+          if (mounted && identical(s, _state)) {
+            setState(() {});
+            // continue the chain: rank-ups, then achievement toasts
+            _afterRankThenToasts(s);
+          }
+        },
+      ),
+    );
+    Overlay.of(context).insert(milestone);
   }
 
   /// The signature beat: if a stat just crossed a rank tier, surface a
