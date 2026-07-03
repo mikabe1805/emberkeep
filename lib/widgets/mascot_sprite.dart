@@ -76,10 +76,7 @@ class MascotSprite extends StatefulWidget {
 
 class _MascotSpriteState extends State<MascotSprite>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _life = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 3600),
-  )..repeat();
+  AnimationController? _life;
   List<String>? _frames;
 
   Widget _fallback() => Portrait(
@@ -103,6 +100,10 @@ class _MascotSpriteState extends State<MascotSprite>
   @override
   void initState() {
     super.initState();
+    _life = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3600),
+    )..repeat();
     _frames = _resolve();
   }
 
@@ -119,7 +120,8 @@ class _MascotSpriteState extends State<MascotSprite>
 
   @override
   void dispose() {
-    _life.dispose();
+    _life?.stop();
+    _life?.dispose();
     super.dispose();
   }
 
@@ -127,18 +129,19 @@ class _MascotSpriteState extends State<MascotSprite>
   Widget build(BuildContext context) {
     final frames = _frames;
     if (frames == null || frames.isEmpty) return _fallback();
+    final ctrl = _life!;
     final happy = widget.mood == PortraitMood.happy;
     final aura = widget.aura;
     return RepaintBoundary(
       child: AnimatedBuilder(
-        animation: _life,
+        animation: ctrl,
         builder: (_, _) {
-          final t = (_life.value * 60).round() / 60;
+          final t = (ctrl.value * 60).round() / 60;
           final breathe = sin(t * 2 * pi);
           final bob = sin(t * 2 * pi + 1.2);
           final scale = (happy ? 1.05 : 1.0) * (1 + 0.022 * breathe);
           final dy = -bob * widget.size * (happy ? 0.028 : 0.016);
-          final secs = t * _life.duration!.inMilliseconds / 1000;
+          final secs = t * ctrl.duration!.inMilliseconds / 1000;
           final i = frames.length < 2
               ? 0
               : (secs * widget.fps).floor() % frames.length;
