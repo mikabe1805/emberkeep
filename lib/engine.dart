@@ -412,15 +412,22 @@ class GameState extends ChangeNotifier {
     if (s == null) return null;
     return rankFor(s, stats[s] ?? 0).tier >= 3 ? s : null;
   }
-
   /// Unlock ladder: level → unlock name. Every level-up reveals the next
-  /// one by name (anticipation is free retention).
+  /// system or cosmetic tier, so there's always a visible "next thing"
+  /// (RESEARCH-momentum.md §7). Levels 2-6 are core systems; 8-15 are
+  /// cosmetic and quality-of-life expansions that keep the ladder alive
+  /// past the initial onboarding burst.
   static const unlocks = <int, String>{
     2: 'STAT DETAILS',
     3: 'CHARACTER SHEET',
     4: 'EVIDENCE ARCHIVE',
     5: 'THEMES',
     6: 'STREAK SHIELDS',
+    8: 'EMBER OF THE DAY',
+    10: 'THE COMPANION',
+    12: 'WINDOW VIEWS',
+    14: 'ROOM STYLES+',
+    15: 'GILDED SKIN',
   };
 
   /// Rising XP-per-level curve; level 2 lands in the first session.
@@ -713,6 +720,10 @@ class GameState extends ChangeNotifier {
     if (level >= 6 && !shieldUnlockGranted) {
       shieldUnlockGranted = true;
       streakShields = (streakShields + 2).clamp(0, maxShields);
+    }
+    // the GILDED SKIN unlock (Lv 15) grants the gilded skin for free
+    if (level >= 15 && !ownedSkins.contains('gilded')) {
+      ownedSkins.add('gilded');
     }
     return LevelResult(leveledTo: reached, unlock: unlocks[reached]);
   }
