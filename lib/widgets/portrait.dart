@@ -210,11 +210,10 @@ class _EmberPainter extends CustomPainter {
     final baseY = restY + s * 0.64 * excite * 0.5;
     final lift = (-bob / (s * 0.03)).clamp(0.0, 1.0);
 
-    // ── body geometry: round pear-shape (wider bottom, slight shoulders) ──
+    // ── body: BIG round ball (not an egg, not pear-shaped) ──
     final bodyC = Offset(cx, restY + bob);
-    final bodyW = s * 0.66 * excite * (1 + 0.025 * breathe);
-    final bodyH = s * 0.60 * excite * (1 - 0.02 * breathe);
-    final bodyTop = bodyC.dy - bodyH / 2;
+    final bodyR = s * 0.36 * excite * (1 + 0.025 * breathe);
+    final bodyTop = bodyC.dy - bodyR;
 
     // ── aura ──
     canvas.drawCircle(
@@ -230,14 +229,11 @@ class _EmberPainter extends CustomPainter {
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.09),
     );
 
-    // ── flame crest ──
-    _crest(canvas, s, cx, bodyTop);
-
     // ── grounding shadow ──
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(cx, baseY + s * 0.01),
-        width: bodyW * 0.78 * (1 - 0.16 * lift),
+        width: bodyR * 2 * 0.78 * (1 - 0.16 * lift),
         height: s * 0.06,
       ),
       Paint()
@@ -245,63 +241,64 @@ class _EmberPainter extends CustomPainter {
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.018),
     );
 
-    // ── ears — two little tufts on the sides, breaking the egg silhouette ──
-    if (detail) {
-      for (final side in [-1.0, 1.0]) {
-        final earC = Offset(cx + side * bodyW * 0.55, bodyC.dy - bodyH * 0.25);
-        final earR = Rect.fromCenter(center: earC, width: s * 0.18, height: s * 0.15);
-        canvas.drawOval(
-          earR,
-          Paint()
-            ..shader = RadialGradient(
-              center: const Alignment(-0.3, -0.4),
-              colors: [Color.lerp(_honey, _cream, 0.4)!, _amber],
-            ).createShader(earR),
-        );
-        // ear inner highlight
-        canvas.drawOval(
-          Rect.fromCenter(center: earC.translate(-side * s * 0.01, -s * 0.01), width: s * 0.07, height: s * 0.05),
-          Paint()
-            ..color = _cream.withValues(alpha: 0.35)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.006),
-        );
-      }
-    }
-
-    // ── feet ──
+    // ── feet: two distinct chunky paws ──
     if (detail) {
       for (final dx in [-0.16, 0.16]) {
-        final fc = Offset(cx + dx * s, bodyC.dy + bodyH * 0.46);
-        final fr = Rect.fromCenter(center: fc, width: s * 0.2, height: s * 0.12);
+        final fc = Offset(cx + dx * s, bodyC.dy + bodyR * 0.72);
+        final fr = Rect.fromCenter(center: fc, width: s * 0.22, height: s * 0.16);
         canvas.drawOval(
           fr,
           Paint()
             ..shader = RadialGradient(
-              center: const Alignment(-0.2, -0.6),
-              colors: [Color.lerp(_amber, _cream, 0.35)!, Color.lerp(_amber, _rim, 0.55)!],
+              center: const Alignment(-0.3, -0.6),
+              colors: [
+                Color.lerp(_honey, _cream, 0.5)!,
+                Color.lerp(_amber, _rim, 0.6)!,
+              ],
             ).createShader(fr),
+        );
+        // toe dots
+        for (final td in [-0.04, 0.0, 0.04]) {
+          canvas.drawCircle(
+            Offset(fc.dx + td * s, fc.dy + s * 0.04),
+            s * 0.012,
+            Paint()..color = _rim.withValues(alpha: 0.5),
+          );
+        }
+      }
+    }
+
+    // ── BIG ROUND EARS (bear cub style) ──
+    if (detail) {
+      for (final side in [-1.0, 1.0]) {
+        final earC = Offset(cx + side * bodyR * 0.75, bodyC.dy - bodyR * 0.7);
+        final earR = Rect.fromCenter(center: earC, width: s * 0.22, height: s * 0.22);
+        // outer ear
+        canvas.drawOval(
+          earR,
+          Paint()
+            ..shader = RadialGradient(
+              center: Alignment(side * -0.3, -0.4),
+              colors: [Color.lerp(_honey, _cream, 0.3)!, _amber],
+            ).createShader(earR),
+        );
+        // inner ear (lighter)
+        canvas.drawOval(
+          Rect.fromCenter(center: earC.translate(0, -s * 0.01), width: s * 0.11, height: s * 0.12),
+          Paint()
+            ..color = _cream.withValues(alpha: 0.6)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.008),
         );
       }
     }
 
-    // ── body: round pear-shaped blob (no longer a pure egg) ──
-    final bodyPath = Path()
-      // start at top
-      ..moveTo(cx, bodyTop)
-      // right curve
-      ..quadraticBezierTo(cx + bodyW * 0.6, bodyTop + bodyH * 0.2, cx + bodyW * 0.55, bodyTop + bodyH * 0.5)
-      // bottom curve
-      ..quadraticBezierTo(cx + bodyW * 0.5, bodyTop + bodyH * 0.85, cx + bodyW * 0.15, bodyTop + bodyH * 0.95)
-      ..quadraticBezierTo(cx, bodyTop + bodyH * 1.0, cx - bodyW * 0.15, bodyTop + bodyH * 0.95)
-      // left curve
-      ..quadraticBezierTo(cx - bodyW * 0.5, bodyTop + bodyH * 0.85, cx - bodyW * 0.55, bodyTop + bodyH * 0.5)
-      ..quadraticBezierTo(cx - bodyW * 0.6, bodyTop + bodyH * 0.2, cx, bodyTop)
-      ..close();
+    // ── flame crest (sits BETWEEN the ears, tall and prominent) ──
+    _crest(canvas, s, cx, bodyTop);
 
-    // Fill body with radial gradient
-    final bodyRect = Rect.fromCenter(center: bodyC, width: bodyW, height: bodyH);
-    canvas.drawPath(
-      bodyPath,
+    // ── body: solid warm-coloured ball ──
+    final bodyRect = Rect.fromCenter(center: bodyC, width: bodyR * 2, height: bodyR * 2);
+    canvas.drawCircle(
+      bodyC, bodyR,
       Paint()
         ..shader = RadialGradient(
           center: const Alignment(-0.35, -0.5),
@@ -311,18 +308,17 @@ class _EmberPainter extends CustomPainter {
         ).createShader(bodyRect),
     );
 
-    // ── inner warm glow (visible through the body) ──
+    // ── inner warm glow ──
     canvas.save();
-    canvas.clipPath(bodyPath);
-    // warm glow pool in the lower belly
+    canvas.clipPath(Path()..addOval(bodyRect));
     canvas.drawCircle(
-      Offset(cx, bodyC.dy + bodyH * 0.2),
-      bodyW * 0.38,
+      Offset(cx, bodyC.dy + bodyR * 0.2),
+      bodyR * 0.55,
       Paint()
         ..color = Color.lerp(_honey, _cream, 0.3)!.withValues(alpha: happy ? 0.50 : 0.38)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.05),
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.06),
     );
-    // warm rim-light on the lower-right edge
+    // warm rim-light
     canvas.drawArc(
       bodyRect.deflate(s * 0.012),
       pi * 0.1, pi * 0.62, false,
@@ -337,37 +333,37 @@ class _EmberPainter extends CustomPainter {
     // ── specular highlight (top-left) ──
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(cx - bodyW * 0.2, bodyTop + bodyH * 0.22),
-        width: bodyW * 0.2, height: bodyH * 0.14,
+        center: Offset(cx - bodyR * 0.35, bodyTop + bodyR * 0.2),
+        width: bodyR * 0.35, height: bodyR * 0.2,
       ),
       Paint()
         ..color = _cream.withValues(alpha: 0.5)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.014),
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.018),
     );
     canvas.drawCircle(
-      Offset(cx - bodyW * 0.24, bodyTop + bodyH * 0.17),
-      s * 0.018,
+      Offset(cx - bodyR * 0.4, bodyTop + bodyR * 0.15),
+      s * 0.022,
       Paint()..color = Color.lerp(_cream, Colors.white, 0.65)!.withValues(alpha: 0.85),
     );
 
-    // ── tiny arm nubs on each side (huggable) ──
+    // ── chubby little arms (like a teddy bear) ──
     if (detail) {
       for (final side in [-1.0, 1.0]) {
-        final armC = Offset(cx + side * bodyW * 0.52, bodyC.dy + bodyH * 0.12);
-        final armR = Rect.fromCenter(center: armC, width: s * 0.16, height: s * 0.2);
+        final armC = Offset(cx + side * bodyR * 0.75, bodyC.dy + bodyR * 0.15);
+        final armR = Rect.fromCenter(center: armC, width: s * 0.18, height: s * 0.28);
         canvas.drawOval(
           armR,
           Paint()
             ..shader = RadialGradient(
-              center: Alignment(side * -0.3, -0.5),
-              colors: [_cream, Color.lerp(_honey, _amber, 0.5)!],
+              center: Alignment(side * -0.4, -0.5),
+              colors: [_cream, Color.lerp(_honey, _amber, 0.6)!],
             ).createShader(armR),
         );
       }
     }
 
     // ── face ──
-    _face(canvas, s, cx, bodyC, bodyW, detail);
+    _face(canvas, s, cx, bodyC, bodyR * 2, detail);
 
     // ── tier 4+ sparkles ──
     if (tier >= 4) {
