@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'audio.dart';
+import 'storage.dart';
 import 'platform/persist_stub.dart'
     if (dart.library.js_interop) 'platform/persist_web.dart';
 import 'screens/shell.dart';
@@ -43,6 +44,13 @@ void main() {
 
   // Fire-and-forget: the app never waits on (or requires) audio.
   Sfx.instance.init();
+  // Sync sound setting from saved state — Storage.load() restores GameState
+  // before the shell mounts, and the shell reads Sfx.instance.soundEnabled
+  // to apply the saved preference. If no save exists yet, the default (true)
+  // is fine.
+  Storage.load().then((pair) {
+    if (pair != null) Sfx.instance.soundEnabled = pair.$1.soundEnabled;
+  });
   // Ask the browser to make storage durable (exempts an installed PWA from
   // iOS's storage eviction — the save's first line of defense).
   requestPersistentStorage();

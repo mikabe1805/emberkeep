@@ -527,6 +527,8 @@ class MePage extends StatelessWidget {
           ),
           _themesPanel(),
           const SizedBox(height: 14),
+          _soundPanel(),
+          const SizedBox(height: 14),
           _remindersPanel(context),
           const SizedBox(height: 14),
 
@@ -791,6 +793,76 @@ class MePage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _soundPanel() {
+    return GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text('SOUND & MOTION',
+                  style: Type.label.copyWith(fontSize: 11)),
+              const Spacer(),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _toggleRow(
+            icon: Icons.volume_up_outlined,
+            label: 'Sound effects',
+            value: state.soundEnabled,
+            onChanged: (v) {
+              state.soundEnabled = v;
+              Sfx.instance.soundEnabled = v;
+              if (v) Sfx.instance.play('tick');
+              onPersist();
+            },
+          ),
+          const SizedBox(height: 6),
+          _toggleRow(
+            icon: Icons.reduce_capacity_outlined,
+            label: 'Reduce motion',
+            subtitle: 'swap particles for fades',
+            value: state.reduceMotion,
+            onChanged: (v) {
+              state.reduceMotion = v;
+              onPersist();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggleRow({
+    required IconData icon,
+    required String label,
+    String? subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Palette.textLo),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: Type.label.copyWith(fontSize: 12,
+                      color: Palette.textHi)),
+              if (subtitle != null)
+                Text(subtitle,
+                    style: Type.body.copyWith(fontSize: 10,
+                        color: Palette.textLo, fontStyle: FontStyle.italic)),
+            ],
+          ),
+        ),
+        GlassSwitch(value: value, onChanged: onChanged),
+      ],
     );
   }
 

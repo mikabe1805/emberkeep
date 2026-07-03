@@ -30,6 +30,13 @@ class GameState extends ChangeNotifier {
   /// to a single suggested quest to fight overwhelm. Default off (full board).
   bool focusMode = false;
 
+  /// Accessibility: when true, particle bursts swap for simple fades and
+  /// haptic intensity is reduced (DESIGN.md: "Honor reduce-motion").
+  bool reduceMotion = false;
+
+  /// Sound toggle — the owner can mute all event sounds ( DESIGN.md §8).
+  bool soundEnabled = true;
+
   void setFocusMode(bool v) {
     if (focusMode == v) return;
     focusMode = v;
@@ -831,6 +838,8 @@ class GameState extends ChangeNotifier {
     'playerName': playerName,
     'onboarded': onboarded,
     'focusMode': focusMode,
+    'reduceMotion': reduceMotion,
+    'soundEnabled': soundEnabled,
     'notifyEnabled': notifyEnabled,
     'notifyHour': notifyHour,
     'notifyMinute': notifyMinute,
@@ -899,6 +908,8 @@ class GameState extends ChangeNotifier {
     s.playerName = j['playerName'] as String?;
     s.onboarded = j['onboarded'] as bool? ?? true; // pre-existing saves skip
     s.focusMode = j['focusMode'] as bool? ?? false;
+    s.reduceMotion = j['reduceMotion'] as bool? ?? false;
+    s.soundEnabled = j['soundEnabled'] as bool? ?? true;
     s.notifyEnabled = j['notifyEnabled'] as bool? ?? false;
     s.notifyHour = j['notifyHour'] as int? ?? 9;
     s.notifyMinute = j['notifyMinute'] as int? ?? 0;

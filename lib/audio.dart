@@ -56,6 +56,10 @@ class Sfx {
 
   final Map<String, AudioPool> _pools = {};
 
+  /// Sound enabled flag — set from GameState.soundEnabled. When false,
+  /// play() returns immediately without making any sound.
+  bool soundEnabled = true;
+
   Future<void> init() async {
     // FIRST, before any pool ever activates the audio session: make our SFX
     // mix WITH the user's own music instead of evicting it. audioplayers
@@ -106,6 +110,7 @@ class Sfx {
 
   /// names: tick, complete, streak, crit, loot, levelup, boing, stat_0..5
   void play(String name) {
+    if (!soundEnabled) return;
     try {
       final vol = _volFor(name);
       final pool = _pools[name];
