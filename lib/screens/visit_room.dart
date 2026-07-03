@@ -46,12 +46,13 @@ class VisitRoomScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       HomeRoom(
-                        unlocked: furniture,
-                        wall: wallColorsById(room['wall'] as String?),
-                        floor: floorColorsById(room['floor'] as String?),
-                        window: room['window'] as String? ?? 'moon',
-                        petAwake: room['awake'] == true,
-                        child: MascotSprite(
+                      unlocked: furniture,
+                      wall: wallColorsById(room['wall'] as String?),
+                      floor: floorColorsById(room['floor'] as String?),
+                      window: room['window'] as String? ?? 'moon',
+                      petAwake: room['awake'] == true,
+                      emberGlow: creatureColorsById(room['skin'] as String?)[1],
+                      child: MascotSprite(
                           size: 110,
                           // the FRIEND's skin — non-amber skins have no frames
                           // yet, so they fall back to the recoloured procedural

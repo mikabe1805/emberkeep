@@ -23,6 +23,7 @@ class HomeRoom extends StatelessWidget {
     this.floor = _defaultFloor,
     this.window = 'moon',
     this.petAwake = false,
+    this.emberGlow,
   });
 
   /// Furniture piece-ids the player owns (GameState.ownedFurniture) — what
@@ -44,6 +45,11 @@ class HomeRoom extends StatelessWidget {
   /// Whether the companion is awake + happy (on a streak) vs cozily asleep.
   final bool petAwake;
 
+  /// The worn creature skin's mid-tone colour — cast as a warm glow pool on
+  /// the floor around the avatar so the sprite's self-illumination reads as
+  /// interacting with the room (assimilation). Null = default honey glow.
+  final Color? emberGlow;
+
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
@@ -54,8 +60,7 @@ class HomeRoom extends StatelessWidget {
           children: [
             Positioned.fill(
               child: CustomPaint(
-                  painter:
-                      _RoomPainter(unlocked, wall, floor, window, petAwake)),
+                  painter: _RoomPainter(unlocked, wall, floor, window, petAwake, emberGlow)),
             ),
             // the avatar, standing on the floor in the middle of the room
             Align(
@@ -73,12 +78,13 @@ class HomeRoom extends StatelessWidget {
 }
 
 class _RoomPainter extends CustomPainter {
-  _RoomPainter(this.unlocked, this.wall, this.floor, this.window, this.petAwake);
+  _RoomPainter(this.unlocked, this.wall, this.floor, this.window, this.petAwake, this.emberGlow);
   final Set<String> unlocked;
   final List<Color> wall;
   final List<Color> floor;
   final String window;
   final bool petAwake;
+  final Color? emberGlow;
   bool has(String id) => unlocked.contains(id);
 
   // furniture wood tone (independent of the chosen wall/floor)
@@ -130,6 +136,22 @@ class _RoomPainter extends CustomPainter {
       Paint()
         ..color = Palette.honeyGlow.withValues(alpha: 0.10)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.08),
+    );
+
+    // ── ember glow pool: the creature's own light cast on the floor around
+    // where it stands, in the worn skin's hue so a mint or rose ember glows
+    // in its own colour. This is the key assimilation touch — the sprite's
+    // self-illumination now interacts with the room. ──
+    final glow = emberGlow ?? Palette.honeyGlow;
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.5, floorY + (h - floorY) * 0.5),
+        width: w * 0.45,
+        height: (h - floorY) * 0.7,
+      ),
+      Paint()
+        ..color = glow.withValues(alpha: 0.22)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.06),
     );
 
     // baseboard — a thin warm highlight over a soft shadow, grounding the wall
@@ -672,6 +694,7 @@ class _RoomPainter extends CustomPainter {
       old.unlocked != unlocked ||
       old.window != window ||
       old.petAwake != petAwake ||
+      old.emberGlow != emberGlow ||
       !listEquals(old.wall, wall) ||
       !listEquals(old.floor, floor);
 }

@@ -137,6 +137,7 @@ class MePage extends StatelessWidget {
                   floor: floorColorsFor(state),
                   window: state.windowScene,
                   petAwake: state.streakDays > 0,
+                  emberGlow: creatureColorsFor(state)[1],
                   child: MascotSprite(
                     size: 96,
                     skinId: state.creatureSkin,
