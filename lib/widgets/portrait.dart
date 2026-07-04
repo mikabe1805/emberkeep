@@ -42,11 +42,11 @@ int frameTierForLevel(int level) {
   return t;
 }
 
-/// The character — a little ember creature you grow: a soft round body with
-/// big bright eyes, rosy cheeks, little nub ears, tiny round arms, and a
-/// flame crest that rises taller as you level. It blinks on its own rhythm,
-/// beams when you complete a quest, glows in your dominant stat's colour,
-/// and visibly evolves as you build yourself.
+/// The character — a little ember creature you grow: a soft amber-glass body
+/// with big bright eyes, rosy cheeks, and a flame crest that rises taller as
+/// you level. It blinks on its own rhythm, beams when you complete a quest,
+/// glows in your dominant stat's colour, and visibly evolves as you build
+/// yourself (the owner's #1 ask: a lovable character that grows with you).
 class Portrait extends StatefulWidget {
   const Portrait({
     super.key,
@@ -65,7 +65,8 @@ class Portrait extends StatefulWidget {
   /// Dominant-stat color (or an equipped skin's color); defaults to honey.
   final Color? aura;
 
-  /// The four body-gradient colours (light→dark) of the worn creature skin.
+  /// The four body-gradient colours (light→dark) of the worn creature skin
+  /// (content/creature_skins.dart). Null = the default warm Ember amber.
   final List<Color>? skin;
 
   /// Character level — drives the earned growth stage (flame crest).
@@ -74,7 +75,8 @@ class Portrait extends StatefulWidget {
   /// Pin the founder badge (an equipped cosmetic).
   final bool badge;
 
-  /// Your dominant stat once it's ranked up — adds a build-keyed flourish.
+  /// Your dominant stat once it's ranked up — adds a build-keyed flourish to
+  /// the face (glasses for INT, a headband for STR, …). Null = neutral face.
   final Stat? trait;
 
   @override
@@ -83,6 +85,8 @@ class Portrait extends StatefulWidget {
 
 class _PortraitState extends State<Portrait>
     with SingleTickerProviderStateMixin {
+  // one slow loop drives blinking + the flame's gentle sway; quantized +
+  // repaint-bounded so it costs almost nothing
   late final AnimationController _life = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 4200),
@@ -90,7 +94,6 @@ class _PortraitState extends State<Portrait>
 
   @override
   void dispose() {
-    _life.stop();
     _life.dispose();
     super.dispose();
   }
@@ -104,6 +107,7 @@ class _PortraitState extends State<Portrait>
         animation: _life,
         builder: (context, _) {
           final t = (_life.value * 84).round() / 84;
+          // blink: eyes shut briefly near the end of each loop
           final blinking = t > 0.92 && t < 0.965;
           final happy = widget.mood == PortraitMood.happy;
           final core = SizedBox(
@@ -122,7 +126,6 @@ class _PortraitState extends State<Portrait>
             ),
           );
           if (!widget.badge) return core;
-          // badge pinned to lower-right
           return SizedBox(
             width: widget.size,
             height: widget.size,
@@ -141,12 +144,15 @@ class _PortraitState extends State<Portrait>
                       gradient: const RadialGradient(
                         colors: [Color(0xFFFFF4D9), Color(0xFFC08B4F)],
                       ),
-                      border: Border.all(color: const Color(0xFF3A2510), width: 1),
+                      border:
+                          Border.all(color: const Color(0xFF3A2510), width: 1),
                       boxShadow: const [
                         BoxShadow(color: Palette.honeyGlow, blurRadius: 8),
                       ],
                     ),
-                    child: Icon(Icons.star, size: widget.size * 0.18, color: const Color(0xFF3A2510)),
+                    child: Icon(Icons.star,
+                        size: widget.size * 0.18,
+                        color: const Color(0xFF3A2510)),
                   ),
                 ),
               ],
@@ -158,10 +164,8 @@ class _PortraitState extends State<Portrait>
   }
 }
 
-/// Redesigned _EmberPainter — the "transparent condom" is gone.
-/// The body is a warm, rounded pear-shape with distinct ears, tiny
-/// arm nubs, and a flame that uses bright fire colours (yellow/orange/white)
-/// independent of the skin hue so it always reads as FIRE, not tinted goo.
+/// Draws the whole creature: aura, flame crest, soft body with a glassy
+/// sheen, little feet, the face, and any build-trait flourish.
 class _EmberPainter extends CustomPainter {
   _EmberPainter({
     required this.happy,
@@ -183,57 +187,68 @@ class _EmberPainter extends CustomPainter {
   /// Four body-gradient stops, light→dark (the worn creature skin).
   final List<Color> skin;
 
+  // the glass palette derives from the skin so the whole creature recolours
+  // together; only the ink (eyes/mouth) stays a universal warm dark.
   Color get _cream => skin[0];
   Color get _honey => skin[1];
   Color get _amber => skin[2];
   Color get _rim => skin[3];
   static const _ink = Color(0xFF3A2410);
 
-  // Flame colours — ALWAYS fire-toned regardless of skin, so it reads as
-  // an actual flame on top of whatever body colour the skin chose.
-  static const _flameTip = Color(0xFFFFF4D9);   // pale white-yellow tip
-  static const _flameMid = Color(0xFFFFB347);     // bright orange-gold
-  static const _flameBase = Color(0xFFE07020);    // deep orange base
-  static const _flameCore = Color(0xFFFFF8E7);    // hot white heart
-
   @override
   void paint(Canvas canvas, Size size) {
     final s = size.width;
     final cx = s * 0.5;
-    final detail = s >= 56;
+    final detail = s >= 56; // feet/fine detail only when it won't muddy
+    // a soft flame sway so the creature feels alive
+    final sway = sin(t * 2 * pi) * s * 0.012;
 
-    // ── animation state ──
+    // ── aliveness: a slow breath (squash/stretch) + a gentle bob, bouncier
+    // when it's happy. Quantized via [t] (~20fps) so it stays cheap. ──
     final breathe = sin(t * 2 * pi);
     final excite = happy ? 1.03 : 1.0;
     final bob = sin(t * 2 * pi + 1.2) * s * (happy ? 0.03 : 0.016);
+    // resting floor line (where the contact shadow stays as the body lifts)
     final restY = s * 0.54;
     final baseY = restY + s * 0.64 * excite * 0.5;
     final lift = (-bob / (s * 0.03)).clamp(0.0, 1.0);
 
-    // ── body: BIG round ball (not an egg, not pear-shaped) ──
+    // body geometry — a soft, slightly egg-shaped blob (head+body in one),
+    // breathing (wider on the inhale, a touch shorter) and bobbing
     final bodyC = Offset(cx, restY + bob);
-    final bodyR = s * 0.36 * excite * (1 + 0.025 * breathe);
-    final bodyTop = bodyC.dy - bodyR;
+    final bodyW = s * 0.62 * excite * (1 + 0.025 * breathe);
+    final bodyH = s * 0.64 * excite * (1 - 0.02 * breathe);
+    final bodyTop = bodyC.dy - bodyH / 2;
 
-    // ── aura ──
+    // ── aura: a two-layer warm halo — a soft wide bloom + a tighter inner
+    // glow — so your build reads as candlelight pooling around you, not a flat
+    // disc (brighter happy / higher tier). ──
     canvas.drawCircle(
-      bodyC, s * 0.52,
+      bodyC,
+      s * 0.52,
       Paint()
         ..color = aura.withValues(alpha: (happy ? 0.34 : 0.20) + 0.03 * tier)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * (happy ? 0.16 : 0.13)),
+        ..maskFilter =
+            MaskFilter.blur(BlurStyle.normal, s * (happy ? 0.16 : 0.13)),
     );
     canvas.drawCircle(
-      bodyC, s * 0.34,
+      bodyC,
+      s * 0.34,
       Paint()
         ..color = aura.withValues(alpha: (happy ? 0.20 : 0.11) + 0.02 * tier)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.09),
     );
 
-    // ── grounding shadow ──
+    // ── flame crest (the growth stage) — rises above the head, taller with
+    // each tier; tier 0 is a single shy spark, the top tiers a real blaze ──
+    _crest(canvas, s, cx, bodyTop, sway);
+
+    // grounding shadow FIRST — on the floor, beneath the body (shrinks + fades
+    // as it lifts), so the bob reads as a gentle hop rather than a slide.
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(cx, baseY + s * 0.01),
-        width: bodyR * 2 * 0.78 * (1 - 0.16 * lift),
+        width: bodyW * 0.78 * (1 - 0.16 * lift),
         height: s * 0.06,
       ),
       Paint()
@@ -241,87 +256,59 @@ class _EmberPainter extends CustomPainter {
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.018),
     );
 
-    // ── feet: two distinct chunky paws ──
+    // ── feet: two little nubs so it stands (radial-shaded so they read 3-D) ──
     if (detail) {
       for (final dx in [-0.16, 0.16]) {
-        final fc = Offset(cx + dx * s, bodyC.dy + bodyR * 0.72);
-        final fr = Rect.fromCenter(center: fc, width: s * 0.22, height: s * 0.16);
+        final fc = Offset(cx + dx * s, bodyC.dy + bodyH * 0.46);
+        final fr = Rect.fromCenter(center: fc, width: s * 0.2, height: s * 0.12);
         canvas.drawOval(
           fr,
           Paint()
             ..shader = RadialGradient(
-              center: const Alignment(-0.3, -0.6),
+              center: const Alignment(-0.2, -0.6),
               colors: [
-                Color.lerp(_honey, _cream, 0.5)!,
-                Color.lerp(_amber, _rim, 0.6)!,
+                Color.lerp(_amber, _cream, 0.35)!,
+                Color.lerp(_amber, _rim, 0.55)!,
               ],
             ).createShader(fr),
         );
-        // toe dots
-        for (final td in [-0.04, 0.0, 0.04]) {
-          canvas.drawCircle(
-            Offset(fc.dx + td * s, fc.dy + s * 0.04),
-            s * 0.012,
-            Paint()..color = _rim.withValues(alpha: 0.5),
-          );
-        }
       }
     }
 
-    // ── BIG ROUND EARS (bear cub style) ──
-    if (detail) {
-      for (final side in [-1.0, 1.0]) {
-        final earC = Offset(cx + side * bodyR * 0.75, bodyC.dy - bodyR * 0.7);
-        final earR = Rect.fromCenter(center: earC, width: s * 0.22, height: s * 0.22);
-        // outer ear
-        canvas.drawOval(
-          earR,
-          Paint()
-            ..shader = RadialGradient(
-              center: Alignment(side * -0.3, -0.4),
-              colors: [Color.lerp(_honey, _cream, 0.3)!, _amber],
-            ).createShader(earR),
-        );
-        // inner ear (lighter)
-        canvas.drawOval(
-          Rect.fromCenter(center: earC.translate(0, -s * 0.01), width: s * 0.11, height: s * 0.12),
-          Paint()
-            ..color = _cream.withValues(alpha: 0.6)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.008),
-        );
-      }
-    }
-
-    // ── flame crest (sits BETWEEN the ears, tall and prominent) ──
-    _crest(canvas, s, cx, bodyTop);
-
-    // ── body: solid warm-coloured ball ──
-    final bodyRect = Rect.fromCenter(center: bodyC, width: bodyR * 2, height: bodyR * 2);
-    canvas.drawCircle(
-      bodyC, bodyR,
+    // ── body: glassy radial-shaded blob ──
+    final bodyRect = Rect.fromCenter(
+        center: bodyC, width: bodyW, height: bodyH);
+    canvas.drawOval(
+      bodyRect,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(-0.35, -0.5),
+          center: const Alignment(-0.4, -0.55),
           radius: 1.05,
           colors: [_cream, _honey, _amber, _rim],
           stops: const [0.0, 0.34, 0.76, 1.0],
         ).createShader(bodyRect),
     );
 
-    // ── inner warm glow ──
+    // ── subsurface candle-glow: a warm light low inside the body, so it reads
+    // as glowing glass holding a flame rather than a painted ball. Clipped to
+    // the body so it never bleeds past the silhouette. ──
     canvas.save();
     canvas.clipPath(Path()..addOval(bodyRect));
     canvas.drawCircle(
-      Offset(cx, bodyC.dy + bodyR * 0.2),
-      bodyR * 0.55,
+      Offset(cx, bodyC.dy + bodyH * 0.22),
+      bodyW * 0.42,
       Paint()
-        ..color = Color.lerp(_honey, _cream, 0.3)!.withValues(alpha: happy ? 0.50 : 0.38)
+        ..color = Color.lerp(_honey, _cream, 0.3)!
+            .withValues(alpha: happy ? 0.42 : 0.32)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.06),
     );
-    // warm rim-light
+    // a warm back-light rim along the lower-right edge (candlelight wrapping
+    // the form) — the touch that sells "lit", not "flat".
     canvas.drawArc(
       bodyRect.deflate(s * 0.012),
-      pi * 0.1, pi * 0.62, false,
+      pi * 0.1,
+      pi * 0.62,
+      false,
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = s * 0.03
@@ -330,61 +317,66 @@ class _EmberPainter extends CustomPainter {
     );
     canvas.restore();
 
-    // ── specular highlight (top-left) ──
+    // soft belly — a lighter tummy that reads as "soft creature"
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(cx - bodyR * 0.35, bodyTop + bodyR * 0.2),
-        width: bodyR * 0.35, height: bodyR * 0.2,
+        center: Offset(cx, bodyC.dy + bodyH * 0.12),
+        width: bodyW * 0.5,
+        height: bodyH * 0.42,
       ),
       Paint()
-        ..color = _cream.withValues(alpha: 0.5)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.018),
+        ..color = _cream.withValues(alpha: 0.16)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.03),
+    );
+    // a crisp top-left specular highlight (the glass "drop of light") + a tiny
+    // near-white hotspot — the single sharp glint that makes glass read as glass
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx - bodyW * 0.2, bodyTop + bodyH * 0.22),
+        width: bodyW * 0.22,
+        height: bodyH * 0.16,
+      ),
+      Paint()
+        ..color = _cream.withValues(alpha: 0.6)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.016),
     );
     canvas.drawCircle(
-      Offset(cx - bodyR * 0.4, bodyTop + bodyR * 0.15),
-      s * 0.022,
-      Paint()..color = Color.lerp(_cream, Colors.white, 0.65)!.withValues(alpha: 0.85),
+      Offset(cx - bodyW * 0.24, bodyTop + bodyH * 0.17),
+      s * 0.02,
+      Paint()..color = Color.lerp(_cream, Colors.white, 0.65)!
+          .withValues(alpha: 0.9),
     );
 
-    // ── chubby little arms (like a teddy bear) ──
-    if (detail) {
-      for (final side in [-1.0, 1.0]) {
-        final armC = Offset(cx + side * bodyR * 0.75, bodyC.dy + bodyR * 0.15);
-        final armR = Rect.fromCenter(center: armC, width: s * 0.18, height: s * 0.28);
-        canvas.drawOval(
-          armR,
-          Paint()
-            ..shader = RadialGradient(
-              center: Alignment(side * -0.4, -0.5),
-              colors: [_cream, Color.lerp(_honey, _amber, 0.6)!],
-            ).createShader(armR),
-        );
-      }
-    }
+    _face(canvas, s, cx, bodyC, bodyW, detail);
 
-    // ── face ──
-    _face(canvas, s, cx, bodyC, bodyR * 2, detail);
-
-    // ── tier 4+ sparkles ──
+    // ── high-tier sparkle motes drifting around the blaze ──
     if (tier >= 4) {
       final sp = Paint()
         ..color = _cream.withValues(alpha: 0.85)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.006);
-      for (final p in const [Offset(0.2, 0.28), Offset(0.82, 0.34), Offset(0.74, 0.6)]) {
-        canvas.drawCircle(Offset(p.dx * s, p.dy * s), s * 0.014, sp);
+      for (final p in const [
+        Offset(0.2, 0.28),
+        Offset(0.82, 0.34),
+        Offset(0.74, 0.6),
+      ]) {
+        canvas.drawCircle(
+            Offset(p.dx * s, p.dy * s), s * 0.014, sp);
       }
     }
   }
 
-  void _crest(Canvas canvas, double s, double cx, double bodyTop) {
+  void _crest(Canvas canvas, double s, double cx, double bodyTop, double sway) {
+    // how tall the flame stands, by stage — tier 0 is now a real little flame
+    // (not a shy nub), the top tiers a proper blaze.
     final h = s * (0.15 + tier * 0.05);
     final baseY = bodyTop + s * 0.08;
+    // a gentle flicker in height so the flame feels alive
     final flick = 1 + 0.06 * sin(t * 2 * pi * 1.7);
-    final sway = sin(t * 2 * pi) * s * 0.012;
 
     Path teardrop(double fx, double fw, double fh, double tipX) => Path()
       ..moveTo(fx - fw / 2, baseY)
-      ..quadraticBezierTo(fx - fw * 0.62, baseY - fh * 0.5, tipX - fw * 0.14, baseY - fh * 0.82)
+      ..quadraticBezierTo(
+          fx - fw * 0.62, baseY - fh * 0.5, tipX - fw * 0.14, baseY - fh * 0.82)
       ..quadraticBezierTo(tipX, baseY - fh, tipX + fw * 0.14, baseY - fh * 0.82)
       ..quadraticBezierTo(fx + fw * 0.62, baseY - fh * 0.5, fx + fw / 2, baseY)
       ..quadraticBezierTo(fx, baseY + fh * 0.14, fx - fw / 2, baseY)
@@ -396,43 +388,53 @@ class _EmberPainter extends CustomPainter {
       final fw = s * 0.145 * scale;
       final tipX = fx + lean;
       final body = teardrop(fx, fw, fh, tipX);
-
-      // always uses fire colours (yellow/orange/white), NOT skin tones
-      final fr = Rect.fromLTWH(fx - fw, baseY - fh, fw * 2, fh * 1.16);
-
-      // outer glow
+      // a soft heat-bloom at the base + the flame's own halo, both in the skin's
+      // hue so a mint or rose ember glows in its own colour (not generic orange).
       canvas.drawCircle(
-        Offset(fx, baseY - fh * 0.3), fw * 1.05,
+        Offset(fx, baseY - fh * 0.3),
+        fw * 1.05,
         Paint()
-          ..color = _flameMid.withValues(alpha: 0.3)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.05),
+          ..color = _honey.withValues(alpha: 0.4)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.055),
       );
-      // flame body gradient (always fire colours)
+      canvas.drawPath(
+        body,
+        Paint()
+          ..color = _amber.withValues(alpha: 0.6)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.03),
+      );
+      // flame body (deep amber base → warm honey → cream tip, in the skin's hue)
+      final fr = Rect.fromLTWH(fx - fw, baseY - fh, fw * 2, fh * 1.16);
       canvas.drawPath(
         body,
         Paint()
           ..shader = LinearGradient(
-            begin: Alignment.bottomCenter, end: Alignment.topCenter,
-            colors: [_flameBase, _flameMid, _flameTip],
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [_amber, _honey, _cream],
             stops: const [0.0, 0.55, 1.0],
           ).createShader(fr),
       );
-      // hot white core
+      // a soft hot heart — small + low + slightly blurred so the warm gradient
+      // still reads and the flame stops looking like a pale solid spike
       final coreW = fw * 0.42, coreH = fh * 0.5;
       canvas.drawPath(
         teardrop(fx, coreW, coreH, fx),
         Paint()
-          ..color = _flameCore.withValues(alpha: 0.7)
+          ..color = Color.lerp(_cream, Colors.white, 0.4)!
+              .withValues(alpha: 0.7)
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.006),
       );
     }
 
+    // side flames first (so the central one sits in front), added by tier
     if (tier >= 3) flame(-s * 0.12, 0.6, -s * 0.02);
     if (tier >= 2) flame(s * 0.12, 0.68, s * 0.02);
-    flame(0, 1.0, sway * 0.6);
+    flame(0, 1.0, sway * 0.6); // the main flame, always present
   }
 
-  void _face(Canvas canvas, double s, double cx, Offset bodyC, double bodyW, bool detail) {
+  void _face(Canvas canvas, double s, double cx, Offset bodyC, double bodyW,
+      bool detail) {
     final eyeY = bodyC.dy - s * 0.02;
     final eyeDx = s * 0.135;
     final ink = Paint()..color = _ink;
@@ -442,63 +444,80 @@ class _EmberPainter extends CustomPainter {
       ..strokeWidth = s * 0.035
       ..strokeCap = StrokeCap.round;
 
-    // cheeks
+    // cheeks — a soft always-on warmth, blooming when happy
     final blush = Paint()
       ..color = Color(happy ? 0x66E08A7A : 0x44D88A8A)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.018);
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(cx - s * 0.2, eyeY + s * 0.1), width: s * 0.13, height: s * 0.085), blush);
+      Rect.fromCenter(
+          center: Offset(cx - s * 0.2, eyeY + s * 0.1),
+          width: s * 0.13,
+          height: s * 0.085),
+      blush,
+    );
     canvas.drawOval(
-      Rect.fromCenter(center: Offset(cx + s * 0.2, eyeY + s * 0.1), width: s * 0.13, height: s * 0.085), blush);
-
-    // tiny eyebrows — add expression without being human
-    if (detail && !happy) {
-      final brow = Paint()
-        ..color = _ink.withValues(alpha: 0.5)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = s * 0.024
-        ..strokeCap = StrokeCap.round;
-      for (final dx in [-eyeDx, eyeDx]) {
-        canvas.drawLine(
-          Offset(cx + dx - s * 0.05, eyeY - s * 0.12),
-          Offset(cx + dx + s * 0.05, eyeY - s * 0.09),
-          brow,
-        );
-      }
-    }
+      Rect.fromCenter(
+          center: Offset(cx + s * 0.2, eyeY + s * 0.1),
+          width: s * 0.13,
+          height: s * 0.085),
+      blush,
+    );
 
     if (blinking) {
+      // gentle closed arcs
       for (final dx in [-eyeDx, eyeDx]) {
         canvas.drawArc(
-          Rect.fromCenter(center: Offset(cx + dx, eyeY), width: s * 0.13, height: s * 0.1),
-          pi, pi, false, stroke);
+          Rect.fromCenter(
+              center: Offset(cx + dx, eyeY),
+              width: s * 0.13,
+              height: s * 0.1),
+          pi,
+          pi,
+          false,
+          stroke,
+        );
       }
     } else {
+      // big round eyes with catchlights — the heart of the cuteness
       final eyeR = s * (happy ? 0.085 : 0.078);
       for (final dx in [-eyeDx, eyeDx]) {
         final ec = Offset(cx + dx, eyeY);
         canvas.drawOval(
-          Rect.fromCenter(center: ec, width: eyeR * 1.7, height: eyeR * 2.0), ink);
-        canvas.drawCircle(ec.translate(-eyeR * 0.32, -eyeR * 0.5), eyeR * 0.42,
-            Paint()..color = _cream.withValues(alpha: 0.95));
-        canvas.drawCircle(ec.translate(eyeR * 0.34, eyeR * 0.55), eyeR * 0.2,
-            Paint()..color = _cream.withValues(alpha: 0.7));
+          Rect.fromCenter(center: ec, width: eyeR * 1.7, height: eyeR * 2.0),
+          ink,
+        );
+        // big upper catchlight
+        canvas.drawCircle(
+          ec.translate(-eyeR * 0.32, -eyeR * 0.5),
+          eyeR * 0.42,
+          Paint()..color = _cream.withValues(alpha: 0.95),
+        );
+        // small lower sparkle
+        canvas.drawCircle(
+          ec.translate(eyeR * 0.34, eyeR * 0.55),
+          eyeR * 0.2,
+          Paint()..color = _cream.withValues(alpha: 0.7),
+        );
       }
     }
 
-    // mouth
+    // mouth — a soft smile, wider and rounder when happy
     canvas.drawArc(
       Rect.fromCenter(
-        center: Offset(cx, eyeY + s * (happy ? 0.135 : 0.125)),
-        width: s * (happy ? 0.24 : 0.17),
-        height: s * (happy ? 0.17 : 0.1)),
-      pi * 0.1, pi * 0.8, false, stroke,
+          center: Offset(cx, eyeY + s * (happy ? 0.135 : 0.125)),
+          width: s * (happy ? 0.24 : 0.17),
+          height: s * (happy ? 0.17 : 0.1)),
+      pi * 0.1,
+      pi * 0.8,
+      false,
+      stroke,
     );
 
     _trait(canvas, s, cx, eyeY, eyeDx, detail);
   }
 
-  void _trait(Canvas canvas, double s, double cx, double eyeY, double eyeDx, bool detail) {
+  void _trait(Canvas canvas, double s, double cx, double eyeY, double eyeDx,
+      bool detail) {
     final tr = trait;
     if (tr == null || !detail) return;
     final c = Offset(cx, eyeY);
@@ -509,36 +528,50 @@ class _EmberPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..color = tc;
     switch (tr) {
-      case Stat.intl:
+      case Stat.intl: // round glasses
         final r = s * 0.085;
         canvas.drawCircle(c + Offset(-eyeDx, 0), r, acc);
         canvas.drawCircle(c + Offset(eyeDx, 0), r, acc);
-        canvas.drawLine(c + Offset(-eyeDx + r, 0), c + Offset(eyeDx - r, 0), acc);
-      case Stat.str:
+        canvas.drawLine(
+            c + Offset(-eyeDx + r, 0), c + Offset(eyeDx - r, 0), acc);
+      case Stat.str: // headband across the brow + knot tails
         final band = Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = s * 0.05
           ..strokeCap = StrokeCap.round
           ..color = tc;
         final by = eyeY - s * 0.14;
-        canvas.drawLine(Offset(cx - s * 0.2, by), Offset(cx + s * 0.2, by), band);
-        canvas.drawLine(Offset(cx + s * 0.18, by), Offset(cx + s * 0.28, by + s * 0.05), acc);
-        canvas.drawLine(Offset(cx + s * 0.18, by), Offset(cx + s * 0.28, by - s * 0.03), acc);
-      case Stat.foc:
-        canvas.drawCircle(Offset(cx, eyeY - s * 0.12), s * 0.026, Paint()..color = tc);
-      case Stat.soc:
+        canvas.drawLine(
+            Offset(cx - s * 0.2, by), Offset(cx + s * 0.2, by), band);
+        canvas.drawLine(Offset(cx + s * 0.18, by),
+            Offset(cx + s * 0.28, by + s * 0.05), acc);
+        canvas.drawLine(Offset(cx + s * 0.18, by),
+            Offset(cx + s * 0.28, by - s * 0.03), acc);
+      case Stat.foc: // a calm focus dot on the brow
+        canvas.drawCircle(
+            Offset(cx, eyeY - s * 0.12), s * 0.026, Paint()..color = tc);
+      case Stat.soc: // brighter, larger bloom cheeks
         final b = Paint()
           ..color = tc.withValues(alpha: 0.5)
           ..maskFilter = MaskFilter.blur(BlurStyle.normal, s * 0.02);
         canvas.drawCircle(Offset(cx - s * 0.2, eyeY + s * 0.1), s * 0.05, b);
         canvas.drawCircle(Offset(cx + s * 0.2, eyeY + s * 0.1), s * 0.05, b);
-      case Stat.vit:
+      case Stat.vit: // a tiny leaf sprig on one cheek (clear of the flame)
         final lx = cx + s * 0.26, ly = eyeY + s * 0.02;
-        canvas.drawLine(Offset(lx, ly + s * 0.05), Offset(lx, ly - s * 0.06), acc..strokeWidth = s * 0.02);
-        canvas.drawOval(Rect.fromCenter(center: Offset(lx + s * 0.03, ly - s * 0.02), width: s * 0.06, height: s * 0.035), Paint()..color = tc);
-      case Stat.dis:
-        canvas.drawLine(Offset(cx - eyeDx - s * 0.05, eyeY - s * 0.11), Offset(cx - eyeDx + s * 0.04, eyeY - s * 0.07), acc);
-        canvas.drawLine(Offset(cx + eyeDx + s * 0.05, eyeY - s * 0.11), Offset(cx + eyeDx - s * 0.04, eyeY - s * 0.07), acc);
+        canvas.drawLine(Offset(lx, ly + s * 0.05), Offset(lx, ly - s * 0.06),
+            acc..strokeWidth = s * 0.02);
+        canvas.drawOval(
+          Rect.fromCenter(
+              center: Offset(lx + s * 0.03, ly - s * 0.02),
+              width: s * 0.06,
+              height: s * 0.035),
+          Paint()..color = tc,
+        );
+      case Stat.dis: // determined brows
+        canvas.drawLine(Offset(cx - eyeDx - s * 0.05, eyeY - s * 0.11),
+            Offset(cx - eyeDx + s * 0.04, eyeY - s * 0.07), acc);
+        canvas.drawLine(Offset(cx + eyeDx + s * 0.05, eyeY - s * 0.11),
+            Offset(cx + eyeDx - s * 0.04, eyeY - s * 0.07), acc);
     }
   }
 

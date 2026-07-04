@@ -27,6 +27,7 @@ import '../widgets/glass_switch.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/mascot_sprite.dart';
+import '../widgets/painted_backdrop.dart';
 import '../widgets/portrait.dart';
 import '../widgets/radar.dart';
 import '../social.dart';
@@ -1171,14 +1172,19 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                MascotSprite(
-                  size: 120,
-                  skinId: state.creatureSkin,
-                  aura: tint,
-                  level: state.level,
-                  badge: cos?.badge ?? false,
-                  trait: state.portraitTrait,
-                  skin: creatureColorsFor(state),
+                // try-on in a painted candlelit nook, not on flat glass
+                PaintedBackdrop(
+                  scene: 'candleglow',
+                  height: 170,
+                  child: MascotSprite(
+                    size: 120,
+                    skinId: state.creatureSkin,
+                    aura: tint,
+                    level: state.level,
+                    badge: cos?.badge ?? false,
+                    trait: state.portraitTrait,
+                    skin: creatureColorsFor(state),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -1579,16 +1585,22 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  MascotSprite(
-                    size: 84,
-                    skinId: state.creatureSkin,
-                    aura:
-                        cosmeticFor(state.equippedSkin)?.aura ??
-                        state.dominantStat?.color,
-                    level: state.level,
-                    badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
-                    trait: state.portraitTrait,
-                    skin: creatureColorsFor(state),
+                  // the shared card's hero shot — the ember at home in a
+                  // painted study, not floating on tinted glass
+                  PaintedBackdrop(
+                    scene: 'lamplight',
+                    height: 140,
+                    child: MascotSprite(
+                      size: 84,
+                      skinId: state.creatureSkin,
+                      aura:
+                          cosmeticFor(state.equippedSkin)?.aura ??
+                          state.dominantStat?.color,
+                      level: state.level,
+                      badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
+                      trait: state.portraitTrait,
+                      skin: creatureColorsFor(state),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(

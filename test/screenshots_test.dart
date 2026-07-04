@@ -10,6 +10,7 @@ import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/home_room.dart';
 import 'package:emberkeep/widgets/mascot_sprite.dart';
+import 'package:emberkeep/widgets/painted_backdrop.dart';
 import 'package:emberkeep/widgets/portrait.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -361,6 +362,47 @@ void main() {
     if (_capture) {
       await expectLater(find.byType(MaterialApp),
           matchesGoldenFile('goldens/mascot_room.png'));
+    }
+  });
+
+  testWidgets('painted backdrops: the hero stages', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(560, 760));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    Widget stage(String scene, String skin, int lvl) => PaintedBackdrop(
+          scene: scene,
+          child: MascotSprite(
+              size: 110, skinId: skin, level: lvl, mood: PortraitMood.happy),
+        );
+    await tester.pumpWidget(_stage(
+      SizedBox(
+        width: 480,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          stage('hearthside', 'ember_amber', 2),
+          const SizedBox(height: 12),
+          stage('candleglow', 'mint_glass', 16),
+          const SizedBox(height: 12),
+          stage('lamplight', 'periwinkle', 34),
+        ]),
+      ),
+      pad: 16,
+    ));
+    final ctx = tester.element(find.byType(MascotSprite).first);
+    await tester.runAsync(() async {
+      for (final a in const [
+        'assets/backdrops/hearthside.webp',
+        'assets/backdrops/candleglow.webp',
+        'assets/backdrops/lamplight.webp',
+        'assets/mascot/ember_amber/s0_happy_00.png',
+        'assets/mascot/mint_glass/s3_happy_00.png',
+        'assets/mascot/periwinkle/s5_happy_00.png',
+      ]) {
+        await precacheImage(AssetImage(a), ctx);
+      }
+    });
+    await tester.pump(const Duration(milliseconds: 200));
+    if (_capture) {
+      await expectLater(find.byType(MaterialApp),
+          matchesGoldenFile('goldens/painted_backdrops.png'));
     }
   });
 }

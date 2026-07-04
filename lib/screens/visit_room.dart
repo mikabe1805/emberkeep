@@ -54,9 +54,9 @@ class VisitRoomScreen extends StatelessWidget {
                       emberGlow: creatureColorsById(room['skin'] as String?)[1],
                       child: MascotSprite(
                           size: 110,
-                          // the FRIEND's skin — non-amber skins have no frames
-                          // yet, so they fall back to the recoloured procedural
-                          // ember automatically
+                          // the FRIEND's skin — frames ship for all 7 skins;
+                          // anything missing falls back to the recoloured
+                          // procedural ember automatically
                           skinId: (room['skin'] as String?) ?? 'ember_amber',
                           level: level,
                           mood: PortraitMood.happy,

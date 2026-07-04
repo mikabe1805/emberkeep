@@ -7,6 +7,7 @@ import '../tokens.dart';
 import 'glass.dart';
 import 'honey_button.dart';
 import 'mascot_sprite.dart';
+import 'painted_backdrop.dart';
 
 /// First-run welcome (round-9): three warm beats — the hearth, your name,
 /// your first fire. Short on purpose; the Oath Wizard is the real ceremony.
@@ -80,8 +81,12 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       key: const ValueKey(0),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // the first thing a new player ever meets — the painterly newborn ember
-        const MascotSprite(size: 110, skinId: 'ember_amber'),
+        // the first thing a new player ever meets — the painterly newborn
+        // ember, standing at a painted hearth (round-9's "hearth" beat, real)
+        const PaintedBackdrop(
+          scene: 'hearthside',
+          child: MascotSprite(size: 110, skinId: 'ember_amber'),
+        ),
         const SizedBox(height: 24),
         Text('Emberkeep', style: Type.display.copyWith(fontSize: 34)),
         const SizedBox(height: 8),

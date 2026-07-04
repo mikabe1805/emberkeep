@@ -1,7 +1,9 @@
 import 'dart:math' show sin, pi;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 import '../tokens.dart';
 
@@ -12,6 +14,39 @@ import '../tokens.dart';
 /// nicer art, and visiting others' rooms.
 const _defaultWall = [Color(0xFF2E2229), Color(0xFF3A2C2A)];
 const _defaultFloor = [Color(0xFF3C2C20), Color(0xFF2A1D14)];
+
+/// Painterly grain for the wall/floor — a whisper of brush-stroke texture
+/// (assets/room/, extracted from the room concept paintings by
+/// tools/gen_room_textures.py) softLight-blended over the flat style
+/// gradients, so every purchased style keeps its exact colours but stops
+/// reading as a vector-flat fill. Loads once, lazily; until the images land
+/// (or if they're ever missing) the room paints exactly as before.
+class _RoomGrain {
+  static ui.Image? wall;
+  static ui.Image? floor;
+  static bool _requested = false;
+
+  /// Bumped when a texture finishes decoding, so live rooms repaint.
+  static final ValueNotifier<int> version = ValueNotifier(0);
+
+  static void ensure() {
+    if (_requested) return;
+    _requested = true;
+    _load('assets/room/wall_grain.png', (i) => wall = i);
+    _load('assets/room/floor_grain.png', (i) => floor = i);
+  }
+
+  static Future<void> _load(String asset, void Function(ui.Image) set) async {
+    try {
+      final bytes = await rootBundle.load(asset);
+      final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
+      set((await codec.getNextFrame()).image);
+      version.value++;
+    } catch (_) {
+      // a missing grain texture is fine — the room just paints flat
+    }
+  }
+}
 
 class HomeRoom extends StatelessWidget {
   const HomeRoom({
@@ -52,6 +87,7 @@ class HomeRoom extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    _RoomGrain.ensure();
     return AspectRatio(
       aspectRatio: aspect,
       child: ClipRRect(
@@ -59,8 +95,13 @@ class HomeRoom extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              child: CustomPaint(
-                  painter: _RoomPainter(unlocked, wall, floor, window, petAwake, emberGlow)),
+              child: ValueListenableBuilder<int>(
+                valueListenable: _RoomGrain.version,
+                builder: (_, _, _) => CustomPaint(
+                    painter: _RoomPainter(
+                        unlocked, wall, floor, window, petAwake, emberGlow,
+                        _RoomGrain.wall, _RoomGrain.floor)),
+              ),
             ),
             // the avatar, standing on the floor in the middle of the room
             Align(
@@ -78,14 +119,40 @@ class HomeRoom extends StatelessWidget {
 }
 
 class _RoomPainter extends CustomPainter {
-  _RoomPainter(this.unlocked, this.wall, this.floor, this.window, this.petAwake, this.emberGlow);
+  _RoomPainter(this.unlocked, this.wall, this.floor, this.window, this.petAwake,
+      this.emberGlow, this.wallGrain, this.floorGrain);
   final Set<String> unlocked;
   final List<Color> wall;
   final List<Color> floor;
   final String window;
   final bool petAwake;
   final Color? emberGlow;
+
+  /// Brush-stroke grain (see [_RoomGrain]); null paints flat, like always.
+  final ui.Image? wallGrain;
+  final ui.Image? floorGrain;
   bool has(String id) => unlocked.contains(id);
+
+  /// softLight-tile [img] over [rect] — the grain pass. The texture is
+  /// normalized around mid-gray so this only *modulates* the style colour
+  /// underneath, never replaces it; [opacity] is the strength knob.
+  void _grain(Canvas canvas, ui.Image img, Rect rect, double featureScale,
+      double opacity) {
+    final s = featureScale / img.width;
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = ImageShader(
+          img,
+          TileMode.mirror,
+          TileMode.mirror,
+          (Matrix4.identity()..scaleByDouble(s, s, 1, 1)).storage,
+        )
+        ..blendMode = BlendMode.softLight
+        // with a shader set, the color only contributes alpha (strength)
+        ..color = Color.fromRGBO(0, 0, 0, opacity),
+    );
+  }
 
   // furniture wood tone (independent of the chosen wall/floor)
   static const _wood = Color(0xFF4A3A2C);
@@ -106,6 +173,8 @@ class _RoomPainter extends CustomPainter {
           colors: wall,
         ).createShader(wallRect),
     );
+    // painterly wall grain — soft plaster mottling in the style's own colour
+    if (wallGrain != null) _grain(canvas, wallGrain!, wallRect, w * 0.62, 0.8);
     // a warm light pool washing the upper wall (window moonlight + candle glow)
     // so the wall reads as a LIT surface, not a flat panel
     canvas.drawCircle(
@@ -127,6 +196,10 @@ class _RoomPainter extends CustomPainter {
           colors: floor,
         ).createShader(floorRect),
     );
+    // brushed wood grain over the floor fill, same deal as the wall
+    if (floorGrain != null) {
+      _grain(canvas, floorGrain!, floorRect, w * 0.85, 0.8);
+    }
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(w * 0.5, floorY + (h - floorY) * 0.55),
@@ -695,6 +768,8 @@ class _RoomPainter extends CustomPainter {
       old.window != window ||
       old.petAwake != petAwake ||
       old.emberGlow != emberGlow ||
+      old.wallGrain != wallGrain ||
+      old.floorGrain != floorGrain ||
       !listEquals(old.wall, wall) ||
       !listEquals(old.floor, floor);
 }

@@ -45,6 +45,9 @@ app/
 ```
 
 ## Key Design Docs (in parent directory)
+- `ART-PIPELINE.md` — **read before touching any art/sprites/backgrounds.**
+  The character design is LOCKED (flame-spirit ember); sprites and skins are
+  generated/derived by the tools/ pipeline, never redrawn ad hoc.
 - `DESIGN.md` — look/feel, game systems, stats, celebration, loot, collection
 - `ROADMAP.md` — build phases (Phase 0: feel prototype → Phase 5: ML verification)
 - `RESEARCH.md` — market/science evidence backing design decisions

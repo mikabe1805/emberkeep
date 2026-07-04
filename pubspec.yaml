@@ -88,6 +88,8 @@ flutter:
   assets:
     - assets/sfx/
     - assets/google_fonts/
+    - assets/room/
+    - assets/backdrops/
     - assets/mascot/ember_amber/
     - assets/mascot/rose_quartz/
     - assets/mascot/mint_glass/
