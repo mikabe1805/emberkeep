@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import '../engine.dart';
 import 'achievements.dart';
 
-/// Creature skins (round-47) — the colour of your ember itself, the most
-/// personal customization there is. Bought/worn with embers, exclusive like
-/// room styles (own many, wear one). Every skin keeps the glassy candlelit
-/// shading; only the hue changes. [colors] are the four body-gradient stops,
-/// lightest → darkest (specular, mid, deep, rim) — feet, belly, catchlights
-/// and the flame all derive from them so the whole creature stays cohesive.
+/// Hearth-flame colours (round-47 creature skins, repurposed round-62 for the
+/// keep) — the colour of the fire in your keep's hearth, the most personal
+/// customization there is. Bought with embers, exclusive (own many, choose
+/// one). [colors] are four warm stops, light → deep; the flame and its
+/// firelight pool take the mid-tone, so a chosen colour warms the whole keep.
 class CreatureSkin {
   const CreatureSkin({
     required this.id,
@@ -16,7 +15,6 @@ class CreatureSkin {
     required this.price,
     required this.colors,
     this.requires,
-    this.outfit = false,
   });
 
   final String id;
@@ -30,12 +28,6 @@ class CreatureSkin {
 
   /// Achievement id gate (null → always on the shelf).
   final String? requires;
-
-  /// An OUTFIT skin (round-60) — a whole costumed variant of the creature
-  /// (hood, helmet, hat…) rather than a recolour. Its sprite frames carry the
-  /// costume; [colors] only tint the fallback painter and the room's glow
-  /// pool, so previews should show the sprite, not the painter.
-  final bool outfit;
 }
 
 const _amber = CreatureSkin(
@@ -84,38 +76,6 @@ final creatureSkins = <CreatureSkin>[
     price: 320,
     colors: [Color(0xFFFFF6D9), Color(0xFFFFE08A), Color(0xFFE8B44E), Color(0xFF8A6A1E)],
     requires: 'ascendant',
-  ),
-  // ── outfits: the ember takes up a calling (round-60). Generated from the
-  // locked ember by tools/gen_mascot_outfits.py; colors below only drive the
-  // glow pool + fallback painter, the costume lives in the frames. ──
-  const CreatureSkin(
-    id: 'adventurer',
-    name: 'The Wayfarer',
-    price: 340,
-    colors: [Color(0xFFFFF2DC), Color(0xFFE8C494), Color(0xFFB37E4E), Color(0xFF5E3E20)],
-    outfit: true,
-  ),
-  const CreatureSkin(
-    id: 'healer',
-    name: 'The Herbalist',
-    price: 360,
-    colors: [Color(0xFFF4F7E8), Color(0xFFCFE0B5), Color(0xFF8FB07E), Color(0xFF44603F)],
-    outfit: true,
-  ),
-  const CreatureSkin(
-    id: 'knight',
-    name: 'The Knight',
-    price: 380,
-    colors: [Color(0xFFFFF8E6), Color(0xFFEFD9A8), Color(0xFFB39859), Color(0xFF5C4E28)],
-    outfit: true,
-  ),
-  const CreatureSkin(
-    id: 'wizard',
-    name: 'The Starcaller',
-    price: 400,
-    colors: [Color(0xFFF0EDFF), Color(0xFFC9C2F0), Color(0xFF8E86D0), Color(0xFF4A4478)],
-    requires: 'ascendant',
-    outfit: true,
   ),
 ];
 

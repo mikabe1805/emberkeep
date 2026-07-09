@@ -30,7 +30,6 @@ import '../widgets/honey_button.dart';
 import '../widgets/install_hint.dart';
 import '../widgets/levelup_overlay.dart';
 import '../widgets/particles.dart';
-import '../widgets/portrait.dart';
 import '../widgets/notes_sheet.dart';
 import '../widgets/quest_card.dart';
 import '../widgets/reward_receipt.dart';
@@ -1689,15 +1688,29 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       progress: visible.isEmpty
                           ? 0.0
                           : (visible.length - remaining) / visible.length,
-                      child: Portrait(
-                        size: 44,
-                        mood: _beaming ? PortraitMood.happy : PortraitMood.idle,
-                        aura:
-                            cosmeticFor(_state.equippedSkin)?.aura ??
-                            _state.dominantStat?.color,
-                        level: _state.level,
-                        badge: cosmeticFor(_state.equippedSkin)?.badge ?? false,
-                        skin: creatureColorsFor(_state),
+                      // your keep's hearth-flame, brighter when the fire's kept
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Center(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: creatureColorsFor(_state)[1]
+                                      .withValues(alpha: _beaming ? 0.6 : 0.3),
+                                  blurRadius: 12,
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.local_fire_department,
+                              size: 30,
+                              color: creatureColorsFor(_state)[1],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 14),

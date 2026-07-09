@@ -1,25 +1,21 @@
-// A throwaway visual harness: renders the code-painted widgets (the character
-// portrait, the home room) to PNGs via golden files, so I can actually SEE
-// what the CustomPainters produce instead of shipping blind. Regenerate with:
-//   flutter test --update-goldens test/screenshots_test.dart
+// A throwaway visual harness: renders the code-painted widgets (the keep, the
+// window scenes, the journal hub) to PNGs via golden files, so I can actually
+// SEE what the CustomPainters produce instead of shipping blind. Regenerate:
+//   flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true \
+//     test/screenshots_test.dart
 // then open test/goldens/*.png. Not a pass/fail guard — purely a render dump.
-import 'package:emberkeep/content/creature_skins.dart';
+// (round-62 pivot: the creature is gone; the keep + its hearth are the star.)
 import 'package:emberkeep/content/furniture.dart';
-import 'package:emberkeep/content/room_styles.dart';
-import 'package:emberkeep/content/scenes.dart';
 import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/journal_hub.dart';
-import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/home_room.dart';
-import 'package:emberkeep/widgets/mascot_sprite.dart';
-import 'package:emberkeep/widgets/painted_backdrop.dart';
-import 'package:emberkeep/widgets/portrait.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-Widget _stage(Widget child, {Color bg = const Color(0xFF241A20), double pad = 28}) {
+Widget _stage(Widget child,
+    {Color bg = const Color(0xFF241A20), double pad = 28}) {
   return MaterialApp(
     debugShowCheckedModeBanner: false,
     home: Scaffold(
@@ -50,12 +46,6 @@ class _ScenePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
-// Golden renders are platform-fragile, so the PNG capture is OFF by default:
-// a normal `flutter test` run still pumps every widget (a real smoke test that
-// they build), but skips the file compare so CI never breaks on font/AA drift.
-// To regenerate the reference images locally:
-//   flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true \
-//     test/screenshots_test.dart
 const _capture = bool.fromEnvironment('CAPTURE_GOLDENS');
 
 Future<void> _shoot(WidgetTester tester, Widget w, String name) async {
@@ -70,175 +60,80 @@ Future<void> _shoot(WidgetTester tester, Widget w, String name) async {
 }
 
 void main() {
-  testWidgets('portrait: level 1, neutral', (tester) async {
-    await _shoot(tester, _stage(const Portrait(size: 240)), 'portrait_lvl1');
-  });
-
-  testWidgets('portrait: level 1, happy', (tester) async {
-    await _shoot(
-      tester,
-      _stage(const Portrait(size: 240, mood: PortraitMood.happy)),
-      'portrait_lvl1_happy',
-    );
-  });
-
-  testWidgets('portrait: level 10 (frame)', (tester) async {
-    await _shoot(
-      tester,
-      _stage(const Portrait(
-          size: 240, level: 10, aura: Palette.verify, mood: PortraitMood.happy)),
-      'portrait_lvl10',
-    );
-  });
-
-  testWidgets('portrait: level 24 (more frame)', (tester) async {
-    await _shoot(
-      tester,
-      _stage(const Portrait(
-          size: 240, level: 24, aura: Palette.unlock, mood: PortraitMood.happy)),
-      'portrait_lvl24',
-    );
-  });
-
-  testWidgets('portrait: INT trait (glasses)', (tester) async {
-    await _shoot(
-      tester,
-      _stage(const Portrait(
-          size: 240, level: 8, trait: Stat.intl, mood: PortraitMood.happy)),
-      'portrait_trait_int',
-    );
-  });
-
-  testWidgets('portrait: evolution ladder', (tester) async {
-    await _shoot(
-      tester,
-      _stage(
-        bg: const Color(0xFF1C141A),
-        pad: 14,
-        const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Portrait(size: 104, level: 1, mood: PortraitMood.happy),
-            SizedBox(width: 8),
-            Portrait(size: 104, level: 6, aura: Palette.success),
-            SizedBox(width: 8),
-            Portrait(size: 104, level: 11, aura: Palette.verify),
-            SizedBox(width: 8),
-            Portrait(size: 104, level: 16, aura: Palette.streak),
-            SizedBox(width: 8),
-            Portrait(size: 104, level: 24, aura: Palette.unlock),
-            SizedBox(width: 8),
-            Portrait(size: 104, level: 34, aura: Palette.dread),
-          ],
-        ),
-      ),
-      'portrait_evolution',
-    );
-  });
-
-  testWidgets('portrait: skins', (tester) async {
-    // a Wrap, not a Row: the skin list grows (r60 added four outfits) and a
-    // single row overflows the default 800px test surface
-    await tester.binding.setSurfaceSize(const Size(700, 520));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _shoot(
-      tester,
-      _stage(
-        bg: const Color(0xFF1C141A),
-        pad: 14,
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final sk in creatureSkins)
-              Portrait(
-                  size: 96,
-                  level: 8,
-                  mood: PortraitMood.happy,
-                  skin: sk.colors),
-          ],
-        ),
-      ),
-      'portrait_skins',
-    );
-  });
-
-  testWidgets('portrait: small HUD sizes', (tester) async {
-    await _shoot(
-      tester,
-      _stage(
-        const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Portrait(size: 28),
-            SizedBox(width: 20),
-            Portrait(size: 40, mood: PortraitMood.happy),
-            SizedBox(width: 20),
-            Portrait(size: 56, level: 16, mood: PortraitMood.happy),
-          ],
-        ),
-      ),
-      'portrait_small',
-    );
-  });
-
-  testWidgets('visited room (from share data)', (tester) async {
-    // exercises the by-id render path VisitRoomScreen uses on a friend's data
-    final room = <String, dynamic>{
-      'furniture': ['rug', 'lamp', 'plant', 'shelf', 'picture', 'garland',
-          'chair', 'pet'],
-      'wall': 'wall_plum',
-      'floor': 'floor_terra',
-      'skin': 'mint_glass',
-      'window': 'aurora',
-      'awake': true,
-    };
-    await _shoot(
-      tester,
-      _stage(
-        SizedBox(
-          width: 480,
-          child: HomeRoom(
-            unlocked: (room['furniture'] as List).cast<String>().toSet(),
-            wall: wallColorsById(room['wall'] as String?),
-            floor: floorColorsById(room['floor'] as String?),
-            window: room['window'] as String? ?? 'moon',
-            petAwake: room['awake'] == true,
-            child: Portrait(
-              size: 104,
-              level: 14,
-              mood: PortraitMood.happy,
-              skin: creatureColorsById(room['skin'] as String?),
-            ),
-          ),
-        ),
-      ),
-      'visited_room',
-    );
-  });
-
-  testWidgets('companion: asleep vs awake', (tester) async {
+  // the KEEP: no creature, the central hearth is the heart — fire LIT (a kept
+  // streak) up top, banked to embers below.
+  testWidgets('the keep', (tester) async {
     await tester.binding.setSurfaceSize(const Size(560, 720));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    const furn = {'rug', 'pet', 'plant', 'lamp', 'shelf'};
-    Widget room(bool awake) => SizedBox(
+    const furn = {'rug', 'lamp', 'plant', 'shelf', 'picture', 'garland',
+        'chair', 'cushion', 'candles', 'pet'};
+    Widget keep(bool lit) => SizedBox(
           width: 500,
-          child: HomeRoom(
-            unlocked: furn,
-            petAwake: awake,
-            child: const Portrait(size: 100, level: 8, mood: PortraitMood.idle),
-          ),
+          child: HomeRoom(unlocked: furn, petAwake: lit),
         );
     await _shoot(
       tester,
       _stage(
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [room(false), const SizedBox(height: 16), room(true)],
-        ),
+        Column(mainAxisSize: MainAxisSize.min, children: [
+          keep(true),
+          const SizedBox(height: 16),
+          keep(false),
+        ]),
         pad: 16,
       ),
-      'companion',
+      'the_keep',
+    );
+  });
+
+  testWidgets('keep: empty vs furnished', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(560, 720));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _shoot(
+      tester,
+      _stage(
+        Column(mainAxisSize: MainAxisSize.min, children: [
+          SizedBox(
+            width: 500,
+            child: HomeRoom(unlocked: const {}, petAwake: true),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: 500,
+            child: HomeRoom(
+                unlocked: {for (final f in furniture) f.id}, petAwake: true),
+          ),
+        ]),
+        pad: 16,
+      ),
+      'keep_empty_full',
+    );
+  });
+
+  testWidgets('keep: style variants', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(520, 940));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const furn = {'rug', 'lamp', 'plant', 'shelf', 'picture', 'garland'};
+    Widget keep(List<Color> wall, List<Color> floor) => SizedBox(
+          width: 460,
+          child: HomeRoom(
+              unlocked: furn, wall: wall, floor: floor, petAwake: true),
+        );
+    await _shoot(
+      tester,
+      _stage(
+        Column(mainAxisSize: MainAxisSize.min, children: [
+          keep(const [Color(0xFF312339), Color(0xFF3E2E48)],
+              const [Color(0xFF3C2C20), Color(0xFF2A1D14)]), // plum / oak
+          const SizedBox(height: 14),
+          keep(const [Color(0xFF27302A), Color(0xFF333E36)],
+              const [Color(0xFF4A2C1E), Color(0xFF31180E)]), // sage / terra
+          const SizedBox(height: 14),
+          keep(const [Color(0xFF232A3C), Color(0xFF2F3A55)],
+              const [Color(0xFF2C1E16), Color(0xFF1C120C)]), // midnight / walnut
+        ]),
+        pad: 16,
+      ),
+      'keep_styles',
     );
   });
 
@@ -267,213 +162,7 @@ void main() {
     );
   });
 
-  testWidgets('room: style variants', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(520, 920));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    const furn = {'rug', 'lamp', 'plant', 'shelf', 'picture', 'garland'};
-    Widget room(List<Color> wall, List<Color> floor) => SizedBox(
-          width: 460,
-          child: HomeRoom(
-            unlocked: furn,
-            wall: wall,
-            floor: floor,
-            child: const Portrait(size: 96, level: 8, mood: PortraitMood.happy),
-          ),
-        );
-    await _shoot(
-      tester,
-      _stage(
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            room(const [Color(0xFF312339), Color(0xFF3E2E48)],
-                const [Color(0xFF3C2C20), Color(0xFF2A1D14)]), // plum / oak
-            const SizedBox(height: 14),
-            room(const [Color(0xFF27302A), Color(0xFF333E36)],
-                const [Color(0xFF4A2C1E), Color(0xFF31180E)]), // sage / terra
-            const SizedBox(height: 14),
-            room(const [Color(0xFF232A3C), Color(0xFF2F3A55)],
-                const [Color(0xFF2C1E16), Color(0xFF1C120C)]), // midnight / walnut
-          ],
-        ),
-        pad: 16,
-      ),
-      'room_styles',
-    );
-  });
-
-  testWidgets('room: empty', (tester) async {
-    await _shoot(
-      tester,
-      _stage(
-        SizedBox(
-          width: 460,
-          child: HomeRoom(
-            unlocked: const {},
-            child: const Portrait(size: 110, level: 1),
-          ),
-        ),
-      ),
-      'room_empty',
-    );
-  });
-
-  testWidgets('room: fully furnished', (tester) async {
-    await _shoot(
-      tester,
-      _stage(
-        SizedBox(
-          width: 460,
-          child: HomeRoom(
-            unlocked: {for (final f in furniture) f.id},
-            child: const Portrait(
-                size: 110, level: 20, mood: PortraitMood.happy),
-          ),
-        ),
-      ),
-      'room_full',
-    );
-  });
-
-  // the code-painted ember, in the room, at two growth stages
-  testWidgets('mascot: amber sprite in room, by stage', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(560, 780));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    const furn = {'rug', 'lamp', 'plant', 'shelf', 'picture', 'pet'};
-    Widget room(int lvl, PortraitMood mood) => SizedBox(
-          width: 500,
-          child: HomeRoom(
-            unlocked: furn,
-            petAwake: true,
-            child: MascotSprite(
-                size: 120, skinId: 'ember_amber', level: lvl, mood: mood),
-          ),
-        );
-    await tester.pumpWidget(_stage(
-      Column(mainAxisSize: MainAxisSize.min, children: [
-        room(2, PortraitMood.idle),
-        const SizedBox(height: 14),
-        room(34, PortraitMood.happy),
-      ]),
-      pad: 16,
-    ));
-    await tester.pump(const Duration(milliseconds: 200));
-    if (_capture) {
-      await expectLater(find.byType(MaterialApp),
-          matchesGoldenFile('goldens/mascot_room.png'));
-    }
-  });
-
-  testWidgets('painted backdrops: the hero stages', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(560, 760));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    Widget stage(String scene, String skin, int lvl) => PaintedBackdrop(
-          scene: scene,
-          child: MascotSprite(
-              size: 110, skinId: skin, level: lvl, mood: PortraitMood.happy),
-        );
-    await tester.pumpWidget(_stage(
-      SizedBox(
-        width: 480,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          stage('hearthside', 'ember_amber', 2),
-          const SizedBox(height: 12),
-          stage('candleglow', 'mint_glass', 16),
-          const SizedBox(height: 12),
-          stage('lamplight', 'periwinkle', 34),
-        ]),
-      ),
-      pad: 16,
-    ));
-    await tester.pump(const Duration(milliseconds: 200));
-    if (_capture) {
-      await expectLater(find.byType(MaterialApp),
-          matchesGoldenFile('goldens/painted_backdrops.png'));
-    }
-  });
-
-  // the four painted outfit costumes (round-62) — wayfarer/herbalist/knight/
-  // wizard, drawn on the code ember at growth tiers.
-  testWidgets('mascot: outfit sprites', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(920, 560));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    const shown = [
-      ('adventurer', 2),
-      ('healer', 8),
-      ('knight', 16),
-      ('wizard', 34),
-    ];
-    await tester.pumpWidget(_stage(
-      bg: const Color(0xFF1C141A),
-      pad: 16,
-      Wrap(
-        spacing: 16,
-        runSpacing: 16,
-        children: [
-          for (final s in shown)
-            SizedBox(
-              width: 180,
-              height: 180,
-              child: MascotSprite(
-                  size: 160, skinId: s.$1, level: s.$2,
-                  mood: PortraitMood.happy),
-            ),
-        ],
-      ),
-    ));
-    await tester.pump(const Duration(milliseconds: 200));
-    if (_capture) {
-      await expectLater(find.byType(MaterialApp),
-          matchesGoldenFile('goldens/outfit_sprites.png'));
-    }
-  });
-
-  testWidgets('painted stages: the purchasable set', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(1100, 1000));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    const shown = [
-      ('garden', 'lilac', 10),
-      ('autumn', 'ember_amber', 16),
-      ('greenhouse', 'mint_glass', 24),
-      ('bakery', 'rose_quartz', 10),
-      ('library', 'periwinkle', 34),
-      ('rooftop', 'slate', 24),
-      ('seaside', 'gilded', 16),
-      ('snownook', 'ember_amber', 34),
-    ];
-    Widget stage((String, String, int) s) {
-      final scene = stageSceneById(s.$1)!;
-      return SizedBox(
-        width: 520,
-        child: PaintedBackdrop(
-          scene: scene.id,
-          height: 200,
-          alignment: scene.stand,
-          child: MascotSprite(
-              size: 104, skinId: s.$2, level: s.$3,
-              mood: PortraitMood.happy,
-              skin: creatureColorsById(s.$2)),
-        ),
-      );
-    }
-
-    await tester.pumpWidget(_stage(
-      Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [for (final s in shown) stage(s)],
-      ),
-      pad: 12,
-    ));
-    await tester.pump(const Duration(milliseconds: 200));
-    if (_capture) {
-      await expectLater(find.byType(MaterialApp),
-          matchesGoldenFile('goldens/stage_scenes.png'));
-    }
-  });
-
-  // the journal hub feed (round-61: search field, month headers, entry cards)
-  // — restores the visual coverage the orphaned journal_hub.png golden lost.
+  // the journal hub feed (search field, month headers, entry cards)
   testWidgets('journal hub: the feed', (tester) async {
     await tester.binding.setSurfaceSize(const Size(440, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));

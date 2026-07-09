@@ -6,8 +6,6 @@ import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
-import '../widgets/mascot_sprite.dart';
-import '../widgets/portrait.dart';
 
 /// A read-only look at someone else's "Your Space" (round-52, social). Built
 /// purely from the appearance fields in their shared room doc — no quests,
@@ -48,7 +46,7 @@ class VisitRoomScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 36),
             children: [
               DetailHeader(
-                title: name.isNotEmpty ? '$name’s space' : 'a space',
+                title: name.isNotEmpty ? '$name’s keep' : 'a keep',
                 accent: Palette.xp,
                 subtitle: 'visiting · $code',
                 pill: 'LV $level',
@@ -60,24 +58,16 @@ class VisitRoomScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       HomeRoom(
-                      lively: lively,
-                      unlocked: furniture,
-                      wall: wallColorsById(room['wall'] as String?),
-                      floor: floorColorsById(room['floor'] as String?),
-                      window: room['window'] as String? ?? 'moon',
-                      petAwake: room['awake'] == true,
-                      emberGlow: creatureColorsById(room['skin'] as String?)[1],
-                      child: MascotSprite(
-                          size: 110,
-                          lively: lively,
-                          // the FRIEND's skin — frames ship for all 7 skins;
-                          // anything missing falls back to the recoloured
-                          // procedural ember automatically
-                          skinId: (room['skin'] as String?) ?? 'ember_amber',
-                          level: level,
-                          mood: PortraitMood.happy,
-                          skin: creatureColorsById(room['skin'] as String?),
-                        ),
+                        lively: lively,
+                        unlocked: furniture,
+                        wall: wallColorsById(room['wall'] as String?),
+                        floor: floorColorsById(room['floor'] as String?),
+                        window: room['window'] as String? ?? 'moon',
+                        // the friend's hearth is lit if they're on a streak
+                        petAwake: room['awake'] == true,
+                        // their chosen hearth-flame colour
+                        emberGlow:
+                            creatureColorsById(room['skin'] as String?)[1],
                       ),
                       const SizedBox(height: 14),
                       if (title.isNotEmpty)

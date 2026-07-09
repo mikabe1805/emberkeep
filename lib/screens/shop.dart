@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -5,7 +6,6 @@ import '../audio.dart';
 import '../content/creature_skins.dart';
 import '../content/furniture.dart';
 import '../content/room_styles.dart';
-import '../content/scenes.dart';
 import '../content/window_scenes.dart';
 import '../engine.dart';
 import '../models.dart';
@@ -14,10 +14,6 @@ import '../widgets/detail_header.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
-import '../widgets/mascot_sprite.dart';
-import '../widgets/painted_backdrop.dart';
-import '../widgets/portrait.dart';
-import '../widgets/stage_scene.dart';
 
 /// "Your Space" shop (round-42): spend the Embers (✦) you earn by playing on
 /// furniture for your room — in whatever order you like. Customization is about
@@ -95,17 +91,6 @@ class ShopScreen extends StatelessWidget {
     onPersist();
   }
 
-  bool _buyScene(BuildContext context, StageScene v) => _checkout(
-      context,
-      v.price,
-      () => state.buyScene(v.id, v.price, allowed: sceneUnlocked(v, state)));
-
-  void _applyScene(StageScene v) {
-    state.applyScene(v.id);
-    Sfx.instance.play('tick');
-    HapticFeedback.selectionClick();
-    onPersist();
-  }
 
   Widget _sectionHeader(String label) => Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 8, top: 2),
@@ -134,16 +119,16 @@ class ShopScreen extends StatelessWidget {
               child: Column(
                 children: [
                   DetailHeader(
-                    title: 'Your Space',
+                    title: 'Your Keep',
                     accent: Palette.xp,
-                    subtitle: 'furnish it with the embers you earn',
+                    subtitle: 'cozy it up with the embers you earn',
                     pill: '✦ ${state.embers}',
                   ),
                   Expanded(
                     child: ListView(
                       padding: const EdgeInsets.fromLTRB(16, 6, 16, 40),
                       children: [
-                        // a live look at the room — it fills as you buy
+                        // a live look at your keep — it warms up as you buy
                         GlassPanel(
                           blur: true,
                           child: Column(
@@ -156,15 +141,6 @@ class ShopScreen extends StatelessWidget {
                                 window: state.windowScene,
                                 petAwake: state.streakDays > 0,
                                 emberGlow: creatureColorsFor(state)[1],
-                                child: MascotSprite(
-                                  size: 80,
-                                  skinId: state.creatureSkin,
-                                  aura: state.dominantStat?.color,
-                                  level: state.level,
-                                  trait: state.portraitTrait,
-                                  skin: creatureColorsFor(state),
-                                  mood: PortraitMood.happy,
-                                ),
                               ),
                               const SizedBox(height: 8),
                               Text(
@@ -180,7 +156,7 @@ class ShopScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        _sectionHeader('YOUR EMBER'),
+                        _sectionHeader('HEARTH FLAME'),
                         for (final sk in creatureSkins) ...[
                           _SkinCard(
                             skin: sk,
@@ -201,7 +177,7 @@ class ShopScreen extends StatelessWidget {
                           const SizedBox(height: 10),
                         ],
                         const SizedBox(height: 8),
-                        _sectionHeader('ROOM STYLE'),
+                        _sectionHeader('WALLS & FLOOR'),
                         for (final st in roomStyles) ...[
                           _StyleCard(
                             style: st,
@@ -219,17 +195,6 @@ class ShopScreen extends StatelessWidget {
                             state: state,
                             onBuy: () => _buyWindow(context, v),
                             onApply: () => _applyWindow(v),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-                        const SizedBox(height: 8),
-                        _sectionHeader('THE STAGE'),
-                        for (final v in stageScenes) ...[
-                          _SceneCard(
-                            scene: v,
-                            state: state,
-                            onBuy: () => _buyScene(context, v),
-                            onApply: () => _applyScene(v),
                           ),
                           const SizedBox(height: 10),
                         ],
@@ -365,6 +330,7 @@ Widget _roomHero(
   List<Color>? wall,
   List<Color>? floor,
   String? window,
+  List<Color>? flame,
 }) =>
     HomeRoom(
       lively: !state.reduceMotion,
@@ -373,36 +339,9 @@ Widget _roomHero(
       floor: floor ?? floorColorsFor(state),
       window: window ?? state.windowScene,
       petAwake: true,
-      emberGlow: creatureColorsFor(state)[1],
-      child: MascotSprite(
-        size: 96,
-        skinId: state.creatureSkin,
-        level: state.level,
-        skin: creatureColorsFor(state),
-        lively: !state.reduceMotion,
-      ),
+      // the hearth-flame hue (the item being tried on, or the current one)
+      emberGlow: (flame ?? creatureColorsFor(state))[1],
     );
-
-/// …while skins and stage scenes pose the ember on the painted stage: a
-/// scene try-on keeps your current skin on the NEW stage, a skin try-on
-/// wears the NEW skin on your current stage.
-Widget _stageHero(GameState state, {StageScene? scene, CreatureSkin? skin}) {
-  final st = scene ?? stageSceneFor(state);
-  return PaintedBackdrop(
-    scene: st.id,
-    height: 160,
-    alignment: st.stand,
-    child: MascotSprite(
-      // a skin fitting zooms in a touch — the skin IS the subject
-      size: skin != null ? 110 : 100,
-      skinId: skin?.id ?? state.creatureSkin,
-      level: state.level,
-      mood: PortraitMood.happy,
-      skin: skin?.colors ?? creatureColorsFor(state),
-      lively: !state.reduceMotion,
-    ),
-  );
-}
 
 /// Every not-owned item opens this fitting room — a live look at the actual
 /// thing already in YOUR space (the preview IS the motivation: you see
@@ -862,99 +801,6 @@ class _WindowCard extends StatelessWidget {
   }
 }
 
-/// A painted-stage row: a little slice of the painting + name, with the same
-/// buy / apply / on-now / locked ladder as every other exclusive cosmetic.
-class _SceneCard extends StatelessWidget {
-  const _SceneCard({
-    required this.scene,
-    required this.state,
-    required this.onBuy,
-    required this.onApply,
-  });
-
-  final StageScene scene;
-  final GameState state;
-
-  /// Attempts the purchase; true on success (drives the receipt toast).
-  final bool Function() onBuy;
-  final VoidCallback onApply;
-
-  @override
-  Widget build(BuildContext context) {
-    final applied = isSceneApplied(state, scene);
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: isSceneOwned(state, scene) ? null : () => _openTryOn(context),
-      child: GlassPanel(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(7),
-              child: SizedBox(
-                width: 64,
-                height: 46,
-                child: CustomPaint(painter: _SceneSwatchPainter(scene.id)),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(scene.name,
-                      style: Type.label
-                          .copyWith(fontSize: 13, color: Palette.textHi)),
-                  const SizedBox(height: 4),
-                  Text(
-                    scene.blurb,
-                    style: Type.body
-                        .copyWith(fontSize: 11.5, color: Palette.textLo),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            _cta(context, applied),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // your ember standing in the new scene
-  void _openTryOn(BuildContext context) => _showTryOn(
-        context,
-        hero: _stageHero(state, scene: scene),
-        name: scene.name,
-        blurb: scene.blurb,
-        price: scene.price,
-        embers: state.embers,
-        gate: sceneUnlocked(scene, state)
-            ? null
-            : (sceneGateLabel(scene) ?? 'a trophy'),
-        onBuy: onBuy,
-        receipt: '${scene.name} is on stage now',
-      );
-
-  Widget _cta(BuildContext context, bool applied) {
-    if (applied) {
-      return _pill(Palette.success, Icons.check_rounded, 'on stage');
-    }
-    if (isSceneOwned(state, scene)) {
-      return _applyChip('Apply', onApply);
-    }
-    return _shelfCta(
-      state: state,
-      price: scene.price,
-      gate: sceneUnlocked(scene, state)
-          ? null
-          : (sceneGateLabel(scene) ?? 'a trophy'),
-      onPeek: () => _openTryOn(context),
-    );
-  }
-}
-
 class _WindowSwatchPainter extends CustomPainter {
   _WindowSwatchPainter(this.scene);
   final String scene;
@@ -983,21 +829,7 @@ class _WindowSwatchPainter extends CustomPainter {
   bool shouldRepaint(_WindowSwatchPainter old) => old.scene != scene;
 }
 
-/// A little painted-scene swatch for the shop's stage cards — the same code
-/// scene as the try-on, shrunk to a thumbnail (still, no ambient).
-class _SceneSwatchPainter extends CustomPainter {
-  _SceneSwatchPainter(this.scene);
-  final String scene;
-
-  @override
-  void paint(Canvas canvas, Size size) =>
-      paintStageScene(canvas, scene, Offset.zero & size);
-
-  @override
-  bool shouldRepaint(_SceneSwatchPainter old) => old.scene != scene;
-}
-
-/// A creature-skin row: a live mini-ember in that colour + buy / wear / locked
+/// A hearth-flame colour row: a little flame swatch in that colour + buy / wear
 /// states. Skins are exclusive (wear one), so buying wears it and owned ones
 /// offer "Wear" to switch.
 class _SkinCard extends StatelessWidget {
@@ -1025,27 +857,11 @@ class _SkinCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Row(
           children: [
-            // a real little ember in this colour — see it before you buy.
-            // Colour skins preview with the crisp painter; outfits must show
-            // their actual costumed frames (the painter has no costume).
+            // a little flame swatch in this colour — see the fire before you buy
             SizedBox(
               width: 50,
               height: 50,
-              child: skin.outfit
-                  ? MascotSprite(
-                      size: 50,
-                      minSpriteSize: 0,
-                      skinId: skin.id,
-                      level: 8,
-                      mood: PortraitMood.happy,
-                      skin: skin.colors,
-                      lively: false,
-                    )
-                  : Portrait(
-                      size: 50,
-                      level: 8,
-                      mood: PortraitMood.happy,
-                      skin: skin.colors),
+              child: CustomPaint(painter: _FlameSwatchPainter(skin.colors)),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -1058,8 +874,8 @@ class _SkinCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     skin.id == 'ember_amber'
-                        ? 'the original ember'
-                        : 'a colour all your own',
+                        ? 'the original hearth-fire'
+                        : 'a flame all your own',
                     style: Type.body
                         .copyWith(fontSize: 11.5, color: Palette.textLo),
                   ),
@@ -1074,29 +890,27 @@ class _SkinCard extends StatelessWidget {
     );
   }
 
-  // your ember already wearing the skin, on your own stage
+  // your keep's hearth burning in the new flame colour
   void _openTryOn(BuildContext context) => _showTryOn(
         context,
-        hero: _stageHero(state, skin: skin),
+        hero: _roomHero(state, flame: skin.colors),
         name: skin.name,
-        blurb: skin.outfit
-            ? 'your ember takes up a calling'
-            : 'the same little flame, a new glass',
+        blurb: 'your hearth-fire, a new colour',
         price: skin.price,
         embers: state.embers,
         gate: skinUnlocked(skin, state)
             ? null
             : (skinGateLabel(skin) ?? 'a trophy'),
         onBuy: onBuy,
-        receipt: 'You’re wearing ${skin.name} now',
+        receipt: 'Your hearth burns ${skin.name} now',
       );
 
   Widget _cta(BuildContext context, bool applied) {
     if (applied) {
-      return _pill(Palette.success, Icons.check_rounded, 'worn');
+      return _pill(Palette.success, Icons.check_rounded, 'lit');
     }
     if (isSkinOwned(state, skin)) {
-      return _applyChip('Wear', onApply);
+      return _applyChip('Light', onApply);
     }
     return _shelfCta(
       state: state,
@@ -1107,4 +921,50 @@ class _SkinCard extends StatelessWidget {
       onPeek: () => _openTryOn(context),
     );
   }
+}
+
+/// A tiny flame in the given four-stop colour — the shop swatch for a hearth
+/// flame colour, on a dark hearth ground.
+class _FlameSwatchPainter extends CustomPainter {
+  _FlameSwatchPainter(this.colors);
+  final List<Color> colors;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width, h = size.height;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8)),
+      Paint()..color = const Color(0xFF201510),
+    );
+    final cx = w * 0.5, base = h * 0.82;
+    // glow
+    canvas.drawCircle(
+      Offset(cx, h * 0.6),
+      w * 0.34,
+      Paint()
+        ..color = colors[1].withValues(alpha: 0.5)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.14),
+    );
+    // flame teardrop
+    final flame = Path()
+      ..moveTo(cx - w * 0.16, base)
+      ..quadraticBezierTo(cx - w * 0.20, h * 0.4, cx, h * 0.2)
+      ..quadraticBezierTo(cx + w * 0.20, h * 0.4, cx + w * 0.16, base)
+      ..quadraticBezierTo(cx, base + h * 0.05, cx - w * 0.16, base)
+      ..close();
+    canvas.drawPath(
+      flame,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [colors[2], colors[1], colors[0]],
+          stops: const [0.0, 0.55, 1.0],
+        ).createShader(Rect.fromLTWH(cx - w * 0.2, h * 0.2, w * 0.4, h * 0.62)),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FlameSwatchPainter old) =>
+      !listEquals(old.colors, colors);
 }

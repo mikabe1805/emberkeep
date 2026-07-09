@@ -82,7 +82,7 @@ Future<void> visitSpace(BuildContext context,
   final room = await CloudSync.instance.fetchRoom(code);
   if (!context.mounted) return;
   if (room == null) {
-    _toast(context, 'No space found with that code.');
+    _toast(context, 'No keep found with that code.');
     return;
   }
   Navigator.of(context).push(MaterialPageRoute(
@@ -104,13 +104,13 @@ class _ShareDialog extends StatelessWidget {
     return AlertDialog(
       backgroundColor: Palette.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text('Your space is live',
+      title: Text('Your keep is live',
           style: Type.display.copyWith(fontSize: 20, color: Palette.textHi)),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Share this code — anyone can visit your space:',
+          Text('Share this code — anyone can visit your keep:',
               style: Type.body.copyWith(fontSize: 13, color: Palette.textMid)),
           const SizedBox(height: 14),
           Center(
@@ -190,7 +190,7 @@ class _VisitPromptState extends State<_VisitPrompt> {
     return AlertDialog(
       backgroundColor: Palette.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text('Visit a space',
+      title: Text('Visit a keep',
           style: Type.display.copyWith(fontSize: 20, color: Palette.textHi)),
       content: Column(
         mainAxisSize: MainAxisSize.min,

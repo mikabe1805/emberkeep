@@ -52,7 +52,7 @@ class HomeRoom extends StatefulWidget {
   const HomeRoom({
     super.key,
     required this.unlocked,
-    required this.child,
+    this.child,
     this.aspect = 1.7,
     this.wall = _defaultWall,
     this.floor = _defaultFloor,
@@ -66,8 +66,9 @@ class HomeRoom extends StatefulWidget {
   /// the room draws. Bought in the shop with embers (content/furniture.dart).
   final Set<String> unlocked;
 
-  /// The avatar, who stands on the floor in the middle of the room.
-  final Widget child;
+  /// Optional overlay in the middle of the room. Round-62 pivot: the keep has
+  /// no creature, so this is normally null — the hearth is the heart now.
+  final Widget? child;
   final double aspect;
 
   /// The chosen wall / floor gradient colours (content/room_styles.dart) — two
@@ -78,12 +79,14 @@ class HomeRoom extends StatefulWidget {
   /// The scene painted outside the window (content/window_scenes.dart).
   final String window;
 
-  /// Whether the companion is awake + happy (on a streak) vs cozily asleep.
+  /// Whether the keep's hearth-fire is LIT (you're keeping your streak) vs
+  /// banked to glowing embers (you've been away). The heart of "Emberkeep":
+  /// show up and the fire burns; the little pet by the fire wakes too.
   final bool petAwake;
 
-  /// The worn creature skin's mid-tone colour — cast as a warm glow pool on
-  /// the floor around the avatar so the sprite's self-illumination reads as
-  /// interacting with the room (assimilation). Null = default honey glow.
+  /// The hearth-flame's mid-tone colour — its firelight pools on the floor and
+  /// the flames take this hue (amber by default; a chosen flame colour tints
+  /// the whole keep warm). Null = default honey/amber fire.
   final Color? emberGlow;
 
   /// The ambient-life switch (round-61): fire flickers, candles sway, rain
@@ -162,14 +165,16 @@ class _HomeRoomState extends State<HomeRoom>
                 ),
               ),
             ),
-            // the avatar, standing on the floor in the middle of the room
-            Align(
-              alignment: const Alignment(0, 0.7),
-              child: FractionallySizedBox(
-                heightFactor: 0.52,
-                child: FittedBox(child: widget.child),
+            // optional overlay (none in the keep — kept for a caller that
+            // wants to place something in the room)
+            if (widget.child != null)
+              Align(
+                alignment: const Alignment(0, 0.7),
+                child: FractionallySizedBox(
+                  heightFactor: 0.52,
+                  child: FittedBox(child: widget.child!),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -298,23 +303,21 @@ class _RoomPainter extends CustomPainter {
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.08),
     );
 
-    // ── ember glow pool: the creature's own light cast on the floor around
-    // where it stands, in the worn skin's hue so a mint or rose ember glows
-    // in its own colour. This is the key assimilation touch — the sprite's
-    // self-illumination now interacts with the room. It BREATHES on the same
-    // slow loop as the creature's coal, so the pool of light feels lit by a
-    // living flame, not a lamp. ──
+    // ── the hearth's firelight pooling on the floor in front of it — the warm
+    // heart of the keep. Brighter + breathing when the fire is LIT (a kept
+    // streak), dimmer when banked to embers. Tinted by the chosen flame hue. ──
     final glow = emberGlow ?? Palette.honeyGlow;
     final glowBreath = 0.5 + 0.5 * sin(t * 2 * pi * 2 + 0.4);
+    final lit = petAwake ? 1.0 : 0.45;
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(w * 0.5, floorY + (h - floorY) * 0.5),
-        width: w * (0.45 + 0.02 * glowBreath),
-        height: (h - floorY) * (0.7 + 0.04 * glowBreath),
+        center: Offset(w * 0.5, floorY + (h - floorY) * 0.42),
+        width: w * (0.5 + 0.03 * glowBreath) * (0.85 + 0.15 * lit),
+        height: (h - floorY) * (0.8 + 0.05 * glowBreath),
       ),
       Paint()
-        ..color = glow.withValues(alpha: 0.18 + 0.07 * glowBreath)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.06),
+        ..color = glow.withValues(alpha: (0.14 + 0.08 * glowBreath) * lit)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.07),
     );
 
     // ── window light shaft: a soft wedge of the outside light spilling
@@ -330,9 +333,10 @@ class _RoomPainter extends CustomPainter {
         Paint()..color = Palette.xpLight.withValues(alpha: 0.10));
 
     _window(canvas, w, h);
+    // the keep's HEARTH — always here, the heart of the room (round-62 pivot)
+    _hearth(canvas, w, h, floorY);
     // back-to-front so nearer pieces overlap farther ones
     if (has('garland')) _garland(canvas, w, h);
-    if (has('hearth')) _hearth(canvas, w, h, floorY);
     if (has('shelf')) _shelf(canvas, w, h);
     if (has('picture')) _picture(canvas, w, h);
     if (has('rug')) _rug(canvas, w, h, floorY);
@@ -635,77 +639,114 @@ class _RoomPainter extends CustomPainter {
     }
   }
 
+  /// The keep's HEARTH — the central heart of the room (round-62 pivot). Always
+  /// present. When the fire is kept LIT (a live streak, [petAwake]) it burns
+  /// with full flames; when you've been away it banks down to glowing embers,
+  /// never cold — never-punish, the warmth is the reward for showing up. The
+  /// flame takes [emberGlow]'s hue so a chosen flame colour warms the whole keep.
   void _hearth(Canvas canvas, double w, double h, double floorY) {
-    final x = w * 0.2, y = floorY - (h - floorY) * 0.05;
-    final hw = w * 0.2, hh = (h - floorY) * 0.95;
-    // mantel
+    final x = w * 0.5;
+    final u = h - floorY;
+    final hw = w * 0.30; // surround width
+    final topY = h * 0.14; // the chimney breast rises high on the wall
+    final flameHue = emberGlow ?? const Color(0xFFE8915A);
+    final lit = petAwake ? 1.0 : 0.45;
+    final flick = 1 + 0.09 * sin(t * 2 * pi * 2) + 0.05 * sin(t * 2 * pi * 3);
+
+    // chimney breast / stone surround
+    canvas.drawRect(Rect.fromLTWH(x - hw / 2, topY, hw, floorY - topY + 2),
+        Paint()..color = const Color(0xFF4A3E38));
+    // a soft wall shadow either side, grounding it
+    canvas.drawRect(Rect.fromLTWH(x - hw / 2 - w * 0.02, topY, hw + w * 0.04, floorY - topY),
+        Paint()
+          ..color = Colors.black.withValues(alpha: 0.12)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8));
+    canvas.drawRect(Rect.fromLTWH(x - hw / 2, topY, hw, floorY - topY + 2),
+        Paint()..color = const Color(0xFF4A3E38));
+    // brick courses hint
+    final brick = Paint()..color = const Color(0x22000000)..strokeWidth = 1;
+    for (var i = 1; i < 6; i++) {
+      final by = topY + (floorY - topY) * i / 6;
+      canvas.drawLine(Offset(x - hw / 2, by), Offset(x + hw / 2, by), brick);
+    }
+    // mantel shelf
+    final mantelY = floorY - u * 0.62;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(x - hw / 2 - 4, y - hh, hw + 8, hh),
-        const Radius.circular(4),
+          Rect.fromLTWH(x - hw / 2 - w * 0.025, mantelY, hw + w * 0.05, u * 0.07),
+          const Radius.circular(3)),
+      Paint()..color = const Color(0xFF5C4B40));
+    canvas.drawRect(Rect.fromLTWH(x - hw / 2 - w * 0.025, mantelY, hw + w * 0.05, 2),
+        Paint()..color = Palette.xpLight.withValues(alpha: 0.12));
+
+    // firebox opening (dark, arched)
+    final fbW = hw * 0.58, fbH = u * 0.5;
+    final fb = floorY - u * 0.04; // the log bed
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        Rect.fromLTWH(x - fbW / 2, floorY - fbH, fbW, fbH),
+        topLeft: Radius.circular(fbW * 0.32),
+        topRight: Radius.circular(fbW * 0.32),
       ),
-      Paint()..color = const Color(0xFF463A33),
-    );
-    // opening
-    final open = RRect.fromRectAndCorners(
-      Rect.fromLTWH(x - hw / 2 + 6, y - hh * 0.78, hw - 12, hh * 0.74),
-      topLeft: const Radius.circular(18),
-      topRight: const Radius.circular(18),
-    );
-    canvas.drawRRect(open, Paint()..color = const Color(0xFF120C08));
-    // ── fire: warm glow → glowing log bed → layered ember flames → hot core.
-    // A two-harmonic flicker (t) makes every flame breathe + lean on its own
-    // beat and the glow pulse — the single warmest motion in the room. ──
-    final fb = y - hh * 0.06; // flame base (the log bed)
-    // integer harmonics only — the loop is a 0→1 sawtooth, so a non-integer
-    // frequency would snap discontinuously at the wrap (sin(2πK)=sin(0) needs
-    // K∈ℤ). Every t-driven motion in this file obeys that so the loop is seamless.
-    final flick = 1 + 0.09 * sin(t * 2 * pi * 2) + 0.05 * sin(t * 2 * pi * 3);
+      Paint()..color = const Color(0xFF140C08));
+
+    // firelight glowing out of the opening (reactive)
     canvas.drawCircle(
-      Offset(x, y - hh * 0.12),
-      hw * 0.52 * (0.94 + 0.1 * flick),
+      Offset(x, floorY - fbH * 0.34),
+      fbW * 0.72 * (0.9 + 0.12 * flick),
       Paint()
-        ..color = Palette.streak.withValues(alpha: 0.38 + 0.12 * (flick - 1) * 5)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+        ..color = flameHue.withValues(alpha: (0.42 + 0.14 * (flick - 1) * 5) * lit)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16),
     );
-    // smouldering logs at the base
-    canvas.drawOval(
-      Rect.fromCenter(
-          center: Offset(x, fb), width: hw * 0.62, height: hh * 0.1),
-      Paint()..color = const Color(0xFF5E3219),
-    );
-    for (final spec in [(-0.16, 0.72, 0.0), (0.0, 1.0, 1.3), (0.16, 0.74, 2.4)]) {
-      final fx = x + spec.$1 * hw;
-      // each tongue flickers in height + leans a touch on its own phase
-      final f = 1 + 0.14 * sin(t * 2 * pi * 2 + spec.$3);
-      final lean = hw * 0.05 * sin(t * 2 * pi + spec.$3);
-      final fhh = hh * 0.46 * spec.$2 * f;
-      final flame = Path()
-        ..moveTo(fx - hw * 0.07, fb)
-        ..quadraticBezierTo(
-            fx - hw * 0.085 + lean, fb - fhh * 0.6, fx + lean, fb - fhh)
-        ..quadraticBezierTo(fx + hw * 0.085 + lean, fb - fhh * 0.6, fx + hw * 0.07, fb)
-        ..close();
-      final fr = Rect.fromLTWH(fx - hw * 0.1, fb - fhh, hw * 0.2, fhh);
-      canvas.drawPath(
-        flame,
-        Paint()
-          ..shader = const LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [Color(0xFFE8915A), Color(0xFFF2CD93), Color(0xFFFFF4D9)],
-            stops: [0.0, 0.55, 1.0],
-          ).createShader(fr),
+    // log bed + glowing embers (present even when banked)
+    canvas.drawOval(Rect.fromCenter(center: Offset(x, fb), width: fbW * 0.78, height: u * 0.08),
+        Paint()..color = const Color(0xFF4E2E18));
+    for (final dx in const [-0.28, -0.1, 0.09, 0.27]) {
+      canvas.drawCircle(
+        Offset(x + dx * fbW, fb - u * 0.008),
+        fbW * 0.055,
+        Paint()..color = Color.lerp(flameHue, const Color(0xFFFFDE9A), 0.4)!
+            .withValues(alpha: 0.55 + 0.35 * lit),
       );
     }
-    // a bright hot heart low in the fire, pulsing with the flicker
-    canvas.drawCircle(
-      Offset(x, fb - hh * 0.1),
-      hw * 0.1 * flick,
-      Paint()
-        ..color = const Color(0xFFFFF4D9).withValues(alpha: 0.85)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-    );
+
+    if (petAwake) {
+      // full flames when the fire is kept
+      for (final spec in const [(-0.18, 0.7, 0.0), (0.0, 1.0, 1.3), (0.18, 0.72, 2.4)]) {
+        final fx = x + spec.$1 * fbW;
+        final f = 1 + 0.16 * sin(t * 2 * pi * 2 + spec.$3);
+        final lean = fbW * 0.06 * sin(t * 2 * pi + spec.$3);
+        final fhh = fbH * 0.5 * spec.$2 * f;
+        final flame = Path()
+          ..moveTo(fx - fbW * 0.08, fb)
+          ..quadraticBezierTo(fx - fbW * 0.09 + lean, fb - fhh * 0.6, fx + lean, fb - fhh)
+          ..quadraticBezierTo(fx + fbW * 0.09 + lean, fb - fhh * 0.6, fx + fbW * 0.08, fb)
+          ..close();
+        final fr = Rect.fromLTWH(fx - fbW * 0.11, fb - fhh, fbW * 0.22, fhh);
+        canvas.drawPath(
+          flame,
+          Paint()
+            ..shader = LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [
+                flameHue,
+                Color.lerp(flameHue, const Color(0xFFFFF4D9), 0.6)!,
+                const Color(0xFFFFF4D9),
+              ],
+              stops: const [0.0, 0.55, 1.0],
+            ).createShader(fr),
+        );
+      }
+      // a hot bright heart low in the fire
+      canvas.drawCircle(
+        Offset(x, fb - u * 0.05),
+        fbW * 0.13 * flick,
+        Paint()
+          ..color = const Color(0xFFFFF4D9).withValues(alpha: 0.85)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+      );
+    }
   }
 
   // A little companion (round-50): curled cozily asleep, or — when you're on a

@@ -14,7 +14,6 @@ import '../content/cosmetics.dart';
 import '../content/creature_skins.dart';
 import '../content/furniture.dart';
 import '../content/room_styles.dart';
-import '../content/scenes.dart';
 import '../content/stat_ranks.dart';
 import '../content/themes.dart';
 import '../engine.dart';
@@ -25,20 +24,25 @@ import '../widgets/domain_hint.dart';
 import '../models.dart';
 import '../widgets/glass.dart';
 import '../widgets/glass_switch.dart';
-import '../widgets/creature_mood.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
-import '../widgets/mascot_sprite.dart';
-import '../widgets/painted_backdrop.dart';
-import '../widgets/portrait.dart';
 import '../widgets/radar.dart';
 import '../social.dart';
 import 'domain_detail.dart';
 import 'shop.dart';
 
-/// The "Me" page: your character. Reactive portrait, your build title,
-/// the stats radar, the attribution ledger — and the share card, because a
-/// build this earnest deserves showing off (DESIGN.md §11 round-2).
+/// The hearth-fire milestones — the keep's fire deepens as you level (the same
+/// warm names the creature's growth stages used, now the hearth's).
+const _hearthStages = <(int, String)>[
+  (5, 'First Spark'),
+  (10, 'Steady Flame'),
+  (16, 'Bright Crest'),
+  (24, 'Twin Fire'),
+  (34, 'Everflame'),
+];
+
+/// The "Me" page: your keep + your build. The stats radar, the attribution
+/// ledger, and the share card (a build this earnest deserves showing off).
 class MePage extends StatelessWidget {
   const MePage({
     super.key,
@@ -129,7 +133,8 @@ class MePage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          // ── your space: the avatar in a room that fills as you grow ──
+          // ── your keep: the room that warms up as you grow, its hearth lit
+          // when you're keeping your streak ──
           GlassPanel(
             blur: true,
             child: Column(
@@ -142,23 +147,6 @@ class MePage extends StatelessWidget {
                   window: state.windowScene,
                   petAwake: state.streakDays > 0,
                   emberGlow: creatureColorsFor(state)[1],
-                  child: MascotSprite(
-                    size: 96,
-                    skinId: state.creatureSkin,
-                    aura:
-                        cosmeticFor(state.equippedSkin)?.aura ??
-                        state.dominantStat?.color,
-                    level: state.level,
-                    badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
-                    trait: state.portraitTrait,
-                    skin: creatureColorsFor(state),
-                    // on the one screen that's all about you, your companion is
-                    // proud of you when the fire's lit (on a streak)
-                    mood: moodFor(state),
-                    // honour the in-app reduce-motion setting on the flagship
-                    // hero too (it defaulted to always-lively before)
-                    lively: !state.reduceMotion,
-                  ),
                 ),
                 const SizedBox(height: 10),
                 // currency + a way into the shop — furniture is now CHOSEN,
@@ -172,7 +160,7 @@ class MePage extends StatelessWidget {
                         return Expanded(
                           child: Text(
                             next == null
-                                ? '✦ ${state.embers} · $have/${furniture.length} · your space is full'
+                                ? '✦ ${state.embers} · $have/${furniture.length} · your keep is full'
                                 : '✦ ${state.embers} · saving up for ${next.name} (✦${next.price})',
                             style: Type.label.copyWith(
                               fontSize: 10,
@@ -275,18 +263,27 @@ class MePage extends StatelessWidget {
                     },
                   ),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('YOUR HEARTH GROWS',
+                      style: Type.label
+                          .copyWith(fontSize: 11, color: Palette.textLo)),
+                ),
+                const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   alignment: WrapAlignment.center,
                   children: [
-                    for (final f in portraitFrames)
+                    // the fire deepens as you level — the same warm milestones,
+                    // now the keep's hearth rather than a creature
+                    for (final f in _hearthStages)
                       _LockedSlot(
-                        label: state.level >= f.level
-                            ? f.name.toUpperCase()
-                            : '${f.name.toUpperCase()} · LV ${f.level}',
-                        unlocked: state.level >= f.level,
+                        label: state.level >= f.$1
+                            ? f.$2.toUpperCase()
+                            : '${f.$2.toUpperCase()} · LV ${f.$1}',
+                        unlocked: state.level >= f.$1,
                       ),
                   ],
                 ),
@@ -1178,21 +1175,17 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // try-on happens on YOUR stage — whichever painted scene
-                // you've put your ember in (content/scenes.dart)
-                PaintedBackdrop(
-                  scene: stageSceneFor(state).id,
-                  alignment: stageSceneFor(state).stand,
-                  height: 170,
-                  child: MascotSprite(
-                    size: 120,
-                    skinId: state.creatureSkin,
-                    aura: tint,
-                    level: state.level,
-                    badge: cos?.badge ?? false,
-                    trait: state.portraitTrait,
-                    skin: creatureColorsFor(state),
+                // the find, glowing in your keep
+                SizedBox(
+                  height: 150,
+                  child: HomeRoom(
                     lively: !state.reduceMotion,
+                    unlocked: state.ownedFurniture,
+                    wall: wallColorsFor(state),
+                    floor: floorColorsFor(state),
+                    window: state.windowScene,
+                    petAwake: true,
+                    emberGlow: tint,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1594,23 +1587,21 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // the shared card's hero shot — your ember on YOUR painted
-                  // stage, so the picture friends get is the one you chose
-                  PaintedBackdrop(
-                    scene: stageSceneFor(state).id,
-                    alignment: stageSceneFor(state).stand,
-                    height: 140,
-                    child: MascotSprite(
-                      size: 84,
-                      skinId: state.creatureSkin,
-                      aura:
-                          cosmeticFor(state.equippedSkin)?.aura ??
-                          state.dominantStat?.color,
-                      level: state.level,
-                      badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
-                      trait: state.portraitTrait,
-                      skin: creatureColorsFor(state),
-                      lively: !state.reduceMotion,
+                  // the shared card's hero shot — YOUR keep, hearth lit, so the
+                  // picture friends get is the cozy space you've built
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: SizedBox(
+                      height: 140,
+                      child: HomeRoom(
+                        lively: !state.reduceMotion,
+                        unlocked: state.ownedFurniture,
+                        wall: wallColorsFor(state),
+                        floor: floorColorsFor(state),
+                        window: state.windowScene,
+                        petAwake: true,
+                        emberGlow: creatureColorsFor(state)[1],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
