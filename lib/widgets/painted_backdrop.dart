@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 
-/// A painterly generated scene as a rounded stage behind a hero widget —
-/// the character stops floating on flat glass and stands somewhere warm.
-/// Scenes are graded crops of the room concept paintings
-/// (`assets/backdrops/&lt;scene&gt;.webp`, built by tools/gen_backdrops.py):
-/// `hearthside` (fireplace), `candleglow` (candle bowl), `lamplight`
-/// (armchair + lamp). A missing asset falls back to a warm gradient, so the
-/// stage can never render blank.
-class PaintedBackdrop extends StatelessWidget {
+import 'stage_scene.dart';
+
+/// A code-painted scene as a rounded stage behind a hero widget — the
+/// character stops floating on flat glass and stands somewhere warm. Scenes are
+/// drawn procedurally by [paintStageScene] (round-62, replacing the round-60
+/// SDXL/FLUX webp backdrops the owner found "obviously AI"); every scene keeps
+/// its lower-centre open so the hero has somewhere to stand. A slow loop drives
+/// gentle ambient (candle flicker, fireflies, falling snow, twinkling stars),
+/// quantized + repaint-bounded and honouring reduce-motion.
+class PaintedBackdrop extends StatefulWidget {
   const PaintedBackdrop({
     super.key,
     required this.child,
@@ -16,11 +18,12 @@ class PaintedBackdrop extends StatelessWidget {
     this.radius = 20,
     this.scrim = 0.30,
     this.alignment = const Alignment(0, 0.45),
+    this.lively = true,
   });
 
   final Widget child;
 
-  /// Which painted scene to stand in (see class docs).
+  /// Which scene to stand in (content/scenes.dart id).
   final String scene;
   final double height;
   final double radius;
@@ -29,44 +32,54 @@ class PaintedBackdrop extends StatelessWidget {
   /// and keeps any caption below legible.
   final double scrim;
 
-  /// Where the hero stands — a touch below centre by default, so it reads
-  /// as standing in the scene rather than floating over it.
+  /// Where the hero stands — a touch below centre by default.
   final Alignment alignment;
+
+  /// The ambient-motion switch; pass `!state.reduceMotion`.
+  final bool lively;
+
+  @override
+  State<PaintedBackdrop> createState() => _PaintedBackdropState();
+}
+
+class _PaintedBackdropState extends State<PaintedBackdrop>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _life;
+
+  @override
+  void dispose() {
+    _life?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final lively = widget.lively &&
+        !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    if (lively && _life == null) {
+      _life = AnimationController(
+          vsync: this, duration: const Duration(seconds: 9))
+        ..repeat();
+    } else if (!lively && _life != null) {
+      _life!.dispose();
+      _life = null;
+    }
+    final life = _life;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
+      borderRadius: BorderRadius.circular(widget.radius),
       child: SizedBox(
-        height: height,
+        height: widget.height,
         width: double.infinity,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              'assets/backdrops/$scene.webp',
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.medium,
-              // a freshly-decoded frame fades up in ~260ms instead of popping
-              // in hard on a cold start (an already-cached image loads sync and
-              // skips the fade, so warm navigations stay instant)
-              frameBuilder: (context, child, frame, wasSyncLoaded) {
-                if (wasSyncLoaded) return child;
-                return AnimatedOpacity(
-                  opacity: frame == null ? 0 : 1,
-                  duration: const Duration(milliseconds: 260),
-                  curve: Curves.easeOut,
-                  child: child,
-                );
-              },
-              errorBuilder: (_, _, _) => const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFF3A2C2A), Color(0xFF241A16)],
-                  ),
-                ),
+            RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: life ?? const AlwaysStoppedAnimation(0.0),
+                builder: (_, _) {
+                  final t = life == null ? 0.0 : (life.value * 90).round() / 90;
+                  return CustomPaint(painter: _ScenePainter(widget.scene, t));
+                },
               ),
             ),
             // floor scrim — the hero glows, the scene sits back
@@ -78,15 +91,29 @@ class PaintedBackdrop extends StatelessWidget {
                   stops: const [0.45, 1.0],
                   colors: [
                     Colors.transparent,
-                    Color.fromRGBO(20, 12, 6, scrim),
+                    Color.fromRGBO(20, 12, 6, widget.scrim),
                   ],
                 ),
               ),
             ),
-            Align(alignment: alignment, child: child),
+            Align(alignment: widget.alignment, child: widget.child),
           ],
         ),
       ),
     );
   }
+}
+
+class _ScenePainter extends CustomPainter {
+  _ScenePainter(this.scene, this.t);
+  final String scene;
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    paintStageScene(canvas, scene, Offset.zero & size, t: t);
+  }
+
+  @override
+  bool shouldRepaint(_ScenePainter old) => old.scene != scene || old.t != t;
 }

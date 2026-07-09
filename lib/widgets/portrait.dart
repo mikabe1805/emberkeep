@@ -7,6 +7,11 @@ import '../tokens.dart';
 
 enum PortraitMood { idle, happy }
 
+/// A painted costume the ember can wear (round-62, replacing the AI outfit
+/// sprites). Each is drawn in code over the base flame-spirit so it stays in
+/// the same clean style as every other creature.
+enum Outfit { wayfarer, herbalist, knight, wizard }
+
 /// The default warm Ember body palette (light→dark) when no skin is worn.
 const _emberAmber = [
   Color(0xFFFFF4D9),
@@ -59,10 +64,15 @@ class Portrait extends StatefulWidget {
     this.badge = false,
     this.trait,
     this.skin,
+    this.outfit,
   });
 
   final double size;
   final PortraitMood mood;
+
+  /// A painted costume (null = a plain ember). When worn, the flame crest
+  /// tucks down to make room for the hat/hood/helm.
+  final Outfit? outfit;
 
   /// Dominant-stat color (or an equipped skin's color); defaults to honey.
   final Color? aura;
@@ -141,6 +151,7 @@ class _PortraitState extends State<Portrait>
                 trait: widget.trait,
                 t: t,
                 skin: widget.skin ?? _emberAmber,
+                outfit: widget.outfit,
               ),
             ),
           );
@@ -195,6 +206,7 @@ class _EmberPainter extends CustomPainter {
     required this.t,
     required this.skin,
     this.trait,
+    this.outfit,
   });
 
   final bool happy;
@@ -203,6 +215,7 @@ class _EmberPainter extends CustomPainter {
   final int tier;
   final double t;
   final Stat? trait;
+  final Outfit? outfit;
 
   /// Four body-gradient stops, light→dark (the worn creature skin).
   final List<Color> skin;
@@ -241,8 +254,10 @@ class _EmberPainter extends CustomPainter {
     final bellyH = s * 0.56 * excite * (1 - 0.018 * breathe);
     final bellyR = Rect.fromCenter(center: bodyC, width: bellyW, height: bellyH);
     final headY = bodyC.dy - bellyH * 0.40; // where the flame starts narrowing
-    // the flame: taller + livelier with each earned tier
-    final flameH = s * (0.22 + tier * 0.042) * flick;
+    // the flame: taller + livelier with each earned tier. Under a costume it
+    // tucks down to a short crest so the hat/hood/helm has room to sit.
+    final flameH =
+        s * ((outfit != null ? 0.09 : 0.22) + tier * 0.042) * flick;
     final tipY = headY - flameH;
     final tipX = cx + sway * (1.6 + tier * 0.12);
     final baseY = bodyC.dy + bellyH * 0.5; // the floor contact line
@@ -466,6 +481,11 @@ class _EmberPainter extends CustomPainter {
 
     _face(canvas, s, cx, bodyC, bellyW, bellyH, detail);
 
+    // ── the painted costume (round-62), sitting on the tucked crest ──
+    if (outfit != null) {
+      _outfit(canvas, s, cx, bodyC, bellyW, bellyH, headY);
+    }
+
     // ── high-tier sparkle motes drifting around the blaze ──
     if (tier >= 4) {
       final sp = Paint()
@@ -479,6 +499,215 @@ class _EmberPainter extends CustomPainter {
         canvas.drawCircle(Offset(p.dx * s, p.dy * s), s * 0.014, sp);
       }
     }
+  }
+
+  /// Paint the worn costume over the base creature (round-62, replacing the AI
+  /// outfit sprites). Each is a few flat, softly-shaded shapes in the same
+  /// style as the rest of the ember, sitting on the tucked-down crest.
+  void _outfit(Canvas canvas, double s, double cx, Offset bodyC, double bellyW,
+      double bellyH, double headY) {
+    final crownY = headY + s * 0.045; // where a hat rests on the crown
+    final eyeY = bodyC.dy - bellyH * 0.22;
+    final headW = bellyW * 0.62;
+    switch (outfit!) {
+      case Outfit.wayfarer:
+        _hatWayfarer(canvas, s, cx, crownY, headW);
+      case Outfit.herbalist:
+        _hoodHerbalist(canvas, s, cx, crownY, headW, eyeY);
+      case Outfit.knight:
+        _helmKnight(canvas, s, cx, crownY, headW, eyeY);
+      case Outfit.wizard:
+        _hatWizard(canvas, s, cx, crownY, headW);
+    }
+  }
+
+  // a soft top-left highlight blob, shared by the costumes so they catch the
+  // same candlelight as the body
+  void _sheen(Canvas canvas, Offset c, double w, double h, Color col) {
+    canvas.drawOval(
+      Rect.fromCenter(center: c, width: w, height: h),
+      Paint()
+        ..color = col.withValues(alpha: 0.5)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.4),
+    );
+  }
+
+  void _hatWayfarer(
+      Canvas canvas, double s, double cx, double crownY, double headW) {
+    const dark = Color(0xFF4E3320), mid = Color(0xFF8A5A34), band = Color(0xFFC89A5C);
+    // wide soft brim
+    final brim = Rect.fromCenter(
+        center: Offset(cx, crownY + s * 0.01), width: headW * 2.0, height: s * 0.12);
+    canvas.drawOval(brim, Paint()..color = dark);
+    canvas.drawOval(brim.deflate(s * 0.009),
+        Paint()..color = mid.withValues(alpha: 0.9));
+    // rounded crown cap
+    final cap = RRect.fromRectAndCorners(
+      Rect.fromCenter(
+          center: Offset(cx, crownY - s * 0.06), width: headW * 0.92, height: s * 0.17),
+      topLeft: Radius.circular(s * 0.07),
+      topRight: Radius.circular(s * 0.07),
+      bottomLeft: Radius.circular(s * 0.02),
+      bottomRight: Radius.circular(s * 0.02),
+    );
+    canvas.drawRRect(cap, Paint()..color = mid);
+    // band + a little buckle
+    canvas.drawRect(
+        Rect.fromCenter(
+            center: Offset(cx, crownY - s * 0.008), width: headW * 0.92, height: s * 0.028),
+        Paint()..color = band);
+    canvas.drawRect(
+        Rect.fromCenter(center: Offset(cx + headW * 0.2, crownY - s * 0.008),
+            width: s * 0.04, height: s * 0.04),
+        Paint()..color = dark);
+    _sheen(canvas, Offset(cx - headW * 0.22, crownY - s * 0.10),
+        headW * 0.4, s * 0.09, const Color(0xFFE8C494));
+  }
+
+  void _hoodHerbalist(Canvas canvas, double s, double cx, double crownY,
+      double headW, double eyeY) {
+    const dark = Color(0xFF3C5836), mid = Color(0xFF5E844F), edge = Color(0xFF8FB07E);
+    // a cowl framing the face: over the crown, down the sides, arched open
+    // above the eyes so the face shows
+    final hood = Path()
+      ..moveTo(cx - headW * 0.82, eyeY + s * 0.02)
+      ..quadraticBezierTo(cx - headW * 1.0, crownY - s * 0.06,
+          cx, crownY - s * 0.14)
+      ..quadraticBezierTo(cx + headW * 1.0, crownY - s * 0.06,
+          cx + headW * 0.82, eyeY + s * 0.02)
+      ..quadraticBezierTo(
+          cx + headW * 0.5, eyeY - s * 0.04, cx, eyeY - s * 0.05)
+      ..quadraticBezierTo(
+          cx - headW * 0.5, eyeY - s * 0.04, cx - headW * 0.82, eyeY + s * 0.02)
+      ..close();
+    canvas.drawPath(hood, Paint()..color = dark);
+    // a lighter inner rim around the face opening
+    canvas.drawPath(
+      hood,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.02
+        ..color = mid,
+    );
+    // fill the upper hood with the mid tone (leaving the rim darker)
+    final capFill = Path()
+      ..moveTo(cx - headW * 0.7, crownY + s * 0.02)
+      ..quadraticBezierTo(
+          cx - headW * 0.82, crownY - s * 0.05, cx, crownY - s * 0.11)
+      ..quadraticBezierTo(
+          cx + headW * 0.82, crownY - s * 0.05, cx + headW * 0.7, crownY + s * 0.02)
+      ..quadraticBezierTo(cx, crownY - s * 0.02, cx - headW * 0.7, crownY + s * 0.02)
+      ..close();
+    canvas.drawPath(capFill, Paint()..color = mid);
+    // a little leaf sprig on top
+    final lx = cx + headW * 0.05, ly = crownY - s * 0.15;
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(lx, ly), width: s * 0.07, height: s * 0.04),
+        Paint()..color = edge);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(lx + s * 0.05, ly - s * 0.02),
+            width: s * 0.055, height: s * 0.03),
+        Paint()..color = edge.withValues(alpha: 0.85));
+    _sheen(canvas, Offset(cx - headW * 0.3, crownY - s * 0.06),
+        headW * 0.4, s * 0.08, edge);
+  }
+
+  void _helmKnight(Canvas canvas, double s, double cx, double crownY,
+      double headW, double eyeY) {
+    const dark = Color(0xFF454E56), steel = Color(0xFF8C99A2), lite = Color(0xFFC3CDD3);
+    const gold = Color(0xFFE8CC82), plume = Color(0xFFC65746);
+    // plume first (behind the dome)
+    final pl = Path()
+      ..moveTo(cx, crownY - s * 0.10)
+      ..quadraticBezierTo(cx + s * 0.02, crownY - s * 0.24, cx + s * 0.10, crownY - s * 0.30)
+      ..quadraticBezierTo(cx + s * 0.02, crownY - s * 0.20, cx - s * 0.005, crownY - s * 0.10)
+      ..close();
+    canvas.drawPath(pl, Paint()..color = plume);
+    // dome helm over the crown down to the forehead (above the eyes)
+    final dome = Path()
+      ..moveTo(cx - headW * 0.62, eyeY - s * 0.02)
+      ..quadraticBezierTo(cx - headW * 0.72, crownY - s * 0.10, cx, crownY - s * 0.12)
+      ..quadraticBezierTo(cx + headW * 0.72, crownY - s * 0.10, cx + headW * 0.62, eyeY - s * 0.02)
+      ..quadraticBezierTo(cx, eyeY + s * 0.01, cx - headW * 0.62, eyeY - s * 0.02)
+      ..close();
+    canvas.drawPath(
+      dome,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: const [lite, steel, dark],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(Rect.fromLTRB(
+            cx - headW * 0.7, crownY - s * 0.12, cx + headW * 0.7, eyeY)),
+    );
+    // gold brow band
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx - headW * 0.62, eyeY - s * 0.02)
+        ..quadraticBezierTo(cx, eyeY + s * 0.01, cx + headW * 0.62, eyeY - s * 0.02),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.03
+        ..color = gold,
+    );
+    // nose guard between the eyes
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          Rect.fromCenter(
+              center: Offset(cx, eyeY + s * 0.04), width: s * 0.05, height: s * 0.12),
+          Radius.circular(s * 0.02)),
+      Paint()..color = steel,
+    );
+    _sheen(canvas, Offset(cx - headW * 0.22, crownY - s * 0.06),
+        headW * 0.4, s * 0.10, lite);
+  }
+
+  void _hatWizard(
+      Canvas canvas, double s, double cx, double crownY, double headW) {
+    const dark = Color(0xFF423A70), mid = Color(0xFF6A62A8), lite = Color(0xFF9A92D8);
+    const star = Color(0xFFFFF1C4);
+    // soft brim
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(cx, crownY), width: headW * 1.7, height: s * 0.10),
+        Paint()..color = dark);
+    // tall cone leaning + drooping tip
+    final tipX = cx + s * 0.10, tipY = crownY - s * 0.42;
+    final cone = Path()
+      ..moveTo(cx - headW * 0.62, crownY - s * 0.01)
+      ..quadraticBezierTo(
+          cx - headW * 0.20, crownY - s * 0.24, tipX - s * 0.02, tipY + s * 0.02)
+      ..quadraticBezierTo(tipX + s * 0.06, tipY - s * 0.01, tipX + s * 0.04, tipY + s * 0.05)
+      ..quadraticBezierTo(cx + headW * 0.35, crownY - s * 0.14, cx + headW * 0.62, crownY - s * 0.01)
+      ..quadraticBezierTo(cx, crownY - s * 0.06, cx - headW * 0.62, crownY - s * 0.01)
+      ..close();
+    canvas.drawPath(
+      cone,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: const [dark, mid, lite],
+          stops: const [0.0, 0.6, 1.0],
+        ).createShader(Rect.fromLTRB(
+            cx - headW * 0.62, tipY, cx + headW * 0.62, crownY)),
+    );
+    // a couple of little stars
+    void starAt(double x, double y, double r) {
+      final p = Paint()..color = star;
+      for (var i = 0; i < 4; i++) {
+        final a = i * pi / 2;
+        canvas.drawCircle(Offset(x + cos(a) * r, y + sin(a) * r), r * 0.5, p);
+      }
+      canvas.drawCircle(Offset(x, y), r * 0.7, p);
+    }
+    starAt(cx + s * 0.01, crownY - s * 0.14, s * 0.022);
+    starAt(cx + s * 0.05, crownY - s * 0.26, s * 0.016);
+    _sheen(canvas, Offset(cx - headW * 0.18, crownY - s * 0.16),
+        headW * 0.3, s * 0.12, lite);
   }
 
   /// The rising flame that IS the top of the head — a lick that narrows fast
@@ -744,6 +973,7 @@ class _EmberPainter extends CustomPainter {
       old.tier != tier ||
       old.aura != aura ||
       old.trait != trait ||
+      old.outfit != outfit ||
       old.t != t ||
       !listEquals(old.skin, skin);
 }

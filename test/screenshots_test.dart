@@ -335,7 +335,7 @@ void main() {
     );
   });
 
-  // the new SDXL/FLUX-rendered ember sprite, in the room, at two growth stages
+  // the code-painted ember, in the room, at two growth stages
   testWidgets('mascot: amber sprite in room, by stage', (tester) async {
     await tester.binding.setSurfaceSize(const Size(560, 780));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -357,14 +357,6 @@ void main() {
       ]),
       pad: 16,
     ));
-    // precache the sprite assets so the golden captures them, not a blank frame
-    final ctx = tester.element(find.byType(MascotSprite).first);
-    await tester.runAsync(() async {
-      for (var n = 0; n < 6; n++) {
-        await precacheImage(
-            AssetImage('assets/mascot/ember_amber/s${n}_idle_00.png'), ctx);
-      }
-    });
     await tester.pump(const Duration(milliseconds: 200));
     if (_capture) {
       await expectLater(find.byType(MaterialApp),
@@ -393,19 +385,6 @@ void main() {
       ),
       pad: 16,
     ));
-    final ctx = tester.element(find.byType(MascotSprite).first);
-    await tester.runAsync(() async {
-      for (final a in const [
-        'assets/backdrops/hearthside.webp',
-        'assets/backdrops/candleglow.webp',
-        'assets/backdrops/lamplight.webp',
-        'assets/mascot/ember_amber/s0_happy_00.png',
-        'assets/mascot/mint_glass/s3_happy_00.png',
-        'assets/mascot/periwinkle/s5_happy_00.png',
-      ]) {
-        await precacheImage(AssetImage(a), ctx);
-      }
-    });
     await tester.pump(const Duration(milliseconds: 200));
     if (_capture) {
       await expectLater(find.byType(MaterialApp),
@@ -413,9 +392,8 @@ void main() {
     }
   });
 
-  // the four costumed outfit skins — whole frame-sets, not recolors, so they
-  // need their OWN golden (the procedural 'portrait: skins' capture can't paint
-  // a costume). Renders each on its stage at two growth tiers.
+  // the four painted outfit costumes (round-62) — wayfarer/herbalist/knight/
+  // wizard, drawn on the code ember at growth tiers.
   testWidgets('mascot: outfit sprites', (tester) async {
     await tester.binding.setSurfaceSize(const Size(920, 560));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -443,14 +421,6 @@ void main() {
         ],
       ),
     ));
-    final ctx = tester.element(find.byType(MascotSprite).first);
-    await tester.runAsync(() async {
-      for (final s in shown) {
-        final st = frameTierForLevel(s.$2);
-        await precacheImage(
-            AssetImage('assets/mascot/${s.$1}/s${st}_happy_00.png'), ctx);
-      }
-    });
     await tester.pump(const Duration(milliseconds: 200));
     if (_capture) {
       await expectLater(find.byType(MaterialApp),
@@ -495,17 +465,6 @@ void main() {
       ),
       pad: 12,
     ));
-    final ctx = tester.element(find.byType(MascotSprite).first);
-    await tester.runAsync(() async {
-      for (final s in shown) {
-        await precacheImage(AssetImage('assets/backdrops/${s.$1}.webp'), ctx);
-      }
-      for (final s in shown) {
-        final stagen = frameTierForLevel(s.$3);
-        await precacheImage(
-            AssetImage('assets/mascot/${s.$2}/s${stagen}_happy_00.png'), ctx);
-      }
-    });
     await tester.pump(const Duration(milliseconds: 200));
     if (_capture) {
       await expectLater(find.byType(MaterialApp),

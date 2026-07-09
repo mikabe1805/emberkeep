@@ -3,13 +3,12 @@ import 'package:flutter/painting.dart' show Alignment;
 import '../engine.dart';
 import 'achievements.dart';
 
-/// Painted stages (round-60) — full painted scenes the creature stands in at
-/// its hero moments (the skin try-on and the share card). Each is an SDXL
-/// painting from tools/gen_stage_scenes.py, graded + cropped into
-/// `assets/backdrops/<id>.webp` by tools/gen_backdrops.py, and rendered by
-/// PaintedBackdrop (warm-gradient fallback if the file is ever missing).
-/// Exclusive (one on stage at a time); the free 'hearthside' is implicitly
-/// owned.
+/// Painted stages (round-60; code-painted round-62) — cozy scenes the creature
+/// stands in at its hero moments (the skin try-on and the share card). Each is
+/// drawn procedurally by widgets/stage_scene.dart's paintStageScene and
+/// rendered by PaintedBackdrop (the round-60 SDXL webp backdrops were retired
+/// as "obviously AI"). Exclusive (one on stage at a time); the free
+/// 'hearthside' is implicitly owned.
 class StageScene {
   const StageScene(
     this.id,

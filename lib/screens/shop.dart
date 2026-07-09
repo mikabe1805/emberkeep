@@ -17,6 +17,7 @@ import '../widgets/honey_button.dart';
 import '../widgets/mascot_sprite.dart';
 import '../widgets/painted_backdrop.dart';
 import '../widgets/portrait.dart';
+import '../widgets/stage_scene.dart';
 
 /// "Your Space" shop (round-42): spend the Embers (✦) you earn by playing on
 /// furniture for your room — in whatever order you like. Customization is about
@@ -893,13 +894,7 @@ class _SceneCard extends StatelessWidget {
               child: SizedBox(
                 width: 64,
                 height: 46,
-                child: Image.asset(
-                  'assets/backdrops/${scene.id}.webp',
-                  fit: BoxFit.cover,
-                  filterQuality: FilterQuality.medium,
-                  errorBuilder: (_, _, _) =>
-                      const ColoredBox(color: Color(0xFF3A2C2A)),
-                ),
+                child: CustomPaint(painter: _SceneSwatchPainter(scene.id)),
               ),
             ),
             const SizedBox(width: 12),
@@ -986,6 +981,20 @@ class _WindowSwatchPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WindowSwatchPainter old) => old.scene != scene;
+}
+
+/// A little painted-scene swatch for the shop's stage cards — the same code
+/// scene as the try-on, shrunk to a thumbnail (still, no ambient).
+class _SceneSwatchPainter extends CustomPainter {
+  _SceneSwatchPainter(this.scene);
+  final String scene;
+
+  @override
+  void paint(Canvas canvas, Size size) =>
+      paintStageScene(canvas, scene, Offset.zero & size);
+
+  @override
+  bool shouldRepaint(_SceneSwatchPainter old) => old.scene != scene;
 }
 
 /// A creature-skin row: a live mini-ember in that colour + buy / wear / locked

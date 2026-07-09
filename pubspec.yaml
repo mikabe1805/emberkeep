@@ -89,18 +89,9 @@ flutter:
     - assets/sfx/
     - assets/google_fonts/
     - assets/room/
-    - assets/backdrops/
-    - assets/mascot/ember_amber/
-    - assets/mascot/rose_quartz/
-    - assets/mascot/mint_glass/
-    - assets/mascot/periwinkle/
-    - assets/mascot/lilac/
-    - assets/mascot/slate/
-    - assets/mascot/gilded/
-    - assets/mascot/adventurer/
-    - assets/mascot/healer/
-    - assets/mascot/knight/
-    - assets/mascot/wizard/
+    # (round-62) the character + stage scenes are now fully code-painted
+    # (widgets/portrait.dart, widgets/stage_scene.dart) — the old AI-generated
+    # mascot PNGs and backdrop webps are retired, cutting ~30MB from the bundle.
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
