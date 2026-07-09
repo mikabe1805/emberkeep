@@ -600,6 +600,62 @@ void main() {
     expect(loaded.$1.windowScene, 'moon');
   });
 
+  test('stage scenes: buy applies, apply switches, gate + persist', () async {
+    SharedPreferences.setMockInitialValues({});
+    final state = GameState()..embers = 900;
+    expect(state.stageScene, 'hearthside'); // free default
+
+    expect(state.buyScene('garden', 260), isTrue);
+    expect(state.embers, 640);
+    expect(state.ownedScenes, contains('garden'));
+    expect(state.stageScene, 'garden');
+    expect(state.buyScene('garden', 260), isFalse); // owned → no recharge
+
+    state.applyScene('hearthside'); // back to the free default, no charge
+    expect(state.stageScene, 'hearthside');
+
+    // a gated scene stays unbuyable until allowed, even with embers in hand
+    expect(state.buyScene('library', 400, allowed: false), isFalse);
+    expect(state.ownedScenes, isNot(contains('library')));
+
+    // an unowned id can't be equipped for free (apply is guarded now)
+    state.applyScene('seaside');
+    expect(state.stageScene, 'hearthside');
+
+    await Storage.save(state, const []);
+    final loaded = await Storage.load();
+    expect(loaded, isNotNull);
+    expect(loaded!.$1.ownedScenes, contains('garden'));
+    expect(loaded.$1.stageScene, 'hearthside');
+  });
+
+  test('streak milestone chest is paid once per crossing, not per completion',
+      () {
+    final state = GameState()
+      ..embers = 0
+      ..streakDays = 6
+      // last active YESTERDAY, so today's first completion increments to 7
+      ..lastCompletionDay =
+          Days.key(DateTime.now().subtract(const Duration(days: 1)));
+
+    // first completion of the day: streak crosses to 7 → +50 chest, queued once
+    final b1 = state.roll(Quest(title: 'Read', stat: Stat.intl, difficulty: 3));
+    state.commit(b1);
+    expect(state.streakDays, 7);
+    final afterFirst = state.embers;
+    expect(afterFirst, b1.embers + 50); // quest embers + the week chest
+    expect(state.takeJustStreakMilestone(), 7); // exactly one chest queued
+    expect(state.takeJustStreakMilestone(), isNull);
+
+    // a SECOND completion the SAME day must NOT re-pay the milestone (the bug:
+    // the check sat outside the day-change guard, paying +50 every completion)
+    final b2 = state.roll(Quest(title: 'Walk', stat: Stat.vit, difficulty: 2));
+    state.commit(b2);
+    expect(state.streakDays, 7); // unchanged — same day
+    expect(state.embers, afterFirst + b2.embers); // only the quest embers
+    expect(state.takeJustStreakMilestone(), isNull); // no second chest
+  });
+
   test('shared space: roomDisplay is appearance-only (no private data)', () {
     final s = GameState()
       ..playerName = 'Mika'

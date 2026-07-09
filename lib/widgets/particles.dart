@@ -14,6 +14,7 @@ class ParticleBurst extends StatefulWidget {
     this.vibrancy = 1.0,
     this.spread = 90,
     this.onDone,
+    this.reduce = false,
   });
 
   /// Burst origin in the local space of the (full-screen) overlay.
@@ -25,6 +26,12 @@ class ParticleBurst extends StatefulWidget {
   final double vibrancy;
   final double spread;
   final VoidCallback? onDone;
+
+  /// Reduce-motion (the in-app setting): instead of a flying burst, a handful
+  /// of soft motes that barely drift and fade — a gentle glow, not a firework.
+  /// The [onDone] callback still fires on the same schedule so overlays that
+  /// wait on it (level-up, board-cleared) tear down normally.
+  final bool reduce;
 
   @override
   State<ParticleBurst> createState() => _ParticleBurstState();
@@ -48,16 +55,19 @@ class _ParticleBurstState extends State<ParticleBurst>
   void initState() {
     super.initState();
     final rng = Random();
-    _particles = List.generate(widget.count, (_) {
+    // reduce-motion: ~4 slow, near-still motes that just breathe and fade
+    final n = widget.reduce ? 4 : widget.count;
+    _particles = List.generate(n, (_) {
       final angle = rng.nextDouble() * 2 * pi;
-      final speed =
-          (0.4 + rng.nextDouble()) * widget.spread * (0.7 + widget.vibrancy);
+      final speed = widget.reduce
+          ? (0.1 + rng.nextDouble() * 0.15) * widget.spread
+          : (0.4 + rng.nextDouble()) * widget.spread * (0.7 + widget.vibrancy);
       return _Particle(
         Offset(cos(angle), sin(angle) * 1.2) * speed,
         widget.colors[rng.nextInt(widget.colors.length)],
         (2.0 + rng.nextDouble() * 3.5) * (0.7 + 0.5 * widget.vibrancy),
         0.85 + rng.nextDouble() * 0.1,
-        (rng.nextDouble() - 0.5) * 6,
+        widget.reduce ? 0 : (rng.nextDouble() - 0.5) * 6,
       );
     });
     _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 850))

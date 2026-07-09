@@ -13,10 +13,23 @@ import '../widgets/portrait.dart';
 /// purely from the appearance fields in their shared room doc — no quests,
 /// notes or account data ever travel.
 class VisitRoomScreen extends StatelessWidget {
-  const VisitRoomScreen({super.key, required this.room, required this.code});
+  const VisitRoomScreen(
+      {super.key,
+      required this.room,
+      required this.code,
+      this.themeId,
+      this.lively = true});
 
   final Map<String, dynamic> room;
   final String code;
+
+  /// The LOCAL user's canvas theme — the shared room doc carries no theme, so
+  /// the visitor's own backdrop should hold instead of snapping to default.
+  final String? themeId;
+
+  /// The LOCAL user's reduce-motion setting — a friend's room should honour it
+  /// just like every other surface (the room ambient + the companion park).
+  final bool lively;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +42,7 @@ class VisitRoomScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Palette.parchment,
       body: WarmBackground(
+        themeId: themeId,
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 36),
@@ -46,6 +60,7 @@ class VisitRoomScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       HomeRoom(
+                      lively: lively,
                       unlocked: furniture,
                       wall: wallColorsById(room['wall'] as String?),
                       floor: floorColorsById(room['floor'] as String?),
@@ -54,6 +69,7 @@ class VisitRoomScreen extends StatelessWidget {
                       emberGlow: creatureColorsById(room['skin'] as String?)[1],
                       child: MascotSprite(
                           size: 110,
+                          lively: lively,
                           // the FRIEND's skin — frames ship for all 7 skins;
                           // anything missing falls back to the recoloured
                           // procedural ember automatically

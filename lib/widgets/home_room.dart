@@ -1,7 +1,7 @@
-import 'dart:math' show sin, pi;
+import 'dart:math' show pi, sin;
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show listEquals;
+import 'package:flutter/foundation.dart' show listEquals, setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -48,7 +48,7 @@ class _RoomGrain {
   }
 }
 
-class HomeRoom extends StatelessWidget {
+class HomeRoom extends StatefulWidget {
   const HomeRoom({
     super.key,
     required this.unlocked,
@@ -59,6 +59,7 @@ class HomeRoom extends StatelessWidget {
     this.window = 'moon',
     this.petAwake = false,
     this.emberGlow,
+    this.lively = true,
   });
 
   /// Furniture piece-ids the player owns (GameState.ownedFurniture) — what
@@ -85,22 +86,80 @@ class HomeRoom extends StatelessWidget {
   /// interacting with the room (assimilation). Null = default honey glow.
   final Color? emberGlow;
 
+  /// The ambient-life switch (round-61): fire flickers, candles sway, rain
+  /// falls, dust drifts. Pass `!state.reduceMotion` once the app wires it up;
+  /// the OS-level disable-animations switch is honoured regardless. Off, the
+  /// room paints one calm still frame — same beauty, parked.
+  final bool lively;
+
+  @override
+  State<HomeRoom> createState() => _HomeRoomState();
+}
+
+class _HomeRoomState extends State<HomeRoom>
+    with SingleTickerProviderStateMixin {
+  /// ONE slow loop drives every ambient motion in the room — hearth, candles,
+  /// garland, weather, dust. Quantized to ~11fps (MascotSprite's trick) inside
+  /// its own RepaintBoundary, so a living room costs a handful of small
+  /// repaints a second, not a 60fps rebuild of the screen. Created lazily and
+  /// only while [HomeRoom.lively] + the OS animation setting allow it.
+  AnimationController? _life;
+
+  @override
+  void dispose() {
+    _life?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     _RoomGrain.ensure();
+    final lively = widget.lively &&
+        !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    if (lively && _life == null) {
+      _life = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 10),
+      )..repeat();
+    } else if (!lively && _life != null) {
+      _life!.dispose();
+      _life = null;
+    }
+    final life = _life;
     return AspectRatio(
-      aspectRatio: aspect,
+      aspectRatio: widget.aspect,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Stack(
           children: [
             Positioned.fill(
-              child: ValueListenableBuilder<int>(
-                valueListenable: _RoomGrain.version,
-                builder: (_, _, _) => CustomPaint(
-                    painter: _RoomPainter(
-                        unlocked, wall, floor, window, petAwake, emberGlow,
-                        _RoomGrain.wall, _RoomGrain.floor)),
+              // repaint-bounded so the ambient tick repaints the room alone,
+              // never the avatar (who has his own boundary) or the screen
+              child: RepaintBoundary(
+                child: AnimatedBuilder(
+                  animation: life == null
+                      ? _RoomGrain.version
+                      : Listenable.merge([_RoomGrain.version, life]),
+                  builder: (_, _) {
+                    // quantize the loop to 110 steps (~11fps) — alive to the
+                    // eye, near-free to paint; t=0 is the calm reduced-motion
+                    // frame and every t must look finished on its own
+                    final t =
+                        life == null ? 0.0 : (life.value * 110).round() / 110;
+                    return CustomPaint(
+                      painter: _RoomPainter(
+                          widget.unlocked,
+                          widget.wall,
+                          widget.floor,
+                          widget.window,
+                          widget.petAwake,
+                          widget.emberGlow,
+                          _RoomGrain.wall,
+                          _RoomGrain.floor,
+                          t),
+                    );
+                  },
+                ),
               ),
             ),
             // the avatar, standing on the floor in the middle of the room
@@ -108,7 +167,7 @@ class HomeRoom extends StatelessWidget {
               alignment: const Alignment(0, 0.7),
               child: FractionallySizedBox(
                 heightFactor: 0.52,
-                child: FittedBox(child: child),
+                child: FittedBox(child: widget.child),
               ),
             ),
           ],
@@ -119,14 +178,26 @@ class HomeRoom extends StatelessWidget {
 }
 
 class _RoomPainter extends CustomPainter {
-  _RoomPainter(this.unlocked, this.wall, this.floor, this.window, this.petAwake,
-      this.emberGlow, this.wallGrain, this.floorGrain);
+  _RoomPainter(Set<String> unlocked, this.wall, this.floor, this.window,
+      this.petAwake, this.emberGlow, this.wallGrain, this.floorGrain, this.t)
+      // snapshot the furniture set: some callers hand us the live
+      // GameState.ownedFurniture, which the engine mutates IN PLACE — the old
+      // painter and the new one would hold the SAME instance, so an identity
+      // compare in shouldRepaint went blind to purchases. A copy here plus
+      // setEquals below compares what actually matters: the contents.
+      : unlocked = Set.of(unlocked);
   final Set<String> unlocked;
   final List<Color> wall;
   final List<Color> floor;
   final String window;
   final bool petAwake;
   final Color? emberGlow;
+
+  /// 0..1 through the slow ambient loop (quantized upstream). Every motion in
+  /// here is a pure function of [t] — deterministic, seamless at the wrap, and
+  /// t=0 must always be a finished, pretty still frame (reduced motion parks
+  /// there, and the goldens capture wherever the pump lands).
+  final double t;
 
   /// Brush-stroke grain (see [_RoomGrain]); null paints flat, like always.
   final ui.Image? wallGrain;
@@ -200,6 +271,22 @@ class _RoomPainter extends CustomPainter {
     if (floorGrain != null) {
       _grain(canvas, floorGrain!, floorRect, w * 0.85, 0.8);
     }
+    // a few faint plank seams fanning toward the viewer so the floor reads as
+    // laid boards, not a flat sheet — darker line + a hair of highlight below
+    final plankDark = Paint()
+      ..color = Colors.black.withValues(alpha: 0.12)
+      ..strokeWidth = 1;
+    final plankLit = Paint()
+      ..color = Palette.xpLight.withValues(alpha: 0.05)
+      ..strokeWidth = 1;
+    for (final spec in const [-0.62, -0.24, 0.12, 0.5, 0.86]) {
+      // seams splay out from a vanishing point high on the wall
+      final topX = w * (0.5 + spec * 0.28);
+      final botX = w * (0.5 + spec * 0.85);
+      canvas.drawLine(Offset(topX, floorY), Offset(botX, h), plankDark);
+      canvas.drawLine(
+          Offset(topX + 1, floorY), Offset(botX + 1, h), plankLit);
+    }
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(w * 0.5, floorY + (h - floorY) * 0.55),
@@ -214,18 +301,27 @@ class _RoomPainter extends CustomPainter {
     // ── ember glow pool: the creature's own light cast on the floor around
     // where it stands, in the worn skin's hue so a mint or rose ember glows
     // in its own colour. This is the key assimilation touch — the sprite's
-    // self-illumination now interacts with the room. ──
+    // self-illumination now interacts with the room. It BREATHES on the same
+    // slow loop as the creature's coal, so the pool of light feels lit by a
+    // living flame, not a lamp. ──
     final glow = emberGlow ?? Palette.honeyGlow;
+    final glowBreath = 0.5 + 0.5 * sin(t * 2 * pi * 2 + 0.4);
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(w * 0.5, floorY + (h - floorY) * 0.5),
-        width: w * 0.45,
-        height: (h - floorY) * 0.7,
+        width: w * (0.45 + 0.02 * glowBreath),
+        height: (h - floorY) * (0.7 + 0.04 * glowBreath),
       ),
       Paint()
-        ..color = glow.withValues(alpha: 0.22)
+        ..color = glow.withValues(alpha: 0.18 + 0.07 * glowBreath)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.06),
     );
+
+    // ── window light shaft: a soft wedge of the outside light spilling
+    // diagonally across the floor, tinted by the scene (cool silver moon,
+    // warm gold dawn, teal aurora, blue-grey rain), with a few dust motes
+    // adrift inside it. The room's biggest "this space is lit" tell. ──
+    _lightShaft(canvas, w, h, floorY);
 
     // baseboard — a thin warm highlight over a soft shadow, grounding the wall
     canvas.drawRect(Rect.fromLTWH(0, floorY - 2, w, 3),
@@ -262,12 +358,71 @@ class _RoomPainter extends CustomPainter {
     );
   }
 
+  /// The scene's characteristic light colour — what spills through the pane
+  /// onto the floor. Derived from each window scene's own palette so the shaft
+  /// always agrees with the view above it.
+  Color get _shaftColor => switch (window) {
+        'dawn' => const Color(0xFFF6D79A), // warm sunrise gold
+        'aurora' => const Color(0xFF8FD0E0), // cold teal shimmer
+        'rain' => const Color(0xFFAEB8D0), // flat blue-grey
+        'forest' => const Color(0xFFBFE0C0), // green-washed moon
+        'city' => const Color(0xFFE8C77A), // sodium-lamp amber
+        _ => Palette.xpLight, // silver moonlight
+      };
+
+  /// A soft wedge of window light thrown diagonally across the floor, with a
+  /// few dust motes turning slowly inside it. Drawn low (on the floor, behind
+  /// the furniture) so pieces cast into it. Deterministic in [t].
+  void _lightShaft(Canvas canvas, double w, double h, double floorY) {
+    // the pane sits upper-left (see _window); the beam falls down-right
+    final srcL = Offset(w * 0.10, h * 0.16);
+    final srcR = Offset(w * 0.30, h * 0.16);
+    final footL = Offset(w * 0.30, h);
+    final footR = Offset(w * 0.66, h);
+    final beam = Path()
+      ..moveTo(srcL.dx, srcL.dy)
+      ..lineTo(srcR.dx, srcR.dy)
+      ..lineTo(footR.dx, footR.dy)
+      ..lineTo(footL.dx, footL.dy)
+      ..close();
+    final tint = _shaftColor;
+    canvas.save();
+    canvas.clipPath(beam);
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, w, h),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [tint.withValues(alpha: 0.16), tint.withValues(alpha: 0)],
+        ).createShader(Rect.fromLTWH(w * 0.1, h * 0.16, w * 0.56, h * 0.84)),
+    );
+    // dust motes drifting in the beam — three, slow, deterministic in t
+    for (var i = 0; i < 3; i++) {
+      // ph rides t directly (integer coefficient) so it wraps seamlessly; the
+      // alpha (sin(ph*pi)) fades the mote out at the top and in at the bottom,
+      // hiding the vertical reset. x sways on an integer-frequency sine so it
+      // too is continuous across the loop.
+      final ph = (t + i / 3) % 1.0;
+      final mx = w * (0.30 + 0.13 * sin((t + i * 0.37) * 2 * pi));
+      final my = h * (0.24 + 0.66 * ph);
+      canvas.drawCircle(
+        Offset(mx, my),
+        w * 0.004,
+        Paint()
+          ..color = tint.withValues(alpha: 0.35 * sin(ph * pi))
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.004),
+      );
+    }
+    canvas.restore();
+  }
+
   void _window(Canvas canvas, double w, double h) {
     final fx = w * 0.07, fy = h * 0.13, fw = w * 0.26, fh = h * 0.3;
     final rect = Rect.fromLTWH(fx, fy, fw, fh);
     final r = RRect.fromRectAndRadius(rect, const Radius.circular(6));
-    // the view outside (clipped to the pane)
-    paintWindowScene(canvas, window, rect);
+    // the view outside (clipped to the pane) — t makes the weather live
+    paintWindowScene(canvas, window, rect, t: t);
     // frame + mullions on top
     final edge = Paint()
       ..style = PaintingStyle.stroke
@@ -344,6 +499,14 @@ class _RoomPainter extends CustomPainter {
 
   void _shelf(Canvas canvas, double w, double h) {
     final x = w * 0.6, y = h * 0.26, sw = w * 0.3;
+    // a soft shadow the shelf casts on the wall below it — grounds it to the
+    // surface instead of floating (ambient-occlusion feel)
+    canvas.drawRect(
+      Rect.fromLTWH(x - 2, y + 3, sw + 4, 7),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.18)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+    );
     canvas.drawRect(Rect.fromLTWH(x, y, sw, 4), Paint()..color = _wood);
     // book spines
     const cols = [Palette.success, Palette.verify, Palette.unlock, Palette.dread];
@@ -361,6 +524,14 @@ class _RoomPainter extends CustomPainter {
   void _picture(Canvas canvas, double w, double h) {
     final x = w * 0.46, y = h * 0.14, pw = w * 0.16, ph = h * 0.16;
     final outer = Rect.fromLTWH(x, y, pw, ph);
+    // soft drop shadow on the wall behind the frame
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+          outer.translate(2, 4), const Radius.circular(3)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.20)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
     // carved wood frame + inner mat
     canvas.drawRRect(
       RRect.fromRectAndRadius(outer, const Radius.circular(3)),
@@ -482,13 +653,19 @@ class _RoomPainter extends CustomPainter {
       topRight: const Radius.circular(18),
     );
     canvas.drawRRect(open, Paint()..color = const Color(0xFF120C08));
-    // ── fire: warm glow → glowing log bed → layered ember flames → hot core ──
+    // ── fire: warm glow → glowing log bed → layered ember flames → hot core.
+    // A two-harmonic flicker (t) makes every flame breathe + lean on its own
+    // beat and the glow pulse — the single warmest motion in the room. ──
     final fb = y - hh * 0.06; // flame base (the log bed)
+    // integer harmonics only — the loop is a 0→1 sawtooth, so a non-integer
+    // frequency would snap discontinuously at the wrap (sin(2πK)=sin(0) needs
+    // K∈ℤ). Every t-driven motion in this file obeys that so the loop is seamless.
+    final flick = 1 + 0.09 * sin(t * 2 * pi * 2) + 0.05 * sin(t * 2 * pi * 3);
     canvas.drawCircle(
       Offset(x, y - hh * 0.12),
-      hw * 0.52,
+      hw * 0.52 * (0.94 + 0.1 * flick),
       Paint()
-        ..color = Palette.streak.withValues(alpha: 0.45)
+        ..color = Palette.streak.withValues(alpha: 0.38 + 0.12 * (flick - 1) * 5)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
     );
     // smouldering logs at the base
@@ -497,13 +674,17 @@ class _RoomPainter extends CustomPainter {
           center: Offset(x, fb), width: hw * 0.62, height: hh * 0.1),
       Paint()..color = const Color(0xFF5E3219),
     );
-    for (final spec in [(-0.16, 0.72), (0.0, 1.0), (0.16, 0.74)]) {
+    for (final spec in [(-0.16, 0.72, 0.0), (0.0, 1.0, 1.3), (0.16, 0.74, 2.4)]) {
       final fx = x + spec.$1 * hw;
-      final fhh = hh * 0.46 * spec.$2;
+      // each tongue flickers in height + leans a touch on its own phase
+      final f = 1 + 0.14 * sin(t * 2 * pi * 2 + spec.$3);
+      final lean = hw * 0.05 * sin(t * 2 * pi + spec.$3);
+      final fhh = hh * 0.46 * spec.$2 * f;
       final flame = Path()
         ..moveTo(fx - hw * 0.07, fb)
-        ..quadraticBezierTo(fx - hw * 0.085, fb - fhh * 0.6, fx, fb - fhh)
-        ..quadraticBezierTo(fx + hw * 0.085, fb - fhh * 0.6, fx + hw * 0.07, fb)
+        ..quadraticBezierTo(
+            fx - hw * 0.085 + lean, fb - fhh * 0.6, fx + lean, fb - fhh)
+        ..quadraticBezierTo(fx + hw * 0.085 + lean, fb - fhh * 0.6, fx + hw * 0.07, fb)
         ..close();
       final fr = Rect.fromLTWH(fx - hw * 0.1, fb - fhh, hw * 0.2, fhh);
       canvas.drawPath(
@@ -517,10 +698,10 @@ class _RoomPainter extends CustomPainter {
           ).createShader(fr),
       );
     }
-    // a bright hot heart low in the fire
+    // a bright hot heart low in the fire, pulsing with the flicker
     canvas.drawCircle(
       Offset(x, fb - hh * 0.1),
-      hw * 0.1,
+      hw * 0.1 * flick,
       Paint()
         ..color = const Color(0xFFFFF4D9).withValues(alpha: 0.85)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
@@ -693,18 +874,21 @@ class _RoomPainter extends CustomPainter {
     );
     const bulbs = 7;
     for (var i = 1; i < bulbs; i++) {
-      final t = i / bulbs, mt = 1 - (i / bulbs);
-      final bx = mt * mt * left.dx + 2 * mt * t * mid.dx + t * t * right.dx;
-      final by = mt * mt * left.dy + 2 * mt * t * mid.dy + t * t * right.dy;
+      final u = i / bulbs, mt = 1 - (i / bulbs);
+      final bx = mt * mt * left.dx + 2 * mt * u * mid.dx + u * u * right.dx;
+      final by = mt * mt * left.dy + 2 * mt * u * mid.dy + u * u * right.dy;
+      // a warm twinkle travelling along the string — each bulb brightens on a
+      // phase set by its position, so light seems to run down the garland
+      final tw = 0.6 + 0.4 * sin(t * 2 * pi * 2 - i * 0.9);
       canvas.drawCircle(
         Offset(bx, by + 3),
-        4.5,
+        4.5 * (0.85 + 0.25 * tw),
         Paint()
-          ..color = Palette.honeyGlow.withValues(alpha: 0.8)
+          ..color = Palette.honeyGlow.withValues(alpha: 0.5 + 0.4 * tw)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
       );
-      canvas.drawCircle(
-          Offset(bx, by + 3), 2.2, Paint()..color = Palette.xpLight);
+      canvas.drawCircle(Offset(bx, by + 3), 2.2,
+          Paint()..color = Palette.xpLight.withValues(alpha: 0.7 + 0.3 * tw));
     }
   }
 
@@ -733,17 +917,24 @@ class _RoomPainter extends CustomPainter {
     );
   }
 
-  // a little cluster of three candles glowing on the floor
+  // a little cluster of three candles glowing on the floor — each flame sways
+  // and its halo pulses on its own phase (t), so the cluster wavers like real
+  // candlelight instead of three frozen teardrops
   void _candles(Canvas canvas, double w, double h, double floorY) {
     final baseY = floorY + (h - floorY) * 0.42;
+    var i = 0;
     for (final spec in [(-0.04, 0.9), (0.0, 1.15), (0.04, 0.8)]) {
       final cx = w * 0.4 + spec.$1 * w;
       final ch = (h - floorY) * 0.22 * spec.$2;
+      final phase = i * 2.1;
+      final sway = 2.0 * sin(t * 2 * pi * 2 + phase);
+      final pulse = 0.85 + 0.15 * sin(t * 2 * pi * 2 + phase);
+      final tipY = baseY - ch - 9 - 1.5 * sin(t * 2 * pi * 2 + phase);
       canvas.drawCircle(
         Offset(cx, baseY - ch - 4),
-        8,
+        8 * pulse,
         Paint()
-          ..color = Palette.honeyGlow.withValues(alpha: 0.7)
+          ..color = Palette.honeyGlow.withValues(alpha: 0.7 * pulse)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
       );
       canvas.drawRRect(
@@ -755,39 +946,54 @@ class _RoomPainter extends CustomPainter {
       );
       final flame = Path()
         ..moveTo(cx - 2, baseY - ch)
-        ..quadraticBezierTo(cx - 3, baseY - ch - 6, cx, baseY - ch - 9)
-        ..quadraticBezierTo(cx + 3, baseY - ch - 6, cx + 2, baseY - ch)
+        ..quadraticBezierTo(cx - 3 + sway, baseY - ch - 6, cx + sway, tipY)
+        ..quadraticBezierTo(cx + 3 + sway, baseY - ch - 6, cx + 2, baseY - ch)
         ..close();
       canvas.drawPath(flame, Paint()..color = Palette.xpLight);
+      i++;
     }
   }
 
   @override
   bool shouldRepaint(_RoomPainter old) =>
-      old.unlocked != unlocked ||
+      old.t != t ||
       old.window != window ||
       old.petAwake != petAwake ||
       old.emberGlow != emberGlow ||
       old.wallGrain != wallGrain ||
       old.floorGrain != floorGrain ||
+      // content compares, not identity: the live owned-set mutates in place
+      // (same instance ≠ same furniture) and visit_room builds a fresh set
+      // every build (different instance ≠ different furniture)
+      !setEquals(old.unlocked, unlocked) ||
       !listEquals(old.wall, wall) ||
       !listEquals(old.floor, floor);
 }
 
 /// Paints the landscape inside a window pane [rect] for the chosen [scene]
 /// (content/window_scenes.dart). Public so the shop's preview swatch can reuse
-/// it. Clips to the pane; the caller draws the frame on top.
-void paintWindowScene(Canvas canvas, String scene, Rect rect) {
+/// it. Clips to the pane; the caller draws the frame on top. [t] (0..1, the
+/// room's slow ambient loop) makes the weather live — rain falls, aurora
+/// drifts, stars breathe; passing the default 0 paints a calm still frame
+/// (the shop swatch + goldens rely on that).
+void paintWindowScene(Canvas canvas, String scene, Rect rect,
+    {double t = 0}) {
   final fx = rect.left, fy = rect.top, fw = rect.width, fh = rect.height;
   final rr = RRect.fromRectAndRadius(rect, const Radius.circular(6));
   canvas.save();
   canvas.clipRRect(rr);
 
   Offset at(double x, double y) => Offset(fx + fw * x, fy + fh * y);
-  final star = Paint()..color = Palette.xpLight.withValues(alpha: 0.85);
+  // a gentle twinkle: each star swells + fades on its own phase, so a night
+  // sky shimmers instead of sitting frozen
   void stars(List<Offset> pts) {
     for (var i = 0; i < pts.length; i++) {
-      canvas.drawCircle(at(pts[i].dx, pts[i].dy), 1.3 - (i.isOdd ? 0.4 : 0), star);
+      final tw = 0.7 + 0.3 * sin(t * 2 * pi + i * 1.7);
+      canvas.drawCircle(
+        at(pts[i].dx, pts[i].dy),
+        (1.3 - (i.isOdd ? 0.4 : 0)) * (0.85 + 0.25 * tw),
+        Paint()..color = Palette.xpLight.withValues(alpha: 0.55 + 0.35 * tw),
+      );
     }
   }
 
@@ -866,17 +1072,28 @@ void paintWindowScene(Canvas canvas, String scene, Rect rect) {
       canvas.drawPath(ridge(0, const [0.18, 0.34, 0.22, 0.4, 0.2, 0.36]), front);
     case 'rain':
       sky(const [Color(0xFF14100C), Color(0xFF181820)]);
-      // dim crescent behind the rain
+      // dim crescent behind the rain — carved by clipping the lit disc against
+      // a shifted disc (difference), NOT overdrawing a flat colour onto the
+      // GRADIENT sky (which left a wrong-tone ghost circle beside the moon)
+      final moonRect = Rect.fromCircle(center: at(0.66, 0.3), radius: fw * 0.12);
+      canvas.save();
+      canvas.clipPath(Path.combine(
+        PathOperation.difference,
+        Path()..addOval(moonRect),
+        Path()
+          ..addOval(Rect.fromCircle(
+              center: at(0.72, 0.27), radius: fw * 0.12)),
+      ));
       canvas.drawCircle(at(0.66, 0.3), fw * 0.12,
           Paint()..color = Palette.xpLight.withValues(alpha: 0.7));
-      canvas.drawCircle(at(0.72, 0.27), fw * 0.12,
-          Paint()..color = const Color(0xFF14100C));
+      canvas.restore();
       final drop = Paint()
         ..color = const Color(0xFFAEB8D0).withValues(alpha: 0.5)
         ..strokeWidth = 1;
       for (var i = 0; i < 22; i++) {
         final x = fx + fw * ((i * 0.137) % 1.0);
-        final y = fy + fh * ((i * 0.231) % 1.0);
+        // fall: each drop slides down the pane on the loop, wrapping cleanly
+        final y = fy + fh * ((i * 0.231 + t * 2.0) % 1.0);
         canvas.drawLine(Offset(x, y), Offset(x - fw * 0.03, y + fh * 0.1), drop);
       }
     case 'dawn':
@@ -911,8 +1128,13 @@ void paintWindowScene(Canvas canvas, String scene, Rect rect) {
         final p = Path()..moveTo(fx, fy + fh * 0.5);
         for (var i = 0; i <= 6; i++) {
           final x = fx + fw * (i / 6);
+          // the curtain undulates: the phase drifts with the loop so the bands
+          // slowly ripple sideways instead of hanging frozen
           final y = fy +
-              fh * (0.34 + 0.12 * sin(i * 1.3 + band.$1 * 6) + band.$1 * 0.18);
+              fh *
+                  (0.34 +
+                      0.12 * sin(i * 1.3 + band.$1 * 6 + t * 2 * pi) +
+                      band.$1 * 0.18);
           p.lineTo(x, y);
         }
         canvas.drawPath(

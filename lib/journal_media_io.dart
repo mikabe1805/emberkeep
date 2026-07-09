@@ -61,6 +61,19 @@ Future<void> delete(String name) async {
   } catch (_) {/* best effort */}
 }
 
+/// Wipe EVERY journal photo — called from "Start over" so a reset really
+/// erases the person's images too (they'd otherwise sit orphaned on disk
+/// forever, a storage leak and a quiet privacy breach of "reset means erase
+/// me"). Best-effort; a missing dir is already the goal.
+Future<void> clearAll() async {
+  try {
+    final base = await _docsPath();
+    if (base == null) return;
+    final dir = Directory('$base/$_dir');
+    if (await dir.exists()) await dir.delete(recursive: true);
+  } catch (_) {/* best effort */}
+}
+
 /// A widget that renders the stored photo [name] (rounded, capped height).
 Widget image(String name, {double maxHeight = 340}) =>
     _JournalImage(name: name, maxHeight: maxHeight);
@@ -78,14 +91,43 @@ class _JournalImage extends StatelessWidget {
             File(path),
             width: double.infinity,
             fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => Container(
-              height: 110,
-              alignment: Alignment.center,
-              color: const Color(0x22000000),
-              child: const Icon(Icons.image_not_supported_outlined,
-                  color: Color(0xFF94887A)),
-            ),
+            errorBuilder: (_, _, _) => _missing(),
           ),
+        ),
+      );
+
+  // A missing photo (most often after a cloud restore on a NEW device — photos
+  // are device-local, they don't ride the save blob) shouldn't read as a
+  // broken app. A warm parchment card that says so plainly, in the app's own
+  // voice, keeps a restored journal feeling whole rather than damaged.
+  Widget _missing() => Container(
+        height: 128,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF34281F), Color(0xFF281E17)],
+          ),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0x22FFFFFF)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.photo_outlined, size: 22, color: Color(0xFFB9A488)),
+            SizedBox(height: 8),
+            Text(
+              'This photo stayed on your old device',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12.5,
+                height: 1.3,
+                color: Color(0xFFB9A488),
+              ),
+            ),
+          ],
         ),
       );
 

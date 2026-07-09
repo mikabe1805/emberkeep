@@ -9,4 +9,7 @@ Future<String?> pick(bool fromCamera) async => null;
 
 Future<void> delete(String name) async {}
 
+/// No photos on web, so nothing to wipe (mirrors the native clearAll).
+Future<void> clearAll() async {}
+
 Widget image(String name, {double maxHeight = 340}) => const SizedBox.shrink();

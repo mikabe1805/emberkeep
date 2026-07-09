@@ -331,6 +331,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             [q.stat.color, Palette.xp, Palette.xpLight],
         count: (14 + 40 * bundle.magnitude).round() + comboBoost * 8,
         vibrancy: 0.5 + bundle.magnitude + comboBoost * 0.12,
+        reduce: s.reduceMotion,
         onDone: () => burst.remove(),
       ),
     );
@@ -1035,6 +1036,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           count: 34,
           vibrancy: 0.6,
           spread: size.width * 0.85,
+          reduce: _state.reduceMotion,
           onDone: () => wash.remove(),
         ),
       );

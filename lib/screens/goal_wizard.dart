@@ -252,6 +252,9 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
   Widget build(BuildContext context) {
     final canSwear = _name.text.trim().isNotEmpty && _quests.isNotEmpty;
     return WarmBackground(
+      // carry the player's chosen canvas theme through — without it, opening
+      // the wizard flickered the background to default and back on pop
+      themeId: widget.state.canvasTheme,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
@@ -521,7 +524,11 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                   ],
                 ),
               ),
-              if (_sealing) _Seal(stat: _stat, name: _name.text.trim()),
+              if (_sealing)
+                _Seal(
+                    stat: _stat,
+                    name: _name.text.trim(),
+                    reduce: widget.state.reduceMotion),
             ],
           ),
         ),
@@ -677,9 +684,10 @@ class _CtaButton extends StatelessWidget {
 
 /// The seal: a held golden beat as the oath takes effect.
 class _Seal extends StatelessWidget {
-  const _Seal({required this.stat, required this.name});
+  const _Seal({required this.stat, required this.name, this.reduce = false});
   final Stat stat;
   final String name;
+  final bool reduce;
 
   @override
   Widget build(BuildContext context) {
@@ -694,6 +702,7 @@ class _Seal extends StatelessWidget {
             count: 90,
             vibrancy: 1.0,
             spread: 170,
+            reduce: reduce,
           ),
           Center(
             child: Column(

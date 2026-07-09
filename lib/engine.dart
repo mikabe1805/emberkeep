@@ -102,11 +102,17 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
-  /// Put an already-owned style on the wall or floor.
+  /// Put an already-owned style on the wall or floor. Ignores an unowned id
+  /// (defence-in-depth: only the shop cards gate this today, so a stray call
+  /// — deep link, sync merge, a future UI slip — can't equip paid content for
+  /// free). The free defaults are always allowed.
   void applyStyle(String id, RoomStyleKind kind) {
+    const freeWall = 'wall_walnut', freeFloor = 'floor_oak';
     if (kind == RoomStyleKind.wall) {
+      if (id != freeWall && !ownedStyles.contains(id)) return;
       wallStyle = id;
     } else {
+      if (id != freeFloor && !ownedStyles.contains(id)) return;
       floorStyle = id;
     }
     notifyListeners();
@@ -129,6 +135,7 @@ class GameState extends ChangeNotifier {
   }
 
   void applySkin(String id) {
+    if (id != 'ember_amber' && !ownedSkins.contains(id)) return;
     creatureSkin = id;
     notifyListeners();
   }
@@ -149,7 +156,29 @@ class GameState extends ChangeNotifier {
   }
 
   void applyWindow(String id) {
+    if (id != 'moon' && !ownedWindows.contains(id)) return;
     windowScene = id;
+    notifyListeners();
+  }
+
+  /// Painted stages (round-60) — the scene the creature stands in at its hero
+  /// moments (skin try-on, the share card). Exclusive; the free default
+  /// 'hearthside' is implicitly owned.
+  final Set<String> ownedScenes = {};
+  String stageScene = 'hearthside';
+
+  bool buyScene(String id, int price, {bool allowed = true}) {
+    if (!allowed || embers < price || ownedScenes.contains(id)) return false;
+    embers -= price;
+    ownedScenes.add(id);
+    stageScene = id;
+    notifyListeners();
+    return true;
+  }
+
+  void applyScene(String id) {
+    if (id != 'hearthside' && !ownedScenes.contains(id)) return;
+    stageScene = id;
     notifyListeners();
   }
 
@@ -609,7 +638,13 @@ class GameState extends ChangeNotifier {
   /// IS the difficulty signal (DESIGN.md §11.4). Advertises the BASE
   /// (honor) payout — the ×1.2 is the timer's upside, not a promise.
   int xpPreview(Quest q) {
-    var earned = 10 * (0.5 + q.difficulty * 0.25) * streakMult;
+    // mirror roll(): on a comeback day streakDays still holds the stale lapsed
+    // value until the first commit resets it, so preview at the multiplier
+    // roll() will ACTUALLY pay (post-reset) — never over-promise ×2.0 on the
+    // exact fragile re-engagement day the card is trying to win back.
+    final sit = _streakSituation();
+    final effMult = (sit.gap && !sit.covered) ? streakMultFor(1) : streakMult;
+    var earned = 10 * (0.5 + q.difficulty * 0.25) * effMult;
     if (q.dread) earned *= 1.35;
     if (q.custom) earned *= customDamp;
     return earned.round();
@@ -652,14 +687,19 @@ class GameState extends ChangeNotifier {
         streakDays = 1;
       }
       lastCompletionDay = today;
+
+      // streak milestone — a 7/30/100 day CROSSING queues a chest. This lives
+      // INSIDE the day-change block on purpose: a milestone can only be
+      // crossed when the streak increments, so the second+ completion of a
+      // milestone day must NOT re-pay the chest (day 30 × 6 quests once paid
+      // 1,200 embers and staged the takeover six times — the exact currency
+      // inflation the shop economy can't take).
+      if (streakMilestones.containsKey(streakDays)) {
+        _streakMilestoneQ.add(streakDays);
+        embers += streakMilestones[streakDays]!;
+      }
     }
     if (streakDays > bestStreak) bestStreak = streakDays;
-
-    // streak milestone — a 7/30/100 day crossing queues a chest celebration
-    if (streakMilestones.containsKey(streakDays)) {
-      _streakMilestoneQ.add(streakDays);
-      embers += streakMilestones[streakDays]!;
-    }
 
     // time-of-day flair
     if (now.hour < 8) dawnCompletions++;
@@ -704,12 +744,17 @@ class GameState extends ChangeNotifier {
       }
     }
     // trim history to 180 days — never evict TODAY's just-written entry (guards
-    // a backward clock / future-dated restore from deleting it; bug-hunt §14)
+    // a backward clock / future-dated restore from deleting it; bug-hunt §14).
+    // A while-loop, not a single removal: an oversized imported/legacy save
+    // must drain to the cap in one commit, not one day per completion.
     if (history.length > 180) {
       final keys = (history.keys.toList()..sort())
           .where((k) => k != today)
           .toList();
-      if (keys.isNotEmpty) history.remove(keys.first);
+      var i = 0;
+      while (history.length > 180 && i < keys.length) {
+        history.remove(keys[i++]);
+      }
     }
 
     notifyListeners();
@@ -856,6 +901,8 @@ class GameState extends ChangeNotifier {
     'creatureSkin': creatureSkin,
     'ownedWindows': ownedWindows.toList(),
     'windowScene': windowScene,
+    'ownedScenes': ownedScenes.toList(),
+    'stageScene': stageScene,
     'roomCode': roomCode,
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
     // per-domain notes, by Stat order (parallel to 'stats'); empty lists
@@ -926,6 +973,8 @@ class GameState extends ChangeNotifier {
     s.creatureSkin = j['creatureSkin'] as String? ?? 'ember_amber';
     s.ownedWindows.addAll(((j['ownedWindows'] as List?) ?? const []).cast());
     s.windowScene = j['windowScene'] as String? ?? 'moon';
+    s.ownedScenes.addAll(((j['ownedScenes'] as List?) ?? const []).cast());
+    s.stageScene = j['stageScene'] as String? ?? 'hearthside';
     s.roomCode = j['roomCode'] as String?;
     final st = (j['stats'] as List?)?.cast<int>() ?? const [];
     for (var i = 0; i < Stat.values.length && i < st.length; i++) {

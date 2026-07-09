@@ -512,9 +512,11 @@ class Quest {
             _enumAt(Verification.values, j['verification'], Verification.honor),
         timerMinutes: j['timerMinutes'] as int? ?? 0,
         custom: j['custom'] as bool? ?? false,
+        // tryParse, not parse: one drifted value must never reject a whole
+        // restore into quarantine (the policy every other timestamp follows)
         dueDate: j['dueDate'] == null
             ? null
-            : DateTime.parse(j['dueDate'] as String),
+            : DateTime.tryParse(j['dueDate'] as String),
         lastDoneDay: j['lastDoneDay'] as String?,
         snoozedDay: j['snoozedDay'] as String?,
         goalTitle: j['goalTitle'] as String?,

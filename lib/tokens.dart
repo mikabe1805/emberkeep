@@ -26,6 +26,16 @@ abstract final class Palette {
   static const verify = Color(0xFF93A7E0); // periwinkle — proof / verified
   static const dread = Color(0xFF9AABB8); // moonlit steel — dreaded tasks
 
+  // Destructive-action tint. Deliberately redder than Stat.str's BODY rose
+  // (0xFFE89090) so an "Abandon"/"Delete" on a BODY-domain thing doesn't wear
+  // the same hue as the thing's own accent — danger has to read as danger.
+  static const danger = Color(0xFFE57468);
+
+  // Dialog chrome, tokenized (was inlined ~20 places): the scrim behind a
+  // modal and the warm smoked-glass surface a GlassPanel dialog sits on.
+  static const dialogBarrier = Color(0xCC140C06);
+  static const dialogSurface = Color(0xF22A211D);
+
   // Glass recipe — dark glass holding warm light
   static const glassFill = Color(0x17FFF2DC); // rgba(255,242,220,.09)
   static const glassEdge = Color(0x2EFFEFD2); // warm edge highlight

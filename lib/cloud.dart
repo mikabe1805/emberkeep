@@ -232,6 +232,16 @@ class CloudSync extends ChangeNotifier {
         debugPrint('CloudSync: refusing to push an invalid save');
         return;
       }
+      // Firestore caps a doc at 1 MiB and the journal is the only unbounded
+      // text in the blob — a prolific journaler can cross it. Surface a real
+      // status instead of failing silently forever (local saves keep working;
+      // only the cloud mirror pauses).
+      if (raw.length > 900 * 1024) {
+        status = 'paused (save too large to back up)';
+        notifyListeners();
+        debugPrint('CloudSync: save is ${raw.length}B, over the safe limit');
+        return;
+      }
       await _doc.set({
         'data': raw,
         'updatedAt': FieldValue.serverTimestamp(),

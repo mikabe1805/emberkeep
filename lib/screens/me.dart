@@ -14,6 +14,7 @@ import '../content/cosmetics.dart';
 import '../content/creature_skins.dart';
 import '../content/furniture.dart';
 import '../content/room_styles.dart';
+import '../content/scenes.dart';
 import '../content/stat_ranks.dart';
 import '../content/themes.dart';
 import '../engine.dart';
@@ -24,6 +25,7 @@ import '../widgets/domain_hint.dart';
 import '../models.dart';
 import '../widgets/glass.dart';
 import '../widgets/glass_switch.dart';
+import '../widgets/creature_mood.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/mascot_sprite.dart';
@@ -133,6 +135,7 @@ class MePage extends StatelessWidget {
             child: Column(
               children: [
                 HomeRoom(
+                  lively: !state.reduceMotion,
                   unlocked: state.ownedFurniture,
                   wall: wallColorsFor(state),
                   floor: floorColorsFor(state),
@@ -151,9 +154,10 @@ class MePage extends StatelessWidget {
                     skin: creatureColorsFor(state),
                     // on the one screen that's all about you, your companion is
                     // proud of you when the fire's lit (on a streak)
-                    mood: state.streakDays > 0
-                        ? PortraitMood.happy
-                        : PortraitMood.idle,
+                    mood: moodFor(state),
+                    // honour the in-app reduce-motion setting on the flagship
+                    // hero too (it defaulted to always-lively before)
+                    lively: !state.reduceMotion,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -217,7 +221,9 @@ class MePage extends StatelessWidget {
                     _SpaceLink(
                       icon: Icons.travel_explore,
                       label: 'Visit a space',
-                      onTap: () => visitSpace(context),
+                      onTap: () => visitSpace(context,
+                          themeId: state.canvasTheme,
+                          lively: !state.reduceMotion),
                     ),
                   ],
                 ),
@@ -1172,9 +1178,11 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // try-on in a painted candlelit nook, not on flat glass
+                // try-on happens on YOUR stage — whichever painted scene
+                // you've put your ember in (content/scenes.dart)
                 PaintedBackdrop(
-                  scene: 'candleglow',
+                  scene: stageSceneFor(state).id,
+                  alignment: stageSceneFor(state).stand,
                   height: 170,
                   child: MascotSprite(
                     size: 120,
@@ -1184,6 +1192,7 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
                     badge: cos?.badge ?? false,
                     trait: state.portraitTrait,
                     skin: creatureColorsFor(state),
+                    lively: !state.reduceMotion,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1585,10 +1594,11 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // the shared card's hero shot — the ember at home in a
-                  // painted study, not floating on tinted glass
+                  // the shared card's hero shot — your ember on YOUR painted
+                  // stage, so the picture friends get is the one you chose
                   PaintedBackdrop(
-                    scene: 'lamplight',
+                    scene: stageSceneFor(state).id,
+                    alignment: stageSceneFor(state).stand,
                     height: 140,
                     child: MascotSprite(
                       size: 84,
@@ -1600,6 +1610,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                       badge: cosmeticFor(state.equippedSkin)?.badge ?? false,
                       trait: state.portraitTrait,
                       skin: creatureColorsFor(state),
+                      lively: !state.reduceMotion,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -2090,33 +2101,42 @@ class _DataButton extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onTap,
+    this.enabled = true,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback onTap;
 
+  /// Off → the button reads plainly disabled (dimmed, no tap) instead of
+  /// looking live but doing nothing (the offline account buttons did that).
+  final bool enabled;
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Palette.glassEdge),
-          color: Palette.glassFill,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: Palette.textMid),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: Type.label.copyWith(fontSize: 11, color: Palette.textMid),
-            ),
-          ],
+    final ink = enabled ? Palette.textMid : Palette.textLo;
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.5,
+      child: GestureDetector(
+        onTap: enabled ? onTap : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Palette.glassEdge),
+            color: Palette.glassFill,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 14, color: ink),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: Type.label.copyWith(fontSize: 11, color: ink),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2434,16 +2454,14 @@ class _AccountPanel extends StatelessWidget {
                     _DataButton(
                       label: 'CREATE ACCOUNT',
                       icon: Icons.person_add_alt,
-                      onTap: CloudSync.instance.ready
-                          ? () => _openForm(context, signIn: false)
-                          : () {},
+                      enabled: CloudSync.instance.ready,
+                      onTap: () => _openForm(context, signIn: false),
                     ),
                     _DataButton(
                       label: 'SIGN IN',
                       icon: Icons.login,
-                      onTap: CloudSync.instance.ready
-                          ? () => _openForm(context, signIn: true)
-                          : () {},
+                      enabled: CloudSync.instance.ready,
+                      onTap: () => _openForm(context, signIn: true),
                     ),
                   ],
                 ),

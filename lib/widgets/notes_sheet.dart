@@ -7,12 +7,15 @@ import '../tokens.dart';
 import 'glass.dart';
 
 /// Warm, human relative time for a note: "just now" / "2h ago" / "yesterday" /
-/// "3 days ago" / "Mar 4" — never a raw timestamp.
+/// "3 days ago" / "Mar 4" / "Mar 4, 2025" — never a raw timestamp. A note
+/// dated in the future (device clock rolled back after writing) reads as
+/// "just now" rather than "-1 days ago".
 String relativeWhen(DateTime then, {DateTime? now}) {
   final n = now ?? DateTime.now();
   final today = DateTime(n.year, n.month, n.day);
   final thatDay = DateTime(then.year, then.month, then.day);
   final dayGap = today.difference(thatDay).inDays;
+  if (dayGap < 0) return 'just now'; // future-dated (clock skew) — don't say "-1 days"
   if (dayGap == 0) {
     final mins = n.difference(then).inMinutes;
     if (mins < 1) return 'just now';
@@ -35,6 +38,11 @@ String relativeWhen(DateTime then, {DateTime? now}) {
     'Nov',
     'Dec',
   ];
+  // once it's more than ~11 months back, "Mar 4" is ambiguous across years —
+  // add the year so looking back never guesses (the whole point of a journal)
+  if (dayGap >= 330) {
+    return '${months[then.month - 1]} ${then.day}, ${then.year}';
+  }
   return '${months[then.month - 1]} ${then.day}';
 }
 
@@ -321,14 +329,40 @@ class _NotesSheetState extends State<_NotesSheet> {
     });
   }
 
-  void _delete(Note note) {
+  Future<void> _delete(Note note) async {
+    // a note holds real reflection — don't let a mis-tapped 16px X erase it
+    // with no way back (the journal hub already learned this lesson for free
+    // entries; domain/goal/quest notes deserve the same care)
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Palette.card,
+        title: Text('Delete this note?',
+            style: Type.display.copyWith(fontSize: 18)),
+        content: Text('This can’t be undone.',
+            style: Type.body.copyWith(fontSize: 14, color: Palette.textMid)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child:
+                Text('Keep', style: Type.label.copyWith(color: Palette.textMid)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child:
+                Text('Delete', style: Type.label.copyWith(color: Palette.danger)),
+          ),
+        ],
+      ),
+    );
+    if (yes != true) return;
     Sfx.instance.play('boing');
     if (_editing?.id == note.id) {
       _editing = null;
       _controller.clear();
     }
     widget.onDelete(note);
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override

@@ -47,6 +47,18 @@ class PaintedBackdrop extends StatelessWidget {
               'assets/backdrops/$scene.webp',
               fit: BoxFit.cover,
               filterQuality: FilterQuality.medium,
+              // a freshly-decoded frame fades up in ~260ms instead of popping
+              // in hard on a cold start (an already-cached image loads sync and
+              // skips the fade, so warm navigations stay instant)
+              frameBuilder: (context, child, frame, wasSyncLoaded) {
+                if (wasSyncLoaded) return child;
+                return AnimatedOpacity(
+                  opacity: frame == null ? 0 : 1,
+                  duration: const Duration(milliseconds: 260),
+                  curve: Curves.easeOut,
+                  child: child,
+                );
+              },
               errorBuilder: (_, _, _) => const DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

@@ -67,7 +67,8 @@ Future<void> shareSpace(
 }
 
 /// Prompt for a code and open that shared space.
-Future<void> visitSpace(BuildContext context) async {
+Future<void> visitSpace(BuildContext context,
+    {String? themeId, bool lively = true}) async {
   if (!CloudSync.instance.ready) {
     _toast(context, 'Visiting needs a connection — try again in a moment.');
     return;
@@ -85,7 +86,11 @@ Future<void> visitSpace(BuildContext context) async {
     return;
   }
   Navigator.of(context).push(MaterialPageRoute(
-    builder: (_) => VisitRoomScreen(room: room, code: code.trim().toUpperCase()),
+    builder: (_) => VisitRoomScreen(
+        room: room,
+        code: code.trim().toUpperCase(),
+        themeId: themeId,
+        lively: lively),
   ));
 }
 

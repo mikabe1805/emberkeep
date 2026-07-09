@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,7 @@ import '../cloud.dart';
 import '../content/ladders.dart';
 import '../content/routines.dart';
 import '../engine.dart';
+import '../journal_media.dart' as media;
 import '../models.dart';
 import '../notifications.dart';
 import '../storage.dart';
@@ -23,8 +25,9 @@ import 'me.dart';
 import 'quests.dart';
 
 /// App shell: warm candlelit desk, five pages (Me · Quests · Goals · Plans ·
-/// Sparks), floating glass nav dock. Owns the GameState + quest list,
-/// persists them locally, and runs day-rollover on launch/resume.
+/// Insights), floating glass nav dock. Owns the GameState + quest list,
+/// persists them locally, and runs day-rollover on launch/resume + at an
+/// in-app midnight tick (so a foregrounded PWA rolls over on time).
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
 
@@ -37,6 +40,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   List<Quest>? _quests;
   int _tab = 1; // Quests is home
   OverlayEntry? _morningOverlay;
+  Timer? _midnight; // fires at the next local midnight to roll the day over
 
   @override
   void initState() {
@@ -48,7 +52,29 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _midnight?.cancel();
     super.dispose();
+  }
+
+  /// Arm a one-shot timer for the next local midnight so a device left
+  /// foregrounded past 00:00 (a desktop PWA especially) rolls the day over on
+  /// time — instead of appending after-midnight completions to yesterday's
+  /// haul until the next resume. Re-armed after it fires and on resume.
+  void _armMidnight() {
+    _midnight?.cancel();
+    final now = DateTime.now();
+    final next = DateTime(now.year, now.month, now.day).add(
+      const Duration(days: 1, minutes: 1), // a minute past, to be safely over
+    );
+    _midnight = Timer(next.difference(now), () {
+      final s = _state, q = _quests;
+      if (mounted && s != null && q != null && s.rollover(q)) {
+        setState(() {});
+        _persist();
+        _maybeMorning();
+      }
+      _armMidnight();
+    });
   }
 
   @override
@@ -60,9 +86,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       Storage.logEvent('open');
       // a new day may have started while we were away
       if (s.rollover(q)) setState(() {});
+      _armMidnight(); // re-aim at the (possibly new) next midnight
       _maybeMorning();
     } else if (lifecycle == AppLifecycleState.paused ||
         lifecycle == AppLifecycleState.inactive) {
+      // stamp newness on the pause-path save too (only _persist did before),
+      // so a mutation that never notified — e.g. an applyLevelUps shield grant
+      // — can't be written with a stale timestamp and lose the cloud LWW race
+      s.lastModified = DateTime.now().millisecondsSinceEpoch;
       Storage.save(s, q);
       // flush the pending cloud push NOW — a scheduled debounce timer is
       // killed when the OS suspends the PWA, silently dropping the last
@@ -73,6 +104,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   Future<void> _load() async {
     await _loadFromStorage();
+    _armMidnight(); // begin the in-app day-rollover clock
     Storage.logEvent('open');
     // Defer the welcome/morning overlays until the cloud has settled, so a
     // recovered cloud save can suppress a spurious first-run welcome on a
@@ -111,13 +143,23 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Future<void> _connectCloud() async {
     await CloudSync.instance.init();
     if (!mounted || !CloudSync.instance.ready) return;
+    // the UI is interactive during the pull (up to 8s) — remember how new the
+    // local save was WHEN WE STARTED, so a completion made in those seconds
+    // isn't silently overwritten by the adopted cloud blob
+    final localBefore = _state?.lastModified ?? 0;
     final res = await CloudSync.instance.pull();
     // pull FAILED → we don't know the cloud's state; pushing local could
     // clobber a newer unread save. Skip entirely; retry next launch.
     if (!res.ok) return;
+    // local changed while we were pulling → don't adopt; our newer local wins,
+    // and the push below mirrors it up (recheck next launch handles the rest)
+    if ((_state?.lastModified ?? 0) != localBefore) {
+      CloudSync.instance.push();
+      return;
+    }
     final cloudRaw = res.data;
     if (cloudRaw != null &&
-        Storage.lastModifiedOf(cloudRaw) > (_state?.lastModified ?? 0) &&
+        Storage.lastModifiedOf(cloudRaw) > localBefore &&
         // never adopt an OLDER-schema cloud save even if its timestamp is
         // newer — an old build strips fields it doesn't know (loot, shields,
         // skin, theme, ladder progress); we re-enrich it instead (bug-hunt §5)
@@ -262,6 +304,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     old?.removeListener(_persist);
     CloudSync.instance.cancelPending(); // drop any stale pre-reset push
     Storage.clearUsage(); // reset means erase me — wipe the usage log too
+    media.clearAll(); // …and every journal photo on disk (else orphaned forever)
     final fresh = GameState()..rollover([]);
     fresh.addListener(_persist);
     setState(() {
@@ -324,6 +367,22 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       for (final live in _quests ?? const <Quest>[]) {
         if (!snapTitles.contains(live.title.trim().toLowerCase())) {
           quests.add(live);
+        }
+      }
+      // Same for JOURNAL entries: a line jotted during the undo window is real
+      // writing that the completion-revert has no business erasing. Merge any
+      // live entry whose id isn't in the snapshot back into the restored state.
+      // (Purchases intentionally revert with their embers — consistent — but
+      // words are pure loss, so they're kept.)
+      final live = _state;
+      if (live != null) {
+        final snapIds = {for (final n in state.journal) n.id};
+        final extra = [
+          for (final n in live.journal)
+            if (!snapIds.contains(n.id)) n
+        ];
+        if (extra.isNotEmpty) {
+          state.setJournal([...state.journal, ...extra]);
         }
       }
       _state?.removeListener(_persist);

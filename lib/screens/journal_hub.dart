@@ -17,7 +17,9 @@ import 'journal_entry.dart';
 /// note you've kept — free journal entries, domain notes, goal notes, quest
 /// logs — into one reverse-chronological feed, and gives the free journal a
 /// real place to write. Notes still live on their thing (notes-with-
-/// consequence); this is the window onto all of them.
+/// consequence); this is the window onto all of them. (round-61: a search
+/// field, month headers, photo thumbnails, and a lazy feed so a year of daily
+/// journaling scrolls smoothly.)
 class JournalHubScreen extends StatefulWidget {
   const JournalHubScreen({
     super.key,
@@ -44,6 +46,14 @@ class _Entry {
 
 class _JournalHubScreenState extends State<JournalHubScreen> {
   GameState get _s => widget.state;
+  final _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   List<_Entry> _all() {
     final out = <_Entry>[];
@@ -69,6 +79,20 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     return out;
   }
 
+  /// The feed after the search box — matches on the note text, its source
+  /// label, and the "written as" title, case-insensitive.
+  List<_Entry> _visible() {
+    final all = _all();
+    if (_query.isEmpty) return all;
+    final q = _query.toLowerCase();
+    return all
+        .where((e) =>
+            e.note.text.toLowerCase().contains(q) ||
+            e.source.toLowerCase().contains(q) ||
+            (e.note.context?.toLowerCase().contains(q) ?? false))
+        .toList();
+  }
+
   /// Open the full-page editor — for a brand-new entry, or to keep writing an
   /// existing one (notes are editable now, not write-once).
   void _openEditor({Note? entry}) {
@@ -88,8 +112,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     );
   }
 
-  /// Insert-or-replace, persist, and hand the saved Note back so the editor
-  /// keeps autosaving into the same entry. Silent (autosave fires often).
+  /// Insert-or-replace and hand the saved Note back so the editor keeps
+  /// autosaving into the same entry. setJournal notifies GameState, which the
+  /// shell already persists on — so we do NOT also call widget.onPersist here
+  /// (that double-encoded the whole save blob on every 650ms autosave tick).
   Note _commit(JournalPayload payload, Note? existing, bool markEdited) {
     if (existing == null) {
       // stamp who you were when you wrote it — proof of becoming
@@ -101,7 +127,6 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         images: payload.images,
       );
       _s.setJournal([..._s.journal, note]);
-      widget.onPersist();
       return note;
     }
     // markEdited only when this entry pre-existed the editor session; passing
@@ -113,19 +138,100 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       editedAt: markEdited ? Clock.now() : null,
     );
     _s.setJournal(_s.journal.replacing(updated));
-    widget.onPersist();
     return updated;
   }
 
   /// Remove an entry AND its device-local photos (they'd be orphaned forever
-  /// otherwise — nothing else references the files). Silent: the editor's
-  /// confirmed delete plays its own sound, and the autosave path is quiet.
+  /// otherwise — nothing else references the files). setJournal's notify
+  /// persists via the shell listener, so no explicit onPersist here either.
   void _deleteJournal(Note n) {
     for (final f in n.images) {
       media.delete(f);
     }
     _s.setJournal(_s.journal.without(n));
-    widget.onPersist();
+  }
+
+  /// A read-only look at a note that lives on a quest / goal / domain — the
+  /// hub can't edit those in place (they belong to their thing), but a dead
+  /// row is worse than a peek. Shows the whole note + where to go to change it.
+  void _peek(_Entry e) {
+    Sfx.instance.play('tick');
+    final where = e.source.startsWith('GOAL')
+        ? 'This note lives on your goal — open it there to edit.'
+        : e.source.startsWith('QUEST')
+            ? 'This note lives on your quest — open it there to edit.'
+            : 'This note lives on your ${e.source.toLowerCase()} domain — open it there to edit.';
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: GlassPanel(
+            tint: const Color(0xF22A211D),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _chip(e.source, e.color),
+                    const SizedBox(width: 8),
+                    Text(relativeWhen(e.note.at),
+                        style: Type.label
+                            .copyWith(fontSize: 10.5, color: Palette.textLo)),
+                    if (e.note.editedAt != null)
+                      Text('  ·  edited',
+                          style: Type.label
+                              .copyWith(fontSize: 10.5, color: Palette.textLo)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      e.note.text.isEmpty ? 'Photo entry' : e.note.text,
+                      style: Type.body.copyWith(
+                          fontSize: 15, height: 1.4, color: Palette.textHi),
+                    ),
+                  ),
+                ),
+                if (e.note.context != null && e.note.context!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('written as ${e.note.context}',
+                      style: Type.label.copyWith(
+                          fontSize: 10, color: e.color.withValues(alpha: 0.8))),
+                ],
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Icon(Icons.push_pin_outlined,
+                        size: 13, color: Palette.textLo),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(where,
+                          style: Type.body.copyWith(
+                              fontSize: 11.5,
+                              fontStyle: FontStyle.italic,
+                              color: Palette.textLo)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _monthLabel(DateTime d) {
+    const months = [
+      'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
+      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
+    ];
+    return '${months[d.month - 1]} ${d.year}';
   }
 
   @override
@@ -133,7 +239,25 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     return ListenableBuilder(
       listenable: _s,
       builder: (context, _) {
-        final all = _all();
+        final total = _s.journal.length +
+            Stat.values.fold<int>(0, (a, s) => a + _s.notesFor(s).length) +
+            _s.goals.fold<int>(0, (a, g) => a + g.notes.length) +
+            widget.quests.fold<int>(0, (a, q) => a + q.log.length);
+        final visible = _visible();
+
+        // flatten into a lazy item stream: a month-header string wherever the
+        // month changes, then the entry rows under it
+        final items = <Object>[];
+        String? lastMonth;
+        for (final e in visible) {
+          final m = _monthLabel(e.note.at);
+          if (m != lastMonth) {
+            items.add(m);
+            lastMonth = m;
+          }
+          items.add(e);
+        }
+
         return Scaffold(
           backgroundColor: Palette.parchment,
           body: WarmBackground(
@@ -146,47 +270,35 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                     title: 'Journal',
                     accent: Palette.xp,
                     subtitle: 'everything you’ve kept, in one place',
-                    pill: '${all.length}',
+                    pill: '$total',
                   ),
                   Expanded(
-                    child: ListView(
+                    child: ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 6, 16, 40),
-                      children: [
-                        _composer(),
-                        const SizedBox(height: 16),
-                        if (all.isEmpty)
-                          _emptyHint()
-                        else ...[
-                          Padding(
-                            padding: const EdgeInsets.only(left: 4, bottom: 8),
-                            child: Text(
-                              'EVERYTHING YOU’VE KEPT',
-                              style: Type.label.copyWith(
-                                fontSize: 11,
-                                color: Palette.textLo,
-                                letterSpacing: 1.5,
-                              ),
-                            ),
-                          ),
-                          GlassPanel(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 4),
-                            child: Column(
-                              children: [
-                                for (var i = 0; i < all.length; i++) ...[
-                                  if (i > 0)
-                                    Divider(
-                                      height: 1,
-                                      color:
-                                          Palette.textLo.withValues(alpha: 0.12),
-                                    ),
-                                  _row(all[i]),
-                                ],
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
+                      // +2 header slots (composer, search); +1 footer note
+                      itemCount: total == 0 ? 2 : items.length + 3,
+                      itemBuilder: (context, i) {
+                        if (i == 0) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _composer(),
+                          );
+                        }
+                        if (total == 0) return _emptyHint();
+                        if (i == 1) return _searchField();
+                        final idx = i - 2;
+                        if (idx < items.length) {
+                          final it = items[idx];
+                          if (it is String) return _monthHeader(it);
+                          return _card(it as _Entry);
+                        }
+                        // footer
+                        if (visible.isEmpty) {
+                          return _noMatch();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: Text(
                             'Notes live on your quests, goals and domains too — '
                             'open any of them to add more.',
                             textAlign: TextAlign.center,
@@ -196,8 +308,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                               color: Palette.textLo,
                             ),
                           ),
-                        ],
-                      ],
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -208,6 +320,76 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       },
     );
   }
+
+  Widget _searchField() => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: GlassPanel(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          child: Row(
+            children: [
+              Icon(Icons.search, size: 18, color: Palette.textLo),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  controller: _search,
+                  onChanged: (v) => setState(() => _query = v.trim()),
+                  cursorColor: Palette.xp,
+                  style: Type.body.copyWith(fontSize: 14, color: Palette.textHi),
+                  decoration: InputDecoration(
+                    isCollapsed: true,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    border: InputBorder.none,
+                    hintText: 'Search your notes',
+                    hintStyle:
+                        Type.body.copyWith(fontSize: 14, color: Palette.textLo),
+                  ),
+                ),
+              ),
+              if (_query.isNotEmpty)
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    _search.clear();
+                    setState(() => _query = '');
+                    FocusScope.of(context).unfocus();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child:
+                        Icon(Icons.close, size: 16, color: Palette.textLo),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _monthHeader(String label) => Padding(
+        padding: const EdgeInsets.only(left: 4, top: 10, bottom: 8),
+        child: Text(
+          label,
+          style: Type.label.copyWith(
+            fontSize: 11,
+            color: Palette.textLo,
+            letterSpacing: 1.5,
+          ),
+        ),
+      );
+
+  Widget _noMatch() => Padding(
+        padding: const EdgeInsets.only(top: 30),
+        child: Column(
+          children: [
+            Icon(Icons.search_off, size: 24, color: Palette.textLo),
+            const SizedBox(height: 10),
+            Text('nothing matches — yet',
+                style: Type.body.copyWith(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo)),
+          ],
+        ),
+      );
 
   /// A prominent invitation into the full-page editor — a whole page to write
   /// on, not a cramped two-line box. (round-53)
@@ -277,7 +459,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         ),
       );
 
-  Widget _row(_Entry e) {
+  /// One entry as its own glass card slice — journal rows reopen the editor,
+  /// the rest open a read-only peek (they live on their quest/goal/domain).
+  Widget _card(_Entry e) {
+    final photoOnly = e.note.text.isEmpty && e.note.images.isNotEmpty;
     final body = Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
@@ -289,52 +474,37 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
               const SizedBox(width: 8),
               Text(
                 relativeWhen(e.note.at),
-                style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
+                style: Type.label.copyWith(fontSize: 10.5, color: Palette.textLo),
               ),
               if (e.note.editedAt != null)
-                Text(
-                  '  ·  edited',
-                  style:
-                      Type.label.copyWith(fontSize: 10, color: Palette.textLo),
-                ),
-              if (e.note.images.isNotEmpty) ...[
-                const SizedBox(width: 6),
-                Icon(Icons.photo_outlined, size: 12, color: e.color),
-                const SizedBox(width: 2),
-                Text('${e.note.images.length}',
-                    style: Type.label.copyWith(fontSize: 10, color: e.color)),
-              ],
+                Text('  ·  edited',
+                    style: Type.label
+                        .copyWith(fontSize: 10.5, color: Palette.textLo)),
               const Spacer(),
               // no one-tap delete here — a whole page of writing dies too
               // easily to a 15px X. The row opens the editor, whose delete
               // asks first (and cleans up the entry's photos).
-              if (e.journal)
-                const Icon(Icons.chevron_right,
-                    size: 15, color: Palette.textLo),
+              Icon(e.journal ? Icons.chevron_right : Icons.visibility_outlined,
+                  size: 15, color: Palette.textLo),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            // a photo-only entry still reads nicely in the feed
-            e.note.text.isEmpty && e.note.images.isNotEmpty
-                ? 'Photo entry'
-                : e.note.text,
-            // entries can be whole pages now — show a tidy preview in the feed.
-            maxLines: 6,
-            overflow: TextOverflow.ellipsis,
-            style: Type.body.copyWith(
-              fontSize: 14,
-              color: e.note.text.isEmpty && e.note.images.isNotEmpty
-                  ? Palette.textLo
-                  : Palette.textHi,
-              height: 1.3,
-              fontStyle: e.note.text.isEmpty && e.note.images.isNotEmpty
-                  ? FontStyle.italic
-                  : FontStyle.normal,
+          if (e.note.text.isNotEmpty || photoOnly) ...[
+            const SizedBox(height: 6),
+            Text(
+              photoOnly ? 'Photo entry' : e.note.text,
+              maxLines: 6,
+              overflow: TextOverflow.ellipsis,
+              style: Type.body.copyWith(
+                fontSize: 14,
+                color: photoOnly ? Palette.textLo : Palette.textHi,
+                height: 1.3,
+                fontStyle: photoOnly ? FontStyle.italic : FontStyle.normal,
+              ),
             ),
-          ),
+          ],
+          if (e.note.images.isNotEmpty) _thumbs(e.note.images),
           if (e.note.context != null && e.note.context!.isNotEmpty) ...[
-            const SizedBox(height: 3),
+            const SizedBox(height: 4),
             Text(
               'written as ${e.note.context}',
               style: Type.label.copyWith(
@@ -346,12 +516,52 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         ],
       ),
     );
-    if (!e.journal) return body;
-    // a free journal entry opens back up to keep writing — tap to continue.
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => _openEditor(entry: e.note),
-      child: body,
+      onTap: () => e.journal ? _openEditor(entry: e.note) : _peek(e),
+      child: GlassPanel(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+        child: body,
+      ),
+    );
+  }
+
+  /// A little strip of rounded photo thumbnails for entries that carry images
+  /// (native only — media.image is a no-op on web). Caps at 3 with a "+N".
+  Widget _thumbs(List<String> images) {
+    const max = 3;
+    final shown = images.take(max).toList();
+    final extra = images.length - shown.length;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          for (final name in shown) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: 52,
+                height: 52,
+                child: media.image(name, maxHeight: 52),
+              ),
+            ),
+            const SizedBox(width: 6),
+          ],
+          if (extra > 0)
+            Container(
+              width: 40,
+              height: 52,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.black.withValues(alpha: 0.18),
+              ),
+              child: Text('+$extra',
+                  style:
+                      Type.label.copyWith(fontSize: 12, color: Palette.textLo)),
+            ),
+        ],
+      ),
     );
   }
 
@@ -366,7 +576,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Type.label.copyWith(
-              fontSize: 9, color: c, letterSpacing: 0.8),
+              fontSize: 9.5, color: c, letterSpacing: 0.8),
         ),
       );
 }

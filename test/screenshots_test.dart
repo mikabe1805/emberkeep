@@ -6,7 +6,11 @@
 import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/furniture.dart';
 import 'package:emberkeep/content/room_styles.dart';
+import 'package:emberkeep/content/scenes.dart';
 import 'package:emberkeep/content/window_scenes.dart';
+import 'package:emberkeep/engine.dart';
+import 'package:emberkeep/models.dart';
+import 'package:emberkeep/screens/journal_hub.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/home_room.dart';
 import 'package:emberkeep/widgets/mascot_sprite.dart';
@@ -133,22 +137,25 @@ void main() {
   });
 
   testWidgets('portrait: skins', (tester) async {
+    // a Wrap, not a Row: the skin list grows (r60 added four outfits) and a
+    // single row overflows the default 800px test surface
+    await tester.binding.setSurfaceSize(const Size(700, 520));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await _shoot(
       tester,
       _stage(
         bg: const Color(0xFF1C141A),
         pad: 14,
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            for (final sk in creatureSkins) ...[
+            for (final sk in creatureSkins)
               Portrait(
                   size: 96,
                   level: 8,
                   mood: PortraitMood.happy,
                   skin: sk.colors),
-              const SizedBox(width: 8),
-            ],
           ],
         ),
       ),
@@ -404,5 +411,139 @@ void main() {
       await expectLater(find.byType(MaterialApp),
           matchesGoldenFile('goldens/painted_backdrops.png'));
     }
+  });
+
+  // the four costumed outfit skins — whole frame-sets, not recolors, so they
+  // need their OWN golden (the procedural 'portrait: skins' capture can't paint
+  // a costume). Renders each on its stage at two growth tiers.
+  testWidgets('mascot: outfit sprites', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(920, 560));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const shown = [
+      ('adventurer', 2),
+      ('healer', 8),
+      ('knight', 16),
+      ('wizard', 34),
+    ];
+    await tester.pumpWidget(_stage(
+      bg: const Color(0xFF1C141A),
+      pad: 16,
+      Wrap(
+        spacing: 16,
+        runSpacing: 16,
+        children: [
+          for (final s in shown)
+            SizedBox(
+              width: 180,
+              height: 180,
+              child: MascotSprite(
+                  size: 160, skinId: s.$1, level: s.$2,
+                  mood: PortraitMood.happy),
+            ),
+        ],
+      ),
+    ));
+    final ctx = tester.element(find.byType(MascotSprite).first);
+    await tester.runAsync(() async {
+      for (final s in shown) {
+        final st = frameTierForLevel(s.$2);
+        await precacheImage(
+            AssetImage('assets/mascot/${s.$1}/s${st}_happy_00.png'), ctx);
+      }
+    });
+    await tester.pump(const Duration(milliseconds: 200));
+    if (_capture) {
+      await expectLater(find.byType(MaterialApp),
+          matchesGoldenFile('goldens/outfit_sprites.png'));
+    }
+  });
+
+  testWidgets('painted stages: the purchasable set', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1100, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const shown = [
+      ('garden', 'lilac', 10),
+      ('autumn', 'ember_amber', 16),
+      ('greenhouse', 'mint_glass', 24),
+      ('bakery', 'rose_quartz', 10),
+      ('library', 'periwinkle', 34),
+      ('rooftop', 'slate', 24),
+      ('seaside', 'gilded', 16),
+      ('snownook', 'ember_amber', 34),
+    ];
+    Widget stage((String, String, int) s) {
+      final scene = stageSceneById(s.$1)!;
+      return SizedBox(
+        width: 520,
+        child: PaintedBackdrop(
+          scene: scene.id,
+          height: 200,
+          alignment: scene.stand,
+          child: MascotSprite(
+              size: 104, skinId: s.$2, level: s.$3,
+              mood: PortraitMood.happy,
+              skin: creatureColorsById(s.$2)),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(_stage(
+      Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [for (final s in shown) stage(s)],
+      ),
+      pad: 12,
+    ));
+    final ctx = tester.element(find.byType(MascotSprite).first);
+    await tester.runAsync(() async {
+      for (final s in shown) {
+        await precacheImage(AssetImage('assets/backdrops/${s.$1}.webp'), ctx);
+      }
+      for (final s in shown) {
+        final stagen = frameTierForLevel(s.$3);
+        await precacheImage(
+            AssetImage('assets/mascot/${s.$2}/s${stagen}_happy_00.png'), ctx);
+      }
+    });
+    await tester.pump(const Duration(milliseconds: 200));
+    if (_capture) {
+      await expectLater(find.byType(MaterialApp),
+          matchesGoldenFile('goldens/stage_scenes.png'));
+    }
+  });
+
+  // the journal hub feed (round-61: search field, month headers, entry cards)
+  // — restores the visual coverage the orphaned journal_hub.png golden lost.
+  testWidgets('journal hub: the feed', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(440, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final state = GameState()..level = 8;
+    state.setJournal([
+      Note(
+        at: DateTime(2026, 7, 7, 21, 30),
+        text: 'Long day, but I kept the fire going. Two quests done and a '
+            'walk after dinner — small, but it counts.',
+        context: 'Kindling',
+      ),
+      Note(
+        at: DateTime(2026, 7, 2, 8, 15),
+        text: 'Morning pages: what I want this week to feel like.',
+      ),
+      Note(
+        at: DateTime(2026, 6, 24, 19),
+        text: 'A quieter reflection from last month — looking back already.',
+        context: 'Emberkeeper',
+      ),
+    ]);
+    await _shoot(
+      tester,
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: JournalHubScreen(
+            state: state, quests: const [], onPersist: () {}),
+      ),
+      'journal_hub',
+    );
   });
 }

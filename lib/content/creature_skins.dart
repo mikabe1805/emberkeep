@@ -16,6 +16,7 @@ class CreatureSkin {
     required this.price,
     required this.colors,
     this.requires,
+    this.outfit = false,
   });
 
   final String id;
@@ -29,6 +30,12 @@ class CreatureSkin {
 
   /// Achievement id gate (null → always on the shelf).
   final String? requires;
+
+  /// An OUTFIT skin (round-60) — a whole costumed variant of the creature
+  /// (hood, helmet, hat…) rather than a recolour. Its sprite frames carry the
+  /// costume; [colors] only tint the fallback painter and the room's glow
+  /// pool, so previews should show the sprite, not the painter.
+  final bool outfit;
 }
 
 const _amber = CreatureSkin(
@@ -77,6 +84,38 @@ final creatureSkins = <CreatureSkin>[
     price: 320,
     colors: [Color(0xFFFFF6D9), Color(0xFFFFE08A), Color(0xFFE8B44E), Color(0xFF8A6A1E)],
     requires: 'ascendant',
+  ),
+  // ── outfits: the ember takes up a calling (round-60). Generated from the
+  // locked ember by tools/gen_mascot_outfits.py; colors below only drive the
+  // glow pool + fallback painter, the costume lives in the frames. ──
+  const CreatureSkin(
+    id: 'adventurer',
+    name: 'The Wayfarer',
+    price: 340,
+    colors: [Color(0xFFFFF2DC), Color(0xFFE8C494), Color(0xFFB37E4E), Color(0xFF5E3E20)],
+    outfit: true,
+  ),
+  const CreatureSkin(
+    id: 'healer',
+    name: 'The Herbalist',
+    price: 360,
+    colors: [Color(0xFFF4F7E8), Color(0xFFCFE0B5), Color(0xFF8FB07E), Color(0xFF44603F)],
+    outfit: true,
+  ),
+  const CreatureSkin(
+    id: 'knight',
+    name: 'The Knight',
+    price: 380,
+    colors: [Color(0xFFFFF8E6), Color(0xFFEFD9A8), Color(0xFFB39859), Color(0xFF5C4E28)],
+    outfit: true,
+  ),
+  const CreatureSkin(
+    id: 'wizard',
+    name: 'The Starcaller',
+    price: 400,
+    colors: [Color(0xFFF0EDFF), Color(0xFFC9C2F0), Color(0xFF8E86D0), Color(0xFF4A4478)],
+    requires: 'ascendant',
+    outfit: true,
   ),
 ];
 

@@ -87,7 +87,20 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   Note? _current;
   bool _dirty = false;
   bool _everSaved = false;
+  int _words = 0;
   _Block? _active; // where the cursor last was (photo inserts after it)
+
+  /// The rich doc as last committed — the truth we diff against. A bare tap
+  /// into an entry (which a raw controller listener reports as a change,
+  /// because selection moves) must NOT count as an edit: we compare the
+  /// encoded doc, so only real words move the "edited" stamp and trigger a
+  /// save. (Photos taken in-app aren't in the gallery — a phantom rewrite that
+  /// bumped lastModified could even lose a cloud merge, so this matters.)
+  String _committedRich = '';
+
+  /// Files whose blocks were removed but not yet flushed to disk — held so an
+  /// "Undo" can put the photo back. Deleted for real on exit / next removal.
+  final List<String> _pendingPhotoDeletes = [];
 
   @override
   void initState() {
@@ -96,6 +109,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     _current = widget.initial;
     _everSaved = widget.initial != null;
     _initBlocks();
+    // remember exactly what we loaded, so re-saving identical content is a
+    // no-op and never stamps "edited"
+    _committedRich = JournalDoc.encode(_toDoc(trim: true));
+    _words = _countWords();
     if (widget.initial == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _blocks.isNotEmpty) _blocks.first.focus?.requestFocus();
@@ -140,6 +157,12 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _debounce?.cancel();
+    // any photo removed but not yet flushed to disk (its undo snackbar still
+    // open at exit) gets deleted for real now — leaving nothing orphaned
+    for (final name in _pendingPhotoDeletes) {
+      media.delete(name);
+    }
+    _pendingPhotoDeletes.clear();
     for (final b in _blocks) {
       b.dispose();
     }
@@ -147,9 +170,31 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   }
 
   void _onChanged() {
-    if (!_dirty) setState(() => _dirty = true);
+    // diff against the committed doc — a selection move (which the controller
+    // also reports) encodes identically, so it never marks dirty or schedules
+    // a phantom save
+    final changed = JournalDoc.encode(_toDoc(trim: true)) != _committedRich;
+    final words = _countWords();
+    if (changed != _dirty || words != _words) {
+      setState(() {
+        _dirty = changed;
+        _words = words;
+      });
+    }
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 650), _flush);
+    if (changed) _debounce = Timer(const Duration(milliseconds: 650), _flush);
+  }
+
+  /// Words across every text block — a quiet companion in the status bar.
+  int _countWords() {
+    var n = 0;
+    for (final b in _blocks) {
+      if (b.isImage) continue;
+      for (final w in b.controller!.text.trim().split(RegExp(r'\s+'))) {
+        if (w.isNotEmpty) n++;
+      }
+    }
+    return n;
   }
 
   List<JournalBlock> _toDoc({bool trim = false}) {
@@ -169,16 +214,22 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
 
   void _flush({bool exiting = false}) {
     _debounce?.cancel();
-    if (!_dirty) return;
-    final live = _toDoc();
-    final plain = JournalDoc.plainText(live);
-    final imgs = JournalDoc.images(live);
+    // one trimmed doc drives everything: both the plain flattening (feed /
+    // search) and the stored rich come from the SAME trimmed blocks, so a
+    // preview never carries the blank-line junk of auto-inserted empty
+    // paragraphs (the old code flattened the untrimmed doc).
+    final doc = _toDoc(trim: true);
+    final plain = JournalDoc.plainText(doc);
+    final imgs = JournalDoc.images(doc);
     if (plain.isEmpty && imgs.isEmpty) {
       // mid-session, an empty page is a MOMENT (select-all-cut while
       // rewriting), not a decision — deleting now would destroy the entry's
       // identity (id / date / "written as" context) and re-mint it on the next
       // keystroke. Only an exit with an empty page really removes the entry.
-      if (!exiting) return;
+      if (!exiting) {
+        if (_dirty) setState(() => _dirty = false);
+        return;
+      }
       final gone = _current;
       _current = null;
       _everSaved = false;
@@ -187,9 +238,16 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       if (mounted) setState(() {});
       return;
     }
-    final rich = JournalDoc.encode(_toDoc(trim: true));
-    _current =
-        widget.commit(JournalPayload(plain, rich, imgs), _current, widget.initial != null);
+    final rich = JournalDoc.encode(doc);
+    // nothing actually changed since the last commit → don't rewrite, don't
+    // bump editedAt/lastModified (the false-edit fix, belt-and-braces)
+    if (rich == _committedRich) {
+      if (_dirty) setState(() => _dirty = false);
+      return;
+    }
+    _current = widget.commit(
+        JournalPayload(plain, rich, imgs), _current, widget.initial != null);
+    _committedRich = rich;
     _everSaved = true;
     _dirty = false;
     if (mounted) setState(() {});
@@ -239,14 +297,85 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   }
 
   void _removeImage(_Block b) {
+    final name = b.image!;
+    final idx = _blocks.indexOf(b);
+    if (idx < 0) return;
+    // snapshot the page AS IT STANDS (photo still in it) so Undo can restore
+    // it exactly — including any paragraph split the photo was sitting in
+    final restore = _toDoc();
     Sfx.instance.play('boing');
-    media.delete(b.image!);
     setState(() {
-      _blocks.remove(b);
+      _blocks.removeAt(idx);
       b.dispose();
+      // the photo sat between two paragraphs — stitch them back into one so no
+      // invisible seam (and no un-selectable split) is left behind
+      if (idx > 0 &&
+          idx < _blocks.length &&
+          !_blocks[idx - 1].isImage &&
+          !_blocks[idx].isImage) {
+        final prev = _blocks[idx - 1], next = _blocks[idx];
+        final a = prev.controller!.text, c = next.controller!.text;
+        prev.controller!.text =
+            a.isEmpty ? c : (c.isEmpty ? a : '$a\n$c');
+        _blocks.removeAt(idx);
+        next.dispose();
+      }
       if (_blocks.isEmpty || _blocks.last.isImage) {
         _blocks.add(_Block.text('')..controller!.addListener(_onChanged));
       }
+      _active = _blocks.lastWhere((x) => !x.isImage, orElse: () => _blocks.first);
+    });
+    // DON'T delete the file yet — a fat-fingered X on an in-app photo (never in
+    // the gallery) would be unrecoverable. Hold it; Undo cancels, the snackbar
+    // closing for any other reason commits the delete.
+    _pendingPhotoDeletes.add(name);
+    _dirty = true;
+    _flush();
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    final ctrl = messenger.showSnackBar(SnackBar(
+      backgroundColor: Palette.card,
+      duration: const Duration(seconds: 4),
+      content: Text('Photo removed',
+          style: Type.body.copyWith(fontSize: 13, color: Palette.textHi)),
+      action: SnackBarAction(
+        label: 'Undo',
+        textColor: widget.accent,
+        onPressed: () {
+          _pendingPhotoDeletes.remove(name); // keep the file
+          _restoreDoc(restore);
+        },
+      ),
+    ));
+    ctrl.closed.then((reason) {
+      // dismissed / timed out without Undo → the delete is now real
+      if (reason != SnackBarClosedReason.action &&
+          _pendingPhotoDeletes.remove(name)) {
+        media.delete(name);
+      }
+    });
+  }
+
+  /// Rebuild the editor's blocks from a saved [doc] (Undo of a photo removal).
+  void _restoreDoc(List<JournalBlock> doc) {
+    if (!mounted) return;
+    setState(() {
+      for (final b in _blocks) {
+        b.dispose();
+      }
+      _blocks.clear();
+      for (final jb in doc) {
+        _blocks.add(jb.isImage
+            ? _Block.image(jb.image!)
+            : _Block.text(jb.text ?? ''));
+      }
+      if (_blocks.isEmpty || _blocks.last.isImage) {
+        _blocks.add(_Block.text(''));
+      }
+      for (final b in _blocks) {
+        b.controller?.addListener(_onChanged);
+      }
+      _active = _blocks.lastWhere((x) => !x.isImage, orElse: () => _blocks.first);
     });
     _dirty = true;
     _flush();
@@ -403,18 +532,26 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
           children: [
             media.image(b.image!),
             Positioned(
-              top: 8,
-              right: 8,
+              top: 2,
+              right: 2,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => _removeImage(b),
+                // a generous transparent margin around the dot so the tap
+                // target clears the 44px guideline — a photo's only copy
+                // shouldn't die to a near-miss (and Undo has its back anyway)
                 child: Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color(0x99140C06),
+                  padding: const EdgeInsets.all(10),
+                  color: Colors.transparent,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0x99140C06),
+                    ),
+                    child:
+                        const Icon(Icons.close, size: 16, color: Palette.textHi),
                   ),
-                  child: const Icon(Icons.close, size: 16, color: Palette.textHi),
                 ),
               ),
             ),
@@ -460,6 +597,11 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
           Text(widget.heading,
               style: Type.display.copyWith(fontSize: 20, color: widget.accent)),
           const Spacer(),
+          if (_words > 0) ...[
+            Text('$_words ${_words == 1 ? 'word' : 'words'}',
+                style: Type.label.copyWith(fontSize: 10, color: Palette.textLo)),
+            const SizedBox(width: 10),
+          ],
           if (_dirty || _everSaved)
             Row(
               children: [

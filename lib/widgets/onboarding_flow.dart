@@ -32,6 +32,16 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _name = TextEditingController();
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // the hearth painting is the first thing a new player ever sees — warm
+    // it into the cache so it never pops in a beat after the text does
+    precacheImage(const AssetImage('assets/backdrops/hearthside.webp'), context);
+    precacheImage(
+        const AssetImage('assets/mascot/ember_amber/s0_idle_00.png'), context);
+  }
+
+  @override
   void dispose() {
     _name.dispose();
     super.dispose();
