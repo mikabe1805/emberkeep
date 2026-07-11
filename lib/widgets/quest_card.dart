@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'dart:math' show min;
 
+import '../clock.dart';
 import '../models.dart';
 import '../tokens.dart';
 import 'day_picker.dart' show weekdayLabel;
@@ -87,6 +88,11 @@ class _QuestCardState extends State<QuestCard>
       ),
       child: Pressable(
         enabled: !done,
+        semanticLabel:
+            '${q.displayTitle}, ${done ? 'completed' : '${_difficultyWord(q.difficulty).toLowerCase()}, ${widget.xpPreview} XP'}',
+        semanticHint: done
+            ? (widget.onManage == null ? null : 'Use the Manage action to edit')
+            : 'Activate to complete${widget.onManage == null ? '' : '; use the Manage action to edit'}',
         onTapUp: _handleTap,
         onLongPress: widget.onManage,
         borderRadius: BorderRadius.circular(20),
@@ -196,7 +202,7 @@ class _QuestCardState extends State<QuestCard>
                               else if (!done && q.isEvent)
                                 Builder(
                                   builder: (_) {
-                                    final now = DateTime.now();
+                                    final now = Clock.now();
                                     final overdue = q.dueDate!.isBefore(
                                       DateTime(now.year, now.month, now.day),
                                     );
@@ -219,7 +225,7 @@ class _QuestCardState extends State<QuestCard>
                                     // a calm carry-forward, never a red miss.
                                     final anchor = q.weekdays.reduce(min);
                                     final lingering =
-                                        DateTime.now().weekday > anchor;
+                                        Clock.now().weekday > anchor;
                                     return _MetaChip(
                                       lingering ? Icons.east : null,
                                       lingering

@@ -130,7 +130,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
         children: [
           Text(
             'NEED IDEAS? TAP ONE',
-            style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
+            style: Type.label.copyWith(fontSize: 11, color: Palette.textLo),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -255,6 +255,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
       // carry the player's chosen canvas theme through — without it, opening
       // the wizard flickered the background to default and back on pop
       themeId: widget.state.canvasTheme,
+      reduceMotion: widget.state.reduceMotion,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
@@ -343,7 +344,10 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                   ),
                   if (_kind == GoalKind.achieve) ...[
                     const SizedBox(height: 12),
-                    Row(
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         Text(
                           'done after',
@@ -352,41 +356,48 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                             color: Palette.textMid,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        for (final t in const [5, 10, 25, 50]) ...[
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              Sfx.instance.play('tick');
-                              setState(() => _target = t);
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 11,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(999),
-                                color: _target == t
-                                    ? _stat.color.withValues(alpha: 0.2)
-                                    : Colors.transparent,
-                                border: Border.all(
-                                  color: _stat.color.withValues(
-                                    alpha: _target == t ? 0.8 : 0.3,
+                        for (final t in const [5, 10, 25, 50])
+                          Semantics(
+                            button: true,
+                            selected: _target == t,
+                            label: '$t times',
+                            child: GestureDetector(
+                              excludeFromSemantics: true,
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                Sfx.instance.play('tick');
+                                setState(() => _target = t);
+                              },
+                              child: Container(
+                                constraints: const BoxConstraints(
+                                  minWidth: 44,
+                                  minHeight: 44,
+                                ),
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 11,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  color: _target == t
+                                      ? _stat.color.withValues(alpha: 0.2)
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                    color: _stat.color.withValues(
+                                      alpha: _target == t ? 0.8 : 0.3,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              child: Text(
-                                '$t',
-                                style: Type.numerals.copyWith(
-                                  fontSize: 13,
-                                  color: _stat.color,
+                                child: Text(
+                                  '$t',
+                                  style: Type.numerals.copyWith(
+                                    fontSize: 13,
+                                    color: _stat.color,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 6),
-                        ],
                         Text(
                           'times',
                           style: Type.body.copyWith(
@@ -526,9 +537,10 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
               ),
               if (_sealing)
                 _Seal(
-                    stat: _stat,
-                    name: _name.text.trim(),
-                    reduce: widget.state.reduceMotion),
+                  stat: _stat,
+                  name: _name.text.trim(),
+                  reduce: widget.state.reduceMotion,
+                ),
             ],
           ),
         ),

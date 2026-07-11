@@ -18,11 +18,13 @@ class StreakMilestoneOverlay extends StatefulWidget {
     required this.days,
     required this.embers,
     required this.onDismiss,
+    this.reduceMotion = false,
   });
 
   final int days;
   final int embers;
   final VoidCallback onDismiss;
+  final bool reduceMotion;
 
   @override
   State<StreakMilestoneOverlay> createState() => _StreakMilestoneOverlayState();
@@ -36,15 +38,21 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
   );
 
   late final Animation<double> _dim = CurvedAnimation(
-      parent: _c, curve: const Interval(0, 0.12, curve: Curves.easeOut));
+    parent: _c,
+    curve: const Interval(0, 0.12, curve: Curves.easeOut),
+  );
   late final Animation<double> _slam = CurvedAnimation(
-      parent: _c, curve: const Interval(0.08, 0.45, curve: Motion.slam));
+    parent: _c,
+    curve: const Interval(0.08, 0.45, curve: Motion.slam),
+  );
   late final Animation<double> _chestOpen = CurvedAnimation(
-      parent: _c,
-      curve: const Interval(0.4, 0.65, curve: Curves.easeOutCubic));
+    parent: _c,
+    curve: const Interval(0.4, 0.65, curve: Curves.easeOutCubic),
+  );
   late final Animation<double> _emberRise = CurvedAnimation(
-      parent: _c,
-      curve: const Interval(0.6, 1.0, curve: Curves.easeOutCubic));
+    parent: _c,
+    curve: const Interval(0.6, 1.0, curve: Curves.easeOutCubic),
+  );
 
   bool _burst = false;
 
@@ -76,7 +84,11 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final intensity = widget.days >= 100 ? 1.0 : widget.days >= 30 ? 0.7 : 0.4;
+    final intensity = widget.days >= 100
+        ? 1.0
+        : widget.days >= 30
+        ? 0.7
+        : 0.4;
     return GestureDetector(
       onTap: widget.onDismiss,
       child: AnimatedBuilder(
@@ -100,9 +112,14 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                       MediaQuery.sizeOf(context).height / 2,
                     ),
                     colors: [Palette.streak, Palette.xp, Palette.xpLight],
-                    count: widget.days >= 100 ? 40 : widget.days >= 30 ? 28 : 18,
+                    count: widget.days >= 100
+                        ? 40
+                        : widget.days >= 30
+                        ? 28
+                        : 18,
                     vibrancy: intensity * 1.3,
                     spread: widget.days >= 100 ? 140 : 100,
+                    reduce: widget.reduceMotion,
                   ),
                 ),
               // content
@@ -110,7 +127,9 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                 child: GlassPanel(
                   blur: true,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 32, vertical: 28),
+                    horizontal: 32,
+                    vertical: 28,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -173,13 +192,16 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                                     ],
                                   ),
                                   border: Border.all(
-                                    color: Palette.streak.withValues(alpha: 0.4),
+                                    color: Palette.streak.withValues(
+                                      alpha: 0.4,
+                                    ),
                                     width: 2,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Palette.streak
-                                          .withValues(alpha: 0.3),
+                                      color: Palette.streak.withValues(
+                                        alpha: 0.3,
+                                      ),
                                       blurRadius: 16,
                                     ),
                                   ],
@@ -188,8 +210,7 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                             ),
                             // lid opens
                             Transform.translate(
-                              offset: Offset(
-                                  0, -_chestOpen.value * 30),
+                              offset: Offset(0, -_chestOpen.value * 30),
                               child: Transform.rotate(
                                 angle: -_chestOpen.value * 0.3,
                                 alignment: Alignment.bottomCenter,
@@ -210,8 +231,9 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                                       ],
                                     ),
                                     border: Border.all(
-                                      color:
-                                          Palette.streak.withValues(alpha: 0.4),
+                                      color: Palette.streak.withValues(
+                                        alpha: 0.4,
+                                      ),
                                       width: 2,
                                     ),
                                   ),
@@ -237,8 +259,9 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                                         color: Palette.xp,
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Palette.xp
-                                                .withValues(alpha: 0.6),
+                                            color: Palette.xp.withValues(
+                                              alpha: 0.6,
+                                            ),
                                             blurRadius: 8,
                                           ),
                                         ],

@@ -136,7 +136,7 @@ const evidenceCards = <EvidenceCard>[
         'After a slip, guilt makes you more likely to quit; self-compassion '
         'makes you more likely to try again. In experiments, people who were '
         'kind to themselves about a setback then worked harder to improve. '
-        'That’s why this app never punishes you for a missed day.',
+        'That’s why this app never punishes you for a paused day.',
     source: 'Breines & Chen 2012, Personality & Social Psychology Bulletin',
   ),
   EvidenceCard(

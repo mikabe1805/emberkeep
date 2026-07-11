@@ -41,6 +41,7 @@ class JournalEntryScreen extends StatefulWidget {
     required this.onDelete,
     this.initial,
     this.themeId,
+    this.reduceMotion = false,
     this.heading = 'Journal',
     this.hint = 'Start writing…',
   });
@@ -48,9 +49,10 @@ class JournalEntryScreen extends StatefulWidget {
   final Note? initial;
   final Color accent;
   final Note Function(JournalPayload payload, Note? existing, bool markEdited)
-      commit;
+  commit;
   final void Function(Note entry) onDelete;
   final String? themeId;
+  final bool reduceMotion;
   final String heading;
   final String hint;
 
@@ -62,12 +64,10 @@ class JournalEntryScreen extends StatefulWidget {
 /// inline image (a stored relative filename).
 class _Block {
   _Block.text(String t)
-      : image = null,
-        controller = TextEditingController(text: t),
-        focus = FocusNode();
-  _Block.image(this.image)
-      : controller = null,
-        focus = null;
+    : image = null,
+      controller = TextEditingController(text: t),
+      focus = FocusNode();
+  _Block.image(this.image) : controller = null, focus = null;
 
   final String? image;
   final TextEditingController? controller;
@@ -143,7 +143,9 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       doc = [JournalBlock.text(n.text)];
     }
     for (final b in doc) {
-      _blocks.add(b.isImage ? _Block.image(b.image!) : _Block.text(b.text ?? ''));
+      _blocks.add(
+        b.isImage ? _Block.image(b.image!) : _Block.text(b.text ?? ''),
+      );
     }
     // always end on a text block so there's somewhere to keep writing
     if (_blocks.isEmpty || _blocks.last.isImage) _blocks.add(_Block.text(''));
@@ -246,7 +248,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       return;
     }
     _current = widget.commit(
-        JournalPayload(plain, rich, imgs), _current, widget.initial != null);
+      JournalPayload(plain, rich, imgs),
+      _current,
+      widget.initial != null,
+    );
     _committedRich = rich;
     _everSaved = true;
     _dirty = false;
@@ -255,7 +260,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
 
   /// Puts the cursor at the end of the last paragraph (tap-anywhere-to-write).
   void _focusTail() {
-    final tail = _blocks.lastWhere((b) => !b.isImage, orElse: () => _blocks.last);
+    final tail = _blocks.lastWhere(
+      (b) => !b.isImage,
+      orElse: () => _blocks.last,
+    );
     final c = tail.controller;
     if (c == null) return;
     _active = tail;
@@ -269,15 +277,17 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       // a FAILURE (denied permission, camera error) must not read as "photos
       // are broken" — tell them warmly what to do. A plain cancel stays silent.
       if (mounted && media.lastPickFailed) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: Palette.card,
-          content: Text(
-            fromCamera
-                ? 'Emberkeep couldn’t reach your camera — you can allow it in Settings.'
-                : 'Emberkeep couldn’t reach your photos — you can allow it in Settings.',
-            style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Palette.card,
+            content: Text(
+              fromCamera
+                  ? 'Emberkeep couldn’t reach your camera — you can allow it in Settings.'
+                  : 'Emberkeep couldn’t reach your photos — you can allow it in Settings.',
+              style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
+            ),
           ),
-        ));
+        );
       }
       return;
     }
@@ -292,8 +302,9 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     });
     _dirty = true;
     _flush();
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => after.focus?.requestFocus());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => after.focus?.requestFocus(),
+    );
   }
 
   void _removeImage(_Block b) {
@@ -315,15 +326,17 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
           !_blocks[idx].isImage) {
         final prev = _blocks[idx - 1], next = _blocks[idx];
         final a = prev.controller!.text, c = next.controller!.text;
-        prev.controller!.text =
-            a.isEmpty ? c : (c.isEmpty ? a : '$a\n$c');
+        prev.controller!.text = a.isEmpty ? c : (c.isEmpty ? a : '$a\n$c');
         _blocks.removeAt(idx);
         next.dispose();
       }
       if (_blocks.isEmpty || _blocks.last.isImage) {
         _blocks.add(_Block.text('')..controller!.addListener(_onChanged));
       }
-      _active = _blocks.lastWhere((x) => !x.isImage, orElse: () => _blocks.first);
+      _active = _blocks.lastWhere(
+        (x) => !x.isImage,
+        orElse: () => _blocks.first,
+      );
     });
     // DON'T delete the file yet — a fat-fingered X on an in-app photo (never in
     // the gallery) would be unrecoverable. Hold it; Undo cancels, the snackbar
@@ -333,20 +346,24 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     _flush();
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
-    final ctrl = messenger.showSnackBar(SnackBar(
-      backgroundColor: Palette.card,
-      duration: const Duration(seconds: 4),
-      content: Text('Photo removed',
-          style: Type.body.copyWith(fontSize: 13, color: Palette.textHi)),
-      action: SnackBarAction(
-        label: 'Undo',
-        textColor: widget.accent,
-        onPressed: () {
-          _pendingPhotoDeletes.remove(name); // keep the file
-          _restoreDoc(restore);
-        },
+    final ctrl = messenger.showSnackBar(
+      SnackBar(
+        backgroundColor: Palette.card,
+        duration: const Duration(seconds: 4),
+        content: Text(
+          'Photo removed',
+          style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
+        ),
+        action: SnackBarAction(
+          label: 'Undo',
+          textColor: widget.accent,
+          onPressed: () {
+            _pendingPhotoDeletes.remove(name); // keep the file
+            _restoreDoc(restore);
+          },
+        ),
       ),
-    ));
+    );
     ctrl.closed.then((reason) {
       // dismissed / timed out without Undo → the delete is now real
       if (reason != SnackBarClosedReason.action &&
@@ -365,9 +382,9 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       }
       _blocks.clear();
       for (final jb in doc) {
-        _blocks.add(jb.isImage
-            ? _Block.image(jb.image!)
-            : _Block.text(jb.text ?? ''));
+        _blocks.add(
+          jb.isImage ? _Block.image(jb.image!) : _Block.text(jb.text ?? ''),
+        );
       }
       if (_blocks.isEmpty || _blocks.last.isImage) {
         _blocks.add(_Block.text(''));
@@ -375,7 +392,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       for (final b in _blocks) {
         b.controller?.addListener(_onChanged);
       }
-      _active = _blocks.lastWhere((x) => !x.isImage, orElse: () => _blocks.first);
+      _active = _blocks.lastWhere(
+        (x) => !x.isImage,
+        orElse: () => _blocks.first,
+      );
     });
     _dirty = true;
     _flush();
@@ -393,11 +413,17 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _sourceTile(Icons.photo_library_outlined, 'Choose from library',
-                    () => Navigator.pop(context, false)),
+                _sourceTile(
+                  Icons.photo_library_outlined,
+                  'Choose from library',
+                  () => Navigator.pop(context, false),
+                ),
                 const SizedBox(height: 6),
-                _sourceTile(Icons.photo_camera_outlined, 'Take a photo',
-                    () => Navigator.pop(context, true)),
+                _sourceTile(
+                  Icons.photo_camera_outlined,
+                  'Take a photo',
+                  () => Navigator.pop(context, true),
+                ),
               ],
             ),
           ),
@@ -417,8 +443,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
             children: [
               Icon(icon, size: 20, color: widget.accent),
               const SizedBox(width: 14),
-              Text(label,
-                  style: Type.body.copyWith(fontSize: 15, color: Palette.textHi)),
+              Text(
+                label,
+                style: Type.body.copyWith(fontSize: 15, color: Palette.textHi),
+              ),
             ],
           ),
         ),
@@ -434,20 +462,28 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Palette.card,
-        title:
-            Text('Delete this entry?', style: Type.display.copyWith(fontSize: 18)),
-        content: Text('This can’t be undone.',
-            style: Type.body.copyWith(fontSize: 14, color: Palette.textMid)),
+        title: Text(
+          'Delete this entry?',
+          style: Type.display.copyWith(fontSize: 18),
+        ),
+        content: Text(
+          'This can’t be undone.',
+          style: Type.body.copyWith(fontSize: 14, color: Palette.textMid),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child:
-                Text('Keep', style: Type.label.copyWith(color: Palette.textMid)),
+            child: Text(
+              'Keep',
+              style: Type.label.copyWith(color: Palette.textMid),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child:
-                Text('Delete', style: Type.label.copyWith(color: Palette.streak)),
+            child: Text(
+              'Delete',
+              style: Type.label.copyWith(color: Palette.streak),
+            ),
           ),
         ],
       ),
@@ -483,6 +519,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
         backgroundColor: Palette.parchment,
         body: WarmBackground(
           themeId: widget.themeId,
+          reduceMotion: widget.reduceMotion,
           tint: widget.accent,
           child: SafeArea(
             child: Column(
@@ -494,8 +531,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                     alignment: Alignment.centerLeft,
                     child: Text(
                       _whenLine,
-                      style:
-                          Type.label.copyWith(fontSize: 11, color: Palette.textLo),
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.textLo,
+                      ),
                     ),
                   ),
                 ),
@@ -549,8 +588,11 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                       shape: BoxShape.circle,
                       color: Color(0x99140C06),
                     ),
-                    child:
-                        const Icon(Icons.close, size: 16, color: Palette.textHi),
+                    child: const Icon(
+                      Icons.close,
+                      size: 16,
+                      color: Palette.textHi,
+                    ),
                   ),
                 ),
               ),
@@ -567,14 +609,21 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       textCapitalization: TextCapitalization.sentences,
       keyboardType: TextInputType.multiline,
       cursorColor: widget.accent,
-      style: Type.body.copyWith(fontSize: 17, height: 1.5, color: Palette.textHi),
+      style: Type.body.copyWith(
+        fontSize: 17,
+        height: 1.5,
+        color: Palette.textHi,
+      ),
       decoration: InputDecoration(
         border: InputBorder.none,
         isCollapsed: true,
         contentPadding: const EdgeInsets.symmetric(vertical: 4),
         hintText: first ? widget.hint : null,
-        hintStyle:
-            Type.body.copyWith(fontSize: 17, height: 1.5, color: Palette.textLo),
+        hintStyle: Type.body.copyWith(
+          fontSize: 17,
+          height: 1.5,
+          color: Palette.textLo,
+        ),
       ),
     );
   }
@@ -594,24 +643,35 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
               child: Icon(Icons.chevron_left, size: 26, color: Palette.textMid),
             ),
           ),
-          Text(widget.heading,
-              style: Type.display.copyWith(fontSize: 20, color: widget.accent)),
+          Text(
+            widget.heading,
+            style: Type.display.copyWith(fontSize: 20, color: widget.accent),
+          ),
           const Spacer(),
           if (_words > 0) ...[
-            Text('$_words ${_words == 1 ? 'word' : 'words'}',
-                style: Type.label.copyWith(fontSize: 10, color: Palette.textLo)),
+            Text(
+              '$_words ${_words == 1 ? 'word' : 'words'}',
+              style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
+            ),
             const SizedBox(width: 10),
           ],
           if (_dirty || _everSaved)
             Row(
               children: [
                 // a plain check, not a cloud — this save is proudly local
-                Icon(saved ? Icons.check_circle_outline : Icons.sync,
-                    size: 14, color: Palette.textLo),
+                Icon(
+                  saved ? Icons.check_circle_outline : Icons.sync,
+                  size: 14,
+                  color: Palette.textLo,
+                ),
                 const SizedBox(width: 5),
-                Text(saved ? 'Saved' : 'Saving…',
-                    style:
-                        Type.label.copyWith(fontSize: 10, color: Palette.textLo)),
+                Text(
+                  saved ? 'Saved' : 'Saving…',
+                  style: Type.label.copyWith(
+                    fontSize: 10,
+                    color: Palette.textLo,
+                  ),
+                ),
               ],
             ),
           if (_current != null) ...[
@@ -621,8 +681,11 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
               onTap: _confirmDelete,
               child: const Padding(
                 padding: EdgeInsets.all(8),
-                child:
-                    Icon(Icons.delete_outline, size: 20, color: Palette.textLo),
+                child: Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Palette.textLo,
+                ),
               ),
             ),
           ],
@@ -644,23 +707,28 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
             behavior: HitTestBehavior.opaque,
             onTap: _pickPhotoSource,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
                 color: widget.accent.withValues(alpha: 0.14),
-                border:
-                    Border.all(color: widget.accent.withValues(alpha: 0.4)),
+                border: Border.all(color: widget.accent.withValues(alpha: 0.4)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.add_photo_alternate_outlined,
-                      size: 18, color: widget.accent),
+                  Icon(
+                    Icons.add_photo_alternate_outlined,
+                    size: 18,
+                    color: widget.accent,
+                  ),
                   const SizedBox(width: 7),
-                  Text('Photo',
-                      style: Type.label
-                          .copyWith(fontSize: 12, color: widget.accent)),
+                  Text(
+                    'Photo',
+                    style: Type.label.copyWith(
+                      fontSize: 12,
+                      color: widget.accent,
+                    ),
+                  ),
                 ],
               ),
             ),

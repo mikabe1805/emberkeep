@@ -10,32 +10,41 @@ import 'tokens.dart';
 /// The appearance-only payload published for a shared space (round-52). Never
 /// includes quests, notes, streak details or account data — just what's needed
 /// to redraw the room + character for a visitor.
-Map<String, dynamic> roomDisplay(GameState s) => {
-      'name': (s.playerName ?? '').trim(),
-      'title': s.buildTitle,
-      'level': s.level,
-      'furniture': s.ownedFurniture.toList(),
-      'wall': s.wallStyle,
-      'floor': s.floorStyle,
-      'skin': s.creatureSkin,
-      'window': s.windowScene,
-      'awake': s.streakDays > 0,
-      'v': 1,
-    };
+Map<String, dynamic> roomDisplay(GameState s) {
+  final rawName = (s.playerName ?? '').trim();
+  final name = rawName.length <= 40 ? rawName : rawName.substring(0, 40);
+  return {
+    'name': name,
+    'title': s.buildTitle,
+    'level': s.level,
+    'furniture': s.ownedFurniture.toList(),
+    'wall': s.wallStyle,
+    'floor': s.floorStyle,
+    'skin': s.creatureSkin,
+    'window': s.windowScene,
+    'awake': s.streakDays > 0,
+    'v': 1,
+  };
+}
 
 void _toast(BuildContext context, String msg) {
   ScaffoldMessenger.of(context)
     ..clearSnackBars()
-    ..showSnackBar(SnackBar(
-      content: Text(msg, style: const TextStyle(color: Palette.textHi)),
-      backgroundColor: Palette.card,
-      behavior: SnackBarBehavior.floating,
-    ));
+    ..showSnackBar(
+      SnackBar(
+        content: Text(msg, style: const TextStyle(color: Palette.textHi)),
+        backgroundColor: Palette.card,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
 }
 
 /// Publish (or refresh) your space and show its share code.
 Future<void> shareSpace(
-    BuildContext context, GameState state, VoidCallback onPersist) async {
+  BuildContext context,
+  GameState state,
+  VoidCallback onPersist,
+) async {
   final cloud = CloudSync.instance;
   if (!cloud.ready) {
     _toast(context, 'Sharing needs a connection — try again in a moment.');
@@ -58,17 +67,22 @@ Future<void> shareSpace(
     builder: (_) => _ShareDialog(
       code: code,
       onStop: () async {
-        await cloud.unshareRoom(code);
+        final stopped = await cloud.unshareRoom(code);
+        if (!stopped) return false;
         state.roomCode = null;
         onPersist();
+        return true;
       },
     ),
   );
 }
 
 /// Prompt for a code and open that shared space.
-Future<void> visitSpace(BuildContext context,
-    {String? themeId, bool lively = true}) async {
+Future<void> visitSpace(
+  BuildContext context, {
+  String? themeId,
+  bool lively = true,
+}) async {
   if (!CloudSync.instance.ready) {
     _toast(context, 'Visiting needs a connection — try again in a moment.');
     return;
@@ -85,38 +99,44 @@ Future<void> visitSpace(BuildContext context,
     _toast(context, 'No keep found with that code.');
     return;
   }
-  Navigator.of(context).push(MaterialPageRoute(
-    builder: (_) => VisitRoomScreen(
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => VisitRoomScreen(
         room: room,
         code: code.trim().toUpperCase(),
         themeId: themeId,
-        lively: lively),
-  ));
+        lively: lively,
+      ),
+    ),
+  );
 }
 
 class _ShareDialog extends StatelessWidget {
   const _ShareDialog({required this.code, required this.onStop});
   final String code;
-  final Future<void> Function() onStop;
+  final Future<bool> Function() onStop;
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: Palette.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text('Your keep is live',
-          style: Type.display.copyWith(fontSize: 20, color: Palette.textHi)),
+      title: Text(
+        'Your keep is live',
+        style: Type.display.copyWith(fontSize: 20, color: Palette.textHi),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Share this code — anyone can visit your keep:',
-              style: Type.body.copyWith(fontSize: 13, color: Palette.textMid)),
+          Text(
+            'Share this code — anyone can visit your keep:',
+            style: Type.body.copyWith(fontSize: 13, color: Palette.textMid),
+          ),
           const SizedBox(height: 14),
           Center(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 color: Palette.xp.withValues(alpha: 0.14),
@@ -125,7 +145,10 @@ class _ShareDialog extends StatelessWidget {
               child: Text(
                 code,
                 style: Type.display.copyWith(
-                    fontSize: 30, color: Palette.xpLight, letterSpacing: 6),
+                  fontSize: 30,
+                  color: Palette.xpLight,
+                  letterSpacing: 6,
+                ),
               ),
             ),
           ),
@@ -138,9 +161,13 @@ class _ShareDialog extends StatelessWidget {
                 _toast(context, 'Code copied');
               },
               icon: const Icon(Icons.copy, size: 16, color: Palette.xpLight),
-              label: Text('Copy',
-                  style: Type.label
-                      .copyWith(fontSize: 12, color: Palette.xpLight)),
+              label: Text(
+                'Copy',
+                style: Type.label.copyWith(
+                  fontSize: 12,
+                  color: Palette.xpLight,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 4),
@@ -154,16 +181,28 @@ class _ShareDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () async {
-            await onStop();
-            if (context.mounted) Navigator.of(context).pop();
+            final stopped = await onStop();
+            if (!context.mounted) return;
+            if (stopped) {
+              Navigator.of(context).pop();
+            } else {
+              _toast(
+                context,
+                'Couldn’t stop sharing yet — your code is still safe here.',
+              );
+            }
           },
-          child: Text('Stop sharing',
-              style: Type.label.copyWith(fontSize: 12, color: Palette.textLo)),
+          child: Text(
+            'Stop sharing',
+            style: Type.label.copyWith(fontSize: 12, color: Palette.textLo),
+          ),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('Done',
-              style: Type.label.copyWith(fontSize: 13, color: Palette.xpLight)),
+          child: Text(
+            'Done',
+            style: Type.label.copyWith(fontSize: 13, color: Palette.xpLight),
+          ),
         ),
       ],
     );
@@ -190,14 +229,18 @@ class _VisitPromptState extends State<_VisitPrompt> {
     return AlertDialog(
       backgroundColor: Palette.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text('Visit a keep',
-          style: Type.display.copyWith(fontSize: 20, color: Palette.textHi)),
+      title: Text(
+        'Visit a keep',
+        style: Type.display.copyWith(fontSize: 20, color: Palette.textHi),
+      ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Enter a friend’s share code:',
-              style: Type.body.copyWith(fontSize: 13, color: Palette.textMid)),
+          Text(
+            'Enter a friend’s share code:',
+            style: Type.body.copyWith(fontSize: 13, color: Palette.textMid),
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: _c,
@@ -205,20 +248,26 @@ class _VisitPromptState extends State<_VisitPrompt> {
             textCapitalization: TextCapitalization.characters,
             maxLength: 6,
             style: Type.display.copyWith(
-                fontSize: 24, color: Palette.xpLight, letterSpacing: 6),
+              fontSize: 24,
+              color: Palette.xpLight,
+              letterSpacing: 6,
+            ),
             textAlign: TextAlign.center,
             cursorColor: Palette.xp,
             decoration: InputDecoration(
               counterText: '',
               hintText: 'ABC123',
               hintStyle: Type.display.copyWith(
-                  fontSize: 24,
-                  color: Palette.textLo,
-                  letterSpacing: 6),
+                fontSize: 24,
+                color: Palette.textLo,
+                letterSpacing: 6,
+              ),
               enabledBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: Palette.glassRim)),
+                borderSide: BorderSide(color: Palette.glassRim),
+              ),
               focusedBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: Palette.xp)),
+                borderSide: BorderSide(color: Palette.xp),
+              ),
             ),
             onSubmitted: (v) => Navigator.of(context).pop(v),
           ),
@@ -227,13 +276,17 @@ class _VisitPromptState extends State<_VisitPrompt> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text('Cancel',
-              style: Type.label.copyWith(fontSize: 12, color: Palette.textLo)),
+          child: Text(
+            'Cancel',
+            style: Type.label.copyWith(fontSize: 12, color: Palette.textLo),
+          ),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(_c.text),
-          child: Text('Visit',
-              style: Type.label.copyWith(fontSize: 13, color: Palette.xpLight)),
+          child: Text(
+            'Visit',
+            style: Type.label.copyWith(fontSize: 13, color: Palette.xpLight),
+          ),
         ),
       ],
     );

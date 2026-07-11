@@ -1,4 +1,4 @@
-package dev.liferpg.liferpg
+package com.mikabe.emberkeep
 
 import io.flutter.embedding.android.FlutterActivity
 

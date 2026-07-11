@@ -128,6 +128,7 @@ class WarmBackground extends StatelessWidget {
     required this.child,
     this.themeId,
     this.tint,
+    this.reduceMotion = false,
   });
   final Widget child;
 
@@ -140,14 +141,20 @@ class WarmBackground extends StatelessWidget {
   /// (round-25), not the same template recoloured by one accent.
   final Color? tint;
 
+  /// When true (or OS reduce-motion is on), fireflies freeze — ambience
+  /// without continuous animation (DESIGN.md accessibility).
+  final bool reduceMotion;
+
   Color _glow(Color base) =>
       tint == null ? base : Color.lerp(base, tint, 0.42)!;
 
   @override
   Widget build(BuildContext context) {
     final theme = canvasThemeById(themeId);
+    final still =
+        reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 600),
+      duration: still ? Duration.zero : const Duration(milliseconds: 600),
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -180,7 +187,7 @@ class WarmBackground extends StatelessWidget {
             right: 30,
             child: _Glow(color: _glow(theme.glows[3]), size: 180, phase: 0.85),
           ),
-          const Positioned.fill(child: _Fireflies()),
+          Positioned.fill(child: _Fireflies(still: still)),
           // a soft vignette: the center where content lives feels lit, the
           // corners recede — editorial depth, not a flat fill.
           const Positioned.fill(
@@ -233,7 +240,8 @@ class _Glow extends StatelessWidget {
 /// Drifting, twinkling motes of warm light. One repaint-bounded layer,
 /// quantized to ~20 fps — ambience, not a particle storm.
 class _Fireflies extends StatefulWidget {
-  const _Fireflies();
+  const _Fireflies({this.still = false});
+  final bool still;
 
   @override
   State<_Fireflies> createState() => _FirefliesState();
@@ -265,8 +273,21 @@ class _FirefliesState extends State<_Fireflies>
     super.initState();
     final rng = Random(7);
     _motes = List.generate(_count, (_) => _Mote(rng));
-    _c = AnimationController(vsync: this, duration: const Duration(seconds: 60))
-      ..repeat();
+    _c = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 60),
+    );
+    if (!widget.still) _c.repeat();
+  }
+
+  @override
+  void didUpdateWidget(_Fireflies old) {
+    super.didUpdateWidget(old);
+    if (widget.still && !old.still) {
+      _c.stop();
+    } else if (!widget.still && old.still) {
+      _c.repeat();
+    }
   }
 
   @override
@@ -286,7 +307,7 @@ class _FirefliesState extends State<_Fireflies>
             // quantize: ~20 repaints/s is invisible for slow motes
             painter: _MotePainter(
               motes: _motes,
-              t: (_c.value * 1200).round() / 1200,
+              t: widget.still ? 0.15 : (_c.value * 1200).round() / 1200,
             ),
           ),
         ),

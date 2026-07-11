@@ -33,8 +33,7 @@ class Achievement {
   final (int, int) Function(GameState)? progress;
 }
 
-int _maxStat(GameState s) =>
-    s.stats.values.fold(0, (m, v) => v > m ? v : m);
+int _maxStat(GameState s) => s.stats.values.fold(0, (m, v) => v > m ? v : m);
 
 final achievements = <Achievement>[
   Achievement(
@@ -157,7 +156,7 @@ final achievements = <Achievement>[
   Achievement(
     id: 'comeback',
     title: 'Comeback',
-    desc: 'Return and complete a quest after a missed day',
+    desc: 'Return and complete a quest after a pause',
     icon: Icons.replay,
     test: (s) => s.comebacks >= 1,
   ),

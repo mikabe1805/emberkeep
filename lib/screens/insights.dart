@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../audio.dart';
+import '../clock.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
@@ -125,23 +126,30 @@ class InsightsPage extends StatelessWidget {
                 color: Palette.xp.withValues(alpha: 0.16),
                 border: Border.all(color: Palette.xp.withValues(alpha: 0.4)),
               ),
-              child: const Icon(Icons.auto_stories_outlined,
-                  size: 20, color: Palette.xpLight),
+              child: const Icon(
+                Icons.auto_stories_outlined,
+                size: 20,
+                color: Palette.xpLight,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Your Journal',
-                      style: Type.display.copyWith(fontSize: 18)),
+                  Text(
+                    'Your Journal',
+                    style: Type.display.copyWith(fontSize: 18),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     n == 0
                         ? 'write a thought · read everything you’ve kept'
                         : '$n ${n == 1 ? "note" : "notes"} kept · tap to read & write',
-                    style:
-                        Type.body.copyWith(fontSize: 12, color: Palette.textLo),
+                    style: Type.body.copyWith(
+                      fontSize: 12,
+                      color: Palette.textLo,
+                    ),
                   ),
                 ],
               ),
@@ -207,7 +215,7 @@ class InsightsPage extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Type.label.copyWith(fontSize: 9),
+                    style: Type.label.copyWith(fontSize: 11),
                   ),
                 ],
               ),
@@ -270,7 +278,7 @@ class InsightsPage extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Type.label.copyWith(
-              fontSize: 10,
+              fontSize: 11,
               color: lead ? color : Palette.textLo,
             ),
           ),
@@ -381,7 +389,7 @@ class InsightsPage extends StatelessWidget {
                     const SizedBox(width: 5),
                     Text(
                       '${p.$1}  ${(100 * p.$2 / total).round()}%',
-                      style: Type.label.copyWith(fontSize: 10),
+                      style: Type.label.copyWith(fontSize: 11),
                     ),
                   ],
                 ),
@@ -393,7 +401,7 @@ class InsightsPage extends StatelessWidget {
   }
 
   Widget _activity() {
-    final now = DateTime.now();
+    final now = Clock.now();
     final days = <(DateTime, int)>[];
     for (var i = 13; i >= 0; i--) {
       final d = DateTime(
@@ -492,7 +500,7 @@ class InsightsPage extends StatelessWidget {
                             Text(
                               _weekdayShort[d.$1.weekday - 1],
                               style: Type.label.copyWith(
-                                fontSize: 10,
+                                fontSize: 11,
                                 color: isBest
                                     ? Palette.xpLight
                                     : Palette.textLo,
@@ -514,7 +522,7 @@ class InsightsPage extends StatelessWidget {
   /// The hero: the most encouraging true observation, large, plus this week's
   /// shape vs last — the line a proud user screenshots.
   Widget _heroTakeaway() {
-    final now = DateTime.now();
+    final now = Clock.now();
     int sumDays(int startAgo, int count) {
       var s = 0;
       for (var i = startAgo; i < startAgo + count; i++) {

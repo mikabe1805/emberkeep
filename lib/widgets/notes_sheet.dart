@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../clock.dart';
 import '../models.dart';
 import '../tokens.dart';
 import 'glass.dart';
@@ -11,11 +12,14 @@ import 'glass.dart';
 /// dated in the future (device clock rolled back after writing) reads as
 /// "just now" rather than "-1 days ago".
 String relativeWhen(DateTime then, {DateTime? now}) {
-  final n = now ?? DateTime.now();
-  final today = DateTime(n.year, n.month, n.day);
-  final thatDay = DateTime(then.year, then.month, then.day);
+  final n = now ?? Clock.now();
+  // UTC-normalized calendar dates keep relative labels correct across DST.
+  final today = DateTime.utc(n.year, n.month, n.day);
+  final thatDay = DateTime.utc(then.year, then.month, then.day);
   final dayGap = today.difference(thatDay).inDays;
-  if (dayGap < 0) return 'just now'; // future-dated (clock skew) — don't say "-1 days"
+  if (dayGap < 0) {
+    return 'just now'; // future-dated (clock skew) — don't say "-1 days"
+  }
   if (dayGap == 0) {
     final mins = n.difference(then).inMinutes;
     if (mins < 1) return 'just now';
@@ -316,8 +320,7 @@ class _NotesSheetState extends State<_NotesSheet> {
     setState(() {
       _editing = note;
       _controller.text = note.text;
-      _controller.selection =
-          TextSelection.collapsed(offset: note.text.length);
+      _controller.selection = TextSelection.collapsed(offset: note.text.length);
     });
     _focus.requestFocus();
   }
@@ -337,20 +340,28 @@ class _NotesSheetState extends State<_NotesSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Palette.card,
-        title: Text('Delete this note?',
-            style: Type.display.copyWith(fontSize: 18)),
-        content: Text('This can’t be undone.',
-            style: Type.body.copyWith(fontSize: 14, color: Palette.textMid)),
+        title: Text(
+          'Delete this note?',
+          style: Type.display.copyWith(fontSize: 18),
+        ),
+        content: Text(
+          'This can’t be undone.',
+          style: Type.body.copyWith(fontSize: 14, color: Palette.textMid),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child:
-                Text('Keep', style: Type.label.copyWith(color: Palette.textMid)),
+            child: Text(
+              'Keep',
+              style: Type.label.copyWith(color: Palette.textMid),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child:
-                Text('Delete', style: Type.label.copyWith(color: Palette.danger)),
+            child: Text(
+              'Delete',
+              style: Type.label.copyWith(color: Palette.danger),
+            ),
           ),
         ],
       ),
@@ -461,13 +472,18 @@ class _NotesSheetState extends State<_NotesSheet> {
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Row(
                       children: [
-                        Icon(Icons.edit_outlined,
-                            size: 14, color: widget.accent),
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 14,
+                          color: widget.accent,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'Editing entry',
                           style: Type.label.copyWith(
-                              fontSize: 11, color: widget.accent),
+                            fontSize: 11,
+                            color: widget.accent,
+                          ),
                         ),
                         const Spacer(),
                         GestureDetector(
@@ -478,7 +494,9 @@ class _NotesSheetState extends State<_NotesSheet> {
                             child: Text(
                               'cancel',
                               style: Type.label.copyWith(
-                                  fontSize: 11, color: Palette.textLo),
+                                fontSize: 11,
+                                color: Palette.textLo,
+                              ),
                             ),
                           ),
                         ),

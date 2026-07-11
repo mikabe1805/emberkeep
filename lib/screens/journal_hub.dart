@@ -8,7 +8,7 @@ import '../models.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/glass.dart';
-import '../widgets/notes_sheet.dart' show relativeWhen;
+import '../widgets/notes_sheet.dart';
 import 'journal_entry.dart';
 
 /// The Journal hub (round-45) — the discoverable home for notes. The feature
@@ -86,10 +86,12 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     if (_query.isEmpty) return all;
     final q = _query.toLowerCase();
     return all
-        .where((e) =>
-            e.note.text.toLowerCase().contains(q) ||
-            e.source.toLowerCase().contains(q) ||
-            (e.note.context?.toLowerCase().contains(q) ?? false))
+        .where(
+          (e) =>
+              e.note.text.toLowerCase().contains(q) ||
+              e.source.toLowerCase().contains(q) ||
+              (e.note.context?.toLowerCase().contains(q) ?? false),
+        )
         .toList();
   }
 
@@ -103,6 +105,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           initial: entry,
           accent: Palette.xp,
           themeId: _s.canvasTheme,
+          reduceMotion: _s.reduceMotion,
           heading: 'Journal',
           hint: 'What’s on your mind today?',
           commit: _commit,
@@ -151,21 +154,15 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     _s.setJournal(_s.journal.without(n));
   }
 
-  /// A read-only look at a note that lives on a quest / goal / domain — the
-  /// hub can't edit those in place (they belong to their thing), but a dead
-  /// row is worse than a peek. Shows the whole note + where to go to change it.
+  /// Peek a note that lives on a quest / goal / domain — with a deep-link
+  /// into the editable notes sheet so the hub isn't a dead end.
   void _peek(_Entry e) {
     Sfx.instance.play('tick');
-    final where = e.source.startsWith('GOAL')
-        ? 'This note lives on your goal — open it there to edit.'
-        : e.source.startsWith('QUEST')
-            ? 'This note lives on your quest — open it there to edit.'
-            : 'This note lives on your ${e.source.toLowerCase()} domain — open it there to edit.';
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => SafeArea(
+      builder: (sheetCtx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: GlassPanel(
@@ -178,13 +175,21 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                   children: [
                     _chip(e.source, e.color),
                     const SizedBox(width: 8),
-                    Text(relativeWhen(e.note.at),
-                        style: Type.label
-                            .copyWith(fontSize: 10.5, color: Palette.textLo)),
+                    Text(
+                      relativeWhen(e.note.at),
+                      style: Type.label.copyWith(
+                        fontSize: 10.5,
+                        color: Palette.textLo,
+                      ),
+                    ),
                     if (e.note.editedAt != null)
-                      Text('  ·  edited',
-                          style: Type.label
-                              .copyWith(fontSize: 10.5, color: Palette.textLo)),
+                      Text(
+                        '  ·  edited',
+                        style: Type.label.copyWith(
+                          fontSize: 10.5,
+                          color: Palette.textLo,
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -193,30 +198,36 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                     child: Text(
                       e.note.text.isEmpty ? 'Photo entry' : e.note.text,
                       style: Type.body.copyWith(
-                          fontSize: 15, height: 1.4, color: Palette.textHi),
+                        fontSize: 15,
+                        height: 1.4,
+                        color: Palette.textHi,
+                      ),
                     ),
                   ),
                 ),
                 if (e.note.context != null && e.note.context!.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text('written as ${e.note.context}',
-                      style: Type.label.copyWith(
-                          fontSize: 10, color: e.color.withValues(alpha: 0.8))),
+                  Text(
+                    'written as ${e.note.context}',
+                    style: Type.label.copyWith(
+                      fontSize: 10,
+                      color: e.color.withValues(alpha: 0.8),
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Icon(Icons.push_pin_outlined,
-                        size: 13, color: Palette.textLo),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(where,
-                          style: Type.body.copyWith(
-                              fontSize: 11.5,
-                              fontStyle: FontStyle.italic,
-                              color: Palette.textLo)),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.of(sheetCtx).pop();
+                      _openEditable(e);
+                    },
+                    child: Text(
+                      'OPEN TO EDIT',
+                      style: Type.label.copyWith(color: Palette.xp),
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -226,10 +237,125 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     );
   }
 
+  void _openEditable(_Entry e) {
+    if (e.source.startsWith('QUEST · ')) {
+      final title = e.source.substring('QUEST · '.length);
+      final q = widget.quests.cast<Quest?>().firstWhere(
+        (x) => x!.title == title || x.displayTitle == title,
+        orElse: () => null,
+      );
+      if (q == null) return;
+      showNotesSheet(
+        context,
+        kicker: 'LOG',
+        title: q.displayTitle,
+        accent: q.stat.color,
+        icon: Icons.edit_note,
+        read: () => q.log,
+        onAdd: (text) {
+          q.addNote(text, Clock.now());
+          widget.onPersist();
+          setState(() {});
+        },
+        onDelete: (n) {
+          q.log = q.log.without(n);
+          widget.onPersist();
+          setState(() {});
+        },
+        onEdit: (orig, text) {
+          q.log = q.log.replacing(
+            orig.copyWith(text: text, editedAt: Clock.now()),
+          );
+          widget.onPersist();
+          setState(() {});
+        },
+      );
+      return;
+    }
+    if (e.source.startsWith('GOAL · ')) {
+      final title = e.source.substring('GOAL · '.length);
+      final g = _s.goals.cast<Goal?>().firstWhere(
+        (x) => x!.title == title,
+        orElse: () => null,
+      );
+      if (g == null) return;
+      showNotesSheet(
+        context,
+        kicker: 'JOURNAL',
+        title: g.title,
+        accent: g.stat.color,
+        icon: Icons.menu_book_outlined,
+        read: () => g.notes,
+        onAdd: (text) {
+          g.notes = g.notes.withNote(text, Clock.now());
+          widget.onPersist();
+          setState(() {});
+        },
+        onDelete: (n) {
+          g.notes = g.notes.without(n);
+          widget.onPersist();
+          setState(() {});
+        },
+        onEdit: (orig, text) {
+          g.notes = g.notes.replacing(
+            orig.copyWith(text: text, editedAt: Clock.now()),
+          );
+          widget.onPersist();
+          setState(() {});
+        },
+      );
+      return;
+    }
+    // domain note
+    final stat = Stat.values.cast<Stat?>().firstWhere(
+      (s) => s!.label.toUpperCase() == e.source,
+      orElse: () => null,
+    );
+    if (stat == null) return;
+    showNotesSheet(
+      context,
+      kicker: 'NOTES',
+      title: stat.label,
+      accent: stat.color,
+      icon: Icons.auto_stories_outlined,
+      read: () => _s.notesFor(stat),
+      onAdd: (text) {
+        _s.setDomainNotes(stat, _s.notesFor(stat).withNote(text, Clock.now()));
+        widget.onPersist();
+        setState(() {});
+      },
+      onDelete: (n) {
+        _s.setDomainNotes(stat, _s.notesFor(stat).without(n));
+        widget.onPersist();
+        setState(() {});
+      },
+      onEdit: (orig, text) {
+        _s.setDomainNotes(
+          stat,
+          _s
+              .notesFor(stat)
+              .replacing(orig.copyWith(text: text, editedAt: Clock.now())),
+        );
+        widget.onPersist();
+        setState(() {});
+      },
+    );
+  }
+
   static String _monthLabel(DateTime d) {
     const months = [
-      'JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE',
-      'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER',
+      'JANUARY',
+      'FEBRUARY',
+      'MARCH',
+      'APRIL',
+      'MAY',
+      'JUNE',
+      'JULY',
+      'AUGUST',
+      'SEPTEMBER',
+      'OCTOBER',
+      'NOVEMBER',
+      'DECEMBER',
     ];
     return '${months[d.month - 1]} ${d.year}';
   }
@@ -239,7 +365,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     return ListenableBuilder(
       listenable: _s,
       builder: (context, _) {
-        final total = _s.journal.length +
+        final total =
+            _s.journal.length +
             Stat.values.fold<int>(0, (a, s) => a + _s.notesFor(s).length) +
             _s.goals.fold<int>(0, (a, g) => a + g.notes.length) +
             widget.quests.fold<int>(0, (a, q) => a + q.log.length);
@@ -262,6 +389,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           backgroundColor: Palette.parchment,
           body: WarmBackground(
             themeId: _s.canvasTheme,
+            reduceMotion: _s.reduceMotion,
             tint: Palette.xp,
             child: SafeArea(
               child: Column(
@@ -322,142 +450,158 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
   }
 
   Widget _searchField() => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: GlassPanel(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-          child: Row(
-            children: [
-              Icon(Icons.search, size: 18, color: Palette.textLo),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
-                  controller: _search,
-                  onChanged: (v) => setState(() => _query = v.trim()),
-                  cursorColor: Palette.xp,
-                  style: Type.body.copyWith(fontSize: 14, color: Palette.textHi),
-                  decoration: InputDecoration(
-                    isCollapsed: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                    border: InputBorder.none,
-                    hintText: 'Search your notes',
-                    hintStyle:
-                        Type.body.copyWith(fontSize: 14, color: Palette.textLo),
-                  ),
+    padding: const EdgeInsets.only(bottom: 12),
+    child: GlassPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+      child: Row(
+        children: [
+          Icon(Icons.search, size: 18, color: Palette.textLo),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _search,
+              onChanged: (v) => setState(() => _query = v.trim()),
+              cursorColor: Palette.xp,
+              style: Type.body.copyWith(fontSize: 14, color: Palette.textHi),
+              decoration: InputDecoration(
+                isCollapsed: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                border: InputBorder.none,
+                hintText: 'Search your notes',
+                hintStyle: Type.body.copyWith(
+                  fontSize: 14,
+                  color: Palette.textLo,
                 ),
               ),
-              if (_query.isNotEmpty)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    _search.clear();
-                    setState(() => _query = '');
-                    FocusScope.of(context).unfocus();
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(4),
-                    child:
-                        Icon(Icons.close, size: 16, color: Palette.textLo),
-                  ),
-                ),
-            ],
+            ),
           ),
-        ),
-      );
+          if (_query.isNotEmpty)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                _search.clear();
+                setState(() => _query = '');
+                FocusScope.of(context).unfocus();
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Icon(Icons.close, size: 16, color: Palette.textLo),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
 
   Widget _monthHeader(String label) => Padding(
-        padding: const EdgeInsets.only(left: 4, top: 10, bottom: 8),
-        child: Text(
-          label,
-          style: Type.label.copyWith(
-            fontSize: 11,
-            color: Palette.textLo,
-            letterSpacing: 1.5,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(left: 4, top: 10, bottom: 8),
+    child: Text(
+      label,
+      style: Type.label.copyWith(
+        fontSize: 11,
+        color: Palette.textLo,
+        letterSpacing: 1.5,
+      ),
+    ),
+  );
 
   Widget _noMatch() => Padding(
-        padding: const EdgeInsets.only(top: 30),
-        child: Column(
-          children: [
-            Icon(Icons.search_off, size: 24, color: Palette.textLo),
-            const SizedBox(height: 10),
-            Text('nothing matches — yet',
-                style: Type.body.copyWith(
-                    fontSize: 13,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo)),
-          ],
+    padding: const EdgeInsets.only(top: 30),
+    child: Column(
+      children: [
+        Icon(Icons.search_off, size: 24, color: Palette.textLo),
+        const SizedBox(height: 10),
+        Text(
+          'nothing matches — yet',
+          style: Type.body.copyWith(
+            fontSize: 13,
+            fontStyle: FontStyle.italic,
+            color: Palette.textLo,
+          ),
         ),
-      );
+      ],
+    ),
+  );
 
   /// A prominent invitation into the full-page editor — a whole page to write
   /// on, not a cramped two-line box. (round-53)
   Widget _composer() => GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => _openEditor(),
-        child: GlassPanel(
-          glow: true,
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: Palette.honeyGradient,
-                  boxShadow: const [
-                    BoxShadow(color: Palette.honeyGlow, blurRadius: 14),
-                  ],
-                ),
-                child: const Icon(Icons.edit_note,
-                    size: 26, color: Palette.onHoney),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Write a new entry',
-                        style: Type.display.copyWith(fontSize: 17)),
-                    const SizedBox(height: 2),
-                    Text(
-                      'a whole page to think out loud — saved as you go',
-                      style: Type.body.copyWith(
-                          fontSize: 12.5, color: Palette.textLo),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
-            ],
+    behavior: HitTestBehavior.opaque,
+    onTap: () => _openEditor(),
+    child: GlassPanel(
+      glow: true,
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: Palette.honeyGradient,
+              boxShadow: const [
+                BoxShadow(color: Palette.honeyGlow, blurRadius: 14),
+              ],
+            ),
+            child: const Icon(
+              Icons.edit_note,
+              size: 26,
+              color: Palette.onHoney,
+            ),
           ),
-        ),
-      );
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Write a new entry',
+                  style: Type.display.copyWith(fontSize: 17),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'a whole page to think out loud — saved as you go',
+                  style: Type.body.copyWith(
+                    fontSize: 12.5,
+                    color: Palette.textLo,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
+        ],
+      ),
+    ),
+  );
 
   Widget _emptyHint() => GlassPanel(
-        child: Column(
-          children: [
-            const Icon(Icons.auto_stories_outlined,
-                size: 26, color: Palette.xpLight),
-            const SizedBox(height: 10),
-            Text('Your journal is open',
-                style: Type.display.copyWith(fontSize: 19)),
-            const SizedBox(height: 6),
-            Text(
-              'Jot a thought above — how today went, what you’re tracking, '
-              'what you’re grateful for. Anything you note on a quest, goal '
-              'or domain shows up here too.',
-              textAlign: TextAlign.center,
-              style: Type.body.copyWith(
-                fontSize: 13,
-                fontStyle: FontStyle.italic,
-                color: Palette.textLo,
-              ),
-            ),
-          ],
+    child: Column(
+      children: [
+        const Icon(
+          Icons.auto_stories_outlined,
+          size: 26,
+          color: Palette.xpLight,
         ),
-      );
+        const SizedBox(height: 10),
+        Text(
+          'Your journal is open',
+          style: Type.display.copyWith(fontSize: 19),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Jot a thought above — how today went, what you’re tracking, '
+          'what you’re grateful for. Anything you note on a quest, goal '
+          'or domain shows up here too.',
+          textAlign: TextAlign.center,
+          style: Type.body.copyWith(
+            fontSize: 13,
+            fontStyle: FontStyle.italic,
+            color: Palette.textLo,
+          ),
+        ),
+      ],
+    ),
+  );
 
   /// One entry as its own glass card slice — journal rows reopen the editor,
   /// the rest open a read-only peek (they live on their quest/goal/domain).
@@ -474,18 +618,28 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
               const SizedBox(width: 8),
               Text(
                 relativeWhen(e.note.at),
-                style: Type.label.copyWith(fontSize: 10.5, color: Palette.textLo),
+                style: Type.label.copyWith(
+                  fontSize: 10.5,
+                  color: Palette.textLo,
+                ),
               ),
               if (e.note.editedAt != null)
-                Text('  ·  edited',
-                    style: Type.label
-                        .copyWith(fontSize: 10.5, color: Palette.textLo)),
+                Text(
+                  '  ·  edited',
+                  style: Type.label.copyWith(
+                    fontSize: 10.5,
+                    color: Palette.textLo,
+                  ),
+                ),
               const Spacer(),
               // no one-tap delete here — a whole page of writing dies too
               // easily to a 15px X. The row opens the editor, whose delete
               // asks first (and cleans up the entry's photos).
-              Icon(e.journal ? Icons.chevron_right : Icons.visibility_outlined,
-                  size: 15, color: Palette.textLo),
+              Icon(
+                e.journal ? Icons.chevron_right : Icons.visibility_outlined,
+                size: 15,
+                color: Palette.textLo,
+              ),
             ],
           ),
           if (e.note.text.isNotEmpty || photoOnly) ...[
@@ -556,9 +710,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                 borderRadius: BorderRadius.circular(8),
                 color: Colors.black.withValues(alpha: 0.18),
               ),
-              child: Text('+$extra',
-                  style:
-                      Type.label.copyWith(fontSize: 12, color: Palette.textLo)),
+              child: Text(
+                '+$extra',
+                style: Type.label.copyWith(fontSize: 12, color: Palette.textLo),
+              ),
             ),
         ],
       ),
@@ -566,17 +721,16 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
   }
 
   Widget _chip(String label, Color c) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
-          color: c.withValues(alpha: 0.14),
-        ),
-        child: Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Type.label.copyWith(
-              fontSize: 9.5, color: c, letterSpacing: 0.8),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(6),
+      color: c.withValues(alpha: 0.14),
+    ),
+    child: Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Type.label.copyWith(fontSize: 9.5, color: c, letterSpacing: 0.8),
+    ),
+  );
 }

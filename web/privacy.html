@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#191210">
+  <title>Emberkeep Privacy</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
+    body { margin: 0; background: #191210; color: #f4eadb; line-height: 1.65; }
+    main { max-width: 720px; margin: auto; padding: 48px 22px 72px; }
+    h1, h2 { font-family: Georgia, serif; color: #f2cd93; }
+    h1 { font-size: clamp(2rem, 7vw, 3.2rem); margin-bottom: 0; }
+    h2 { margin-top: 2rem; }
+    p, li { color: #cfc2b0; }
+    a { color: #e0a865; }
+    .card { padding: 18px 20px; border: 1px solid #55453b; border-radius: 18px;
+      background: linear-gradient(#3b2e2766, #241a2066); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Privacy at Emberkeep</h1>
+  <p>Last updated July 10, 2026</p>
+  <div class="card"><strong>Your device is the source of truth.</strong>
+    Emberkeep works without an account, advertising, or analytics.</div>
+
+  <h2>Data on your device</h2>
+  <p>Your quests, goals, progress, journal text, preferences, and keep are stored
+    locally. Journal photos stay on your device and are not included in cloud
+    backup or shared keeps.</p>
+
+  <h2>Cloud backup and optional account</h2>
+  <p>To protect against browser or device loss, Emberkeep creates an anonymous
+    Firebase session and mirrors your save to Cloud Firestore. If you create an
+    account, Firebase Authentication also stores your email and links that save
+    to your sign-in so it can follow you across devices. Firebase acts as a
+    service provider. Emberkeep does not sell data or use it for ads.</p>
+
+  <h2>Shared keeps</h2>
+  <p>Sharing is optional. A shared keep contains only the display name you chose,
+    level, build title, room appearance, and whether the hearth is lit. It never
+    includes quests, journal entries, email, or account details. You can stop
+    sharing from the same dialog that shows your code.</p>
+
+  <h2>Deletion and control</h2>
+  <p>You can export or reset local data from <em>Me → Your save is yours</em>.
+    Signed-in users can permanently delete their account, cloud backup, shared
+    keep, and on-device Emberkeep data from <em>Me → Your account → Delete
+    account</em>. See the
+    <a href="delete-account.html">account deletion guide</a>.</p>
+
+  <h2>Permissions</h2>
+  <p>Photo and camera access is used only when you choose to attach media to a
+    journal entry. Notification permission is used only when you enable local
+    reminders. Emberkeep does not track you across apps or websites.</p>
+</main>
+</body>
+</html>

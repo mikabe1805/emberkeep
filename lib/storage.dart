@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'engine.dart';
+import 'clock.dart';
 import 'models.dart';
 import 'tokens.dart';
 
@@ -16,7 +17,7 @@ abstract final class Storage {
   /// Save-format version. BUMP whenever new persisted fields are added so the
   /// cloud-merge can refuse to adopt an OLDER build's save that would have
   /// silently stripped fields it doesn't know about (bug-hunt §5).
-  static const schema = 15; // r60: painted stages (ownedScenes/stageScene)
+  static const schema = 16; // anti-grind counters + timeShape + createdDay
 
   /// Where an unparseable save is quarantined before a fresh start, so a
   /// corrupt blob is never silently destroyed (it may be hand-recoverable).
@@ -28,16 +29,16 @@ abstract final class Storage {
 
   static Future<void> save(GameState state, List<Quest> quests) async {
     try {
+      // Capture synchronously. The live state may mutate while the preferences
+      // plugin resolves, and a save request must represent one coherent frame.
+      final raw = jsonEncode({
+        'app': _marker,
+        'schema': schema,
+        'state': state.toJson(),
+        'quests': [for (final q in quests) q.toJson()],
+      });
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _key,
-        jsonEncode({
-          'app': _marker,
-          'schema': schema,
-          'state': state.toJson(),
-          'quests': [for (final q in quests) q.toJson()],
-        }),
-      );
+      await prefs.setString(_key, raw);
     } catch (e) {
       debugPrint('Storage.save failed: $e');
     }
@@ -53,8 +54,9 @@ abstract final class Storage {
       if (raw == null) return null;
       try {
         final j = (jsonDecode(raw) as Map).cast<String, dynamic>();
-        final state =
-            GameState.fromJson((j['state'] as Map).cast<String, dynamic>());
+        final state = GameState.fromJson(
+          (j['state'] as Map).cast<String, dynamic>(),
+        );
         final quests = [
           for (final q in (j['quests'] as List? ?? const []))
             Quest.fromJson((q as Map).cast<String, dynamic>()),
@@ -113,7 +115,9 @@ abstract final class Storage {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_corruptKey);
-    } catch (_) {/* best effort */}
+    } catch (_) {
+      /* best effort */
+    }
   }
 
   /// The save-format version of a raw blob (0 = absent/oldest). Lets cloud
@@ -210,7 +214,7 @@ abstract final class Storage {
       _usage = raw == null
           ? <dynamic>[]
           : (((jsonDecode(raw) as Map)['events'] as List?)?.toList() ??
-              <dynamic>[]);
+                <dynamic>[]);
     } catch (_) {
       _usage = <dynamic>[];
     }
@@ -220,9 +224,12 @@ abstract final class Storage {
   /// Append one compact event: [dayKey, hour, type, ...payload]. Coarse time
   /// (day + hour, never an exact timestamp) keeps the export low-stakes to
   /// share. Fire-and-forget; a logging failure never affects gameplay.
-  static Future<void> logEvent(String type, [List<Object?> payload = const []]) async {
+  static Future<void> logEvent(
+    String type, [
+    List<Object?> payload = const [],
+  ]) async {
     try {
-      final now = DateTime.now();
+      final now = Clock.now();
       final buf = await _usageList();
       buf.add(<Object?>[Days.key(now), now.hour, type, ...payload]);
       if (buf.length > _usageCap) {
@@ -230,7 +237,9 @@ abstract final class Storage {
       }
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
-          _usageKey, jsonEncode({'schema': usageSchema, 'events': buf}));
+        _usageKey,
+        jsonEncode({'schema': usageSchema, 'events': buf}),
+      );
     } catch (e) {
       debugPrint('Storage.logEvent failed: $e');
     }
@@ -246,8 +255,8 @@ abstract final class Storage {
         'schema': usageSchema,
         'note':
             'On-device only — nothing was sent anywhere. Each event is '
-                '[dayKey, hour(0-23), type, ...payload]. Custom quest titles '
-                'are hashed (c#…) for privacy; catalog/default titles are plain.',
+            '[dayKey, hour(0-23), type, ...payload]. Custom quest titles '
+            'are hashed (c#…) for privacy; catalog/default titles are plain.',
         'statLabels': [for (final s in Stat.values) s.abbr],
         'typeLegend': const {
           'open': 'app opened/resumed',
@@ -270,6 +279,8 @@ abstract final class Storage {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_usageKey);
-    } catch (_) {/* best effort */}
+    } catch (_) {
+      /* best effort */
+    }
   }
 }

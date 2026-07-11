@@ -7,10 +7,10 @@ import '../tokens.dart';
 enum Rarity { common, rare, legendary }
 
 Color rarityColor(Rarity r) => switch (r) {
-      Rarity.common => Palette.textMid,
-      Rarity.rare => Palette.info,
-      Rarity.legendary => Palette.xpLight,
-    };
+  Rarity.common => Palette.textMid,
+  Rarity.rare => Palette.info,
+  Rarity.legendary => Palette.xpLight,
+};
 
 /// What a found/earned cosmetic *does* once equipped — honest cosmetics
 /// (RESEARCH-momentum.md §7). One look at a time; equipping recolors the
@@ -149,7 +149,7 @@ const cosmetics = <String, Cosmetic>{
   'Spotless Glow': Cosmetic(
     name: 'Spotless Glow',
     rarity: Rarity.legendary,
-    blurb: 'not a single day missed',
+    blurb: 'five perfect days — the board cleared clean',
     aura: Color(0xFFFFF4D9),
     particles: [Color(0xFFFFF4D9), Color(0xFFF2CD93), Color(0xFFE0A865)],
   ),

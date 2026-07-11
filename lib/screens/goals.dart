@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../clock.dart';
 import '../content/goal_catalog.dart';
 import '../content/routines.dart';
 import '../engine.dart';
@@ -112,11 +113,12 @@ class GoalsPage extends StatelessWidget {
 
   void _adoptGoal(BuildContext context, GoalIdea idea) {
     final created = state.addGoal(
-        Goal(title: idea.title, stat: idea.stat, target: 25));
+      Goal(title: idea.title, stat: idea.stat, target: 25),
+    );
     var added = 0;
     // Whole-goal adopt: don't stack a modal per weekly quest — anchor each
     // weekly to today by default (editable later via the quest's tune sheet).
-    final today = DateTime.now().weekday;
+    final today = Clock.now().weekday;
     for (final t in idea.quests) {
       final q = t.schedule == QuestSchedule.weekly
           ? t.build(goalTitle: idea.title, weekdays: [today])
@@ -130,10 +132,11 @@ class GoalsPage extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
         content: Text(
-            created
-                ? 'Goal “${idea.title}” begun — $added quests taken on ⚔️'
-                : 'Goal already underway',
-            style: Type.body.copyWith(color: Palette.textHi)),
+          created
+              ? 'Goal “${idea.title}” begun — $added quests taken on ⚔️'
+              : 'Goal already underway',
+          style: Type.body.copyWith(color: Palette.textHi),
+        ),
       ),
     );
   }
@@ -147,31 +150,37 @@ class GoalsPage extends StatelessWidget {
         children: [
           Text('Take on quests!', style: Type.display.copyWith(fontSize: 30)),
           const SizedBox(height: 4),
-          Text('every quest serves a goal — that’s the point',
-              style: Type.body.copyWith(
-                  fontSize: 13,
-                  fontStyle: FontStyle.italic,
-                  color: Palette.textLo)),
+          Text(
+            'every quest serves a goal — that’s the point',
+            style: Type.body.copyWith(
+              fontSize: 13,
+              fontStyle: FontStyle.italic,
+              color: Palette.textLo,
+            ),
+          ),
           const SizedBox(height: 16),
           _WizardHero(state: state, onAdd: onAdd),
           const SizedBox(height: 12),
           if (state.goals.isNotEmpty) ...[
             _YourGoals(
-                state: state,
-                onRemoveGoal: onRemoveGoal,
-                onPersist: onPersist,
-                onAddQuest: onAdd,
-                quests: quests),
+              state: state,
+              onRemoveGoal: onRemoveGoal,
+              onPersist: onPersist,
+              onAddQuest: onAdd,
+              quests: quests,
+            ),
             const SizedBox(height: 12),
           ] else ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(
-                  'no oaths sworn yet — forge one above, or adopt a ready-made path below',
-                  style: Type.body.copyWith(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textLo)),
+                'no oaths sworn yet — forge one above, or adopt a ready-made path below',
+                style: Type.body.copyWith(
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                  color: Palette.textLo,
+                ),
+              ),
             ),
             const SizedBox(height: 12),
           ],
@@ -191,8 +200,9 @@ class GoalsPage extends StatelessWidget {
     // silently never renders here. A new GoalIdea added without a matching
     // _goalCategories entry fails loudly in debug instead of vanishing.
     assert(
-      goalCatalog.every((g) =>
-          _goalCategories.any((c) => c.goalTitles.contains(g.title))),
+      goalCatalog.every(
+        (g) => _goalCategories.any((c) => c.goalTitles.contains(g.title)),
+      ),
       'Every goalCatalog entry must be listed in a _GoalCategory (goals.dart). '
       'Unmapped goal(s): ${goalCatalog.where((g) => !_goalCategories.any((c) => c.goalTitles.contains(g.title))).map((g) => g.title).toList()}',
     );
@@ -204,22 +214,26 @@ class GoalsPage extends StatelessWidget {
       ];
       if (ideas.isEmpty) continue;
       widgets.add(const SizedBox(height: 22));
-      widgets.add(_CategoryHeader(
-        label: cat.label,
-        blurb: cat.blurb,
-        icon: cat.icon,
-        accent: cat.accent,
-      ));
+      widgets.add(
+        _CategoryHeader(
+          label: cat.label,
+          blurb: cat.blurb,
+          icon: cat.icon,
+          accent: cat.accent,
+        ),
+      );
       widgets.add(const SizedBox(height: 10));
       for (var i = 0; i < ideas.length; i++) {
         final idea = ideas[i];
-        widgets.add(_GoalCard(
-          idea: idea,
-          onAdd: onAdd,
-          activeTitles: activeTitles,
-          onAdopt: () => _adoptGoal(context, idea),
-          adopted: state.goals.any((g) => g.title == idea.title),
-        ));
+        widgets.add(
+          _GoalCard(
+            idea: idea,
+            onAdd: onAdd,
+            activeTitles: activeTitles,
+            onAdopt: () => _adoptGoal(context, idea),
+            adopted: state.goals.any((g) => g.title == idea.title),
+          ),
+        );
         if (i < ideas.length - 1) widgets.add(const SizedBox(height: 12));
       }
     }
@@ -260,7 +274,9 @@ class _CategoryHeader extends StatelessWidget {
               shape: BoxShape.circle,
               color: accent.withValues(alpha: 0.16),
               border: Border.all(
-                  color: accent.withValues(alpha: 0.5), width: 1.2),
+                color: accent.withValues(alpha: 0.5),
+                width: 1.2,
+              ),
             ),
             child: Center(child: Icon(icon, size: 15, color: accent)),
           ),
@@ -298,11 +314,14 @@ class _CategoryHeader extends StatelessWidget {
             children: [
               medallion,
               const SizedBox(width: 10),
-              Text(label,
-                  style: Type.label.copyWith(
-                      fontSize: 11,
-                      letterSpacing: 1.6,
-                      color: Palette.textHi)),
+              Text(
+                label,
+                style: Type.label.copyWith(
+                  fontSize: 11,
+                  letterSpacing: 1.6,
+                  color: Palette.textHi,
+                ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
@@ -327,11 +346,14 @@ class _CategoryHeader extends StatelessWidget {
           // squeezed or ellipsized by the rule beside it.
           Padding(
             padding: const EdgeInsets.only(left: 36),
-            child: Text(blurb,
-                style: Type.body.copyWith(
-                    fontSize: 11,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo)),
+            child: Text(
+              blurb,
+              style: Type.body.copyWith(
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
           ),
         ],
       ),
@@ -357,10 +379,11 @@ class _GuidedWorkoutsCard extends StatelessWidget {
             behavior: SnackBarBehavior.floating,
             backgroundColor: Palette.card,
             content: Text(
-                added
-                    ? 'Guided workouts added — find it on your Quests board 💪'
-                    : 'It’s already on your Quests board — tap it to begin',
-                style: Type.body.copyWith(color: Palette.textHi)),
+              added
+                  ? 'Guided workouts added — find it on your Quests board 💪'
+                  : 'It’s already on your Quests board — tap it to begin',
+              style: Type.body.copyWith(color: Palette.textHi),
+            ),
           ),
         );
       },
@@ -374,24 +397,33 @@ class _GuidedWorkoutsCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: Stat.str.color.withValues(alpha: 0.16),
-                border:
-                    Border.all(color: Stat.str.color.withValues(alpha: 0.5)),
+                border: Border.all(
+                  color: Stat.str.color.withValues(alpha: 0.5),
+                ),
               ),
-              child:
-                  Icon(Icons.fitness_center, size: 21, color: Stat.str.color),
+              child: Icon(
+                Icons.fitness_center,
+                size: 21,
+                color: Stat.str.color,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Guided workouts',
-                      style: Type.display.copyWith(fontSize: 19)),
-                  Text('gentle, beginner sessions — we walk you through it',
-                      style: Type.body.copyWith(
-                          fontSize: 13,
-                          fontStyle: FontStyle.italic,
-                          color: Palette.textLo)),
+                  Text(
+                    'Guided workouts',
+                    style: Type.display.copyWith(fontSize: 19),
+                  ),
+                  Text(
+                    'gentle, beginner sessions — we walk you through it',
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -447,18 +479,26 @@ class _WizardHero extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Begin a new goal',
-                      style: Type.display.copyWith(fontSize: 19)),
-                  Text('name it · forge its path · swear the oath',
-                      style: Type.body.copyWith(
-                          fontSize: 13,
-                          fontStyle: FontStyle.italic,
-                          color: Palette.textLo)),
+                  Text(
+                    'Begin a new goal',
+                    style: Type.display.copyWith(fontSize: 19),
+                  ),
+                  Text(
+                    'name it · forge its path · swear the oath',
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios,
-                size: 14, color: Palette.textLo),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 14,
+              color: Palette.textLo,
+            ),
           ],
         ),
       ),
@@ -469,12 +509,13 @@ class _WizardHero extends StatelessWidget {
 /// "YOUR GOALS" — each ambition with its bar inching toward full.
 /// Long-press a goal to abandon it (clears its quests too).
 class _YourGoals extends StatelessWidget {
-  const _YourGoals(
-      {required this.state,
-      required this.onRemoveGoal,
-      required this.onPersist,
-      required this.onAddQuest,
-      required this.quests});
+  const _YourGoals({
+    required this.state,
+    required this.onRemoveGoal,
+    required this.onPersist,
+    required this.onAddQuest,
+    required this.quests,
+  });
   final GameState state;
   final void Function(Goal goal) onRemoveGoal;
   final VoidCallback onPersist;
@@ -484,16 +525,18 @@ class _YourGoals extends StatelessWidget {
   void _openDetail(BuildContext context, Goal g) {
     Sfx.instance.play('tick');
     HapticFeedback.selectionClick();
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => GoalDetailScreen(
-        goal: g,
-        state: state,
-        quests: quests,
-        onRemoveGoal: onRemoveGoal,
-        onPersist: onPersist,
-        onAddQuest: onAddQuest,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GoalDetailScreen(
+          goal: g,
+          state: state,
+          quests: quests,
+          onRemoveGoal: onRemoveGoal,
+          onPersist: onPersist,
+          onAddQuest: onAddQuest,
+        ),
       ),
-    ));
+    );
   }
 
   void _confirmAbandon(BuildContext context, Goal g) {
@@ -512,14 +555,20 @@ class _YourGoals extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Abandon “${g.title}”?',
-                    textAlign: TextAlign.center,
-                    style: Type.display.copyWith(fontSize: 17)),
+                Text(
+                  'Abandon “${g.title}”?',
+                  textAlign: TextAlign.center,
+                  style: Type.display.copyWith(fontSize: 17),
+                ),
                 const SizedBox(height: 6),
-                Text('The goal and every quest serving it leave the board.',
-                    textAlign: TextAlign.center,
-                    style: Type.body.copyWith(
-                        fontSize: 13.5, color: Palette.textMid)),
+                Text(
+                  'The goal and every quest serving it leave the board.',
+                  textAlign: TextAlign.center,
+                  style: Type.body.copyWith(
+                    fontSize: 13.5,
+                    color: Palette.textMid,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -529,22 +578,31 @@ class _YourGoals extends StatelessWidget {
                         onTap: () => Navigator.of(ctx).pop(),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 9),
+                            horizontal: 18,
+                            vertical: 9,
+                          ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(999),
                             gradient: const LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
+                              colors: [
+                                Color(0xFFF6D9A2),
+                                Color(0xFFEFC074),
+                                Color(0xFFC08B4F),
+                              ],
                             ),
                           ),
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
-                            child: Text('KEEP IT',
-                                maxLines: 1,
-                                style: Type.label.copyWith(
-                                    fontSize: 11,
-                                    color: const Color(0xFF3A2510))),
+                            child: Text(
+                              'KEEP IT',
+                              maxLines: 1,
+                              style: Type.label.copyWith(
+                                fontSize: 11,
+                                color: const Color(0xFF3A2510),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -564,20 +622,27 @@ class _YourGoals extends StatelessWidget {
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 9),
+                            horizontal: 18,
+                            vertical: 9,
+                          ),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(999),
                             border: Border.all(
-                                color: const Color(0xFFE89090)
-                                    .withValues(alpha: armed ? 1 : 0.5)),
+                              color: const Color(
+                                0xFFE89090,
+                              ).withValues(alpha: armed ? 1 : 0.5),
+                            ),
                           ),
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
-                            child: Text(armed ? 'TAP AGAIN' : 'ABANDON',
-                                maxLines: 1,
-                                style: Type.label.copyWith(
-                                    fontSize: 11,
-                                    color: const Color(0xFFE89090))),
+                            child: Text(
+                              armed ? 'TAP AGAIN' : 'ABANDON',
+                              maxLines: 1,
+                              style: Type.label.copyWith(
+                                fontSize: 11,
+                                color: const Color(0xFFE89090),
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -603,10 +668,12 @@ class _YourGoals extends StatelessWidget {
               Text('YOUR GOALS', style: Type.label.copyWith(fontSize: 11)),
               const Spacer(),
               Flexible(
-                child: Text('tap to open · hold to abandon',
-                    textAlign: TextAlign.right,
-                    overflow: TextOverflow.ellipsis,
-                    style: Type.label.copyWith(fontSize: 11)),
+                child: Text(
+                  'tap to open · hold to abandon',
+                  textAlign: TextAlign.right,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(fontSize: 11),
+                ),
               ),
             ],
           ),
@@ -625,32 +692,33 @@ class _YourGoals extends StatelessWidget {
                         g.complete
                             ? Icons.emoji_events
                             : g.kind == GoalKind.become
-                                ? Icons.all_inclusive
-                                : Icons.flag,
+                            ? Icons.all_inclusive
+                            : Icons.flag,
                         size: 13,
                         color: g.complete ? Palette.xpLight : g.stat.color,
                       ),
                       const SizedBox(width: 7),
                       Expanded(
-                        child: Text(g.title,
-                            overflow: TextOverflow.ellipsis,
-                            style: Type.body.copyWith(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: Palette.textHi)),
+                        child: Text(
+                          g.title,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.body.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Palette.textHi,
+                          ),
+                        ),
                       ),
                       Flexible(
                         child: Text(
-                            g.complete
-                                ? 'ACHIEVED'
-                                : '${g.progress}/${g.target}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Type.label.copyWith(
-                                fontSize: 11,
-                                color: g.complete
-                                    ? Palette.xpLight
-                                    : g.stat.color)),
+                          g.complete ? 'ACHIEVED' : '${g.progress}/${g.target}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            color: g.complete ? Palette.xpLight : g.stat.color,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -720,7 +788,8 @@ class _GoalCardState extends State<_GoalCard> {
                     shape: BoxShape.circle,
                     color: idea.stat.color.withValues(alpha: 0.16),
                     border: Border.all(
-                        color: idea.stat.color.withValues(alpha: 0.5)),
+                      color: idea.stat.color.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Center(
                     // scaleDown so longer domain abbrs (CRAFT, PEOPLE) shrink
@@ -729,26 +798,35 @@ class _GoalCardState extends State<_GoalCard> {
                       padding: const EdgeInsets.symmetric(horizontal: 3),
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text(idea.stat.abbr,
-                            maxLines: 1,
-                            style: Type.label.copyWith(
-                                fontSize: 11, color: idea.stat.color)),
+                        child: Text(
+                          idea.stat.abbr,
+                          maxLines: 1,
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            color: idea.stat.color,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Text(idea.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Type.display.copyWith(fontSize: 18)),
+                  child: Text(
+                    idea.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.display.copyWith(fontSize: 18),
+                  ),
                 ),
                 AnimatedRotation(
                   turns: _open ? 0.5 : 0,
                   duration: Motion.quick,
-                  child: const Icon(Icons.expand_more,
-                      size: 20, color: Palette.textLo),
+                  child: const Icon(
+                    Icons.expand_more,
+                    size: 20,
+                    color: Palette.textLo,
+                  ),
                 ),
               ],
             ),
@@ -756,19 +834,23 @@ class _GoalCardState extends State<_GoalCard> {
           AnimatedCrossFade(
             duration: Motion.settle,
             sizeCurve: Motion.respond,
-            crossFadeState:
-                _open ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+            crossFadeState: _open
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
             firstChild: const SizedBox(width: double.infinity),
             secondChild: Padding(
               padding: const EdgeInsets.only(top: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(idea.blurb,
-                      style: Type.body.copyWith(
-                          fontSize: 13.5,
-                          height: 1.5,
-                          color: Palette.textMid)),
+                  Text(
+                    idea.blurb,
+                    style: Type.body.copyWith(
+                      fontSize: 13.5,
+                      height: 1.5,
+                      color: Palette.textMid,
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   for (final t in idea.quests)
                     _TemplateRow(
@@ -782,7 +864,9 @@ class _GoalCardState extends State<_GoalCard> {
                       onTap: widget.adopted ? null : widget.onAdopt,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(999),
                           gradient: widget.adopted
@@ -793,13 +877,13 @@ class _GoalCardState extends State<_GoalCard> {
                                   colors: [
                                     Color(0xFFF6D9A2),
                                     Color(0xFFEFC074),
-                                    Color(0xFFC08B4F)
+                                    Color(0xFFC08B4F),
                                   ],
                                 ),
                           border: widget.adopted
                               ? Border.all(
-                                  color: Palette.success
-                                      .withValues(alpha: 0.5))
+                                  color: Palette.success.withValues(alpha: 0.5),
+                                )
                               : null,
                         ),
                         child: Text(
@@ -807,10 +891,11 @@ class _GoalCardState extends State<_GoalCard> {
                               ? 'GOAL UNDERWAY ✓'
                               : 'ADOPT WHOLE GOAL',
                           style: Type.label.copyWith(
-                              fontSize: 11,
-                              color: widget.adopted
-                                  ? Palette.success
-                                  : const Color(0xFF3A2510)),
+                            fontSize: 11,
+                            color: widget.adopted
+                                ? Palette.success
+                                : const Color(0xFF3A2510),
+                          ),
                         ),
                       ),
                     ),
@@ -851,27 +936,40 @@ void _showQuestWhy(BuildContext context, QuestTemplate t) {
               children: [
                 Icon(Icons.auto_stories, size: 14, color: t.stat.color),
                 const SizedBox(width: 6),
-                Text('WHY THIS HELPS',
-                    style:
-                        Type.label.copyWith(fontSize: 11, color: t.stat.color)),
+                Text(
+                  'WHY THIS HELPS',
+                  style: Type.label.copyWith(fontSize: 11, color: t.stat.color),
+                ),
               ],
             ),
             const SizedBox(height: 10),
             Text(t.title, style: Type.display.copyWith(fontSize: 18)),
             const SizedBox(height: 8),
-            Text(why.claim,
-                style: Type.body.copyWith(
-                    fontSize: 13, height: 1.5, color: Palette.textMid)),
+            Text(
+              why.claim,
+              style: Type.body.copyWith(
+                fontSize: 13,
+                height: 1.5,
+                color: Palette.textMid,
+              ),
+            ),
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(Icons.menu_book_outlined,
-                    size: 11, color: Palette.info),
+                const Icon(
+                  Icons.menu_book_outlined,
+                  size: 11,
+                  color: Palette.info,
+                ),
                 const SizedBox(width: 5),
                 Expanded(
-                  child: Text(why.source,
-                      style: Type.label
-                          .copyWith(fontSize: 11, color: Palette.info)),
+                  child: Text(
+                    why.source,
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.info,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -907,11 +1005,14 @@ class _TemplateRow extends StatelessWidget {
                 Row(
                   children: [
                     Flexible(
-                      child: Text(t.title,
-                          style: Type.body.copyWith(
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w600,
-                              color: Palette.textHi)),
+                      child: Text(
+                        t.title,
+                        style: Type.body.copyWith(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                          color: Palette.textHi,
+                        ),
+                      ),
                     ),
                     // tap to learn the research behind this habit
                     if (questWhy.containsKey(t.title)) ...[
@@ -919,9 +1020,11 @@ class _TemplateRow extends StatelessWidget {
                       GestureDetector(
                         onTap: () => _showQuestWhy(context, t),
                         behavior: HitTestBehavior.opaque,
-                        child: Icon(Icons.info_outline,
-                            size: 13,
-                            color: t.stat.color.withValues(alpha: 0.8)),
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 13,
+                          color: t.stat.color.withValues(alpha: 0.8),
+                        ),
                       ),
                     ],
                   ],
@@ -934,14 +1037,19 @@ class _TemplateRow extends StatelessWidget {
                     _MiniChip(label: t.schedule.label),
                     if (t.timerMinutes > 0)
                       _MiniChip(
-                          label: '⏱ ${t.timerMinutes}M',
-                          color: Palette.verify),
+                        label: '⏱ ${t.timerMinutes}M',
+                        color: Palette.verify,
+                      ),
                     if (t.allDay)
                       const _MiniChip(
-                          label: 'CHECKS AT NIGHT', color: Palette.unlock),
+                        label: 'CHECKS AT NIGHT',
+                        color: Palette.unlock,
+                      ),
                     if (t.dread)
                       const _MiniChip(
-                          label: 'COUNTS EXTRA', color: Palette.dread),
+                        label: 'COUNTS EXTRA',
+                        color: Palette.dread,
+                      ),
                   ],
                 ),
               ],
@@ -955,11 +1063,13 @@ class _TemplateRow extends StatelessWidget {
                     // "weekly shot" feedback) — default-selected to today.
                     Quest quest;
                     if (t.schedule == QuestSchedule.weekly) {
-                      final day = await pickWeekday(context,
-                          accent: t.stat.color, questTitle: t.title);
+                      final day = await pickWeekday(
+                        context,
+                        accent: t.stat.color,
+                        questTitle: t.title,
+                      );
                       if (day == null) return; // dismissed → don't adopt
-                      quest =
-                          t.build(weekdays: day == 0 ? const [] : [day]);
+                      quest = t.build(weekdays: day == 0 ? const [] : [day]);
                     } else {
                       quest = t.build();
                     }
@@ -975,18 +1085,17 @@ class _TemplateRow extends StatelessWidget {
                         backgroundColor: Palette.card,
                         duration: const Duration(milliseconds: 1400),
                         content: Text(
-                            ok
-                                ? '“${t.title}” taken on ⚔️'
-                                : 'Already on your quest list',
-                            style:
-                                Type.body.copyWith(color: Palette.textHi)),
+                          ok
+                              ? '“${t.title}” taken on ⚔️'
+                              : 'Already on your quest list',
+                          style: Type.body.copyWith(color: Palette.textHi),
+                        ),
                       ),
                     );
                   },
             child: AnimatedContainer(
               duration: Motion.quick,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(999),
                 gradient: taken
@@ -994,20 +1103,22 @@ class _TemplateRow extends StatelessWidget {
                     : const LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
+                        colors: [
+                          Color(0xFFF6D9A2),
+                          Color(0xFFEFC074),
+                          Color(0xFFC08B4F),
+                        ],
                       ),
                 border: taken
-                    ? Border.all(
-                        color: Palette.success.withValues(alpha: 0.5))
+                    ? Border.all(color: Palette.success.withValues(alpha: 0.5))
                     : null,
               ),
               child: Text(
                 taken ? 'TAKEN ✓' : 'TAKE ON',
                 style: Type.label.copyWith(
-                    fontSize: 11,
-                    color: taken
-                        ? Palette.success
-                        : const Color(0xFF3A2510)),
+                  fontSize: 11,
+                  color: taken ? Palette.success : const Color(0xFF3A2510),
+                ),
               ),
             ),
           ),
@@ -1031,8 +1142,7 @@ class _MiniChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: c.withValues(alpha: 0.4)),
       ),
-      child: Text(label,
-          style: Type.label.copyWith(fontSize: 11, color: c)),
+      child: Text(label, style: Type.label.copyWith(fontSize: 11, color: c)),
     );
   }
 }

@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../engine.dart';
+import '../haptics.dart';
 import '../tokens.dart';
 import 'glass.dart';
 import 'home_room.dart';
 import 'honey_button.dart';
 
-/// First-run welcome (round-9): three warm beats — the hearth, your name,
-/// your first fire. Short on purpose; the Oath Wizard is the real ceremony.
+/// How much room a day usually has — seeds the starter board (DESIGN Round-3).
+enum TimeShape { light, full, packed }
+
+/// First-run welcome: hearth → name → time shape → first fire.
+/// Short on purpose; the Oath Wizard is the real ceremony.
 class OnboardingFlow extends StatefulWidget {
   const OnboardingFlow({
     super.key,
@@ -20,7 +23,12 @@ class OnboardingFlow extends StatefulWidget {
   final GameState state;
 
   /// [forgeFirstGoal] true → caller opens the Oath Wizard right after.
-  final void Function({required bool forgeFirstGoal}) onFinish;
+  /// [timeShape] seeds how dense the starter quest board should feel.
+  final void Function({
+    required bool forgeFirstGoal,
+    required TimeShape timeShape,
+  })
+  onFinish;
 
   @override
   State<OnboardingFlow> createState() => _OnboardingFlowState();
@@ -29,6 +37,7 @@ class OnboardingFlow extends StatefulWidget {
 class _OnboardingFlowState extends State<OnboardingFlow> {
   int _step = 0;
   final _name = TextEditingController();
+  TimeShape _shape = TimeShape.full;
 
   @override
   void dispose() {
@@ -38,7 +47,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   void _next() {
     Sfx.instance.play('tick');
-    HapticFeedback.selectionClick();
+    Haptics.tap();
     setState(() => _step++);
   }
 
@@ -46,28 +55,42 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     final name = _name.text.trim();
     widget.state.playerName = name.isEmpty ? null : name;
     widget.state.onboarded = true;
+    widget.state.timeShape = _shape.name;
     Sfx.instance.play('streak');
-    HapticFeedback.mediumImpact();
-    widget.onFinish(forgeFirstGoal: forge);
+    Haptics.success();
+    widget.onFinish(forgeFirstGoal: forge, timeShape: _shape);
   }
 
   @override
   Widget build(BuildContext context) {
     return OverlaySurface(
-      // the living candlelit canvas from frame one — the first glass-and-ember
-      // moment a new user sees should be the hero, not a flat espresso wall
       child: WarmBackground(
         themeId: widget.state.canvasTheme,
+        reduceMotion: widget.state.reduceMotion,
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: AnimatedSwitcher(
-              duration: Motion.settle,
-              child: switch (_step) {
-                0 => _welcome(),
-                1 => _naming(),
-                _ => _firstFire(),
-              },
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.fromLTRB(
+                24,
+                24,
+                24,
+                24 + MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 48,
+                ),
+                child: AnimatedSwitcher(
+                  duration: Motion.settle,
+                  child: switch (_step) {
+                    0 => _welcome(),
+                    1 => _naming(),
+                    2 => _timeShape(),
+                    _ => _firstFire(),
+                  },
+                ),
+              ),
             ),
           ),
         ),
@@ -80,13 +103,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       key: const ValueKey(0),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // the first thing a new player ever meets — a cozy keep by a lit
-        // hearth, the warm world they're about to make their own
         ClipRRect(
           borderRadius: BorderRadius.circular(20),
-          child: const SizedBox(
-            height: 190,
-            child: HomeRoom(
+          child: SizedBox(
+            height: (MediaQuery.sizeOf(context).height * 0.23).clamp(120, 190),
+            child: const HomeRoom(
               unlocked: {'rug', 'lamp', 'plant', 'pet'},
               petAwake: true,
             ),
@@ -137,6 +158,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         const SizedBox(height: 20),
         TextField(
           controller: _name,
+          maxLength: 40,
           autofocus: true,
           textAlign: TextAlign.center,
           textInputAction: TextInputAction.done,
@@ -149,6 +171,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               color: Palette.textLo.withValues(alpha: 0.5),
             ),
             filled: true,
+            counterText: '',
             fillColor: Palette.glassFill,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -178,9 +201,59 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     );
   }
 
-  Widget _firstFire() {
+  Widget _timeShape() {
     return Column(
       key: const ValueKey(2),
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'How much room\ndo your days have?',
+          textAlign: TextAlign.center,
+          style: Type.display.copyWith(fontSize: 26, height: 1.2),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'we’ll size your starter board to fit — you can always add more',
+          textAlign: TextAlign.center,
+          style: Type.body.copyWith(
+            fontSize: 13,
+            fontStyle: FontStyle.italic,
+            color: Palette.textLo,
+          ),
+        ),
+        const SizedBox(height: 24),
+        _ShapePick(
+          label: 'LIGHT DAYS',
+          blurb: 'a few small quests — summer break, recovery, soft weeks',
+          selected: _shape == TimeShape.light,
+          onTap: () => setState(() => _shape = TimeShape.light),
+        ),
+        const SizedBox(height: 10),
+        _ShapePick(
+          label: 'FULL DAYS',
+          blurb: 'a balanced board — the default pace for most lives',
+          selected: _shape == TimeShape.full,
+          onTap: () => setState(() => _shape = TimeShape.full),
+        ),
+        const SizedBox(height: 10),
+        _ShapePick(
+          label: 'PACKED DAYS',
+          blurb: 'more on the table — two jobs, training, a full calendar',
+          selected: _shape == TimeShape.packed,
+          onTap: () => setState(() => _shape = TimeShape.packed),
+        ),
+        const SizedBox(height: 28),
+        Center(
+          child: _Cta(label: 'CONTINUE', onTap: _next),
+        ),
+      ],
+    );
+  }
+
+  Widget _firstFire() {
+    return Column(
+      key: const ValueKey(3),
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -212,6 +285,68 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ShapePick extends StatelessWidget {
+  const _ShapePick({
+    required this.label,
+    required this.blurb,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final String blurb;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label. $blurb',
+      onTap: onTap,
+      child: GestureDetector(
+        excludeFromSemantics: true,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: Motion.settle,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            color: selected
+                ? Palette.xp.withValues(alpha: 0.18)
+                : Palette.glassFill,
+            border: Border.all(
+              color: selected ? Palette.xp : Palette.glassEdge,
+              width: selected ? 1.4 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Type.label.copyWith(
+                  fontSize: 12,
+                  color: selected ? Palette.xpLight : Palette.textMid,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                blurb,
+                style: Type.body.copyWith(
+                  fontSize: 12.5,
+                  color: Palette.textLo,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

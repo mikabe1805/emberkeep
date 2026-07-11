@@ -45,12 +45,21 @@ class DetailHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => Navigator.of(context).maybePop(),
-            child: const Padding(
-              padding: EdgeInsets.all(8),
-              child: Icon(Icons.chevron_left, size: 26, color: Palette.textMid),
+          Semantics(
+            button: true,
+            label: 'Back',
+            child: GestureDetector(
+              excludeFromSemantics: true,
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).maybePop(),
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Icon(
+                  Icons.chevron_left,
+                  size: 26,
+                  color: Palette.textMid,
+                ),
+              ),
             ),
           ),
           if (heroTag != null) ...[

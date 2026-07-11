@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../cloud.dart';
+import '../haptics.dart';
 import '../platform/share_stub.dart'
     if (dart.library.js_interop) '../platform/share_web.dart';
 import '../content/achievements.dart';
@@ -57,6 +58,7 @@ class MePage extends StatelessWidget {
     required this.onLinkAccount,
     required this.onSignIn,
     required this.onSignOut,
+    required this.onDeleteAccount,
   });
 
   final GameState state;
@@ -90,6 +92,9 @@ class MePage extends StatelessWidget {
 
   /// Signs out → back to anonymous.
   final Future<void> Function() onSignOut;
+
+  /// Permanently deletes the linked cloud account; null = success.
+  final Future<String?> Function(String password) onDeleteAccount;
 
   @override
   Widget build(BuildContext context) {
@@ -209,9 +214,11 @@ class MePage extends StatelessWidget {
                     _SpaceLink(
                       icon: Icons.travel_explore,
                       label: 'Visit a space',
-                      onTap: () => visitSpace(context,
-                          themeId: state.canvasTheme,
-                          lively: !state.reduceMotion),
+                      onTap: () => visitSpace(
+                        context,
+                        themeId: state.canvasTheme,
+                        lively: !state.reduceMotion,
+                      ),
                     ),
                   ],
                 ),
@@ -266,9 +273,13 @@ class MePage extends StatelessWidget {
                 const SizedBox(height: 14),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text('YOUR HEARTH GROWS',
-                      style: Type.label
-                          .copyWith(fontSize: 11, color: Palette.textLo)),
+                  child: Text(
+                    'YOUR HEARTH GROWS',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.textLo,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -383,143 +394,186 @@ class MePage extends StatelessWidget {
           ),
           const SizedBox(height: 14),
 
-          // ── found in the embers (real, kept loot) ────────────────
-          if (state.collectedLoot.isNotEmpty) ...[
-            GlassPanel(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'WARDROBE',
-                        style: Type.label.copyWith(fontSize: 11),
+          // ── wardrobe: owned skins + locked silhouettes (DESIGN §7)
+          GlassPanel(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('WARDROBE', style: Type.label.copyWith(fontSize: 11)),
+                    const Spacer(),
+                    Text(
+                      '${state.collectedLoot.length}/${cosmetics.length}',
+                      style: Type.numerals.copyWith(
+                        fontSize: 12,
+                        color: Palette.xp,
                       ),
-                      const Spacer(),
-                      Text(
-                        '${state.collectedLoot.length}/${cosmetics.length}',
-                        style: Type.numerals.copyWith(
-                          fontSize: 12,
-                          color: Palette.xp,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'skins you’ve found and earned — tap to try one on',
-                    style: Type.body.copyWith(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textLo,
                     ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  state.collectedLoot.isEmpty
+                      ? 'empty slots wait for drops and trophies — keep lighting embers'
+                      : 'skins you’ve found — tap to try on; silhouettes wait for the rest',
+                  style: Type.body.copyWith(
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
                   ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      // legendary first, then rare, then common
-                      for (final loot
-                          in state.collectedLoot.toList()..sort(
-                            (a, b) => (cosmeticFor(b)?.rarity.index ?? 0)
-                                .compareTo(cosmeticFor(a)?.rarity.index ?? 0),
-                          ))
-                        Builder(
-                          builder: (_) {
-                            final worn = state.equippedSkin == loot;
-                            final cos = cosmeticFor(loot);
-                            final tint = cos?.aura ?? Palette.unlock;
-                            final rarity = cos?.rarity ?? Rarity.common;
-                            final legendary = rarity == Rarity.legendary;
-                            return GestureDetector(
-                              onTap: () =>
-                                  _showSkinPreview(context, state, loot),
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 300,
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final loot
+                        in state.collectedLoot.toList()..sort(
+                          (a, b) => (cosmeticFor(b)?.rarity.index ?? 0)
+                              .compareTo(cosmeticFor(a)?.rarity.index ?? 0),
+                        ))
+                      Builder(
+                        builder: (_) {
+                          final worn = state.equippedSkin == loot;
+                          final cos = cosmeticFor(loot);
+                          final tint = cos?.aura ?? Palette.unlock;
+                          final rarity = cos?.rarity ?? Rarity.common;
+                          final legendary = rarity == Rarity.legendary;
+                          return GestureDetector(
+                            onTap: () => _showSkinPreview(context, state, loot),
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 300),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
                                 ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 6,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(999),
+                                  color: tint.withValues(
+                                    alpha: worn ? 0.28 : 0.10,
                                   ),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(999),
-                                    color: tint.withValues(
-                                      alpha: worn ? 0.28 : 0.10,
-                                    ),
-                                    border: Border.all(
-                                      color: worn
-                                          ? tint.withValues(alpha: 0.9)
-                                          : rarityColor(
-                                              rarity,
-                                            ).withValues(alpha: 0.55),
-                                      width: worn ? 1.4 : 1,
-                                    ),
-                                    boxShadow: legendary
-                                        ? const [
-                                            BoxShadow(
-                                              color: Palette.honeyGlow,
-                                              blurRadius: 10,
-                                            ),
-                                          ]
-                                        : const [],
+                                  border: Border.all(
+                                    color: worn
+                                        ? tint.withValues(alpha: 0.9)
+                                        : rarityColor(
+                                            rarity,
+                                          ).withValues(alpha: 0.55),
+                                    width: worn ? 1.4 : 1,
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 10,
-                                        height: 10,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
+                                  boxShadow: legendary
+                                      ? const [
+                                          BoxShadow(
+                                            color: Palette.honeyGlow,
+                                            blurRadius: 10,
+                                          ),
+                                        ]
+                                      : const [],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: tint,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        loot,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Type.body.copyWith(
+                                          fontSize: 13,
+                                          color: Palette.textMid,
+                                        ),
+                                      ),
+                                    ),
+                                    if (worn) ...[
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'WORN',
+                                        style: Type.label.copyWith(
+                                          fontSize: 11,
                                           color: tint,
                                         ),
                                       ),
-                                      const SizedBox(width: 6),
-                                      Flexible(
-                                        child: Text(
-                                          loot,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: Type.body.copyWith(
-                                            fontSize: 13,
-                                            color: Palette.textMid,
-                                          ),
-                                        ),
+                                    ] else if (legendary) ...[
+                                      const SizedBox(width: 5),
+                                      const Icon(
+                                        Icons.auto_awesome,
+                                        size: 13,
+                                        color: Palette.xpLight,
                                       ),
-                                      if (worn) ...[
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          'WORN',
-                                          style: Type.label.copyWith(
-                                            fontSize: 11,
-                                            color: tint,
-                                          ),
-                                        ),
-                                      ] else if (legendary) ...[
-                                        const SizedBox(width: 5),
-                                        const Icon(
-                                          Icons.auto_awesome,
-                                          size: 13,
-                                          color: Palette.xpLight,
-                                        ),
-                                      ],
                                     ],
-                                  ),
+                                  ],
                                 ),
                               ),
-                            );
-                          },
+                            ),
+                          );
+                        },
+                      ),
+                    for (final entry in cosmetics.entries)
+                      if (!state.collectedLoot.contains(entry.key))
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(999),
+                            color: Palette.glassFill,
+                            border: Border.all(
+                              color: Palette.glassEdge.withValues(alpha: 0.7),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Palette.textLo.withValues(alpha: 0.35),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '???',
+                                style: Type.body.copyWith(
+                                  fontSize: 13,
+                                  color: Palette.textLo.withValues(alpha: 0.55),
+                                ),
+                              ),
+                              if (entry.value.rarity != Rarity.common) ...[
+                                const SizedBox(width: 4),
+                                Text(
+                                  entry.value.rarity == Rarity.legendary
+                                      ? 'LEGEND'
+                                      : 'RARE',
+                                  style: Type.label.copyWith(
+                                    fontSize: 9,
+                                    color: rarityColor(
+                                      entry.value.rarity,
+                                    ).withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                    ],
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 14),
-          ],
+          ),
+          const SizedBox(height: 14),
 
           // ── settings (demoted below the identity content) ────────
           Padding(
@@ -541,6 +595,7 @@ class MePage extends StatelessWidget {
             onLink: onLinkAccount,
             onSignIn: onSignIn,
             onSignOut: onSignOut,
+            onDeleteAccount: onDeleteAccount,
           ),
           const SizedBox(height: 14),
 
@@ -807,8 +862,7 @@ class MePage extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('SOUND & MOTION',
-                  style: Type.label.copyWith(fontSize: 11)),
+              Text('SOUND & MOTION', style: Type.label.copyWith(fontSize: 11)),
               const Spacer(),
             ],
           ),
@@ -832,6 +886,7 @@ class MePage extends StatelessWidget {
             value: state.reduceMotion,
             onChanged: (v) {
               state.reduceMotion = v;
+              Haptics.reduceMotion = v;
               onPersist();
             },
           ),
@@ -855,17 +910,23 @@ class MePage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: Type.label.copyWith(fontSize: 12,
-                      color: Palette.textHi)),
+              Text(
+                label,
+                style: Type.label.copyWith(fontSize: 12, color: Palette.textHi),
+              ),
               if (subtitle != null)
-                Text(subtitle,
-                    style: Type.body.copyWith(fontSize: 10,
-                        color: Palette.textLo, fontStyle: FontStyle.italic)),
+                Text(
+                  subtitle,
+                  style: Type.body.copyWith(
+                    fontSize: 10,
+                    color: Palette.textLo,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
             ],
           ),
         ),
-        GlassSwitch(value: value, onChanged: onChanged),
+        GlassSwitch(value: value, onChanged: onChanged, semanticLabel: label),
       ],
     );
   }
@@ -879,19 +940,55 @@ class MePage extends StatelessWidget {
             children: [
               Text('REMINDERS', style: Type.label.copyWith(fontSize: 11)),
               const Spacer(),
-              GlassSwitch(
-                value: state.notifyEnabled,
-                onChanged: (v) async {
-                  if (v) await Notifications.requestPermission();
-                  state.setNotify(enabled: v);
-                  await onNotifyChanged();
-                },
-              ),
+              if (kIsWeb)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: Palette.glassFill,
+                    border: Border.all(color: Palette.glassEdge),
+                  ),
+                  child: Text(
+                    'NATIVE APP',
+                    style: Type.label.copyWith(fontSize: 11),
+                  ),
+                )
+              else
+                GlassSwitch(
+                  value: state.notifyEnabled,
+                  semanticLabel: 'Reminders',
+                  onChanged: (v) async {
+                    if (v) {
+                      final granted = await Notifications.requestPermission();
+                      if (!context.mounted) return;
+                      if (!granted) {
+                        ScaffoldMessenger.of(context)
+                          ..clearSnackBars()
+                          ..showSnackBar(
+                            const SnackBar(
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: Palette.card,
+                              content: Text(
+                                'Reminders stayed off — allow notifications '
+                                'in system settings when you’re ready.',
+                              ),
+                            ),
+                          );
+                        return;
+                      }
+                    }
+                    state.setNotify(enabled: v);
+                    await onNotifyChanged();
+                  },
+                ),
             ],
           ),
           Text(
             kIsWeb
-                ? 'a daily nudge + plan reminders — these ring on the installed app'
+                ? 'Daily nudges and plan reminders are available in the iOS and Android apps.'
                 : 'a daily nudge to light your first ember, plus reminders for dated plans',
             style: Type.body.copyWith(
               fontSize: 11,
@@ -1556,8 +1653,9 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
   void _copyText() {
     Clipboard.setData(ClipboardData(text: widget.summary));
     Sfx.instance.play('streak');
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
@@ -2122,10 +2220,7 @@ class _DataButton extends StatelessWidget {
             children: [
               Icon(icon, size: 14, color: ink),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: Type.label.copyWith(fontSize: 11, color: ink),
-              ),
+              Text(label, style: Type.label.copyWith(fontSize: 11, color: ink)),
             ],
           ),
         ),
@@ -2264,11 +2359,13 @@ class _AccountPanel extends StatelessWidget {
     required this.onLink,
     required this.onSignIn,
     required this.onSignOut,
+    required this.onDeleteAccount,
   });
 
   final Future<String?> Function(String, String) onLink;
   final Future<String?> Function(String, String) onSignIn;
   final Future<void> Function() onSignOut;
+  final Future<String?> Function(String) onDeleteAccount;
 
   void _openForm(BuildContext context, {required bool signIn}) {
     Sfx.instance.play('tick');
@@ -2371,6 +2468,15 @@ class _AccountPanel extends StatelessWidget {
     );
   }
 
+  void _confirmDelete(BuildContext context) {
+    Sfx.instance.play('tick');
+    showDialog<void>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (_) => _DeleteAccountDialog(action: onDeleteAccount),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -2427,9 +2533,20 @@ class _AccountPanel extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () => _confirmDelete(context),
+                  child: Text(
+                    'delete account',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.danger.withValues(alpha: 0.9),
+                    ),
+                  ),
+                ),
               ] else ...[
                 Text(
-                  'Create a free account so your character survives a lost '
+                  'Create a free account so your keep survives a wiped '
                   'phone or a cleared browser — and follows you anywhere.',
                   style: Type.body.copyWith(
                     fontSize: 11.5,
@@ -2468,6 +2585,115 @@ class _AccountPanel extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _DeleteAccountDialog extends StatefulWidget {
+  const _DeleteAccountDialog({required this.action});
+
+  final Future<String?> Function(String password) action;
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  final _password = TextEditingController();
+  String? _error;
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _delete() async {
+    if (_busy) return;
+    if (_password.text.isEmpty) {
+      setState(() => _error = 'Enter your password to confirm.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final error = await widget.action(_password.text);
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _busy = false;
+        _error = error;
+      });
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    messenger.showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        content: Text('Account and Emberkeep data deleted.'),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(24),
+      child: GlassPanel(
+        tint: Palette.dialogSurface,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Delete account?', style: Type.display.copyWith(fontSize: 20)),
+            const SizedBox(height: 8),
+            Text(
+              'This permanently removes your sign-in, cloud backup, and shared '
+              'keep, plus progress and journal media on this device. Export a '
+              'backup first if you want to keep a copy.',
+              style: Type.body.copyWith(fontSize: 13, color: Palette.textMid),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _password,
+              obscureText: true,
+              autofillHints: const [AutofillHints.password],
+              onSubmitted: (_) => _delete(),
+              decoration: InputDecoration(
+                hintText: 'password',
+                errorText: _error,
+                filled: true,
+                fillColor: Palette.glassFill,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: _busy ? null : () => Navigator.of(context).pop(),
+                  child: const Text('Keep account'),
+                ),
+                const Spacer(),
+                HoneyButton(
+                  label: _busy ? 'DELETING…' : 'DELETE ACCOUNT',
+                  enabled: !_busy,
+                  glow: false,
+                  onTap: _delete,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

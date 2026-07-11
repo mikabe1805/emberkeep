@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../clock.dart';
 import '../content/messages.dart';
 import '../engine.dart';
 import '../models.dart';
@@ -54,7 +55,7 @@ class _NightFlowState extends State<NightFlow> {
   /// What tomorrow already holds: recurring quests scheduled on that day
   /// (round-7: weekday/month-day aware) and events due by tomorrow.
   List<Quest> _tomorrowQuests() {
-    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    final tomorrow = Clock.now().add(const Duration(days: 1));
     return [
       for (final q in widget.quests)
         if (q.isEvent
@@ -133,13 +134,17 @@ class _NightFlowState extends State<NightFlow> {
   /// today" snooze excludes them — a line you chose to skip is never offered
   /// for reward at night.
   List<Quest> _openAllDay() {
-    final now = DateTime.now();
+    final now = Clock.now();
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
     final today = Days.key(now);
     return [
       for (final q in widget.quests)
         if (q.allDay &&
             q.snoozedDay != today &&
             !q.doneFor(now) &&
+            (q.isEvent
+                ? !q.dueDate!.isAfter(endOfToday)
+                : q.scheduledOn(now)) &&
             !_slipped.contains(q))
           q,
     ];
@@ -245,7 +250,7 @@ class _NightFlowState extends State<NightFlow> {
   // ── step 1: the day, replayed ─────────────────────────────────────
   Widget _recap(BuildContext context) {
     final s = widget.state;
-    final today = Days.key(DateTime.now());
+    final today = Days.key(Clock.now());
     final done = s.history[today] ?? 0;
     final openAllDay = _openAllDay();
     final risers = _readyToRise();
@@ -1007,7 +1012,7 @@ class MorningFlow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = Clock.now();
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
     final today = Days.key(now);
     final open = [
@@ -1015,7 +1020,7 @@ class MorningFlow extends StatelessWidget {
         // a "hide just for today" snooze drops it from the morning brief too
         if (q.snoozedDay != today &&
             !q.doneFor(now) &&
-            (!q.isEvent || !q.dueDate!.isAfter(endOfToday)))
+            (q.isEvent ? !q.dueDate!.isAfter(endOfToday) : q.scheduledOn(now)))
           q,
     ];
     final main = open.where((q) => q.priority && !q.allDay).toList();
@@ -1317,7 +1322,7 @@ class MomentumStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = Clock.now();
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

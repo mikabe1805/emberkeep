@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../clock.dart';
 import '../models.dart';
 import '../tokens.dart';
 import 'domain_hint.dart';
@@ -219,7 +220,7 @@ class _EmberSheetState extends State<_EmberSheet> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
+    final now = Clock.now();
     _weekday = now.weekday;
     _monthDay = now.day.clamp(1, 28);
     _title.text = widget.config.defaultTitle ?? ''; // pre-fill (journal→quest)
@@ -266,7 +267,7 @@ class _EmberSheetState extends State<_EmberSheet> {
 
   Quest _build() {
     final title = _title.text.trim();
-    final now = DateTime.now();
+    final now = Clock.now();
     var schedule = QuestSchedule.daily;
     var weekdays = const <int>[];
     int? monthDay;
@@ -497,53 +498,19 @@ class _EmberSheetState extends State<_EmberSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('WHICH DAYS?', style: Type.label.copyWith(fontSize: 10)),
+            Text('WHICH DAYS?', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                for (var d = 1; d <= 7; d++)
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      Sfx.instance.play('tick');
-                      setState(() {
-                        // keep at least one day selected — an empty set would
-                        // silently mean "every day", which the label can't show
-                        if (_customDays.contains(d)) {
-                          if (_customDays.length > 1) _customDays.remove(d);
-                        } else {
-                          _customDays.add(d);
-                        }
-                      });
-                    },
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _customDays.contains(d)
-                            ? accent.withValues(alpha: 0.28)
-                            : Palette.glassFill,
-                        border: Border.all(
-                          color: _customDays.contains(d)
-                              ? accent
-                              : Palette.glassEdge,
-                        ),
-                      ),
-                      child: Text(
-                        _dayLetters[d - 1],
-                        style: Type.label.copyWith(
-                          fontSize: 12,
-                          color: _customDays.contains(d)
-                              ? accent
-                              : Palette.textLo,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+            _dayChoices(
+              accent,
+              selected: _customDays.contains,
+              onTap: (d) => setState(() {
+                // Keep at least one day selected — empty means every day.
+                if (_customDays.contains(d)) {
+                  if (_customDays.length > 1) _customDays.remove(d);
+                } else {
+                  _customDays.add(d);
+                }
+              }),
             ),
             const SizedBox(height: 6),
             Text(
@@ -564,41 +531,12 @@ class _EmberSheetState extends State<_EmberSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('WHICH DAY?', style: Type.label.copyWith(fontSize: 10)),
+            Text('WHICH DAY?', style: Type.label.copyWith(fontSize: 11)),
             const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                for (var d = 1; d <= 7; d++)
-                  GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () {
-                      Sfx.instance.play('tick');
-                      setState(() => _weekday = d);
-                    },
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _weekday == d
-                            ? accent.withValues(alpha: 0.28)
-                            : Palette.glassFill,
-                        border: Border.all(
-                          color: _weekday == d ? accent : Palette.glassEdge,
-                        ),
-                      ),
-                      child: Text(
-                        _dayLetters[d - 1],
-                        style: Type.label.copyWith(
-                          fontSize: 12,
-                          color: _weekday == d ? accent : Palette.textLo,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+            _dayChoices(
+              accent,
+              selected: (d) => _weekday == d,
+              onTap: (d) => setState(() => _weekday = d),
             ),
           ],
         ),
@@ -609,7 +547,7 @@ class _EmberSheetState extends State<_EmberSheet> {
         padding: const EdgeInsets.only(top: 6),
         child: Row(
           children: [
-            Text('WHICH DAY?', style: Type.label.copyWith(fontSize: 10)),
+            Text('WHICH DAY?', style: Type.label.copyWith(fontSize: 11)),
             Expanded(
               child: Slider(
                 value: _monthDay.toDouble(),
@@ -634,6 +572,55 @@ class _EmberSheetState extends State<_EmberSheet> {
       );
     }
     return const SizedBox.shrink();
+  }
+
+  Widget _dayChoices(
+    Color accent, {
+    required bool Function(int day) selected,
+    required ValueChanged<int> onTap,
+  }) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (var d = 1; d <= 7; d++)
+          Semantics(
+            button: true,
+            selected: selected(d),
+            label: _dayNames[d - 1],
+            child: GestureDetector(
+              excludeFromSemantics: true,
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                Sfx.instance.play('tick');
+                onTap(d);
+              },
+              child: Container(
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected(d)
+                      ? accent.withValues(alpha: 0.28)
+                      : Palette.glassFill,
+                  border: Border.all(
+                    color: selected(d) ? accent : Palette.glassEdge,
+                  ),
+                ),
+                child: Text(
+                  _dayLetters[d - 1],
+                  style: Type.label.copyWith(
+                    fontSize: 12,
+                    color: selected(d) ? accent : Palette.textLo,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _moreBlock(Color accent) {

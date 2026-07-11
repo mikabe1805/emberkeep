@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../audio.dart';
+import '../clock.dart';
 import '../tokens.dart';
 import 'glass.dart';
 import 'honey_button.dart';
@@ -40,7 +41,7 @@ Future<int?> pickWeekday(
     builder: (_) => _WeekdaySheet(
       accent: accent,
       questTitle: questTitle,
-      initial: (initial ?? DateTime.now().weekday).clamp(1, 7),
+      initial: (initial ?? Clock.now().weekday).clamp(1, 7),
     ),
   );
 }
@@ -74,54 +75,70 @@ class _WeekdaySheetState extends State<_WeekdaySheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('WHICH DAY EACH WEEK?',
-                  style: Type.label.copyWith(fontSize: 12, color: widget.accent)),
+              Text(
+                'WHICH DAY EACH WEEK?',
+                style: Type.label.copyWith(fontSize: 12, color: widget.accent),
+              ),
               const SizedBox(height: 6),
-              Text(widget.questTitle,
-                  style: Type.display.copyWith(fontSize: 18)),
+              Text(
+                widget.questTitle,
+                style: Type.display.copyWith(fontSize: 18),
+              ),
               const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   for (var d = 1; d <= 7; d++)
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        Sfx.instance.play('tick');
-                        setState(() => _sel = d);
-                      },
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: _sel == d
-                              ? widget.accent.withValues(alpha: 0.28)
-                              : Palette.glassFill,
-                          border: Border.all(
+                    Semantics(
+                      button: true,
+                      selected: _sel == d,
+                      label: _dayNames[d - 1],
+                      child: GestureDetector(
+                        excludeFromSemantics: true,
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          Sfx.instance.play('tick');
+                          setState(() => _sel = d);
+                        },
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
                             color: _sel == d
-                                ? widget.accent
-                                : Palette.glassEdge,
-                            width: _sel == d ? 1.6 : 1.0,
+                                ? widget.accent.withValues(alpha: 0.28)
+                                : Palette.glassFill,
+                            border: Border.all(
+                              color: _sel == d
+                                  ? widget.accent
+                                  : Palette.glassEdge,
+                              width: _sel == d ? 1.6 : 1.0,
+                            ),
+                          ),
+                          child: Text(
+                            _dayLetters[d - 1],
+                            style: Type.label.copyWith(
+                              fontSize: 13,
+                              color: _sel == d ? widget.accent : Palette.textLo,
+                            ),
                           ),
                         ),
-                        child: Text(_dayLetters[d - 1],
-                            style: Type.label.copyWith(
-                                fontSize: 13,
-                                color: _sel == d
-                                    ? widget.accent
-                                    : Palette.textLo)),
                       ),
                     ),
                 ],
               ),
               const SizedBox(height: 14),
-              Text('lands every ${_dayNames[_sel - 1]}',
-                  style: Type.body.copyWith(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textLo)),
+              Text(
+                'lands every ${_dayNames[_sel - 1]}',
+                style: Type.body.copyWith(
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                  color: Palette.textLo,
+                ),
+              ),
               const SizedBox(height: 18),
               Row(
                 children: [
@@ -136,9 +153,13 @@ class _WeekdaySheetState extends State<_WeekdaySheet> {
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(color: Palette.glassEdge),
                         ),
-                        child: Text('ANY DAY',
-                            style: Type.label.copyWith(
-                                fontSize: 12, color: Palette.textLo)),
+                        child: Text(
+                          'ANY DAY',
+                          style: Type.label.copyWith(
+                            fontSize: 12,
+                            color: Palette.textLo,
+                          ),
+                        ),
                       ),
                     ),
                   ),

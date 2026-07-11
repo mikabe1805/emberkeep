@@ -10,9 +10,10 @@ import '../tokens.dart';
 /// faint border shimmer drifts across the row (§2 ambient idle motion),
 /// driven by one shared controller and quantized to ~20 repaints/s.
 class StatChips extends StatefulWidget {
-  const StatChips({super.key, required this.values});
+  const StatChips({super.key, required this.values, this.reduceMotion = false});
 
   final Map<Stat, int> values;
+  final bool reduceMotion;
 
   @override
   State<StatChips> createState() => _StatChipsState();
@@ -23,7 +24,23 @@ class _StatChipsState extends State<StatChips>
   late final AnimationController _ambient = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 4200),
-  )..repeat();
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.reduceMotion) _ambient.repeat();
+  }
+
+  @override
+  void didUpdateWidget(StatChips old) {
+    super.didUpdateWidget(old);
+    if (widget.reduceMotion && !old.reduceMotion) {
+      _ambient.stop();
+    } else if (!widget.reduceMotion && old.reduceMotion) {
+      _ambient.repeat();
+    }
+  }
 
   @override
   void dispose() {
@@ -43,6 +60,7 @@ class _StatChipsState extends State<StatChips>
                 stat: s,
                 value: widget.values[s] ?? 0,
                 ambient: _ambient,
+                still: widget.reduceMotion,
               ),
             ),
           ),
@@ -56,11 +74,13 @@ class _StatChip extends StatefulWidget {
     required this.stat,
     required this.value,
     required this.ambient,
+    this.still = false,
   });
 
   final Stat stat;
   final int value;
   final Animation<double> ambient;
+  final bool still;
 
   @override
   State<_StatChip> createState() => _StatChipState();
@@ -97,13 +117,21 @@ class _StatChipState extends State<_StatChip>
       builder: (context, _) {
         // quick swell then settle: peak mid-animation
         final wave = Curves.easeOutBack.transform(
-            1 - (_pulse.value - 0.5).abs() * 2);
+          1 - (_pulse.value - 0.5).abs() * 2,
+        );
         final active = _pulse.isAnimating;
         // ambient shimmer drifting across the row, staggered per chip;
         // quantized so repaints dedupe to ~20/s
         final phase = (widget.ambient.value * 84).round() / 84;
-        final shimmer = 0.5 +
-            0.5 * sin(2 * pi * (phase + widget.stat.index / Stat.values.length));
+        final shimmer = widget.still
+            ? 0.5
+            : 0.5 +
+                  0.5 *
+                      sin(
+                        2 *
+                            pi *
+                            (phase + widget.stat.index / Stat.values.length),
+                      );
         return Transform.scale(
           scale: 1 + 0.10 * (active ? wave : 0),
           child: Container(
@@ -115,15 +143,18 @@ class _StatChipState extends State<_StatChip>
               border: Border.all(
                 color: active
                     ? c.withValues(alpha: 0.4 + 0.6 * wave)
-                    : Color.lerp(Palette.glassEdge,
-                        c.withValues(alpha: 0.55), 0.16 * shimmer)!,
+                    : Color.lerp(
+                        Palette.glassEdge,
+                        c.withValues(alpha: 0.55),
+                        0.16 * shimmer,
+                      )!,
               ),
               boxShadow: active
                   ? [
                       BoxShadow(
                         color: c.withValues(alpha: 0.35 * wave),
                         blurRadius: 12,
-                      )
+                      ),
                     ]
                   : const [],
             ),
@@ -131,9 +162,11 @@ class _StatChipState extends State<_StatChip>
               children: [
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(widget.stat.abbr,
-                      maxLines: 1,
-                      style: Type.label.copyWith(fontSize: 9, color: c)),
+                  child: Text(
+                    widget.stat.abbr,
+                    maxLines: 1,
+                    style: Type.label.copyWith(fontSize: 11, color: c),
+                  ),
                 ),
                 const SizedBox(height: 2),
                 TweenAnimationBuilder<int>(
@@ -141,9 +174,11 @@ class _StatChipState extends State<_StatChip>
                   duration: Motion.settle,
                   builder: (_, v, _) => FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text('$v',
-                        maxLines: 1,
-                        style: Type.numerals.copyWith(fontSize: 14)),
+                    child: Text(
+                      '$v',
+                      maxLines: 1,
+                      style: Type.numerals.copyWith(fontSize: 14),
+                    ),
                   ),
                 ),
               ],

@@ -73,12 +73,13 @@ class GoalDetailScreen extends StatelessWidget {
     final doneToday = activeToday.where((q) => q.doneFor(now)).length;
     final days = goal.startedDay == null
         ? null
-        : math.max(1, now.difference(Days.parse(goal.startedDay!)).inDays + 1);
+        : math.max(1, Days.between(Days.parse(goal.startedDay!), now) + 1);
 
     return Scaffold(
       backgroundColor: Palette.parchment,
       body: WarmBackground(
         themeId: state.canvasTheme,
+        reduceMotion: state.reduceMotion,
         child: SafeArea(
           child: Column(
             children: [
@@ -124,7 +125,7 @@ class GoalDetailScreen extends StatelessWidget {
                             : 'milestone ${goal.milestones}';
                         goal.notes = goal.notes.withNote(
                           text,
-                          DateTime.now(),
+                          Clock.now(),
                           context: mark,
                         );
                         onPersist();
@@ -135,7 +136,7 @@ class GoalDetailScreen extends StatelessWidget {
                       },
                       onEdit: (orig, text) {
                         goal.notes = goal.notes.replacing(
-                          orig.copyWith(text: text, editedAt: DateTime.now()),
+                          orig.copyWith(text: text, editedAt: Clock.now()),
                         );
                         onPersist();
                       },
@@ -488,7 +489,7 @@ class GoalDetailScreen extends StatelessWidget {
           child: Text(
             label,
             style: Type.label.copyWith(
-              fontSize: 9,
+              fontSize: 11,
               color: Palette.textLo.withValues(alpha: 0.32),
             ),
           ),

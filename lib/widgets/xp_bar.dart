@@ -12,6 +12,7 @@ class XpBar extends StatelessWidget {
     required this.progress,
     required this.generation,
     this.height = 14,
+    this.reduceMotion = false,
   });
 
   /// 0..1 toward next level.
@@ -20,9 +21,11 @@ class XpBar extends StatelessWidget {
   /// Bump when the bar must restart from 0 (i.e. the level changed).
   final int generation;
   final double height;
+  final bool reduceMotion;
 
   @override
   Widget build(BuildContext context) {
+    final still = reduceMotion || MediaQuery.disableAnimationsOf(context);
     // RepaintBoundary: the ribbing animates continuously — confine its
     // invalidations to the 14px bar instead of the whole header layer.
     return RepaintBoundary(
@@ -34,9 +37,10 @@ class XpBar extends StatelessWidget {
           child: TweenAnimationBuilder<double>(
             key: ValueKey(generation),
             tween: Tween(begin: 0, end: progress.clamp(0.0, 1.0)),
-            duration: Motion.barFill,
+            duration: still ? Duration.zero : Motion.barFill,
             curve: Motion.barCurve,
-            builder: (_, value, _) => _RibbedFill(value: value, height: height),
+            builder: (_, value, _) =>
+                _RibbedFill(value: value, height: height, lively: !still),
           ),
         ),
       ),
@@ -45,9 +49,14 @@ class XpBar extends StatelessWidget {
 }
 
 class _RibbedFill extends StatefulWidget {
-  const _RibbedFill({required this.value, required this.height});
+  const _RibbedFill({
+    required this.value,
+    required this.height,
+    required this.lively,
+  });
   final double value;
   final double height;
+  final bool lively;
 
   @override
   State<_RibbedFill> createState() => _RibbedFillState();
@@ -58,7 +67,26 @@ class _RibbedFillState extends State<_RibbedFill>
   late final AnimationController _scroll = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1200),
-  )..repeat();
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.lively) _scroll.repeat();
+  }
+
+  @override
+  void didUpdateWidget(covariant _RibbedFill oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.lively == widget.lively) return;
+    if (widget.lively) {
+      _scroll.repeat();
+    } else {
+      _scroll
+        ..stop()
+        ..value = 0;
+    }
+  }
 
   @override
   void dispose() {
@@ -68,6 +96,16 @@ class _RibbedFillState extends State<_RibbedFill>
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.lively) {
+      return CustomPaint(
+        size: Size.infinite,
+        painter: _FillPainter(
+          value: widget.value,
+          phase: 0,
+          height: widget.height,
+        ),
+      );
+    }
     return AnimatedBuilder(
       animation: _scroll,
       builder: (_, _) => CustomPaint(
@@ -85,7 +123,11 @@ class _RibbedFillState extends State<_RibbedFill>
 }
 
 class _FillPainter extends CustomPainter {
-  _FillPainter({required this.value, required this.phase, required this.height});
+  _FillPainter({
+    required this.value,
+    required this.phase,
+    required this.height,
+  });
   final double value;
   final double phase;
   final double height;
@@ -111,7 +153,11 @@ class _FillPainter extends CustomPainter {
     final stripe = Paint()..color = Colors.white.withValues(alpha: 0.28);
     const gap = 18.0;
     final offset = phase * gap;
-    for (double x = -size.height + offset - gap; x < w + size.height; x += gap) {
+    for (
+      double x = -size.height + offset - gap;
+      x < w + size.height;
+      x += gap
+    ) {
       final path = Path()
         ..moveTo(x, size.height)
         ..lineTo(x + size.height, 0)

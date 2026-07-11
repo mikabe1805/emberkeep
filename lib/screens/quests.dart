@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../clock.dart';
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
 import '../content/creature_skins.dart';
@@ -57,6 +58,7 @@ class QuestsPage extends StatefulWidget {
     required this.onRemove,
     required this.onSnapshot,
     required this.onRestore,
+    this.onBindFlush,
   });
 
   final GameState state;
@@ -79,6 +81,9 @@ class QuestsPage extends StatefulWidget {
 
   /// Restores a snapshot — the undo action.
   final void Function(String) onRestore;
+
+  /// Lets the shell flush a pending deferred commit before pause-path saves.
+  final void Function(VoidCallback flush)? onBindFlush;
 
   @override
   State<QuestsPage> createState() => _QuestsPageState();
@@ -155,6 +160,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // bind flush so the shell can settle rewards before a pause-path save
+    widget.onBindFlush?.call(_flushCommit);
+    Haptics.reduceMotion = _state.reduceMotion;
+  }
+
+  @override
+  void didUpdateWidget(QuestsPage old) {
+    super.didUpdateWidget(old);
+    if (old.onBindFlush != widget.onBindFlush) {
+      widget.onBindFlush?.call(_flushCommit);
+    }
+    Haptics.reduceMotion = _state.reduceMotion;
   }
 
   /// Backgrounding within the ~1.5s deferred-commit window must never persist
@@ -296,7 +313,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     ]);
     setState(() {}); // card done-state + quests-left counter
     // back-to-back clears build a combo (pure warmth, no penalty for pausing)
-    final nowT = DateTime.now();
+    final nowT = Clock.now();
     _combo =
         (_lastCompleteAt != null &&
             nowT.difference(_lastCompleteAt!) < _comboWindow)
@@ -358,6 +375,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             RewardReceipt(
               bundle: bundle,
               anchor: tapPos,
+              state: s,
               onDone: () {
                 receipt.remove();
                 _afterReceipt(s, q, bundle);
@@ -394,7 +412,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// Count of quests still open today (mirrors the build() filter).
   int _remainingToday() {
-    final now = DateTime.now();
+    final now = Clock.now();
     final today = Days.key(now);
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
     return widget.quests
@@ -412,7 +430,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// was due and not cleared, so a day cleared only by hiding quests can't mint
   /// a perfect-day reward / streak shield.
   bool _anySnoozedToday() {
-    final today = Days.key(DateTime.now());
+    final today = Days.key(Clock.now());
     return widget.quests.any((q) => q.snoozedDay == today);
   }
 
@@ -448,6 +466,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         builder: (_) => EpicOverlay(
           questTitle: q.title,
           message: bundle.message,
+          reduceMotion: s.reduceMotion,
           onDismiss: () {
             epic.remove();
             _afterEpic(s);
@@ -489,6 +508,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           questTitle: achieved.title,
           message:
               'an oath, kept — ${achieved.target} quests walked to the end.',
+          reduceMotion: s.reduceMotion,
           onDismiss: () {
             done.remove();
             _resolveLevelUps(s);
@@ -592,7 +612,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     alignment: Alignment.centerLeft,
                     child: Row(
                       children: [
-                        const Icon(Icons.tune, size: 18, color: Palette.xpLight),
+                        const Icon(
+                          Icons.tune,
+                          size: 18,
+                          color: Palette.xpLight,
+                        ),
                         const SizedBox(width: 10),
                         Text(
                           'Tune difficulty & stat',
@@ -627,7 +651,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           'remember next time — which side, how much, where.',
                       read: () => q.log,
                       onAdd: (text) {
-                        q.addNote(text, DateTime.now());
+                        q.addNote(text, Clock.now());
                         setState(() {});
                         widget.onPersist();
                       },
@@ -638,7 +662,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       },
                       onEdit: (orig, text) {
                         q.log = q.log.replacing(
-                          orig.copyWith(text: text, editedAt: DateTime.now()),
+                          orig.copyWith(text: text, editedAt: Clock.now()),
                         );
                         setState(() {});
                         widget.onPersist();
@@ -676,7 +700,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   onTap: () {
                     Sfx.instance.play('tick');
                     HapticFeedback.selectionClick();
-                    setState(() => q.snoozedDay = Days.key(DateTime.now()));
+                    setState(() => q.snoozedDay = Days.key(Clock.now()));
                     Storage.logEvent('snooze', [
                       q.custom ? Storage.hashTitle(q.title) : q.title,
                     ]);
@@ -908,7 +932,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // reward actually commits (_flushCommit/dispose call onPersist), so a save
     // can never capture a done launcher without its XP/stat (bug-hunt §3/§4/§7).
     _runCompletion(reward, tapPos, verified: verified);
-    launcher.lastDoneDay = Days.key(DateTime.now());
+    launcher.lastDoneDay = Days.key(Clock.now());
     if (launcher.rising) launcher.risingStreak++;
     setState(() {});
   }
@@ -934,6 +958,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         level: result.leveledTo!,
         unlock: result.unlock,
         nextUnlock: s.nextUnlockLabel(),
+        reduceMotion: s.reduceMotion,
         onDismiss: () {
           takeover.remove();
           if (mounted && identical(s, _state)) {
@@ -964,6 +989,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       builder: (_) => StreakMilestoneOverlay(
         days: days,
         embers: embers,
+        reduceMotion: s.reduceMotion,
         onDismiss: () {
           milestone.remove();
           if (mounted && identical(s, _state)) {
@@ -1019,7 +1045,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // counts even if an all-day reminder remains; but don't fire ON an all-day
     // "completion" (it isn't really one until the night check).
     if (justDone.allDay) return;
-    final today = Days.key(DateTime.now());
+    final today = Days.key(Clock.now());
     if (_clearedDay == today || _remainingToday() != 0) return;
     _clearedDay = today;
     Future.delayed(const Duration(milliseconds: 720), () {
@@ -1049,7 +1075,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// multi-day pattern is left alone.
   void _maybeOfferReAnchor(Quest q) {
     if (q.schedule != QuestSchedule.weekly || q.weekdays.length != 1) return;
-    final today = DateTime.now().weekday;
+    final today = Clock.now().weekday;
     if (q.weekdays.first == today) return; // done on its day — nothing to offer
     setState(() {
       _reAnchorQuest = q;
@@ -1061,15 +1087,60 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// page body so it waits politely behind the completion celebration and is
   /// trivially ignorable (never-punish: a suggestion, not a correction).
   /// The single mantel: exactly one hearth banner shows, by priority —
-  /// morning briefing > re-anchor offer > week recap > daily ember > spark.
-  /// Each panel keeps its own seen/dismiss stamps, so a lower-priority banner
-  /// simply waits for a quieter day instead of stacking.
+  /// first-ember guide > morning briefing > re-anchor offer > week recap >
+  /// daily ember > spark. Each panel keeps its own seen/dismiss stamps, so a
+  /// lower-priority banner simply waits for a quieter day instead of stacking.
   Widget _hearthPanel() {
+    if (_state.totalCompletions == 0 && _state.onboarded) {
+      return _firstEmberPanel();
+    }
     if (_state.morningAvailable) return _morningPanel();
     if (_reAnchorQuest != null && _reAnchorDay != null) return _reAnchorPanel();
     if (_state.weekRecapDue) return _weekRecapPanel();
     if (_state.emberDue) return _emberPanel();
     return _sparkPanel();
+  }
+
+  /// First-session nudge: highlight that the loop starts with one tap.
+  Widget _firstEmberPanel() {
+    final open = widget.quests.where((q) {
+      final now = Clock.now();
+      return q.scheduledOn(now) && !q.doneFor(now) && !q.allDay;
+    }).toList();
+    final tip = open.isNotEmpty ? open.first.displayTitle : 'any quest below';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: GlassPanel(
+        child: Row(
+          children: [
+            Icon(Icons.local_fire_department, size: 22, color: Palette.xp),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TRY THIS',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.xpLight,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tap “$tip” — feel the loop. One small win lights the hearth.',
+                    style: Type.body.copyWith(
+                      fontSize: 13.5,
+                      color: Palette.textHi,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _reAnchorPanel() {
@@ -1194,7 +1265,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// (expires at dawn); or dismiss. Pure novelty, never an obligation.
   Widget _emberPanel() {
     if (!_state.emberDue) return const SizedBox.shrink();
-    final now = DateTime.now();
+    final now = Clock.now();
     final e = emberOfDay(now);
     void dismiss() {
       _state.dismissEmber();
@@ -1318,7 +1389,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     return _swipeAway(
       dismissKey: 'weekrecap',
       onGone: () =>
-          _state.weekRecapSeenWeek = Days.key(Days.weekStart(DateTime.now())),
+          _state.weekRecapSeenWeek = Days.key(Days.weekStart(Clock.now())),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: GlassPanel(
@@ -1430,7 +1501,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// (scout pick #1). Dismissed → stamped, never re-shown that day. Suppressed
   /// while the morning prompt is up (the brief is the bigger greeting).
   Widget _sparkPanel() {
-    final today = Days.key(DateTime.now());
+    final today = Days.key(Clock.now());
     if (_state.morningAvailable) return const SizedBox.shrink();
     if (_state.sparkSeenDay == today) return const SizedBox.shrink();
     // nearest goal within reach (for a "could be today" nudge)
@@ -1602,7 +1673,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final now = Clock.now();
     final next = _state.xpNeeded(_state.level + 1);
 
     // Visible today: recurring quests on their scheduled days (round-7);
@@ -1698,8 +1769,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: creatureColorsFor(_state)[1]
-                                      .withValues(alpha: _beaming ? 0.6 : 0.3),
+                                  color: creatureColorsFor(
+                                    _state,
+                                  )[1].withValues(alpha: _beaming ? 0.6 : 0.3),
                                   blurRadius: 12,
                                 ),
                               ],
@@ -1744,6 +1816,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           XpBar(
                             progress: _state.xp / next,
                             generation: _state.level,
+                            reduceMotion: _state.reduceMotion,
                           ),
                           if (_state.nextChaseLabel() != null) ...[
                             const SizedBox(height: 6),
@@ -1757,9 +1830,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                   color: Palette.textLo,
                                 ),
                                 const SizedBox(width: 4),
-                                Text(
-                                  'NEXT · ${_state.nextChaseLabel()}',
-                                  style: Type.label.copyWith(fontSize: 12),
+                                Expanded(
+                                  child: Text(
+                                    'NEXT · ${_state.nextChaseLabel()}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Type.label.copyWith(fontSize: 12),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1770,7 +1847,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   ],
                 ),
                 const SizedBox(height: 12),
-                StatChips(values: _state.stats),
+                StatChips(
+                  values: _state.stats,
+                  reduceMotion: _state.reduceMotion,
+                ),
               ],
             ),
           ),
@@ -2099,15 +2179,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                     Icon(
                                       Icons.chevron_left,
                                       size: 13,
-                                      color: Palette.textLo
-                                          .withValues(alpha: 0.55),
+                                      color: Palette.textLo.withValues(
+                                        alpha: 0.55,
+                                      ),
                                     ),
                                     Text(
                                       'undo',
                                       style: Type.label.copyWith(
                                         fontSize: 9,
-                                        color: Palette.textLo
-                                            .withValues(alpha: 0.55),
+                                        color: Palette.textLo.withValues(
+                                          alpha: 0.55,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -2579,7 +2661,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
   String? _note; // inline feedback (e.g. duplicate)
   int? _shuffled;
 
-  DateTime get _now => DateTime.now();
+  DateTime get _now => Clock.now();
 
   /// Non-bonus quests cleared today — the sources an encore can spring from.
   /// Workout launchers are excluded: stoking them would spawn a non-guided

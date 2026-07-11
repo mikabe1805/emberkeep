@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../clock.dart';
 import '../cloud.dart';
 import '../content/ladders.dart';
 import '../content/routines.dart';
 import '../engine.dart';
+import '../haptics.dart';
 import '../journal_media.dart' as media;
 import '../models.dart';
 import '../notifications.dart';
@@ -42,6 +44,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   OverlayEntry? _morningOverlay;
   Timer? _midnight; // fires at the next local midnight to roll the day over
 
+  /// Bound by QuestsPage so pause-path saves always flush a pending
+  /// deferred commit before writing (bug-hunt §1 — observer order alone
+  /// is fragile across IndexedStack rebuilds).
+  VoidCallback? _flushQuestsCommit;
+
+  /// Serializes preference writes so a slower old write cannot land after a
+  /// newer one. Export and lifecycle flushes await this same tail.
+  Future<void> _saveTail = Future.value();
+
   @override
   void initState() {
     super.initState();
@@ -62,7 +73,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// haul until the next resume. Re-armed after it fires and on resume.
   void _armMidnight() {
     _midnight?.cancel();
-    final now = DateTime.now();
+    final now = Clock.now();
     final next = DateTime(now.year, now.month, now.day).add(
       const Duration(days: 1, minutes: 1), // a minute past, to be safely over
     );
@@ -90,15 +101,21 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _maybeMorning();
     } else if (lifecycle == AppLifecycleState.paused ||
         lifecycle == AppLifecycleState.inactive) {
+      // flush any in-flight quest completion BEFORE saving — otherwise a
+      // done-marked quest can persist without its XP (deferred-commit window)
+      _flushQuestsCommit?.call();
       // stamp newness on the pause-path save too (only _persist did before),
       // so a mutation that never notified — e.g. an applyLevelUps shield grant
       // — can't be written with a stale timestamp and lose the cloud LWW race
-      s.lastModified = DateTime.now().millisecondsSinceEpoch;
-      Storage.save(s, q);
-      // flush the pending cloud push NOW — a scheduled debounce timer is
-      // killed when the OS suspends the PWA, silently dropping the last
-      // completions from the cloud mirror.
-      CloudSync.instance.flush();
+      s.lastModified = Clock.now().millisecondsSinceEpoch;
+      unawaited(
+        _persistNow(push: false).then((_) {
+          // flush the pending cloud push NOW — a scheduled debounce timer is
+          // killed when the OS suspends the PWA, silently dropping the last
+          // completions from the cloud mirror.
+          CloudSync.instance.flush();
+        }),
+      );
     }
   }
 
@@ -130,6 +147,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // leave a corrupt blob sitting in _key to be read by a later push.
     if (saved == null) await Storage.save(state, quests);
     if (!mounted) return;
+    Haptics.reduceMotion = state.reduceMotion;
     setState(() {
       _state = state;
       _quests = quests;
@@ -158,14 +176,19 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       return;
     }
     final cloudRaw = res.data;
-    if (cloudRaw != null &&
-        Storage.lastModifiedOf(cloudRaw) > localBefore &&
-        // never adopt an OLDER-schema cloud save even if its timestamp is
-        // newer — an old build strips fields it doesn't know (loot, shields,
-        // skin, theme, ladder progress); we re-enrich it instead (bug-hunt §5)
-        Storage.schemaOf(cloudRaw) >= Storage.schema &&
-        await Storage.importRaw(cloudRaw)) {
-      // a newer life lives in the cloud — bring it home
+    if (cloudRaw == null) {
+      CloudSync.instance.push();
+      return;
+    }
+    // A non-null unreadable/newer-format remote is not an empty document.
+    // Preserve the only possible recovery copy instead of replacing it.
+    if (!Storage.isValidSave(cloudRaw) ||
+        Storage.schemaOf(cloudRaw) > Storage.schema) {
+      return;
+    }
+    if (Storage.lastModifiedOf(cloudRaw) > localBefore &&
+        Storage.schemaOf(cloudRaw) >= Storage.schema) {
+      if (!await Storage.importRaw(cloudRaw)) return;
       await _loadFromStorage();
     }
     CloudSync.instance.push(); // safe: we successfully read the cloud state
@@ -180,24 +203,42 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       e = OverlayEntry(
         builder: (_) => OnboardingFlow(
           state: s,
-          onFinish: ({required bool forgeFirstGoal}) {
-            _persist();
-            e.remove();
-            if (!mounted) return;
-            setState(() {});
-            if (forgeFirstGoal) {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      GoalWizardScreen(state: s, onAdd: _addQuest),
-                ),
-              );
-            }
-          },
+          onFinish:
+              ({required bool forgeFirstGoal, required TimeShape timeShape}) {
+                _applyTimeShape(timeShape);
+                _persist();
+                e.remove();
+                if (!mounted) return;
+                setState(() {});
+                if (forgeFirstGoal) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          GoalWizardScreen(state: s, onAdd: _addQuest),
+                    ),
+                  );
+                }
+              },
         ),
       );
       Overlay.of(context).insert(e);
     });
+  }
+
+  /// Trim or keep the starter board to match how much room days have.
+  void _applyTimeShape(TimeShape shape) {
+    final q = _quests;
+    if (q == null) return;
+    // light: keep the tiny floors + one focus; drop workout/all-day/heavy
+    // full + packed: keep the full starter board (packed users add more later)
+    if (shape != TimeShape.light) return;
+    const drop = {
+      '25-minute focus session',
+      'Workout — full session',
+      'No caffeine after 2pm',
+      'Clear the sink',
+    };
+    q.removeWhere((e) => drop.contains(e.title));
   }
 
   /// Auto-greet: last night was closed out, today hasn't been briefed.
@@ -227,18 +268,25 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     });
   }
 
-  void _persist() {
+  void _persist() => unawaited(_persistNow());
+
+  Future<void> _persistNow({bool push = true}) {
     final s = _state;
     final q = _quests;
     if (s != null && q != null) {
-      s.lastModified = DateTime.now().millisecondsSinceEpoch;
-      Storage.save(s, q).then((_) => CloudSync.instance.push());
+      s.lastModified = Clock.now().millisecondsSinceEpoch;
+      Haptics.reduceMotion = s.reduceMotion;
+      _saveTail = _saveTail.then((_) => Storage.save(s, q));
+      if (push) {
+        _saveTail = _saveTail.then((_) => CloudSync.instance.push());
+      }
     }
+    return _saveTail;
   }
 
   /// Copies the raw save to the clipboard for a user-held backup.
   Future<bool> _export() async {
-    _persist(); // make sure the blob is current
+    await _persistNow(); // make sure the blob is current
     final raw = await Storage.exportRaw();
     if (raw == null) return false;
     await Clipboard.setData(ClipboardData(text: raw));
@@ -255,56 +303,64 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   static List<Quest> _buildQuests() => [
-        Quest(
-            title: 'Do 2 push-ups',
-            stat: Stat.str,
-            difficulty: 2,
-            rising: true,
-            ladder: Ladders.byBaseTitle['Do 2 push-ups'],
-            ladderHint: 'CLIMBS AS YOU GROW 📈'),
-        Quest(
-            title: 'Walk 10 minutes',
-            stat: Stat.vit,
-            difficulty: 3,
-            rising: true,
-            ladder: Ladders.byBaseTitle['Walk 10 minutes'],
-            ladderHint: 'CLIMBS AS YOU GROW 📈'),
-        Quest(
-            title: 'Read one page',
-            stat: Stat.intl,
-            difficulty: 2,
-            rising: true,
-            ladder: Ladders.byBaseTitle['Read one page'],
-            ladderHint: 'CLIMBS AS YOU GROW 📈'),
-        Quest(
-            title: '25-minute focus session',
-            stat: Stat.foc,
-            difficulty: 5,
-            verification: Verification.timer,
-            timerMinutes: 25),
-        Quest(title: 'Message a friend', stat: Stat.soc, difficulty: 3),
-        Quest(title: 'Clear the sink', stat: Stat.dis, difficulty: 4, dread: true),
-        // a hand-held option for the user who wants to move but isn't a gym rat
-        workoutLauncherQuest(),
-        Quest(
-            title: 'Workout — full session',
-            stat: Stat.str,
-            difficulty: 8,
-            ladderHint: 'LADDER · 20 MIN → 40 MIN'),
-        Quest(
-            title: 'No caffeine after 2pm',
-            stat: Stat.vit,
-            difficulty: 7,
-            dread: true,
-            allDay: true),
-      ];
+    Quest(
+      title: 'Do 2 push-ups',
+      stat: Stat.str,
+      difficulty: 2,
+      rising: true,
+      ladder: Ladders.byBaseTitle['Do 2 push-ups'],
+      ladderHint: 'CLIMBS AS YOU GROW 📈',
+    ),
+    Quest(
+      title: 'Walk 10 minutes',
+      stat: Stat.vit,
+      difficulty: 3,
+      rising: true,
+      ladder: Ladders.byBaseTitle['Walk 10 minutes'],
+      ladderHint: 'CLIMBS AS YOU GROW 📈',
+    ),
+    Quest(
+      title: 'Read one page',
+      stat: Stat.intl,
+      difficulty: 2,
+      rising: true,
+      ladder: Ladders.byBaseTitle['Read one page'],
+      ladderHint: 'CLIMBS AS YOU GROW 📈',
+    ),
+    Quest(
+      title: '25-minute focus session',
+      stat: Stat.foc,
+      difficulty: 5,
+      verification: Verification.timer,
+      timerMinutes: 25,
+    ),
+    Quest(title: 'Message a friend', stat: Stat.soc, difficulty: 3),
+    Quest(title: 'Clear the sink', stat: Stat.dis, difficulty: 4, dread: true),
+    // a hand-held option for the user who wants to move but isn't a gym rat
+    workoutLauncherQuest(),
+    Quest(
+      title: 'Workout — full session',
+      stat: Stat.str,
+      difficulty: 8,
+      ladderHint: 'LADDER · 20 MIN → 40 MIN',
+    ),
+    Quest(
+      title: 'No caffeine after 2pm',
+      stat: Stat.vit,
+      difficulty: 7,
+      dread: true,
+      allDay: true,
+    ),
+  ];
 
   void _reset() {
     final old = _state;
     old?.removeListener(_persist);
     CloudSync.instance.cancelPending(); // drop any stale pre-reset push
+    unawaited(Notifications.cancelAll());
     Storage.clearUsage(); // reset means erase me — wipe the usage log too
-    media.clearAll(); // …and every journal photo on disk (else orphaned forever)
+    media
+        .clearAll(); // …and every journal photo on disk (else orphaned forever)
     final fresh = GameState()..rollover([]);
     fresh.addListener(_persist);
     setState(() {
@@ -343,17 +399,18 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// A JSON snapshot of the whole save right now — captured before a quest
   /// completes so an accidental tap can be fully undone.
   String _captureSnapshot() => jsonEncode({
-        'state': _state?.toJson(),
-        'quests': [for (final q in _quests ?? const <Quest>[]) q.toJson()],
-      });
+    'state': _state?.toJson(),
+    'quests': [for (final q in _quests ?? const <Quest>[]) q.toJson()],
+  });
 
   /// Restore a snapshot (the undo action): rebuild state + quests exactly as
   /// they were, reverting every reward the completion granted.
   void _restoreSnapshot(String snap) {
     try {
       final j = (jsonDecode(snap) as Map).cast<String, dynamic>();
-      final state =
-          GameState.fromJson((j['state'] as Map).cast<String, dynamic>());
+      final state = GameState.fromJson(
+        (j['state'] as Map).cast<String, dynamic>(),
+      );
       final quests = [
         for (final q in (j['quests'] as List? ?? const []))
           Quest.fromJson((q as Map).cast<String, dynamic>()),
@@ -361,9 +418,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       // Preserve anything ADDED to the board after the snapshot was taken — a
       // quick-add or a momentum bonus during the 5s undo window must not vanish
       // when the user reverts the unrelated completion (bug-hunt §2).
-      final snapTitles = {
-        for (final q in quests) q.title.trim().toLowerCase()
-      };
+      final snapTitles = {for (final q in quests) q.title.trim().toLowerCase()};
       for (final live in _quests ?? const <Quest>[]) {
         if (!snapTitles.contains(live.title.trim().toLowerCase())) {
           quests.add(live);
@@ -379,7 +434,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         final snapIds = {for (final n in state.journal) n.id};
         final extra = [
           for (final n in live.journal)
-            if (!snapIds.contains(n.id)) n
+            if (!snapIds.contains(n.id)) n,
         ];
         if (extra.isNotEmpty) {
           state.setJournal([...state.journal, ...extra]);
@@ -412,17 +467,23 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (!res.ok) {
       // couldn't READ the account's save — never push this device's data
       // over it. Back out to anonymous so the account stays safe, retry later.
-      await CloudSync.instance.signOut();
+      await CloudSync.instance.signOut(saveAccount: false);
       if (mounted) setState(() {});
       return 'Couldn’t reach your account — check your connection and try again.';
     }
     final cloudRaw = res.data;
-    if (cloudRaw != null &&
-        Storage.isValidSave(cloudRaw) &&
-        await Storage.importRaw(cloudRaw)) {
-      await _loadFromStorage(); // adopt the account's character
-    } else {
+    if (cloudRaw == null) {
       CloudSync.instance.push(); // doc confirmed absent → push first save
+    } else if (!Storage.isValidSave(cloudRaw) ||
+        Storage.schemaOf(cloudRaw) > Storage.schema ||
+        !await Storage.importRaw(cloudRaw)) {
+      await CloudSync.instance.signOut(saveAccount: false);
+      if (mounted) setState(() {});
+      return 'That account save needs a newer Emberkeep build or is damaged. '
+          'Nothing was overwritten.';
+    } else {
+      await _loadFromStorage(); // adopt the account's character
+      await _rescheduleNotifications();
     }
     if (mounted) setState(() {});
     return null;
@@ -431,6 +492,33 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Future<void> _signOut() async {
     await CloudSync.instance.signOut();
     if (mounted) setState(() {});
+  }
+
+  Future<String?> _deleteAccount(String password) async {
+    final s = _state;
+    if (s == null) return 'Your keep is still loading — try again.';
+    final error = await CloudSync.instance.deleteAccount(
+      password,
+      roomCode: s.roomCode,
+    );
+    if (error != null) return error;
+    s.removeListener(_persist);
+    CloudSync.instance.cancelPending();
+    await Notifications.cancelAll();
+    await Storage.clear();
+    await Storage.clearCorruptBackup();
+    await Storage.clearUsage();
+    await media.clearAll();
+    final fresh = GameState()..rollover([]);
+    fresh.addListener(_persist);
+    if (!mounted) return null;
+    setState(() {
+      _state = fresh;
+      _quests = _buildQuests();
+    });
+    await _persistNow(push: false);
+    _maybeOnboard();
+    return null;
   }
 
   void _removeQuest(Quest q) {
@@ -443,6 +531,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
     setState(() => _quests?.remove(q));
     _persist();
+    unawaited(_rescheduleNotifications());
   }
 
   void _removeGoal(Goal g) {
@@ -453,6 +542,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _quests?.removeWhere((q) => q.goalTitle == g.title);
     });
     _persist();
+    unawaited(_rescheduleNotifications());
   }
 
   /// Adds a quest; refuses duplicates by title (case-insensitive).
@@ -461,6 +551,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (quests == null) return false;
     final key = q.title.trim().toLowerCase();
     if (quests.any((e) => e.title.trim().toLowerCase() == key)) return false;
+    q.createdDay ??= Days.key(Clock.now());
     setState(() => quests.add(q));
     _persist();
     // a new dated plan should get its reminder right away (native-only)
@@ -481,15 +572,18 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       return;
     }
     await Notifications.scheduleDailyNudge(s.notifyHour, s.notifyMinute);
-    final now = DateTime.now();
+    final now = Clock.now();
     final events = <EventReminder>[
       for (final quest in q)
-        if (quest.isEvent &&
-            quest.dueDate != null &&
-            !quest.doneFor(now))
+        if (quest.isEvent && quest.dueDate != null && !quest.doneFor(now))
           EventReminder(
-            when: DateTime(quest.dueDate!.year, quest.dueDate!.month,
-                quest.dueDate!.day, s.notifyHour, s.notifyMinute),
+            when: DateTime(
+              quest.dueDate!.year,
+              quest.dueDate!.month,
+              quest.dueDate!.day,
+              s.notifyHour,
+              s.notifyMinute,
+            ),
             title: 'Today: ${quest.displayTitle}',
             body: 'A plan you set is due 🔥',
           ),
@@ -500,7 +594,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void _selectTab(int i) {
     if (i == _tab) return;
     Sfx.instance.play('tick');
-    HapticFeedback.selectionClick();
+    Haptics.tap();
     setState(() => _tab = i);
   }
 
@@ -521,8 +615,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // the Scaffold subtree is passed as `child` and not rebuilt on every notify.
     return ListenableBuilder(
       listenable: state,
-      builder: (context, child) =>
-          WarmBackground(themeId: state.canvasTheme, child: child!),
+      builder: (context, child) => WarmBackground(
+        themeId: state.canvasTheme,
+        reduceMotion: state.reduceMotion,
+        child: child!,
+      ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
@@ -534,17 +631,19 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                   index: _tab,
                   children: [
                     MePage(
-                        state: state,
-                        quests: quests,
-                        onPersist: _persist,
-                        onAddQuest: _addQuest,
-                        onExport: _export,
-                        onImport: _import,
-                        onReset: _reset,
-                        onNotifyChanged: _rescheduleNotifications,
-                        onLinkAccount: _linkAccount,
-                        onSignIn: _signIn,
-                        onSignOut: _signOut),
+                      state: state,
+                      quests: quests,
+                      onPersist: _persist,
+                      onAddQuest: _addQuest,
+                      onExport: _export,
+                      onImport: _import,
+                      onReset: _reset,
+                      onNotifyChanged: _rescheduleNotifications,
+                      onLinkAccount: _linkAccount,
+                      onSignIn: _signIn,
+                      onSignOut: _signOut,
+                      onDeleteAccount: _deleteAccount,
+                    ),
                     QuestsPage(
                       state: state,
                       quests: quests,
@@ -554,6 +653,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       onRemove: _removeQuest,
                       onSnapshot: _captureSnapshot,
                       onRestore: _restoreSnapshot,
+                      onBindFlush: (flush) => _flushQuestsCommit = flush,
                     ),
                     GoalsPage(
                       state: state,
@@ -564,7 +664,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       quests: quests,
                     ),
                     CalendarPage(
-                        state: state, quests: quests, onAdd: _addQuest),
+                      state: state,
+                      quests: quests,
+                      onAdd: _addQuest,
+                    ),
                     InsightsPage(
                       state: state,
                       quests: quests,
@@ -575,50 +678,60 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               ),
               // ── floating glass dock ─────────────────────────────
               Positioned(
-                left: 0,
-                right: 0,
+                left: 12,
+                right: 12,
                 bottom: 18 + MediaQuery.paddingOf(context).bottom,
-                child: Center(
-                  child: GlassPanel(
-                    blur: true,
-                    radius: 999,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _DockItem(
+                child: GlassPanel(
+                  blur: true,
+                  radius: 999,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _DockItem(
                           icon: Icons.emoji_emotions_outlined,
                           label: 'ME',
                           selected: _tab == 0,
                           onTap: () => _selectTab(0),
                         ),
-                        _DockItem(
+                      ),
+                      Expanded(
+                        child: _DockItem(
                           icon: Icons.task_alt,
                           label: 'QUESTS',
                           selected: _tab == 1,
                           onTap: () => _selectTab(1),
                         ),
-                        _DockItem(
+                      ),
+                      Expanded(
+                        child: _DockItem(
                           icon: Icons.explore_outlined,
                           label: 'GOALS',
                           selected: _tab == 2,
                           onTap: () => _selectTab(2),
                         ),
-                        _DockItem(
+                      ),
+                      Expanded(
+                        child: _DockItem(
                           icon: Icons.calendar_month_outlined,
                           label: 'PLANS',
                           selected: _tab == 3,
                           onTap: () => _selectTab(3),
                         ),
-                        _DockItem(
+                      ),
+                      Expanded(
+                        child: _DockItem(
                           icon: Icons.insights_outlined,
-                          label: 'INSIGHTS',
+                          label: 'STATS',
+                          semanticLabel: 'Insights',
                           selected: _tab == 4,
                           onTap: () => _selectTab(4),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -636,55 +749,69 @@ class _DockItem extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.semanticLabel,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: Motion.settle,
-        curve: Motion.respond,
-        constraints: const BoxConstraints(minHeight: 48),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          gradient: selected
-              ? const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFFF2CD93), Color(0xFFC49C6C)],
-                )
-              : null,
-          boxShadow: selected
-              ? const [
-                  BoxShadow(
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${semanticLabel ?? label} tab',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: Motion.settle,
+          curve: Motion.respond,
+          constraints: const BoxConstraints(minHeight: 48),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            gradient: selected
+                ? const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFFF2CD93), Color(0xFFC49C6C)],
+                  )
+                : null,
+            boxShadow: selected
+                ? const [
+                    BoxShadow(
                       color: Palette.honeyGlow,
                       blurRadius: 14,
-                      offset: Offset(0, 4)),
-                ]
-              : const [],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon,
-                size: 23,
-                color: selected ? const Color(0xFF4A2F1A) : Palette.textLo),
-            if (selected) ...[
-              const SizedBox(width: 7),
-              Text(label,
-                  style: Type.label.copyWith(
-                      fontSize: 12, color: const Color(0xFF4A2F1A))),
+                      offset: Offset(0, 4),
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: selected ? const Color(0xFF4A2F1A) : Palette.textLo,
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Type.label.copyWith(
+                  fontSize: 11,
+                  color: selected ? const Color(0xFF4A2F1A) : Palette.textLo,
+                ),
+              ),
             ],
-          ],
+          ),
         ),
       ),
     );

@@ -21,6 +21,9 @@ Future<void> pumpApp(WidgetTester tester) async {
     await settle(tester);
     await tester.tap(find.text('rather not say'));
     await settle(tester);
+    // time-shape step (default FULL DAYS already selected)
+    await tester.tap(find.text('CONTINUE'));
+    await settle(tester);
     await tester.tap(find.text('I’ll explore first'));
     await tester.pump(const Duration(milliseconds: 300));
   }

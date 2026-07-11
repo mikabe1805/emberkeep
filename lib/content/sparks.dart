@@ -19,30 +19,38 @@ String dailySpark({
 
   if (totalXp == 0) {
     relevant.add(
-        'Your legend starts at zero. Light the first ember and the day tilts your way.');
+      'Your legend starts at zero. Light the first ember and the day tilts your way.',
+    );
   }
   if (returning && streakDays == 0) {
     relevant.add(
-        'Welcome back — the hearth’s still warm. One small quest and you’re moving again.');
+      'Welcome back — the hearth’s still warm. One small quest and you’re moving again.',
+    );
   }
   if (streakDays >= 3) {
-    relevant.add('Day $streakDays of your streak. The fire’s well and truly caught.');
+    relevant.add(
+      'Day $streakDays of your streak. The fire’s well and truly caught.',
+    );
   }
   if (perfectDays >= 1) {
     relevant.add(
-        'You’ve cleared the whole board ${perfectDays == 1 ? "once" : "$perfectDays times"} — you know how this goes.');
+      'You’ve cleared the whole board ${perfectDays == 1 ? "once" : "$perfectDays times"} — you know how this goes.',
+    );
   }
   if (nearGoalTitle != null && nearGoalGap > 0) {
     relevant.add(
-        '“$nearGoalTitle” is $nearGoalGap quest${nearGoalGap == 1 ? "" : "s"} from a milestone. Could be today.');
+      '“$nearGoalTitle” is $nearGoalGap quest${nearGoalGap == 1 ? "" : "s"} from a milestone. Could be today.',
+    );
   }
   if (dominant != null) {
     relevant.add(
-        'Your ${dominant.label} is leading the build — feed it, or surprise yourself with something else.');
+      'Your ${dominant.label} is leading the build — feed it, or surprise yourself with something else.',
+    );
   }
   if (evidenceTitle != null) {
     relevant.add(
-        'A thought for today: ${_lower(evidenceTitle)}. (The why’s waiting in Sparks.)');
+      'A thought for today: ${_lower(evidenceTitle)}. (Tap a +stat bubble to read why.)',
+    );
   }
 
   const generic = [

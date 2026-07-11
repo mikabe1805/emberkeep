@@ -76,6 +76,7 @@ class HoneyButton extends StatelessWidget {
       opacity: enabled ? 1.0 : 0.45,
       child: Pressable(
         enabled: enabled,
+        semanticLabel: label,
         onTapUp: enabled ? (_) => onTap() : null,
         borderRadius: BorderRadius.circular(999),
         // a warm dark-amber under-edge, never grey

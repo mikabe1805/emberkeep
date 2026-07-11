@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'clock.dart';
 import 'content/achievements.dart';
 import 'content/cosmetics.dart';
+import 'content/evidence.dart';
 import 'content/messages.dart';
 import 'content/stat_ranks.dart';
 import 'content/titles.dart';
@@ -26,6 +27,10 @@ class GameState extends ChangeNotifier {
   /// First-run welcome completed?
   bool onboarded = false;
 
+  /// How dense days usually feel — set in onboarding (light/full/packed).
+  /// Seeds the starter board; null on legacy saves.
+  String? timeShape;
+
   /// Opt-in "one quest at a time" Focus mode (round-21): collapses the board
   /// to a single suggested quest to fight overwhelm. Default off (full board).
   bool focusMode = false;
@@ -36,6 +41,13 @@ class GameState extends ChangeNotifier {
 
   /// Sound toggle — the owner can mute all event sounds ( DESIGN.md §8).
   bool soundEnabled = true;
+
+  void setReduceMotion(bool v) {
+    if (reduceMotion == v) return;
+    reduceMotion = v;
+    // keep the haptic helper in sync (imported lazily via setter call sites)
+    notifyListeners();
+  }
 
   void setFocusMode(bool v) {
     if (focusMode == v) return;
@@ -93,8 +105,12 @@ class GameState extends ChangeNotifier {
   String floorStyle = 'floor_oak';
 
   /// Buy a style (affordable + allowed + not already owned) and put it on.
-  bool buyStyle(String id, int price, RoomStyleKind kind,
-      {bool allowed = true}) {
+  bool buyStyle(
+    String id,
+    int price,
+    RoomStyleKind kind, {
+    bool allowed = true,
+  }) {
     if (!allowed || embers < price || ownedStyles.contains(id)) return false;
     embers -= price;
     ownedStyles.add(id);
@@ -320,7 +336,7 @@ class GameState extends ChangeNotifier {
 
   /// Ember chest payouts for each streak milestone (DESIGN.md §7).
   static const streakMilestones = <int, int>{
-    7: 50,   // a week — a warm chest
+    7: 50, // a week — a warm chest
     30: 200, // a month — a proper haul
     100: 800, // a season — legendary
   };
@@ -461,6 +477,7 @@ class GameState extends ChangeNotifier {
     if (s == null) return null;
     return rankFor(s, stats[s] ?? 0).tier >= 3 ? s : null;
   }
+
   /// Unlock ladder: level → unlock name. Every level-up reveals the next
   /// system or cosmetic tier, so there's always a visible "next thing"
   /// (RESEARCH-momentum.md §7). Levels 2-6 are core systems; 8-15 are
@@ -530,13 +547,7 @@ class GameState extends ChangeNotifier {
       return (gap: false, missed: 0, covered: false);
     }
     final d = Days.parse(last);
-    final missed =
-        DateTime(
-          now.year,
-          now.month,
-          now.day,
-        ).difference(DateTime(d.year, d.month, d.day)).inDays -
-        1;
+    final missed = Days.between(d, now) - 1;
     if (missed <= 0) return (gap: false, missed: 0, covered: false);
     return (gap: true, missed: missed, covered: streakShields >= missed);
   }
@@ -549,9 +560,87 @@ class GameState extends ChangeNotifier {
   /// keeps the magic (DESIGN.md round-3).
   static const customDamp = 0.85;
 
-  /// First completion back after a missed day pays ×1.5 — the fragile
+  /// First completion back after a gap pays ×1.5 — the fragile
   /// re-engagement moment is rewarded, never scolded (RESEARCH-momentum.md §4).
   static const comebackBonus = 1.5;
+
+  /// Soft daily XP ceilings (ROADMAP Phase 1 anti-grind). Past the first
+  /// threshold further XP is halved; past the second, quartered. Effort is
+  /// never discarded — just gently soft-capped.
+  static const dailyXpSoft = 250;
+  static const dailyXpHard = 400;
+
+  /// Same-task same-day repeat decay: 100% → 50% → 25% → 10% (ROADMAP §1).
+  static double sameDayDecay(int priorSameTitleToday) =>
+      switch (priorSameTitleToday) {
+        0 => 1.0,
+        1 => 0.5,
+        2 => 0.25,
+        _ => 0.1,
+      };
+
+  /// Per-stat daily soft-cap: after this much of one stat today, further
+  /// gains to that stat are halved (anti-farm; still never zeroed).
+  static const dailyStatSoft = 40;
+
+  /// Base crit chance; STR bends this upward (DESIGN.md §4).
+  double get critChance =>
+      (0.03 + (stats[Stat.str]! / 200) * 0.05).clamp(0.03, 0.10);
+
+  /// INT bends XP rate — up to +15% at high Intellect.
+  double get intXpMult =>
+      (1.0 + (stats[Stat.intl]! / 200) * 0.15).clamp(1.0, 1.15);
+
+  /// FOC bends loot drop chance — up to +8% absolute.
+  double get focLootBonus => ((stats[Stat.foc]! / 200) * 0.08).clamp(0.0, 0.08);
+
+  /// FOC also raises the daily drop cap (base 5).
+  int get dailyLootCap => 5 + ((stats[Stat.foc]! / 50).floor().clamp(0, 3));
+
+  /// DIS amplifies neglect bonus (dreaded / long-idle tasks pay more).
+  double get disNeglectMult =>
+      (1.0 + (stats[Stat.dis]! / 200) * 0.25).clamp(1.0, 1.25);
+
+  /// How many days since this quest was last cleared (0 if never / today).
+  int _neglectDays(Quest q, String nowKey) {
+    final last = q.lastDoneDay;
+    if (last == null || last == nowKey) return 0;
+    final d = Days.parse(last);
+    final now = Days.parse(nowKey);
+    return Days.between(d, now).clamp(0, 30);
+  }
+
+  /// Neglect payout: up to +50% after ~10 idle days, scaled by DIS.
+  double _neglectMult(Quest q, String nowKey) {
+    final days = _neglectDays(q, nowKey);
+    if (days <= 0) return 1.0;
+    final raw = 1.0 + min(0.5, days * 0.05);
+    return 1.0 + (raw - 1.0) * disNeglectMult;
+  }
+
+  /// Today's soft-cap multiplier given XP already banked today.
+  double _dailyXpMult() {
+    if (todayXp >= dailyXpHard) return 0.25;
+    if (todayXp >= dailyXpSoft) return 0.5;
+    return 1.0;
+  }
+
+  /// Day-one damp for a custom quest forged today (can't farm a fresh
+  /// self-entered task for full XP on day one).
+  double _dayOneDamp(Quest q, String nowKey) {
+    if (!q.custom) return 1.0;
+    final created = q.createdDay;
+    if (created == null || created != nowKey) return 1.0;
+    // first completion of a brand-new custom quest today
+    if (q.lastDoneDay != null) return 1.0;
+    return 0.5;
+  }
+
+  /// Loot drops earned today (for the daily cap). Cleared on rollover.
+  int todayLootDrops = 0;
+
+  /// Same-title completion counts today (anti-grind decay). Cleared on rollover.
+  final Map<String, int> todayTitleCounts = {};
 
   /// Pure roll: computes the reward and marks the quest done for its
   /// period, but does NOT mutate xp/stats — [commit] does that later so the
@@ -568,6 +657,10 @@ class GameState extends ChangeNotifier {
     // the FIRST completion of the day (no completion committed yet today)
     final firstOfDay = lastCompletionDay != nowKey;
 
+    final priorSame = todayTitleCounts[q.title] ?? 0;
+    final neglect = _neglectMult(q, nowKey);
+    final dayOne = _dayOneDamp(q, nowKey);
+
     q.lastDoneDay = nowKey;
     if (q.rising) q.risingStreak++;
 
@@ -582,23 +675,42 @@ class GameState extends ChangeNotifier {
     if (q.custom) earned *= customDamp;
     if (verified) earned *= verifiedBonus;
     if (isComeback) earned *= comebackBonus;
+    earned *= neglect;
+    earned *= dayOne;
+    earned *= sameDayDecay(priorSame);
+    earned *= intXpMult;
+    earned *= _dailyXpMult();
 
-    // Critical hit: ~3% chance, ×1.5–×3, always announced with the roll.
+    // Critical hit: STR-bent chance, ×1.5–×3, always announced with the roll.
     double? crit;
-    if (_rng.nextDouble() < 0.03) {
+    if (_rng.nextDouble() < critChance) {
       crit = 1.5 + _rng.nextDouble() * 1.5;
       earned *= crit;
     }
 
-    // Loot: a common/rare skin drop (~18%); legendaries are earned, not dropped.
+    // Loot: FOC-bent chance, daily cap, never re-drop owned skins.
+    // Guaranteed first drop on the player's 2nd-ever completion (DESIGN §3).
     String? loot;
-    if (_rng.nextDouble() < 0.18) {
-      loot = droppableLoot[_rng.nextInt(droppableLoot.length)];
+    final available = [
+      for (final name in droppableLoot)
+        if (!collectedLoot.contains(name)) name,
+    ];
+    final underCap = todayLootDrops < dailyLootCap;
+    final guaranteeSecond = totalCompletions == 1 && available.isNotEmpty;
+    if (underCap && available.isNotEmpty) {
+      final chance = 0.18 + focLootBonus;
+      if (guaranteeSecond || _rng.nextDouble() < chance) {
+        loot = available[_rng.nextInt(available.length)];
+      }
     }
 
-    // anti-abuse damp covers stats too — they drive the aura/title/radar
+    // anti-abuse damp covers stats too — they drive the aura/title/radar.
+    // Per-stat daily soft-cap halves further gains past the threshold.
     var gain = q.difficulty * 1.5;
     if (q.custom) gain *= customDamp;
+    gain *= dayOne;
+    gain *= sameDayDecay(priorSame);
+    if ((todayStats[q.stat] ?? 0) >= dailyStatSoft) gain *= 0.5;
 
     return RewardBundle(
       xp: earned.round(),
@@ -606,7 +718,7 @@ class GameState extends ChangeNotifier {
       // receipt bubble and what commit() banks
       embers: max(1, earned.round() ~/ 3),
       stat: q.stat,
-      statGain: gain.round() + (q.dread ? 3 : 0),
+      statGain: max(1, gain.round() + (q.dread ? 3 : 0)),
       questTitle: q.displayTitle,
       message: RewardMessages.pick(
         q.stat,
@@ -631,6 +743,10 @@ class GameState extends ChangeNotifier {
       shieldHeld: shieldHeld,
       firstOfDay: firstOfDay,
       loot: loot,
+      hasEvidence:
+          evidenceForStat(q.stat) != null &&
+          !seenEvidence.contains(evidenceForStat(q.stat)!.title),
+      questKey: q.title,
     );
   }
 
@@ -642,11 +758,18 @@ class GameState extends ChangeNotifier {
     // value until the first commit resets it, so preview at the multiplier
     // roll() will ACTUALLY pay (post-reset) — never over-promise ×2.0 on the
     // exact fragile re-engagement day the card is trying to win back.
+    final nowKey = Days.key(Clock.now());
     final sit = _streakSituation();
     final effMult = (sit.gap && !sit.covered) ? streakMultFor(1) : streakMult;
+    final priorSame = todayTitleCounts[q.title] ?? 0;
     var earned = 10 * (0.5 + q.difficulty * 0.25) * effMult;
     if (q.dread) earned *= 1.35;
     if (q.custom) earned *= customDamp;
+    earned *= _neglectMult(q, nowKey);
+    earned *= _dayOneDamp(q, nowKey);
+    earned *= sameDayDecay(priorSame);
+    earned *= intXpMult;
+    earned *= _dailyXpMult();
     return earned.round();
   }
 
@@ -706,7 +829,10 @@ class GameState extends ChangeNotifier {
     if (now.hour >= 21) duskCompletions++;
 
     // a found cosmetic fragment is actually kept now (honest loot)
-    if (b.loot != null) collectedLoot.add(b.loot!);
+    if (b.loot != null) {
+      collectedLoot.add(b.loot!);
+      todayLootDrops++;
+    }
 
     // counters + calendar history
     totalCompletions++;
@@ -716,6 +842,18 @@ class GameState extends ChangeNotifier {
     if (b.isEvent) eventCompletions++;
     if (b.custom) customCompletions++;
     history[today] = (history[today] ?? 0) + 1;
+    final titleKey = b.questKey ?? b.questTitle;
+    todayTitleCounts[titleKey] = (todayTitleCounts[titleKey] ?? 0) + 1;
+
+    // VIT perk: high Vitality occasionally forges an extra shield on the
+    // day's first ember (never above the cap; only once shields unlock).
+    if (b.firstOfDay &&
+        shieldUnlockGranted &&
+        streakShields < maxShields &&
+        stats[Stat.vit]! >= 40 &&
+        _rng.nextDouble() < 0.08) {
+      streakShields++;
+    }
 
     // today's haul (night recap)
     todayXp += b.xp;
@@ -823,6 +961,8 @@ class GameState extends ChangeNotifier {
       todayXp = 0;
       todayStats.clear();
       todayQuestTitles.clear();
+      todayLootDrops = 0;
+      todayTitleCounts.clear();
     }
     lastActiveDay = today;
     return changed;
@@ -882,6 +1022,7 @@ class GameState extends ChangeNotifier {
   Map<String, dynamic> toJson() => {
     'playerName': playerName,
     'onboarded': onboarded,
+    'timeShape': timeShape,
     'focusMode': focusMode,
     'reduceMotion': reduceMotion,
     'soundEnabled': soundEnabled,
@@ -941,6 +1082,8 @@ class GameState extends ChangeNotifier {
     'todayXp': todayXp,
     'todayStats': [for (final s in Stat.values) todayStats[s] ?? 0],
     'todayQuestTitles': todayQuestTitles,
+    'todayLootDrops': todayLootDrops,
+    'todayTitleCounts': todayTitleCounts,
     'nightDoneDay': nightDoneDay,
     'morningDoneDay': morningDoneDay,
     'morningArmed': morningArmed,
@@ -954,6 +1097,7 @@ class GameState extends ChangeNotifier {
     final s = GameState();
     s.playerName = j['playerName'] as String?;
     s.onboarded = j['onboarded'] as bool? ?? true; // pre-existing saves skip
+    s.timeShape = j['timeShape'] as String?;
     s.focusMode = j['focusMode'] as bool? ?? false;
     s.reduceMotion = j['reduceMotion'] as bool? ?? false;
     s.soundEnabled = j['soundEnabled'] as bool? ?? true;
@@ -965,7 +1109,9 @@ class GameState extends ChangeNotifier {
     s.xp = j['xp'] as int? ?? 0;
     s.totalXp = j['totalXp'] as int? ?? 0;
     s.embers = j['embers'] as int? ?? 0;
-    s.ownedFurniture.addAll(((j['ownedFurniture'] as List?) ?? const []).cast());
+    s.ownedFurniture.addAll(
+      ((j['ownedFurniture'] as List?) ?? const []).cast(),
+    );
     s.ownedStyles.addAll(((j['ownedStyles'] as List?) ?? const []).cast());
     s.wallStyle = j['wallStyle'] as String? ?? 'wall_walnut';
     s.floorStyle = j['floorStyle'] as String? ?? 'floor_oak';
@@ -999,8 +1145,8 @@ class GameState extends ChangeNotifier {
     s.bestStreak = j['bestStreak'] as int? ?? s.streakDays;
     s.streakShields = j['streakShields'] as int? ?? 0;
     s.shieldUnlockGranted = j['shieldUnlockGranted'] as bool? ?? false;
-    s.lastCompletionDay = j['lastCompletionDay'] as String?;
-    s.lastActiveDay = j['lastActiveDay'] as String?;
+    s.lastCompletionDay = Days.validKey(j['lastCompletionDay']);
+    s.lastActiveDay = Days.validKey(j['lastActiveDay']);
     s.totalCompletions = j['totalCompletions'] as int? ?? 0;
     s.verifiedCompletions = j['verifiedCompletions'] as int? ?? 0;
     s.dreadCompletions = j['dreadCompletions'] as int? ?? 0;
@@ -1011,7 +1157,7 @@ class GameState extends ChangeNotifier {
     s.dawnCompletions = j['dawnCompletions'] as int? ?? 0;
     s.duskCompletions = j['duskCompletions'] as int? ?? 0;
     s.perfectDays = j['perfectDays'] as int? ?? 0;
-    s.lastPerfectDay = j['lastPerfectDay'] as String?;
+    s.lastPerfectDay = Days.validKey(j['lastPerfectDay']);
     s.removedDefaults.addAll(
       ((j['removedDefaults'] as List?) ?? const []).cast(),
     );
@@ -1025,7 +1171,9 @@ class GameState extends ChangeNotifier {
     for (final e
         in (((j['history'] as Map?) ?? const {}).cast<String, dynamic>())
             .entries) {
-      s.history[e.key] = (e.value as num).toInt();
+      if (Days.tryParse(e.key) != null && e.value is num) {
+        s.history[e.key] = (e.value as num).toInt();
+      }
     }
     for (final g in (j['goals'] as List?) ?? const []) {
       s.goals.add(Goal.fromJson((g as Map).cast<String, dynamic>()));
@@ -1038,8 +1186,15 @@ class GameState extends ChangeNotifier {
     s.todayQuestTitles.addAll(
       ((j['todayQuestTitles'] as List?) ?? const []).cast(),
     );
-    s.nightDoneDay = j['nightDoneDay'] as String?;
-    s.morningDoneDay = j['morningDoneDay'] as String?;
+    s.todayLootDrops = j['todayLootDrops'] as int? ?? 0;
+    for (final e
+        in (((j['todayTitleCounts'] as Map?) ?? const {})
+                .cast<String, dynamic>())
+            .entries) {
+      s.todayTitleCounts[e.key] = (e.value as num).toInt();
+    }
+    s.nightDoneDay = Days.validKey(j['nightDoneDay']);
+    s.morningDoneDay = Days.validKey(j['morningDoneDay']);
     s.nightDoneAt = j['nightDoneAt'] as int? ?? 0;
     // Bridge older saves (no morningArmed key): if a night was closed and you
     // haven't been greeted today, arm the morning so it surfaces after this
@@ -1048,9 +1203,9 @@ class GameState extends ChangeNotifier {
         j['morningArmed'] as bool? ??
         (j['nightDoneDay'] != null &&
             j['morningDoneDay'] != Days.key(Clock.now()));
-    s.sparkSeenDay = j['sparkSeenDay'] as String?;
-    s.weekRecapSeenWeek = j['weekRecapSeenWeek'] as String?;
-    s.emberSeenDay = j['emberSeenDay'] as String?;
+    s.sparkSeenDay = Days.validKey(j['sparkSeenDay']);
+    s.weekRecapSeenWeek = Days.validKey(j['weekRecapSeenWeek']);
+    s.emberSeenDay = Days.validKey(j['emberSeenDay']);
     return s;
   }
 }

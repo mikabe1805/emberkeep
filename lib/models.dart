@@ -10,12 +10,40 @@ T _enumAt<T>(List<T> values, Object? idx, T fallback) {
 
 /// Day-key helpers — periods are computed from local wall-clock dates.
 abstract final class Days {
+  static final _keyPattern = RegExp(r'^\d{4}-\d{2}-\d{2}$');
+
   static String key(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  static DateTime parse(String key) {
-    final p = key.split('-');
-    return DateTime(int.parse(p[0]), int.parse(p[1]), int.parse(p[2]));
+  /// Strict, non-normalizing parser for persisted day keys. `DateTime` would
+  /// otherwise quietly turn 2026-02-31 into March, hiding a damaged save.
+  static DateTime? tryParse(Object? value) {
+    if (value is! String || !_keyPattern.hasMatch(value)) return null;
+    final p = value.split('-');
+    final year = int.tryParse(p[0]);
+    final month = int.tryParse(p[1]);
+    final day = int.tryParse(p[2]);
+    if (year == null || month == null || day == null) return null;
+    final parsed = DateTime(year, month, day);
+    if (parsed.year != year || parsed.month != month || parsed.day != day) {
+      return null;
+    }
+    return parsed;
+  }
+
+  static DateTime parse(String value) =>
+      tryParse(value) ??
+      (throw FormatException('Invalid Emberkeep day key', value));
+
+  /// Keeps a valid persisted key and drops a drifted one to null.
+  static String? validKey(Object? value) =>
+      tryParse(value) == null ? null : value as String;
+
+  /// Calendar-day distance, independent of 23/25-hour daylight-saving days.
+  static int between(DateTime from, DateTime to) {
+    final a = DateTime.utc(from.year, from.month, from.day);
+    final b = DateTime.utc(to.year, to.month, to.day);
+    return b.difference(a).inDays;
   }
 
   /// Monday of the week containing [d].
@@ -106,16 +134,16 @@ class Goal {
   double get fraction => target == 0 ? 0 : (progress / target).clamp(0.0, 1.0);
 
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'stat': stat.index,
-        'kind': kind.index,
-        'target': target,
-        'progress': progress,
-        'achievedDay': achievedDay,
-        'startedDay': startedDay,
-        'milestones': milestones,
-        if (notes.isNotEmpty) 'notes': [for (final n in notes) n.toJson()],
-      };
+    'title': title,
+    'stat': stat.index,
+    'kind': kind.index,
+    'target': target,
+    'progress': progress,
+    'achievedDay': achievedDay,
+    'startedDay': startedDay,
+    'milestones': milestones,
+    if (notes.isNotEmpty) 'notes': [for (final n in notes) n.toJson()],
+  };
 
   static Goal fromJson(Map<String, dynamic> j) {
     final kind = _enumAt(GoalKind.values, j['kind'], GoalKind.become);
@@ -125,7 +153,9 @@ class Goal {
     // always starts at 25 and only doubles, so target == 25 * 2^n — recover the
     // count so the detail ring/caption/tile read truthfully. Never recompute
     // when the key is present (that's a real, possibly-mid-tier saved value).
-    if (!j.containsKey('milestones') && kind == GoalKind.become && target > 25) {
+    if (!j.containsKey('milestones') &&
+        kind == GoalKind.become &&
+        target > 25) {
       var t = target ~/ 25;
       var n = 0;
       while (t > 1) {
@@ -140,12 +170,12 @@ class Goal {
       kind: kind,
       target: target,
       progress: j['progress'] as int? ?? 0,
-      achievedDay: j['achievedDay'] as String?,
-      startedDay: j['startedDay'] as String?,
+      achievedDay: Days.validKey(j['achievedDay']),
+      startedDay: Days.validKey(j['startedDay']),
       milestones: milestones,
       notes: [
         for (final e in (j['notes'] as List?) ?? const [])
-          Note.fromJson((e as Map).cast<String, dynamic>())
+          Note.fromJson((e as Map).cast<String, dynamic>()),
       ],
     );
   }
@@ -216,16 +246,15 @@ class Note {
     DateTime? editedAt,
     List<String>? images,
     String? rich,
-  }) =>
-      Note(
-        id: id,
-        at: at,
-        context: context,
-        text: text ?? this.text,
-        editedAt: editedAt ?? this.editedAt,
-        images: images ?? this.images,
-        rich: rich ?? this.rich,
-      );
+  }) => Note(
+    id: id,
+    at: at,
+    context: context,
+    text: text ?? this.text,
+    editedAt: editedAt ?? this.editedAt,
+    images: images ?? this.images,
+    rich: rich ?? this.rich,
+  );
 
   // microsecond timestamp + a monotonic per-process suffix → unique even for
   // two notes created within the same microsecond.
@@ -234,40 +263,41 @@ class Note {
       '${at.microsecondsSinceEpoch.toRadixString(36)}_${(_seq++).toRadixString(36)}';
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'at': at.toIso8601String(),
-        'text': text,
-        if (context != null) 'context': context,
-        if (editedAt != null) 'editedAt': editedAt!.toIso8601String(),
-        if (images.isNotEmpty) 'images': images,
-        if (rich != null) 'rich': rich,
-      };
+    'id': id,
+    'at': at.toIso8601String(),
+    'text': text,
+    if (context != null) 'context': context,
+    if (editedAt != null) 'editedAt': editedAt!.toIso8601String(),
+    if (images.isNotEmpty) 'images': images,
+    if (rich != null) 'rich': rich,
+  };
 
   static Note fromJson(Map<String, dynamic> j) => Note(
-        id: j['id'] as String?,
-        // a drifted/missing timestamp sorts to the epoch rather than throwing
-        // (round-9 restore resilience), never rejecting the whole save.
-        at: DateTime.tryParse(j['at'] as String? ?? '') ?? DateTime(2000),
-        text: (j['text'] as String?) ?? '',
-        context: j['context'] as String?,
-        editedAt: DateTime.tryParse(j['editedAt'] as String? ?? ''),
-        images: [
-          for (final e in (j['images'] as List?) ?? const []) e as String,
-        ],
-        rich: j['rich'] as String?,
-      );
+    id: j['id'] as String?,
+    // a drifted/missing timestamp sorts to the epoch rather than throwing
+    // (round-9 restore resilience), never rejecting the whole save.
+    at: DateTime.tryParse(j['at'] as String? ?? '') ?? DateTime(2000),
+    text: (j['text'] as String?) ?? '',
+    context: j['context'] as String?,
+    editedAt: DateTime.tryParse(j['editedAt'] as String? ?? ''),
+    images: [for (final e in (j['images'] as List?) ?? const []) e as String],
+    rich: j['rich'] as String?,
+  );
 }
 
 /// Shared helpers for a list of [Note]s held by an owner (quest/goal/domain).
 /// Lists are always replaced wholesale (never mutated in place) so a `const []`
 /// default is safe to share across instances.
 extension NoteList on List<Note> {
-  List<Note> withNote(String text, DateTime at, {String? context}) =>
-      [...this, Note(at: at, text: text, context: context)];
+  List<Note> withNote(String text, DateTime at, {String? context}) => [
+    ...this,
+    Note(at: at, text: text, context: context),
+  ];
 
   /// Replace the note sharing [updated]'s id — an identity-stable edit.
-  List<Note> replacing(Note updated) =>
-      [for (final e in this) e.id == updated.id ? updated : e];
+  List<Note> replacing(Note updated) => [
+    for (final e in this) e.id == updated.id ? updated : e,
+  ];
 
   List<Note> without(Note n) => where((e) => e.id != n.id).toList();
 }
@@ -306,6 +336,7 @@ class Quest {
     this.bonus = false,
     this.origin,
     this.workout = false,
+    this.createdDay,
     this.log = const [],
   });
 
@@ -341,6 +372,9 @@ class Quest {
 
   /// Day-key of the last completion — drives period-based resets.
   String? lastDoneDay;
+
+  /// Day the quest was forged (anti-grind day-one damp for custom quests).
+  String? createdDay;
 
   /// Day-key this quest was hidden "just for today" — a gentle skip that
   /// returns it to the board tomorrow (distinct from a permanent removal).
@@ -472,71 +506,75 @@ class Quest {
   }
 
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'stat': stat.index,
-        'difficulty': difficulty,
-        'dread': dread,
-        'ladderHint': ladderHint,
-        'schedule': schedule.index,
-        'verification': verification.index,
-        'timerMinutes': timerMinutes,
-        'custom': custom,
-        'dueDate': dueDate?.toIso8601String(),
-        'lastDoneDay': lastDoneDay,
-        'snoozedDay': snoozedDay,
-        'goalTitle': goalTitle,
-        'priority': priority,
-        'allDay': allDay,
-        'weekdays': weekdays,
-        'monthDay': monthDay,
-        'rising': rising,
-        'risingStreak': risingStreak,
-        'ladder': ladder,
-        'rung': rung,
-        'kin': kin,
-        'bonus': bonus,
-        'origin': origin,
-        'workout': workout,
-        if (log.isNotEmpty) 'log': [for (final n in log) n.toJson()],
-      };
+    'title': title,
+    'stat': stat.index,
+    'difficulty': difficulty,
+    'dread': dread,
+    'ladderHint': ladderHint,
+    'schedule': schedule.index,
+    'verification': verification.index,
+    'timerMinutes': timerMinutes,
+    'custom': custom,
+    'dueDate': dueDate?.toIso8601String(),
+    'lastDoneDay': lastDoneDay,
+    'snoozedDay': snoozedDay,
+    'goalTitle': goalTitle,
+    'priority': priority,
+    'allDay': allDay,
+    'weekdays': weekdays,
+    'monthDay': monthDay,
+    'rising': rising,
+    'risingStreak': risingStreak,
+    'ladder': ladder,
+    'rung': rung,
+    'kin': kin,
+    'bonus': bonus,
+    'origin': origin,
+    'workout': workout,
+    'createdDay': createdDay,
+    if (log.isNotEmpty) 'log': [for (final n in log) n.toJson()],
+  };
 
   static Quest fromJson(Map<String, dynamic> j) => Quest(
-        title: (j['title'] as String?) ?? 'Quest',
-        stat: _enumAt(Stat.values, j['stat'], Stat.dis),
-        difficulty: (j['difficulty'] as int?) ?? 3,
-        dread: j['dread'] as bool? ?? false,
-        ladderHint: j['ladderHint'] as String?,
-        schedule:
-            _enumAt(QuestSchedule.values, j['schedule'], QuestSchedule.daily),
-        verification:
-            _enumAt(Verification.values, j['verification'], Verification.honor),
-        timerMinutes: j['timerMinutes'] as int? ?? 0,
-        custom: j['custom'] as bool? ?? false,
-        // tryParse, not parse: one drifted value must never reject a whole
-        // restore into quarantine (the policy every other timestamp follows)
-        dueDate: j['dueDate'] == null
-            ? null
-            : DateTime.tryParse(j['dueDate'] as String),
-        lastDoneDay: j['lastDoneDay'] as String?,
-        snoozedDay: j['snoozedDay'] as String?,
-        goalTitle: j['goalTitle'] as String?,
-        priority: j['priority'] as bool? ?? false,
-        allDay: j['allDay'] as bool? ?? false,
-        weekdays: ((j['weekdays'] as List?) ?? const []).cast<int>(),
-        monthDay: j['monthDay'] as int?,
-        rising: j['rising'] as bool? ?? false,
-        risingStreak: j['risingStreak'] as int? ?? 0,
-        ladder: (j['ladder'] as List?)?.cast<String>(),
-        rung: j['rung'] as int? ?? 0,
-        kin: (j['kin'] as List?)?.cast<String>(),
-        bonus: j['bonus'] as bool? ?? false,
-        origin: j['origin'] as String?,
-        workout: j['workout'] as bool? ?? false,
-        log: [
-          for (final e in (j['log'] as List?) ?? const [])
-            Note.fromJson((e as Map).cast<String, dynamic>())
-        ],
-      );
+    title: (j['title'] as String?) ?? 'Quest',
+    stat: _enumAt(Stat.values, j['stat'], Stat.dis),
+    difficulty: (j['difficulty'] as int?) ?? 3,
+    dread: j['dread'] as bool? ?? false,
+    ladderHint: j['ladderHint'] as String?,
+    schedule: _enumAt(QuestSchedule.values, j['schedule'], QuestSchedule.daily),
+    verification: _enumAt(
+      Verification.values,
+      j['verification'],
+      Verification.honor,
+    ),
+    timerMinutes: j['timerMinutes'] as int? ?? 0,
+    custom: j['custom'] as bool? ?? false,
+    // tryParse, not parse: one drifted value must never reject a whole
+    // restore into quarantine (the policy every other timestamp follows)
+    dueDate: j['dueDate'] == null
+        ? null
+        : DateTime.tryParse(j['dueDate'] as String),
+    lastDoneDay: Days.validKey(j['lastDoneDay']),
+    createdDay: Days.validKey(j['createdDay']),
+    snoozedDay: Days.validKey(j['snoozedDay']),
+    goalTitle: j['goalTitle'] as String?,
+    priority: j['priority'] as bool? ?? false,
+    allDay: j['allDay'] as bool? ?? false,
+    weekdays: ((j['weekdays'] as List?) ?? const []).cast<int>(),
+    monthDay: j['monthDay'] as int?,
+    rising: j['rising'] as bool? ?? false,
+    risingStreak: j['risingStreak'] as int? ?? 0,
+    ladder: (j['ladder'] as List?)?.cast<String>(),
+    rung: j['rung'] as int? ?? 0,
+    kin: (j['kin'] as List?)?.cast<String>(),
+    bonus: j['bonus'] as bool? ?? false,
+    origin: j['origin'] as String?,
+    workout: j['workout'] as bool? ?? false,
+    log: [
+      for (final e in (j['log'] as List?) ?? const [])
+        Note.fromJson((e as Map).cast<String, dynamic>()),
+    ],
+  );
 }
 
 /// Everything one completion produced — drives the reward receipt,
@@ -561,6 +599,8 @@ class RewardBundle {
     this.shieldHeld = false,
     this.firstOfDay = false,
     this.loot,
+    this.hasEvidence = false,
+    this.questKey,
   });
 
   final int xp;
@@ -593,11 +633,11 @@ class RewardBundle {
   /// 1.2 when the completion was proof-verified (timer), null otherwise.
   final double? verifiedMult;
 
-  /// Set when this is the first completion back after a missed day — a warm
+  /// Set when this is the first completion back after a gap — a warm
   /// comeback bonus, never a scold (never-punish; RESEARCH-momentum.md §4).
   final double? comebackMult;
 
-  /// True when a streak shield silently bridged a missed day to keep the
+  /// True when a streak shield silently bridged a gap to keep the
   /// streak alive — the completion celebrates "streak safe", not a reset.
   final bool shieldHeld;
 
@@ -607,6 +647,13 @@ class RewardBundle {
 
   /// Loot drop name, null when nothing dropped.
   final String? loot;
+
+  /// True when an unread evidence card is available for this completion's
+  /// stat — the receipt's +Stat bubble shimmers and is tappable (DESIGN §5).
+  final bool hasEvidence;
+
+  /// Stable quest identity title (for same-day anti-grind counts).
+  final String? questKey;
 
   /// 0..1 celebration magnitude — parameterizes particle count, sound
   /// layers, vibrancy (one celebration system, scaled — DESIGN.md §2).
@@ -626,14 +673,17 @@ class LedgerEntry {
   final int amount;
   final String title;
 
-  Map<String, dynamic> toJson() =>
-      {'stat': stat.index, 'amount': amount, 'title': title};
+  Map<String, dynamic> toJson() => {
+    'stat': stat.index,
+    'amount': amount,
+    'title': title,
+  };
 
   static LedgerEntry fromJson(Map<String, dynamic> j) => LedgerEntry(
-        stat: _enumAt(Stat.values, j['stat'], Stat.dis),
-        amount: (j['amount'] as int?) ?? 0,
-        title: (j['title'] as String?) ?? '',
-      );
+    stat: _enumAt(Stat.values, j['stat'], Stat.dis),
+    amount: (j['amount'] as int?) ?? 0,
+    title: (j['title'] as String?) ?? '',
+  );
 }
 
 /// Result of applying XP to the level model.

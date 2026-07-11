@@ -58,6 +58,7 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
       backgroundColor: Palette.parchment,
       body: WarmBackground(
         themeId: widget.state.canvasTheme,
+        reduceMotion: widget.state.reduceMotion,
         tint: _accent, // this domain's hue — its own "room"
         child: SafeArea(
           child: Column(
@@ -99,11 +100,7 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                           _stat,
                           widget.state
                               .notesFor(_stat)
-                              .withNote(
-                                text,
-                                DateTime.now(),
-                                context: rankLabel,
-                              ),
+                              .withNote(text, Clock.now(), context: rankLabel),
                         );
                         widget.onPersist();
                       },
@@ -117,10 +114,12 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                       onEdit: (orig, text) {
                         widget.state.setDomainNotes(
                           _stat,
-                          widget.state.notesFor(_stat).replacing(
+                          widget.state
+                              .notesFor(_stat)
+                              .replacing(
                                 orig.copyWith(
                                   text: text,
-                                  editedAt: DateTime.now(),
+                                  editedAt: Clock.now(),
                                 ),
                               ),
                         );

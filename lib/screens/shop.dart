@@ -49,16 +49,22 @@ class ShopScreen extends StatelessWidget {
   }
 
   bool _buy(BuildContext context, FurnitureItem f) => _checkout(
-      context,
-      f.price,
-      () => state.buyFurniture(f.id, f.price,
-          allowed: furnitureUnlocked(f, state)));
+    context,
+    f.price,
+    () =>
+        state.buyFurniture(f.id, f.price, allowed: furnitureUnlocked(f, state)),
+  );
 
   bool _buyStyle(BuildContext context, RoomStyle st) => _checkout(
-      context,
+    context,
+    st.price,
+    () => state.buyStyle(
+      st.id,
       st.price,
-      () => state.buyStyle(st.id, st.price, st.kind,
-          allowed: styleUnlocked(st, state)));
+      st.kind,
+      allowed: styleUnlocked(st, state),
+    ),
+  );
 
   void _applyStyle(RoomStyle st) {
     state.applyStyle(st.id, st.kind);
@@ -68,9 +74,10 @@ class ShopScreen extends StatelessWidget {
   }
 
   bool _buySkin(BuildContext context, CreatureSkin sk) => _checkout(
-      context,
-      sk.price,
-      () => state.buySkin(sk.id, sk.price, allowed: skinUnlocked(sk, state)));
+    context,
+    sk.price,
+    () => state.buySkin(sk.id, sk.price, allowed: skinUnlocked(sk, state)),
+  );
 
   void _applySkin(CreatureSkin sk) {
     state.applySkin(sk.id);
@@ -80,9 +87,10 @@ class ShopScreen extends StatelessWidget {
   }
 
   bool _buyWindow(BuildContext context, WindowView v) => _checkout(
-      context,
-      v.price,
-      () => state.buyWindow(v.id, v.price, allowed: windowUnlocked(v, state)));
+    context,
+    v.price,
+    () => state.buyWindow(v.id, v.price, allowed: windowUnlocked(v, state)),
+  );
 
   void _applyWindow(WindowView v) {
     state.applyWindow(v.id);
@@ -91,18 +99,17 @@ class ShopScreen extends StatelessWidget {
     onPersist();
   }
 
-
   Widget _sectionHeader(String label) => Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 8, top: 2),
-        child: Text(
-          label,
-          style: Type.label.copyWith(
-            fontSize: 11,
-            color: Palette.textLo,
-            letterSpacing: 1.5,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.only(left: 4, bottom: 8, top: 2),
+    child: Text(
+      label,
+      style: Type.label.copyWith(
+        fontSize: 11,
+        color: Palette.textLo,
+        letterSpacing: 1.5,
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +121,7 @@ class ShopScreen extends StatelessWidget {
           backgroundColor: Palette.parchment,
           body: WarmBackground(
             themeId: state.canvasTheme,
+            reduceMotion: state.reduceMotion,
             tint: Palette.xp,
             child: SafeArea(
               child: Column(
@@ -221,86 +229,94 @@ class ShopScreen extends StatelessWidget {
 void _toast(BuildContext context, String msg) {
   ScaffoldMessenger.of(context)
     ..clearSnackBars()
-    ..showSnackBar(SnackBar(
-      behavior: SnackBarBehavior.floating,
-      backgroundColor: Palette.card,
-      duration: const Duration(milliseconds: 2200),
-      content: Text(msg, style: Type.body.copyWith(color: Palette.textHi)),
-    ));
+    ..showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        duration: const Duration(milliseconds: 2200),
+        content: Text(msg, style: Type.body.copyWith(color: Palette.textHi)),
+      ),
+    );
 }
 
 /// The settled state every card ends in ("in your room" / "on now" / "worn").
 Widget _pill(Color c, IconData icon, String label) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: c.withValues(alpha: 0.15),
-        border: Border.all(color: c.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: c),
-          const SizedBox(width: 5),
-          Text(label, style: Type.label.copyWith(fontSize: 10, color: c)),
-        ],
-      ),
-    );
+  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(999),
+    color: c.withValues(alpha: 0.15),
+    border: Border.all(color: c.withValues(alpha: 0.4)),
+  ),
+  child: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(icon, size: 14, color: c),
+      const SizedBox(width: 5),
+      Text(label, style: Type.label.copyWith(fontSize: 11, color: c)),
+    ],
+  ),
+);
 
 /// The trophy gate on a locked shelf — names the achievement, never just a
 /// dead padlock.
 Widget _lockedPill(String trophy) => Container(
-      constraints: const BoxConstraints(maxWidth: 124),
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.black.withValues(alpha: 0.16),
-        border: Border.all(color: Palette.textLo.withValues(alpha: 0.25)),
+  constraints: const BoxConstraints(maxWidth: 124),
+  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+  decoration: BoxDecoration(
+    borderRadius: BorderRadius.circular(12),
+    color: Colors.black.withValues(alpha: 0.16),
+    border: Border.all(color: Palette.textLo.withValues(alpha: 0.25)),
+  ),
+  child: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(Icons.lock_outline, size: 13, color: Palette.textLo),
+      const SizedBox(width: 6),
+      Flexible(
+        child: Text(
+          'earn “$trophy”',
+          style: Type.body.copyWith(fontSize: 11, color: Palette.textLo),
+        ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.lock_outline, size: 13, color: Palette.textLo),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              'earn “$trophy”',
-              style: Type.body.copyWith(fontSize: 10, color: Palette.textLo),
-            ),
-          ),
-        ],
-      ),
-    );
+    ],
+  ),
+);
 
 /// The quiet outlined action on an owned exclusive ("Apply" / "Wear") — you
 /// already paid; switching should feel free, not like another sale.
 Widget _applyChip(String label, VoidCallback onTap) => GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: Palette.xp.withValues(alpha: 0.6)),
-        ),
-        child: Text(label,
-            style: Type.label.copyWith(fontSize: 11, color: Palette.xpLight)),
-      ),
-    );
+  behavior: HitTestBehavior.opaque,
+  onTap: onTap,
+  child: Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(999),
+      border: Border.all(color: Palette.xp.withValues(alpha: 0.6)),
+    ),
+    child: Text(
+      label,
+      style: Type.label.copyWith(fontSize: 11, color: Palette.xpLight),
+    ),
+  ),
+);
 
 /// The price readout when the embers aren't there yet — a plain column, no
 /// button pretence; the card's own tap still opens the try-on.
 Widget _priceTag(int price, int embers) => Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Text('✦ $price',
-            style: Type.display.copyWith(fontSize: 17, color: Palette.xp)),
-        const SizedBox(height: 1),
-        Text('${price - embers} to go',
-            style: Type.body.copyWith(fontSize: 10, color: Palette.textLo)),
-      ],
-    );
+  mainAxisSize: MainAxisSize.min,
+  crossAxisAlignment: CrossAxisAlignment.end,
+  children: [
+    Text(
+      '✦ $price',
+      style: Type.display.copyWith(fontSize: 17, color: Palette.xp),
+    ),
+    const SizedBox(height: 1),
+    Text(
+      '${price - embers} to go',
+      style: Type.body.copyWith(fontSize: 11, color: Palette.textLo),
+    ),
+  ],
+);
 
 /// The tail of every not-owned row: the trophy gate when locked, a honey
 /// price button when affordable, the "N to go" column when not. All three
@@ -331,17 +347,16 @@ Widget _roomHero(
   List<Color>? floor,
   String? window,
   List<Color>? flame,
-}) =>
-    HomeRoom(
-      lively: !state.reduceMotion,
-      unlocked: unlocked ?? state.ownedFurniture,
-      wall: wall ?? wallColorsFor(state),
-      floor: floor ?? floorColorsFor(state),
-      window: window ?? state.windowScene,
-      petAwake: true,
-      // the hearth-flame hue (the item being tried on, or the current one)
-      emberGlow: (flame ?? creatureColorsFor(state))[1],
-    );
+}) => HomeRoom(
+  lively: !state.reduceMotion,
+  unlocked: unlocked ?? state.ownedFurniture,
+  wall: wall ?? wallColorsFor(state),
+  floor: floor ?? floorColorsFor(state),
+  window: window ?? state.windowScene,
+  petAwake: true,
+  // the hearth-flame hue (the item being tried on, or the current one)
+  emberGlow: (flame ?? creatureColorsFor(state))[1],
+);
 
 /// Every not-owned item opens this fitting room — a live look at the actual
 /// thing already in YOUR space (the preview IS the motivation: you see
@@ -378,22 +393,32 @@ void _showTryOn(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(gate != null ? 'COMING UP' : 'TRY IT ON',
-                style: Type.label.copyWith(
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                    color: Palette.textLo)),
+            Text(
+              gate != null ? 'COMING UP' : 'TRY IT ON',
+              style: Type.label.copyWith(
+                fontSize: 11,
+                letterSpacing: 1.5,
+                color: Palette.textLo,
+              ),
+            ),
             const SizedBox(height: 14),
             hero,
             const SizedBox(height: 14),
-            Text(name,
-                textAlign: TextAlign.center,
-                style: Type.display.copyWith(fontSize: 20)),
+            Text(
+              name,
+              textAlign: TextAlign.center,
+              style: Type.display.copyWith(fontSize: 20),
+            ),
             const SizedBox(height: 4),
-            Text(blurb,
-                textAlign: TextAlign.center,
-                style: Type.body.copyWith(
-                    fontSize: 12, color: Palette.textLo, height: 1.35)),
+            Text(
+              blurb,
+              textAlign: TextAlign.center,
+              style: Type.body.copyWith(
+                fontSize: 12,
+                color: Palette.textLo,
+                height: 1.35,
+              ),
+            ),
             const SizedBox(height: 12),
             if (gate != null)
               Row(
@@ -402,16 +427,24 @@ void _showTryOn(
                   Icon(Icons.lock_outline, size: 13, color: Palette.textLo),
                   const SizedBox(width: 6),
                   Flexible(
-                    child: Text('earn “$gate” to unlock  ·  ✦ $price',
-                        style: Type.body
-                            .copyWith(fontSize: 11.5, color: Palette.textLo)),
+                    child: Text(
+                      'earn “$gate” to unlock  ·  ✦ $price',
+                      style: Type.body.copyWith(
+                        fontSize: 11.5,
+                        color: Palette.textLo,
+                      ),
+                    ),
                   ),
                 ],
               )
             else
-              Text('✦ $price  ·  you have ✦ $embers',
-                  style: Type.body
-                      .copyWith(fontSize: 11.5, color: Palette.textLo)),
+              Text(
+                '✦ $price  ·  you have ✦ $embers',
+                style: Type.body.copyWith(
+                  fontSize: 11.5,
+                  color: Palette.textLo,
+                ),
+              ),
             const SizedBox(height: 16),
             if (gate != null)
               HoneyButton(
@@ -437,11 +470,17 @@ void _showTryOn(
                 behavior: HitTestBehavior.opaque,
                 onTap: () => Navigator.of(dialogCtx).pop(),
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                  child: Text('Not now',
-                      style: Type.label
-                          .copyWith(fontSize: 11, color: Palette.textLo)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 8,
+                  ),
+                  child: Text(
+                    'Not now',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.textLo,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -523,26 +562,22 @@ class _ShopCard extends StatelessWidget {
 
   // a peek at your room WITH the piece already in it
   void _openTryOn(BuildContext context) => _showTryOn(
-        context,
-        hero: _roomHero(state, unlocked: {...state.ownedFurniture, item.id}),
-        name: item.name,
-        blurb: item.blurb,
-        price: item.price,
-        embers: state.embers,
-        gate: furnitureUnlocked(item, state)
-            ? null
-            : (furnitureGateLabel(item) ?? 'a trophy'),
-        onBuy: onBuy,
-        receipt: '${item.name} is yours — already in your room',
-      );
+    context,
+    hero: _roomHero(state, unlocked: {...state.ownedFurniture, item.id}),
+    name: item.name,
+    blurb: item.blurb,
+    price: item.price,
+    embers: state.embers,
+    gate: furnitureUnlocked(item, state)
+        ? null
+        : (furnitureGateLabel(item) ?? 'a trophy'),
+    onBuy: onBuy,
+    receipt: '${item.name} is yours — already in your room',
+  );
 
   Widget _cta(BuildContext context) {
     if (state.ownedFurniture.contains(item.id)) {
-      return _pill(
-        Palette.success,
-        Icons.check_rounded,
-        'in your room',
-      );
+      return _pill(Palette.success, Icons.check_rounded, 'in your room');
     }
     return _shelfCta(
       state: state,
@@ -563,7 +598,7 @@ class _ShopCard extends StatelessWidget {
     child: Text(
       zone.toUpperCase(),
       style: Type.label.copyWith(
-        fontSize: 8,
+        fontSize: 11,
         color: Palette.xp,
         letterSpacing: 1,
       ),
@@ -617,7 +652,9 @@ class _StyleCard extends StatelessWidget {
                         child: Text(
                           style.name,
                           style: Type.label.copyWith(
-                              fontSize: 13, color: Palette.textHi),
+                            fontSize: 13,
+                            color: Palette.textHi,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -626,8 +663,10 @@ class _StyleCard extends StatelessWidget {
                   const SizedBox(height: 5),
                   Text(
                     _blurb,
-                    style: Type.body
-                        .copyWith(fontSize: 11.5, color: Palette.textLo),
+                    style: Type.body.copyWith(
+                      fontSize: 11.5,
+                      color: Palette.textLo,
+                    ),
                   ),
                 ],
               ),
@@ -642,24 +681,24 @@ class _StyleCard extends StatelessWidget {
 
   // your own room wearing the style
   void _openTryOn(BuildContext context) => _showTryOn(
-        context,
-        hero: _roomHero(
-          state,
-          wall: style.kind == RoomStyleKind.wall ? [style.a, style.b] : null,
-          floor: style.kind == RoomStyleKind.floor ? [style.a, style.b] : null,
-        ),
-        name: style.name,
-        blurb: _blurb,
-        price: style.price,
-        embers: state.embers,
-        gate: styleUnlocked(style, state)
-            ? null
-            : (styleGateLabel(style) ?? 'a trophy'),
-        onBuy: onBuy,
-        receipt: style.kind == RoomStyleKind.wall
-            ? '${style.name} is on your walls now'
-            : '${style.name} is underfoot now',
-      );
+    context,
+    hero: _roomHero(
+      state,
+      wall: style.kind == RoomStyleKind.wall ? [style.a, style.b] : null,
+      floor: style.kind == RoomStyleKind.floor ? [style.a, style.b] : null,
+    ),
+    name: style.name,
+    blurb: _blurb,
+    price: style.price,
+    embers: state.embers,
+    gate: styleUnlocked(style, state)
+        ? null
+        : (styleGateLabel(style) ?? 'a trophy'),
+    onBuy: onBuy,
+    receipt: style.kind == RoomStyleKind.wall
+        ? '${style.name} is on your walls now'
+        : '${style.name} is underfoot now',
+  );
 
   Widget _cta(BuildContext context, bool applied) {
     if (applied) {
@@ -679,31 +718,34 @@ class _StyleCard extends StatelessWidget {
   }
 
   Widget _swatch() => Container(
-        width: 46,
-        height: 44,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [style.a, style.b],
-          ),
-          border: Border.all(color: Palette.textHi.withValues(alpha: 0.15)),
-        ),
-      );
+    width: 46,
+    height: 44,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(10),
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [style.a, style.b],
+      ),
+      border: Border.all(color: Palette.textHi.withValues(alpha: 0.15)),
+    ),
+  );
 
   Widget _kindChip() => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(6),
-          color: Palette.xp.withValues(alpha: 0.12),
-        ),
-        child: Text(
-          style.kind == RoomStyleKind.wall ? 'WALL' : 'FLOOR',
-          style: Type.label.copyWith(
-              fontSize: 8, color: Palette.xp, letterSpacing: 1),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(6),
+      color: Palette.xp.withValues(alpha: 0.12),
+    ),
+    child: Text(
+      style.kind == RoomStyleKind.wall ? 'WALL' : 'FLOOR',
+      style: Type.label.copyWith(
+        fontSize: 11,
+        color: Palette.xp,
+        letterSpacing: 1,
+      ),
+    ),
+  );
 }
 
 /// A window-view row: a live painted swatch of the scene + buy / apply states.
@@ -745,16 +787,22 @@ class _WindowCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(view.name,
-                      style: Type.label
-                          .copyWith(fontSize: 13, color: Palette.textHi)),
+                  Text(
+                    view.name,
+                    style: Type.label.copyWith(
+                      fontSize: 13,
+                      color: Palette.textHi,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     view.id == 'moon'
                         ? 'the original night sky'
                         : 'a new view outside your window',
-                    style: Type.body
-                        .copyWith(fontSize: 11.5, color: Palette.textLo),
+                    style: Type.body.copyWith(
+                      fontSize: 11.5,
+                      color: Palette.textLo,
+                    ),
                   ),
                 ],
               ),
@@ -770,18 +818,18 @@ class _WindowCard extends StatelessWidget {
   // your own room with the new view already through the glass — the room,
   // not a bare pane, because the view only means something from inside
   void _openTryOn(BuildContext context) => _showTryOn(
-        context,
-        hero: _roomHero(state, window: view.id),
-        name: view.name,
-        blurb: 'a new view outside your window',
-        price: view.price,
-        embers: state.embers,
-        gate: windowUnlocked(view, state)
-            ? null
-            : (windowGateLabel(view) ?? 'a trophy'),
-        onBuy: onBuy,
-        receipt: '${view.name} is outside your window now',
-      );
+    context,
+    hero: _roomHero(state, window: view.id),
+    name: view.name,
+    blurb: 'a new view outside your window',
+    price: view.price,
+    embers: state.embers,
+    gate: windowUnlocked(view, state)
+        ? null
+        : (windowGateLabel(view) ?? 'a trophy'),
+    onBuy: onBuy,
+    receipt: '${view.name} is outside your window now',
+  );
 
   Widget _cta(BuildContext context, bool applied) {
     if (applied) {
@@ -820,9 +868,15 @@ class _WindowSwatchPainter extends CustomPainter {
       ..color = const Color(0xFF5A4536)
       ..strokeWidth = 1.2;
     canvas.drawLine(
-        Offset(0, size.height / 2), Offset(size.width, size.height / 2), bar);
+      Offset(0, size.height / 2),
+      Offset(size.width, size.height / 2),
+      bar,
+    );
     canvas.drawLine(
-        Offset(size.width / 2, 0), Offset(size.width / 2, size.height), bar);
+      Offset(size.width / 2, 0),
+      Offset(size.width / 2, size.height),
+      bar,
+    );
   }
 
   @override
@@ -868,16 +922,22 @@ class _SkinCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(skin.name,
-                      style: Type.label
-                          .copyWith(fontSize: 13, color: Palette.textHi)),
+                  Text(
+                    skin.name,
+                    style: Type.label.copyWith(
+                      fontSize: 13,
+                      color: Palette.textHi,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     skin.id == 'ember_amber'
                         ? 'the original hearth-fire'
                         : 'a flame all your own',
-                    style: Type.body
-                        .copyWith(fontSize: 11.5, color: Palette.textLo),
+                    style: Type.body.copyWith(
+                      fontSize: 11.5,
+                      color: Palette.textLo,
+                    ),
                   ),
                 ],
               ),
@@ -892,18 +952,18 @@ class _SkinCard extends StatelessWidget {
 
   // your keep's hearth burning in the new flame colour
   void _openTryOn(BuildContext context) => _showTryOn(
-        context,
-        hero: _roomHero(state, flame: skin.colors),
-        name: skin.name,
-        blurb: 'your hearth-fire, a new colour',
-        price: skin.price,
-        embers: state.embers,
-        gate: skinUnlocked(skin, state)
-            ? null
-            : (skinGateLabel(skin) ?? 'a trophy'),
-        onBuy: onBuy,
-        receipt: 'Your hearth burns ${skin.name} now',
-      );
+    context,
+    hero: _roomHero(state, flame: skin.colors),
+    name: skin.name,
+    blurb: 'your hearth-fire, a new colour',
+    price: skin.price,
+    embers: state.embers,
+    gate: skinUnlocked(skin, state)
+        ? null
+        : (skinGateLabel(skin) ?? 'a trophy'),
+    onBuy: onBuy,
+    receipt: 'Your hearth burns ${skin.name} now',
+  );
 
   Widget _cta(BuildContext context, bool applied) {
     if (applied) {

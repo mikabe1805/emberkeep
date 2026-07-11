@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../clock.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
@@ -35,14 +36,24 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
+    final now = Clock.now();
     _month = DateTime(now.year, now.month);
     _selected = DateTime(now.year, now.month, now.day);
   }
 
   static const _monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   List<Quest> _eventsOn(DateTime day) => [
@@ -55,7 +66,7 @@ class _CalendarPageState extends State<CalendarPage> {
     return ListenableBuilder(
       listenable: widget.state,
       builder: (context, _) {
-        final now = DateTime.now();
+        final now = Clock.now();
         final firstWeekday = DateTime(_month.year, _month.month, 1).weekday;
         final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
 
@@ -64,11 +75,14 @@ class _CalendarPageState extends State<CalendarPage> {
           children: [
             Text('Plans', style: Type.display.copyWith(fontSize: 30)),
             const SizedBox(height: 4),
-            Text('your story, laid out in days',
-                style: Type.body.copyWith(
-                    fontSize: 13,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo)),
+            Text(
+              'your story, laid out in days',
+              style: Type.body.copyWith(
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
             const SizedBox(height: 16),
 
             // ── month grid ───────────────────────────────────────
@@ -80,20 +94,27 @@ class _CalendarPageState extends State<CalendarPage> {
                     children: [
                       _Chevron(
                         icon: Icons.chevron_left,
-                        onTap: () => setState(() => _month =
-                            DateTime(_month.year, _month.month - 1)),
+                        label: 'Previous month',
+                        onTap: () => setState(
+                          () =>
+                              _month = DateTime(_month.year, _month.month - 1),
+                        ),
                       ),
                       Expanded(
                         child: Center(
                           child: Text(
-                              '${_monthNames[_month.month - 1]} ${_month.year}',
-                              style: Type.display.copyWith(fontSize: 17)),
+                            '${_monthNames[_month.month - 1]} ${_month.year}',
+                            style: Type.display.copyWith(fontSize: 17),
+                          ),
                         ),
                       ),
                       _Chevron(
                         icon: Icons.chevron_right,
-                        onTap: () => setState(() => _month =
-                            DateTime(_month.year, _month.month + 1)),
+                        label: 'Next month',
+                        onTap: () => setState(
+                          () =>
+                              _month = DateTime(_month.year, _month.month + 1),
+                        ),
                       ),
                     ],
                   ),
@@ -103,24 +124,29 @@ class _CalendarPageState extends State<CalendarPage> {
                       for (final d in const ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
                         Expanded(
                           child: Center(
-                            child: Text(d,
-                                style: Type.label.copyWith(fontSize: 11)),
+                            child: Text(
+                              d,
+                              style: Type.label.copyWith(fontSize: 11),
+                            ),
                           ),
                         ),
                     ],
                   ),
                   const SizedBox(height: 6),
-                  for (var week = 0;
-                      week * 7 - (firstWeekday - 1) < daysInMonth;
-                      week++)
+                  for (
+                    var week = 0;
+                    week * 7 - (firstWeekday - 1) < daysInMonth;
+                    week++
+                  )
                     Row(
                       children: [
                         for (var col = 0; col < 7; col++)
                           Expanded(
                             child: _dayCell(
-                                week * 7 + col - (firstWeekday - 1) + 1,
-                                daysInMonth,
-                                now),
+                              week * 7 + col - (firstWeekday - 1) + 1,
+                              daysInMonth,
+                              now,
+                            ),
                           ),
                       ],
                     ),
@@ -151,10 +177,26 @@ class _CalendarPageState extends State<CalendarPage> {
     final done = widget.state.history[Days.key(date)] ?? 0;
     final events = _eventsOn(date);
 
-    return GestureDetector(
-      onTap: () {
-        Sfx.instance.play('tick');
-        setState(() => _selected = date);
+    final spoken = StringBuffer(
+      '${_monthNames[date.month - 1]} ${date.day}, ${date.year}',
+    );
+    if (isToday) spoken.write(', today');
+    if (done > 0) {
+      spoken.write(', $done quest${done == 1 ? '' : 's'} completed');
+    }
+    if (events.isNotEmpty) {
+      spoken.write(', ${events.length} plan${events.length == 1 ? '' : 's'}');
+    }
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: spoken.toString(),
+      onTap: () => setState(() => _selected = date),
+      child: GestureDetector(
+        excludeFromSemantics: true,
+        onTap: () {
+          Sfx.instance.play('tick');
+          setState(() => _selected = date);
       },
       child: Container(
         height: 44,
@@ -172,16 +214,19 @@ class _CalendarPageState extends State<CalendarPage> {
                     : Colors.transparent,
           ),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('$day',
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '$day',
                 style: Type.numerals.copyWith(
-                    fontSize: 13,
-                    color: isToday ? Palette.xp : Palette.textMid)),
-            const SizedBox(height: 2),
-            SizedBox(
-              height: 11,
+                  fontSize: 13,
+                  color: isToday ? Palette.xp : Palette.textMid,
+                ),
+              ),
+              const SizedBox(height: 2),
+              SizedBox(
+                height: 11,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -191,18 +236,20 @@ class _CalendarPageState extends State<CalendarPage> {
                     Container(
                       width: 4.0 + (done.clamp(1, 9)) * 0.7,
                       height: 4.0 + (done.clamp(1, 9)) * 0.7,
-                      margin: const EdgeInsets.symmetric(horizontal: 1),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Palette.xpLight
-                            .withValues(alpha: (0.45 + 0.07 * done).clamp(0.45, 1.0)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Palette.honeyGlow.withValues(
-                                alpha: (0.12 * done).clamp(0.0, 0.7)),
-                            blurRadius: 2.0 + done.clamp(0, 8) * 0.8,
+                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Palette.xpLight.withValues(
+                            alpha: (0.45 + 0.07 * done).clamp(0.45, 1.0),
                           ),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Palette.honeyGlow.withValues(
+                                alpha: (0.12 * done).clamp(0.0, 0.7),
+                              ),
+                              blurRadius: 2.0 + done.clamp(0, 8) * 0.8,
+                            ),
+                          ],
                       ),
                     ),
                   // stat-colored diamonds: planned events
@@ -219,7 +266,8 @@ class _CalendarPageState extends State<CalendarPage> {
                 ],
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -236,20 +284,31 @@ class _CalendarPageState extends State<CalendarPage> {
 }
 
 class _Chevron extends StatelessWidget {
-  const _Chevron({required this.icon, required this.onTap});
+  const _Chevron({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
   final IconData icon;
+  final String label;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Sfx.instance.play('tick');
-        onTap();
-      },
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Icon(icon, size: 22, color: Palette.textLo),
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        excludeFromSemantics: true,
+        onTap: () {
+          Sfx.instance.play('tick');
+          onTap();
+        },
+        child: SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(icon, size: 22, color: Palette.textLo),
+        ),
       ),
     );
   }
@@ -282,28 +341,39 @@ class _DayPanel extends StatelessWidget {
               Expanded(
                 child: Text(
                     '${day.day}.${day.month}.${day.year}'
-                    '${Days.sameDay(day, now) ? " · TODAY" : ""}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Type.label.copyWith(fontSize: 11)),
+                  '${Days.sameDay(day, now) ? " · TODAY" : ""}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(fontSize: 11),
+                ),
               ),
               if (!isPast)
                 GestureDetector(
                   onTap: onPlan,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 7),
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
                       gradient: const LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
+                        colors: [
+                          Color(0xFFF6D9A2),
+                          Color(0xFFEFC074),
+                          Color(0xFFC08B4F),
+                        ],
                       ),
                     ),
-                    child: Text('+ PLAN',
-                        style: Type.label.copyWith(
-                            fontSize: 11, color: const Color(0xFF3A2510))),
+                    child: Text(
+                      '+ PLAN',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: const Color(0xFF3A2510),
+                      ),
+                    ),
                   ),
                 ),
             ],
@@ -314,13 +384,19 @@ class _DayPanel extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle,
-                      size: 14, color: Palette.success),
+                  const Icon(
+                    Icons.check_circle,
+                    size: 14,
+                    color: Palette.success,
+                  ),
                   const SizedBox(width: 6),
                   Text(
-                      '$completions quest${completions == 1 ? "" : "s"} completed',
-                      style: Type.body.copyWith(
-                          fontSize: 13, color: Palette.textMid)),
+                    '$completions quest${completions == 1 ? "" : "s"} completed',
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      color: Palette.textMid,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -329,10 +405,12 @@ class _DayPanel extends StatelessWidget {
                 isPast
                     ? 'A quiet day.'
                     : 'Nothing planned yet — every empty day is a side quest waiting.',
-                style: Type.body.copyWith(
-                    fontSize: 13.5,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo)),
+              style: Type.body.copyWith(
+                fontSize: 13.5,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
           for (final e in events)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -340,26 +418,28 @@ class _DayPanel extends StatelessWidget {
                 children: [
                   Transform.rotate(
                     angle: 0.785,
-                    child:
-                        Container(width: 7, height: 7, color: e.stat.color),
+                    child: Container(width: 7, height: 7, color: e.stat.color),
                   ),
                   const SizedBox(width: 9),
                   Expanded(
-                    child: Text(e.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Type.body.copyWith(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w600,
-                            color: e.doneFor(now)
-                                ? Palette.textLo
-                                : Palette.textHi,
-                            decoration: e.doneFor(now)
-                                ? TextDecoration.lineThrough
-                                : null)),
+                    child: Text(
+                      e.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.body.copyWith(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: e.doneFor(now) ? Palette.textLo : Palette.textHi,
+                        decoration: e.doneFor(now)
+                            ? TextDecoration.lineThrough
+                            : null,
+                      ),
+                    ),
                   ),
-                  Text('d${e.difficulty}',
-                      style: Type.label.copyWith(fontSize: 11)),
+                  Text(
+                    'd${e.difficulty}',
+                    style: Type.label.copyWith(fontSize: 11),
+                  ),
                 ],
               ),
             ),
@@ -400,13 +480,15 @@ class _AddEventDialogState extends State<_AddEventDialog> {
       setState(() => _error = 'name your plan first');
       return;
     }
-    final ok = widget.onAdd(Quest(
-      title: title,
-      stat: _stat,
-      difficulty: _difficulty.round(),
-      schedule: QuestSchedule.once,
-      dueDate: widget.day,
-    ));
+    final ok = widget.onAdd(
+      Quest(
+        title: title,
+        stat: _stat,
+        difficulty: _difficulty.round(),
+        schedule: QuestSchedule.once,
+        dueDate: widget.day,
+      ),
+    );
     if (!ok) {
       Sfx.instance.play('boing');
       setState(() => _error = 'already on your quest list');
@@ -430,10 +512,11 @@ class _AddEventDialogState extends State<_AddEventDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-                'PLAN FOR ${widget.day.day}.${widget.day.month}.${widget.day.year}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Type.label.copyWith(fontSize: 11)),
+              'PLAN FOR ${widget.day.day}.${widget.day.month}.${widget.day.year}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Type.label.copyWith(fontSize: 11),
+            ),
             const SizedBox(height: 10),
             TextField(
               controller: _title,
@@ -443,11 +526,15 @@ class _AddEventDialogState extends State<_AddEventDialog> {
               style: Type.body.copyWith(fontSize: 15, color: Palette.textHi),
               decoration: InputDecoration(
                 hintText: 'e.g. Finish the essay draft',
-                hintStyle:
-                    Type.body.copyWith(fontSize: 15, color: Palette.textLo),
+                hintStyle: Type.body.copyWith(
+                  fontSize: 15,
+                  color: Palette.textLo,
+                ),
                 errorText: _error,
-                errorStyle: Type.body
-                    .copyWith(fontSize: 11, color: const Color(0xFFE89090)),
+                errorStyle: Type.body.copyWith(
+                  fontSize: 11,
+                  color: const Color(0xFFE89090),
+                ),
                 filled: true,
                 fillColor: Palette.glassFill,
                 border: OutlineInputBorder(
@@ -466,19 +553,27 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                     onTap: () => setState(() => _stat = s),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(999),
                         color: _stat == s
                             ? s.color.withValues(alpha: 0.22)
                             : Colors.transparent,
                         border: Border.all(
-                            color: s.color
-                                .withValues(alpha: _stat == s ? 0.8 : 0.3)),
+                          color: s.color.withValues(
+                            alpha: _stat == s ? 0.8 : 0.3,
+                          ),
+                        ),
                       ),
-                      child: Text(s.abbr,
-                          style: Type.label
-                              .copyWith(fontSize: 11, color: s.color)),
+                      child: Text(
+                        s.abbr,
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: s.color,
+                        ),
+                      ),
                     ),
                   ),
               ],
@@ -489,8 +584,10 @@ class _AddEventDialogState extends State<_AddEventDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('DIFFICULTY', style: Type.label.copyWith(fontSize: 11)),
-                Text('d${_difficulty.round()}',
-                    style: Type.label.copyWith(fontSize: 11, color: Palette.xp)),
+                Text(
+                  'd${_difficulty.round()}',
+                  style: Type.label.copyWith(fontSize: 11, color: Palette.xp),
+                ),
               ],
             ),
             Slider(
@@ -507,24 +604,35 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                 onTap: _add,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 26, vertical: 11),
+                    horizontal: 26,
+                    vertical: 11,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
+                      colors: [
+                        Color(0xFFF6D9A2),
+                        Color(0xFFEFC074),
+                        Color(0xFFC08B4F),
+                      ],
                     ),
                     boxShadow: const [
                       BoxShadow(
-                          color: Palette.honeyGlow,
-                          blurRadius: 16,
-                          offset: Offset(0, 5)),
+                        color: Palette.honeyGlow,
+                        blurRadius: 16,
+                        offset: Offset(0, 5),
+                      ),
                     ],
                   ),
-                  child: Text('PLAN IT',
-                      style: Type.label.copyWith(
-                          fontSize: 11, color: const Color(0xFF3A2510))),
+                  child: Text(
+                    'PLAN IT',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: const Color(0xFF3A2510),
+                    ),
+                  ),
                 ),
               ),
             ),

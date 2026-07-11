@@ -11,12 +11,13 @@ import '../widgets/home_room.dart';
 /// purely from the appearance fields in their shared room doc — no quests,
 /// notes or account data ever travel.
 class VisitRoomScreen extends StatelessWidget {
-  const VisitRoomScreen(
-      {super.key,
-      required this.room,
-      required this.code,
-      this.themeId,
-      this.lively = true});
+  const VisitRoomScreen({
+    super.key,
+    required this.room,
+    required this.code,
+    this.themeId,
+    this.lively = true,
+  });
 
   final Map<String, dynamic> room;
   final String code;
@@ -31,16 +32,25 @@ class VisitRoomScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = (room['name'] as String?)?.trim() ?? '';
-    final title = (room['title'] as String?)?.trim() ?? '';
-    final level = (room['level'] as num?)?.toInt() ?? 1;
-    final furniture =
-        ((room['furniture'] as List?) ?? const []).cast<String>().toSet();
+    String safeString(String key, [String fallback = '']) {
+      final value = room[key];
+      return value is String ? value.trim() : fallback;
+    }
+
+    final name = safeString('name');
+    final title = safeString('title');
+    final rawLevel = room['level'];
+    final level = rawLevel is num ? rawLevel.toInt().clamp(1, 9999) : 1;
+    final rawFurniture = room['furniture'];
+    final furniture = rawFurniture is List
+        ? rawFurniture.whereType<String>().take(64).toSet()
+        : <String>{};
 
     return Scaffold(
       backgroundColor: Palette.parchment,
       body: WarmBackground(
         themeId: themeId,
+        reduceMotion: !lively,
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 36),
@@ -60,14 +70,13 @@ class VisitRoomScreen extends StatelessWidget {
                       HomeRoom(
                         lively: lively,
                         unlocked: furniture,
-                        wall: wallColorsById(room['wall'] as String?),
-                        floor: floorColorsById(room['floor'] as String?),
-                        window: room['window'] as String? ?? 'moon',
+                        wall: wallColorsById(safeString('wall')),
+                        floor: floorColorsById(safeString('floor')),
+                        window: safeString('window', 'moon'),
                         // the friend's hearth is lit if they're on a streak
                         petAwake: room['awake'] == true,
                         // their chosen hearth-flame colour
-                        emberGlow:
-                            creatureColorsById(room['skin'] as String?)[1],
+                        emberGlow: creatureColorsById(safeString('skin'))[1],
                       ),
                       const SizedBox(height: 14),
                       if (title.isNotEmpty)
@@ -83,8 +92,10 @@ class VisitRoomScreen extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         '${furniture.length} pieces furnished',
-                        style: Type.body
-                            .copyWith(fontSize: 12, color: Palette.textLo),
+                        style: Type.body.copyWith(
+                          fontSize: 12,
+                          color: Palette.textLo,
+                        ),
                       ),
                     ],
                   ),

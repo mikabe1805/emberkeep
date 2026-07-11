@@ -40,11 +40,12 @@ class CloudSync extends ChangeNotifier {
   Future<void> init() async {
     try {
       await Firebase.initializeApp(
-              options: DefaultFirebaseOptions.currentPlatform)
-          .timeout(const Duration(seconds: 8));
+        options: DefaultFirebaseOptions.currentPlatform,
+      ).timeout(const Duration(seconds: 8));
       // Server-ack-only writes: don't let cached writes masquerade as synced.
-      FirebaseFirestore.instance.settings =
-          const Settings(persistenceEnabled: false);
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: false,
+      );
       // Reuse an existing session (a linked account, or a prior anonymous
       // one) — NEVER blindly re-sign-in anonymously, which would orphan a
       // linked account on every relaunch.
@@ -52,9 +53,9 @@ class CloudSync extends ChangeNotifier {
       if (existing != null) {
         _uid = existing.uid;
       } else {
-        final cred = await FirebaseAuth.instance
-            .signInAnonymously()
-            .timeout(const Duration(seconds: 8));
+        final cred = await FirebaseAuth.instance.signInAnonymously().timeout(
+          const Duration(seconds: 8),
+        );
         _uid = cred.user?.uid;
       }
       _refreshAccountEmail();
@@ -104,8 +105,10 @@ class CloudSync extends ChangeNotifier {
   Future<String?> linkAccount(String email, String password) async {
     if (!ready) return 'Cloud is offline right now.';
     try {
-      final cred =
-          EmailAuthProvider.credential(email: email.trim(), password: password);
+      final cred = EmailAuthProvider.credential(
+        email: email.trim(),
+        password: password,
+      );
       await FirebaseAuth.instance.currentUser!.linkWithCredential(cred);
       _uid = FirebaseAuth.instance.currentUser?.uid;
       _refreshAccountEmail();
@@ -131,7 +134,9 @@ class CloudSync extends ChangeNotifier {
     cancelPending();
     try {
       final c = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email.trim(), password: password);
+        email: email.trim(),
+        password: password,
+      );
       _uid = c.user?.uid;
       _refreshAccountEmail();
       status = _statusForUser();
@@ -149,18 +154,20 @@ class CloudSync extends ChangeNotifier {
   /// device (now detached from the account until signed in again). Flushes
   /// the final state to the ACCOUNT'S doc first, so a just-completed quest
   /// reaches the account before the uid swaps away.
-  Future<void> signOut() async {
+  Future<void> signOut({bool saveAccount = true}) async {
     _debounce?.cancel();
-    try {
-      final raw = await Storage.exportRaw();
-      if (raw != null && Storage.isValidSave(raw)) {
-        await _doc.set({
-          'data': raw,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+    if (saveAccount) {
+      try {
+        final raw = await Storage.exportRaw();
+        if (raw != null && Storage.isValidSave(raw)) {
+          await _doc.set({
+            'data': raw,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (e) {
+        debugPrint('signOut final flush failed: $e');
       }
-    } catch (e) {
-      debugPrint('signOut final flush failed: $e');
     }
     try {
       await FirebaseAuth.instance.signOut();
@@ -171,6 +178,43 @@ class CloudSync extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('signOut failed: $e');
+    }
+  }
+
+  /// Permanently removes the signed-in Firebase account and its cloud data.
+  /// The on-device keep is intentionally left intact; the caller detaches its
+  /// share code and persists it under the fresh anonymous session.
+  Future<String?> deleteAccount(String password, {String? roomCode}) async {
+    if (!ready) return 'Cloud is offline right now.';
+    final user = FirebaseAuth.instance.currentUser;
+    final email = user?.email;
+    if (user == null || user.isAnonymous || email == null) {
+      return 'No signed-in account to delete.';
+    }
+    cancelPending();
+    try {
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: password,
+      );
+      await user.reauthenticateWithCredential(credential);
+      if (roomCode != null && roomCode.isNotEmpty) {
+        await _rooms.doc(roomCode).delete();
+      }
+      await _doc.delete();
+      await user.delete();
+      final fresh = await FirebaseAuth.instance.signInAnonymously();
+      _uid = fresh.user?.uid;
+      _refreshAccountEmail();
+      ready = _uid != null;
+      status = ready ? _statusForUser() : 'off';
+      notifyListeners();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return _friendlyAuth(e);
+    } catch (e) {
+      debugPrint('deleteAccount failed: $e');
+      return 'Couldn’t delete the account — nothing was removed. Try again.';
     }
   }
 
@@ -242,10 +286,7 @@ class CloudSync extends ChangeNotifier {
         debugPrint('CloudSync: save is ${raw.length}B, over the safe limit');
         return;
       }
-      await _doc.set({
-        'data': raw,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _doc.set({'data': raw, 'updatedAt': FieldValue.serverTimestamp()});
       lastSynced = DateTime.now();
       status = _statusForUser();
       notifyListeners();
@@ -260,9 +301,10 @@ class CloudSync extends ChangeNotifier {
   static const _codeAlpha = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no I/O/0/1
   final _rng = Random();
 
-  String _genCode() =>
-      List.generate(6, (_) => _codeAlpha[_rng.nextInt(_codeAlpha.length)])
-          .join();
+  String _genCode() => List.generate(
+    6,
+    (_) => _codeAlpha[_rng.nextInt(_codeAlpha.length)],
+  ).join();
 
   CollectionReference<Map<String, dynamic>> get _rooms =>
       FirebaseFirestore.instance.collection('rooms');
@@ -271,7 +313,10 @@ class CloudSync extends ChangeNotifier {
   /// existing [code] to refresh it in place; otherwise a fresh short code is
   /// reserved (retrying on the astronomically-rare collision). Returns the
   /// share code, or null if the cloud is offline / it failed.
-  Future<String?> shareRoom(Map<String, dynamic> display, {String? code}) async {
+  Future<String?> shareRoom(
+    Map<String, dynamic> display, {
+    String? code,
+  }) async {
     if (!ready || _uid == null) return null;
     final data = {
       ...display,
@@ -308,8 +353,10 @@ class CloudSync extends ChangeNotifier {
     final c = code.trim().toUpperCase();
     if (c.isEmpty) return null;
     try {
-      final snap =
-          await _rooms.doc(c).get().timeout(const Duration(seconds: 8));
+      final snap = await _rooms
+          .doc(c)
+          .get()
+          .timeout(const Duration(seconds: 8));
       return snap.data();
     } catch (e) {
       debugPrint('fetchRoom failed: $e');
@@ -318,12 +365,14 @@ class CloudSync extends ChangeNotifier {
   }
 
   /// Take your space down (only your own — the rules enforce it).
-  Future<void> unshareRoom(String code) async {
-    if (!ready || code.isEmpty) return;
+  Future<bool> unshareRoom(String code) async {
+    if (!ready || code.isEmpty) return false;
     try {
       await _rooms.doc(code).delete();
+      return true;
     } catch (e) {
       debugPrint('unshareRoom failed: $e');
+      return false;
     }
   }
 

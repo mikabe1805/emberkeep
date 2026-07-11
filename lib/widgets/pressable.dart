@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../haptics.dart';
 import '../tokens.dart';
 
 /// Faux-3D press: thick bottom edge that collapses as the child drops 4px,
@@ -23,6 +25,8 @@ class Pressable extends StatefulWidget {
     this.edgeColor,
     this.borderRadius,
     this.enabled = true,
+    this.semanticLabel,
+    this.semanticHint,
   });
 
   final Widget child;
@@ -37,6 +41,8 @@ class Pressable extends StatefulWidget {
   final Color? edgeColor;
   final BorderRadius? borderRadius;
   final bool enabled;
+  final String? semanticLabel;
+  final String? semanticHint;
 
   @override
   State<Pressable> createState() => _PressableState();
@@ -57,39 +63,78 @@ class _PressableState extends State<Pressable> {
     }
   }
 
+  void _activate() {
+    if (!widget.enabled || widget.onTapUp == null) return;
+    Haptics.tap();
+    Sfx.instance.play('tick');
+    final box = context.findRenderObject() as RenderBox?;
+    final center = box == null
+        ? Offset.zero
+        : box.localToGlobal(box.size.center(Offset.zero));
+    widget.onTapUp!(center);
+  }
+
   @override
   Widget build(BuildContext context) {
     final radius = widget.borderRadius ?? BorderRadius.circular(14);
     // deep espresso under-edge — warm, never grey
     final edge = widget.edgeColor ?? const Color(0xFF0F0905);
-    return Listener(
-      onPointerDown: (e) {
-        _downAt = e.position;
-        _setDown(true);
+    final manageActions = widget.onLongPress == null
+        ? null
+        : <CustomSemanticsAction, VoidCallback>{
+            const CustomSemanticsAction(label: 'Manage'): widget.onLongPress!,
+          };
+    return FocusableActionDetector(
+      mouseCursor: widget.enabled
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            _activate();
+            return null;
+          },
+        ),
       },
-      onPointerMove: (e) {
-        // pointer drifted into a scroll — release the visual
-        if ((e.position - _downAt).distance > _slop) _setDown(false);
-      },
-      onPointerUp: (_) => _setDown(false),
-      onPointerCancel: (_) => _setDown(false),
-      child: GestureDetector(
-        onTapUp: (d) {
-          if (widget.enabled) widget.onTapUp?.call(d.globalPosition);
-        },
-        onLongPress: widget.onLongPress,
-        child: AnimatedContainer(
-          // physical buttons depress instantly; only the release eases
-          duration: _down ? Duration.zero : Motion.ack,
-          curve: Motion.respond,
-          transform: Matrix4.translationValues(0, _down ? _drop : 0, 0),
-          decoration: BoxDecoration(
-            borderRadius: radius,
-            boxShadow: _down
-                ? const []
-                : [BoxShadow(color: edge, offset: const Offset(0, _drop))],
+      child: Semantics(
+        container: true,
+        button: widget.onTapUp != null,
+        enabled: widget.enabled,
+        label: widget.semanticLabel,
+        hint: widget.semanticHint,
+        onTap: widget.enabled ? _activate : null,
+        customSemanticsActions: manageActions,
+        child: Listener(
+          onPointerDown: (e) {
+            _downAt = e.position;
+            _setDown(true);
+          },
+          onPointerMove: (e) {
+            // Pointer drifted into a scroll — release the visual immediately.
+            if ((e.position - _downAt).distance > _slop) _setDown(false);
+          },
+          onPointerUp: (_) => _setDown(false),
+          onPointerCancel: (_) => _setDown(false),
+          child: GestureDetector(
+            excludeFromSemantics: true,
+            onTapUp: (d) {
+              if (widget.enabled) widget.onTapUp?.call(d.globalPosition);
+            },
+            onLongPress: widget.onLongPress,
+            child: AnimatedContainer(
+              // physical buttons depress instantly; only the release eases
+              duration: _down ? Duration.zero : Motion.ack,
+              curve: Motion.respond,
+              transform: Matrix4.translationValues(0, _down ? _drop : 0, 0),
+              decoration: BoxDecoration(
+                borderRadius: radius,
+                boxShadow: _down
+                    ? const []
+                    : [BoxShadow(color: edge, offset: const Offset(0, _drop))],
+              ),
+              child: widget.child,
+            ),
           ),
-          child: widget.child,
         ),
       ),
     );
