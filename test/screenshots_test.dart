@@ -16,6 +16,7 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/journal_hub.dart';
 import 'package:emberkeep/storage.dart';
 import 'package:emberkeep/tokens.dart';
+import 'package:emberkeep/widgets/constellation.dart';
 import 'package:emberkeep/widgets/home_room.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -170,6 +171,49 @@ void main() {
         pad: 16,
       ),
       'keep_styles',
+    );
+  });
+
+  // the HISTORY CONSTELLATION at three ages: a first week, a solid month with
+  // gaps, and half a year of dense history — the three shapes a real save
+  // passes through, so the spiral's turn-scaling can be eyeballed.
+  testWidgets('history sky: three ages', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(560, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final start = DateTime(2026, 1, 6);
+    Map<String, int> hist(
+      int days,
+      bool Function(int) lit,
+      int Function(int) n,
+    ) {
+      final m = <String, int>{};
+      for (var i = 0; i < days; i++) {
+        if (lit(i)) m[Days.key(start.add(Duration(days: i)))] = n(i);
+      }
+      return m;
+    }
+
+    Widget sky(Map<String, int> h) => SizedBox(
+      width: 380,
+      child: HistorySky(history: h, ember: const Color(0xFFF2CD93)),
+    );
+    await _shoot(
+      tester,
+      _stage(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            sky(hist(6, (i) => true, (i) => 1 + i % 3)),
+            const SizedBox(height: 12),
+            // a month with two honest gaps in it
+            sky(hist(34, (i) => i % 11 != 7 && i % 11 != 8, (i) => 1 + i % 5)),
+            const SizedBox(height: 12),
+            sky(hist(178, (i) => i % 9 != 4, (i) => 1 + (i * 7) % 6)),
+          ],
+        ),
+        pad: 16,
+      ),
+      'history_sky',
     );
   });
 

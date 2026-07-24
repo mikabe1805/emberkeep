@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 
 import '../audio.dart';
 import '../clock.dart';
+import '../content/creature_skins.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
+import '../widgets/constellation.dart';
 import '../widgets/glass.dart';
 import 'journal_hub.dart';
 
@@ -75,6 +77,8 @@ class InsightsPage extends StatelessWidget {
             _rhythm(),
             const SizedBox(height: 14),
             _activity(),
+            const SizedBox(height: 14),
+            _sky(context),
           ],
         ],
       ),
@@ -600,6 +604,62 @@ class InsightsPage extends StatelessWidget {
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// YOUR SKY — the history constellation (ROADMAP Phase 2). Every night the
+  /// hearth was lit becomes a star on an outward spiral; unbroken runs join
+  /// into threads. It's the one surface in the app that shows the WHOLE of the
+  /// effort at once, and it only ever grows: no mark for a night you missed,
+  /// so a quiet week reads as the thread pausing, never as damage.
+  Widget _sky(BuildContext context) {
+    final lit = state.history.entries.where((e) => e.value > 0).toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    // the longest unbroken run still inside the kept window — the sky's own
+    // number, which can differ from bestStreak once old days age out
+    var longest = 0, run = 0;
+    DateTime? prev;
+    for (final e in lit) {
+      final d = Days.tryParse(e.key);
+      if (d == null) continue;
+      run = (prev != null && Days.between(prev, d) == 1) ? run + 1 : 1;
+      if (run > longest) longest = run;
+      prev = d;
+    }
+
+    return GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('YOUR SKY', style: Type.label.copyWith(fontSize: 11)),
+          const SizedBox(height: 4),
+          Text(
+            '${lit.length} night${lit.length == 1 ? '' : 's'} lit'
+            '${longest > 1 ? ' · longest thread $longest nights' : ''}',
+            style: Type.body.copyWith(
+              fontSize: 13,
+              fontStyle: FontStyle.italic,
+              color: Palette.textLo,
+            ),
+          ),
+          const SizedBox(height: 12),
+          HistorySky(
+            history: state.history,
+            ember: creatureColorsFor(state)[1],
+            reduceMotion:
+                state.reduceMotion ||
+                (MediaQuery.maybeDisableAnimationsOf(context) ?? false),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            lit.length < 3
+                ? 'One star for every night you showed up. It only ever grows.'
+                : 'Oldest night at the centre, tonight at the rim. Nights that '
+                      'touch are joined — that thread is your streak, drawn.',
+            style: Type.body.copyWith(fontSize: 12, color: Palette.textLo),
+          ),
         ],
       ),
     );
