@@ -70,11 +70,15 @@ class _ParticleBurstState extends State<ParticleBurst>
         widget.reduce ? 0 : (rng.nextDouble() - 0.5) * 6,
       );
     });
-    _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 850))
-      ..addStatusListener((s) {
-        if (s == AnimationStatus.completed) widget.onDone?.call();
-      })
-      ..forward();
+    _c =
+        AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 850),
+          )
+          ..addStatusListener((s) {
+            if (s == AnimationStatus.completed) widget.onDone?.call();
+          })
+          ..forward();
   }
 
   @override
@@ -126,9 +130,8 @@ class _BurstPainter extends CustomPainter {
       // ease-out outward travel with drag, then a gentle decelerating rise
       final travel = 1 - pow(1 - t, 3).toDouble();
       final flick = sin(t * 7 + p.spin) * 4 * t; // sideways ember flicker
-      final pos = origin +
-          p.velocity * travel * p.drag +
-          Offset(flick, -lift * travel);
+      final pos =
+          origin + p.velocity * travel * p.drag + Offset(flick, -lift * travel);
       final a = fade * (0.6 + 0.4 * vibrancy).clamp(0.0, 1.0);
       paint.color = p.color.withValues(alpha: a);
       canvas.save();
@@ -138,9 +141,13 @@ class _BurstPainter extends CustomPainter {
         // a crisp spark fleck
         paint.maskFilter = null;
         canvas.drawRect(
-            Rect.fromCenter(
-                center: Offset.zero, width: p.size, height: p.size * 0.4),
-            paint);
+          Rect.fromCenter(
+            center: Offset.zero,
+            width: p.size,
+            height: p.size * 0.4,
+          ),
+          paint,
+        );
       } else {
         // a glowing ember mote — soft bloom, like the ambient fireflies
         paint.maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.6);

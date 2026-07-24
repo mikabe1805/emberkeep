@@ -65,7 +65,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '8350777780',
     projectId: 'emberkeep-5b33b',
     storageBucket: 'emberkeep-5b33b.firebasestorage.app',
-    iosClientId: '8350777780-jvqgo0tid79a61iksl4sfehs4vhfhtq4.apps.googleusercontent.com',
+    iosClientId:
+        '8350777780-jvqgo0tid79a61iksl4sfehs4vhfhtq4.apps.googleusercontent.com',
     iosBundleId: 'com.mikabe.emberkeep',
   );
 }

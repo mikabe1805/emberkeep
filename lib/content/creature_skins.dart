@@ -34,7 +34,12 @@ const _amber = CreatureSkin(
   id: 'ember_amber',
   name: 'Ember',
   price: 0,
-  colors: [Color(0xFFFFF4D9), Color(0xFFF2CD93), Color(0xFFC58A4E), Color(0xFF6E451F)],
+  colors: [
+    Color(0xFFFFF4D9),
+    Color(0xFFF2CD93),
+    Color(0xFFC58A4E),
+    Color(0xFF6E451F),
+  ],
 );
 
 final creatureSkins = <CreatureSkin>[
@@ -43,38 +48,68 @@ final creatureSkins = <CreatureSkin>[
     id: 'rose_quartz',
     name: 'Rose Quartz',
     price: 160,
-    colors: [Color(0xFFFFE9EC), Color(0xFFF4B8C4), Color(0xFFD77E96), Color(0xFF7E3A50)],
+    colors: [
+      Color(0xFFFFE9EC),
+      Color(0xFFF4B8C4),
+      Color(0xFFD77E96),
+      Color(0xFF7E3A50),
+    ],
   ),
   const CreatureSkin(
     id: 'mint_glass',
     name: 'Mint',
     price: 180,
-    colors: [Color(0xFFE9FBEF), Color(0xFFAEE6C6), Color(0xFF6FC79B), Color(0xFF2F6E55)],
+    colors: [
+      Color(0xFFE9FBEF),
+      Color(0xFFAEE6C6),
+      Color(0xFF6FC79B),
+      Color(0xFF2F6E55),
+    ],
   ),
   const CreatureSkin(
     id: 'periwinkle',
     name: 'Periwinkle',
     price: 200,
-    colors: [Color(0xFFE9ECFF), Color(0xFFBCC4F4), Color(0xFF8E9AE0), Color(0xFF49507E)],
+    colors: [
+      Color(0xFFE9ECFF),
+      Color(0xFFBCC4F4),
+      Color(0xFF8E9AE0),
+      Color(0xFF49507E),
+    ],
   ),
   const CreatureSkin(
     id: 'lilac',
     name: 'Lilac',
     price: 220,
-    colors: [Color(0xFFF3E9FF), Color(0xFFD8BCF4), Color(0xFFB68EE0), Color(0xFF60497E)],
+    colors: [
+      Color(0xFFF3E9FF),
+      Color(0xFFD8BCF4),
+      Color(0xFFB68EE0),
+      Color(0xFF60497E),
+    ],
   ),
   const CreatureSkin(
     id: 'slate',
     name: 'Slate',
     price: 240,
-    colors: [Color(0xFFEDF1F4), Color(0xFFB8C2C9), Color(0xFF8997A1), Color(0xFF47535B)],
+    colors: [
+      Color(0xFFEDF1F4),
+      Color(0xFFB8C2C9),
+      Color(0xFF8997A1),
+      Color(0xFF47535B),
+    ],
     requires: 'well-rounded',
   ),
   const CreatureSkin(
     id: 'gilded',
     name: 'Gilded',
     price: 320,
-    colors: [Color(0xFFFFF6D9), Color(0xFFFFE08A), Color(0xFFE8B44E), Color(0xFF8A6A1E)],
+    colors: [
+      Color(0xFFFFF6D9),
+      Color(0xFFFFE08A),
+      Color(0xFFE8B44E),
+      Color(0xFF8A6A1E),
+    ],
     requires: 'ascendant',
   ),
 ];

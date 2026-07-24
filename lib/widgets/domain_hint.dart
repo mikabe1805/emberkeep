@@ -32,9 +32,10 @@ class DomainHint extends StatelessWidget {
               TextSpan(
                 text: '${stat.label} — ',
                 style: Type.body.copyWith(
-                    fontSize: 12,
-                    color: stat.color,
-                    fontWeight: FontWeight.w600),
+                  fontSize: 12,
+                  color: stat.color,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               TextSpan(text: stat.examples),
             ],
@@ -64,8 +65,10 @@ class DomainLegendButton extends StatelessWidget {
           color: Palette.glassFill,
           border: Border.all(color: Palette.glassEdge),
         ),
-        child: Text('?',
-            style: Type.label.copyWith(fontSize: 12, color: Palette.textLo)),
+        child: Text(
+          '?',
+          style: Type.label.copyWith(fontSize: 12, color: Palette.textLo),
+        ),
       ),
     );
   }
@@ -88,12 +91,15 @@ Future<void> showDomainLegend(BuildContext context) {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('THE SIX DOMAINS',
-                  style: Type.label.copyWith(fontSize: 12, color: Palette.xp)),
+              Text(
+                'THE SIX DOMAINS',
+                style: Type.label.copyWith(fontSize: 12, color: Palette.xp),
+              ),
               const SizedBox(height: 4),
-              Text('What each one is for',
-                  style: Type.body
-                      .copyWith(fontSize: 13, color: Palette.textLo)),
+              Text(
+                'What each one is for',
+                style: Type.body.copyWith(fontSize: 13, color: Palette.textLo),
+              ),
               const SizedBox(height: 16),
               for (final s in Stat.values) _LegendRow(s),
             ],
@@ -125,7 +131,9 @@ class _LegendRow extends StatelessWidget {
               color: stat.color.withValues(alpha: 0.85),
               boxShadow: [
                 BoxShadow(
-                    color: stat.color.withValues(alpha: 0.4), blurRadius: 8),
+                  color: stat.color.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                ),
               ],
             ),
           ),
@@ -133,19 +141,27 @@ class _LegendRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(stat.abbr,
-                    style: Type.label.copyWith(
-                        fontSize: 12, color: stat.color)),
+                Text(
+                  stat.abbr,
+                  style: Type.label.copyWith(fontSize: 12, color: stat.color),
+                ),
                 const SizedBox(height: 2),
-                Text(stat.blurb,
-                    style: Type.body
-                        .copyWith(fontSize: 13, color: Palette.textMid)),
+                Text(
+                  stat.blurb,
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    color: Palette.textMid,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(stat.examples,
-                    style: Type.body.copyWith(
-                        fontSize: 12,
-                        color: Palette.textLo,
-                        fontStyle: FontStyle.italic)),
+                Text(
+                  stat.examples,
+                  style: Type.body.copyWith(
+                    fontSize: 12,
+                    color: Palette.textLo,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
               ],
             ),
           ),

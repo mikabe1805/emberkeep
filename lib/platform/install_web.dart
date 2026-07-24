@@ -7,8 +7,9 @@ import 'package:web/web.dart' as web;
 /// fragile dynamic JS interop in release builds).
 bool get isBrowserNotInstalled {
   try {
-    final standalone =
-        web.window.matchMedia('(display-mode: standalone)').matches;
+    final standalone = web.window
+        .matchMedia('(display-mode: standalone)')
+        .matches;
     return !standalone;
   } catch (_) {
     return false;
@@ -18,7 +19,8 @@ bool get isBrowserNotInstalled {
 bool get isIosBrowser {
   try {
     final ua = web.window.navigator.userAgent.toLowerCase();
-    final isIos = ua.contains('iphone') ||
+    final isIos =
+        ua.contains('iphone') ||
         ua.contains('ipad') ||
         // iPadOS 13+ reports as Mac; detect touch
         (ua.contains('macintosh') && web.window.navigator.maxTouchPoints > 1);

@@ -90,116 +90,146 @@ class _TimerOverlayState extends State<TimerOverlay>
   @override
   Widget build(BuildContext context) {
     final total = widget.minutes * 60;
-    final progress =
-        total == 0 ? 1.0 : (1 - _left.inSeconds / total).clamp(0.0, 1.0);
+    final progress = total == 0
+        ? 1.0
+        : (1 - _left.inSeconds / total).clamp(0.0, 1.0);
     return OverlaySurface(
       child: Container(
-      color: const Color(0xF2191210),
-      child: Center(
-        child: GlassPanel(
-          blur: true,
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text('PROOF IN PROGRESS',
-                  style:
-                      Type.label.copyWith(fontSize: 11, color: Palette.verify)),
-              const SizedBox(height: 6),
-              Text(widget.questTitle,
+        color: const Color(0xF2191210),
+        child: Center(
+          child: GlassPanel(
+            blur: true,
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'PROOF IN PROGRESS',
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    color: Palette.verify,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  widget.questTitle,
                   textAlign: TextAlign.center,
-                  style: Type.display.copyWith(fontSize: 18)),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: 170,
-                height: 170,
-                child: Stack(
-                  alignment: Alignment.center,
+                  style: Type.display.copyWith(fontSize: 18),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: 170,
+                  height: 170,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox.expand(
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 6,
+                          strokeCap: StrokeCap.round,
+                          backgroundColor: const Color(0x1FF2CD93),
+                          color: Palette.verify,
+                        ),
+                      ),
+                      Text(
+                        _clock(),
+                        style: Type.numerals.copyWith(
+                          fontSize: 44,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    SizedBox.expand(
-                      child: CircularProgressIndicator(
-                        value: progress,
-                        strokeWidth: 6,
-                        strokeCap: StrokeCap.round,
-                        backgroundColor: const Color(0x1FF2CD93),
-                        color: Palette.verify,
+                    const Icon(Icons.verified, size: 13, color: Palette.verify),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        'FINISH FOR ×1.2 VERIFIED XP',
+                        textAlign: TextAlign.center,
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: Palette.verify,
+                        ),
                       ),
                     ),
-                    Text(_clock(),
-                        style: Type.numerals
-                            .copyWith(fontSize: 44, color: Palette.textHi)),
                   ],
                 ),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.verified, size: 13, color: Palette.verify),
-                  const SizedBox(width: 5),
-                  Flexible(
-                    child: Text('FINISH FOR ×1.2 VERIFIED XP',
-                        textAlign: TextAlign.center,
-                        style: Type.label
-                            .copyWith(fontSize: 11, color: Palette.verify)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text('real-time clock — locking your phone is fine',
+                const SizedBox(height: 6),
+                Text(
+                  'real-time clock — locking your phone is fine',
                   textAlign: TextAlign.center,
                   style: Type.body.copyWith(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textLo)),
-              const SizedBox(height: 18),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Sfx.instance.play('boing');
-                      widget.onCancel();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 9),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                            color: Palette.textLo.withValues(alpha: 0.4)),
-                      ),
-                      child:
-                          Text('NOT NOW', style: Type.label.copyWith(fontSize: 11)),
-                    ),
+                    fontSize: 11,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
                   ),
-                  // proof multiplies, never gates — honor path always open
-                  GestureDetector(
-                    onTap: () {
-                      Sfx.instance.play('tick');
-                      widget.onHonor();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 9),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                            color: Palette.success.withValues(alpha: 0.5)),
+                ),
+                const SizedBox(height: 18),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Sfx.instance.play('boing');
+                        widget.onCancel();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: Palette.textLo.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Text(
+                          'NOT NOW',
+                          style: Type.label.copyWith(fontSize: 11),
+                        ),
                       ),
-                      child: Text('I ALREADY DID IT',
+                    ),
+                    // proof multiplies, never gates — honor path always open
+                    GestureDetector(
+                      onTap: () {
+                        Sfx.instance.play('tick');
+                        widget.onHonor();
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 9,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(
+                            color: Palette.success.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: Text(
+                          'I ALREADY DID IT',
                           style: Type.label.copyWith(
-                              fontSize: 11, color: Palette.success)),
+                            fontSize: 11,
+                            color: Palette.success,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

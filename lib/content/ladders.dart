@@ -95,6 +95,9 @@ abstract final class Ladders {
     final pool = q.kin ?? kinByStat[q.stat] ?? const [];
     final taken = onBoard.map((t) => t.toLowerCase()).toSet()
       ..add(q.displayTitle.toLowerCase());
-    return [for (final v in pool) if (!taken.contains(v.toLowerCase())) v];
+    return [
+      for (final v in pool)
+        if (!taken.contains(v.toLowerCase())) v,
+    ];
   }
 }

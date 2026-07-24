@@ -35,7 +35,9 @@ class _InstallHintState extends State<InstallHint> {
     setState(() => _dismissed = true);
     try {
       (await SharedPreferences.getInstance()).setBool(_prefKey, true);
-    } catch (_) {/* best effort */}
+    } catch (_) {
+      /* best effort */
+    }
   }
 
   @override

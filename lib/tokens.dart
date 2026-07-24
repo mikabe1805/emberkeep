@@ -39,7 +39,9 @@ abstract final class Palette {
   // Glass recipe — dark glass holding warm light
   static const glassFill = Color(0x17FFF2DC); // rgba(255,242,220,.09)
   static const glassEdge = Color(0x2EFFEFD2); // warm edge highlight
-  static const glassRim = Color(0x24140C06); // dark lower rim (the pane's shadow)
+  static const glassRim = Color(
+    0x24140C06,
+  ); // dark lower rim (the pane's shadow)
   static const specular = Color(0xFFFFF4D9); // cream drop-of-light
   static const warmShadow = Color(0x59140C06); // deep espresso shadow
   static const honeyGlow = Color(0x52E0A865); // warm halo for CTAs
@@ -73,21 +75,48 @@ abstract final class Palette {
 /// are surfaced wherever you pick a domain, so "which one is this?" answers
 /// itself at categorization time.
 enum Stat {
-  str('BODY', 'Body', Color(0xFFE89090), // ember rose
-      'Moving and training your body.', 'workouts, walks, sports, stretching'),
-  vit('CARE', 'Care', Color(0xFF9BC08F), // moss
-      'Keeping yourself and what you tend alive and well.',
-      'meals, sleep, water, meds, plants, pets'),
-  intl('MIND', 'Mind', Color(0xFF85B7CE), // teal-blue
-      'Feeding your head.', 'reading, learning, reflecting'),
-  foc('CRAFT', 'Craft', Color(0xFFB79BC8), // lilac
-      'Focused work and making things.',
-      'deep work, projects, practice, skills'),
-  soc('PEOPLE', 'People', Color(0xFFF0AFAF), // bloom
-      'Tending the people in your life.',
-      'reaching out, friends, family, plans'),
-  dis('HOME', 'Home', Color(0xFFB3A897), // warm bark
-      'Keeping your space in order.', 'chores, tidying, errands, repairs');
+  str(
+    'BODY',
+    'Body',
+    Color(0xFFE89090), // ember rose
+    'Moving and training your body.',
+    'workouts, walks, sports, stretching',
+  ),
+  vit(
+    'CARE',
+    'Care',
+    Color(0xFF9BC08F), // moss
+    'Keeping yourself and what you tend alive and well.',
+    'meals, sleep, water, meds, plants, pets',
+  ),
+  intl(
+    'MIND',
+    'Mind',
+    Color(0xFF85B7CE), // teal-blue
+    'Feeding your head.',
+    'reading, learning, reflecting',
+  ),
+  foc(
+    'CRAFT',
+    'Craft',
+    Color(0xFFB79BC8), // lilac
+    'Focused work and making things.',
+    'deep work, projects, practice, skills',
+  ),
+  soc(
+    'PEOPLE',
+    'People',
+    Color(0xFFF0AFAF), // bloom
+    'Tending the people in your life.',
+    'reaching out, friends, family, plans',
+  ),
+  dis(
+    'HOME',
+    'Home',
+    Color(0xFFB3A897), // warm bark
+    'Keeping your space in order.',
+    'chores, tidying, errands, repairs',
+  );
 
   const Stat(this.abbr, this.label, this.color, this.blurb, this.examples);
   final String abbr;
@@ -135,31 +164,31 @@ abstract final class Type {
 
   /// Numbers are the heroes: big, animated count-ups, soft serif warmth.
   static TextStyle get numerals => GoogleFonts.fraunces(
-        fontFeatures: const [FontFeature.tabularFigures()],
-        fontWeight: FontWeight.w700,
-        fontSize: 18,
-        letterSpacing: 0.2,
-        color: Palette.textHi,
-      );
+    fontFeatures: const [FontFeature.tabularFigures()],
+    fontWeight: FontWeight.w700,
+    fontSize: 18,
+    letterSpacing: 0.2,
+    color: Palette.textHi,
+  );
 
   static TextStyle get display => GoogleFonts.fraunces(
-        fontWeight: FontWeight.w600,
-        fontSize: 22,
-        color: Palette.textHi,
-      );
+    fontWeight: FontWeight.w600,
+    fontSize: 22,
+    color: Palette.textHi,
+  );
 
   static TextStyle get body => GoogleFonts.inter(
-        fontWeight: FontWeight.w500,
-        fontSize: 16,
-        color: Palette.textMid,
-      );
+    fontWeight: FontWeight.w500,
+    fontSize: 16,
+    color: Palette.textMid,
+  );
 
   static TextStyle get label => GoogleFonts.jetBrainsMono(
-        fontWeight: FontWeight.w600,
-        fontSize: minLabel,
-        letterSpacing: 1.1,
-        color: Palette.textLo,
-      );
+    fontWeight: FontWeight.w600,
+    fontSize: minLabel,
+    letterSpacing: 1.1,
+    color: Palette.textLo,
+  );
 }
 
 /// Shared glass decoration helpers (the cheap, no-backdrop-blur variant —
@@ -170,32 +199,31 @@ abstract final class Glass {
     double radius = 20,
     Color? tint,
     bool glow = false,
-  }) =>
-      BoxDecoration(
-        // a vertical fill — lit at the top lip, settling into shadow below —
-        // unless an opaque [tint] is requested (dialogs want a solid surface).
-        color: tint,
-        gradient: tint == null
-            ? const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Palette.glassTop, Palette.glassBottom],
-              )
-            : null,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: Palette.glassEdge, width: 1.2),
-        boxShadow: [
-          const BoxShadow(
-            color: Palette.warmShadow,
-            blurRadius: 18,
-            offset: Offset(0, 6),
-          ),
-          if (glow)
-            const BoxShadow(
-              color: Palette.honeyGlow,
-              blurRadius: 22,
-              offset: Offset(0, 8),
-            ),
-        ],
-      );
+  }) => BoxDecoration(
+    // a vertical fill — lit at the top lip, settling into shadow below —
+    // unless an opaque [tint] is requested (dialogs want a solid surface).
+    color: tint,
+    gradient: tint == null
+        ? const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Palette.glassTop, Palette.glassBottom],
+          )
+        : null,
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(color: Palette.glassEdge, width: 1.2),
+    boxShadow: [
+      const BoxShadow(
+        color: Palette.warmShadow,
+        blurRadius: 18,
+        offset: Offset(0, 6),
+      ),
+      if (glow)
+        const BoxShadow(
+          color: Palette.honeyGlow,
+          blurRadius: 22,
+          offset: Offset(0, 8),
+        ),
+    ],
+  );
 }

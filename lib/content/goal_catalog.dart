@@ -51,23 +51,21 @@ class QuestTemplate {
 
   /// [weekdays]/[monthDay] override the template defaults — the day picker
   /// passes the chosen anchor here at adopt time.
-  Quest build({String? goalTitle, List<int>? weekdays, int? monthDay}) =>
-      Quest(
-        title: title,
-        stat: stat,
-        difficulty: difficulty,
-        schedule: schedule,
-        dread: dread,
-        ladderHint: ladderHint,
-        verification:
-            timerMinutes > 0 ? Verification.timer : Verification.honor,
-        timerMinutes: timerMinutes,
-        goalTitle: goalTitle,
-        allDay: allDay,
-        rising: rising,
-        weekdays: weekdays ?? this.weekdays,
-        monthDay: monthDay ?? this.monthDay,
-      );
+  Quest build({String? goalTitle, List<int>? weekdays, int? monthDay}) => Quest(
+    title: title,
+    stat: stat,
+    difficulty: difficulty,
+    schedule: schedule,
+    dread: dread,
+    ladderHint: ladderHint,
+    verification: timerMinutes > 0 ? Verification.timer : Verification.honor,
+    timerMinutes: timerMinutes,
+    goalTitle: goalTitle,
+    allDay: allDay,
+    rising: rising,
+    weekdays: weekdays ?? this.weekdays,
+    monthDay: monthDay ?? this.monthDay,
+  );
 }
 
 const goalCatalog = <GoalIdea>[
@@ -79,23 +77,26 @@ const goalCatalog = <GoalIdea>[
     stat: Stat.intl,
     quests: [
       QuestTemplate(
-          title: 'Pick a book that excites you',
-          stat: Stat.intl,
-          difficulty: 2,
-          schedule: QuestSchedule.once,
-          ladderHint: 'ANY TOPIC · FICTION COUNTS'),
+        title: 'Pick a book that excites you',
+        stat: Stat.intl,
+        difficulty: 2,
+        schedule: QuestSchedule.once,
+        ladderHint: 'ANY TOPIC · FICTION COUNTS',
+      ),
       QuestTemplate(
-          title: 'Read for 10 minutes',
-          stat: Stat.intl,
-          difficulty: 3,
-          timerMinutes: 10,
-          rising: true,
-          ladderHint: 'RISES AS YOU GROW 📈'),
+        title: 'Read for 10 minutes',
+        stat: Stat.intl,
+        difficulty: 3,
+        timerMinutes: 10,
+        rising: true,
+        ladderHint: 'RISES AS YOU GROW 📈',
+      ),
       QuestTemplate(
-          title: 'Finish a chapter',
-          stat: Stat.intl,
-          difficulty: 5,
-          schedule: QuestSchedule.weekly),
+        title: 'Finish a chapter',
+        stat: Stat.intl,
+        difficulty: 5,
+        schedule: QuestSchedule.weekly,
+      ),
     ],
   ),
   GoalIdea(
@@ -105,29 +106,30 @@ const goalCatalog = <GoalIdea>[
         'weekly shot — showing up for yourself counts double here.',
     stat: Stat.dis,
     quests: [
+      QuestTemplate(title: 'Morning skincare', stat: Stat.dis, difficulty: 2),
+      QuestTemplate(title: 'Evening skincare', stat: Stat.dis, difficulty: 2),
       QuestTemplate(
-          title: 'Morning skincare', stat: Stat.dis, difficulty: 2),
+        title: 'Take your pills',
+        stat: Stat.vit,
+        difficulty: 4,
+        dread: true,
+        ladderHint: 'HARD SOME DAYS · COUNTS EXTRA',
+      ),
       QuestTemplate(
-          title: 'Evening skincare', stat: Stat.dis, difficulty: 2),
+        title: 'Weekly shot',
+        stat: Stat.vit,
+        difficulty: 8,
+        dread: true,
+        schedule: QuestSchedule.weekly,
+        ladderHint: 'BRAVE · ONCE A WEEK',
+      ),
       QuestTemplate(
-          title: 'Take your pills',
-          stat: Stat.vit,
-          difficulty: 4,
-          dread: true,
-          ladderHint: 'HARD SOME DAYS · COUNTS EXTRA'),
-      QuestTemplate(
-          title: 'Weekly shot',
-          stat: Stat.vit,
-          difficulty: 8,
-          dread: true,
-          schedule: QuestSchedule.weekly,
-          ladderHint: 'BRAVE · ONCE A WEEK'),
-      QuestTemplate(
-          title: 'Screens off by 11pm',
-          stat: Stat.dis,
-          difficulty: 5,
-          allDay: true,
-          ladderHint: 'ALL-DAY LINE · CHECKS AT NIGHT'),
+        title: 'Screens off by 11pm',
+        stat: Stat.dis,
+        difficulty: 5,
+        allDay: true,
+        ladderHint: 'ALL-DAY LINE · CHECKS AT NIGHT',
+      ),
     ],
   ),
   GoalIdea(
@@ -138,20 +140,23 @@ const goalCatalog = <GoalIdea>[
     stat: Stat.vit,
     quests: [
       QuestTemplate(
-          title: 'Walk somewhere new',
-          stat: Stat.vit,
-          difficulty: 4,
-          ladderHint: 'A STREET · A PARK · ANYWHERE'),
+        title: 'Walk somewhere new',
+        stat: Stat.vit,
+        difficulty: 4,
+        ladderHint: 'A STREET · A PARK · ANYWHERE',
+      ),
       QuestTemplate(
-          title: '10 minutes outside',
-          stat: Stat.vit,
-          difficulty: 2,
-          timerMinutes: 10),
+        title: '10 minutes outside',
+        stat: Stat.vit,
+        difficulty: 2,
+        timerMinutes: 10,
+      ),
       QuestTemplate(
-          title: '7,000 steps',
-          stat: Stat.vit,
-          difficulty: 5,
-          ladderHint: 'STEP PROOF · WITH THE PHONE APP'),
+        title: '7,000 steps',
+        stat: Stat.vit,
+        difficulty: 5,
+        ladderHint: 'STEP PROOF · WITH THE PHONE APP',
+      ),
     ],
   ),
   GoalIdea(
@@ -162,23 +167,26 @@ const goalCatalog = <GoalIdea>[
     stat: Stat.str,
     quests: [
       QuestTemplate(
-          title: 'Do 5 push-ups',
-          stat: Stat.str,
-          difficulty: 2,
-          rising: true,
-          ladderHint: 'RISES AS YOU GROW 📈'),
+        title: 'Do 5 push-ups',
+        stat: Stat.str,
+        difficulty: 2,
+        rising: true,
+        ladderHint: 'RISES AS YOU GROW 📈',
+      ),
       QuestTemplate(
-          title: 'Full workout session',
-          stat: Stat.str,
-          difficulty: 6,
-          rising: true,
-          ladderHint: 'STARTS HONEST · RISES 📈'),
+        title: 'Full workout session',
+        stat: Stat.str,
+        difficulty: 6,
+        rising: true,
+        ladderHint: 'STARTS HONEST · RISES 📈',
+      ),
       QuestTemplate(
-          title: 'Class or sparring session',
-          stat: Stat.str,
-          difficulty: 8,
-          schedule: QuestSchedule.weekly,
-          ladderHint: 'BOXING · CLIMBING · ANYTHING'),
+        title: 'Class or sparring session',
+        stat: Stat.str,
+        difficulty: 8,
+        schedule: QuestSchedule.weekly,
+        ladderHint: 'BOXING · CLIMBING · ANYTHING',
+      ),
     ],
   ),
   GoalIdea(
@@ -189,17 +197,18 @@ const goalCatalog = <GoalIdea>[
     stat: Stat.foc,
     quests: [
       QuestTemplate(
-          title: '1-minute breathing reset',
-          stat: Stat.foc,
-          difficulty: 1,
-          timerMinutes: 1),
+        title: '1-minute breathing reset',
+        stat: Stat.foc,
+        difficulty: 1,
+        timerMinutes: 1,
+      ),
       QuestTemplate(
-          title: '25-minute focus session',
-          stat: Stat.foc,
-          difficulty: 5,
-          timerMinutes: 25),
-      QuestTemplate(
-          title: 'Phone-free meal', stat: Stat.foc, difficulty: 3),
+        title: '25-minute focus session',
+        stat: Stat.foc,
+        difficulty: 5,
+        timerMinutes: 25,
+      ),
+      QuestTemplate(title: 'Phone-free meal', stat: Stat.foc, difficulty: 3),
     ],
   ),
   GoalIdea(
@@ -210,29 +219,34 @@ const goalCatalog = <GoalIdea>[
     stat: Stat.intl,
     quests: [
       QuestTemplate(
-          title: 'One line a day',
-          stat: Stat.intl,
-          difficulty: 1,
-          ladderHint: 'ONE HONEST SENTENCE COUNTS'),
+        title: 'One line a day',
+        stat: Stat.intl,
+        difficulty: 1,
+        ladderHint: 'ONE HONEST SENTENCE COUNTS',
+      ),
       QuestTemplate(
-          title: 'Name three good things',
-          stat: Stat.intl,
-          difficulty: 2),
+        title: 'Name three good things',
+        stat: Stat.intl,
+        difficulty: 2,
+      ),
       QuestTemplate(
-          title: 'Empty your head before bed',
-          stat: Stat.intl,
-          difficulty: 2),
+        title: 'Empty your head before bed',
+        stat: Stat.intl,
+        difficulty: 2,
+      ),
       QuestTemplate(
-          title: 'Write it all out',
-          stat: Stat.intl,
-          difficulty: 4,
-          schedule: QuestSchedule.weekly,
-          ladderHint: '~15 MIN · WHATEVER IS HEAVY'),
+        title: 'Write it all out',
+        stat: Stat.intl,
+        difficulty: 4,
+        schedule: QuestSchedule.weekly,
+        ladderHint: '~15 MIN · WHATEVER IS HEAVY',
+      ),
       QuestTemplate(
-          title: 'Look back on your week',
-          stat: Stat.intl,
-          difficulty: 3,
-          schedule: QuestSchedule.weekly),
+        title: 'Look back on your week',
+        stat: Stat.intl,
+        difficulty: 3,
+        schedule: QuestSchedule.weekly,
+      ),
     ],
   ),
   GoalIdea(
@@ -243,12 +257,16 @@ const goalCatalog = <GoalIdea>[
     stat: Stat.soc,
     quests: [
       QuestTemplate(
-          title: 'Message someone you miss', stat: Stat.soc, difficulty: 3),
+        title: 'Message someone you miss',
+        stat: Stat.soc,
+        difficulty: 3,
+      ),
       QuestTemplate(
-          title: 'Plan a hangout',
-          stat: Stat.soc,
-          difficulty: 5,
-          schedule: QuestSchedule.weekly),
+        title: 'Plan a hangout',
+        stat: Stat.soc,
+        difficulty: 5,
+        schedule: QuestSchedule.weekly,
+      ),
     ],
   ),
   // The home/life-admin & wellbeing goals (rounds 15-16) were re-audited in
@@ -268,38 +286,43 @@ const goalCatalog = <GoalIdea>[
     quests: [
       // bed-makers report steadier sleep + a daily sense of order — NSF Bedroom Poll (survey)
       QuestTemplate(
-          title: 'Make your bed',
-          stat: Stat.dis,
-          difficulty: 1,
-          ladderHint: 'TWO MINUTES · SETS THE TONE'),
+        title: 'Make your bed',
+        stat: Stat.dis,
+        difficulty: 1,
+        ladderHint: 'TWO MINUTES · SETS THE TONE',
+      ),
       // cluttered vs restful homes ↔ flatter daily cortisol — Saxbe & Repetti 2010, PubMed 19934011 (correlational)
       QuestTemplate(
-          title: 'Ten-minute tidy',
-          stat: Stat.dis,
-          difficulty: 2,
-          timerMinutes: 10,
-          ladderHint: 'SET THE TIMER · RACE THE CLOCK'),
+        title: 'Ten-minute tidy',
+        stat: Stat.dis,
+        difficulty: 2,
+        timerMinutes: 10,
+        ladderHint: 'SET THE TIMER · RACE THE CLOCK',
+      ),
       // weekly washing clears dust mites/allergens that disrupt sleep — Cleveland Clinic
       QuestTemplate(
-          title: 'Fresh sheets',
-          stat: Stat.dis,
-          difficulty: 2,
-          schedule: QuestSchedule.weekly,
-          ladderHint: 'ONCE A WEEK · CLIMB INTO CLEAN'),
+        title: 'Fresh sheets',
+        stat: Stat.dis,
+        difficulty: 2,
+        schedule: QuestSchedule.weekly,
+        ladderHint: 'ONCE A WEEK · CLIMB INTO CLEAN',
+      ),
       // completing a finishable chore lifts mood (behavioral activation) — Cuijpers 2007, PMC4061095
       QuestTemplate(
-          title: 'One load of laundry',
-          stat: Stat.dis,
-          difficulty: 3,
-          schedule: QuestSchedule.weekly,
-          ladderHint: 'WASH · DRY · ACTUALLY PUT AWAY'),
+        title: 'One load of laundry',
+        stat: Stat.dis,
+        difficulty: 3,
+        schedule: QuestSchedule.weekly,
+        ladderHint: 'WASH · DRY · ACTUALLY PUT AWAY',
+      ),
       // restorative homes show healthier cortisol slopes — Saxbe & Repetti 2010, PubMed 19934011 (correlational)
       QuestTemplate(
-          title: 'Deep-clean one room',
-          stat: Stat.dis,
-          difficulty: 6,
-          schedule: QuestSchedule.weekly,
-          ladderHint: 'PICK ONE ROOM · JUST ONE'),
+        title: 'Deep-clean one room',
+        stat: Stat.dis,
+        difficulty: 6,
+        schedule: QuestSchedule.weekly,
+        ladderHint: 'PICK ONE ROOM · JUST ONE',
+      ),
     ],
   ),
   GoalIdea(
@@ -314,27 +337,33 @@ const goalCatalog = <GoalIdea>[
     quests: [
       // indoor plants ↔ more positive emotion + lower systolic BP — Han 2022, PMC9224521
       QuestTemplate(
-          title: 'Bring home a plant',
-          stat: Stat.vit,
-          difficulty: 3,
-          schedule: QuestSchedule.once,
-          ladderHint: 'THE FIRST IS THE HARDEST · A FEW DOLLARS IS PLENTY'),
+        title: 'Bring home a plant',
+        stat: Stat.vit,
+        difficulty: 3,
+        schedule: QuestSchedule.once,
+        ladderHint: 'THE FIRST IS THE HARDEST · A FEW DOLLARS IS PLENTY',
+      ),
       // time on houseplant care ↔ higher wellbeing + mindfulness — Ma 2022, PMC9739745
       QuestTemplate(
-          title: 'Check on your plants',
-          stat: Stat.vit,
-          difficulty: 1,
-          ladderHint: 'WHO’S THIRSTY · WHO’S REACHING FOR LIGHT'),
+        title: 'Check on your plants',
+        stat: Stat.vit,
+        difficulty: 1,
+        ladderHint: 'WHO’S THIRSTY · WHO’S REACHING FOR LIGHT',
+      ),
       // caring for indoor plants lowered BP + raised calming alpha waves vs a screen task — Park 2023, PMC10557185
       QuestTemplate(
-          title: 'Water what needs it', stat: Stat.vit, difficulty: 2),
+        title: 'Water what needs it',
+        stat: Stat.vit,
+        difficulty: 2,
+      ),
       // hands-in-soil transplanting cut sympathetic activity + diastolic BP vs computer work — Lee 2015, PMC4419447
       QuestTemplate(
-          title: 'Give them a real tending',
-          stat: Stat.vit,
-          difficulty: 4,
-          schedule: QuestSchedule.weekly,
-          ladderHint: 'PRUNE · ROTATE · REPOT · DUST A LEAF'),
+        title: 'Give them a real tending',
+        stat: Stat.vit,
+        difficulty: 4,
+        schedule: QuestSchedule.weekly,
+        ladderHint: 'PRUNE · ROTATE · REPOT · DUST A LEAF',
+      ),
     ],
   ),
   GoalIdea(
@@ -349,38 +378,43 @@ const goalCatalog = <GoalIdea>[
     quests: [
       // consistent meal times regulate a pet’s digestion/weight + reduce food anxiety — AVMA feeding guidance
       QuestTemplate(
-          title: 'Feed on the same schedule',
-          stat: Stat.vit,
-          difficulty: 1,
-          ladderHint: 'SAME HOURS · FRESH WATER · A FULL DISH'),
+        title: 'Feed on the same schedule',
+        stat: Stat.vit,
+        difficulty: 1,
+        ladderHint: 'SAME HOURS · FRESH WATER · A FULL DISH',
+      ),
       // daily walks/play meet exercise + enrichment needs — and dog-walking ↔ ~24% lower owner mortality — Mubanga 2019; AHA 2013
       QuestTemplate(
-          title: 'A proper walk or play session',
-          stat: Stat.vit,
-          difficulty: 3,
-          timerMinutes: 15,
-          ladderHint: 'THEIR FAVORITE LOOP · OR 15 MIN OF REAL PLAY'),
+        title: 'A proper walk or play session',
+        stat: Stat.vit,
+        difficulty: 3,
+        timerMinutes: 15,
+        ladderHint: 'THEIR FAVORITE LOOP · OR 15 MIN OF REAL PLAY',
+      ),
       // most pets show dental disease by age 3; brushing is the best home defense — AVMA Pet Dental Care
       QuestTemplate(
-          title: 'Brush their teeth or scrub a bowl',
-          stat: Stat.dis,
-          difficulty: 2,
-          ladderHint: 'PET TOOTHPASTE · OR WASH THE FOOD DISH'),
+        title: 'Brush their teeth or scrub a bowl',
+        stat: Stat.dis,
+        difficulty: 2,
+        ladderHint: 'PET TOOTHPASTE · OR WASH THE FOOD DISH',
+      ),
       // reliable daily feeding is the backbone of pet welfare — AAHA enrichment guidance
       QuestTemplate(
-          title: 'Everyone’s fed before you sleep',
-          stat: Stat.vit,
-          difficulty: 3,
-          allDay: true,
-          ladderHint: 'AN ALL-DAY LINE · CHECKS AT NIGHT'),
+        title: 'Everyone’s fed before you sleep',
+        stat: Stat.vit,
+        difficulty: 3,
+        allDay: true,
+        ladderHint: 'AN ALL-DAY LINE · CHECKS AT NIGHT',
+      ),
       // annual wellness exams catch disease early, when it’s cheapest + most treatable — AAHA/AVMA
       QuestTemplate(
-          title: 'Book the vet checkup',
-          stat: Stat.vit,
-          difficulty: 7,
-          dread: true,
-          schedule: QuestSchedule.once,
-          ladderHint: 'BRAVE FOR BOTH · COUNTS EXTRA'),
+        title: 'Book the vet checkup',
+        stat: Stat.vit,
+        difficulty: 7,
+        dread: true,
+        schedule: QuestSchedule.once,
+        ladderHint: 'BRAVE FOR BOTH · COUNTS EXTRA',
+      ),
     ],
   ),
   GoalIdea(
@@ -393,35 +427,40 @@ const goalCatalog = <GoalIdea>[
     quests: [
       // water displacing sugary drinks ↔ lower T2D/CVD risk; hydration steadies mood/focus — PMC10050372; PMC6068860
       QuestTemplate(
-          title: 'Start with a glass of water',
-          stat: Stat.vit,
-          difficulty: 1,
-          ladderHint: 'BEFORE THE COFFEE · ONE GLASS'),
+        title: 'Start with a glass of water',
+        stat: Stat.vit,
+        difficulty: 1,
+        ladderHint: 'BEFORE THE COFFEE · ONE GLASS',
+      ),
       // cooking at home ↔ higher diet quality (more fruit/veg) — Fenland cohort, PMC5561571
       QuestTemplate(
-          title: 'Cook a real meal',
-          stat: Stat.vit,
-          difficulty: 4,
-          ladderHint: 'ACTUAL INGREDIENTS · SIMPLE IS FINE'),
+        title: 'Cook a real meal',
+        stat: Stat.vit,
+        difficulty: 4,
+        ladderHint: 'ACTUAL INGREDIENTS · SIMPLE IS FINE',
+      ),
       // ~5 servings of fruit/veg a day ↔ ~13% lower early-death risk — Circulation 2021, PMID 33641343
       QuestTemplate(
-          title: 'Eat something green',
-          stat: Stat.vit,
-          difficulty: 2,
-          ladderHint: 'ONE HANDFUL · LEAVES OR STALKS'),
+        title: 'Eat something green',
+        stat: Stat.vit,
+        difficulty: 2,
+        ladderHint: 'ONE HANDFUL · LEAVES OR STALKS',
+      ),
       // slower eating lets fullness land; fast eaters ~2× overweight odds — PMC7230501
       QuestTemplate(
-          title: 'Eat one meal slowly, no screen',
-          stat: Stat.vit,
-          difficulty: 2,
-          ladderHint: 'PUT THE FORK DOWN · LET FULLNESS CATCH UP'),
+        title: 'Eat one meal slowly, no screen',
+        stat: Stat.vit,
+        difficulty: 2,
+        ladderHint: 'PUT THE FORK DOWN · LET FULLNESS CATCH UP',
+      ),
       // meal planning ↔ higher diet quality + lower obesity odds — NutriNet-Santé, PMC5288891
       QuestTemplate(
-          title: 'Plan the week’s meals',
-          stat: Stat.vit,
-          difficulty: 5,
-          schedule: QuestSchedule.weekly,
-          ladderHint: 'FUTURE YOU SAYS THANK YOU'),
+        title: 'Plan the week’s meals',
+        stat: Stat.vit,
+        difficulty: 5,
+        schedule: QuestSchedule.weekly,
+        ladderHint: 'FUTURE YOU SAYS THANK YOU',
+      ),
     ],
   ),
   GoalIdea(
@@ -434,33 +473,37 @@ const goalCatalog = <GoalIdea>[
     quests: [
       // financial self-monitoring ↔ lower discretionary spend + better saving — CFPB; financial-tracking research
       QuestTemplate(
-          title: 'Check your balance',
-          stat: Stat.dis,
-          difficulty: 2,
-          ladderHint: 'NO JUDGMENT · JUST LOOK'),
+        title: 'Check your balance',
+        stat: Stat.dis,
+        difficulty: 2,
+        ladderHint: 'NO JUDGMENT · JUST LOOK',
+      ),
       // a 24-hour pause on non-essentials lets the impulse settle, cutting overspending — delay/cooling-off research
       QuestTemplate(
-          title: 'Sleep on it before you buy',
-          stat: Stat.dis,
-          difficulty: 3,
-          allDay: true,
-          ladderHint: 'WANT IT? WAIT A DAY'),
+        title: 'Sleep on it before you buy',
+        stat: Stat.dis,
+        difficulty: 3,
+        allDay: true,
+        ladderHint: 'WANT IT? WAIT A DAY',
+      ),
       // small regular (ideally automatic) saving builds the emergency cushion that most predicts financial wellbeing — Hershfield 2020; CFPB 2022
       QuestTemplate(
-          title: 'Move a little to savings',
-          stat: Stat.dis,
-          difficulty: 3,
-          schedule: QuestSchedule.weekly,
-          rising: true,
-          ladderHint: 'TINY IS FINE · RISES AS YOU GROW 📈'),
+        title: 'Move a little to savings',
+        stat: Stat.dis,
+        difficulty: 3,
+        schedule: QuestSchedule.weekly,
+        rising: true,
+        ladderHint: 'TINY IS FINE · RISES AS YOU GROW 📈',
+      ),
       // a regular review builds financial self-awareness + catches forgotten subscriptions (~$200+/yr) — CFPB Well-Being Scale
       QuestTemplate(
-          title: 'Sit with the numbers',
-          stat: Stat.dis,
-          difficulty: 5,
-          schedule: QuestSchedule.weekly,
-          timerMinutes: 15,
-          ladderHint: 'FIFTEEN HONEST MINUTES · SCAN FOR STRAYS'),
+        title: 'Sit with the numbers',
+        stat: Stat.dis,
+        difficulty: 5,
+        schedule: QuestSchedule.weekly,
+        timerMinutes: 15,
+        ladderHint: 'FIFTEEN HONEST MINUTES · SCAN FOR STRAYS',
+      ),
     ],
   ),
   GoalIdea(
@@ -474,32 +517,36 @@ const goalCatalog = <GoalIdea>[
     quests: [
       // sleep regularity beats duration — most-regular sleepers had 20-48% lower mortality — Windred 2024, SLEEP (UK Biobank)
       QuestTemplate(
-          title: 'In bed by your hour',
-          stat: Stat.vit,
-          difficulty: 4,
-          allDay: true,
-          ladderHint: 'AN ALL-DAY LINE · CHECKS AT NIGHT'),
+        title: 'In bed by your hour',
+        stat: Stat.vit,
+        difficulty: 4,
+        allDay: true,
+        ladderHint: 'AN ALL-DAY LINE · CHECKS AT NIGHT',
+      ),
       // a fixed wake time is the strongest circadian anchor — National Sleep Foundation consensus
       QuestTemplate(
-          title: 'Wake at the same time',
-          stat: Stat.vit,
-          difficulty: 3,
-          allDay: true,
-          ladderHint: 'EVEN ON WEEKENDS · THE REAL ANCHOR'),
+        title: 'Wake at the same time',
+        stat: Stat.vit,
+        difficulty: 3,
+        allDay: true,
+        ladderHint: 'EVEN ON WEEKENDS · THE REAL ANCHOR',
+      ),
       // evening screen light delays melatonin + lengthens time to fall asleep — Höhn 2023, PMC9974389
       QuestTemplate(
-          title: 'Screens down before sleep',
-          stat: Stat.dis,
-          difficulty: 4,
-          allDay: true,
-          ladderHint: 'THE LAST 30 MINUTES ARE YOURS'),
+        title: 'Screens down before sleep',
+        stat: Stat.dis,
+        difficulty: 4,
+        allDay: true,
+        ladderHint: 'THE LAST 30 MINUTES ARE YOURS',
+      ),
       // bright room light before bed suppresses melatonin ~71% — Gooley 2011, PMC3047226
       QuestTemplate(
-          title: 'Dim the lights an hour before bed',
-          stat: Stat.dis,
-          difficulty: 3,
-          allDay: true,
-          ladderHint: 'ONE LAMP · NOT THE BIG LIGHT'),
+        title: 'Dim the lights an hour before bed',
+        stat: Stat.dis,
+        difficulty: 3,
+        allDay: true,
+        ladderHint: 'ONE LAMP · NOT THE BIG LIGHT',
+      ),
     ],
   ),
 ];
@@ -523,7 +570,8 @@ const questWhy = <String, ({String claim, String source})>{
         'Writing down three things that went well — and why — measurably lifted '
         'mood and lowered depressive symptoms for up to six months in a '
         'randomized trial. It trains attention toward what’s working.',
-    source: 'Seligman, Steen, Park & Peterson 2005, American Psychologist (RCT)',
+    source:
+        'Seligman, Steen, Park & Peterson 2005, American Psychologist (RCT)',
   ),
   'Empty your head before bed': (
     claim:
@@ -572,7 +620,8 @@ const questWhy = <String, ({String claim, String source})>{
         'Completing a concrete, finishable chore is exactly the kind of '
         'scheduled activity that behavioral-activation trials show reliably '
         'lifts mood.',
-    source: 'Cuijpers et al. 2007, behavioral-activation meta-analysis, PMC4061095',
+    source:
+        'Cuijpers et al. 2007, behavioral-activation meta-analysis, PMC4061095',
   ),
   'Deep-clean one room': (
     claim:
@@ -621,7 +670,8 @@ const questWhy = <String, ({String claim, String source})>{
         'Daily walks and play meet a pet’s exercise and enrichment needs — and '
         'the walk doubles as yours: dog ownership is tied to about 24% lower '
         'all-cause mortality.',
-    source: 'Mubanga et al. 2019 (DOI 10.1161/CIRCOUTCOMES.119.005554); AHA 2013',
+    source:
+        'Mubanga et al. 2019 (DOI 10.1161/CIRCOUTCOMES.119.005554); AHA 2013',
   ),
   'Brush their teeth or scrub a bowl': (
     claim:
@@ -710,7 +760,8 @@ const questWhy = <String, ({String claim, String source})>{
         'Sleep regularity matters even more than how long you sleep — the most '
         'regular sleepers had 20–48% lower mortality than the most irregular, '
         'independent of duration.',
-    source: 'Windred et al. 2024, SLEEP, UK Biobank (DOI 10.1093/sleep/zsad253)',
+    source:
+        'Windred et al. 2024, SLEEP, UK Biobank (DOI 10.1093/sleep/zsad253)',
   ),
   'Wake at the same time': (
     claim:

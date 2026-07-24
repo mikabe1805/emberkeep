@@ -14,8 +14,9 @@ class StatRadar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxValue =
-        values.values.fold<int>(40, (m, v) => max(m, v)).toDouble();
+    final maxValue = values.values
+        .fold<int>(40, (m, v) => max(m, v))
+        .toDouble();
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(milliseconds: 900),
@@ -93,11 +94,7 @@ class _RadarPainter extends CustomPainter {
     for (var i = 0; i < stats.length; i++) {
       final s = stats[i];
       final v = max(0.06, values[s] ?? 0);
-      canvas.drawCircle(
-        point(i, v),
-        4,
-        Paint()..color = s.color,
-      );
+      canvas.drawCircle(point(i, v), 4, Paint()..color = s.color);
       final tp = TextPainter(
         text: TextSpan(
           text: s.abbr,

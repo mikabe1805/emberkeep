@@ -38,7 +38,8 @@ class WorkoutFlow extends StatefulWidget {
     required bool verified,
     required bool endedEarly,
     required int workMovesDone,
-  }) onFinish;
+  })
+  onFinish;
 
   /// Closed without finishing (no reward).
   final VoidCallback onClose;
@@ -214,20 +215,21 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
             Text('MOVE', style: Type.label.copyWith(fontSize: 11)),
             GestureDetector(
               onTap: widget.onClose,
-              child:
-                  const Icon(Icons.close, size: 20, color: Palette.textLo),
+              child: const Icon(Icons.close, size: 20, color: Palette.textLo),
             ),
           ],
         ),
         const SizedBox(height: 6),
-        Text('Pick a session',
-            style: Type.display.copyWith(fontSize: 28)),
+        Text('Pick a session', style: Type.display.copyWith(fontSize: 28)),
         const SizedBox(height: 4),
-        Text('gentle, guided, and yours to leave anytime — no gym required',
-            style: Type.body.copyWith(
-                fontSize: 13.5,
-                fontStyle: FontStyle.italic,
-                color: Palette.textLo)),
+        Text(
+          'gentle, guided, and yours to leave anytime — no gym required',
+          style: Type.body.copyWith(
+            fontSize: 13.5,
+            fontStyle: FontStyle.italic,
+            color: Palette.textLo,
+          ),
+        ),
         const SizedBox(height: 16),
         for (final r in routines)
           Padding(
@@ -237,8 +239,9 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         const SizedBox(height: 6),
         Center(
           child: Text(
-              'general fitness guidance — not medical advice',
-              style: Type.label.copyWith(fontSize: 11)),
+            'general fitness guidance — not medical advice',
+            style: Type.label.copyWith(fontSize: 11),
+          ),
         ),
       ],
     );
@@ -257,13 +260,13 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: r.stat.color.withValues(alpha: 0.16),
-                border:
-                    Border.all(color: r.stat.color.withValues(alpha: 0.5)),
+                border: Border.all(color: r.stat.color.withValues(alpha: 0.5)),
               ),
               child: Icon(
-                  r.restDay ? Icons.self_improvement : Icons.fitness_center,
-                  size: 19,
-                  color: r.stat.color),
+                r.restDay ? Icons.self_improvement : Icons.fitness_center,
+                size: 19,
+                color: r.stat.color,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -273,22 +276,30 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                   Row(
                     children: [
                       Flexible(
-                        child: Text(r.title,
-                            overflow: TextOverflow.ellipsis,
-                            style: Type.display.copyWith(fontSize: 16)),
+                        child: Text(
+                          r.title,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.display.copyWith(fontSize: 16),
+                        ),
                       ),
                       if (recommended) ...[
                         const SizedBox(width: 6),
-                        Text('FOR YOU',
-                            style: Type.label.copyWith(
-                                fontSize: 11, color: Palette.xpLight)),
+                        Text(
+                          'FOR YOU',
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            color: Palette.xpLight,
+                          ),
+                        ),
                       ],
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text('~${r.minutes} min · ${r.workMoves} moves · ${r.stat.abbr}'
-                      '${r.restDay ? " · rest day" : ""}',
-                      style: Type.label.copyWith(fontSize: 11)),
+                  Text(
+                    '~${r.minutes} min · ${r.workMoves} moves · ${r.stat.abbr}'
+                    '${r.restDay ? " · rest day" : ""}',
+                    style: Type.label.copyWith(fontSize: 11),
+                  ),
                 ],
               ),
             ),
@@ -312,41 +323,56 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           child: Row(
             children: [
               const Icon(Icons.chevron_left, size: 18, color: Palette.textLo),
-              Text('choose another',
-                  style: Type.label.copyWith(fontSize: 11)),
+              Text('choose another', style: Type.label.copyWith(fontSize: 11)),
             ],
           ),
         ),
         const SizedBox(height: 10),
         Text(r.title, style: Type.display.copyWith(fontSize: 28)),
         const SizedBox(height: 4),
-        Text('~${r.minutes} min · start smaller than you think',
-            style: Type.label.copyWith(fontSize: 11)),
+        Text(
+          '~${r.minutes} min · start smaller than you think',
+          style: Type.label.copyWith(fontSize: 11),
+        ),
         const SizedBox(height: 10),
-        Text(r.blurb,
-            style: Type.body.copyWith(
-                fontSize: 13.5,
-                fontStyle: FontStyle.italic,
-                color: Palette.textMid)),
+        Text(
+          r.blurb,
+          style: Type.body.copyWith(
+            fontSize: 13.5,
+            fontStyle: FontStyle.italic,
+            color: Palette.textMid,
+          ),
+        ),
         const SizedBox(height: 14),
         if (card != null)
           GlassPanel(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(children: [
-                  Icon(Icons.auto_stories, size: 13, color: r.stat.color),
-                  const SizedBox(width: 6),
-                  Text('WHY THIS WORKS',
-                      style: Type.label
-                          .copyWith(fontSize: 11, color: Palette.info)),
-                ]),
+                Row(
+                  children: [
+                    Icon(Icons.auto_stories, size: 13, color: r.stat.color),
+                    const SizedBox(width: 6),
+                    Text(
+                      'WHY THIS WORKS',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.info,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 6),
                 Text(card.title, style: Type.display.copyWith(fontSize: 15)),
                 const SizedBox(height: 4),
-                Text(card.text,
-                    style: Type.body.copyWith(
-                        fontSize: 13.5, height: 1.45, color: Palette.textMid)),
+                Text(
+                  card.text,
+                  style: Type.body.copyWith(
+                    fontSize: 13.5,
+                    height: 1.45,
+                    color: Palette.textMid,
+                  ),
+                ),
               ],
             ),
           ),
@@ -358,21 +384,31 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
               const SizedBox(width: 8),
               Text('PACE', style: Type.label.copyWith(fontSize: 11)),
               const Spacer(),
-              _paceChip('Relaxed', _relaxed, () => setState(() => _relaxed = true)),
+              _paceChip(
+                'Relaxed',
+                _relaxed,
+                () => setState(() => _relaxed = true),
+              ),
               const SizedBox(width: 6),
-              _paceChip('Steady', !_relaxed, () => setState(() => _relaxed = false)),
+              _paceChip(
+                'Steady',
+                !_relaxed,
+                () => setState(() => _relaxed = false),
+              ),
             ],
           ),
         ),
         const SizedBox(height: 12),
         GlassPanel(
           child: Text(
-              'Muscle burn and next-day soreness are normal — that’s your body '
-              'adapting. Sharp or sudden pain, chest pain, or dizziness? Stop now.',
-              style: Type.body.copyWith(
-                  fontSize: 11.5,
-                  fontStyle: FontStyle.italic,
-                  color: Palette.textLo)),
+            'Muscle burn and next-day soreness are normal — that’s your body '
+            'adapting. Sharp or sudden pain, chest pain, or dizziness? Stop now.',
+            style: Type.body.copyWith(
+              fontSize: 11.5,
+              fontStyle: FontStyle.italic,
+              color: Palette.textLo,
+            ),
+          ),
         ),
         const SizedBox(height: 18),
         Center(child: _bigButton("LET’S BEGIN", _begin)),
@@ -380,8 +416,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         Center(
           child: TextButton(
             onPressed: widget.onClose,
-            child:
-                Text('not now', style: Type.label.copyWith(fontSize: 11)),
+            child: Text('not now', style: Type.label.copyWith(fontSize: 11)),
           ),
         ),
       ],
@@ -397,14 +432,18 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           borderRadius: BorderRadius.circular(999),
           color: on ? Palette.xpLight.withValues(alpha: 0.2) : null,
           border: Border.all(
-              color: on
-                  ? Palette.xpLight.withValues(alpha: 0.7)
-                  : Palette.glassEdge),
+            color: on
+                ? Palette.xpLight.withValues(alpha: 0.7)
+                : Palette.glassEdge,
+          ),
         ),
-        child: Text(label,
-            style: Type.label.copyWith(
-                fontSize: 11,
-                color: on ? Palette.xpLight : Palette.textLo)),
+        child: Text(
+          label,
+          style: Type.label.copyWith(
+            fontSize: 11,
+            color: on ? Palette.xpLight : Palette.textLo,
+          ),
+        ),
       ),
     );
   }
@@ -420,8 +459,8 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
     final kicker = m.isWarmup
         ? 'WARM-UP'
         : m.isCooldown
-            ? 'COOL-DOWN'
-            : 'MOVE ${_i + 1} OF ${_moves.length}';
+        ? 'COOL-DOWN'
+        : 'MOVE ${_i + 1} OF ${_moves.length}';
     return LayoutBuilder(
       key: ValueKey('move-$_i'),
       builder: (context, constraints) => SingleChildScrollView(
@@ -430,107 +469,131 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           child: IntrinsicHeight(
             child: Column(
               children: [
-        const SizedBox(height: 4),
-        // top bar: progress + pause/close
-        Row(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: LinearProgressIndicator(
-                  value: (_i + 1) / _moves.length,
-                  minHeight: 4,
-                  backgroundColor: const Color(0x1FF2CD93),
-                  color: _routine!.stat.color,
+                const SizedBox(height: 4),
+                // top bar: progress + pause/close
+                Row(
+                  children: [
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: LinearProgressIndicator(
+                          value: (_i + 1) / _moves.length,
+                          minHeight: 4,
+                          backgroundColor: const Color(0x1FF2CD93),
+                          color: _routine!.stat.color,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: _togglePause,
+                      child: const Icon(
+                        Icons.pause_circle_outline,
+                        size: 24,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: _togglePause,
-              child: const Icon(Icons.pause_circle_outline,
-                  size: 24, color: Palette.textLo),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Text(kicker,
-            style: Type.label.copyWith(
-                fontSize: 11,
-                color: m.isWork ? _routine!.stat.color : Palette.textLo)),
-        const SizedBox(height: 6),
-        Text(easier ? '${m.name} · easier' : m.name,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Type.display.copyWith(fontSize: 26)),
-        const SizedBox(height: 16),
-        Expanded(
-          child: Center(
-            child: m.kind == MoveKind.timed ? _timedBody(m) : _repsBody(m),
-          ),
-        ),
-        // form cue / easier instruction
-        GlassPanel(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(easier ? 'EASIER VERSION' : 'FORM',
+                const SizedBox(height: 18),
+                Text(
+                  kicker,
                   style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: easier ? Palette.success : Palette.textLo)),
-              const SizedBox(height: 4),
-              Text(easier ? m.easier : m.cue,
-                  style: Type.body.copyWith(
-                      fontSize: 13, color: Palette.textHi)),
-              if (m.caution != null) ...[
+                    fontSize: 11,
+                    color: m.isWork ? _routine!.stat.color : Palette.textLo,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text(m.caution!,
-                    style: Type.body.copyWith(
+                Text(
+                  easier ? '${m.name} · easier' : m.name,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.display.copyWith(fontSize: 26),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Center(
+                    child: m.kind == MoveKind.timed
+                        ? _timedBody(m)
+                        : _repsBody(m),
+                  ),
+                ),
+                // form cue / easier instruction
+                GlassPanel(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        easier ? 'EASIER VERSION' : 'FORM',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: easier ? Palette.success : Palette.textLo,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        easier ? m.easier : m.cue,
+                        style: Type.body.copyWith(
+                          fontSize: 13,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                      if (m.caution != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          m.caution!,
+                          style: Type.body.copyWith(
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic,
+                            color: Palette.textLo,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // escape valves
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (!easier)
+                      _smallButton('EASIER', Palette.success, () {
+                        if (idx != _i) return;
+                        Sfx.instance.play('tick');
+                        Haptics.tap();
+                        setState(() => _easiered.add(idx));
+                      }),
+                    if (!easier) const SizedBox(width: 8),
+                    _smallButton('SKIP', Palette.textLo, () {
+                      if (idx != _i) return;
+                      _skip();
+                    }),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // primary action
+                if (m.kind == MoveKind.reps)
+                  _bigButton('DONE →', () {
+                    if (idx != _i) return;
+                    _onMoveDone();
+                  })
+                else
+                  GestureDetector(
+                    onTap: () {
+                      if (idx != _i) return; // honor path: "I already did it"
+                      _onMoveDone();
+                    },
+                    child: Text(
+                      'I already did it →',
+                      style: Type.label.copyWith(
                         fontSize: 11,
-                        fontStyle: FontStyle.italic,
-                        color: Palette.textLo)),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        // escape valves
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (!easier)
-              _smallButton('EASIER', Palette.success, () {
-                if (idx != _i) return;
-                Sfx.instance.play('tick');
-                Haptics.tap();
-                setState(() => _easiered.add(idx));
-              }),
-            if (!easier) const SizedBox(width: 8),
-            _smallButton('SKIP', Palette.textLo, () {
-              if (idx != _i) return;
-              _skip();
-            }),
-          ],
-        ),
-        const SizedBox(height: 10),
-        // primary action
-        if (m.kind == MoveKind.reps)
-          _bigButton('DONE →', () {
-            if (idx != _i) return;
-            _onMoveDone();
-          })
-        else
-          GestureDetector(
-            onTap: () {
-              if (idx != _i) return; // honor path: "I already did it"
-              _onMoveDone();
-            },
-            child: Text('I already did it →',
-                style: Type.label
-                    .copyWith(fontSize: 11, color: Palette.success)),
-          ),
-        const SizedBox(height: 6),
+                        color: Palette.success,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 6),
               ],
             ),
           ),
@@ -540,8 +603,9 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
   }
 
   Widget _timedBody(WorkoutMove m) {
-    final progress =
-        _total == 0 ? 1.0 : (1 - _remaining / _total).clamp(0.0, 1.0);
+    final progress = _total == 0
+        ? 1.0
+        : (1 - _remaining / _total).clamp(0.0, 1.0);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -562,15 +626,18 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
               ),
               // the move, illustrated, breathing inside the countdown ring
               WorkoutFigure(
-                  pose: poseForMove(m.name),
-                  color: _routine!.stat.color,
-                  size: 98),
+                pose: poseForMove(m.name),
+                color: _routine!.stat.color,
+                size: 98,
+              ),
             ],
           ),
         ),
         const SizedBox(height: 8),
-        Text('$_remaining s',
-            style: Type.numerals.copyWith(fontSize: 24, color: Palette.textHi)),
+        Text(
+          '$_remaining s',
+          style: Type.numerals.copyWith(fontSize: 24, color: Palette.textHi),
+        ),
       ],
     );
   }
@@ -600,21 +667,29 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         FittedBox(
           fit: BoxFit.scaleDown,
           child: Text(
-              m.perSide ? '$_repCount / $target each side' : '$_repCount / $target',
-              maxLines: 1,
-              style: Type.numerals.copyWith(
-                  fontSize: 28,
-                  color: reached ? Palette.success : Palette.textHi)),
+            m.perSide
+                ? '$_repCount / $target each side'
+                : '$_repCount / $target',
+            maxLines: 1,
+            style: Type.numerals.copyWith(
+              fontSize: 28,
+              color: reached ? Palette.success : Palette.textHi,
+            ),
+          ),
         ),
-        Text(reached ? 'nice — tap DONE' : 'tap the figure to count',
-            style: Type.label.copyWith(fontSize: 11)),
+        Text(
+          reached ? 'nice — tap DONE' : 'tap the figure to count',
+          style: Type.label.copyWith(fontSize: 11),
+        ),
       ],
     );
   }
 
   // ── rest screen ──────────────────────────────────────────────────
   Widget _restScreen() {
-    final progress = _total == 0 ? 1.0 : (1 - _remaining / _total).clamp(0.0, 1.0);
+    final progress = _total == 0
+        ? 1.0
+        : (1 - _remaining / _total).clamp(0.0, 1.0);
     return LayoutBuilder(
       key: const ValueKey('rest'),
       builder: (context, constraints) => SingleChildScrollView(
@@ -624,46 +699,55 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-        Text('REST', style: Type.label.copyWith(fontSize: 11, color: Palette.info)),
-        const SizedBox(height: 20),
-        SizedBox(
-          width: 150,
-          height: 150,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox.expand(
-                child: CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 6,
-                  strokeCap: StrokeCap.round,
-                  backgroundColor: const Color(0x1FF2CD93),
-                  color: Palette.info,
+                Text(
+                  'REST',
+                  style: Type.label.copyWith(fontSize: 11, color: Palette.info),
                 ),
-              ),
-              Text('$_remaining',
-                  style: Type.numerals
-                      .copyWith(fontSize: 44, color: Palette.textHi)),
-            ],
-          ),
-        ),
-        const SizedBox(height: 22),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Text(
-              'Breathe. This little pause is part of the work — it’s where the '
-              'build happens.',
-              textAlign: TextAlign.center,
-              style: Type.body.copyWith(
-                  fontSize: 13,
-                  fontStyle: FontStyle.italic,
-                  color: Palette.textLo)),
-        ),
-        const SizedBox(height: 18),
-        _smallButton('SKIP REST →', Palette.textLo, () {
-          _ticker?.cancel();
-          _next();
-        }),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: 150,
+                  height: 150,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox.expand(
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 6,
+                          strokeCap: StrokeCap.round,
+                          backgroundColor: const Color(0x1FF2CD93),
+                          color: Palette.info,
+                        ),
+                      ),
+                      Text(
+                        '$_remaining',
+                        style: Type.numerals.copyWith(
+                          fontSize: 44,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 22),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Text(
+                    'Breathe. This little pause is part of the work — it’s where the '
+                    'build happens.',
+                    textAlign: TextAlign.center,
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _smallButton('SKIP REST →', Palette.textLo, () {
+                  _ticker?.cancel();
+                  _next();
+                }),
               ],
             ),
           ),
@@ -683,24 +767,35 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-        const Icon(Icons.pause_circle_outline,
-            size: 40, color: Palette.xpLight),
-        const SizedBox(height: 12),
-        Text('Paused', style: Type.display.copyWith(fontSize: 26)),
-        const SizedBox(height: 6),
-        Text('take all the time you need',
-            style: Type.body.copyWith(
-                fontSize: 13.5,
-                fontStyle: FontStyle.italic,
-                color: Palette.textLo)),
-        const SizedBox(height: 24),
-        _bigButton('RESUME', _togglePause),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: () => _finish(endedEarly: true),
-          child: Text('end early — bank what you did',
-              style: Type.label.copyWith(fontSize: 11, color: Palette.streak)),
-        ),
+                const Icon(
+                  Icons.pause_circle_outline,
+                  size: 40,
+                  color: Palette.xpLight,
+                ),
+                const SizedBox(height: 12),
+                Text('Paused', style: Type.display.copyWith(fontSize: 26)),
+                const SizedBox(height: 6),
+                Text(
+                  'take all the time you need',
+                  style: Type.body.copyWith(
+                    fontSize: 13.5,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _bigButton('RESUME', _togglePause),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () => _finish(endedEarly: true),
+                  child: Text(
+                    'end early — bank what you did',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: Palette.streak,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -724,12 +819,19 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           ),
           boxShadow: const [
             BoxShadow(
-                color: Palette.honeyGlow, blurRadius: 18, offset: Offset(0, 6)),
+              color: Palette.honeyGlow,
+              blurRadius: 18,
+              offset: Offset(0, 6),
+            ),
           ],
         ),
-        child: Text(label,
-            style: Type.label
-                .copyWith(fontSize: 11, color: const Color(0xFF3A2510))),
+        child: Text(
+          label,
+          style: Type.label.copyWith(
+            fontSize: 11,
+            color: const Color(0xFF3A2510),
+          ),
+        ),
       ),
     );
   }
@@ -743,8 +845,10 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           borderRadius: BorderRadius.circular(999),
           border: Border.all(color: color.withValues(alpha: 0.5)),
         ),
-        child: Text(label,
-            style: Type.label.copyWith(fontSize: 11, color: color)),
+        child: Text(
+          label,
+          style: Type.label.copyWith(fontSize: 11, color: color),
+        ),
       ),
     );
   }

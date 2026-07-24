@@ -20,13 +20,26 @@ void main() {
 
   test('the sound palette is bundled', () async {
     for (final name in const [
-      'boing', 'complete', 'crit', 'levelup', 'loot',
-      'stat_0', 'stat_1', 'stat_2', 'stat_3', 'stat_4', 'stat_5',
-      'streak', 'tick',
+      'boing',
+      'complete',
+      'crit',
+      'levelup',
+      'loot',
+      'stat_0',
+      'stat_1',
+      'stat_2',
+      'stat_3',
+      'stat_4',
+      'stat_5',
+      'streak',
+      'tick',
     ]) {
       final data = await rootBundle.load('assets/sfx/$name.wav');
-      expect(data.lengthInBytes, greaterThan(0),
-          reason: 'assets/sfx/$name.wav is empty');
+      expect(
+        data.lengthInBytes,
+        greaterThan(0),
+        reason: 'assets/sfx/$name.wav is empty',
+      );
     }
   });
 }

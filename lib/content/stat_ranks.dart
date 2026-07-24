@@ -20,7 +20,14 @@ const _rankNames = <Stat, List<String>>{
   // MIND
   Stat.intl: ['Curious', 'Learner', 'Sharp', 'Astute', 'Sage', 'Luminary'],
   // CRAFT — leveling a craft / career
-  Stat.foc: ['Novice', 'Apprentice', 'Practiced', 'Skilled', 'Expert', 'Master'],
+  Stat.foc: [
+    'Novice',
+    'Apprentice',
+    'Practiced',
+    'Skilled',
+    'Expert',
+    'Master',
+  ],
   // PEOPLE
   Stat.soc: ['Quiet', 'Warming', 'Kind', 'Beloved', 'Magnetic', 'Beacon'],
   // HOME — clutter to sanctuary

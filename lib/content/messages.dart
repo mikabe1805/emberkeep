@@ -121,8 +121,7 @@ abstract final class RewardMessages {
     'No need to conquer the day. Just light the first ember.',
   ];
 
-  static String night(Random rng) =>
-      nightLines[rng.nextInt(nightLines.length)];
+  static String night(Random rng) => nightLines[rng.nextInt(nightLines.length)];
   static String morning(Random rng) =>
       morningLines[rng.nextInt(morningLines.length)];
 }

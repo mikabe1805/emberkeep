@@ -513,11 +513,11 @@ Routine recommendedForRung(int rung) {
 /// The board quest that opens the guided-workout runner. Shared by the
 /// default board and the Goals discovery card so it's defined once.
 Quest workoutLauncherQuest() => Quest(
-      title: 'Guided workout session',
-      stat: Stat.str,
-      difficulty: 3,
-      rising: true,
-      workout: true,
-      ladder: Ladders.byBaseTitle['Guided workout session'],
-      ladderHint: 'GUIDED · BEGINNER-FRIENDLY',
-    );
+  title: 'Guided workout session',
+  stat: Stat.str,
+  difficulty: 3,
+  rising: true,
+  workout: true,
+  ladder: Ladders.byBaseTitle['Guided workout session'],
+  ladderHint: 'GUIDED · BEGINNER-FRIENDLY',
+);

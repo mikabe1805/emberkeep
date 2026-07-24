@@ -28,7 +28,9 @@ WorkoutPose poseForMove(String name) {
   if (n.contains('plank')) return WorkoutPose.plank;
   if (n.contains('lunge')) return WorkoutPose.lunge;
   if (n.contains('bridge')) return WorkoutPose.bridge;
-  if (n.contains('squat') || n.contains('sit-to-stand') || n.contains('stand up')) {
+  if (n.contains('squat') ||
+      n.contains('sit-to-stand') ||
+      n.contains('stand up')) {
     return WorkoutPose.squat;
   }
   if (n.contains('march') || n.contains('knee') || n.contains('hip march')) {
@@ -94,7 +96,9 @@ class _WorkoutFigureState extends State<WorkoutFigure>
   @override
   void didUpdateWidget(WorkoutFigure old) {
     super.didUpdateWidget(old);
-    if (widget.bump != old.bump) _squash.forward(from: 0).then((_) => _squash.reverse());
+    if (widget.bump != old.bump) {
+      _squash.forward(from: 0).then((_) => _squash.reverse());
+    }
   }
 
   @override
@@ -118,7 +122,10 @@ class _WorkoutFigureState extends State<WorkoutFigure>
             child: CustomPaint(
               size: Size.square(widget.size),
               painter: _FigurePainter(
-                  pose: widget.pose, color: widget.color, breathe: wave),
+                pose: widget.pose,
+                color: widget.color,
+                breathe: wave,
+              ),
             ),
           );
         },
@@ -151,83 +158,146 @@ class _Fig {
 
 const _poses = <WorkoutPose, _Fig>{
   WorkoutPose.stand: _Fig(
-    head: Offset(0.50, 0.16), shoulder: Offset(0.50, 0.34), hip: Offset(0.50, 0.60),
-    elbowL: Offset(0.41, 0.46), handL: Offset(0.39, 0.58),
-    elbowR: Offset(0.59, 0.46), handR: Offset(0.61, 0.58),
-    kneeL: Offset(0.45, 0.76), footL: Offset(0.44, 0.92),
-    kneeR: Offset(0.55, 0.76), footR: Offset(0.56, 0.92),
+    head: Offset(0.50, 0.16),
+    shoulder: Offset(0.50, 0.34),
+    hip: Offset(0.50, 0.60),
+    elbowL: Offset(0.41, 0.46),
+    handL: Offset(0.39, 0.58),
+    elbowR: Offset(0.59, 0.46),
+    handR: Offset(0.61, 0.58),
+    kneeL: Offset(0.45, 0.76),
+    footL: Offset(0.44, 0.92),
+    kneeR: Offset(0.55, 0.76),
+    footR: Offset(0.56, 0.92),
   ),
   WorkoutPose.squat: _Fig(
-    head: Offset(0.46, 0.22), shoulder: Offset(0.48, 0.38), hip: Offset(0.52, 0.58),
-    elbowL: Offset(0.40, 0.42), handL: Offset(0.31, 0.45),
-    elbowR: Offset(0.42, 0.46), handR: Offset(0.33, 0.49),
-    kneeL: Offset(0.39, 0.66), footL: Offset(0.42, 0.90),
-    kneeR: Offset(0.62, 0.66), footR: Offset(0.60, 0.90),
+    head: Offset(0.46, 0.22),
+    shoulder: Offset(0.48, 0.38),
+    hip: Offset(0.52, 0.58),
+    elbowL: Offset(0.40, 0.42),
+    handL: Offset(0.31, 0.45),
+    elbowR: Offset(0.42, 0.46),
+    handR: Offset(0.33, 0.49),
+    kneeL: Offset(0.39, 0.66),
+    footL: Offset(0.42, 0.90),
+    kneeR: Offset(0.62, 0.66),
+    footR: Offset(0.60, 0.90),
   ),
   WorkoutPose.pushup: _Fig(
-    head: Offset(0.80, 0.42), shoulder: Offset(0.63, 0.48), hip: Offset(0.40, 0.58),
-    elbowL: Offset(0.64, 0.62), handL: Offset(0.66, 0.74),
-    elbowR: Offset(0.60, 0.62), handR: Offset(0.61, 0.74),
-    kneeL: Offset(0.26, 0.66), footL: Offset(0.13, 0.74),
-    kneeR: Offset(0.26, 0.68), footR: Offset(0.13, 0.76),
+    head: Offset(0.80, 0.42),
+    shoulder: Offset(0.63, 0.48),
+    hip: Offset(0.40, 0.58),
+    elbowL: Offset(0.64, 0.62),
+    handL: Offset(0.66, 0.74),
+    elbowR: Offset(0.60, 0.62),
+    handR: Offset(0.61, 0.74),
+    kneeL: Offset(0.26, 0.66),
+    footL: Offset(0.13, 0.74),
+    kneeR: Offset(0.26, 0.68),
+    footR: Offset(0.13, 0.76),
     headR: 0.075,
   ),
   WorkoutPose.plank: _Fig(
-    head: Offset(0.80, 0.46), shoulder: Offset(0.62, 0.52), hip: Offset(0.40, 0.60),
-    elbowL: Offset(0.62, 0.66), handL: Offset(0.74, 0.70),
-    elbowR: Offset(0.60, 0.66), handR: Offset(0.72, 0.70),
-    kneeL: Offset(0.26, 0.68), footL: Offset(0.12, 0.74),
-    kneeR: Offset(0.26, 0.70), footR: Offset(0.12, 0.76),
+    head: Offset(0.80, 0.46),
+    shoulder: Offset(0.62, 0.52),
+    hip: Offset(0.40, 0.60),
+    elbowL: Offset(0.62, 0.66),
+    handL: Offset(0.74, 0.70),
+    elbowR: Offset(0.60, 0.66),
+    handR: Offset(0.72, 0.70),
+    kneeL: Offset(0.26, 0.68),
+    footL: Offset(0.12, 0.74),
+    kneeR: Offset(0.26, 0.70),
+    footR: Offset(0.12, 0.76),
     headR: 0.075,
   ),
   WorkoutPose.lunge: _Fig(
-    head: Offset(0.50, 0.18), shoulder: Offset(0.50, 0.34), hip: Offset(0.50, 0.55),
-    elbowL: Offset(0.43, 0.46), handL: Offset(0.41, 0.55),
-    elbowR: Offset(0.57, 0.46), handR: Offset(0.59, 0.55),
-    kneeL: Offset(0.64, 0.72), footL: Offset(0.66, 0.90),
-    kneeR: Offset(0.40, 0.76), footR: Offset(0.30, 0.92),
+    head: Offset(0.50, 0.18),
+    shoulder: Offset(0.50, 0.34),
+    hip: Offset(0.50, 0.55),
+    elbowL: Offset(0.43, 0.46),
+    handL: Offset(0.41, 0.55),
+    elbowR: Offset(0.57, 0.46),
+    handR: Offset(0.59, 0.55),
+    kneeL: Offset(0.64, 0.72),
+    footL: Offset(0.66, 0.90),
+    kneeR: Offset(0.40, 0.76),
+    footR: Offset(0.30, 0.92),
   ),
   WorkoutPose.reach: _Fig(
-    head: Offset(0.50, 0.22), shoulder: Offset(0.50, 0.38), hip: Offset(0.50, 0.62),
-    elbowL: Offset(0.43, 0.27), handL: Offset(0.40, 0.13),
-    elbowR: Offset(0.57, 0.27), handR: Offset(0.60, 0.13),
-    kneeL: Offset(0.46, 0.78), footL: Offset(0.45, 0.93),
-    kneeR: Offset(0.54, 0.78), footR: Offset(0.55, 0.93),
+    head: Offset(0.50, 0.22),
+    shoulder: Offset(0.50, 0.38),
+    hip: Offset(0.50, 0.62),
+    elbowL: Offset(0.43, 0.27),
+    handL: Offset(0.40, 0.13),
+    elbowR: Offset(0.57, 0.27),
+    handR: Offset(0.60, 0.13),
+    kneeL: Offset(0.46, 0.78),
+    footL: Offset(0.45, 0.93),
+    kneeR: Offset(0.54, 0.78),
+    footR: Offset(0.55, 0.93),
   ),
   WorkoutPose.march: _Fig(
-    head: Offset(0.50, 0.15), shoulder: Offset(0.50, 0.33), hip: Offset(0.50, 0.58),
-    elbowL: Offset(0.41, 0.42), handL: Offset(0.40, 0.53),
-    elbowR: Offset(0.60, 0.40), handR: Offset(0.62, 0.30),
-    kneeL: Offset(0.58, 0.60), footL: Offset(0.60, 0.71),
-    kneeR: Offset(0.46, 0.78), footR: Offset(0.45, 0.92),
+    head: Offset(0.50, 0.15),
+    shoulder: Offset(0.50, 0.33),
+    hip: Offset(0.50, 0.58),
+    elbowL: Offset(0.41, 0.42),
+    handL: Offset(0.40, 0.53),
+    elbowR: Offset(0.60, 0.40),
+    handR: Offset(0.62, 0.30),
+    kneeL: Offset(0.58, 0.60),
+    footL: Offset(0.60, 0.71),
+    kneeR: Offset(0.46, 0.78),
+    footR: Offset(0.45, 0.92),
   ),
   WorkoutPose.seated: _Fig(
-    head: Offset(0.42, 0.22), shoulder: Offset(0.44, 0.38), hip: Offset(0.46, 0.60),
-    elbowL: Offset(0.40, 0.48), handL: Offset(0.42, 0.58),
-    elbowR: Offset(0.50, 0.48), handR: Offset(0.52, 0.58),
-    kneeL: Offset(0.66, 0.60), footL: Offset(0.66, 0.88),
-    kneeR: Offset(0.70, 0.61), footR: Offset(0.70, 0.88),
+    head: Offset(0.42, 0.22),
+    shoulder: Offset(0.44, 0.38),
+    hip: Offset(0.46, 0.60),
+    elbowL: Offset(0.40, 0.48),
+    handL: Offset(0.42, 0.58),
+    elbowR: Offset(0.50, 0.48),
+    handR: Offset(0.52, 0.58),
+    kneeL: Offset(0.66, 0.60),
+    footL: Offset(0.66, 0.88),
+    kneeR: Offset(0.70, 0.61),
+    footR: Offset(0.70, 0.88),
   ),
   WorkoutPose.bridge: _Fig(
-    head: Offset(0.18, 0.66), shoulder: Offset(0.30, 0.62), hip: Offset(0.56, 0.46),
-    elbowL: Offset(0.24, 0.68), handL: Offset(0.16, 0.74),
-    elbowR: Offset(0.24, 0.70), handR: Offset(0.16, 0.76),
-    kneeL: Offset(0.74, 0.54), footL: Offset(0.80, 0.74),
-    kneeR: Offset(0.74, 0.56), footR: Offset(0.82, 0.74),
+    head: Offset(0.18, 0.66),
+    shoulder: Offset(0.30, 0.62),
+    hip: Offset(0.56, 0.46),
+    elbowL: Offset(0.24, 0.68),
+    handL: Offset(0.16, 0.74),
+    elbowR: Offset(0.24, 0.70),
+    handR: Offset(0.16, 0.76),
+    kneeL: Offset(0.74, 0.54),
+    footL: Offset(0.80, 0.74),
+    kneeR: Offset(0.74, 0.56),
+    footR: Offset(0.82, 0.74),
     headR: 0.075,
   ),
   WorkoutPose.twist: _Fig(
-    head: Offset(0.50, 0.18), shoulder: Offset(0.52, 0.36), hip: Offset(0.48, 0.60),
-    elbowL: Offset(0.56, 0.42), handL: Offset(0.44, 0.44),
-    elbowR: Offset(0.44, 0.42), handR: Offset(0.58, 0.45),
-    kneeL: Offset(0.46, 0.78), footL: Offset(0.45, 0.92),
-    kneeR: Offset(0.54, 0.78), footR: Offset(0.55, 0.92),
+    head: Offset(0.50, 0.18),
+    shoulder: Offset(0.52, 0.36),
+    hip: Offset(0.48, 0.60),
+    elbowL: Offset(0.56, 0.42),
+    handL: Offset(0.44, 0.44),
+    elbowR: Offset(0.44, 0.42),
+    handR: Offset(0.58, 0.45),
+    kneeL: Offset(0.46, 0.78),
+    footL: Offset(0.45, 0.92),
+    kneeR: Offset(0.54, 0.78),
+    footR: Offset(0.55, 0.92),
   ),
 };
 
 class _FigurePainter extends CustomPainter {
-  _FigurePainter(
-      {required this.pose, required this.color, required this.breathe});
+  _FigurePainter({
+    required this.pose,
+    required this.color,
+    required this.breathe,
+  });
   final WorkoutPose pose;
   final Color color;
   final double breathe;

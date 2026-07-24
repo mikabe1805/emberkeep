@@ -15,8 +15,11 @@ class Notifications {
 
 /// One scheduled plan/event reminder (shared shape with the native impl).
 class EventReminder {
-  const EventReminder(
-      {required this.when, required this.title, required this.body});
+  const EventReminder({
+    required this.when,
+    required this.title,
+    required this.body,
+  });
   final DateTime when;
   final String title;
   final String body;

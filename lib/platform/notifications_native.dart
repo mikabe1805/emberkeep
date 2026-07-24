@@ -36,7 +36,8 @@ class Notifications {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     try {
       await _plugin.initialize(
-          const InitializationSettings(iOS: ios, android: android));
+        const InitializationSettings(iOS: ios, android: android),
+      );
       _ready = true;
     } catch (e) {
       debugPrint('Notifications init (continuing): $e');
@@ -46,15 +47,22 @@ class Notifications {
   static Future<bool> requestPermission() async {
     await init();
     try {
-      final ios = _plugin.resolvePlatformSpecificImplementation<
-          IOSFlutterLocalNotificationsPlugin>();
+      final ios = _plugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
       if (ios != null) {
         final granted = await ios.requestPermissions(
-            alert: true, badge: true, sound: true);
+          alert: true,
+          badge: true,
+          sound: true,
+        );
         return granted ?? false;
       }
-      final android = _plugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       if (android != null) {
         final granted = await android.requestNotificationsPermission();
         return granted ?? false;
@@ -66,20 +74,26 @@ class Notifications {
   }
 
   static NotificationDetails _details() => const NotificationDetails(
-        iOS: DarwinNotificationDetails(),
-        android: AndroidNotificationDetails(
-          'emberkeep_reminders',
-          'Reminders',
-          channelDescription: 'Quest reminders and plan nudges',
-          importance: Importance.defaultImportance,
-          priority: Priority.defaultPriority,
-        ),
-      );
+    iOS: DarwinNotificationDetails(),
+    android: AndroidNotificationDetails(
+      'emberkeep_reminders',
+      'Reminders',
+      channelDescription: 'Quest reminders and plan nudges',
+      importance: Importance.defaultImportance,
+      priority: Priority.defaultPriority,
+    ),
+  );
 
   static tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
     final now = tz.TZDateTime.now(tz.local);
-    var scheduled =
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    var scheduled = tz.TZDateTime(
+      tz.local,
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
     if (!scheduled.isAfter(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
@@ -110,7 +124,9 @@ class Notifications {
     await init();
     try {
       await _plugin.cancel(_dailyId);
-    } catch (_) {/* best effort */}
+    } catch (_) {
+      /* best effort */
+    }
   }
 
   /// Clears the event-reminder window and re-schedules the upcoming ones.
@@ -147,14 +163,19 @@ class Notifications {
     await init();
     try {
       await _plugin.cancelAll();
-    } catch (_) {/* best effort */}
+    } catch (_) {
+      /* best effort */
+    }
   }
 }
 
 /// One scheduled plan/event reminder (shared shape with the stub).
 class EventReminder {
-  const EventReminder(
-      {required this.when, required this.title, required this.body});
+  const EventReminder({
+    required this.when,
+    required this.title,
+    required this.body,
+  });
   final DateTime when;
   final String title;
   final String body;

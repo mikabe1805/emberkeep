@@ -58,7 +58,9 @@ Future<void> delete(String name) async {
     if (base == null) return;
     final f = File('$base/$_dir/$name');
     if (await f.exists()) await f.delete();
-  } catch (_) {/* best effort */}
+  } catch (_) {
+    /* best effort */
+  }
 }
 
 /// Wipe EVERY journal photo — called from "Start over" so a reset really
@@ -71,7 +73,9 @@ Future<void> clearAll() async {
     if (base == null) return;
     final dir = Directory('$base/$_dir');
     if (await dir.exists()) await dir.delete(recursive: true);
-  } catch (_) {/* best effort */}
+  } catch (_) {
+    /* best effort */
+  }
 }
 
 /// A widget that renders the stored photo [name] (rounded, capped height).
@@ -84,52 +88,52 @@ class _JournalImage extends StatelessWidget {
   final double maxHeight;
 
   Widget _framed(String path) => ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          child: Image.file(
-            File(path),
-            width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => _missing(),
-          ),
-        ),
-      );
+    borderRadius: BorderRadius.circular(14),
+    child: ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxHeight),
+      child: Image.file(
+        File(path),
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _missing(),
+      ),
+    ),
+  );
 
   // A missing photo (most often after a cloud restore on a NEW device — photos
   // are device-local, they don't ride the save blob) shouldn't read as a
   // broken app. A warm parchment card that says so plainly, in the app's own
   // voice, keeps a restored journal feeling whole rather than damaged.
   Widget _missing() => Container(
-        height: 128,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF34281F), Color(0xFF281E17)],
+    height: 128,
+    alignment: Alignment.center,
+    padding: const EdgeInsets.symmetric(horizontal: 20),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF34281F), Color(0xFF281E17)],
+      ),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: const Color(0x22FFFFFF)),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: const [
+        Icon(Icons.photo_outlined, size: 22, color: Color(0xFFB9A488)),
+        SizedBox(height: 8),
+        Text(
+          'This photo stayed on your old device',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 12.5,
+            height: 1.3,
+            color: Color(0xFFB9A488),
           ),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0x22FFFFFF)),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.photo_outlined, size: 22, color: Color(0xFFB9A488)),
-            SizedBox(height: 8),
-            Text(
-              'This photo stayed on your old device',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12.5,
-                height: 1.3,
-                color: Color(0xFFB9A488),
-              ),
-            ),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {

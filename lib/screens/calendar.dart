@@ -57,9 +57,9 @@ class _CalendarPageState extends State<CalendarPage> {
   ];
 
   List<Quest> _eventsOn(DateTime day) => [
-        for (final q in widget.quests)
-          if (q.dueDate != null && Days.sameDay(q.dueDate!, day)) q,
-      ];
+    for (final q in widget.quests)
+      if (q.dueDate != null && Days.sameDay(q.dueDate!, day)) q,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -197,23 +197,23 @@ class _CalendarPageState extends State<CalendarPage> {
         onTap: () {
           Sfx.instance.play('tick');
           setState(() => _selected = date);
-      },
-      child: Container(
-        height: 44,
-        margin: const EdgeInsets.all(1.5),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: isSelected
-              ? Palette.xpLight.withValues(alpha: 0.16)
-              : Colors.transparent,
-          border: Border.all(
-            color: isToday
-                ? Palette.xp.withValues(alpha: 0.8)
-                : isSelected
-                    ? Palette.xpLight.withValues(alpha: 0.5)
-                    : Colors.transparent,
+        },
+        child: Container(
+          height: 44,
+          margin: const EdgeInsets.all(1.5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: isSelected
+                ? Palette.xpLight.withValues(alpha: 0.16)
+                : Colors.transparent,
+            border: Border.all(
+              color: isToday
+                  ? Palette.xp.withValues(alpha: 0.8)
+                  : isSelected
+                  ? Palette.xpLight.withValues(alpha: 0.5)
+                  : Colors.transparent,
+            ),
           ),
-        ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -227,15 +227,15 @@ class _CalendarPageState extends State<CalendarPage> {
               const SizedBox(height: 2),
               SizedBox(
                 height: 11,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // one ember whose heat (size + glow) scales with the day's
-                  // haul — a 12-quest day burns hotter than a 3-quest one
-                  if (done > 0)
-                    Container(
-                      width: 4.0 + (done.clamp(1, 9)) * 0.7,
-                      height: 4.0 + (done.clamp(1, 9)) * 0.7,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // one ember whose heat (size + glow) scales with the day's
+                    // haul — a 12-quest day burns hotter than a 3-quest one
+                    if (done > 0)
+                      Container(
+                        width: 4.0 + (done.clamp(1, 9)) * 0.7,
+                        height: 4.0 + (done.clamp(1, 9)) * 0.7,
                         margin: const EdgeInsets.symmetric(horizontal: 1),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
@@ -250,22 +250,22 @@ class _CalendarPageState extends State<CalendarPage> {
                               blurRadius: 2.0 + done.clamp(0, 8) * 0.8,
                             ),
                           ],
+                        ),
                       ),
-                    ),
-                  // stat-colored diamonds: planned events
-                  for (final e in events.take(2))
-                    Transform.rotate(
-                      angle: 0.785,
-                      child: Container(
-                        width: 4.5,
-                        height: 4.5,
-                        margin: const EdgeInsets.symmetric(horizontal: 1),
-                        color: e.stat.color,
+                    // stat-colored diamonds: planned events
+                    for (final e in events.take(2))
+                      Transform.rotate(
+                        angle: 0.785,
+                        child: Container(
+                          width: 4.5,
+                          height: 4.5,
+                          margin: const EdgeInsets.symmetric(horizontal: 1),
+                          color: e.stat.color,
+                        ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
             ],
           ),
         ),
@@ -340,7 +340,7 @@ class _DayPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                    '${day.day}.${day.month}.${day.year}'
+                  '${day.day}.${day.month}.${day.year}'
                   '${Days.sameDay(day, now) ? " · TODAY" : ""}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -402,9 +402,9 @@ class _DayPanel extends StatelessWidget {
             ),
           if (events.isEmpty && completions == 0)
             Text(
-                isPast
-                    ? 'A quiet day.'
-                    : 'Nothing planned yet — every empty day is a side quest waiting.',
+              isPast
+                  ? 'A quiet day.'
+                  : 'Nothing planned yet — every empty day is a side quest waiting.',
               style: Type.body.copyWith(
                 fontSize: 13.5,
                 fontStyle: FontStyle.italic,

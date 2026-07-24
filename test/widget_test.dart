@@ -100,41 +100,46 @@ void main() {
     await tester.pump(const Duration(seconds: 5));
   });
 
-  testWidgets('rapid double-complete then undo keeps the first quest\'s reward',
-      (tester) async {
-    // a tall surface so the full board (+ the Ember-of-the-Day card) fits and
-    // both quests + the undo card stay built (no lazy-list scroll fragility)
-    await tester.binding.setSurfaceSize(const Size(800, 1800));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await pumpApp(tester);
-    expect(find.text('TODAY · 9 LEFT'), findsOneWidget);
+  testWidgets(
+    'rapid double-complete then undo keeps the first quest\'s reward',
+    (tester) async {
+      // a tall surface so the full board (+ the Ember-of-the-Day card) fits and
+      // both quests + the undo card stay built (no lazy-list scroll fragility)
+      await tester.binding.setSurfaceSize(const Size(800, 1800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await pumpApp(tester);
+      expect(find.text('TODAY · 9 LEFT'), findsOneWidget);
 
-    // complete A, then complete B before A's deferred commit fires (~1s)
-    await tester.tap(find.text('Walk 10 minutes'));
-    await tester.pump(const Duration(milliseconds: 150));
-    await tester.tap(find.text('Read one page'));
-    await tester.pump(const Duration(milliseconds: 150));
-    expect(find.text('TODAY · 7 LEFT'), findsOneWidget);
+      // complete A, then complete B before A's deferred commit fires (~1s)
+      await tester.tap(find.text('Walk 10 minutes'));
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.tap(find.text('Read one page'));
+      await tester.pump(const Duration(milliseconds: 150));
+      expect(find.text('TODAY · 7 LEFT'), findsOneWidget);
 
-    // wait for B's commit (arms swipe-to-undo on B's card), then undo B
-    await tester.pump(const Duration(milliseconds: 1400));
-    final cardB = find.byKey(const ValueKey('undo-Read one page'));
-    expect(cardB, findsOneWidget);
-    await tester.ensureVisible(cardB);
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.fling(cardB, const Offset(-500, 0), 1500);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 800));
+      // wait for B's commit (arms swipe-to-undo on B's card), then undo B
+      await tester.pump(const Duration(milliseconds: 1400));
+      final cardB = find.byKey(const ValueKey('undo-Read one page'));
+      expect(cardB, findsOneWidget);
+      await tester.ensureVisible(cardB);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.fling(cardB, const Offset(-500, 0), 1500);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 800));
 
-    // B reverted (back to 8), and A's reward was NOT destroyed
-    expect(find.text('TODAY · 8 LEFT'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('LEVEL 1 · 0 XP'), findsNothing,
-        reason: 'quest A\'s XP must survive undoing quest B');
+      // B reverted (back to 8), and A's reward was NOT destroyed
+      expect(find.text('TODAY · 8 LEFT'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(
+        find.text('LEVEL 1 · 0 XP'),
+        findsNothing,
+        reason: 'quest A\'s XP must survive undoing quest B',
+      );
 
-    await tester.pump(const Duration(seconds: 5));
-  });
+      await tester.pump(const Duration(seconds: 5));
+    },
+  );
 
   testWidgets('nav dock switches to Me, Plans and Insights', (tester) async {
     await pumpApp(tester);
@@ -145,13 +150,19 @@ void main() {
     // taller, so scroll the Me scrollable until each marker is built rather
     // than assuming a fixed position above the fold.
     final meList = find.byType(Scrollable).first;
-    await tester.scrollUntilVisible(find.text('YOUR BUILD'), 120,
-        scrollable: meList);
+    await tester.scrollUntilVisible(
+      find.text('YOUR BUILD'),
+      120,
+      scrollable: meList,
+    );
     expect(find.text('YOUR BUILD'), findsOneWidget);
 
     // trophy case sits further down the lazy list
-    await tester.scrollUntilVisible(find.text('TROPHY CASE'), 200,
-        scrollable: meList);
+    await tester.scrollUntilVisible(
+      find.text('TROPHY CASE'),
+      200,
+      scrollable: meList,
+    );
     expect(find.text('TROPHY CASE'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.calendar_month_outlined));
@@ -198,8 +209,9 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
   });
 
-  testWidgets('oath wizard: name, add a quest via the sheet, swear',
-      (tester) async {
+  testWidgets('oath wizard: name, add a quest via the sheet, swear', (
+    tester,
+  ) async {
     await pumpApp(tester);
 
     await tester.tap(find.byIcon(Icons.explore_outlined));
@@ -210,7 +222,9 @@ void main() {
 
     // name the oath (the only TextField until the sheet opens)
     await tester.enterText(
-        find.byType(TextField).first, 'Maintain healthy skin');
+      find.byType(TextField).first,
+      'Maintain healthy skin',
+    );
     await tester.pump(const Duration(milliseconds: 100));
 
     // add a path-quest through the shared Ember Sheet
@@ -221,7 +235,9 @@ void main() {
     expect(find.text('NEW QUEST'), findsOneWidget);
 
     await tester.enterText(
-        find.byKey(const Key('ember-title')), 'Morning skincare');
+      find.byKey(const Key('ember-title')),
+      'Morning skincare',
+    );
     await tester.pump(const Duration(milliseconds: 100));
     await tester.ensureVisible(find.text('Add →'));
     await tester.pump(const Duration(milliseconds: 100));
@@ -253,10 +269,14 @@ void main() {
     // the build window, so ensureVisible would throw "No element". Scroll the
     // recap's own scrollable until it's built, then tap.
     final recapScroll = find.descendant(
-        of: find.byKey(const ValueKey('recap')),
-        matching: find.byType(Scrollable));
-    await tester.scrollUntilVisible(find.text('just sleep'), 200,
-        scrollable: recapScroll);
+      of: find.byKey(const ValueKey('recap')),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      find.text('just sleep'),
+      200,
+      scrollable: recapScroll,
+    );
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('just sleep'));
     await tester.pump(const Duration(milliseconds: 400));
@@ -301,8 +321,10 @@ void main() {
     expect(Storage.isValidSave('{ truncated'), isFalse);
     expect(Storage.isValidSave('{}'), isFalse);
     expect(Storage.isValidSave('{"state":{},"quests":[]}'), isFalse);
-    expect(Storage.isValidSave('{"app":"other","state":{"stats":[]}}'),
-        isFalse);
+    expect(
+      Storage.isValidSave('{"app":"other","state":{"stats":[]}}'),
+      isFalse,
+    );
 
     // a genuine save passes
     await Storage.save(GameState()..playerName = 'Mika', const []);
@@ -336,7 +358,9 @@ void main() {
     // the Ember Sheet: name it, pick "Just today", tap Add (keyboard "done"
     // no longer auto-creates).
     await tester.enterText(
-        find.byKey(const Key('ember-title')), 'Do the laundry');
+      find.byKey(const Key('ember-title')),
+      'Do the laundry',
+    );
     await tester.pump(const Duration(milliseconds: 100));
     // "Just today" is the last chip in a horizontal scroll — bring it on-screen
     await tester.ensureVisible(find.text('Just today'));
@@ -377,38 +401,41 @@ void main() {
     expect(find.text('DUE TODAY'), findsOneWidget);
   });
 
-  test('embers: earned on completion, then spent in the shop with a gate',
-      () async {
-    final state = GameState();
-    expect(state.embers, 0);
-    expect(state.ownedFurniture, isEmpty);
+  test(
+    'embers: earned on completion, then spent in the shop with a gate',
+    () async {
+      final state = GameState();
+      expect(state.embers, 0);
+      expect(state.ownedFurniture, isEmpty);
 
-    // earning: a completion adds embers alongside XP (~a third, min 1)
-    final bundle =
-        state.roll(Quest(title: 'Read', stat: Stat.intl, difficulty: 3));
-    state.commit(bundle);
-    expect(state.embers, bundle.xp ~/ 3 < 1 ? 1 : bundle.xp ~/ 3);
-    expect(state.embers, greaterThan(0));
+      // earning: a completion adds embers alongside XP (~a third, min 1)
+      final bundle = state.roll(
+        Quest(title: 'Read', stat: Stat.intl, difficulty: 3),
+      );
+      state.commit(bundle);
+      expect(state.embers, bundle.xp ~/ 3 < 1 ? 1 : bundle.xp ~/ 3);
+      expect(state.embers, greaterThan(0));
 
-    // spending: too poor → no buy; topped up → buys once, deducts, owns it
-    state.embers = 30;
-    expect(state.buyFurniture('rug', 40), isFalse); // can't afford
-    expect(state.ownedFurniture, isEmpty);
-    state.embers = 100;
-    expect(state.buyFurniture('rug', 40), isTrue);
-    expect(state.embers, 60);
-    expect(state.ownedFurniture, contains('rug'));
-    expect(state.buyFurniture('rug', 40), isFalse); // owned → no recharge
-    expect(state.embers, 60);
+      // spending: too poor → no buy; topped up → buys once, deducts, owns it
+      state.embers = 30;
+      expect(state.buyFurniture('rug', 40), isFalse); // can't afford
+      expect(state.ownedFurniture, isEmpty);
+      state.embers = 100;
+      expect(state.buyFurniture('rug', 40), isTrue);
+      expect(state.embers, 60);
+      expect(state.ownedFurniture, contains('rug'));
+      expect(state.buyFurniture('rug', 40), isFalse); // owned → no recharge
+      expect(state.embers, 60);
 
-    // gating: an achievement-locked piece stays unbuyable until allowed,
-    // even with the embers in hand
-    state.embers = 1000;
-    expect(state.buyFurniture('hearth', 600, allowed: false), isFalse);
-    expect(state.ownedFurniture, isNot(contains('hearth')));
-    expect(state.buyFurniture('hearth', 600, allowed: true), isTrue);
-    expect(state.ownedFurniture, contains('hearth'));
-  });
+      // gating: an achievement-locked piece stays unbuyable until allowed,
+      // even with the embers in hand
+      state.embers = 1000;
+      expect(state.buyFurniture('hearth', 600, allowed: false), isFalse);
+      expect(state.ownedFurniture, isNot(contains('hearth')));
+      expect(state.buyFurniture('hearth', 600, allowed: true), isTrue);
+      expect(state.ownedFurniture, contains('hearth'));
+    },
+  );
 
   test('embers and owned furniture survive a save/load round-trip', () async {
     SharedPreferences.setMockInitialValues({});
@@ -427,19 +454,24 @@ void main() {
   test('journal: free entries persist alongside attached notes', () async {
     SharedPreferences.setMockInitialValues({});
     final state = GameState()..playerName = 'Mika';
-    state.setJournal(state.journal
-        .withNote('first thought', DateTime(2026, 6, 28))
-        .withNote('second thought', DateTime(2026, 6, 29)));
+    state.setJournal(
+      state.journal
+          .withNote('first thought', DateTime(2026, 6, 28))
+          .withNote('second thought', DateTime(2026, 6, 29)),
+    );
     expect(state.journal.length, 2);
     // a domain note coexists — the hub aggregates both
-    state.setDomainNotes(
-        Stat.vit, [Note(at: DateTime(2026, 6, 27), text: 'ran a 5k')]);
+    state.setDomainNotes(Stat.vit, [
+      Note(at: DateTime(2026, 6, 27), text: 'ran a 5k'),
+    ]);
 
     await Storage.save(state, const []);
     final loaded = await Storage.load();
     expect(loaded, isNotNull);
-    expect(loaded!.$1.journal.map((n) => n.text),
-        containsAll(['first thought', 'second thought']));
+    expect(
+      loaded!.$1.journal.map((n) => n.text),
+      containsAll(['first thought', 'second thought']),
+    );
     expect(loaded.$1.notesFor(Stat.vit).first.text, 'ran a 5k');
 
     // deleting a free entry sticks
@@ -448,38 +480,44 @@ void main() {
     expect(loaded.$1.journal.first.text, 'second thought');
   });
 
-  test('journal: an entry is editable in place (by id) and survives reload',
-      () async {
-    SharedPreferences.setMockInitialValues({});
-    final state = GameState()..playerName = 'Mika';
-    final original = Note(
-      at: DateTime(2026, 6, 28),
-      text: 'rough first draft',
-      context: 'Frail',
-    );
-    state.setJournal([original]);
+  test(
+    'journal: an entry is editable in place (by id) and survives reload',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final state = GameState()..playerName = 'Mika';
+      final original = Note(
+        at: DateTime(2026, 6, 28),
+        text: 'rough first draft',
+        context: 'Frail',
+      );
+      state.setJournal([original]);
 
-    // edit it — same identity, body changes, original timestamp + context kept
-    final revised = original.copyWith(
-      text: 'a fuller, edited reflection',
-      editedAt: DateTime(2026, 6, 30),
-    );
-    state.setJournal(state.journal.replacing(revised));
-    expect(state.journal.length, 1, reason: 'edit replaces, never duplicates');
-    expect(state.journal.first.id, original.id, reason: 'identity is stable');
-    expect(state.journal.first.text, 'a fuller, edited reflection');
-    expect(state.journal.first.at, DateTime(2026, 6, 28));
-    expect(state.journal.first.context, 'Frail');
-    expect(state.journal.first.editedAt, isNotNull);
+      // edit it — same identity, body changes, original timestamp + context kept
+      final revised = original.copyWith(
+        text: 'a fuller, edited reflection',
+        editedAt: DateTime(2026, 6, 30),
+      );
+      state.setJournal(state.journal.replacing(revised));
+      expect(
+        state.journal.length,
+        1,
+        reason: 'edit replaces, never duplicates',
+      );
+      expect(state.journal.first.id, original.id, reason: 'identity is stable');
+      expect(state.journal.first.text, 'a fuller, edited reflection');
+      expect(state.journal.first.at, DateTime(2026, 6, 28));
+      expect(state.journal.first.context, 'Frail');
+      expect(state.journal.first.editedAt, isNotNull);
 
-    // the edit (and the edited marker) round-trips through a save/load
-    await Storage.save(state, const []);
-    final loaded = await Storage.load();
-    final back = loaded!.$1.journal.single;
-    expect(back.text, 'a fuller, edited reflection');
-    expect(back.id, original.id);
-    expect(back.editedAt, DateTime(2026, 6, 30));
-  });
+      // the edit (and the edited marker) round-trips through a save/load
+      await Storage.save(state, const []);
+      final loaded = await Storage.load();
+      final back = loaded!.$1.journal.single;
+      expect(back.text, 'a fuller, edited reflection');
+      expect(back.id, original.id);
+      expect(back.editedAt, DateTime(2026, 6, 30));
+    },
+  );
 
   test('journal: a rich entry (text + inline photos) round-trips', () async {
     SharedPreferences.setMockInitialValues({});
@@ -490,8 +528,10 @@ void main() {
       const JournalBlock.text('The light was unreal.'),
     ];
     expect(JournalDoc.images(doc), ['jimg_1.jpg']);
-    expect(JournalDoc.plainText(doc),
-        'Morning walk by the river.\n\nThe light was unreal.');
+    expect(
+      JournalDoc.plainText(doc),
+      'Morning walk by the river.\n\nThe light was unreal.',
+    );
 
     final state = GameState()..playerName = 'Mika';
     state.setJournal([
@@ -539,8 +579,9 @@ void main() {
 
     // an achievement-gated style stays unbuyable until allowed
     expect(
-        state.buyStyle('wall_indigo', 220, RoomStyleKind.wall, allowed: false),
-        isFalse);
+      state.buyStyle('wall_indigo', 220, RoomStyleKind.wall, allowed: false),
+      isFalse,
+    );
     expect(state.ownedStyles, isNot(contains('wall_indigo')));
 
     await Storage.save(state, const []);
@@ -632,14 +673,14 @@ void main() {
     expect(loaded.$1.stageScene, 'hearthside');
   });
 
-  test('streak milestone chest is paid once per crossing, not per completion',
-      () {
+  test('streak milestone chest is paid once per crossing, not per completion', () {
     final state = GameState()
       ..embers = 0
       ..streakDays = 6
       // last active YESTERDAY, so today's first completion increments to 7
-      ..lastCompletionDay =
-          Days.key(DateTime.now().subtract(const Duration(days: 1)));
+      ..lastCompletionDay = Days.key(
+        DateTime.now().subtract(const Duration(days: 1)),
+      );
 
     // first completion of the day: streak crosses to 7 → +50 chest, queued once
     final b1 = state.roll(Quest(title: 'Read', stat: Stat.intl, difficulty: 3));
@@ -667,7 +708,9 @@ void main() {
       ..wallStyle = 'wall_plum'
       ..windowScene = 'aurora';
     s.ownedFurniture.addAll(['rug', 'lamp']);
-    s.setJournal(s.journal.withNote('a private thought', DateTime(2026, 6, 28)));
+    s.setJournal(
+      s.journal.withNote('a private thought', DateTime(2026, 6, 28)),
+    );
 
     final d = roomDisplay(s);
     expect(d['name'], 'Mika');

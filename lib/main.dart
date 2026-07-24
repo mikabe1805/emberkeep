@@ -75,16 +75,21 @@ class _FriendlyError extends StatelessWidget {
         children: [
           Icon(Icons.local_fire_department, color: Palette.streak, size: 32),
           SizedBox(height: 10),
-          Text('A flicker — but your fire is safe.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Palette.textHi)),
+          Text(
+            'A flicker — but your fire is safe.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Palette.textHi,
+            ),
+          ),
           SizedBox(height: 4),
-          Text('This corner hit a snag; your progress is saved.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Palette.textLo)),
+          Text(
+            'This corner hit a snag; your progress is saved.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Palette.textLo),
+          ),
         ],
       ),
     );

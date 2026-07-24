@@ -53,6 +53,8 @@ abstract final class JournalDoc {
       .trim();
 
   /// The image filenames referenced, in order.
-  static List<String> images(List<JournalBlock> blocks) =>
-      [for (final b in blocks) if (b.isImage) b.image!];
+  static List<String> images(List<JournalBlock> blocks) => [
+    for (final b in blocks)
+      if (b.isImage) b.image!,
+  ];
 }

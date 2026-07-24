@@ -27,9 +27,17 @@ final windowViews = <WindowView>[
   const WindowView(id: 'mountains', name: 'Far Mountains', price: 180),
   const WindowView(id: 'rain', name: 'Rainy Night', price: 200),
   const WindowView(
-      id: 'dawn', name: 'First Light', price: 220, requires: 'dawn-patrol'),
+    id: 'dawn',
+    name: 'First Light',
+    price: 220,
+    requires: 'dawn-patrol',
+  ),
   const WindowView(
-      id: 'aurora', name: 'Aurora', price: 280, requires: 'month-of-fire'),
+    id: 'aurora',
+    name: 'Aurora',
+    price: 280,
+    requires: 'month-of-fire',
+  ),
 ];
 
 WindowView? windowViewById(String id) {
