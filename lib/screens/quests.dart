@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' show min;
+import 'dart:math' show min, pi, sin;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -26,7 +26,9 @@ import '../widgets/day_picker.dart';
 import '../widgets/domain_hint.dart';
 import '../widgets/ember_sheet.dart';
 import '../widgets/epic_overlay.dart';
+import '../widgets/count_up.dart';
 import '../widgets/glass.dart';
+import '../widgets/hearth_glyph.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/install_hint.dart';
 import '../widgets/levelup_overlay.dart';
@@ -229,17 +231,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// While true the header portrait beams (set on every completion).
-  bool _beaming = false;
+  /// Bumped on every completion; the header [HearthGlyph] watches this and
+  /// surges its flame once per bump, so the tap's warmth lands on the on-screen
+  /// character (the surge self-settles, and rapid completions re-trigger it).
   int _beamGen = 0;
 
   void _beam() {
-    final gen = ++_beamGen;
-    setState(() => _beaming = true);
-    Future.delayed(const Duration(milliseconds: 1600), () {
-      // only the latest beam may end the glow — rapid completions extend it
-      if (mounted && gen == _beamGen) setState(() => _beaming = false);
-    });
+    if (mounted) setState(() => _beamGen++);
   }
 
   /// Entry point from a card tap: timer-proof quests run their countdown
@@ -1268,7 +1266,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final now = Clock.now();
     final e = emberOfDay(now);
     void dismiss() {
-      _state.dismissEmber();
+      setState(() => _state.dismissEmber());
       widget.onPersist();
     }
 
@@ -1440,7 +1438,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
                   Sfx.instance.play('tick');
-                  _state.dismissWeekRecap();
+                  setState(() => _state.dismissWeekRecap());
                   widget.onPersist();
                 },
                 child: const Padding(
@@ -1759,30 +1757,16 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       progress: visible.isEmpty
                           ? 0.0
                           : (visible.length - remaining) / visible.length,
-                      // your keep's hearth-flame, brighter when the fire's kept
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: Center(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: creatureColorsFor(
-                                    _state,
-                                  )[1].withValues(alpha: _beaming ? 0.6 : 0.3),
-                                  blurRadius: 12,
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.local_fire_department,
-                              size: 30,
-                              color: creatureColorsFor(_state)[1],
-                            ),
-                          ),
-                        ),
+                      // your keep's living hearth — grows with your level,
+                      // burns when the streak's kept, and surges on completion.
+                      // The RPG's character, finally on the RPG's main screen.
+                      child: HearthGlyph(
+                        level: _state.level,
+                        lit: _state.streakDays > 0,
+                        glow: creatureColorsFor(_state)[1],
+                        leap: _beamGen,
+                        reduceMotion: _state.reduceMotion,
+                        size: 42,
                       ),
                     ),
                     const SizedBox(width: 14),
@@ -1793,15 +1777,29 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'LEVEL ${_state.level}',
-                                style: Type.label.copyWith(fontSize: 13),
+                              Row(
+                                children: [
+                                  Text(
+                                    'LEVEL ${_state.level}',
+                                    style: Type.label.copyWith(fontSize: 13),
+                                  ),
+                                  // the fire the app is named for, finally on
+                                  // the daily screen — warmth that never breaks
+                                  // to zero (shields/rest absorb misses), so
+                                  // there's an anchor without the loss-cliff
+                                  if (_state.streakDays > 0) ...[
+                                    const SizedBox(width: 10),
+                                    _StreakChip(days: _state.streakDays),
+                                  ],
+                                ],
                               ),
-                              // clamp: pre-level-up overflow reads as a
-                              // full bar, never "130 / 105"
+                              // clamp: pre-level-up overflow reads as a full
+                              // bar, never "130 / 105". Rolls prev→new so the
+                              // hero number visibly ticks up on every gain.
                               Flexible(
-                                child: Text(
-                                  '${min(_state.xp, next)} / $next XP',
+                                child: RollingNumber(
+                                  min(_state.xp, next),
+                                  suffix: ' / $next XP',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: Type.numerals.copyWith(
@@ -2350,9 +2348,12 @@ class _ComboFlourishState extends State<_ComboFlourish>
             animation: _c,
             builder: (_, _) {
               final t = _c.value;
-              final inP = Curves.easeOutBack.transform(
-                (t / 0.22).clamp(0.0, 1.0),
-              );
+              // easeOutBack overshoots (a little bounce); under reduce-motion
+              // swap to a plain easeOut so the pill settles without the pop.
+              final inCurve = Haptics.reduceMotion
+                  ? Curves.easeOut
+                  : Curves.easeOutBack;
+              final inP = inCurve.transform((t / 0.22).clamp(0.0, 1.0));
               final out = ((t - 0.72) / 0.28).clamp(0.0, 1.0);
               return Align(
                 alignment: Alignment(0, -0.62 - 0.06 * out),
@@ -2411,6 +2412,72 @@ class _ComboFlourishState extends State<_ComboFlourish>
 /// The portrait's ring now tracks TODAY'S clear-progress (it fills as you clear
 /// the board), not XP — XP already lives in the bar + numeral right beside it,
 /// so the ring earns its own job (round-31: no triple-encoding one value).
+/// The streak shown as forgiving warmth — a flame + day count that flares
+/// gently when it extends and NEVER turns red, urgent, or "don't lose this".
+/// Shields and rest days absorb misses silently upstream (never-punish), so
+/// this is only ever an anchor, never a threat.
+class _StreakChip extends StatefulWidget {
+  const _StreakChip({required this.days});
+  final int days;
+
+  @override
+  State<_StreakChip> createState() => _StreakChipState();
+}
+
+class _StreakChipState extends State<_StreakChip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _flare = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 480),
+  );
+
+  @override
+  void didUpdateWidget(_StreakChip old) {
+    super.didUpdateWidget(old);
+    if (widget.days > old.days) _flare.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _flare.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _flare,
+      builder: (context, child) {
+        final s = _flare.value > 0 ? sin(_flare.value * pi) : 0.0;
+        return Transform.scale(scale: 1 + 0.18 * s, child: child);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          color: Palette.streak.withValues(alpha: 0.14),
+          border: Border.all(color: Palette.streak.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.local_fire_department,
+              size: 13,
+              color: Palette.streak,
+            ),
+            const SizedBox(width: 3),
+            Text(
+              '${widget.days}',
+              style: Type.label.copyWith(fontSize: 12, color: Palette.streak),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _LevelRing extends StatefulWidget {
   const _LevelRing({required this.progress, required this.child});
   final double progress;

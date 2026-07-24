@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'a11y.dart';
 import 'audio.dart';
 import 'storage.dart';
 import 'platform/persist_stub.dart'
@@ -49,7 +50,11 @@ void main() {
   // to apply the saved preference. If no save exists yet, the default (true)
   // is fine.
   Storage.load().then((pair) {
-    if (pair != null) Sfx.instance.soundEnabled = pair.$1.soundEnabled;
+    if (pair != null) {
+      Sfx.instance.soundEnabled = pair.$1.soundEnabled;
+      // restore the saved in-app text size before the first frame settles
+      appTextScale.value = pair.$1.textScale;
+    }
   });
   // Ask the browser to make storage durable (exempts an installed PWA from
   // iOS's storage eviction — the save's first line of defense).
@@ -113,13 +118,22 @@ class LifeRpgApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      // Honor the phone's Text Size accessibility setting (the app ignored it
-      // before), but clamp the upper end so the dense candlelit cards don't
-      // shatter. A low-vision user finally gets larger type; layouts stay sane.
-      builder: (context, child) => MediaQuery.withClampedTextScaling(
-        minScaleFactor: 1.0,
-        maxScaleFactor: 1.3,
-        child: child ?? const SizedBox.shrink(),
+      // Accessibility text sizing: honor BOTH the phone's Text Size setting and
+      // the in-app control (Me → Settings), taking the larger of the two so a
+      // user gets big type whichever way they reached for it, then clamping the
+      // total so the dense candlelit cards don't shatter.
+      builder: (context, child) => ValueListenableBuilder<double>(
+        valueListenable: appTextScale,
+        builder: (context, inApp, _) {
+          final os = MediaQuery.textScalerOf(context).scale(1.0);
+          final factor = (os > inApp ? os : inApp).clamp(1.0, maxTextScale);
+          return MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(factor)),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
       ),
       home: const AppShell(),
     );

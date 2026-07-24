@@ -8,6 +8,7 @@ import '../content/furniture.dart';
 import '../content/room_styles.dart';
 import '../content/window_scenes.dart';
 import '../engine.dart';
+import '../haptics.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
@@ -38,7 +39,7 @@ class ShopScreen extends StatelessWidget {
     final ok = attempt();
     if (ok) {
       Sfx.instance.play('loot'); // a small treasure
-      HapticFeedback.mediumImpact();
+      Haptics.success(); // softens to a light tap under reduce-motion
       onPersist();
     } else {
       Sfx.instance.play('boing');

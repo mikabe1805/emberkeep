@@ -484,9 +484,13 @@ class _AddEventDialogState extends State<_AddEventDialog> {
       Quest(
         title: title,
         stat: _stat,
-        difficulty: _difficulty.round(),
+        // a self-entered plan is a custom quest: same 0.85x anti-abuse damping
+        // and the documented d8 cap as the unified add sheet (never a fatter
+        // payout just for being typed on the calendar).
+        difficulty: _difficulty.round().clamp(1, 8),
         schedule: QuestSchedule.once,
         dueDate: widget.day,
+        custom: true,
       ),
     );
     if (!ok) {
@@ -593,8 +597,8 @@ class _AddEventDialogState extends State<_AddEventDialog> {
             Slider(
               value: _difficulty,
               min: 1,
-              max: 10,
-              divisions: 9,
+              max: 8,
+              divisions: 7,
               activeColor: Palette.xp,
               inactiveColor: const Color(0x1FF2CD93),
               onChanged: (v) => setState(() => _difficulty = v),

@@ -464,6 +464,12 @@ class _CheckRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The single most-tapped control in the app, so it gets real dimension:
+    // a domed disc lit from the top-left (the same light every other glass
+    // surface answers to), ringed in its domain's colour, that fills with moss
+    // when it's done. Both states carry a gradient AND a shadow list of the
+    // same shape so the easeOutBack overshoot always has something continuous
+    // to lerp — a null↔value swap pops, and a negative-blur lerp asserts.
     return AnimatedContainer(
       duration: Motion.quick,
       curve: Curves.easeOutBack,
@@ -471,18 +477,37 @@ class _CheckRing extends StatelessWidget {
       height: 32,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: done ? Palette.success : Colors.transparent,
+        gradient: RadialGradient(
+          center: const Alignment(-0.45, -0.5),
+          radius: 1.05,
+          colors: done
+              ? [
+                  Color.lerp(Palette.success, Palette.specular, 0.45)!,
+                  Palette.success,
+                  Color.lerp(Palette.success, Palette.parchment, 0.38)!,
+                ]
+              : [
+                  Palette.specular.withValues(alpha: 0.18),
+                  Palette.glassTop,
+                  Palette.glassRim,
+                ],
+          stops: const [0.0, 0.5, 1.0],
+        ),
         border: Border.all(
           color: done ? Palette.success : stat.color,
           width: 2.4,
         ),
-        // Keep a constant-blur shadow in BOTH states (alpha→0 when done)
-        // rather than toggling to an empty list — the easeOutBack overshoot
-        // would otherwise lerp the blur radius negative and assert.
         boxShadow: [
+          // the domain's own light spilling off the rim while it waits
           BoxShadow(
-            color: stat.color.withValues(alpha: done ? 0.0 : 0.25),
+            color: stat.color.withValues(alpha: done ? 0.0 : 0.28),
             blurRadius: 8,
+          ),
+          // and the disc's own drop shadow, so it sits above the card face
+          const BoxShadow(
+            color: Palette.warmShadow,
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),

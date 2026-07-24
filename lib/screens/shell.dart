@@ -490,7 +490,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   Future<void> _signOut() async {
+    // signOut() flushes the account's save (room code and all) to the account
+    // doc first; only then do we forget the code locally — the fresh anonymous
+    // session doesn't own that room and can't update or take it down. Signing
+    // back in re-adopts the account's save (and its code).
     await CloudSync.instance.signOut();
+    _state?.setRoomCode(null);
+    _persist();
     if (mounted) setState(() {});
   }
 
@@ -629,109 +635,111 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               Positioned.fill(
                 child: IndexedStack(
                   index: _tab,
+                  // IndexedStack keeps all five tabs alive, and nothing about
+                  // being un-indexed stops a ticker — so before this the
+                  // keep's hearth, the fireflies, the sky and every other
+                  // ambient loop ran on ALL FIVE tabs at once, forever, four
+                  // of them invisible. TickerMode mutes the vsync for the
+                  // subtrees you can't see; each controller resumes exactly
+                  // where it was when its tab comes forward. Free battery.
                   children: [
-                    MePage(
-                      state: state,
-                      quests: quests,
-                      onPersist: _persist,
-                      onAddQuest: _addQuest,
-                      onExport: _export,
-                      onImport: _import,
-                      onReset: _reset,
-                      onNotifyChanged: _rescheduleNotifications,
-                      onLinkAccount: _linkAccount,
-                      onSignIn: _signIn,
-                      onSignOut: _signOut,
-                      onDeleteAccount: _deleteAccount,
-                    ),
-                    QuestsPage(
-                      state: state,
-                      quests: quests,
-                      onRefresh: _refreshQuests,
-                      onPersist: _persist,
-                      onAdd: _addQuest,
-                      onRemove: _removeQuest,
-                      onSnapshot: _captureSnapshot,
-                      onRestore: _restoreSnapshot,
-                      onBindFlush: (flush) => _flushQuestsCommit = flush,
-                    ),
-                    GoalsPage(
-                      state: state,
-                      onAdd: _addQuest,
-                      activeTitles: {for (final q in quests) q.title},
-                      onRemoveGoal: _removeGoal,
-                      onPersist: _persist,
-                      quests: quests,
-                    ),
-                    CalendarPage(
-                      state: state,
-                      quests: quests,
-                      onAdd: _addQuest,
-                    ),
-                    InsightsPage(
-                      state: state,
-                      quests: quests,
-                      onPersist: _persist,
-                    ),
+                    for (final (i, page) in <Widget>[
+                      MePage(
+                        state: state,
+                        quests: quests,
+                        onPersist: _persist,
+                        onAddQuest: _addQuest,
+                        onExport: _export,
+                        onImport: _import,
+                        onReset: _reset,
+                        onNotifyChanged: _rescheduleNotifications,
+                        onLinkAccount: _linkAccount,
+                        onSignIn: _signIn,
+                        onSignOut: _signOut,
+                        onDeleteAccount: _deleteAccount,
+                      ),
+                      QuestsPage(
+                        state: state,
+                        quests: quests,
+                        onRefresh: _refreshQuests,
+                        onPersist: _persist,
+                        onAdd: _addQuest,
+                        onRemove: _removeQuest,
+                        onSnapshot: _captureSnapshot,
+                        onRestore: _restoreSnapshot,
+                        onBindFlush: (flush) => _flushQuestsCommit = flush,
+                      ),
+                      GoalsPage(
+                        state: state,
+                        onAdd: _addQuest,
+                        activeTitles: {for (final q in quests) q.title},
+                        onRemoveGoal: _removeGoal,
+                        onPersist: _persist,
+                        quests: quests,
+                      ),
+                      CalendarPage(
+                        state: state,
+                        quests: quests,
+                        onAdd: _addQuest,
+                      ),
+                      InsightsPage(
+                        state: state,
+                        quests: quests,
+                        onPersist: _persist,
+                      ),
+                    ].indexed)
+                      TickerMode(enabled: _tab == i, child: page),
                   ],
                 ),
               ),
               // ── floating glass dock ─────────────────────────────
               Positioned(
-                left: 12,
-                right: 12,
+                left: 0,
+                right: 0,
                 bottom: 18 + MediaQuery.paddingOf(context).bottom,
-                child: GlassPanel(
-                  blur: true,
-                  radius: 999,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _DockItem(
+                child: Center(
+                  child: GlassPanel(
+                    blur: true,
+                    radius: 999,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _DockItem(
                           icon: Icons.emoji_emotions_outlined,
                           label: 'ME',
                           selected: _tab == 0,
                           onTap: () => _selectTab(0),
                         ),
-                      ),
-                      Expanded(
-                        child: _DockItem(
+                        _DockItem(
                           icon: Icons.task_alt,
                           label: 'QUESTS',
                           selected: _tab == 1,
                           onTap: () => _selectTab(1),
                         ),
-                      ),
-                      Expanded(
-                        child: _DockItem(
+                        _DockItem(
                           icon: Icons.explore_outlined,
                           label: 'GOALS',
                           selected: _tab == 2,
                           onTap: () => _selectTab(2),
                         ),
-                      ),
-                      Expanded(
-                        child: _DockItem(
+                        _DockItem(
                           icon: Icons.calendar_month_outlined,
                           label: 'PLANS',
                           selected: _tab == 3,
                           onTap: () => _selectTab(3),
                         ),
-                      ),
-                      Expanded(
-                        child: _DockItem(
+                        _DockItem(
                           icon: Icons.insights_outlined,
-                          label: 'STATS',
-                          semanticLabel: 'Insights',
+                          label: 'INSIGHTS',
                           selected: _tab == 4,
                           onTap: () => _selectTab(4),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -749,21 +757,19 @@ class _DockItem extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    this.semanticLabel,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final String? semanticLabel;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
       button: true,
       selected: selected,
-      label: '${semanticLabel ?? label} tab',
+      label: '$label tab',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
@@ -772,7 +778,7 @@ class _DockItem extends StatelessWidget {
           curve: Motion.respond,
           constraints: const BoxConstraints(minHeight: 48),
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
             gradient: selected
@@ -792,24 +798,24 @@ class _DockItem extends StatelessWidget {
                   ]
                 : const [],
           ),
-          child: Column(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 icon,
-                size: 20,
+                size: 23,
                 color: selected ? const Color(0xFF4A2F1A) : Palette.textLo,
               ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Type.label.copyWith(
-                  fontSize: 11,
-                  color: selected ? const Color(0xFF4A2F1A) : Palette.textLo,
+              if (selected) ...[
+                const SizedBox(width: 7),
+                Text(
+                  label,
+                  style: Type.label.copyWith(
+                    fontSize: 12,
+                    color: const Color(0xFF4A2F1A),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

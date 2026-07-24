@@ -21,6 +21,8 @@ import '../engine.dart';
 import '../notifications.dart';
 import '../storage.dart';
 import '../tokens.dart';
+import '../a11y.dart';
+import '../widgets/count_up.dart';
 import '../widgets/domain_hint.dart';
 import '../models.dart';
 import '../widgets/glass.dart';
@@ -123,8 +125,10 @@ class MePage extends StatelessWidget {
                   ),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: Text(
-                      'LEVEL ${state.level} · ${state.totalXp} XP',
+                    child: RollingNumber(
+                      state.totalXp,
+                      prefix: 'LEVEL ${state.level} · ',
+                      suffix: ' XP',
                       maxLines: 1,
                       style: Type.label.copyWith(
                         fontSize: 11,
@@ -152,6 +156,7 @@ class MePage extends StatelessWidget {
                   window: state.windowScene,
                   petAwake: state.streakDays > 0,
                   emberGlow: creatureColorsFor(state)[1],
+                  level: state.level,
                 ),
                 const SizedBox(height: 10),
                 // currency + a way into the shop — furniture is now CHOSEN,
@@ -862,7 +867,10 @@ class MePage extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('SOUND & MOTION', style: Type.label.copyWith(fontSize: 11)),
+              Text(
+                'SOUND · MOTION · TEXT',
+                style: Type.label.copyWith(fontSize: 11),
+              ),
               const Spacer(),
             ],
           ),
@@ -872,7 +880,7 @@ class MePage extends StatelessWidget {
             label: 'Sound effects',
             value: state.soundEnabled,
             onChanged: (v) {
-              state.soundEnabled = v;
+              state.setSound(v);
               Sfx.instance.soundEnabled = v;
               if (v) Sfx.instance.play('tick');
               onPersist();
@@ -885,12 +893,105 @@ class MePage extends StatelessWidget {
             subtitle: 'swap particles for fades',
             value: state.reduceMotion,
             onChanged: (v) {
-              state.reduceMotion = v;
+              state.setReduceMotion(v);
               Haptics.reduceMotion = v;
               onPersist();
             },
           ),
+          const SizedBox(height: 12),
+          _textSizeRow(),
         ],
+      ),
+    );
+  }
+
+  /// Accessibility text sizing — an in-app control (on top of the phone's own
+  /// Text Size setting) so larger type is discoverable without leaving the app.
+  Widget _textSizeRow() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.format_size, size: 16, color: Palette.textLo),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Text size',
+                style: Type.label.copyWith(fontSize: 12, color: Palette.textHi),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // the control itself never scales — the 'A' sizes are literal previews
+        MediaQuery.withNoTextScaling(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (final p in textScalePresets)
+                _textSizeChip(
+                  p.$1,
+                  p.$2,
+                  selected: (state.textScale - p.$2).abs() < 0.001,
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _textSizeChip(String label, double value, {required bool selected}) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: 'Text size $label',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          state.setTextScale(value);
+          appTextScale.value = value;
+          Haptics.tap();
+          onPersist();
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: selected
+                    ? Palette.xp.withValues(alpha: 0.16)
+                    : Palette.glassFill,
+                border: Border.all(
+                  color: selected
+                      ? Palette.xp.withValues(alpha: 0.6)
+                      : Palette.glassEdge,
+                ),
+              ),
+              child: Text(
+                'A',
+                style: Type.numerals.copyWith(
+                  // 12 → ~20pt so each chip previews its own scale
+                  fontSize: 12 + (value - 1.0) * 16,
+                  color: selected ? Palette.xp : Palette.textMid,
+                ),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Type.label.copyWith(
+                fontSize: 9,
+                color: selected ? Palette.xp : Palette.textLo,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

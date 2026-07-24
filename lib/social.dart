@@ -58,7 +58,7 @@ Future<void> shareSpace(
     return;
   }
   if (state.roomCode != code) {
-    state.roomCode = code;
+    state.setRoomCode(code);
     onPersist();
   }
   Sfx.instance.play('loot');
@@ -69,7 +69,7 @@ Future<void> shareSpace(
       onStop: () async {
         final stopped = await cloud.unshareRoom(code);
         if (!stopped) return false;
-        state.roomCode = null;
+        state.setRoomCode(null);
         onPersist();
         return true;
       },

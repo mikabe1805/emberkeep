@@ -48,6 +48,20 @@ class _RoomGrain {
   }
 }
 
+/// Maps a player [level] to the hearth's visual stage 0..5, matching the
+/// "YOUR HEARTH GROWS" milestones on the Me page (First Spark L5 → Steady Flame
+/// L10 → Bright Crest L16 → Twin Fire L24 → Everflame L34). Kept here so the
+/// keep's own hearth and the daily-HUD [HearthGlyph] read the same tiers from
+/// one source of truth.
+int hearthStageForLevel(int level) {
+  if (level >= 34) return 5;
+  if (level >= 24) return 4;
+  if (level >= 16) return 3;
+  if (level >= 10) return 2;
+  if (level >= 5) return 1;
+  return 0;
+}
+
 class HomeRoom extends StatefulWidget {
   const HomeRoom({
     super.key,
@@ -59,6 +73,7 @@ class HomeRoom extends StatefulWidget {
     this.window = 'moon',
     this.petAwake = false,
     this.emberGlow,
+    this.level = 1,
     this.lively = true,
   });
 
@@ -88,6 +103,11 @@ class HomeRoom extends StatefulWidget {
   /// the flames take this hue (amber by default; a chosen flame colour tints
   /// the whole keep warm). Null = default honey/amber fire.
   final Color? emberGlow;
+
+  /// The player's level — the hearth burns taller/brighter as it climbs the
+  /// tiers (see [hearthStageForLevel]), making the "YOUR HEARTH GROWS"
+  /// milestones real instead of text. Defaults to 1 for preview/visit callers.
+  final int level;
 
   /// The ambient-life switch (round-61): fire flickers, candles sway, rain
   /// falls, dust drifts. Pass `!state.reduceMotion` once the app wires it up;
@@ -159,6 +179,7 @@ class _HomeRoomState extends State<HomeRoom>
                         widget.window,
                         widget.petAwake,
                         widget.emberGlow,
+                        widget.level,
                         _RoomGrain.wall,
                         _RoomGrain.floor,
                         t,
@@ -193,6 +214,7 @@ class _RoomPainter extends CustomPainter {
     this.window,
     this.petAwake,
     this.emberGlow,
+    this.level,
     this.wallGrain,
     this.floorGrain,
     this.t,
@@ -209,6 +231,7 @@ class _RoomPainter extends CustomPainter {
   final String window;
   final bool petAwake;
   final Color? emberGlow;
+  final int level;
 
   /// 0..1 through the slow ambient loop (quantized upstream). Every motion in
   /// here is a pure function of [t] — deterministic, seamless at the wrap, and
@@ -367,6 +390,14 @@ class _RoomPainter extends CustomPainter {
     if (has('plant')) _plant(canvas, w, h, floorY);
     if (has('pet')) _pet(canvas, w, h, floorY, petAwake);
 
+    // ── FIRELIGHT PASS: the hearth is the room's light source, so its light
+    // has to land ON the furniture, not only pool underneath it. One additive
+    // bloom centred on the firebox, composited over everything already
+    // painted, so the rug, the chair, the plant and the cat all catch the
+    // fire's warmth with honest distance falloff. This is the difference
+    // between a lit room and a flat illustration. ──
+    _firelight(canvas, w, h, floorY);
+
     // ── a soft vignette: the corners settle into shadow so the lit centre
     // (where the avatar lives) reads as the warm heart of the room ──
     final all = Rect.fromLTWH(0, 0, w, h);
@@ -376,10 +407,99 @@ class _RoomPainter extends CustomPainter {
         ..shader = RadialGradient(
           center: const Alignment(0, -0.05),
           radius: 0.98,
-          colors: const [Color(0x00140C06), Color(0x4D140C06)],
-          stops: const [0.62, 1.0],
+          // deepened to hold contrast against the additive firelight pass —
+          // the bloom lifts the whole room, so the corners have to fall
+          // further for the hearth to still read as the brightest thing here
+          colors: const [
+            Color(0x00140C06),
+            Color(0x33140C06),
+            Color(0x7A140C06),
+          ],
+          stops: const [0.45, 0.72, 1.0],
         ).createShader(all),
     );
+  }
+
+  /// The hearth's light, composited over the finished room: an additive warm
+  /// bloom centred on the firebox, a reflection smear on the floorboards, and
+  /// (when the fire is kept) sparks lifting off the coals. Everything here is
+  /// deterministic in [t] and scales with [level]'s hearth tier, so a bigger
+  /// fire genuinely lights more of the keep.
+  void _firelight(Canvas canvas, double w, double h, double floorY) {
+    final u = h - floorY;
+    final glow = emberGlow ?? const Color(0xFFE8915A);
+    final lit = petAwake ? 1.0 : 0.42; // banked, never cold
+    final breath = 0.5 + 0.5 * sin(t * 2 * pi * 2 + 0.4);
+    final stage = hearthStageForLevel(level);
+    final centre = Offset(w * 0.5, floorY - u * 0.16);
+
+    // the bloom — hot cream at the core, the flame's own hue further out,
+    // gone by the corners
+    final bloom = Rect.fromCircle(
+      center: centre,
+      radius: w * (0.50 + 0.026 * stage) * (0.97 + 0.06 * breath),
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, w, h),
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..shader = RadialGradient(
+          colors: [
+            Color.lerp(
+              glow,
+              const Color(0xFFFFF4D9),
+              0.4,
+            )!.withValues(alpha: (0.125 + 0.03 * breath) * lit),
+            glow.withValues(alpha: (0.042 + 0.014 * breath) * lit),
+            const Color(0x00000000),
+          ],
+          stops: const [0.0, 0.40, 1.0],
+        ).createShader(bloom),
+    );
+
+    // firelight glinting off the waxed floorboards — a soft vertical smear
+    // running straight down from the hearth toward the viewer
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.5, floorY + u * 0.52),
+        width: w * 0.24 * (0.94 + 0.1 * breath),
+        height: u * 1.02,
+      ),
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..color = glow.withValues(alpha: 0.075 * lit)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.05),
+    );
+
+    // sparks lifting off the coals and winking out inside the arch — the one
+    // thing in the room that travels upward, so the eye keeps returning to
+    // the fire. Count climbs with the hearth's tier.
+    if (petAwake) {
+      final count = 2 + stage ~/ 2; // 2 sparks at First Spark … 4 at Everflame
+      for (var i = 0; i < count; i++) {
+        final phase = (t * (1.3 + i * 0.21) + i * 0.29) % 1.0;
+        final sx =
+            w * 0.5 +
+            w *
+                (0.008 + 0.035 * phase) *
+                sin(phase * pi * (1.7 + i * 0.5)) *
+                (i.isEven ? 1 : -1);
+        final sy = floorY - u * (0.07 + 0.34 * phase);
+        // snap alight, fade slowly, shrinking as it cools
+        final a = phase < 0.15 ? phase / 0.15 : 1 - (phase - 0.15) / 0.85;
+        canvas.drawCircle(
+          Offset(sx, sy),
+          w * 0.0048 * (1 - phase * 0.5),
+          Paint()
+            ..blendMode = BlendMode.plus
+            ..color = Color.lerp(
+              const Color(0xFFFFF4D9),
+              glow,
+              phase,
+            )!.withValues(alpha: 0.7 * a),
+        );
+      }
+    }
   }
 
   /// The scene's characteristic light colour — what spills through the pane
@@ -686,22 +806,31 @@ class _RoomPainter extends CustomPainter {
     final flameHue = emberGlow ?? const Color(0xFFE8915A);
     final lit = petAwake ? 1.0 : 0.45;
     final flick = 1 + 0.09 * sin(t * 2 * pi * 2) + 0.05 * sin(t * 2 * pi * 3);
+    // the fire climbs its tiers with your level — taller flames, a hotter
+    // heart, and at Everflame a drifting spark. Never shrinks; only grows.
+    final stage = hearthStageForLevel(level);
+    final grow = 0.82 + 0.045 * stage; // 0.82 (baseline) .. ~1.05 (Everflame)
 
-    // chimney breast / stone surround
-    canvas.drawRect(
-      Rect.fromLTWH(x - hw / 2, topY, hw, floorY - topY + 2),
-      Paint()..color = const Color(0xFF4A3E38),
-    );
-    // a soft wall shadow either side, grounding it
+    // a soft wall shadow either side, grounding the breast against the wall
     canvas.drawRect(
       Rect.fromLTWH(x - hw / 2 - w * 0.02, topY, hw + w * 0.04, floorY - topY),
       Paint()
-        ..color = Colors.black.withValues(alpha: 0.12)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+        ..color = Colors.black.withValues(alpha: 0.20)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
     );
+    // chimney breast / stone surround — sooted and cool up near the ceiling,
+    // warming toward the floor where the fire actually reaches it. One flat
+    // slab was the largest and deadest shape in the room.
+    final breast = Rect.fromLTWH(x - hw / 2, topY, hw, floorY - topY + 2);
     canvas.drawRect(
-      Rect.fromLTWH(x - hw / 2, topY, hw, floorY - topY + 2),
-      Paint()..color = const Color(0xFF4A3E38),
+      breast,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF2B2320), Color(0xFF382E2A), Color(0xFF443832)],
+          stops: [0.0, 0.55, 1.0],
+        ).createShader(breast),
     );
     // brick courses hint
     final brick = Paint()
@@ -736,6 +865,59 @@ class _RoomPainter extends CustomPainter {
       ),
       Paint()..color = const Color(0xFF140C08),
     );
+    // the firebox's back wall, warmed from within — a gradient rising off the
+    // coal bed, so the opening reads as a hot cavity instead of a black hole
+    // (this is what keeps the BANKED hearth from looking dead: never-punish
+    // has to be true of the picture, not just the copy)
+    final fbRect = Rect.fromLTWH(x - fbW / 2, floorY - fbH, fbW, fbH);
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        fbRect,
+        topLeft: Radius.circular(fbW * 0.32),
+        topRight: Radius.circular(fbW * 0.32),
+      ),
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0, 0.88),
+          radius: 0.95,
+          colors: [
+            flameHue.withValues(alpha: 0.40 * (0.45 + 0.55 * lit)),
+            flameHue.withValues(alpha: 0.12 * (0.45 + 0.55 * lit)),
+            const Color(0x00000000),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(fbRect),
+    );
+    // soot licking up the breast above the opening — a century of fires
+    final sootRect = Rect.fromLTWH(
+      x - fbW * 0.60,
+      floorY - fbH - u * 0.16,
+      fbW * 1.20,
+      u * 0.19,
+    );
+    canvas.drawRect(
+      sootRect,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [Color(0x5C120A06), Color(0x00120A06)],
+        ).createShader(sootRect)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+    // the stone lip around the mouth catches the firelight
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(
+        fbRect.inflate(2),
+        topLeft: Radius.circular(fbW * 0.34),
+        topRight: Radius.circular(fbW * 0.34),
+      ),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.5
+        ..color = flameHue.withValues(alpha: 0.10 + 0.22 * lit)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+    );
 
     // firelight glowing out of the opening (reactive)
     canvas.drawCircle(
@@ -747,55 +929,103 @@ class _RoomPainter extends CustomPainter {
         )
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16),
     );
-    // log bed + glowing embers (present even when banked)
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(x, fb),
-        width: fbW * 0.78,
-        height: u * 0.08,
-      ),
-      Paint()..color = const Color(0xFF4E2E18),
+    // ── the log bed: two split logs crossed over live coals. Both stay when
+    // the fire banks — a keep's hearth banks down, it never goes out. ──
+    void log(double x0, double y0, double x1, double y1, double thick) {
+      canvas.drawLine(
+        Offset(x0, y0),
+        Offset(x1, y1),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = thick
+          ..color = const Color(0xFF4A2C18),
+      );
+      // the underside catches the coals' light
+      canvas.drawLine(
+        Offset(x0, y0 + thick * 0.26),
+        Offset(x1, y1 + thick * 0.26),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = thick * 0.38
+          ..color = Color.lerp(
+            flameHue,
+            const Color(0xFF4A2C18),
+            0.45,
+          )!.withValues(alpha: 0.2 + 0.5 * lit),
+      );
+    }
+
+    log(
+      x - fbW * 0.40,
+      fb - u * 0.028,
+      x + fbW * 0.34,
+      fb - u * 0.004,
+      u * 0.044,
     );
-    for (final dx in const [-0.28, -0.1, 0.09, 0.27]) {
+    log(
+      x - fbW * 0.32,
+      fb - u * 0.003,
+      x + fbW * 0.40,
+      fb - u * 0.032,
+      u * 0.038,
+    );
+
+    // live coals, each breathing on its own beat so the bed never looks like
+    // four painted dots
+    const coalXs = [-0.30, -0.11, 0.09, 0.28];
+    for (var i = 0; i < coalXs.length; i++) {
+      final heat = 0.5 + 0.5 * sin(t * 2 * pi * 1.5 + i * 1.9);
       canvas.drawCircle(
-        Offset(x + dx * fbW, fb - u * 0.008),
-        fbW * 0.055,
+        Offset(x + coalXs[i] * fbW, fb - u * 0.004),
+        fbW * 0.055 * (0.88 + 0.18 * heat),
         Paint()
           ..color = Color.lerp(
             flameHue,
             const Color(0xFFFFDE9A),
-            0.4,
-          )!.withValues(alpha: 0.55 + 0.35 * lit),
+            0.35 * heat,
+          )!.withValues(alpha: (0.45 + 0.4 * heat) * (0.5 + 0.5 * lit))
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, fbW * 0.025),
       );
     }
 
     if (petAwake) {
-      // full flames when the fire is kept
+      // Full flames when the fire is kept. White-hot at the base, cooling to
+      // the flame's own hue at the licking tip — real fire is hottest low
+      // down, and the old gradient ran the other way, which is why it read as
+      // three white teeth instead of fire.
       for (final spec in const [
-        (-0.18, 0.7, 0.0),
+        (-0.20, 0.66, 0.0),
         (0.0, 1.0, 1.3),
-        (0.18, 0.72, 2.4),
+        (0.20, 0.70, 2.4),
       ]) {
         final fx = x + spec.$1 * fbW;
         final f = 1 + 0.16 * sin(t * 2 * pi * 2 + spec.$3);
-        final lean = fbW * 0.06 * sin(t * 2 * pi + spec.$3);
-        final fhh = fbH * 0.5 * spec.$2 * f;
+        final lean = fbW * 0.07 * sin(t * 2 * pi + spec.$3);
+        final fhh = fbH * 0.80 * spec.$2 * f * grow;
+        final bw = fbW * 0.082 * spec.$2;
+        // a licking tongue: bellied low, drawn out to a leaning point
         final flame = Path()
-          ..moveTo(fx - fbW * 0.08, fb)
-          ..quadraticBezierTo(
-            fx - fbW * 0.09 + lean,
-            fb - fhh * 0.6,
+          ..moveTo(fx - bw, fb)
+          ..cubicTo(
+            fx - bw * 1.15,
+            fb - fhh * 0.34,
+            fx - bw * 0.62 + lean,
+            fb - fhh * 0.72,
             fx + lean,
             fb - fhh,
           )
-          ..quadraticBezierTo(
-            fx + fbW * 0.09 + lean,
-            fb - fhh * 0.6,
-            fx + fbW * 0.08,
+          ..cubicTo(
+            fx + bw * 0.62 + lean,
+            fb - fhh * 0.72,
+            fx + bw * 1.15,
+            fb - fhh * 0.34,
+            fx + bw,
             fb,
           )
           ..close();
-        final fr = Rect.fromLTWH(fx - fbW * 0.11, fb - fhh, fbW * 0.22, fhh);
+        final fr = Rect.fromLTWH(fx - bw * 1.2, fb - fhh, bw * 2.4, fhh);
         canvas.drawPath(
           flame,
           Paint()
@@ -803,22 +1033,36 @@ class _RoomPainter extends CustomPainter {
               begin: Alignment.bottomCenter,
               end: Alignment.topCenter,
               colors: [
+                const Color(0xFFFFF6E4),
+                Color.lerp(flameHue, const Color(0xFFFFDE9A), 0.55)!,
                 flameHue,
-                Color.lerp(flameHue, const Color(0xFFFFF4D9), 0.6)!,
-                const Color(0xFFFFF4D9),
+                flameHue.withValues(alpha: 0.66),
               ],
-              stops: const [0.0, 0.55, 1.0],
+              stops: const [0.0, 0.26, 0.74, 1.0],
             ).createShader(fr),
         );
       }
-      // a hot bright heart low in the fire
+      // a hot bright heart low in the fire — hotter as the hearth climbs
       canvas.drawCircle(
-        Offset(x, fb - u * 0.05),
-        fbW * 0.13 * flick,
+        Offset(x, fb - u * 0.035),
+        fbW * 0.115 * flick * (0.92 + 0.05 * stage),
         Paint()
-          ..color = const Color(0xFFFFF4D9).withValues(alpha: 0.85)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+          ..color = const Color(0xFFFFF4D9).withValues(alpha: 0.6)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
       );
+      // Everflame (top tier): a single spark drifts up from the crown
+      if (stage >= 5) {
+        final sy = (fb - fbH * grow) - u * 0.06 * (0.5 + 0.5 * sin(t * 2 * pi));
+        canvas.drawCircle(
+          Offset(x + fbW * 0.10 * sin(t * 2 * pi * 1.5), sy),
+          fbW * 0.035,
+          Paint()
+            ..color = const Color(
+              0xFFFFF4D9,
+            ).withValues(alpha: 0.35 + 0.45 * (0.5 + 0.5 * sin(t * 2 * pi * 3)))
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+        );
+      }
     }
   }
 
@@ -843,13 +1087,37 @@ class _RoomPainter extends CustomPainter {
       Paint()..color = const Color(0x33000000),
     );
 
-    void ear(Offset c, double s, double size) {
-      final p = Path()
-        ..moveTo(c.dx + s * size * 0.4, c.dy + size * 0.3)
-        ..lineTo(c.dx + s * size, c.dy - size)
-        ..lineTo(c.dx + s * size * 1.5, c.dy + size * 0.1)
-        ..close();
-      canvas.drawPath(p, tan);
+    // An ear ANCHORED ON THE SKULL: both base points sit inside the head
+    // circle (radius [r]) and the tip pushes out past the rim, so it reads as
+    // part of the animal. The old version placed a free triangle by offset and
+    // drifted off the head on the left / vanished into it on the right.
+    void ear(Offset hc, double r, double s) {
+      final baseA = Offset(hc.dx + s * r * 0.16, hc.dy - r * 0.92);
+      final baseB = Offset(hc.dx + s * r * 0.90, hc.dy - r * 0.30);
+      final tip = Offset(hc.dx + s * r * 0.84, hc.dy - r * 1.46);
+      canvas.drawPath(
+        Path()
+          ..moveTo(baseA.dx, baseA.dy)
+          ..lineTo(tip.dx, tip.dy)
+          ..lineTo(baseB.dx, baseB.dy)
+          ..close(),
+        tan,
+      );
+      // the inner cup — a smaller rose triangle inset toward the centroid
+      final c = Offset(
+        (baseA.dx + baseB.dx + tip.dx) / 3,
+        (baseA.dy + baseB.dy + tip.dy) / 3,
+      );
+      Offset inset(Offset p) => Offset.lerp(p, c, 0.36)!;
+      final ia = inset(baseA), ib = inset(baseB), it = inset(tip);
+      canvas.drawPath(
+        Path()
+          ..moveTo(ia.dx, ia.dy)
+          ..lineTo(it.dx, it.dy)
+          ..lineTo(ib.dx, ib.dy)
+          ..close(),
+        Paint()..color = const Color(0xFFD79A93).withValues(alpha: 0.6),
+      );
     }
 
     if (!awake) {
@@ -879,8 +1147,8 @@ class _RoomPainter extends CustomPainter {
       // head resting on the left
       final hc = Offset(cx - w * 0.06, baseY - u * 0.13);
       canvas.drawCircle(hc, w * 0.042, tan);
-      ear(hc.translate(-w * 0.025, -w * 0.02), -1, w * 0.03);
-      ear(hc.translate(w * 0.01, -w * 0.025), 1, w * 0.03);
+      ear(hc, w * 0.042, -1);
+      ear(hc, w * 0.042, 1);
       // a sleepy closed eye
       canvas.drawArc(
         Rect.fromCircle(center: hc.translate(w * 0.005, 0), radius: w * 0.014),
@@ -944,8 +1212,8 @@ class _RoomPainter extends CustomPainter {
       // head up
       final hc = Offset(cx, baseY - u * 0.34);
       canvas.drawCircle(hc, w * 0.058, tan);
-      ear(hc.translate(-w * 0.05, -w * 0.01), -1, w * 0.038);
-      ear(hc.translate(w * 0.012, -w * 0.01), 1, w * 0.038);
+      ear(hc, w * 0.058, -1);
+      ear(hc, w * 0.058, 1);
       // big eyes with catchlights, looking up toward the ember
       for (final s in [-1.0, 1.0]) {
         final ec = hc.translate(s * w * 0.025, -w * 0.004);
@@ -1094,6 +1362,7 @@ class _RoomPainter extends CustomPainter {
       old.window != window ||
       old.petAwake != petAwake ||
       old.emberGlow != emberGlow ||
+      old.level != level ||
       old.wallGrain != wallGrain ||
       old.floorGrain != floorGrain ||
       // content compares, not identity: the live owned-set mutates in place
@@ -1139,14 +1408,91 @@ void paintWindowScene(Canvas canvas, String scene, Rect rect, {double t = 0}) {
         colors: colors,
       ).createShader(rect),
   );
-  void fullMoon(double x, double y, double rFrac) =>
-      canvas.drawCircle(at(x, y), fw * rFrac, Paint()..color = Palette.xpLight);
+
+  /// A moon's halo — the bloom real moonlight has in humid night air. Without
+  /// it a moon is a flat sticker pasted on a flat sky; with it the sky reads
+  /// as atmosphere. Two stacked falloffs (tight + wide) beat one big blur.
+  void moonGlow(double x, double y, double rFrac, [double strength = 1]) {
+    final c = at(x, y);
+    canvas.drawCircle(
+      c,
+      fw * rFrac * 3.0,
+      Paint()
+        ..color = Palette.xpLight.withValues(alpha: 0.09 * strength)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, fw * rFrac * 1.4),
+    );
+    canvas.drawCircle(
+      c,
+      fw * rFrac * 1.6,
+      Paint()
+        ..color = Palette.xpLight.withValues(alpha: 0.16 * strength)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, fw * rFrac * 0.75),
+    );
+  }
+
+  void fullMoon(double x, double y, double rFrac) {
+    moonGlow(x, y, rFrac);
+    canvas.drawCircle(at(x, y), fw * rFrac, Paint()..color = Palette.xpLight);
+    // two faint maria so the disc has a surface instead of reading as a hole
+    canvas.drawCircle(
+      at(x, y).translate(-fw * rFrac * 0.3, -fw * rFrac * 0.22),
+      fw * rFrac * 0.30,
+      Paint()..color = const Color(0x18140C06),
+    );
+    canvas.drawCircle(
+      at(x, y).translate(fw * rFrac * 0.26, fw * rFrac * 0.3),
+      fw * rFrac * 0.20,
+      Paint()..color = const Color(0x14140C06),
+    );
+  }
+
+  /// A crescent carved by subtracting a shifted disc. Never overdraw the dark
+  /// side with a flat colour — on a gradient sky that leaves a visible
+  /// wrong-tone ghost circle beside the moon.
+  void crescent(double x, double y, double rFrac, double alpha) {
+    final r = fw * rFrac;
+    moonGlow(x, y, rFrac, alpha * 0.9);
+    canvas.save();
+    canvas.clipPath(
+      Path.combine(
+        PathOperation.difference,
+        Path()..addOval(Rect.fromCircle(center: at(x, y), radius: r)),
+        Path()..addOval(
+          Rect.fromCircle(
+            center: at(x, y).translate(r * 0.52, -r * 0.3),
+            radius: r,
+          ),
+        ),
+      ),
+    );
+    canvas.drawCircle(
+      at(x, y),
+      r,
+      Paint()..color = Palette.xpLight.withValues(alpha: alpha),
+    );
+    canvas.restore();
+  }
 
   switch (scene) {
     case 'city':
       sky(const [Color(0xFF161A2E), Color(0xFF241A2A)]);
       stars(const [Offset(0.18, 0.18), Offset(0.42, 0.12), Offset(0.8, 0.2)]);
       fullMoon(0.2, 0.24, 0.08);
+      // light pollution — the sodium haze a city throws up against its own
+      // sky. The one detail that separates "a city at night" from "black
+      // rectangles with yellow dots".
+      canvas.drawRect(
+        Rect.fromLTWH(fx, fy + fh * 0.42, fw, fh * 0.58),
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [
+              const Color(0xFFE8C77A).withValues(alpha: 0.24),
+              const Color(0xFFE8C77A).withValues(alpha: 0.0),
+            ],
+          ).createShader(Rect.fromLTWH(fx, fy + fh * 0.42, fw, fh * 0.58)),
+      );
       // skyline silhouette with lit windows
       final sil = Paint()..color = const Color(0xFF0A0C16);
       final lit = Paint()..color = const Color(0xFFE8C77A);
@@ -1162,43 +1508,84 @@ void paintWindowScene(Canvas canvas, String scene, Rect rect, {double t = 0}) {
         for (var r = 0; r < 3; r++) {
           for (var c = 0; c < 2; c++) {
             if ((i + r + c).isEven) continue;
-            canvas.drawRect(
-              Rect.fromLTWH(
-                fx + fw * bx[i] - bw * 0.28 + c * bw * 0.34,
-                top + fh * 0.06 + r * fh * 0.1,
-                fw * 0.022,
-                fh * 0.04,
-              ),
-              lit,
+            final cell = Rect.fromLTWH(
+              fx + fw * bx[i] - bw * 0.28 + c * bw * 0.34,
+              top + fh * 0.06 + r * fh * 0.1,
+              fw * 0.022,
+              fh * 0.04,
             );
+            // each window blooms a little into the dark — lit glass at night
+            // is never a crisp rectangle
+            canvas.drawRect(
+              cell.inflate(fw * 0.012),
+              Paint()
+                ..color = const Color(0xFFE8C77A).withValues(alpha: 0.30)
+                ..maskFilter = MaskFilter.blur(BlurStyle.normal, fw * 0.014),
+            );
+            canvas.drawRect(cell, lit);
           }
+        }
+        // a red aircraft-warning light winking on the two tallest towers
+        if (bh[i] > 0.44) {
+          final blink = 0.35 + 0.65 * (sin(t * 2 * pi * 2 + i) > 0.4 ? 1 : 0);
+          canvas.drawCircle(
+            Offset(fx + fw * bx[i], top - fh * 0.012),
+            fw * 0.011,
+            Paint()
+              ..color = const Color(0xFFE57468).withValues(alpha: blink)
+              ..maskFilter = MaskFilter.blur(BlurStyle.normal, fw * 0.01),
+          );
         }
       }
     case 'forest':
       sky(const [Color(0xFF101A14), Color(0xFF16140E)]);
       stars(const [Offset(0.2, 0.18), Offset(0.5, 0.14), Offset(0.34, 0.3)]);
       fullMoon(0.72, 0.26, 0.11);
-      final tree = Paint()..color = const Color(0xFF0A140E);
-      const tx = [0.1, 0.26, 0.44, 0.62, 0.8, 0.94];
-      const th = [0.42, 0.56, 0.46, 0.6, 0.5, 0.4];
-      for (var i = 0; i < tx.length; i++) {
-        final baseY = fy + fh;
-        final topY = fy + fh * (1 - th[i]);
-        final cxp = fx + fw * tx[i], halfW = fw * 0.07;
-        final p = Path()
-          ..moveTo(cxp, topY)
-          ..lineTo(cxp - halfW, baseY)
-          ..lineTo(cxp + halfW, baseY)
-          ..close();
-        canvas.drawPath(p, tree);
+      // two ranks of pines — a hazed far rank, then the near black silhouette,
+      // with ground mist between them. Depth from tone, same as the mountains.
+      void pines(List<double> tx, List<double> th, Color col, double halfFrac) {
+        final paint = Paint()..color = col;
+        for (var i = 0; i < tx.length; i++) {
+          final baseY = fy + fh;
+          final topY = fy + fh * (1 - th[i]);
+          final cxp = fx + fw * tx[i], halfW = fw * halfFrac;
+          // a stepped conifer rather than one flat triangle
+          final p = Path()
+            ..moveTo(cxp, topY)
+            ..lineTo(cxp - halfW * 0.62, topY + (baseY - topY) * 0.45)
+            ..lineTo(cxp - halfW * 0.34, topY + (baseY - topY) * 0.45)
+            ..lineTo(cxp - halfW, baseY)
+            ..lineTo(cxp + halfW, baseY)
+            ..lineTo(cxp + halfW * 0.34, topY + (baseY - topY) * 0.45)
+            ..lineTo(cxp + halfW * 0.62, topY + (baseY - topY) * 0.45)
+            ..close();
+          canvas.drawPath(p, paint);
+        }
       }
+
+      pines(
+        const [0.04, 0.2, 0.36, 0.54, 0.7, 0.88],
+        const [0.3, 0.38, 0.32, 0.4, 0.34, 0.3],
+        const Color(0xFF1C2A20),
+        0.055,
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(fx, fy + fh * 0.62, fw, fh * 0.24),
+        Paint()
+          ..color = const Color(0xFFBFE0C0).withValues(alpha: 0.13)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, fh * 0.06),
+      );
+      pines(
+        const [0.1, 0.26, 0.44, 0.62, 0.8, 0.94],
+        const [0.42, 0.56, 0.46, 0.6, 0.5, 0.4],
+        const Color(0xFF0A140E),
+        0.07,
+      );
     case 'mountains':
       sky(const [Color(0xFF1A2236), Color(0xFF2A2438)]);
       stars(const [Offset(0.16, 0.16), Offset(0.6, 0.12), Offset(0.84, 0.22)]);
       fullMoon(0.78, 0.22, 0.09);
-      final back = Paint()..color = const Color(0xFF2C3450);
-      final front = Paint()..color = const Color(0xFF161C2C);
-      Path ridge(double baseFrac, List<double> peaks) {
+      Path ridgeAt(List<double> peaks) {
         final p = Path()..moveTo(fx, fy + fh);
         final n = peaks.length;
         for (var i = 0; i < n; i++) {
@@ -1209,47 +1596,70 @@ void paintWindowScene(Canvas canvas, String scene, Rect rect, {double t = 0}) {
           ..close();
         return p;
       }
-      canvas.drawPath(ridge(0, const [0.3, 0.5, 0.36, 0.56, 0.34]), back);
+      // Atmospheric perspective: three ranges, each nearer one darker and
+      // more saturated than the last. Distance in a landscape is carried by
+      // haze, not by scale — flat-toned ridges read as cut paper.
       canvas.drawPath(
-        ridge(0, const [0.18, 0.34, 0.22, 0.4, 0.2, 0.36]),
-        front,
+        ridgeAt(const [0.34, 0.54, 0.4, 0.6, 0.38]),
+        Paint()..color = const Color(0xFF3A4360),
       );
-    case 'rain':
-      sky(const [Color(0xFF14100C), Color(0xFF181820)]);
-      // dim crescent behind the rain — carved by clipping the lit disc against
-      // a shifted disc (difference), NOT overdrawing a flat colour onto the
-      // GRADIENT sky (which left a wrong-tone ghost circle beside the moon)
-      final moonRect = Rect.fromCircle(
-        center: at(0.66, 0.3),
-        radius: fw * 0.12,
+      // a band of haze pooling in the valley behind the middle range
+      canvas.drawRect(
+        Rect.fromLTWH(fx, fy + fh * 0.52, fw, fh * 0.26),
+        Paint()
+          ..color = const Color(0xFF6E7AA0).withValues(alpha: 0.22)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, fh * 0.06),
       );
+      canvas.drawPath(
+        ridgeAt(const [0.26, 0.44, 0.3, 0.5, 0.28, 0.44]),
+        Paint()..color = const Color(0xFF262E48),
+      );
+      canvas.drawPath(
+        ridgeAt(const [0.14, 0.3, 0.18, 0.34, 0.16, 0.3]),
+        Paint()..color = const Color(0xFF121728),
+      );
+      // moonlight catching the near range's lit flanks
       canvas.save();
-      canvas.clipPath(
-        Path.combine(
-          PathOperation.difference,
-          Path()..addOval(moonRect),
-          Path()..addOval(
-            Rect.fromCircle(center: at(0.72, 0.27), radius: fw * 0.12),
-          ),
-        ),
-      );
+      canvas.clipPath(ridgeAt(const [0.14, 0.3, 0.18, 0.34, 0.16, 0.3]));
       canvas.drawCircle(
-        at(0.66, 0.3),
-        fw * 0.12,
-        Paint()..color = Palette.xpLight.withValues(alpha: 0.7),
+        at(0.78, 0.22),
+        fw * 0.55,
+        Paint()
+          ..color = Palette.xpLight.withValues(alpha: 0.07)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, fw * 0.2),
       );
       canvas.restore();
-      final drop = Paint()
-        ..color = const Color(0xFFAEB8D0).withValues(alpha: 0.5)
-        ..strokeWidth = 1;
-      for (var i = 0; i < 22; i++) {
+    case 'rain':
+      sky(const [Color(0xFF14100C), Color(0xFF181820)]);
+      // dim crescent behind the rain, hazed by the weather
+      crescent(0.66, 0.3, 0.12, 0.62);
+      // Rain that isn't a hatch pattern: each drop gets its own length, weight
+      // and fall speed, so near drops streak fast and far ones drift. Uniform
+      // diagonals of identical length read as ruled lines, not weather.
+      for (var i = 0; i < 26; i++) {
+        final near = (i * 0.37) % 1.0; // 0 far … 1 near
+        final len = fh * (0.06 + 0.09 * near);
         final x = fx + fw * ((i * 0.137) % 1.0);
-        // fall: each drop slides down the pane on the loop, wrapping cleanly
-        final y = fy + fh * ((i * 0.231 + t * 2.0) % 1.0);
+        final y = fy + fh * ((i * 0.231 + t * (1.4 + 1.4 * near)) % 1.0);
         canvas.drawLine(
           Offset(x, y),
-          Offset(x - fw * 0.03, y + fh * 0.1),
-          drop,
+          Offset(x - fw * 0.03 * (0.6 + near), y + len),
+          Paint()
+            ..color = const Color(
+              0xFFAEB8D0,
+            ).withValues(alpha: 0.22 + 0.34 * near)
+            ..strokeWidth = 0.7 + 0.9 * near
+            ..strokeCap = StrokeCap.round,
+        );
+      }
+      // beads clinging to the inside of the pane, catching the moon
+      for (var i = 0; i < 5; i++) {
+        final bx = fx + fw * (0.12 + i * 0.19);
+        final by = fy + fh * (0.22 + ((i * 0.31 + t * 0.35) % 0.7));
+        canvas.drawCircle(
+          Offset(bx, by),
+          fw * (0.008 + 0.004 * (i % 3)),
+          Paint()..color = Palette.xpLight.withValues(alpha: 0.28),
         );
       }
     case 'dawn':
@@ -1317,18 +1727,31 @@ void paintWindowScene(Canvas canvas, String scene, Rect rect, {double t = 0}) {
         );
       }
     default: // 'moon' — the classic moonlit night
-      canvas.drawRect(rect, Paint()..color = const Color(0xFF14100C));
-      canvas.drawCircle(
-        at(0.64, 0.34),
-        fw * 0.14,
-        Paint()..color = Palette.xpLight,
-      );
-      canvas.drawCircle(
-        at(0.64, 0.34).translate(fw * 0.07, -fw * 0.04),
-        fw * 0.14,
-        Paint()..color = const Color(0xFF14100C),
-      );
-      stars(const [Offset(0.24, 0.28), Offset(0.36, 0.58), Offset(0.2, 0.62)]);
+      // a real sky rather than a flat black rectangle: cold high air settling
+      // into the warm haze the keep's own valley throws up at the horizon
+      sky(const [Color(0xFF141A2A), Color(0xFF1B1622), Color(0xFF241A14)]);
+      stars(const [
+        Offset(0.14, 0.16),
+        Offset(0.30, 0.30),
+        Offset(0.46, 0.13),
+        Offset(0.24, 0.52),
+        Offset(0.86, 0.36),
+        Offset(0.72, 0.14),
+      ]);
+      crescent(0.64, 0.34, 0.14, 1.0);
+      // a far treeline along the sill — depth for free, and it grounds the
+      // moon as sky instead of wallpaper
+      final ridge = Path()..moveTo(fx, fy + fh);
+      for (var i = 0; i <= 7; i++) {
+        final rx = fx + fw * (i / 7);
+        ridge
+          ..lineTo(rx, fy + fh * (0.88 - (i.isEven ? 0.07 : 0.03)))
+          ..lineTo(rx + fw / 14, fy + fh * 0.92);
+      }
+      ridge
+        ..lineTo(fx + fw, fy + fh)
+        ..close();
+      canvas.drawPath(ridge, Paint()..color = const Color(0xFF120E12));
   }
   canvas.restore();
 }

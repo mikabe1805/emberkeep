@@ -65,10 +65,20 @@ class GoalDetailScreen extends StatelessWidget {
         .toList(growable: false);
     final now = Clock.now();
     final todayKey = Days.key(now);
-    // a quest hidden "just for today" can't be done today, so keep it out of the
-    // DONE-TODAY denominator (it still shows in the list as a goal member).
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    // Only quests actually actionable today belong in the DONE-TODAY
+    // denominator: a quest snoozed for today, or a habit not scheduled today
+    // (e.g. a M/W/F habit on a Tuesday), can't be cleared today — counting it
+    // would leave the ring stuck short and quietly scold. They still show in
+    // the list below as goal members.
     final activeToday = related
-        .where((q) => q.snoozedDay != todayKey)
+        .where(
+          (q) =>
+              q.snoozedDay != todayKey &&
+              (q.isEvent
+                  ? !q.dueDate!.isAfter(endOfToday)
+                  : q.scheduledOn(now)),
+        )
         .toList(growable: false);
     final doneToday = activeToday.where((q) => q.doneFor(now)).length;
     final days = goal.startedDay == null

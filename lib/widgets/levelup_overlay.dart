@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../haptics.dart';
 import '../tokens.dart';
 import 'glass.dart';
 import 'particles.dart';
@@ -56,15 +56,9 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
   void initState() {
     super.initState();
     Sfx.instance.play('levelup');
-    // composed multi-tap celebration, reserved for level-ups (§8), synced
-    // to the numeral slam
-    HapticFeedback.heavyImpact();
-    Future.delayed(const Duration(milliseconds: 90), () {
-      if (mounted) HapticFeedback.heavyImpact();
-    });
-    Future.delayed(const Duration(milliseconds: 220), () {
-      if (mounted) HapticFeedback.mediumImpact();
-    });
+    // the level-up slam — heavy settling into a medium, and softened to a
+    // single medium under reduce-motion (Haptics.big honors the setting)
+    Haptics.big();
     _c.forward();
     // particle storm fires as the numeral lands
     Future.delayed(const Duration(milliseconds: 380), () {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../haptics.dart';
 import '../tokens.dart';
 import 'glass.dart';
 import 'particles.dart';
@@ -59,13 +59,14 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
   @override
   void initState() {
     super.initState();
+    _c.forward();
     Sfx.instance.play('streak');
-    HapticFeedback.heavyImpact();
+    Haptics.big();
     Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted) {
         setState(() => _burst = true);
         Sfx.instance.play('loot');
-        HapticFeedback.mediumImpact();
+        Haptics.flourish();
       }
     });
   }

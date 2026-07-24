@@ -247,6 +247,21 @@ class _EmberSheetState extends State<_EmberSheet> {
     return earned.round();
   }
 
+  /// 1 -> "1st", 2 -> "2nd", 21 -> "21st", 11-13 -> "th" (never "21th").
+  String _ordinal(int n) {
+    if (n % 100 >= 11 && n % 100 <= 13) return '${n}th';
+    switch (n % 10) {
+      case 1:
+        return '${n}st';
+      case 2:
+        return '${n}nd';
+      case 3:
+        return '${n}rd';
+      default:
+        return '${n}th';
+    }
+  }
+
   String get _freqPreview {
     if (_isTomorrow) return 'tomorrow ★';
     switch (_freq) {
@@ -257,7 +272,7 @@ class _EmberSheetState extends State<_EmberSheet> {
       case _Freq.onceWeek:
         return 'every ${_dayNames[_weekday - 1]}';
       case _Freq.onceMonth:
-        return 'on the ${_monthDay}th';
+        return 'on the ${_ordinal(_monthDay)}';
       case _Freq.justToday:
         return 'just today';
       case _Freq.untilDone:

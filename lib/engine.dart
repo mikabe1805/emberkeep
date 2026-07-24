@@ -42,6 +42,11 @@ class GameState extends ChangeNotifier {
   /// Sound toggle — the owner can mute all event sounds ( DESIGN.md §8).
   bool soundEnabled = true;
 
+  /// Accessibility: an in-app text-size multiplier, layered on top of the OS
+  /// Text Size setting (main.dart takes the larger of the two, then clamps).
+  /// 1.0 = default; presets live in a11y.dart.
+  double textScale = 1.0;
+
   void setReduceMotion(bool v) {
     if (reduceMotion == v) return;
     reduceMotion = v;
@@ -49,9 +54,29 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setTextScale(double v) {
+    if (textScale == v) return;
+    textScale = v;
+    notifyListeners();
+  }
+
   void setFocusMode(bool v) {
     if (focusMode == v) return;
     focusMode = v;
+    notifyListeners();
+  }
+
+  void setSound(bool v) {
+    if (soundEnabled == v) return;
+    soundEnabled = v;
+    notifyListeners();
+  }
+
+  /// The shared-space code, if this keep is published. Set through here (not
+  /// the field) so the Me-page "Shared · CODE" label repaints when it changes.
+  void setRoomCode(String? code) {
+    if (roomCode == code) return;
+    roomCode = code;
     notifyListeners();
   }
 
@@ -1026,6 +1051,7 @@ class GameState extends ChangeNotifier {
     'focusMode': focusMode,
     'reduceMotion': reduceMotion,
     'soundEnabled': soundEnabled,
+    'textScale': textScale,
     'notifyEnabled': notifyEnabled,
     'notifyHour': notifyHour,
     'notifyMinute': notifyMinute,
@@ -1101,6 +1127,7 @@ class GameState extends ChangeNotifier {
     s.focusMode = j['focusMode'] as bool? ?? false;
     s.reduceMotion = j['reduceMotion'] as bool? ?? false;
     s.soundEnabled = j['soundEnabled'] as bool? ?? true;
+    s.textScale = (j['textScale'] as num?)?.toDouble() ?? 1.0;
     s.notifyEnabled = j['notifyEnabled'] as bool? ?? false;
     s.notifyHour = j['notifyHour'] as int? ?? 9;
     s.notifyMinute = j['notifyMinute'] as int? ?? 0;

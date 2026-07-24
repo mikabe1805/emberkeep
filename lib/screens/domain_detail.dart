@@ -136,7 +136,7 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                             accent: _accent,
                           ),
                         );
-                        if (q != null) widget.onAddQuest(q);
+                        if (q != null) setState(() => widget.onAddQuest(q));
                       },
                     ),
                     const SizedBox(height: 16),

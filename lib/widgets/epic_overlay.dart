@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../haptics.dart';
 import '../tokens.dart';
 import 'glass.dart';
 import 'particles.dart';
@@ -59,10 +59,8 @@ class _EpicOverlayState extends State<EpicOverlay>
   void initState() {
     super.initState();
     Sfx.instance.play('levelup');
-    HapticFeedback.heavyImpact();
-    Future.delayed(const Duration(milliseconds: 110), () {
-      if (mounted) HapticFeedback.heavyImpact();
-    });
+    // softens to a single medium under reduce-motion (Haptics.big honors it)
+    Haptics.big();
     _c.forward();
     Future.delayed(const Duration(milliseconds: 320), () {
       if (mounted) setState(() => _burst = true);

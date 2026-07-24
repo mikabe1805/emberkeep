@@ -291,7 +291,7 @@ class CloudSync extends ChangeNotifier {
       status = _statusForUser();
       notifyListeners();
     } catch (e) {
-      status = 'on (last push failed)';
+      status = 'on (last sync didn’t go through)';
       notifyListeners();
       debugPrint('CloudSync push failed: $e');
     }

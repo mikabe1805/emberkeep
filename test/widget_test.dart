@@ -5,6 +5,7 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/social.dart';
 import 'package:emberkeep/storage.dart';
 import 'package:emberkeep/tokens.dart';
+import 'package:emberkeep/widgets/glass_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -130,7 +131,12 @@ void main() {
       // B reverted (back to 8), and A's reward was NOT destroyed
       expect(find.text('TODAY · 8 LEFT'), findsOneWidget);
       await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
-      await tester.pump(const Duration(milliseconds: 400));
+      // The Me header's XP is a RollingNumber, and the shell mutes off-screen
+      // tabs — so its tween only starts once Me comes forward. Settle it (a
+      // frame to set the ticker epoch, then time to run) rather than reading a
+      // single 400ms pump, which lands in easeInQuad's near-flat opening and
+      // still shows the pre-roll value.
+      await settle(tester);
       expect(
         find.text('LEVEL 1 · 0 XP'),
         findsNothing,
@@ -172,6 +178,52 @@ void main() {
     await tester.tap(find.byIcon(Icons.insights_outlined));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Insights'), findsOneWidget);
+  });
+
+  testWidgets('sound & reduce-motion toggles repaint the switch when tapped', (
+    tester,
+  ) async {
+    // Regression: the handlers mutated state.soundEnabled / state.reduceMotion
+    // directly (no notifyListeners) while the switch reads its value through a
+    // ListenableBuilder — so the thumb never moved and the toggles felt dead
+    // (worse once reminders were on and the panel had already repainted).
+    await pumpApp(tester);
+    await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final meList = find.byType(Scrollable).first;
+    // NB: this must track me.dart's section heading exactly — it was renamed
+    // to add the text-size control, and a stale string here makes the scroll
+    // run off the end of the lazy list and fail with an opaque "No element".
+    await tester.scrollUntilVisible(
+      find.text('SOUND · MOTION · TEXT'),
+      160,
+      scrollable: meList,
+    );
+
+    Finder switchFor(String label) => find.byWidgetPredicate(
+      (w) => w is GlassSwitch && w.semanticLabel == label,
+    );
+    bool valueOf(String label) =>
+        (tester.widget(switchFor(label)) as GlassSwitch).value;
+
+    final sound0 = valueOf('Sound effects');
+    await tester.tap(switchFor('Sound effects'));
+    await settle(tester);
+    expect(
+      valueOf('Sound effects'),
+      !sound0,
+      reason: 'the sound switch must reflect the new value on screen',
+    );
+
+    final motion0 = valueOf('Reduce motion');
+    await tester.tap(switchFor('Reduce motion'));
+    await settle(tester);
+    expect(
+      valueOf('Reduce motion'),
+      !motion0,
+      reason: 'the reduce-motion switch must reflect the new value',
+    );
   });
 
   testWidgets('goals page can take on a quest', (tester) async {
