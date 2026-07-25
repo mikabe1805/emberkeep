@@ -1146,44 +1146,58 @@ class _RoomPainter extends CustomPainter {
     }
   }
 
-  // A little companion (round-50): curled cozily asleep, or — when you're on a
-  // streak — awake and beaming up at you. Never-punish: sleeping is rest, not
-  // a scold; the warmth is the reward for showing up.
+  /// The keep's cat: sitting up and watching you when the fire is kept, curled
+  /// into a loaf when it's banked. Never-punish — sleeping is rest, not a scold.
+  ///
+  /// Built from a locked set of proportions rather than free offsets, because
+  /// the previous version drifted: the head had grown as wide as the entire
+  /// body, there were no legs or muzzle, and the tail was a stroke floating
+  /// clear of the silhouette. A cat reads as a cat from three things — a head
+  /// clearly smaller than the body it sits on, a muzzle, and paws on the floor.
   void _pet(Canvas canvas, double w, double h, double floorY, bool awake) {
     final u = h - floorY;
     final cx = w * 0.66;
-    final baseY = floorY + u * 0.92;
-    final tan = Paint()..color = const Color(0xFFCBA471);
-    final tanLight = const Color(0xFFE0C091);
-    const ink = Color(0xFF5A4030);
+    final baseY = floorY + u * 0.92; // the floorboard the cat sits on
 
-    // contact shadow
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(cx, baseY),
-        width: w * 0.17,
-        height: u * 0.06,
-      ),
-      Paint()..color = const Color(0x33000000),
-    );
+    const coat = Color(0xFFC9A06D);
+    const coatLit = Color(0xFFE4C795); // surfaces the hearth reaches
+    const coatShade = Color(0xFFA37C4B); // undersides and the far flank
+    const innerEar = Color(0xFFD08F88);
+    const ink = Color(0xFF4E3524);
+    final fur = Paint()..color = coat;
 
-    // An ear ANCHORED ON THE SKULL: both base points sit inside the head
-    // circle (radius [r]) and the tip pushes out past the rim, so it reads as
-    // part of the animal. The old version placed a free triangle by offset and
-    // drifted off the head on the left / vanished into it on the right.
+    // the hearth is to the LEFT of the cat, so its left side is the lit one
+    final lit = Paint()..color = coatLit;
+
+    // one soft contact shadow, pooled under whatever pose is drawn
+    void ground(double width) {
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(cx, baseY + u * 0.01),
+          width: width,
+          height: u * 0.07,
+        ),
+        Paint()
+          ..color = const Color(0x4D000000)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, u * 0.03),
+      );
+    }
+
+    /// An ear anchored ON the skull: both base points sit inside the head
+    /// circle and only the tip pushes past the rim, so it can never drift off
+    /// the head or vanish inside it.
     void ear(Offset hc, double r, double s) {
       final baseA = Offset(hc.dx + s * r * 0.16, hc.dy - r * 0.92);
       final baseB = Offset(hc.dx + s * r * 0.90, hc.dy - r * 0.30);
-      final tip = Offset(hc.dx + s * r * 0.84, hc.dy - r * 1.46);
+      final tip = Offset(hc.dx + s * r * 0.84, hc.dy - r * 1.44);
       canvas.drawPath(
         Path()
           ..moveTo(baseA.dx, baseA.dy)
           ..lineTo(tip.dx, tip.dy)
           ..lineTo(baseB.dx, baseB.dy)
           ..close(),
-        tan,
+        fur,
       );
-      // the inner cup — a smaller rose triangle inset toward the centroid
       final c = Offset(
         (baseA.dx + baseB.dx + tip.dx) / 3,
         (baseA.dy + baseB.dy + tip.dy) / 3,
@@ -1196,52 +1210,301 @@ class _RoomPainter extends CustomPainter {
           ..lineTo(it.dx, it.dy)
           ..lineTo(ib.dx, ib.dy)
           ..close(),
-        Paint()..color = const Color(0xFFD79A93).withValues(alpha: 0.6),
+        Paint()..color = innerEar.withValues(alpha: 0.62),
       );
     }
 
-    if (!awake) {
-      // ── asleep: a curled, rounded loaf with a tail wrapped to the front ──
-      final bodyC = Offset(cx, baseY - u * 0.1);
-      canvas.drawOval(
-        Rect.fromCenter(center: bodyC, width: w * 0.17, height: u * 0.24),
-        tan,
-      );
-      // tail curling around the front
-      final tail = Path()
-        ..moveTo(cx + w * 0.08, baseY - u * 0.06)
-        ..quadraticBezierTo(
-          cx + w * 0.12,
-          baseY - u * 0.2,
-          cx + w * 0.02,
-          baseY - u * 0.16,
+    /// Muzzle, nose and mouth. This is the single detail that turns a tan
+    /// circle with ears into a cat, so it is worth the four extra draws.
+    void muzzle(Offset hc, double r) {
+      // two soft cheek pads
+      for (final s in const [-1.0, 1.0]) {
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: hc.translate(s * r * 0.20, r * 0.46),
+            width: r * 0.52,
+            height: r * 0.38,
+          ),
+          Paint()..color = coatLit.withValues(alpha: 0.75),
         );
+      }
+      // nose
+      final nose = hc.translate(0, r * 0.30);
       canvas.drawPath(
-        tail,
+        Path()
+          ..moveTo(nose.dx - r * 0.10, nose.dy)
+          ..lineTo(nose.dx + r * 0.10, nose.dy)
+          ..lineTo(nose.dx, nose.dy + r * 0.11)
+          ..close(),
+        Paint()..color = innerEar,
+      );
+      // the two strokes of a cat's w-shaped mouth
+      final mouth = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = r * 0.055
+        ..strokeCap = StrokeCap.round
+        ..color = ink.withValues(alpha: 0.8);
+      for (final s in const [-1.0, 1.0]) {
+        canvas.drawArc(
+          Rect.fromCenter(
+            center: nose.translate(s * r * 0.16, r * 0.20),
+            width: r * 0.34,
+            height: r * 0.28,
+          ),
+          s < 0 ? 0 : pi * 0.5,
+          pi * 0.5,
+          false,
+          mouth,
+        );
+      }
+    }
+
+    if (awake) {
+      // ── sitting up, watching you ──
+      final bw = w * 0.125; // body width at the haunch
+      final bh = u * 0.40; // floor to shoulder
+      final headR = bw * 0.42; // decisively smaller than the body
+      final headC = Offset(cx + bw * 0.02, baseY - bh - headR * 0.62);
+
+      ground(bw * 1.35);
+
+      // tail: leaves the body low on the right, sweeps out and curls up. Drawn
+      // BEFORE the body so it reads as emerging from behind the haunch rather
+      // than being pasted on the side of it.
+      canvas.drawPath(
+        Path()
+          ..moveTo(cx + bw * 0.30, baseY - bh * 0.10)
+          ..cubicTo(
+            cx + bw * 0.95,
+            baseY - bh * 0.02,
+            cx + bw * 1.05,
+            baseY - bh * 0.46,
+            cx + bw * 0.72,
+            baseY - bh * 0.58,
+          ),
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = u * 0.08
+          ..strokeWidth = bw * 0.19
           ..strokeCap = StrokeCap.round
-          ..color = const Color(0xFFE0C091),
+          ..color = coatShade,
       );
-      // head resting on the left
-      final hc = Offset(cx - w * 0.06, baseY - u * 0.13);
-      canvas.drawCircle(hc, w * 0.042, tan);
-      ear(hc, w * 0.042, -1);
-      ear(hc, w * 0.042, 1);
-      // a sleepy closed eye
-      canvas.drawArc(
-        Rect.fromCircle(center: hc.translate(w * 0.005, 0), radius: w * 0.014),
-        0,
-        pi,
-        false,
+
+      // body: a pear — wide seated haunch tapering to narrower shoulders
+      canvas.drawPath(
+        Path()
+          ..moveTo(cx - bw * 0.5, baseY)
+          ..cubicTo(
+            cx - bw * 0.56,
+            baseY - bh * 0.52,
+            cx - bw * 0.34,
+            baseY - bh * 0.95,
+            cx,
+            baseY - bh,
+          )
+          ..cubicTo(
+            cx + bw * 0.34,
+            baseY - bh * 0.95,
+            cx + bw * 0.56,
+            baseY - bh * 0.52,
+            cx + bw * 0.5,
+            baseY,
+          )
+          ..close(),
+        fur,
+      );
+      // the far flank falls into shadow; the hearth-facing side catches light
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(cx + bw * 0.30, baseY - bh * 0.42),
+          width: bw * 0.42,
+          height: bh * 0.72,
+        ),
+        Paint()..color = coatShade.withValues(alpha: 0.5),
+      );
+      // chest bib
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(cx - bw * 0.04, baseY - bh * 0.34),
+          width: bw * 0.44,
+          height: bh * 0.56,
+        ),
+        Paint()..color = coatLit.withValues(alpha: 0.55),
+      );
+
+      // front legs + paws, planted on the floor — without these the cat floats
+      for (final s in const [-1.0, 1.0]) {
+        final lx = cx + s * bw * 0.20;
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(
+              lx - bw * 0.10,
+              baseY - bh * 0.30,
+              bw * 0.20,
+              bh * 0.30,
+            ),
+            Radius.circular(bw * 0.09),
+          ),
+          // the far leg has to be a shade darker or it vanishes into the body
+          s < 0 ? lit : Paint()
+            ..color = coatShade,
+        );
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(lx, baseY - bh * 0.02),
+            width: bw * 0.24,
+            height: bh * 0.11,
+          ),
+          s < 0 ? lit : Paint()
+            ..color = coatShade,
+        );
+      }
+
+      // head
+      canvas.drawCircle(headC, headR, fur);
+      // firelit crown on the hearth side
+      canvas.drawCircle(
+        headC.translate(-headR * 0.26, -headR * 0.22),
+        headR * 0.62,
+        Paint()..color = coatLit.withValues(alpha: 0.45),
+      );
+      ear(headC, headR, -1);
+      ear(headC, headR, 1);
+      muzzle(headC, headR);
+
+      // eyes: almonds, not black discs, with a catchlight and a lower lid
+      for (final s in const [-1.0, 1.0]) {
+        final ec = headC.translate(s * headR * 0.41, -headR * 0.08);
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: ec,
+            width: headR * 0.30,
+            height: headR * 0.36,
+          ),
+          Paint()..color = ink,
+        );
+        canvas.drawCircle(
+          ec.translate(-headR * 0.07, -headR * 0.09),
+          headR * 0.085,
+          Paint()..color = Colors.white.withValues(alpha: 0.92),
+        );
+      }
+
+      // whiskers — three light strokes a side, the last cat-tell
+      final whisker = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = headR * 0.035
+        ..strokeCap = StrokeCap.round
+        ..color = Palette.specular.withValues(alpha: 0.32);
+      for (final s in const [-1.0, 1.0]) {
+        for (final dy in const [-0.06, 0.06, 0.18]) {
+          canvas.drawLine(
+            headC.translate(s * headR * 0.40, headR * (0.34 + dy)),
+            headC.translate(s * headR * 1.12, headR * (0.26 + dy * 1.6)),
+            whisker,
+          );
+        }
+      }
+    } else {
+      // ── curled into a loaf, asleep ──
+      final bw = w * 0.165; // a loaf is wider than it is tall
+      final bh = u * 0.26;
+      final headR = bw * 0.27;
+      final headC = Offset(cx - bw * 0.30, baseY - headR * 0.96);
+
+      ground(bw * 1.15);
+
+      // the loaf: a dome with a flat floor edge, haunch rising at the back
+      canvas.drawPath(
+        Path()
+          ..moveTo(cx - bw * 0.5, baseY)
+          ..cubicTo(
+            cx - bw * 0.52,
+            baseY - bh * 0.78,
+            cx - bw * 0.12,
+            baseY - bh,
+            cx + bw * 0.12,
+            baseY - bh * 0.98,
+          )
+          ..cubicTo(
+            cx + bw * 0.42,
+            baseY - bh * 0.94,
+            cx + bw * 0.54,
+            baseY - bh * 0.44,
+            cx + bw * 0.5,
+            baseY,
+          )
+          ..close(),
+        fur,
+      );
+      // the back curve catches the hearth; the front falls away
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(cx - bw * 0.06, baseY - bh * 0.74),
+          width: bw * 0.66,
+          height: bh * 0.44,
+        ),
+        Paint()..color = coatLit.withValues(alpha: 0.42),
+      );
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(cx + bw * 0.10, baseY - bh * 0.16),
+          width: bw * 0.72,
+          height: bh * 0.34,
+        ),
+        Paint()..color = coatShade.withValues(alpha: 0.45),
+      );
+
+      // tail wrapped around the front, tip tucked in by the chin — drawn AFTER
+      // the body, because a sleeping cat's tail lies over its own paws
+      canvas.drawPath(
+        Path()
+          ..moveTo(cx + bw * 0.46, baseY - bh * 0.16)
+          ..cubicTo(
+            cx + bw * 0.30,
+            baseY + bh * 0.06,
+            cx - bw * 0.10,
+            baseY + bh * 0.02,
+            cx - bw * 0.26,
+            baseY - bh * 0.16,
+          ),
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.4
+          ..strokeWidth = bh * 0.30
           ..strokeCap = StrokeCap.round
-          ..color = ink,
+          ..color = coatLit,
       );
-      // Zzz drifting up
+
+      // head resting on the paws
+      canvas.drawCircle(headC, headR, fur);
+      canvas.drawCircle(
+        headC.translate(-headR * 0.24, -headR * 0.26),
+        headR * 0.60,
+        Paint()..color = coatLit.withValues(alpha: 0.40),
+      );
+      ear(headC, headR, -1);
+      ear(headC, headR, 1);
+      muzzle(headC, headR);
+
+      // two contented closed eyes
+      final shut = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = headR * 0.10
+        ..strokeCap = StrokeCap.round
+        ..color = ink;
+      for (final s in const [-1.0, 1.0]) {
+        canvas.drawArc(
+          Rect.fromCircle(
+            center: headC.translate(s * headR * 0.34, -headR * 0.06),
+            radius: headR * 0.22,
+          ),
+          pi * 0.15,
+          pi * 0.7,
+          false,
+          shut,
+        );
+      }
+
+      // Zzz drifting up from the head
       final z = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2
@@ -1249,86 +1512,13 @@ class _RoomPainter extends CustomPainter {
         ..color = Palette.xpLight.withValues(alpha: 0.6);
       for (var i = 0; i < 3; i++) {
         final s = w * (0.018 - i * 0.004);
-        final zx = hc.dx + w * 0.04 + i * w * 0.025;
-        final zy = hc.dy - u * 0.12 - i * u * 0.07;
+        // start clear of the ear tips, then drift up and away
+        final zx = headC.dx + w * 0.075 + i * w * 0.026;
+        final zy = headC.dy - u * 0.20 - i * u * 0.09;
         canvas.drawLine(Offset(zx, zy), Offset(zx + s, zy), z);
         canvas.drawLine(Offset(zx + s, zy), Offset(zx, zy + s), z);
         canvas.drawLine(Offset(zx, zy + s), Offset(zx + s, zy + s), z);
       }
-    } else {
-      // ── awake: sitting up, beaming up at you ──
-      // tail to the side
-      final tail = Path()
-        ..moveTo(cx + w * 0.05, baseY - u * 0.06)
-        ..quadraticBezierTo(
-          cx + w * 0.13,
-          baseY - u * 0.04,
-          cx + w * 0.11,
-          baseY - u * 0.2,
-        );
-      canvas.drawPath(
-        tail,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = u * 0.06
-          ..strokeCap = StrokeCap.round
-          ..color = const Color(0xFFE0C091),
-      );
-      // body sitting
-      final bodyC = Offset(cx, baseY - u * 0.16);
-      canvas.drawOval(
-        Rect.fromCenter(center: bodyC, width: w * 0.12, height: u * 0.3),
-        tan,
-      );
-      // belly highlight
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: bodyC.translate(0, u * 0.04),
-          width: w * 0.07,
-          height: u * 0.16,
-        ),
-        Paint()..color = tanLight.withValues(alpha: 0.6),
-      );
-      // head up
-      final hc = Offset(cx, baseY - u * 0.34);
-      canvas.drawCircle(hc, w * 0.058, tan);
-      ear(hc, w * 0.058, -1);
-      ear(hc, w * 0.058, 1);
-      // big eyes with catchlights, looking up toward the ember
-      for (final s in [-1.0, 1.0]) {
-        final ec = hc.translate(s * w * 0.025, -w * 0.004);
-        canvas.drawOval(
-          Rect.fromCenter(center: ec, width: w * 0.018, height: w * 0.024),
-          Paint()..color = ink,
-        );
-        canvas.drawCircle(
-          ec.translate(-w * 0.004, -w * 0.006),
-          w * 0.006,
-          Paint()..color = Colors.white.withValues(alpha: 0.9),
-        );
-      }
-      // a happy little smile
-      canvas.drawArc(
-        Rect.fromCenter(
-          center: hc.translate(0, w * 0.02),
-          width: w * 0.03,
-          height: w * 0.022,
-        ),
-        pi * 0.1,
-        pi * 0.8,
-        false,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.3
-          ..strokeCap = StrokeCap.round
-          ..color = ink,
-      );
-      // rosy cheeks
-      final blush = Paint()
-        ..color = const Color(0x44D88A8A)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
-      canvas.drawCircle(hc.translate(-w * 0.045, w * 0.012), w * 0.014, blush);
-      canvas.drawCircle(hc.translate(w * 0.045, w * 0.012), w * 0.014, blush);
     }
   }
 
