@@ -76,7 +76,7 @@ class VisitRoomScreen extends StatelessWidget {
                         // the friend's hearth is lit if they're on a streak
                         petAwake: room['awake'] == true,
                         // their chosen hearth-flame colour
-                        emberGlow: creatureColorsById(safeString('skin'))[1],
+                        emberGlow: flameHueById(safeString('skin')),
                       ),
                       const SizedBox(height: 14),
                       if (title.isNotEmpty)

@@ -149,7 +149,7 @@ class ShopScreen extends StatelessWidget {
                                 floor: floorColorsFor(state),
                                 window: state.windowScene,
                                 petAwake: state.streakDays > 0,
-                                emberGlow: creatureColorsFor(state)[1],
+                                emberGlow: flameHueFor(state),
                               ),
                               const SizedBox(height: 8),
                               Text(
@@ -356,7 +356,7 @@ Widget _roomHero(
   window: window ?? state.windowScene,
   petAwake: true,
   // the hearth-flame hue (the item being tried on, or the current one)
-  emberGlow: (flame ?? creatureColorsFor(state))[1],
+  emberGlow: asFlameHue((flame ?? creatureColorsFor(state))[2]),
 );
 
 /// Every not-owned item opens this fitting room — a live look at the actual

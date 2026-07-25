@@ -647,7 +647,7 @@ class InsightsPage extends StatelessWidget {
           const SizedBox(height: 12),
           HistorySky(
             history: state.history,
-            ember: creatureColorsFor(state)[1],
+            ember: flameHueFor(state),
             reduceMotion:
                 state.reduceMotion ||
                 (MediaQuery.maybeDisableAnimationsOf(context) ?? false),

@@ -8,6 +8,7 @@
 import 'dart:convert';
 
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/furniture.dart';
 import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/engine.dart';
@@ -92,9 +93,17 @@ void main() {
       'candles',
       'pet',
     };
+    // Pass the REAL default flame hue rather than letting the painter fall
+    // back to its own ember. The fallback is a more saturated orange than the
+    // shipped Ember skin, so a golden that relies on it flatters the fire and
+    // hides what players actually see.
     Widget keep(bool lit) => SizedBox(
       width: 500,
-      child: HomeRoom(unlocked: furn, petAwake: lit),
+      child: HomeRoom(
+        unlocked: furn,
+        petAwake: lit,
+        emberGlow: flameHueById(null),
+      ),
     );
     await _shoot(
       tester,

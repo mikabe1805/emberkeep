@@ -151,6 +151,23 @@ class _HearthGlyphPainter extends CustomPainter {
     final grow = 0.5 + stage * 0.10; // 0.5 (baseline) .. 1.0 (Everflame)
     final litK = lit ? 1.0 : 0.4; // banked, never cold
 
+    // ── the fire's spill onto whatever the glyph is sitting on ──
+    // CustomPaint does not clip its painter, so this reaches well past the
+    // glyph's own box and warms the header glass around it. It's the reason
+    // the header hearth reads as a fire burning in the room rather than an
+    // icon printed on a panel — and on a completion the surge blooms visibly
+    // outward across the HUD, which is the whole point of putting the keep's
+    // fire on the screen you actually live in.
+    canvas.drawCircle(
+      Offset(cx, baseY - h * 0.22),
+      w * (0.72 + 0.10 * grow) * (1 + 0.30 * surge),
+      Paint()
+        ..color = glow.withValues(
+          alpha: (0.09 + 0.05 * grow + 0.15 * surge) * litK,
+        )
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.42),
+    );
+
     // ── firelight halo (reactive to flicker + surge) ──
     final haloR =
         w *

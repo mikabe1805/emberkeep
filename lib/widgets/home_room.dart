@@ -580,27 +580,51 @@ class _RoomPainter extends CustomPainter {
     canvas.drawLine(Offset(fx + fw / 2, fy), Offset(fx + fw / 2, fy + fh), bar);
   }
 
+  /// The rug takes its tone FROM THE WALLS, so every purchasable style reads
+  /// as a room somebody decorated rather than one template with the same pink
+  /// oval dropped into it. It used to be a fixed mauve, which happened to suit
+  /// Plum Dusk and fought all four of the others — and it's the largest object
+  /// on the floor, so it fought them loudly.
+  Color get _rugTone {
+    final base = Color.lerp(wall[0], wall[1], 0.5)!;
+    final hsl = HSLColor.fromColor(base);
+    // Only just lift it off the wall, and DESATURATE while doing it. Dyed wool
+    // in a candlelit room is muted; the first pass multiplied saturation up
+    // instead and produced vivid purple/mint/cornflower ovals that outshone
+    // the fire. Nothing in this room may be brighter than the hearth.
+    final lifted = hsl
+        .withSaturation((hsl.saturation * 0.7 + 0.04).clamp(0.0, 0.20))
+        .withLightness((hsl.lightness * 1.22 + 0.04).clamp(0.0, 0.27))
+        .toColor();
+    // a common warm bias keeps five different walls from producing one cold
+    // rug and one sickly one — every style still lands in the cozy family
+    return Color.lerp(lifted, const Color(0xFF6B4340), 0.32)!;
+  }
+
   void _rug(Canvas canvas, double w, double h, double floorY) {
     final c = Offset(w * 0.5, floorY + (h - floorY) * 0.62);
     final rx = w * 0.35, ry = (h - floorY) * 0.42;
     final rect = Rect.fromCenter(center: c, width: rx * 2, height: ry * 2);
-    canvas.drawOval(
-      rect,
-      Paint()..color = const Color(0xFF6E4A55).withValues(alpha: 0.9),
-    );
+    final tone = _rugTone;
+    canvas.drawOval(rect, Paint()..color = tone.withValues(alpha: 0.92));
     canvas.drawOval(
       rect,
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3
-        ..color = Palette.xpLight.withValues(alpha: 0.25),
+        ..color = Palette.xpLight.withValues(alpha: 0.22),
     );
+    // the woven inner ring, a lighter draw of the rug's own dye
     canvas.drawOval(
       Rect.fromCenter(center: c, width: rx * 1.4, height: ry * 1.4),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
-        ..color = const Color(0xFF8A6070).withValues(alpha: 0.55),
+        ..color = Color.lerp(
+          tone,
+          Palette.specular,
+          0.30,
+        )!.withValues(alpha: 0.55),
     );
   }
 
@@ -652,23 +676,44 @@ class _RoomPainter extends CustomPainter {
         ..color = Colors.black.withValues(alpha: 0.18)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
     );
-    canvas.drawRect(Rect.fromLTWH(x, y, sw, 4), Paint()..color = _wood);
-    // book spines
-    const cols = [
-      Palette.success,
-      Palette.verify,
-      Palette.unlock,
-      Palette.dread,
+    // Book spines. These used to be painted in the MECHANIC tokens (success /
+    // verify / unlock / dread) — colours that carry meaning everywhere else in
+    // the app, spent here on scenery. Bound-book dyes instead: nothing on this
+    // shelf now claims to mean "verified" or "dreaded".
+    const spines = [
+      Color(0xFF7A4A46), // oxblood cloth
+      Color(0xFF3F5A55), // deep teal board
+      Color(0xFF6B5836), // tan calf
+      Color(0xFF4A3E5C), // slate violet
+      Color(0xFF7E5C3A), // russet
     ];
-    for (var i = 0; i < 4; i++) {
-      final bw = sw * 0.12;
-      final bx = x + sw * 0.08 + i * (bw + sw * 0.06);
-      final bh = h * (0.05 + (i.isEven ? 0.02 : 0.0));
+    for (var i = 0; i < 5; i++) {
+      final bw = sw * (0.085 + (i % 3) * 0.014); // uneven thicknesses
+      final bx = x + sw * 0.07 + i * (sw * 0.155);
+      final bh = h * (0.045 + ((i * 7) % 3) * 0.011);
+      final top = y - bh;
       canvas.drawRect(
-        Rect.fromLTWH(bx, y - bh, bw, bh),
-        Paint()..color = cols[i].withValues(alpha: 0.85),
+        Rect.fromLTWH(bx, top, bw, bh),
+        Paint()..color = spines[i],
+      );
+      // a lit left edge and a thin gilt band low on the spine — a book, not a
+      // labelled tin (a fat band up near the top reads as a jar lid)
+      canvas.drawRect(
+        Rect.fromLTWH(bx, top, bw * 0.24, bh),
+        Paint()..color = Palette.specular.withValues(alpha: 0.09),
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(bx, top + bh * 0.62, bw, bh * 0.035),
+        Paint()..color = Palette.xpLight.withValues(alpha: 0.22),
       );
     }
+    // the shelf board goes on LAST so the books sit behind its front edge,
+    // and it gets a lit top lip like every other surface in the keep
+    canvas.drawRect(Rect.fromLTWH(x, y, sw, 4), Paint()..color = _wood);
+    canvas.drawRect(
+      Rect.fromLTWH(x, y, sw, 1),
+      Paint()..color = Palette.xpLight.withValues(alpha: 0.16),
+    );
   }
 
   void _picture(Canvas canvas, double w, double h) {
@@ -681,12 +726,36 @@ class _RoomPainter extends CustomPainter {
         ..color = Colors.black.withValues(alpha: 0.20)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
-    // carved wood frame + inner mat
+    // carved wood frame, bevelled — lit along the top-left moulding and
+    // shadowed along the bottom-right, so it reads as a carved edge with
+    // thickness instead of a flat brown border
     canvas.drawRRect(
       RRect.fromRectAndRadius(outer, const Radius.circular(3)),
       Paint()..color = const Color(0xFF5A4536),
     );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(outer.deflate(0.8), const Radius.circular(3)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.6
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Palette.specular.withValues(alpha: 0.22),
+            Colors.black.withValues(alpha: 0.28),
+          ],
+        ).createShader(outer),
+    );
     final inner = outer.deflate(pw * 0.07);
+    // the mat's inner lip casts into the picture
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(inner.inflate(1), const Radius.circular(2)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = Colors.black.withValues(alpha: 0.30),
+    );
     // a cozy framed dusk: warm gradient sky, a soft moon, a gentle hill
     canvas.save();
     canvas.clipRRect(RRect.fromRectAndRadius(inner, const Radius.circular(2)));
@@ -716,6 +785,17 @@ class _RoomPainter extends CustomPainter {
       ..lineTo(inner.right, inner.bottom)
       ..close();
     canvas.drawPath(hill, Paint()..color = const Color(0xFF6E4A38));
+    // a diagonal sheen across the glazing — the tell that says "framed and
+    // behind glass" rather than "a picture printed on the wall"
+    canvas.drawPath(
+      Path()
+        ..moveTo(inner.left, inner.bottom)
+        ..lineTo(inner.left + inner.width * 0.52, inner.top)
+        ..lineTo(inner.left + inner.width * 0.78, inner.top)
+        ..lineTo(inner.left + inner.width * 0.26, inner.bottom)
+        ..close(),
+      Paint()..color = Palette.specular.withValues(alpha: 0.07),
+    );
     canvas.restore();
   }
 
@@ -1300,14 +1380,19 @@ class _RoomPainter extends CustomPainter {
         width: cw * 1.2,
         height: ch * 0.3,
       ),
-      Paint()..color = const Color(0x55000000), // contact shadow
+      Paint()
+        ..color =
+            const Color(0x55000000) // contact shadow
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromCenter(center: c, width: cw, height: ch),
         Radius.circular(ch * 0.5),
       ),
-      Paint()..color = const Color(0xFF8A6070),
+      // a lighter draw of the rug's dye — the cushion belongs to the same set
+      // of soft furnishings, so it follows the wall style with it
+      Paint()..color = Color.lerp(_rugTone, Palette.specular, 0.18)!,
     );
     canvas.drawOval(
       Rect.fromCenter(
@@ -1324,6 +1409,18 @@ class _RoomPainter extends CustomPainter {
   // candlelight instead of three frozen teardrops
   void _candles(Canvas canvas, double w, double h, double floorY) {
     final baseY = floorY + (h - floorY) * 0.42;
+    // the pool of light the cluster throws on the floor, breathing as one —
+    // three candles that lit nothing were the last unlit light source left
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.4, baseY + (h - floorY) * 0.03),
+        width: w * 0.20 * (0.94 + 0.06 * sin(t * 2 * pi * 2)),
+        height: (h - floorY) * 0.16,
+      ),
+      Paint()
+        ..color = Palette.honeyGlow.withValues(alpha: 0.20)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.03),
+    );
     var i = 0;
     for (final spec in [(-0.04, 0.9), (0.0, 1.15), (0.04, 0.8)]) {
       final cx = w * 0.4 + spec.$1 * w;
@@ -1332,6 +1429,11 @@ class _RoomPainter extends CustomPainter {
       final sway = 2.0 * sin(t * 2 * pi * 2 + phase);
       final pulse = 0.85 + 0.15 * sin(t * 2 * pi * 2 + phase);
       final tipY = baseY - ch - 9 - 1.5 * sin(t * 2 * pi * 2 + phase);
+      // a wax foot, so each candle stands ON the floor rather than in front of it
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(cx, baseY), width: 13, height: 4.5),
+        Paint()..color = const Color(0x44000000),
+      );
       canvas.drawCircle(
         Offset(cx, baseY - ch - 4),
         8 * pulse,
@@ -1346,12 +1448,32 @@ class _RoomPainter extends CustomPainter {
         ),
         Paint()..color = const Color(0xFFF0E2C8),
       );
+      // the taper's shaded right side — a lit cylinder, not a cream stripe
+      canvas.drawRect(
+        Rect.fromLTWH(cx + 1, baseY - ch, 2, ch),
+        Paint()..color = const Color(0x22000000),
+      );
       final flame = Path()
         ..moveTo(cx - 2, baseY - ch)
         ..quadraticBezierTo(cx - 3 + sway, baseY - ch - 6, cx + sway, tipY)
         ..quadraticBezierTo(cx + 3 + sway, baseY - ch - 6, cx + 2, baseY - ch)
         ..close();
-      canvas.drawPath(flame, Paint()..color = Palette.xpLight);
+      // hot at the wick, cooling at the tip — the same heat direction as the
+      // hearth, so every flame in the keep obeys one rule
+      canvas.drawPath(
+        flame,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.bottomCenter,
+            end: Alignment.topCenter,
+            colors: [
+              const Color(0xFFFFF6E4),
+              Palette.xpLight,
+              Palette.streak.withValues(alpha: 0.85),
+            ],
+            stops: const [0.0, 0.45, 1.0],
+          ).createShader(Rect.fromLTWH(cx - 3, tipY, 6, (baseY - ch) - tipY)),
+      );
       i++;
     }
   }

@@ -1763,7 +1763,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       child: HearthGlyph(
                         level: _state.level,
                         lit: _state.streakDays > 0,
-                        glow: creatureColorsFor(_state)[1],
+                        glow: flameHueFor(_state),
                         leap: _beamGen,
                         reduceMotion: _state.reduceMotion,
                         size: 42,

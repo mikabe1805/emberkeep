@@ -142,6 +142,41 @@ String? skinGateLabel(CreatureSkin sk) {
 List<Color> creatureColorsFor(GameState s) =>
     (creatureSkinById(s.creatureSkin) ?? _amber).colors;
 
+/// THE FLAME'S OWN HUE for the keep's hearth.
+///
+/// These palettes are still shaped as the old creature's shading ramp:
+/// index 0 is a near-white highlight, 1 is a pale tint, 2 is the SATURATED
+/// MID, 3 is the shadow. The hearth was wired to index 1, so every flame
+/// rendered as a near-white candle no matter which colour you had bought —
+/// the seven paid flame colours were nearly indistinguishable in the room.
+///
+/// Flame gradients run white-hot at the base to this hue at the tip, so the
+/// tip colour has to be the saturated one or there is nothing to read.
+Color flameHueFor(GameState s) => asFlameHue(creatureColorsFor(s)[2]);
+
+/// By-id flame hue, for a VISITED space (no local GameState). See
+/// [flameHueFor].
+Color flameHueById(String? id) => asFlameHue(creatureColorsById(id)[2]);
+
+/// Pushes a palette's saturated mid into flame territory.
+///
+/// Even index 2 is body-shading, not firelight: the default Ember's is
+/// `0xFFC58A4E`, which paints as candle wax next to the `0xFFE8915A` the room
+/// painter falls back to. Lifting saturation and nudging lightness lands each
+/// skin on its own believable fire while keeping it recognisably itself —
+/// rose still burns rose, mint still burns mint — so the seven paid colours
+/// stay distinguishable AND all seven look like flame.
+///
+/// Doing it here rather than by rewriting the palettes keeps the shop swatches
+/// (which show the full four-stop ramp) exactly as authored.
+Color asFlameHue(Color c) {
+  final hsl = HSLColor.fromColor(c);
+  return hsl
+      .withSaturation((hsl.saturation * 1.25 + 0.13).clamp(0.0, 0.85))
+      .withLightness((hsl.lightness * 0.95 + 0.10).clamp(0.34, 0.68))
+      .toColor();
+}
+
 /// By-id lookup (used to render a VISITED space, which has no GameState).
 List<Color> creatureColorsById(String? id) =>
     (creatureSkinById(id ?? '') ?? _amber).colors;
