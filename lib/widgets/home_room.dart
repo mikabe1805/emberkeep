@@ -1,4 +1,4 @@
-import 'dart:math' show pi, sin;
+import 'dart:math' show cos, pi, sin;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show listEquals, setEquals;
@@ -585,6 +585,11 @@ class _RoomPainter extends CustomPainter {
   /// oval dropped into it. It used to be a fixed mauve, which happened to suit
   /// Plum Dusk and fought all four of the others — and it's the largest object
   /// on the floor, so it fought them loudly.
+  /// The top surface of the mantel shelf. Shared by [_hearth], which draws the
+  /// shelf, and [_candles], which stand on it — one source so they can't drift
+  /// apart and leave the candles hovering.
+  double _mantelY(double h, double floorY) => floorY - (h - floorY) * 0.62;
+
   Color get _rugTone {
     final base = Color.lerp(wall[0], wall[1], 0.5)!;
     final hsl = HSLColor.fromColor(base);
@@ -921,7 +926,7 @@ class _RoomPainter extends CustomPainter {
       canvas.drawLine(Offset(x - hw / 2, by), Offset(x + hw / 2, by), brick);
     }
     // mantel shelf
-    final mantelY = floorY - u * 0.62;
+    final mantelY = _mantelY(h, floorY);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(x - hw / 2 - w * 0.025, mantelY, hw + w * 0.05, u * 0.07),
@@ -1560,37 +1565,70 @@ class _RoomPainter extends CustomPainter {
     }
   }
 
-  // a soft floor cushion to the left of the avatar
+  /// A floor cushion — a round tufted pouffe seen slightly from above: an
+  /// elliptical top plane over a short side wall, a button in the middle and
+  /// seams running out from it.
+  ///
+  /// The old version was a plain rounded rectangle in the rug's dye, and it
+  /// read as an unidentifiable coloured blob rather than as the "floor
+  /// cushion" the shop sells. A thing you paid embers for has to be legible
+  /// as that thing.
   void _cushion(Canvas canvas, double w, double h, double floorY) {
-    final c = Offset(w * 0.3, floorY + (h - floorY) * 0.52);
-    final cw = w * 0.1, ch = (h - floorY) * 0.26;
+    final u = h - floorY;
+    final c = Offset(w * 0.3, floorY + u * 0.52);
+    final cw = w * 0.125,
+        ch = u * 0.21; // wider and lower: a pouffe, not a pill
+    // warmer and a touch deeper than the rug, not lighter: a throw cushion is
+    // an accent against the floor covering, and lerping toward cream just
+    // turned it grey — it read like a stone disc rather than something soft
+    final tone = Color.lerp(_rugTone, const Color(0xFF9A6A5E), 0.45)!;
+    final side = Color.lerp(tone, Colors.black, 0.28)!;
+
     canvas.drawOval(
       Rect.fromCenter(
-        center: c.translate(0, ch * 0.5),
-        width: cw * 1.2,
+        center: c.translate(0, ch * 0.52),
+        width: cw * 1.1,
         height: ch * 0.3,
       ),
       Paint()
-        ..color =
-            const Color(0x55000000) // contact shadow
+        ..color = const Color(0x55000000)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
     );
+    // the body: a squat cylinder of stuffed fabric
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: c, width: cw, height: ch),
-        Radius.circular(ch * 0.5),
+        Rect.fromCenter(
+          center: c.translate(0, ch * 0.16),
+          width: cw,
+          height: ch * 0.66,
+        ),
+        Radius.circular(ch * 0.33),
       ),
-      // a lighter draw of the rug's dye — the cushion belongs to the same set
-      // of soft furnishings, so it follows the wall style with it
-      Paint()..color = Color.lerp(_rugTone, Palette.specular, 0.18)!,
+      Paint()..color = side,
     );
+    // the top plane you'd actually sit on
+    final topC = c.translate(0, -ch * 0.12);
     canvas.drawOval(
-      Rect.fromCenter(
-        center: c.translate(-cw * 0.12, -ch * 0.18),
-        width: cw * 0.5,
-        height: ch * 0.3,
-      ),
-      Paint()..color = Palette.specular.withValues(alpha: 0.12),
+      Rect.fromCenter(center: topC, width: cw, height: ch * 0.62),
+      Paint()..color = tone,
+    );
+    // seams pulled in toward a button at the centre — the tuft is the detail
+    // that names the object
+    final seam = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1
+      ..color = side.withValues(alpha: 0.6);
+    for (var i = 0; i < 6; i++) {
+      final a = 2 * pi * i / 6;
+      canvas.drawLine(
+        topC.translate(cos(a) * cw * 0.07, sin(a) * ch * 0.045),
+        topC.translate(cos(a) * cw * 0.47, sin(a) * ch * 0.29),
+        seam,
+      );
+    }
+    canvas.drawOval(
+      Rect.fromCenter(center: topC, width: cw * 0.15, height: ch * 0.1),
+      Paint()..color = side,
     );
   }
 
@@ -1598,30 +1636,36 @@ class _RoomPainter extends CustomPainter {
   // and its halo pulses on its own phase (t), so the cluster wavers like real
   // candlelight instead of three frozen teardrops
   void _candles(Canvas canvas, double w, double h, double floorY) {
-    final baseY = floorY + (h - floorY) * 0.42;
-    // the pool of light the cluster throws on the floor, breathing as one —
-    // three candles that lit nothing were the last unlit light source left
+    final u = h - floorY;
+    // ON THE MANTEL, not on the rug. Open flames standing on a wool rug beside
+    // a sleeping cat is a fire hazard anyone who has lived with an animal reads
+    // instantly, and a scene whose whole job is to feel calm cannot afford to
+    // make you anxious. A stone shelf above the animal is where candles
+    // actually live in a room with a hearth.
+    final clusterX = w * 0.385; // off to one side, clear of the picture frame
+    final baseY = _mantelY(h, floorY);
+    // the light they throw back onto the chimney breast behind them
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(w * 0.4, baseY + (h - floorY) * 0.03),
-        width: w * 0.20 * (0.94 + 0.06 * sin(t * 2 * pi * 2)),
-        height: (h - floorY) * 0.16,
+        center: Offset(clusterX, baseY - u * 0.10),
+        width: w * 0.19 * (0.94 + 0.06 * sin(t * 2 * pi * 2)),
+        height: u * 0.34,
       ),
       Paint()
-        ..color = Palette.honeyGlow.withValues(alpha: 0.20)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.03),
+        ..color = Palette.honeyGlow.withValues(alpha: 0.16)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.035),
     );
     var i = 0;
-    for (final spec in [(-0.04, 0.9), (0.0, 1.15), (0.04, 0.8)]) {
-      final cx = w * 0.4 + spec.$1 * w;
-      final ch = (h - floorY) * 0.22 * spec.$2;
+    for (final spec in [(-0.028, 0.9), (0.0, 1.15), (0.028, 0.8)]) {
+      final cx = clusterX + spec.$1 * w;
+      final ch = u * 0.17 * spec.$2;
       final phase = i * 2.1;
       final sway = 2.0 * sin(t * 2 * pi * 2 + phase);
       final pulse = 0.85 + 0.15 * sin(t * 2 * pi * 2 + phase);
       final tipY = baseY - ch - 9 - 1.5 * sin(t * 2 * pi * 2 + phase);
-      // a wax foot, so each candle stands ON the floor rather than in front of it
+      // a wax foot, so each candle stands ON the stone rather than in front of it
       canvas.drawOval(
-        Rect.fromCenter(center: Offset(cx, baseY), width: 13, height: 4.5),
+        Rect.fromCenter(center: Offset(cx, baseY), width: 11, height: 3.6),
         Paint()..color = const Color(0x44000000),
       );
       canvas.drawCircle(
