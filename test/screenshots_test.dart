@@ -20,7 +20,9 @@ import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/constellation.dart';
 import 'package:emberkeep/widgets/home_room.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Widget _stage(
@@ -76,6 +78,53 @@ Future<void> _shoot(WidgetTester tester, Widget w, String name) async {
 }
 
 void main() {
+  // Load the icon font. Without this the test binding has no MaterialIcons
+  // glyphs, so EVERY `Icon` in a screenshot renders as a tofu box — and a
+  // dump full of unreadable squares covering the UI is worse than no dump,
+  // because it reports a problem the app doesn't have while hiding the real
+  // composition underneath. `uses-material-design: true` puts the font in the
+  // asset bundle at this path, so the test can load it the same way the app
+  // does. (Same lesson as the emberGlow fallback: a golden has to render what
+  // ships, not an artefact of the harness.)
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final loader = FontLoader('MaterialIcons')
+      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+    await loader.load();
+    GoogleFonts.config.allowRuntimeFetching = false; // no network in tests
+  });
+
+  // A type specimen. Every Type style rendered with letters AND digits, so a
+  // font that silently fails to resolve shows up as a row of filled boxes here
+  // instead of being discovered by eye in some unrelated screenshot.
+  testWidgets('type specimen', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(560, 420));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const sample = 'Handgloves +34 XP 0123';
+    await _shoot(
+      tester,
+      _stage(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final (name, style) in [
+              ('numerals', Type.numerals),
+              ('display', Type.display),
+              ('body', Type.body),
+              ('label', Type.label),
+            ]) ...[
+              Text(name, style: const TextStyle(color: Color(0xFF94887A))),
+              Text(sample, style: style),
+              const SizedBox(height: 14),
+            ],
+          ],
+        ),
+      ),
+      'type_specimen',
+    );
+  });
+
   // the KEEP: no creature, the central hearth is the heart — fire LIT (a kept
   // streak) up top, banked to embers below.
   testWidgets('the keep', (tester) async {
