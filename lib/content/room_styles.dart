@@ -39,16 +39,16 @@ const _walnutWall = RoomStyle(
   name: 'Walnut',
   kind: RoomStyleKind.wall,
   price: 0,
-  a: Color(0xFF2E2229),
-  b: Color(0xFF3A2C2A),
+  a: Color(0xFF34262F),
+  b: Color(0xFF49332E),
 );
 const _oakFloor = RoomStyle(
   id: 'floor_oak',
   name: 'Oak',
   kind: RoomStyleKind.floor,
   price: 0,
-  a: Color(0xFF3C2C20),
-  b: Color(0xFF2A1D14),
+  a: Color(0xFF4A3322),
+  b: Color(0xFF2A190F),
 );
 
 final roomStyles = <RoomStyle>[

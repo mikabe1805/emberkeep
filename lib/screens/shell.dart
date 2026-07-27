@@ -617,14 +617,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   void _selectTab(int i) {
     if (i == _tab) return;
-    // Opening Me is stepping into the keep itself: one restrained lick of
-    // fire replaces the generic nav tick. It remains incidental, mixes with
-    // music, respects silent mode, and is much quieter than a revival.
-    if (i == 0) {
-      Sfx.instance.play('hearth_room');
-    } else {
-      Sfx.instance.play('tick');
-    }
+    // The keep is visited often; auto-playing fire on every return became
+    // tiring on a real phone. Keep Me quiet and reserve the full ignition for
+    // a genuine hearth revival. Other tab changes retain the soft nav cue.
+    if (i != 0) Sfx.instance.play('tick');
     Haptics.tap();
     setState(() => _tab = i);
   }

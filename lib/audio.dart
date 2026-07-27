@@ -21,7 +21,6 @@ class Sfx {
     'levelup',
     'boing',
     'hearth',
-    'hearth_room',
     'stat_0',
     'stat_1',
     'stat_2',
@@ -40,14 +39,13 @@ class Sfx {
   /// levels. Nothing melodic, bright or percussive; every sound's brightness is
   /// now well under 900Hz. Superseded the r53/r61 marimba+glock sample set.)
   static const _volume = <String, double>{
-    'tick': 0.3,
+    'tick': 0.16,
     'complete': 0.55,
     'streak': 0.55,
     'boing': 0.4,
-    // The larger ignition marks a genuinely revived hearth. Entering Me uses
-    // its own quieter fire-bed instead of pretending the room reignites.
+    // The larger ignition marks a genuinely revived hearth. Merely entering
+    // Me stays quiet: an automatic sound on every visit became grating.
     'hearth': 0.68,
-    'hearth_room': 0.32,
     'stat_0': 0.45,
     'stat_1': 0.45,
     'stat_2': 0.45,
@@ -115,7 +113,7 @@ class Sfx {
   }
 
   /// names: tick, complete, streak, crit, loot, levelup, boing, hearth,
-  /// hearth_room, stat_0..5. [volumeScale] lets ambient echoes reuse a sound without
+  /// stat_0..5. [volumeScale] lets ambient echoes reuse a sound without
   /// competing with the user's music; event calls normally leave it at 1.
   void play(String name, {double volumeScale = 1}) {
     if (!soundEnabled) return;

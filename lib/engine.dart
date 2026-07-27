@@ -394,7 +394,9 @@ class GameState extends ChangeNotifier {
     nightDoneDay = Days.key(now);
     nightDoneAt = now.millisecondsSinceEpoch;
     morningArmed = true;
-    notifyListeners();
+    // Rest Earned is caused here, not on the quest board. Check immediately
+    // so the trophy and any gated reward do not wait for another completion.
+    if (checkAchievements().isEmpty) notifyListeners();
   }
 
   /// Seeing the morning briefing disarms it.
@@ -950,6 +952,13 @@ class GameState extends ChangeNotifier {
       level++;
       reached = level;
     }
+    // The first few levels visibly furnish the keep even when a player spends
+    // every ember on flame colours first. These three starter gifts establish
+    // warmth and life; the larger light, wall, seating, companion and hearth
+    // rewards remain aspirational shop transformations.
+    if (level >= 2) ownedFurniture.add('rug');
+    if (level >= 3) ownedFurniture.add('plant');
+    if (level >= 4) ownedFurniture.add('cushion');
     // the STREAK SHIELDS unlock (Lv 6) actually hands you shields now
     if (level >= 6 && !shieldUnlockGranted) {
       shieldUnlockGranted = true;
@@ -1020,7 +1029,9 @@ class GameState extends ChangeNotifier {
     if (goals.any((e) => e.title.trim().toLowerCase() == key)) return false;
     g.startedDay ??= Days.key(Clock.now()); // for "days on the journey"
     goals.add(g);
-    notifyListeners();
+    // Pathmaker is earned by adding the third goal. Previously all achievement
+    // checks lived on the quest screen, so this could look permanently broken.
+    if (checkAchievements().isEmpty) notifyListeners();
     return true;
   }
 
@@ -1139,6 +1150,10 @@ class GameState extends ChangeNotifier {
     s.ownedFurniture.addAll(
       ((j['ownedFurniture'] as List?) ?? const []).cast(),
     );
+    // Backfill starter-room gifts for existing TestFlight saves.
+    if (s.level >= 2) s.ownedFurniture.add('rug');
+    if (s.level >= 3) s.ownedFurniture.add('plant');
+    if (s.level >= 4) s.ownedFurniture.add('cushion');
     s.ownedStyles.addAll(((j['ownedStyles'] as List?) ?? const []).cast());
     s.wallStyle = j['wallStyle'] as String? ?? 'wall_walnut';
     s.floorStyle = j['floorStyle'] as String? ?? 'floor_oak';
@@ -1233,6 +1248,10 @@ class GameState extends ChangeNotifier {
     s.sparkSeenDay = Days.validKey(j['sparkSeenDay']);
     s.weekRecapSeenWeek = Days.validKey(j['weekRecapSeenWeek']);
     s.emberSeenDay = Days.validKey(j['emberSeenDay']);
+    // Self-heal saves created by builds where achievements were only checked
+    // from the quest screen. All counters/goals/routines are loaded now, so
+    // this pass safely restores every trophy the player already earned.
+    s.checkAchievements();
     return s;
   }
 }

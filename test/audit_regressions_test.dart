@@ -76,6 +76,45 @@ void main() {
     expect(state.history, {'2026-03-01': 2});
   });
 
+  test('loading self-heals achievements earned by older builds', () {
+    final before = GameState()
+      ..level = 3
+      ..totalCompletions = 1;
+    final json = before.toJson()..['unlockedAchievements'] = <String>[];
+
+    final restored = GameState.fromJson(json);
+
+    expect(restored.unlockedAchievements, contains('first-step'));
+    expect(restored.ownedFurniture, containsAll(['rug', 'plant']));
+  });
+
+  test('the first level-up visibly furnishes the starter keep', () {
+    final state = GameState();
+    state.xp = state.xpNeeded(2);
+
+    final result = state.applyLevelUps();
+
+    expect(result.leveledTo, 2);
+    expect(state.ownedFurniture, contains('rug'));
+    expect(state.ownedFurniture, isNot(contains('plant')));
+  });
+
+  test('routine and goal achievements unlock where they are earned', () {
+    Clock.freeze(DateTime(2026, 7, 27, 22));
+    final state = GameState();
+
+    state.closeNight();
+    expect(state.unlockedAchievements, contains('night-owl'));
+
+    for (var i = 1; i <= 3; i++) {
+      expect(
+        state.addGoal(Goal(title: 'Path $i', stat: Stat.dis, target: 25)),
+        isTrue,
+      );
+    }
+    expect(state.unlockedAchievements, contains('pathmaker'));
+  });
+
   testWidgets('bookend routines hide quests that are not scheduled today', (
     tester,
   ) async {

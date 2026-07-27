@@ -228,6 +228,22 @@ void main() {
     );
   });
 
+  testWidgets('keep: level-three starter room', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(540, 420));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _shoot(
+      tester,
+      _stage(
+        const SizedBox(
+          width: 500,
+          child: HomeRoom(unlocked: {'rug', 'plant'}, level: 3, petAwake: true),
+        ),
+        pad: 16,
+      ),
+      'keep_starter_level3',
+    );
+  });
+
   testWidgets('keep: style variants', (tester) async {
     await tester.binding.setSurfaceSize(const Size(520, 940));
     addTearDown(() => tester.binding.setSurfaceSize(null));

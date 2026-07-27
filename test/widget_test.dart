@@ -220,6 +220,27 @@ void main() {
     expect(find.text('Insights'), findsOneWidget);
   });
 
+  testWidgets('hearth milestone chips explain their unlock progress', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final milestone = find.text('FIRST SPARK · LV 5');
+    await tester.ensureVisible(milestone);
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(milestone);
+    await settle(tester);
+
+    expect(find.text('FIRST SPARK'), findsOneWidget);
+    expect(find.text('LEVEL 1 / 5 · 4 LEVELS TO GO'), findsOneWidget);
+    expect(
+      find.text('Complete quests to feed the hearth and raise your level.'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('sound & reduce-motion toggles repaint the switch when tapped', (
     tester,
   ) async {

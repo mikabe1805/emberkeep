@@ -38,12 +38,12 @@ import 'shop.dart';
 
 /// The hearth-fire milestones — the keep's fire deepens as you level (the same
 /// warm names the creature's growth stages used, now the hearth's).
-const _hearthStages = <(int, String)>[
-  (5, 'First Spark'),
-  (10, 'Steady Flame'),
-  (16, 'Bright Crest'),
-  (24, 'Twin Fire'),
-  (34, 'Everflame'),
+const _hearthStages = <(int, String, String)>[
+  (5, 'First Spark', 'The hearth wakes taller and throws a warmer halo.'),
+  (10, 'Steady Flame', 'The fire steadies and begins lifting more sparks.'),
+  (16, 'Bright Crest', 'A brighter crown sends richer light into the keep.'),
+  (24, 'Twin Fire', 'A second strong flame joins the heart of the room.'),
+  (34, 'Everflame', 'The full hearth burns tallest with drifting embers.'),
 ];
 
 /// The "Me" page: your keep + your build. The stats radar, the attribution
@@ -331,6 +331,13 @@ class MePage extends StatelessWidget {
                             ? f.$2.toUpperCase()
                             : '${f.$2.toUpperCase()} · LV ${f.$1}',
                         unlocked: state.level >= f.$1,
+                        onTap: () => _showHearthStageInfo(
+                          context,
+                          currentLevel: state.level,
+                          targetLevel: f.$1,
+                          name: f.$2,
+                          description: f.$3,
+                        ),
                       ),
                   ],
                 ),
@@ -1310,6 +1317,93 @@ String _fmtTime(int hour, int minute) {
   return '$h:${minute.toString().padLeft(2, '0')} $ampm';
 }
 
+/// Hearth milestones used to look like controls but were inert. They now
+/// explain both the visual reward and the exact progress remaining.
+void _showHearthStageInfo(
+  BuildContext context, {
+  required int currentLevel,
+  required int targetLevel,
+  required String name,
+  required String description,
+}) {
+  final unlocked = currentLevel >= targetLevel;
+  final remaining = (targetLevel - currentLevel).clamp(0, targetLevel);
+  final progress = (currentLevel / targetLevel).clamp(0.0, 1.0);
+  Sfx.instance.play('tick');
+  showDialog(
+    context: context,
+    barrierColor: const Color(0xCC140C06),
+    builder: (_) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(28),
+      child: GlassPanel(
+        tint: const Color(0xF22A211D),
+        glow: unlocked,
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FacetMedallion(
+              size: 64,
+              accent: unlocked ? Palette.xpLight : Palette.streak,
+              glow: unlocked,
+              child: Icon(
+                unlocked ? Icons.local_fire_department : Icons.lock_outline,
+                size: 30,
+                color: unlocked ? Palette.xpLight : Palette.streak,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              name.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: Type.display.copyWith(fontSize: 20),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: Type.body.copyWith(fontSize: 14, color: Palette.textMid),
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 7,
+                backgroundColor: Palette.textLo.withValues(alpha: 0.18),
+                valueColor: AlwaysStoppedAnimation(
+                  unlocked ? Palette.success : Palette.streak,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              unlocked
+                  ? 'UNLOCKED AT LEVEL $targetLevel ✓'
+                  : 'LEVEL $currentLevel / $targetLevel · '
+                        '$remaining ${remaining == 1 ? 'LEVEL' : 'LEVELS'} TO GO',
+              textAlign: TextAlign.center,
+              style: Type.label.copyWith(
+                fontSize: 11,
+                color: unlocked ? Palette.success : Palette.streak,
+              ),
+            ),
+            if (!unlocked) ...[
+              const SizedBox(height: 9),
+              Text(
+                'Complete quests to feed the hearth and raise your level.',
+                textAlign: TextAlign.center,
+                style: Type.body.copyWith(fontSize: 12, color: Palette.textLo),
+              ),
+            ],
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 /// Tap a trophy to learn what it is, how to earn it, and what it grants.
 void _showAchievementInfo(
   BuildContext context,
@@ -2143,13 +2237,14 @@ class _ThemeSwatch extends StatelessWidget {
 }
 
 class _LockedSlot extends StatelessWidget {
-  const _LockedSlot({required this.label, this.unlocked = false});
+  const _LockedSlot({required this.label, this.unlocked = false, this.onTap});
   final String label;
   final bool unlocked;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final tile = Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: facetedDecoration(
         cut: 6,
@@ -2179,6 +2274,25 @@ class _LockedSlot extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+    if (onTap == null) return tile;
+    return Semantics(
+      button: true,
+      label: label,
+      hint: unlocked
+          ? 'Hearth milestone unlocked. Tap for details.'
+          : 'Tap to hear what this hearth milestone unlocks.',
+      child: Tooltip(
+        message: unlocked ? 'Milestone unlocked' : 'Tap for progress',
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(8),
+            child: tile,
+          ),
+        ),
       ),
     );
   }

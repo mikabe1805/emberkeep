@@ -190,8 +190,8 @@ void paintEmberFlameSwatch(Canvas canvas, Size size, Color hue) {
 /// painter switches on the unlocked piece-ids from content/furniture.dart.
 /// Phase 1: a warm room + window + the pieces; later phases add placement,
 /// nicer art, and visiting others' rooms.
-const _defaultWall = [Color(0xFF2E2229), Color(0xFF3A2C2A)];
-const _defaultFloor = [Color(0xFF3C2C20), Color(0xFF2A1D14)];
+const _defaultWall = [Color(0xFF34262F), Color(0xFF49332E)];
+const _defaultFloor = [Color(0xFF4A3322), Color(0xFF2A190F)];
 
 /// Painterly grain for the wall/floor — a whisper of brush-stroke texture
 /// (assets/room/, extracted from the room concept paintings by
@@ -489,6 +489,32 @@ class _RoomPainter extends CustomPainter {
         ..close(),
       Paint()..color = Colors.black.withValues(alpha: 0.055),
     );
+    // Built-in angular wainscot gives even a brand-new keep architectural
+    // character. It is part of the room itself, not a free shop furnishing:
+    // bought shelves, pictures, lights and furniture still transform the
+    // silhouette, while the starter state no longer reads as an empty box.
+    final wainscotY = floorY * 0.69;
+    canvas.drawRect(
+      Rect.fromLTRB(0, wainscotY, w, floorY),
+      Paint()..color = Colors.black.withValues(alpha: 0.055),
+    );
+    canvas.drawLine(
+      Offset.zero.translate(0, wainscotY),
+      Offset(w, wainscotY),
+      Paint()
+        ..color = Palette.xpLight.withValues(alpha: 0.075)
+        ..strokeWidth = 1,
+    );
+    final panelLine = Paint()
+      ..color = Colors.black.withValues(alpha: 0.075)
+      ..strokeWidth = 1;
+    for (final px in const [0.025, 0.355, 0.645, 0.975]) {
+      canvas.drawLine(
+        Offset(w * px, wainscotY),
+        Offset(w * px, floorY),
+        panelLine,
+      );
+    }
     // ── floor (recoloured) + a warm sheen pooling where the avatar stands ──
     final floorRect = Rect.fromLTRB(0, floorY, w, h);
     canvas.drawRect(
@@ -562,6 +588,48 @@ class _RoomPainter extends CustomPainter {
     // adrift inside it. The room's biggest "this space is lit" tell. ──
     _lightShaft(canvas, w, h, floorY);
 
+    // A permanent stone apron anchors the fireplace in the floor. This is
+    // architecture rather than furniture: it gives the empty keep a crafted
+    // hearthside focal point, while the purchasable rug still owns the large
+    // soft floor silhouette further into the room.
+    final apronU = h - floorY;
+    final apron = Path()
+      ..moveTo(w * 0.405, floorY - 1)
+      ..lineTo(w * 0.595, floorY - 1)
+      ..lineTo(w * 0.635, floorY + apronU * 0.19)
+      ..lineTo(w * 0.365, floorY + apronU * 0.19)
+      ..close();
+    final apronBounds = Rect.fromLTRB(
+      w * 0.36,
+      floorY,
+      w * 0.64,
+      floorY + apronU * 0.2,
+    );
+    canvas.drawPath(
+      apron,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF675044), Color(0xFF3A2B25)],
+        ).createShader(apronBounds),
+    );
+    canvas.drawPath(
+      apron,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeJoin = StrokeJoin.miter
+        ..strokeWidth = 1.2
+        ..color = Palette.xpLight.withValues(alpha: 0.14),
+    );
+    canvas.drawLine(
+      Offset(w * 0.5, floorY),
+      Offset(w * 0.5, floorY + apronU * 0.19),
+      Paint()
+        ..strokeWidth = 1
+        ..color = Colors.black.withValues(alpha: 0.12),
+    );
+
     // baseboard — a thin warm highlight over a soft shadow, grounding the wall
     canvas.drawRect(
       Rect.fromLTWH(0, floorY - 2, w, 3),
@@ -611,7 +679,7 @@ class _RoomPainter extends CustomPainter {
           colors: [
             corner.withValues(alpha: 0),
             corner.withValues(alpha: petAwake ? 0.10 : 0.16),
-            corner.withValues(alpha: petAwake ? 0.28 : 0.46),
+            corner.withValues(alpha: petAwake ? 0.22 : 0.38),
           ],
           stops: const [0.45, 0.72, 1.0],
         ).createShader(all),
@@ -644,8 +712,8 @@ class _RoomPainter extends CustomPainter {
         ..blendMode = BlendMode.plus
         ..shader = RadialGradient(
           colors: [
-            warm.withValues(alpha: (0.150 + 0.030 * breath) * lit),
-            warm.withValues(alpha: (0.065 + 0.012 * breath) * lit),
+            warm.withValues(alpha: (0.185 + 0.032 * breath) * lit),
+            warm.withValues(alpha: (0.078 + 0.014 * breath) * lit),
             glow.withValues(alpha: 0.016 * lit),
             const Color(0x00000000),
           ],
@@ -743,7 +811,7 @@ class _RoomPainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [tint.withValues(alpha: 0.16), tint.withValues(alpha: 0)],
+          colors: [tint.withValues(alpha: 0.105), tint.withValues(alpha: 0)],
         ).createShader(Rect.fromLTWH(w * 0.1, h * 0.16, w * 0.56, h * 0.84)),
     );
     canvas.drawPath(
@@ -753,7 +821,7 @@ class _RoomPainter extends CustomPainter {
         ..lineTo(footL.dx + (footR.dx - footL.dx) * 0.54, footL.dy)
         ..lineTo(footL.dx, footL.dy)
         ..close(),
-      Paint()..color = tint.withValues(alpha: 0.035),
+      Paint()..color = tint.withValues(alpha: 0.022),
     );
     // dust motes drifting in the beam — three, slow, deterministic in t
     for (var i = 0; i < 3; i++) {
