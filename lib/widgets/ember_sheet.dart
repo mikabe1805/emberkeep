@@ -6,6 +6,7 @@ import '../clock.dart';
 import '../models.dart';
 import '../tokens.dart';
 import 'domain_hint.dart';
+import 'facets.dart';
 import 'glass.dart';
 import 'honey_button.dart';
 
@@ -438,11 +439,11 @@ class _EmberSheetState extends State<_EmberSheet> {
               // live preview line
               Row(
                 children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                  Transform.rotate(
+                    angle: 0.785,
+                    child: Container(
+                      width: 7,
+                      height: 7,
                       color: _effectiveStat.color,
                     ),
                   ),
@@ -615,14 +616,12 @@ class _EmberSheetState extends State<_EmberSheet> {
                 width: 44,
                 height: 44,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                decoration: facetedDecoration(
+                  cut: 8,
                   color: selected(d)
                       ? accent.withValues(alpha: 0.28)
                       : Palette.glassFill,
-                  border: Border.all(
-                    color: selected(d) ? accent : Palette.glassEdge,
-                  ),
+                  borderColor: selected(d) ? accent : Palette.glassEdge,
                 ),
                 child: Text(
                   _dayLetters[d - 1],
@@ -670,15 +669,13 @@ class _EmberSheetState extends State<_EmberSheet> {
                       margin: const EdgeInsets.only(right: 6),
                       padding: const EdgeInsets.symmetric(vertical: 9),
                       alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
+                      decoration: facetedDecoration(
+                        cut: 8,
                         color: _difficulty == step.$2
                             ? Palette.xpLight.withValues(alpha: 0.2)
                             : Colors.transparent,
-                        border: Border.all(
-                          color: Palette.xp.withValues(
-                            alpha: _difficulty == step.$2 ? 0.7 : 0.25,
-                          ),
+                        borderColor: Palette.xp.withValues(
+                          alpha: _difficulty == step.$2 ? 0.7 : 0.25,
                         ),
                       ),
                       child: Text(
@@ -715,15 +712,13 @@ class _EmberSheetState extends State<_EmberSheet> {
                         horizontal: 10,
                         vertical: 5,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
+                      decoration: facetedDecoration(
+                        cut: 6,
                         color: _effectiveStat == s
                             ? s.color.withValues(alpha: 0.22)
                             : Colors.transparent,
-                        border: Border.all(
-                          color: s.color.withValues(
-                            alpha: _effectiveStat == s ? 0.8 : 0.3,
-                          ),
+                        borderColor: s.color.withValues(
+                          alpha: _effectiveStat == s ? 0.8 : 0.3,
                         ),
                       ),
                       child: Text(
@@ -777,15 +772,13 @@ class _EmberSheetState extends State<_EmberSheet> {
                           horizontal: 10,
                           vertical: 5,
                         ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
+                        decoration: facetedDecoration(
+                          cut: 6,
                           color: _minutes == m
                               ? Palette.verify.withValues(alpha: 0.18)
                               : Colors.transparent,
-                          border: Border.all(
-                            color: Palette.verify.withValues(
-                              alpha: _minutes == m ? 0.8 : 0.3,
-                            ),
+                          borderColor: Palette.verify.withValues(
+                            alpha: _minutes == m ? 0.8 : 0.3,
                           ),
                         ),
                         child: Text(
@@ -842,16 +835,14 @@ class _FreqChips extends StatelessWidget {
                   horizontal: 13,
                   vertical: 7,
                 ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
+                decoration: facetedDecoration(
+                  cut: 7,
                   color: value == f
                       ? accent.withValues(alpha: 0.22)
                       : Palette.glassFill,
-                  border: Border.all(
-                    color: value == f
-                        ? accent.withValues(alpha: 0.8)
-                        : Palette.glassEdge,
-                  ),
+                  borderColor: value == f
+                      ? accent.withValues(alpha: 0.8)
+                      : Palette.glassEdge,
                 ),
                 child: Text(
                   _freqLabels[f]!,

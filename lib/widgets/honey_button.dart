@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
+import 'facets.dart';
 import 'pressable.dart';
 
 /// The one honey CTA — a lozenge of warm glass routed through [Pressable] so
@@ -33,14 +34,14 @@ class HoneyButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pill = Container(
-      constraints: const BoxConstraints(minHeight: 48),
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
+    const cut = 11.0;
+    const shape = FacetedBorder(cut: cut);
+    final face = DecoratedBox(
+      decoration: facetedDecoration(
         gradient: Palette.honeyGradient,
-        boxShadow: glow
+        cut: cut,
+        borderColor: const Color(0x66FFF0C7),
+        shadows: glow
             ? const [
                 BoxShadow(
                   color: Palette.honeyGlow,
@@ -48,29 +49,41 @@ class HoneyButton extends StatelessWidget {
                   offset: Offset(0, 5),
                 ),
               ]
-            : null,
+            : const [],
       ),
-      child: Row(
-        mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 17, color: Palette.onHoney),
-            const SizedBox(width: 8),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Type.label.copyWith(
-                fontSize: fontSize,
-                color: Palette.onHoney,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (icon != null) ...[
+              Icon(icon, size: 17, color: Palette.onHoney),
+              const SizedBox(width: 8),
+            ],
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Type.label.copyWith(
+                  fontSize: fontSize,
+                  color: Palette.onHoney,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+    final button = Stack(
+      fit: StackFit.passthrough,
+      children: [
+        face,
+        const Positioned.fill(child: FacetGleam(cut: cut, strength: 0.75)),
+      ],
     );
     return Opacity(
       opacity: enabled ? 1.0 : 0.45,
@@ -78,10 +91,10 @@ class HoneyButton extends StatelessWidget {
         enabled: enabled,
         semanticLabel: label,
         onTapUp: enabled ? (_) => onTap() : null,
-        borderRadius: BorderRadius.circular(999),
+        shape: shape,
         // a warm dark-amber under-edge, never grey
         edgeColor: const Color(0xFF7A4E22),
-        child: pill,
+        child: button,
       ),
     );
   }

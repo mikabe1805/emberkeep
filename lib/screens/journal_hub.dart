@@ -7,6 +7,7 @@ import '../journal_media.dart' as media;
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/notes_sheet.dart';
 import 'journal_entry.dart';
@@ -532,21 +533,12 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       glow: true,
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: Palette.honeyGradient,
-              boxShadow: const [
-                BoxShadow(color: Palette.honeyGlow, blurRadius: 14),
-              ],
-            ),
-            child: const Icon(
-              Icons.edit_note,
-              size: 26,
-              color: Palette.onHoney,
-            ),
+          const FacetMedallion(
+            size: 44,
+            accent: Palette.xp,
+            gradient: Palette.honeyGradient,
+            glow: true,
+            child: Icon(Icons.edit_note, size: 26, color: Palette.onHoney),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -691,8 +683,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       child: Row(
         children: [
           for (final name in shown) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+            ClipPath(
+              clipper: const FacetedClipper(cut: 7),
               child: SizedBox(
                 width: 52,
                 height: 52,
@@ -706,9 +698,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
               width: 40,
               height: 52,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
+              decoration: facetedDecoration(
+                cut: 7,
                 color: Colors.black.withValues(alpha: 0.18),
+                borderColor: Palette.glassEdge,
               ),
               child: Text(
                 '+$extra',
@@ -722,9 +715,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
 
   Widget _chip(String label, Color c) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(6),
+    decoration: facetedDecoration(
+      cut: 4,
       color: c.withValues(alpha: 0.14),
+      borderColor: c.withValues(alpha: 0.2),
     ),
     child: Text(
       label,

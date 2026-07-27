@@ -20,6 +20,8 @@ class Sfx {
     'loot',
     'levelup',
     'boing',
+    'hearth',
+    'hearth_room',
     'stat_0',
     'stat_1',
     'stat_2',
@@ -42,6 +44,10 @@ class Sfx {
     'complete': 0.55,
     'streak': 0.55,
     'boing': 0.4,
+    // The larger ignition marks a genuinely revived hearth. Entering Me uses
+    // its own quieter fire-bed instead of pretending the room reignites.
+    'hearth': 0.68,
+    'hearth_room': 0.32,
     'stat_0': 0.45,
     'stat_1': 0.45,
     'stat_2': 0.45,
@@ -108,11 +114,13 @@ class Sfx {
     );
   }
 
-  /// names: tick, complete, streak, crit, loot, levelup, boing, stat_0..5
-  void play(String name) {
+  /// names: tick, complete, streak, crit, loot, levelup, boing, hearth,
+  /// hearth_room, stat_0..5. [volumeScale] lets ambient echoes reuse a sound without
+  /// competing with the user's music; event calls normally leave it at 1.
+  void play(String name, {double volumeScale = 1}) {
     if (!soundEnabled) return;
     try {
-      final vol = _volFor(name);
+      final vol = (_volFor(name) * volumeScale).clamp(0.0, 1.0);
       final pool = _pools[name];
       if (pool != null) {
         pool.start(volume: vol).catchError((Object e) {

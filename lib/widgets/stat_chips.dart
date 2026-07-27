@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
+import 'facets.dart';
 
 /// Header row of the six attribute chips. A chip pulses with its own color
 /// and counts up when its stat gains — the header is a live mini character
@@ -137,19 +138,17 @@ class _StatChipState extends State<_StatChip>
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 2),
             padding: const EdgeInsets.symmetric(vertical: 6),
-            decoration: BoxDecoration(
+            decoration: facetedDecoration(
               color: Palette.glassFill,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: active
-                    ? c.withValues(alpha: 0.4 + 0.6 * wave)
-                    : Color.lerp(
-                        Palette.glassEdge,
-                        c.withValues(alpha: 0.55),
-                        0.16 * shimmer,
-                      )!,
-              ),
-              boxShadow: active
+              cut: 7,
+              borderColor: active
+                  ? c.withValues(alpha: 0.4 + 0.6 * wave)
+                  : Color.lerp(
+                      Palette.glassEdge,
+                      c.withValues(alpha: 0.55),
+                      0.16 * shimmer,
+                    )!,
+              shadows: active
                   ? [
                       BoxShadow(
                         color: c.withValues(alpha: 0.35 * wave),

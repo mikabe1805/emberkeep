@@ -8,6 +8,7 @@ import '../journal_doc.dart';
 import '../journal_media.dart' as media;
 import '../models.dart';
 import '../tokens.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/notes_sheet.dart' show relativeWhen;
 
@@ -569,7 +570,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Stack(
           children: [
-            media.image(b.image!),
+            ClipPath(
+              clipper: const FacetedClipper(cut: 12),
+              child: media.image(b.image!),
+            ),
             Positioned(
               top: 2,
               right: 2,
@@ -584,9 +588,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                   color: Colors.transparent,
                   child: Container(
                     padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
+                    decoration: facetedDecoration(
+                      cut: 6,
                       color: Color(0x99140C06),
+                      borderColor: Palette.glassEdge,
                     ),
                     child: const Icon(
                       Icons.close,
@@ -708,10 +713,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
             onTap: _pickPhotoSource,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
+              decoration: facetedDecoration(
+                cut: 8,
                 color: widget.accent.withValues(alpha: 0.14),
-                border: Border.all(color: widget.accent.withValues(alpha: 0.4)),
+                borderColor: widget.accent.withValues(alpha: 0.4),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,

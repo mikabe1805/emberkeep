@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../content/themes.dart';
 import '../tokens.dart';
+import 'facets.dart';
 
 /// Overlay entries render outside the Scaffold's Material — without a
 /// Material ancestor every Text falls back to the yellow-underline error
@@ -41,13 +42,36 @@ class GlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget panel = Container(
-      padding: padding,
-      decoration: Glass.panel(radius: radius, tint: tint, glow: glow),
-      child: child,
+    final cut = radius >= 100 ? 14.0 : (radius * 0.58).clamp(7.0, 15.0);
+    final panel = DecoratedBox(
+      decoration: facetedDecoration(
+        color: tint,
+        gradient: tint == null
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Palette.glassTop, Palette.glassBottom],
+              )
+            : null,
+        cut: cut,
+        shadows: [
+          const BoxShadow(
+            color: Palette.warmShadow,
+            blurRadius: 18,
+            offset: Offset(0, 6),
+          ),
+          if (glow)
+            const BoxShadow(
+              color: Palette.honeyGlow,
+              blurRadius: 22,
+              offset: Offset(0, 8),
+            ),
+        ],
+      ),
+      child: Padding(padding: padding, child: child),
     );
-    panel = ClipRRect(
-      borderRadius: BorderRadius.circular(radius),
+    return ClipPath(
+      clipper: FacetedClipper(cut: cut),
       child: Stack(
         children: [
           if (blur)
@@ -58,65 +82,10 @@ class GlassPanel extends StatelessWidget {
               ),
             ),
           panel,
-          // the wet lip — a bright line of candlelight catching the glass's
-          // top inner edge; what reads as "a pane" rather than a tinted box
-          Positioned.fill(
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(radius),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Palette.specular.withValues(alpha: 0.10),
-                      Palette.specular.withValues(alpha: 0.0),
-                    ],
-                    stops: const [0.0, 0.12],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // the lower rim — the pane's own soft shadow, grounding it in depth
-          Positioned.fill(
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(radius),
-                  gradient: const LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Palette.glassRim, Color(0x00140C06)],
-                    stops: [0.0, 0.16],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // specular drop of light, top-left — every glass element has one
-          Positioned.fill(
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(radius),
-                  gradient: RadialGradient(
-                    center: const Alignment(-0.75, -0.85),
-                    radius: 1.1,
-                    colors: [
-                      Palette.specular.withValues(alpha: 0.16),
-                      Palette.specular.withValues(alpha: 0.0),
-                    ],
-                    stops: const [0.0, 0.55],
-                  ),
-                ),
-              ),
-            ),
-          ),
+          Positioned.fill(child: FacetGleam(cut: cut, strength: 0.95)),
         ],
       ),
     );
-    return panel;
   }
 }
 
@@ -167,6 +136,17 @@ class WarmBackground extends StatelessWidget {
         children: [
           // pools of warm light — recolored by the theme — glowing in the dark
           // (static; the drifting fireflies carry the motion, cheaply).
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(
+                painter: _AmbientPlanesPainter(
+                  top: theme.top,
+                  bottom: theme.bottom,
+                  accent: tint ?? theme.glows.first,
+                ),
+              ),
+            ),
+          ),
           Positioned(
             top: -70,
             left: -60,
@@ -225,16 +205,74 @@ class _Glow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
+      child: ClipPath(
+        clipper: FacetedClipper(cut: size * 0.16),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: const Alignment(-0.25, -0.2),
+              colors: [color, color.withValues(alpha: 0)],
+            ),
+          ),
         ),
       ),
     );
   }
+}
+
+class _AmbientPlanesPainter extends CustomPainter {
+  const _AmbientPlanesPainter({
+    required this.top,
+    required this.bottom,
+    required this.accent,
+  });
+
+  final Color top;
+  final Color bottom;
+  final Color accent;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final left = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width * 0.62, 0)
+      ..lineTo(size.width * 0.28, size.height * 0.46)
+      ..lineTo(0, size.height * 0.34)
+      ..close();
+    canvas.drawPath(
+      left,
+      Paint()..color = Color.lerp(top, accent, 0.35)!.withValues(alpha: 0.10),
+    );
+
+    final right = Path()
+      ..moveTo(size.width, size.height * 0.12)
+      ..lineTo(size.width, size.height * 0.72)
+      ..lineTo(size.width * 0.58, size.height * 0.45)
+      ..lineTo(size.width * 0.78, size.height * 0.08)
+      ..close();
+    canvas.drawPath(
+      right,
+      Paint()
+        ..color = Color.lerp(bottom, accent, 0.24)!.withValues(alpha: 0.08),
+    );
+
+    final floor = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(size.width, size.height)
+      ..lineTo(size.width * 0.64, size.height * 0.78)
+      ..lineTo(size.width * 0.22, size.height * 0.86)
+      ..close();
+    canvas.drawPath(
+      floor,
+      Paint()..color = Palette.warmShadow.withValues(alpha: 0.14),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_AmbientPlanesPainter old) =>
+      old.top != top || old.bottom != bottom || old.accent != accent;
 }
 
 /// Drifting, twinkling motes of warm light. One repaint-bounded layer,

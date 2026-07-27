@@ -16,6 +16,7 @@ import '../models.dart';
 import '../notifications.dart';
 import '../storage.dart';
 import '../tokens.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/onboarding_flow.dart';
 import '../widgets/routine_flows.dart';
@@ -229,16 +230,19 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void _applyTimeShape(TimeShape shape) {
     final q = _quests;
     if (q == null) return;
-    // light: keep the tiny floors + one focus; drop workout/all-day/heavy
-    // full + packed: keep the full starter board (packed users add more later)
-    if (shape != TimeShape.light) return;
-    const drop = {
-      '25-minute focus session',
-      'Workout — full session',
-      'No caffeine after 2pm',
-      'Clear the sink',
+    final keepCount = switch (shape) {
+      TimeShape.light => 3,
+      TimeShape.full => 5,
+      TimeShape.packed => 7,
     };
+    final defaults = _buildQuests();
+    final keep = defaults.take(keepCount).map((e) => e.title).toSet();
+    final drop = defaults
+        .where((e) => !keep.contains(e.title))
+        .map((e) => e.title)
+        .toSet();
     q.removeWhere((e) => drop.contains(e.title));
+    _state?.removedDefaults.addAll(drop.map((e) => e.toLowerCase()));
   }
 
   /// Auto-greet: last night was closed out, today hasn't been briefed.
@@ -327,6 +331,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       ladder: Ladders.byBaseTitle['Read one page'],
       ladderHint: 'CLIMBS AS YOU GROW 📈',
     ),
+    Quest(title: 'Message a friend', stat: Stat.soc, difficulty: 3),
+    Quest(title: 'Clear the sink', stat: Stat.dis, difficulty: 4, dread: true),
     Quest(
       title: '25-minute focus session',
       stat: Stat.foc,
@@ -334,8 +340,6 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       verification: Verification.timer,
       timerMinutes: 25,
     ),
-    Quest(title: 'Message a friend', stat: Stat.soc, difficulty: 3),
-    Quest(title: 'Clear the sink', stat: Stat.dis, difficulty: 4, dread: true),
     // a hand-held option for the user who wants to move but isn't a gym rat
     workoutLauncherQuest(),
     Quest(
@@ -355,6 +359,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   void _reset() {
     final old = _state;
+    final oldRoomCode = old?.roomCode;
     old?.removeListener(_persist);
     CloudSync.instance.cancelPending(); // drop any stale pre-reset push
     unawaited(Notifications.cancelAll());
@@ -367,9 +372,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _state = fresh;
       _quests = _buildQuests();
     });
-    // Erase the cloud copy too, then persist the fresh state — otherwise a
-    // recovery on another device would resurrect everything just erased.
-    CloudSync.instance.deleteRemote().whenComplete(_persist);
+    _maybeOnboard();
+    // Erase the cloud copy and published room too. Guest profiles also delete
+    // their anonymous Firebase identity before a fresh one is created, so a
+    // reset cannot leave an unreachable backend account behind.
+    CloudSync.instance
+        .resetProfile(roomCode: oldRoomCode)
+        .whenComplete(_persist);
   }
 
   /// Non-destructive refresh of the quest board: re-run the day's rollover
@@ -456,8 +465,17 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Future<String?> _linkAccount(String email, String pw) =>
       CloudSync.instance.linkAccount(email, pw);
 
+  Future<String?> _enableCloud() async {
+    final error = await CloudSync.instance.enable();
+    if (error != null) return error;
+    await _persistNow(push: false);
+    CloudSync.instance.flush();
+    if (mounted) setState(() {});
+    return null;
+  }
+
   /// Sign in to an existing account on this device, then ADOPT that
-  /// account's cloud save (explicit login means "give me my character",
+  /// account's cloud save (explicit login means "give me my keep",
   /// even if this device's local save looks newer). If the account has no
   /// cloud save yet, push the local one up as its first.
   Future<String?> _signIn(String email, String pw) async {
@@ -482,7 +500,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       return 'That account save needs a newer Emberkeep build or is damaged. '
           'Nothing was overwritten.';
     } else {
-      await _loadFromStorage(); // adopt the account's character
+      await _loadFromStorage(); // adopt the account's keep and progress
       await _rescheduleNotifications();
     }
     if (mounted) setState(() {});
@@ -599,7 +617,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   void _selectTab(int i) {
     if (i == _tab) return;
-    Sfx.instance.play('tick');
+    // Opening Me is stepping into the keep itself: one restrained lick of
+    // fire replaces the generic nav tick. It remains incidental, mixes with
+    // music, respects silent mode, and is much quieter than a revival.
+    if (i == 0) {
+      Sfx.instance.play('hearth_room');
+    } else {
+      Sfx.instance.play('tick');
+    }
     Haptics.tap();
     setState(() => _tab = i);
   }
@@ -653,6 +678,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                         onImport: _import,
                         onReset: _reset,
                         onNotifyChanged: _rescheduleNotifications,
+                        onEnableCloud: _enableCloud,
                         onLinkAccount: _linkAccount,
                         onSignIn: _signIn,
                         onSignOut: _signOut,
@@ -779,16 +805,19 @@ class _DockItem extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 48),
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            gradient: selected
-                ? const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFFF2CD93), Color(0xFFC49C6C)],
-                  )
-                : null,
-            boxShadow: selected
+          decoration: facetedDecoration(
+            cut: 9,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: selected
+                  ? const [Color(0xFFF2CD93), Color(0xFFC49C6C)]
+                  : const [Colors.transparent, Colors.transparent],
+            ),
+            borderColor: selected
+                ? const Color(0x66FFF0C7)
+                : Colors.transparent,
+            shadows: selected
                 ? const [
                     BoxShadow(
                       color: Palette.honeyGlow,

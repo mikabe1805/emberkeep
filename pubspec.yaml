@@ -42,6 +42,7 @@ dependencies:
   cloud_firestore: ^6.5.0
   web: ^1.1.1
   share_plus: ^13.1.0
+  url_launcher: ^6.3.2
   # Local notifications are NATIVE-only (no web support); all calls are behind
   # a conditional import (platform/notifications_stub.dart on web) so the web
   # build never compiles the plugin. timezone + flutter_timezone power the
@@ -69,10 +70,13 @@ dev_dependencies:
 #   dart run flutter_launcher_icons
 flutter_launcher_icons:
   ios: true
-  android: false
+  android: true
   remove_alpha_ios: true
   background_color_ios: "#191210"
-  image_path: "web/icons/Icon-1024.png"
+  image_path: "web/icons/Icon-1024-v2.png"
+  adaptive_icon_background: "#170D0A"
+  adaptive_icon_foreground: "web/icons/Icon-1024-v2.png"
+  adaptive_icon_foreground_inset: 0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../audio.dart';
 import '../clock.dart';
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
 import 'honey_button.dart';
 
@@ -106,17 +107,15 @@ class _WeekdaySheetState extends State<_WeekdaySheet> {
                           width: 44,
                           height: 44,
                           alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
+                          decoration: facetedDecoration(
+                            cut: 8,
                             color: _sel == d
                                 ? widget.accent.withValues(alpha: 0.28)
                                 : Palette.glassFill,
-                            border: Border.all(
-                              color: _sel == d
-                                  ? widget.accent
-                                  : Palette.glassEdge,
-                              width: _sel == d ? 1.6 : 1.0,
-                            ),
+                            borderColor: _sel == d
+                                ? widget.accent
+                                : Palette.glassEdge,
+                            borderWidth: _sel == d ? 1.6 : 1.0,
                           ),
                           child: Text(
                             _dayLetters[d - 1],
@@ -149,9 +148,10 @@ class _WeekdaySheetState extends State<_WeekdaySheet> {
                       child: Container(
                         alignment: Alignment.center,
                         constraints: const BoxConstraints(minHeight: 48),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: Palette.glassEdge),
+                        decoration: facetedDecoration(
+                          cut: 9,
+                          color: Colors.transparent,
+                          borderColor: Palette.glassEdge,
                         ),
                         child: Text(
                           'ANY DAY',

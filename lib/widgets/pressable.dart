@@ -24,6 +24,7 @@ class Pressable extends StatefulWidget {
     this.onLongPress,
     this.edgeColor,
     this.borderRadius,
+    this.shape,
     this.enabled = true,
     this.semanticLabel,
     this.semanticHint,
@@ -40,6 +41,7 @@ class Pressable extends StatefulWidget {
   final VoidCallback? onLongPress;
   final Color? edgeColor;
   final BorderRadius? borderRadius;
+  final ShapeBorder? shape;
   final bool enabled;
   final String? semanticLabel;
   final String? semanticHint;
@@ -79,6 +81,12 @@ class _PressableState extends State<Pressable> {
     final radius = widget.borderRadius ?? BorderRadius.circular(14);
     // deep espresso under-edge — warm, never grey
     final edge = widget.edgeColor ?? const Color(0xFF0F0905);
+    final shadows = _down
+        ? const <BoxShadow>[]
+        : [BoxShadow(color: edge, offset: const Offset(0, _drop))];
+    final edgeDecoration = widget.shape == null
+        ? BoxDecoration(borderRadius: radius, boxShadow: shadows)
+        : ShapeDecoration(shape: widget.shape!, shadows: shadows);
     final manageActions = widget.onLongPress == null
         ? null
         : <CustomSemanticsAction, VoidCallback>{
@@ -126,12 +134,7 @@ class _PressableState extends State<Pressable> {
               duration: _down ? Duration.zero : Motion.ack,
               curve: Motion.respond,
               transform: Matrix4.translationValues(0, _down ? _drop : 0, 0),
-              decoration: BoxDecoration(
-                borderRadius: radius,
-                boxShadow: _down
-                    ? const []
-                    : [BoxShadow(color: edge, offset: const Offset(0, _drop))],
-              ),
+              decoration: edgeDecoration,
               child: widget.child,
             ),
           ),

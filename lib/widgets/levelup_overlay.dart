@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../audio.dart';
 import '../haptics.dart';
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
 import 'particles.dart';
 
@@ -122,18 +123,55 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                         scale: 0.4 + 0.6 * _slam.value,
                         child: Opacity(
                           opacity: _slam.value.clamp(0.0, 1.0),
-                          child: Text(
-                            '${widget.level}',
-                            style: Type.numerals.copyWith(
-                              fontSize: 120,
-                              color: Palette.xpLight,
-                              shadows: [
-                                Shadow(
-                                  color: Palette.xpLight.withValues(alpha: 0.7),
-                                  blurRadius: 44 * _slam.value,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Transform.rotate(
+                                angle: 0.785,
+                                child: Container(
+                                  width: 104,
+                                  height: 104,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        Palette.xpLight.withValues(alpha: 0.13),
+                                        Palette.unlock.withValues(alpha: 0.025),
+                                      ],
+                                    ),
+                                    border: Border.all(
+                                      color: Palette.xpLight.withValues(
+                                        alpha: 0.3,
+                                      ),
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Palette.honeyGlow.withValues(
+                                          alpha: 0.35,
+                                        ),
+                                        blurRadius: 30,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              Text(
+                                '${widget.level}',
+                                style: Type.numerals.copyWith(
+                                  fontSize: 120,
+                                  color: Palette.xpLight,
+                                  shadows: [
+                                    Shadow(
+                                      color: Palette.xpLight.withValues(
+                                        alpha: 0.7,
+                                      ),
+                                      blurRadius: 44 * _slam.value,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -148,10 +186,11 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                                 horizontal: 18,
                                 vertical: 10,
                               ),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Palette.unlock),
-                                boxShadow: [
+                              decoration: facetedDecoration(
+                                cut: 9,
+                                color: Palette.unlock.withValues(alpha: 0.05),
+                                borderColor: Palette.unlock,
+                                shadows: [
                                   BoxShadow(
                                     color: Palette.unlock.withValues(
                                       alpha: 0.3 * _unlockIn.value,

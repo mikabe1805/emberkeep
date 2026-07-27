@@ -8,7 +8,9 @@ import '../content/routines.dart';
 import '../engine.dart';
 import '../haptics.dart';
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
+import 'honey_button.dart';
 import 'workout_pose.dart';
 
 /// The guided-workout runner (RESEARCH-workouts.md). A full-screen overlay
@@ -254,14 +256,9 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         glow: recommended,
         child: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: r.stat.color.withValues(alpha: 0.16),
-                border: Border.all(color: r.stat.color.withValues(alpha: 0.5)),
-              ),
+            FacetMedallion(
+              size: 40,
+              accent: r.stat.color,
               child: Icon(
                 r.restDay ? Icons.self_improvement : Icons.fitness_center,
                 size: 19,
@@ -428,14 +425,12 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
+        decoration: facetedDecoration(
+          cut: 6,
           color: on ? Palette.xpLight.withValues(alpha: 0.2) : null,
-          border: Border.all(
-            color: on
-                ? Palette.xpLight.withValues(alpha: 0.7)
-                : Palette.glassEdge,
-          ),
+          borderColor: on
+              ? Palette.xpLight.withValues(alpha: 0.7)
+              : Palette.glassEdge,
         ),
         child: Text(
           label,
@@ -474,14 +469,11 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                 Row(
                   children: [
                     Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(3),
-                        child: LinearProgressIndicator(
-                          value: (_i + 1) / _moves.length,
-                          minHeight: 4,
-                          backgroundColor: const Color(0x1FF2CD93),
-                          color: _routine!.stat.color,
-                        ),
+                      child: FacetedMeter(
+                        value: (_i + 1) / _moves.length,
+                        height: 4,
+                        color: _routine!.stat.color,
+                        background: const Color(0x1FF2CD93),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -806,34 +798,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
 
   // ── shared button styles ─────────────────────────────────────────
   Widget _bigButton(String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Palette.honeyGlow,
-              blurRadius: 18,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Text(
-          label,
-          style: Type.label.copyWith(
-            fontSize: 11,
-            color: const Color(0xFF3A2510),
-          ),
-        ),
-      ),
-    );
+    return HoneyButton(label: label, onTap: onTap, glow: true);
   }
 
   Widget _smallButton(String label, Color color, VoidCallback onTap) {
@@ -841,9 +806,10 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: color.withValues(alpha: 0.5)),
+        decoration: facetedDecoration(
+          cut: 8,
+          color: Colors.transparent,
+          borderColor: color.withValues(alpha: 0.5),
         ),
         child: Text(
           label,

@@ -12,6 +12,7 @@ import '../haptics.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
@@ -112,12 +113,104 @@ class ShopScreen extends StatelessWidget {
     ),
   );
 
+  /// The nearest currently-unlocked purchase across every shelf. Keeping one
+  /// concrete reward in sight turns quest embers into a visible upgrade path
+  /// instead of an abstract wallet balance.
+  ({String name, int price})? _closestUpgrade() {
+    final choices = <({String name, int price})>[];
+    for (final item in furniture) {
+      if (!state.ownedFurniture.contains(item.id) &&
+          furnitureUnlocked(item, state)) {
+        choices.add((name: item.name, price: item.price));
+      }
+    }
+    for (final style in roomStyles) {
+      if (style.price > 0 &&
+          !isStyleOwned(state, style) &&
+          styleUnlocked(style, state)) {
+        choices.add((name: style.name, price: style.price));
+      }
+    }
+    for (final skin in creatureSkins) {
+      if (skin.price > 0 &&
+          !isSkinOwned(state, skin) &&
+          skinUnlocked(skin, state)) {
+        choices.add((name: skin.name, price: skin.price));
+      }
+    }
+    for (final view in windowViews) {
+      if (view.price > 0 &&
+          !isWindowOwned(state, view) &&
+          windowUnlocked(view, state)) {
+        choices.add((name: view.name, price: view.price));
+      }
+    }
+    if (choices.isEmpty) return null;
+    choices.sort((a, b) {
+      final aGap = a.price > state.embers ? a.price - state.embers : 0;
+      final bGap = b.price > state.embers ? b.price - state.embers : 0;
+      final byGap = aGap.compareTo(bGap);
+      return byGap == 0 ? a.price.compareTo(b.price) : byGap;
+    });
+    return choices.first;
+  }
+
+  Widget _upgradeTarget(({String name, int price}) reward) {
+    final remaining = reward.price - state.embers;
+    final ready = remaining <= 0;
+    final progress = (state.embers / reward.price).clamp(0.0, 1.0);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+      decoration: facetedDecoration(
+        cut: 9,
+        color: Palette.xp.withValues(alpha: 0.08),
+        borderColor: Palette.xp.withValues(alpha: 0.22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'CLOSEST UPGRADE · ${reward.name.toUpperCase()}',
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: 10.5,
+                    color: Palette.xpLight,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                ready ? 'READY' : '✦ $remaining TO GO',
+                style: Type.numerals.copyWith(
+                  fontSize: 11,
+                  color: ready ? Palette.success : Palette.xp,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          FacetedMeter(
+            value: progress,
+            height: 5,
+            background: Colors.black.withValues(alpha: 0.18),
+            color: ready ? Palette.success : Palette.xp,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: state,
       builder: (context, _) {
         final owned = state.ownedFurniture.length;
+        final closestUpgrade = _closestUpgrade();
         return Scaffold(
           backgroundColor: Palette.parchment,
           body: WarmBackground(
@@ -161,6 +254,10 @@ class ShopScreen extends StatelessWidget {
                                   color: Palette.textLo,
                                 ),
                               ),
+                              if (closestUpgrade != null) ...[
+                                const SizedBox(height: 10),
+                                _upgradeTarget(closestUpgrade),
+                              ],
                             ],
                           ),
                         ),
@@ -243,10 +340,10 @@ void _toast(BuildContext context, String msg) {
 /// The settled state every card ends in ("in your room" / "on now" / "worn").
 Widget _pill(Color c, IconData icon, String label) => Container(
   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-  decoration: BoxDecoration(
-    borderRadius: BorderRadius.circular(999),
+  decoration: facetedDecoration(
+    cut: 8,
     color: c.withValues(alpha: 0.15),
-    border: Border.all(color: c.withValues(alpha: 0.4)),
+    borderColor: c.withValues(alpha: 0.4),
   ),
   child: Row(
     mainAxisSize: MainAxisSize.min,
@@ -263,10 +360,10 @@ Widget _pill(Color c, IconData icon, String label) => Container(
 Widget _lockedPill(String trophy) => Container(
   constraints: const BoxConstraints(maxWidth: 124),
   padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-  decoration: BoxDecoration(
-    borderRadius: BorderRadius.circular(12),
+  decoration: facetedDecoration(
+    cut: 8,
     color: Colors.black.withValues(alpha: 0.16),
-    border: Border.all(color: Palette.textLo.withValues(alpha: 0.25)),
+    borderColor: Palette.textLo.withValues(alpha: 0.25),
   ),
   child: Row(
     mainAxisSize: MainAxisSize.min,
@@ -290,9 +387,10 @@ Widget _applyChip(String label, VoidCallback onTap) => GestureDetector(
   onTap: onTap,
   child: Container(
     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: Palette.xp.withValues(alpha: 0.6)),
+    decoration: facetedDecoration(
+      cut: 8,
+      color: Palette.xp.withValues(alpha: 0.05),
+      borderColor: Palette.xp.withValues(alpha: 0.6),
     ),
     child: Text(
       label,
@@ -592,8 +690,8 @@ class _ShopCard extends StatelessWidget {
 
   Widget _zoneChip(String zone) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(6),
+    decoration: facetedDecoration(
+      cut: 5,
       color: Palette.xp.withValues(alpha: 0.12),
     ),
     child: Text(
@@ -718,24 +816,23 @@ class _StyleCard extends StatelessWidget {
     );
   }
 
-  Widget _swatch() => Container(
-    width: 46,
-    height: 44,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(10),
+  Widget _swatch() => DecoratedBox(
+    decoration: facetedDecoration(
+      cut: 8,
       gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
         colors: [style.a, style.b],
       ),
-      border: Border.all(color: Palette.textHi.withValues(alpha: 0.15)),
+      borderColor: Palette.textHi.withValues(alpha: 0.15),
     ),
+    child: const SizedBox(width: 46, height: 44),
   );
 
   Widget _kindChip() => Container(
     padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(6),
+    decoration: facetedDecoration(
+      cut: 5,
       color: Palette.xp.withValues(alpha: 0.12),
     ),
     child: Text(
@@ -775,8 +872,8 @@ class _WindowCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(7),
+            ClipPath(
+              clipper: const FacetedClipper(cut: 7),
               child: SizedBox(
                 width: 64,
                 height: 46,
@@ -992,37 +1089,8 @@ class _FlameSwatchPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8)),
-      Paint()..color = const Color(0xFF201510),
-    );
-    final cx = w * 0.5, base = h * 0.82;
-    // glow
-    canvas.drawCircle(
-      Offset(cx, h * 0.6),
-      w * 0.34,
-      Paint()
-        ..color = colors[1].withValues(alpha: 0.5)
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.14),
-    );
-    // flame teardrop
-    final flame = Path()
-      ..moveTo(cx - w * 0.16, base)
-      ..quadraticBezierTo(cx - w * 0.20, h * 0.4, cx, h * 0.2)
-      ..quadraticBezierTo(cx + w * 0.20, h * 0.4, cx + w * 0.16, base)
-      ..quadraticBezierTo(cx, base + h * 0.05, cx - w * 0.16, base)
-      ..close();
-    canvas.drawPath(
-      flame,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [colors[2], colors[1], colors[0]],
-          stops: const [0.0, 0.55, 1.0],
-        ).createShader(Rect.fromLTWH(cx - w * 0.2, h * 0.2, w * 0.4, h * 0.62)),
-    );
+    final hue = asFlameHue(colors[2]);
+    paintEmberFlameSwatch(canvas, size, hue);
   }
 
   @override

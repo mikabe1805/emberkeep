@@ -1,3 +1,5 @@
+import 'package:emberkeep/content/creature_skins.dart';
+import 'package:emberkeep/content/room_styles.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/journal_doc.dart';
 import 'package:emberkeep/main.dart';
@@ -11,7 +13,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<void> pumpApp(WidgetTester tester) async {
+Future<void> pumpApp(
+  WidgetTester tester, {
+  String timeShape = 'FULL DAYS',
+}) async {
   await tester.pumpWidget(const LifeRpgApp());
   // let the async save-load resolve
   await tester.pump();
@@ -23,9 +28,13 @@ Future<void> pumpApp(WidgetTester tester) async {
     await tester.tap(find.text('rather not say'));
     await settle(tester);
     // time-shape step (default FULL DAYS already selected)
+    if (timeShape != 'FULL DAYS') {
+      await tester.tap(find.text(timeShape));
+      await settle(tester);
+    }
     await tester.tap(find.text('CONTINUE'));
     await settle(tester);
-    await tester.tap(find.text('I’ll explore first'));
+    await tester.tap(find.text('LIGHT MY FIRST EMBER'));
     await tester.pump(const Duration(milliseconds: 300));
   }
 }
@@ -54,8 +63,22 @@ void main() {
 
     expect(find.text('LEVEL 1'), findsOneWidget);
     expect(find.text('Do 2 push-ups'), findsOneWidget);
-    expect(find.text('TODAY · 9 LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 5 LEFT'), findsOneWidget);
   });
+
+  for (final (shape, count) in const [
+    ('LIGHT DAYS', 3),
+    ('FULL DAYS', 5),
+    ('PACKED DAYS', 7),
+  ]) {
+    testWidgets('$shape creates an honest $count-quest starter board', (
+      tester,
+    ) async {
+      await pumpApp(tester, timeShape: shape);
+
+      expect(find.text('TODAY · $count LEFT'), findsOneWidget);
+    });
+  }
 
   testWidgets('completing a quest marks it done and grants XP', (tester) async {
     await pumpApp(tester);
@@ -63,22 +86,39 @@ void main() {
     await tester.tap(find.text('Walk 10 minutes'));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('TODAY · 8 LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 4 LEFT'), findsOneWidget);
 
     // let receipt/particle timers and bar fill finish so no timers leak
     // (pumpAndSettle would never settle: ambient animations repeat forever)
     await tester.pump(const Duration(seconds: 3));
     await tester.pump(const Duration(seconds: 2));
     await tester.pump(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('first trophy waits until the reward receipt clears', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text('Walk 10 minutes'));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('First Step'), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 2300));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text('First Step'), findsOneWidget);
+
+    await tester.pump(const Duration(seconds: 3));
   });
 
   testWidgets('undo restores a quest completed by accident', (tester) async {
     await pumpApp(tester);
-    expect(find.text('TODAY · 9 LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 5 LEFT'), findsOneWidget);
 
     await tester.tap(find.text('Walk 10 minutes'));
     await tester.pump(const Duration(milliseconds: 100));
-    expect(find.text('TODAY · 8 LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 4 LEFT'), findsOneWidget);
 
     // wait for the deferred commit, which arms swipe-to-undo on the card
     await tester.pump(const Duration(milliseconds: 1400));
@@ -95,7 +135,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 800));
 
     // the quest is back on the board, the completion reverted
-    expect(find.text('TODAY · 9 LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 5 LEFT'), findsOneWidget);
 
     // settle remaining timers
     await tester.pump(const Duration(seconds: 5));
@@ -109,14 +149,14 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(800, 1800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await pumpApp(tester);
-      expect(find.text('TODAY · 9 LEFT'), findsOneWidget);
+      expect(find.text('TODAY · 5 LEFT'), findsOneWidget);
 
       // complete A, then complete B before A's deferred commit fires (~1s)
       await tester.tap(find.text('Walk 10 minutes'));
       await tester.pump(const Duration(milliseconds: 150));
       await tester.tap(find.text('Read one page'));
       await tester.pump(const Duration(milliseconds: 150));
-      expect(find.text('TODAY · 7 LEFT'), findsOneWidget);
+      expect(find.text('TODAY · 3 LEFT'), findsOneWidget);
 
       // wait for B's commit (arms swipe-to-undo on B's card), then undo B
       await tester.pump(const Duration(milliseconds: 1400));
@@ -129,7 +169,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 800));
 
       // B reverted (back to 8), and A's reward was NOT destroyed
-      expect(find.text('TODAY · 8 LEFT'), findsOneWidget);
+      expect(find.text('TODAY · 4 LEFT'), findsOneWidget);
       await tester.tap(find.byIcon(Icons.emoji_emotions_outlined));
       // The Me header's XP is a RollingNumber, and the shell mutes off-screen
       // tabs — so its tween only starts once Me comes forward. Settle it (a
@@ -248,7 +288,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.task_alt));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('TODAY · 10 LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 6 LEFT'), findsOneWidget);
 
     // the new quest is appended at the bottom — scroll the board to reach it.
     // (cards got taller in the mobile-readability pass; a big single drag
@@ -426,7 +466,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500)); // sheet slides away
     await tester.pump(const Duration(milliseconds: 100)); // route removed
 
-    expect(find.text('TODAY · 10 LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 6 LEFT'), findsOneWidget);
     expect(find.text('Do the laundry'), findsOneWidget);
     expect(find.text('DUE TODAY'), findsOneWidget);
   });
@@ -448,7 +488,7 @@ void main() {
     // due today → leads the quest list
     await tester.tap(find.byIcon(Icons.task_alt));
     await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('TODAY · 10 LEFT'), findsOneWidget);
+    expect(find.text('TODAY · 6 LEFT'), findsOneWidget);
     expect(find.text('Finish the essay draft'), findsOneWidget);
     expect(find.text('DUE TODAY'), findsOneWidget);
   });
@@ -671,6 +711,50 @@ void main() {
     expect(loaded.$1.creatureSkin, 'ember_amber');
   });
 
+  test('shop expansion offers new completion-linked rewards', () async {
+    SharedPreferences.setMockInitialValues({});
+    final state = GameState()..embers = 2000;
+
+    expect(
+      creatureSkins.map((skin) => skin.id),
+      containsAll(['sunstone', 'sea_glass', 'moon_pearl']),
+    );
+    expect(
+      roomStyles.map((style) => style.id),
+      containsAll(['wall_amber', 'wall_berry', 'floor_maple', 'floor_cherry']),
+    );
+
+    final seaGlass = creatureSkinById('sea_glass')!;
+    expect(seaGlass.requires, 'proof-positive');
+    expect(
+      state.buySkin(
+        seaGlass.id,
+        seaGlass.price,
+        allowed: skinUnlocked(seaGlass, state),
+      ),
+      isFalse,
+      reason: 'the timer-proof reward stays trophy-linked',
+    );
+    state.unlockedAchievements.add('proof-positive');
+    expect(
+      state.buySkin(
+        seaGlass.id,
+        seaGlass.price,
+        allowed: skinUnlocked(seaGlass, state),
+      ),
+      isTrue,
+    );
+
+    final maple = roomStyleById('floor_maple')!;
+    expect(state.buyStyle(maple.id, maple.price, maple.kind), isTrue);
+    await Storage.save(state, const []);
+    final loaded = (await Storage.load())!.$1;
+    expect(loaded.ownedSkins, contains('sea_glass'));
+    expect(loaded.creatureSkin, 'sea_glass');
+    expect(loaded.ownedStyles, contains('floor_maple'));
+    expect(loaded.floorStyle, 'floor_maple');
+  });
+
   test('window views: buy applies, apply switches, gate + persist', () async {
     SharedPreferences.setMockInitialValues({});
     final state = GameState()..embers = 500;
@@ -765,13 +849,15 @@ void main() {
     );
 
     final d = roomDisplay(s);
-    expect(d['name'], 'Mika');
+    expect(d['name'], 'Fellow keeper');
     expect(d['level'], 9);
     expect(d['skin'], 'mint_glass');
     expect(d['wall'], 'wall_plum');
     expect(d['window'], 'aurora');
     expect((d['furniture'] as List), containsAll(['rug', 'lamp']));
-    // crucial: never leak quests/notes/account into a public room doc
+    // Crucial: never leak free-form names, quests, notes, or account data into
+    // a public room doc. Shared text is fixed/app-generated only.
+    expect(d.toString().contains('Mika'), isFalse);
     expect(d.containsKey('journal'), isFalse);
     expect(d.toString().contains('private thought'), isFalse);
   });

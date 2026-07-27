@@ -5,6 +5,7 @@ import '../audio.dart';
 import '../clock.dart';
 import '../models.dart';
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
 
 /// Warm, human relative time for a note: "just now" / "2h ago" / "yesterday" /
@@ -560,27 +561,17 @@ class _NotesSheetState extends State<_NotesSheet> {
                     GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: _submit,
-                      child: Container(
-                        width: 46,
-                        height: 46,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Color(0xFFF6D9A2),
-                              Color(0xFFEFC074),
-                              Color(0xFFC08B4F),
-                            ],
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Palette.honeyGlow,
-                              blurRadius: 14,
-                              offset: Offset(0, 4),
-                            ),
+                      child: FacetMedallion(
+                        size: 46,
+                        accent: Palette.xp,
+                        glow: true,
+                        gradient: const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0xFFF6D9A2),
+                            Color(0xFFEFC074),
+                            Color(0xFFC08B4F),
                           ],
                         ),
                         child: Icon(
@@ -627,23 +618,25 @@ class _NoteRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final row = Container(
       padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+      decoration: facetedDecoration(
+        cut: 8,
         color: editing ? accent.withValues(alpha: 0.10) : Palette.glassFill,
-        border: Border.all(
-          color: editing ? accent.withValues(alpha: 0.6) : Palette.glassEdge,
-        ),
+        borderColor: editing
+            ? accent.withValues(alpha: 0.6)
+            : Palette.glassEdge,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            margin: const EdgeInsets.only(top: 5, right: 10),
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: accent.withValues(alpha: 0.8),
+          Padding(
+            padding: const EdgeInsets.only(top: 6, right: 11, left: 1),
+            child: Transform.rotate(
+              angle: 0.785,
+              child: Container(
+                width: 6,
+                height: 6,
+                color: accent.withValues(alpha: 0.8),
+              ),
             ),
           ),
           Expanded(

@@ -9,6 +9,7 @@ import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/day_picker.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import 'goal_detail.dart';
 import 'goal_wizard.dart';
@@ -262,45 +263,10 @@ class _CategoryHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     // A small specular accent medallion — a quieter quote of the goal-card
     // stat medallion so headers read as kin of the cards beneath them.
-    final medallion = SizedBox(
-      width: 26,
-      height: 26,
-      child: Stack(
-        children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: accent.withValues(alpha: 0.16),
-              border: Border.all(
-                color: accent.withValues(alpha: 0.5),
-                width: 1.2,
-              ),
-            ),
-            child: Center(child: Icon(icon, size: 15, color: accent)),
-          ),
-          // the signature specular drop-of-light, at small scale
-          Positioned.fill(
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    center: const Alignment(-0.7, -0.8),
-                    radius: 1.1,
-                    colors: [
-                      Palette.specular.withValues(alpha: 0.18),
-                      Palette.specular.withValues(alpha: 0.0),
-                    ],
-                    stops: const [0.0, 0.6],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+    final medallion = FacetMedallion(
+      size: 26,
+      accent: accent,
+      child: Icon(icon, size: 15, color: accent),
     );
     return Padding(
       padding: const EdgeInsets.fromLTRB(2, 0, 2, 0),
@@ -391,16 +357,9 @@ class _GuidedWorkoutsCard extends StatelessWidget {
         glow: true,
         child: Row(
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Stat.str.color.withValues(alpha: 0.16),
-                border: Border.all(
-                  color: Stat.str.color.withValues(alpha: 0.5),
-                ),
-              ),
+            FacetMedallion(
+              size: 44,
+              accent: Stat.str.color,
               child: Icon(
                 Icons.fitness_center,
                 size: 21,
@@ -459,20 +418,16 @@ class _WizardHero extends StatelessWidget {
         padding: const EdgeInsets.all(18),
         child: Row(
           children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const RadialGradient(
-                  center: Alignment(-0.4, -0.5),
-                  colors: [Color(0xFFFFF4D9), Color(0xFFC08B4F)],
-                ),
-                boxShadow: const [
-                  BoxShadow(color: Palette.honeyGlow, blurRadius: 16),
-                ],
+            const FacetMedallion(
+              size: 46,
+              accent: Palette.xp,
+              glow: true,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFFFFF4D9), Color(0xFFC08B4F)],
               ),
-              child: const Icon(Icons.flag, size: 22, color: Color(0xFF3A2510)),
+              child: Icon(Icons.flag, size: 22, color: Color(0xFF3A2510)),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -581,8 +536,8 @@ class _YourGoals extends StatelessWidget {
                             horizontal: 18,
                             vertical: 9,
                           ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
+                          decoration: facetedDecoration(
+                            cut: 8,
                             gradient: const LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
@@ -625,13 +580,12 @@ class _YourGoals extends StatelessWidget {
                             horizontal: 18,
                             vertical: 9,
                           ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: const Color(
-                                0xFFE89090,
-                              ).withValues(alpha: armed ? 1 : 0.5),
-                            ),
+                          decoration: facetedDecoration(
+                            cut: 8,
+                            color: Colors.transparent,
+                            borderColor: const Color(
+                              0xFFE89090,
+                            ).withValues(alpha: armed ? 1 : 0.5),
                           ),
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
@@ -723,14 +677,12 @@ class _YourGoals extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 5),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: g.complete ? 1 : g.fraction,
-                      minHeight: 7,
-                      backgroundColor: const Color(0x1FF2CD93),
-                      color: g.complete ? Palette.xpLight : g.stat.color,
-                    ),
+                  FacetedMeter(
+                    value: g.complete ? 1 : g.fraction,
+                    height: 7,
+                    glow: g.complete,
+                    background: const Color(0x1FF2CD93),
+                    color: g.complete ? Palette.xpLight : g.stat.color,
                   ),
                 ],
               ),
@@ -781,16 +733,9 @@ class _GoalCardState extends State<_GoalCard> {
             },
             child: Row(
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: idea.stat.color.withValues(alpha: 0.16),
-                    border: Border.all(
-                      color: idea.stat.color.withValues(alpha: 0.5),
-                    ),
-                  ),
+                FacetMedallion(
+                  size: 38,
+                  accent: idea.stat.color,
                   child: Center(
                     // scaleDown so longer domain abbrs (CRAFT, PEOPLE) shrink
                     // to one line in the circle instead of wrapping to two.
@@ -867,8 +812,8 @@ class _GoalCardState extends State<_GoalCard> {
                           horizontal: 16,
                           vertical: 8,
                         ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
+                        decoration: facetedDecoration(
+                          cut: 8,
                           gradient: widget.adopted
                               ? null
                               : const LinearGradient(
@@ -880,11 +825,9 @@ class _GoalCardState extends State<_GoalCard> {
                                     Color(0xFFC08B4F),
                                   ],
                                 ),
-                          border: widget.adopted
-                              ? Border.all(
-                                  color: Palette.success.withValues(alpha: 0.5),
-                                )
-                              : null,
+                          borderColor: widget.adopted
+                              ? Palette.success.withValues(alpha: 0.5)
+                              : Colors.transparent,
                         ),
                         child: Text(
                           widget.adopted
@@ -1096,8 +1039,8 @@ class _TemplateRow extends StatelessWidget {
             child: AnimatedContainer(
               duration: Motion.quick,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(999),
+              decoration: facetedDecoration(
+                cut: 7,
                 gradient: taken
                     ? null
                     : const LinearGradient(
@@ -1109,9 +1052,9 @@ class _TemplateRow extends StatelessWidget {
                           Color(0xFFC08B4F),
                         ],
                       ),
-                border: taken
-                    ? Border.all(color: Palette.success.withValues(alpha: 0.5))
-                    : null,
+                borderColor: taken
+                    ? Palette.success.withValues(alpha: 0.5)
+                    : Colors.transparent,
               ),
               child: Text(
                 taken ? 'TAKEN ✓' : 'TAKE ON',
@@ -1138,9 +1081,10 @@ class _MiniChip extends StatelessWidget {
     final c = color ?? Palette.textLo;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: c.withValues(alpha: 0.4)),
+      decoration: facetedDecoration(
+        cut: 4,
+        color: Colors.transparent,
+        borderColor: c.withValues(alpha: 0.4),
       ),
       child: Text(label, style: Type.label.copyWith(fontSize: 11, color: c)),
     );

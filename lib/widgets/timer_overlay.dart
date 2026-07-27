@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
 
 /// Timer proof: a real countdown anchored to WALL-CLOCK time — locking the
@@ -186,11 +187,10 @@ class _TimerOverlayState extends State<TimerOverlay>
                           horizontal: 16,
                           vertical: 9,
                         ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: Palette.textLo.withValues(alpha: 0.4),
-                          ),
+                        decoration: facetedDecoration(
+                          cut: 8,
+                          color: Colors.transparent,
+                          borderColor: Palette.textLo.withValues(alpha: 0.4),
                         ),
                         child: Text(
                           'NOT NOW',
@@ -209,11 +209,10 @@ class _TimerOverlayState extends State<TimerOverlay>
                           horizontal: 16,
                           vertical: 9,
                         ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: Palette.success.withValues(alpha: 0.5),
-                          ),
+                        decoration: facetedDecoration(
+                          cut: 8,
+                          color: Colors.transparent,
+                          borderColor: Palette.success.withValues(alpha: 0.5),
                         ),
                         child: Text(
                           'I ALREADY DID IT',

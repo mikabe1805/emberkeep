@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
+import 'facets.dart';
 
 /// The XP bar. Fill accelerates INTO the end and never stalls near full
 /// (perceived-duration research), with animated ribbing inside the fill and
@@ -29,8 +30,8 @@ class XpBar extends StatelessWidget {
     // RepaintBoundary: the ribbing animates continuously — confine its
     // invalidations to the 14px bar instead of the whole header layer.
     return RepaintBoundary(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(height / 2),
+      child: ClipPath(
+        clipper: FacetedClipper(cut: height * 0.42),
         child: Container(
           height: height,
           color: const Color(0x1FF2CD93), // faint honey track in the dark
@@ -64,14 +65,18 @@ class _RibbedFill extends StatefulWidget {
 
 class _RibbedFillState extends State<_RibbedFill>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _scroll = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1200),
-  );
+  late final AnimationController _scroll;
 
   @override
   void initState() {
     super.initState();
+    // Initialize while the element is active. A lazy field initializer first
+    // touched by dispose() would try to create a ticker from a deactivated
+    // context when reduced motion kept the controller otherwise unused.
+    _scroll = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
     if (widget.lively) _scroll.repeat();
   }
 

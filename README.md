@@ -52,9 +52,14 @@ Open the PNGs in `test/goldens/` after any visual change.
 - `lib/widgets/` — the keep, quest cards, glass primitives, and celebrations
 - `lib/content/` — offline quest, evidence, cosmetic, and progression catalogs
 
-## Platform setup still requiring owner credentials
+## Release setup still requiring owner credentials
 
-- Android Firebase must be registered for package `com.mikabe.emberkeep` and
-  regenerated with FlutterFire before cloud accounts/sharing work on Android.
-- A Play release keystore must replace the development debug signing config.
-- iOS signing/App Store setup is documented in [`../NATIVE-iOS.md`](../NATIVE-iOS.md).
+- Android Firebase is registered for `com.mikabe.emberkeep`; cloud options are
+  checked in for Android, iOS, and web.
+- Android release builds intentionally fail until the ignored
+  `android/key.properties` points to the owner’s private Play upload keystore.
+- iOS signing/App Store setup is documented in
+  [`../NATIVE-iOS.md`](../NATIVE-iOS.md).
+- Store-console copy, privacy answers, screenshots, and remaining owner gates
+  are tracked in [`RELEASE-CHECKLIST.md`](RELEASE-CHECKLIST.md) and
+  [`../STORE-LISTING.md`](../STORE-LISTING.md).

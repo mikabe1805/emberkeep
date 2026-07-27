@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-import 'home_room.dart' show hearthStageForLevel;
+import 'home_room.dart' show hearthStageForLevel, paintEmberFlame;
 
 /// A small living hearth-flame for the daily HUD — the keep's heart, finally on
 /// the screen you actually live in (round-65). It grows through six tiers with
@@ -213,46 +213,15 @@ class _HearthGlyphPainter extends CustomPainter {
         final lean = w * 0.05 * sin(t * 2 * pi + spec.$3);
         final fh = maxH * spec.$2 * f;
         final fw = w * 0.14;
-        final path = Path()
-          ..moveTo(fx - fw, baseY)
-          ..quadraticBezierTo(
-            fx - fw + lean,
-            baseY - fh * 0.6,
-            fx + lean,
-            baseY - fh,
-          )
-          ..quadraticBezierTo(fx + fw + lean, baseY - fh * 0.6, fx + fw, baseY)
-          ..close();
         final rect = Rect.fromLTWH(fx - fw, baseY - fh, fw * 2, fh);
-        canvas.drawPath(
-          path,
-          Paint()
-            ..shader = LinearGradient(
-              begin: Alignment.bottomCenter,
-              end: Alignment.topCenter,
-              // hot at the base, cooling to the flame's own hue at the tip —
-              // fire's real heat gradient. Running it the other way (cream on
-              // top) reads as a white candle, not a flame.
-              colors: [
-                _cream,
-                Color.lerp(glow, _cream, 0.5)!,
-                glow,
-                glow.withValues(alpha: 0.7),
-              ],
-              stops: const [0.0, 0.28, 0.76, 1.0],
-            ).createShader(rect),
+        paintEmberFlame(
+          canvas,
+          rect,
+          glow,
+          lean: lean,
+          intensity: lit ? 1 : surge.clamp(0.2, 1.0),
         );
       }
-      // a hot bright heart low in the fire
-      canvas.drawCircle(
-        Offset(cx, baseY - h * 0.06),
-        w * 0.10 * flick * (1 + 0.4 * surge),
-        Paint()
-          ..color = _cream.withValues(
-            alpha: (0.7 + 0.3 * surge) * (lit ? 1.0 : surge),
-          )
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-      );
     }
 
     // ── Everflame gets a single drifting spark-mote at the top tier ──

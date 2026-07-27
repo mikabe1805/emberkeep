@@ -1,6 +1,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function validBuildTitle(title) {
+      return title.matches(
+        '^(STRONG |MIGHTY |TITAN |VITAL |RADIANT |UNDIMMED |ASTUTE |SAGE |LUMINARY |SKILLED |EXPERT |MASTER |BELOVED |MAGNETIC |BEACON |HOMEY |WELCOMING |SANCTUARY )?(BLANK SLATE|LIONHEART|WARRIOR SCHOLAR|SILENT HAMMER|GENTLE GIANT|HOMESTEADER|CLEAR SPRING|STEADY FLAME|SUNSHINE SOUL|EVERGREEN|DEEP CURRENT|STORYTELLER|QUIET MASTER|PRESENT HEART|UNSHAKEABLE|OPEN HEARTH|BRAWLER|WELLSPRING|SCHOLAR|MAKER|FRIEND|KEEPER)$'
+      );
+    }
+
     function validRoom(code) {
       let d = request.resource.data;
       return code.matches('^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$')
@@ -9,19 +15,25 @@ service cloud.firestore {
           'skin', 'window', 'awake', 'v', 'updatedAt'
         ])
         && d.uid == request.auth.uid
-        && d.name is string && d.name.size() <= 40
-        && d.title is string && d.title.size() <= 80
+        && d.name == 'Fellow keeper'
+        && d.title is string && validBuildTitle(d.title)
         && d.level is int && d.level >= 1 && d.level <= 9999
         && d.furniture is list && d.furniture.size() <= 12
         && d.furniture.hasOnly([
           'rug', 'cushion', 'plant', 'candles', 'lamp', 'garland', 'shelf',
           'picture', 'chair', 'pet', 'hearth'
         ])
-        && d.wall in ['wall_walnut', 'wall_plum', 'wall_sage', 'wall_clay', 'wall_indigo']
-        && d.floor in ['floor_oak', 'floor_ash', 'floor_walnut', 'floor_terra']
+        && d.wall in [
+          'wall_walnut', 'wall_plum', 'wall_sage', 'wall_clay', 'wall_amber',
+          'wall_indigo', 'wall_berry'
+        ]
+        && d.floor in [
+          'floor_oak', 'floor_ash', 'floor_walnut', 'floor_terra',
+          'floor_maple', 'floor_cherry'
+        ]
         && d.skin in [
           'ember_amber', 'rose_quartz', 'mint_glass', 'periwinkle', 'lilac',
-          'slate', 'gilded'
+          'sunstone', 'sea_glass', 'moon_pearl', 'slate', 'gilded'
         ]
         && d.window in ['moon', 'city', 'forest', 'mountains', 'rain', 'dawn', 'aurora']
         && d.awake is bool
@@ -34,8 +46,8 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
     // Shared "spaces" (round-52, social): a public, read-only-to-others room
-    // card keyed by a short share code. Only appearance data — never quests,
-    // notes or email. Anyone signed in (everyone is, anonymously) may READ to
+    // card keyed by a short share code. Only preset appearance/progression —
+    // never free-form text, quests, notes or email. Signed-in visitors may READ to
     // visit; you may only create/replace/delete a doc stamped with YOUR uid,
     // so no one can overwrite someone else's space.
     match /rooms/{code} {

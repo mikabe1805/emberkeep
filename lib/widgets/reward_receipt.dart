@@ -8,6 +8,7 @@ import '../engine.dart';
 import '../haptics.dart';
 import '../models.dart';
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
 
 /// The "receipt of rewards": a vertical stack of color-coded bubbles popping
@@ -70,15 +71,30 @@ class _RewardReceiptState extends State<RewardReceipt>
   void initState() {
     super.initState();
     final b = widget.bundle;
+    final state = widget.state;
+    final projectedXp = state == null ? null : state.xp + b.xp;
+    final nextLevel = state == null ? null : state.level + 1;
+    final nextLevelCost = nextLevel == null ? null : state!.xpNeeded(nextLevel);
+    final levelProgress = projectedXp == null || nextLevelCost == null
+        ? null
+        : projectedXp >= nextLevelCost
+        ? 'LEVEL $nextLevel READY'
+        : '${nextLevelCost - projectedXp} XP → LEVEL $nextLevel';
     _bubbles = [
       if (b.firstOfDay)
         _Bubble(
-          'FIRST EMBER OF THE DAY 🔥',
+          'FIRST EMBER 🔥',
           Icons.local_fire_department,
           Palette.streak,
           'streak',
         ),
-      _Bubble('+${b.xp} XP', Icons.bolt, Palette.xp, null, hero: true),
+      _Bubble(
+        '+${b.xp} XP${b.embers > 0 ? ' · +${b.embers} ✦' : ''}',
+        Icons.bolt,
+        Palette.xp,
+        null,
+        hero: true,
+      ),
       // per-stat pitched blip (§8: pitch varies by stat) — tappable when
       // an unread evidence card waits behind it (DESIGN §5)
       _Bubble(
@@ -88,9 +104,6 @@ class _RewardReceiptState extends State<RewardReceipt>
         'stat_${b.stat.index}',
         evidence: b.hasEvidence,
       ),
-      // embers earned — makes the shop currency felt every completion (r48)
-      if (b.embers > 0)
-        _Bubble('+${b.embers} ✦', Icons.auto_awesome, Palette.xpLight, null),
       if (b.verifiedMult != null)
         _Bubble(
           'VERIFIED ×${b.verifiedMult!.toStringAsFixed(1)}',
@@ -132,6 +145,8 @@ class _RewardReceiptState extends State<RewardReceipt>
           hero: true,
         ),
       // the personal voice — last, wider, no sound (DESIGN.md §11.2)
+      if (levelProgress != null)
+        _Bubble(levelProgress, Icons.upgrade_rounded, Palette.xpLight, null),
       _Bubble(b.message, Icons.favorite, b.stat.color, null, wide: true),
     ];
 
@@ -298,7 +313,7 @@ class _RewardReceiptState extends State<RewardReceipt>
       margin: const EdgeInsets.only(bottom: 6),
       padding: EdgeInsets.symmetric(horizontal: 13, vertical: b.hero ? 10 : 8),
       constraints: BoxConstraints(maxWidth: b.wide ? 230 : 220),
-      decoration: BoxDecoration(
+      decoration: facetedDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -310,12 +325,12 @@ class _RewardReceiptState extends State<RewardReceipt>
             Color.alphaBlend(b.color.withValues(alpha: 0.10), Palette.card),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: b.color.withValues(alpha: b.hero || b.evidence ? 0.85 : 0.6),
-          width: b.hero || b.evidence ? 1.4 : 1.0,
+        cut: b.hero ? 11 : 8,
+        borderColor: b.color.withValues(
+          alpha: b.hero || b.evidence ? 0.85 : 0.6,
         ),
-        boxShadow: [
+        borderWidth: b.hero || b.evidence ? 1.4 : 1.0,
+        shadows: [
           BoxShadow(
             color: b.color.withValues(
               alpha: b.hero || b.evidence ? 0.40 : 0.22,

@@ -27,6 +27,7 @@ import '../widgets/domain_hint.dart';
 import '../widgets/ember_sheet.dart';
 import '../widgets/epic_overlay.dart';
 import '../widgets/count_up.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/hearth_glyph.dart';
 import '../widgets/honey_button.dart';
@@ -102,6 +103,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   String? _pendingSnapshot;
   String? _pendingTitle;
 
+  /// Achievement checks happen when rewards commit, but their banners wait
+  /// until every reward receipt has cleared. This keeps the first completion
+  /// from stacking "First Step" over the still-arriving XP/stat bubbles.
+  final List<Achievement> _pendingAchievementToasts = [];
+  int _activeReceipts = 0;
+
   /// One guided-workout runner at a time (rapid double-tap can't spawn two
   /// runners → double reward; bug-hunt §8).
   bool _workoutRunnerOpen = false;
@@ -153,6 +160,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     setState(() {
       _undoTitle = null;
       _undoSnapshot = null;
+      _pendingAchievementToasts.clear();
     });
     ScaffoldMessenger.of(context).clearSnackBars();
     widget.onRestore(snap);
@@ -170,6 +178,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(QuestsPage old) {
     super.didUpdateWidget(old);
+    if (!identical(old.state, widget.state)) {
+      _pendingAchievementToasts.clear();
+    }
     if (old.onBindFlush != widget.onBindFlush) {
       widget.onBindFlush?.call(_flushCommit);
     }
@@ -207,7 +218,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (!identical(ps, _state)) return; // state swapped (undo/reset) → drop
     setState(() => ps.commit(pb));
     if (_remainingToday() == 0 && !_anySnoozedToday()) ps.recordPerfectDay();
-    _toastAchievements(ps, ps.checkAchievements());
+    _pendingAchievementToasts.addAll(ps.checkAchievements());
     widget.onPersist();
     if (snap != null && title != null) _offerUndo(title, snap);
   }
@@ -323,6 +334,14 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _beam(); // the portrait shares the moment with you
 
     Sfx.instance.play('complete');
+    if (bundle.revivesHearth) {
+      // Let the completion land first, then hear the room catch: this is a
+      // fuller ignition than the subtle cue used when merely opening Me.
+      Future.delayed(
+        const Duration(milliseconds: 110),
+        () => Sfx.instance.play('hearth'),
+      );
+    }
     HapticFeedback.lightImpact();
     // a shield that held the line gets its own steady double-tap
     if (bundle.shieldHeld) {
@@ -366,6 +385,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // land on top of mid-flight bubbles.
     Future.delayed(const Duration(milliseconds: 240), () {
       if (!mounted) return;
+      _activeReceipts++;
       late final OverlayEntry receipt;
       receipt = OverlayEntry(
         builder: (_) => Stack(
@@ -376,6 +396,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               state: s,
               onDone: () {
                 receipt.remove();
+                _activeReceipts--;
                 _afterReceipt(s, q, bundle);
               },
             ),
@@ -453,6 +474,22 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         Overlay.of(context).insert(toast);
       });
     }
+  }
+
+  /// Drain banners only after the visual reward chain has reached a quiet
+  /// moment. [checkAchievements] remains idempotent, while the explicit queue
+  /// preserves trophies that were granted during the earlier commit beat.
+  void _releaseAchievementToasts(GameState s) {
+    _pendingAchievementToasts.addAll(s.checkAchievements());
+    if (_activeReceipts != 0) return;
+
+    final seen = <String>{};
+    final newly = [
+      for (final achievement in _pendingAchievementToasts)
+        if (seen.add(achievement.id)) achievement,
+    ];
+    _pendingAchievementToasts.clear();
+    _toastAchievements(s, newly);
   }
 
   /// EPIC (d≥7) quests get their full-screen moment before any level-up.
@@ -1011,7 +1048,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final ranked = s.takeJustRankedUp();
     final card = ranked == null ? null : evidenceForStat(ranked.$1);
     if (ranked == null || card == null) {
-      _toastAchievements(s, s.checkAchievements());
+      _releaseAchievementToasts(s);
       return;
     }
     final (stat, rank) = ranked;
@@ -1026,7 +1063,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         onDismiss: () {
           beat.remove();
           if (mounted && identical(s, _state)) {
-            _toastAchievements(s, s.checkAchievements());
+            _releaseAchievementToasts(s);
           }
         },
       ),
@@ -1195,9 +1232,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     child: Container(
                       alignment: Alignment.center,
                       constraints: const BoxConstraints(minHeight: 44),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: Palette.glassEdge),
+                      decoration: facetedDecoration(
+                        cut: 9,
+                        color: Colors.transparent,
+                        borderColor: Palette.glassEdge,
                       ),
                       child: Text(
                         'KEEP IT',
@@ -1340,11 +1378,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     horizontal: 12,
                     vertical: 7,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: e.stat.color.withValues(alpha: 0.6),
-                    ),
+                  decoration: facetedDecoration(
+                    cut: 7,
+                    color: Colors.transparent,
+                    borderColor: e.stat.color.withValues(alpha: 0.6),
                   ),
                   child: Text(
                     'ADD',
@@ -1759,7 +1796,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                           : (visible.length - remaining) / visible.length,
                       // your keep's living hearth — grows with your level,
                       // burns when the streak's kept, and surges on completion.
-                      // The RPG's character, finally on the RPG's main screen.
+                      // The living symbol of the player's real-world momentum.
                       child: HearthGlyph(
                         level: _state.level,
                         lit: _state.streakDays > 0,
@@ -1978,12 +2015,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                   horizontal: 18,
                                   vertical: 9,
                                 ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: Palette.xpLight.withValues(
-                                      alpha: 0.6,
-                                    ),
+                                decoration: facetedDecoration(
+                                  cut: 8,
+                                  color: Colors.transparent,
+                                  borderColor: Palette.xpLight.withValues(
+                                    alpha: 0.6,
                                   ),
                                 ),
                                 child: Text(
@@ -2082,12 +2118,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                       horizontal: 18,
                                       vertical: 9,
                                     ),
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(999),
-                                      border: Border.all(
-                                        color: Palette.xpLight.withValues(
-                                          alpha: 0.6,
-                                        ),
+                                    decoration: facetedDecoration(
+                                      cut: 8,
+                                      color: Colors.transparent,
+                                      borderColor: Palette.xpLight.withValues(
+                                        alpha: 0.6,
                                       ),
                                     ),
                                     child: Text(
@@ -2262,9 +2297,10 @@ class _FocusLensToggle extends StatelessWidget {
         child: AnimatedContainer(
           duration: Motion.quick,
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
+          decoration: facetedDecoration(
+            cut: 7,
             color: on ? Palette.xpLight.withValues(alpha: 0.22) : null,
+            borderColor: Colors.transparent,
           ),
           child: Text(
             label,
@@ -2278,9 +2314,10 @@ class _FocusLensToggle extends StatelessWidget {
     }
 
     return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Palette.glassEdge),
+      decoration: facetedDecoration(
+        cut: 9,
+        color: Colors.transparent,
+        borderColor: Palette.glassEdge,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -2366,13 +2403,11 @@ class _ComboFlourishState extends State<_ComboFlourish>
                         horizontal: 16,
                         vertical: 8,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
+                      decoration: facetedDecoration(
+                        cut: 8,
                         color: Palette.card.withValues(alpha: 0.92),
-                        border: Border.all(
-                          color: Palette.streak.withValues(alpha: 0.7),
-                        ),
-                        boxShadow: [
+                        borderColor: Palette.streak.withValues(alpha: 0.7),
+                        shadows: [
                           BoxShadow(
                             color: Palette.streak.withValues(alpha: 0.4),
                             blurRadius: 16,
@@ -2453,10 +2488,10 @@ class _StreakChipState extends State<_StreakChip>
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
+        decoration: facetedDecoration(
+          cut: 5,
           color: Palette.streak.withValues(alpha: 0.14),
-          border: Border.all(color: Palette.streak.withValues(alpha: 0.4)),
+          borderColor: Palette.streak.withValues(alpha: 0.4),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -2923,8 +2958,8 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                         horizontal: 22,
                         vertical: 10,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
+                      decoration: facetedDecoration(
+                        cut: 9,
                         gradient: const LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
@@ -2934,7 +2969,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                             Color(0xFFC08B4F),
                           ],
                         ),
-                        boxShadow: const [
+                        shadows: const [
                           BoxShadow(
                             color: Palette.honeyGlow,
                             blurRadius: 14,
@@ -2973,10 +3008,10 @@ class _MomentumSheetState extends State<_MomentumSheet> {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+      decoration: facetedDecoration(
+        cut: 10,
         color: Palette.glassFill,
-        border: Border.all(color: Palette.glassEdge),
+        borderColor: Palette.glassEdge,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3066,8 +3101,8 @@ class _MomentumChip extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 160),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
+          decoration: facetedDecoration(
+            cut: 8,
             gradient: highlight
                 ? const LinearGradient(
                     begin: Alignment.topCenter,
@@ -3079,9 +3114,9 @@ class _MomentumChip extends StatelessWidget {
                     ],
                   )
                 : null,
-            border: highlight
-                ? null
-                : Border.all(color: Palette.xpLight.withValues(alpha: 0.5)),
+            borderColor: highlight
+                ? Colors.transparent
+                : Palette.xpLight.withValues(alpha: 0.5),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -3163,15 +3198,13 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                         horizontal: 9,
                         vertical: 4,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
+                      decoration: facetedDecoration(
+                        cut: 6,
                         color: _stat == s
                             ? s.color.withValues(alpha: 0.22)
                             : Colors.transparent,
-                        border: Border.all(
-                          color: s.color.withValues(
-                            alpha: _stat == s ? 0.8 : 0.3,
-                          ),
+                        borderColor: s.color.withValues(
+                          alpha: _stat == s ? 0.8 : 0.3,
                         ),
                       ),
                       child: Text(
@@ -3229,11 +3262,10 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                         horizontal: 14,
                         vertical: 8,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: _stat.color.withValues(alpha: 0.6),
-                        ),
+                      decoration: facetedDecoration(
+                        cut: 7,
+                        color: Colors.transparent,
+                        borderColor: _stat.color.withValues(alpha: 0.6),
                       ),
                       child: Text(
                         weekdayLabel(_weekdays),
@@ -3264,8 +3296,8 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                     horizontal: 24,
                     vertical: 10,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
+                  decoration: facetedDecoration(
+                    cut: 9,
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -3275,7 +3307,7 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                         Color(0xFFC08B4F),
                       ],
                     ),
-                    boxShadow: const [
+                    shadows: const [
                       BoxShadow(
                         color: Palette.honeyGlow,
                         blurRadius: 14,

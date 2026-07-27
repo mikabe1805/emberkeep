@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
 
 /// A quiet one-line answer to "which domain is this?" — the selected domain's
@@ -60,10 +61,10 @@ class DomainLegendButton extends StatelessWidget {
         width: 22,
         height: 22,
         alignment: Alignment.center,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
+        decoration: facetedDecoration(
+          cut: 6,
           color: Palette.glassFill,
-          border: Border.all(color: Palette.glassEdge),
+          borderColor: Palette.glassEdge,
         ),
         child: Text(
           '?',
@@ -122,19 +123,23 @@ class _LegendRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // colour dot — the same hue this domain wears everywhere
-          Container(
-            margin: const EdgeInsets.only(top: 3, right: 12),
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: stat.color.withValues(alpha: 0.85),
-              boxShadow: [
-                BoxShadow(
-                  color: stat.color.withValues(alpha: 0.4),
-                  blurRadius: 8,
+          Padding(
+            padding: const EdgeInsets.only(top: 5, right: 14, left: 2),
+            child: Transform.rotate(
+              angle: 0.785,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  color: stat.color.withValues(alpha: 0.85),
+                  boxShadow: [
+                    BoxShadow(
+                      color: stat.color.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
           Expanded(

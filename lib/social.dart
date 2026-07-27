@@ -8,13 +8,13 @@ import 'screens/visit_room.dart';
 import 'tokens.dart';
 
 /// The appearance-only payload published for a shared space (round-52). Never
-/// includes quests, notes, streak details or account data — just what's needed
-/// to redraw the room + character for a visitor.
+/// includes quests, notes, streak details, free-form text, or account data —
+/// just the preset appearance/progression fields needed to redraw the room.
 Map<String, dynamic> roomDisplay(GameState s) {
-  final rawName = (s.playerName ?? '').trim();
-  final name = rawName.length <= 40 ? rawName : rawName.substring(0, 40);
   return {
-    'name': name,
+    // Fixed copy keeps code-gated visits personal without turning shared rooms
+    // into an unmoderated user-generated-content surface.
+    'name': 'Fellow keeper',
     'title': s.buildTitle,
     'level': s.level,
     'furniture': s.ownedFurniture.toList(),
@@ -47,7 +47,12 @@ Future<void> shareSpace(
 ) async {
   final cloud = CloudSync.instance;
   if (!cloud.ready) {
-    _toast(context, 'Sharing needs a connection — try again in a moment.');
+    _toast(
+      context,
+      cloud.available
+          ? 'Turn on cloud backup in Me before sharing a keep.'
+          : 'Sharing needs a connection — try again in a moment.',
+    );
     return;
   }
   Sfx.instance.play('tick');
@@ -84,7 +89,12 @@ Future<void> visitSpace(
   bool lively = true,
 }) async {
   if (!CloudSync.instance.ready) {
-    _toast(context, 'Visiting needs a connection — try again in a moment.');
+    _toast(
+      context,
+      CloudSync.instance.available
+          ? 'Turn on cloud backup in Me before visiting a keep.'
+          : 'Visiting needs a connection — try again in a moment.',
+    );
     return;
   }
   final code = await showDialog<String>(
@@ -172,8 +182,8 @@ class _ShareDialog extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Only your room’s look is shared — never your quests, notes or '
-            'account. Re-share any time to update it.',
+            'Only preset room choices and progress are shared — never your '
+            'name, quests, notes or account. Re-share any time to update it.',
             style: Type.body.copyWith(fontSize: 11, color: Palette.textLo),
           ),
         ],

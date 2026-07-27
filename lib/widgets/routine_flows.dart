@@ -10,7 +10,9 @@ import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import 'ember_sheet.dart';
+import 'facets.dart';
 import 'glass.dart';
+import 'honey_button.dart';
 
 /// The night routine (round-5): goodnight → animated recap of today's haul
 /// (XP up, stats up, goal bars inching toward full) → plan tomorrow (star
@@ -357,12 +359,11 @@ class _NightFlowState extends State<NightFlow> {
                                   horizontal: 11,
                                   vertical: 6,
                                 ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: Palette.success.withValues(
-                                      alpha: 0.6,
-                                    ),
+                                decoration: facetedDecoration(
+                                  cut: 7,
+                                  color: Colors.transparent,
+                                  borderColor: Palette.success.withValues(
+                                    alpha: 0.6,
                                   ),
                                 ),
                                 child: Text(
@@ -382,12 +383,11 @@ class _NightFlowState extends State<NightFlow> {
                                   horizontal: 11,
                                   vertical: 6,
                                 ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: Palette.textLo.withValues(
-                                      alpha: 0.4,
-                                    ),
+                                decoration: facetedDecoration(
+                                  cut: 7,
+                                  color: Colors.transparent,
+                                  borderColor: Palette.textLo.withValues(
+                                    alpha: 0.4,
                                   ),
                                 ),
                                 child: Text(
@@ -521,8 +521,8 @@ class _NightFlowState extends State<NightFlow> {
                                   horizontal: 11,
                                   vertical: 6,
                                 ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
+                                decoration: facetedDecoration(
+                                  cut: 7,
                                   gradient: const LinearGradient(
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
@@ -550,12 +550,11 @@ class _NightFlowState extends State<NightFlow> {
                                   horizontal: 11,
                                   vertical: 6,
                                 ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: Border.all(
-                                    color: Palette.textLo.withValues(
-                                      alpha: 0.4,
-                                    ),
+                                decoration: facetedDecoration(
+                                  cut: 7,
+                                  color: Colors.transparent,
+                                  borderColor: Palette.textLo.withValues(
+                                    alpha: 0.4,
                                   ),
                                 ),
                                 child: Text(
@@ -624,11 +623,10 @@ class _NightFlowState extends State<NightFlow> {
                             horizontal: 10,
                             vertical: 5,
                           ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                              color: e.key.color.withValues(alpha: 0.6),
-                            ),
+                          decoration: facetedDecoration(
+                            cut: 6,
+                            color: Colors.transparent,
+                            borderColor: e.key.color.withValues(alpha: 0.6),
                           ),
                           child: Text(
                             '+${e.value} ${e.key.abbr}',
@@ -685,14 +683,11 @@ class _NightFlowState extends State<NightFlow> {
                     tween: Tween(begin: 0, end: g.fraction),
                     duration: const Duration(milliseconds: 1200),
                     curve: Curves.easeInOutCubic,
-                    builder: (_, v, _) => ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: v,
-                        minHeight: 7,
-                        backgroundColor: const Color(0x1FF2CD93),
-                        color: g.stat.color,
-                      ),
+                    builder: (_, v, _) => FacetedMeter(
+                      value: v,
+                      height: 7,
+                      background: const Color(0x1FF2CD93),
+                      color: g.stat.color,
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -794,11 +789,11 @@ class _NightFlowState extends State<NightFlow> {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Row(
                     children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+                      Transform.rotate(
+                        angle: 0.785,
+                        child: Container(
+                          width: 7,
+                          height: 7,
                           color: q.stat.color,
                         ),
                       ),
@@ -919,10 +914,10 @@ class _TomorrowAdderState extends State<_TomorrowAdder> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 12),
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
+              decoration: facetedDecoration(
+                cut: 10,
                 color: Palette.glassFill,
-                border: Border.all(color: Palette.glassEdge),
+                borderColor: Palette.glassEdge,
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -1196,11 +1191,11 @@ class MorningFlow extends StatelessWidget {
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Row(
                               children: [
-                                Container(
-                                  width: 9,
-                                  height: 9,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
+                                Transform.rotate(
+                                  angle: 0.785,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
                                     color: q.stat.color,
                                   ),
                                 ),
@@ -1258,11 +1253,11 @@ class MorningFlow extends StatelessWidget {
                             padding: const EdgeInsets.only(bottom: 5),
                             child: Row(
                               children: [
-                                Container(
-                                  width: 7,
-                                  height: 7,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
+                                Transform.rotate(
+                                  angle: 0.785,
+                                  child: Container(
+                                    width: 6,
+                                    height: 6,
                                     color: q.stat.color,
                                   ),
                                 ),
@@ -1406,33 +1401,6 @@ class _BigButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Palette.honeyGlow,
-              blurRadius: 18,
-              offset: Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Text(
-          label,
-          style: Type.label.copyWith(
-            fontSize: 11,
-            color: const Color(0xFF3A2510),
-          ),
-        ),
-      ),
-    );
+    return HoneyButton(label: label, onTap: onTap, glow: true);
   }
 }

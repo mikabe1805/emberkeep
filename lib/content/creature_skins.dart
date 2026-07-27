@@ -89,6 +89,41 @@ final creatureSkins = <CreatureSkin>[
     ],
   ),
   const CreatureSkin(
+    id: 'sunstone',
+    name: 'Sunstone',
+    price: 260,
+    colors: [
+      Color(0xFFFFF1E2),
+      Color(0xFFF7C19F),
+      Color(0xFFE67F5F),
+      Color(0xFF7C3A2B),
+    ],
+  ),
+  const CreatureSkin(
+    id: 'sea_glass',
+    name: 'Sea Glass',
+    price: 280,
+    colors: [
+      Color(0xFFEAFBF7),
+      Color(0xFFA7DED2),
+      Color(0xFF54B5A3),
+      Color(0xFF285E56),
+    ],
+    requires: 'proof-positive',
+  ),
+  const CreatureSkin(
+    id: 'moon_pearl',
+    name: 'Moonpearl',
+    price: 300,
+    colors: [
+      Color(0xFFFFF9ED),
+      Color(0xFFE8D9C4),
+      Color(0xFFC5AE98),
+      Color(0xFF6C584B),
+    ],
+    requires: 'perfect-day',
+  ),
+  const CreatureSkin(
     id: 'slate',
     name: 'Slate',
     price: 240,
@@ -150,8 +185,8 @@ List<Color> creatureColorsFor(GameState s) =>
 /// rendered as a near-white candle no matter which colour you had bought —
 /// the seven paid flame colours were nearly indistinguishable in the room.
 ///
-/// Flame gradients run white-hot at the base to this hue at the tip, so the
-/// tip colour has to be the saturated one or there is nothing to read.
+/// Flame gradients rise from a white-hot fuel-contact base into this hue, so
+/// the selected colour stays vivid without putting a pale egg in the middle.
 Color flameHueFor(GameState s) => asFlameHue(creatureColorsFor(s)[2]);
 
 /// By-id flame hue, for a VISITED space (no local GameState). See

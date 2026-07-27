@@ -28,10 +28,31 @@ void main() {
     Clock.freeze(DateTime(2026, 3, 9, 12));
     final comeback = state.roll(quest);
     expect(comeback.comebackMult, isNotNull);
+    expect(comeback.revivesHearth, isTrue);
     state.commit(comeback);
     expect(state.streakDays, 1);
     expect(state.comebacks, 1);
     expect(Days.between(DateTime(2026, 3, 7), DateTime(2026, 3, 9)), 2);
+  });
+
+  test('hearth ignition is reserved for first spark and real comeback', () {
+    final state = GameState();
+    final quest = Quest(title: 'Tend the fire', stat: Stat.dis, difficulty: 2);
+
+    Clock.freeze(DateTime(2026, 7, 20, 9));
+    final firstSpark = state.roll(quest);
+    expect(firstSpark.revivesHearth, isTrue);
+    state.commit(firstSpark);
+
+    Clock.freeze(DateTime(2026, 7, 21, 9));
+    final continued = state.roll(quest);
+    expect(continued.firstOfDay, isTrue);
+    expect(continued.revivesHearth, isFalse);
+    state.commit(continued);
+
+    Clock.freeze(DateTime(2026, 7, 23, 9));
+    final comeback = state.roll(quest);
+    expect(comeback.revivesHearth, isTrue);
   });
 
   test('damaged persisted day keys are dropped instead of crashing play', () {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
+import 'facets.dart';
 
 /// One header for every "zoomed-in character sheet" (a goal's detail, a
 /// domain's base) so they read as one family rather than three different apps
@@ -29,15 +30,17 @@ class DetailHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final medallion = Container(
-      width: 14,
-      height: 14,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: accent,
-        boxShadow: [
-          BoxShadow(color: accent.withValues(alpha: 0.5), blurRadius: 8),
-        ],
+    final medallion = Transform.rotate(
+      angle: 0.785,
+      child: Container(
+        width: 12,
+        height: 12,
+        decoration: BoxDecoration(
+          color: accent,
+          boxShadow: [
+            BoxShadow(color: accent.withValues(alpha: 0.5), blurRadius: 8),
+          ],
+        ),
       ),
     );
     return Padding(
@@ -99,10 +102,10 @@ class DetailHeader extends StatelessWidget {
                   horizontal: 10,
                   vertical: 5,
                 ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
+                decoration: facetedDecoration(
+                  cut: 6,
                   color: accent.withValues(alpha: 0.16),
-                  border: Border.all(color: accent.withValues(alpha: 0.45)),
+                  borderColor: accent.withValues(alpha: 0.45),
                 ),
                 child: Text(
                   pill!,

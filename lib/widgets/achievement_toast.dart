@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../content/achievements.dart';
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
 
 /// Achievement banner: slides down from the top, gold-lit, self-dismisses.
@@ -76,13 +77,11 @@ class _AchievementToastState extends State<AchievementToast>
                       horizontal: 16,
                       vertical: 10,
                     ),
-                    decoration: BoxDecoration(
+                    decoration: facetedDecoration(
                       color: Palette.card.withValues(alpha: 0.97),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: Palette.xpLight.withValues(alpha: 0.7),
-                      ),
-                      boxShadow: const [
+                      cut: 11,
+                      borderColor: Palette.xpLight.withValues(alpha: 0.7),
+                      shadows: const [
                         BoxShadow(
                           color: Palette.honeyGlow,
                           blurRadius: 20,

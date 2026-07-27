@@ -10,6 +10,7 @@ import '../models.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/ember_sheet.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/notes_sheet.dart';
 
@@ -386,10 +387,10 @@ class GoalDetailScreen extends StatelessWidget {
                     horizontal: 8,
                     vertical: 3,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
+                  decoration: facetedDecoration(
+                    cut: 5,
                     color: _accent.withValues(alpha: 0.14),
-                    border: Border.all(color: _accent.withValues(alpha: 0.4)),
+                    borderColor: _accent.withValues(alpha: 0.4),
                   ),
                   child: Text(
                     '$doneToday / $denom TODAY',
@@ -422,13 +423,9 @@ class GoalDetailScreen extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 9),
         child: Row(
           children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: q.stat.color,
-              ),
+            Transform.rotate(
+              angle: 0.785,
+              child: Container(width: 7, height: 7, color: q.stat.color),
             ),
             const SizedBox(width: 9),
             Expanded(
@@ -477,9 +474,10 @@ class GoalDetailScreen extends StatelessWidget {
     final c = color ?? Palette.textLo;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: c.withValues(alpha: 0.4)),
+      decoration: facetedDecoration(
+        cut: 4,
+        color: Colors.transparent,
+        borderColor: c.withValues(alpha: 0.4),
       ),
       child: Text(label, style: Type.label.copyWith(fontSize: 11, color: c)),
     );
@@ -549,8 +547,8 @@ class GoalDetailScreen extends StatelessWidget {
                           horizontal: 18,
                           vertical: 9,
                         ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
+                        decoration: facetedDecoration(
+                          cut: 8,
                           gradient: const LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
@@ -588,13 +586,12 @@ class GoalDetailScreen extends StatelessWidget {
                           horizontal: 18,
                           vertical: 9,
                         ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: const Color(
-                              0xFFE89090,
-                            ).withValues(alpha: armed ? 1 : 0.5),
-                          ),
+                        decoration: facetedDecoration(
+                          cut: 8,
+                          color: Colors.transparent,
+                          borderColor: const Color(
+                            0xFFE89090,
+                          ).withValues(alpha: armed ? 1 : 0.5),
                         ),
                         child: Text(
                           armed ? 'TAP AGAIN' : 'ABANDON',

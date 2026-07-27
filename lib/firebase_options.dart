@@ -21,10 +21,7 @@ class DefaultFirebaseOptions {
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for android - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return android;
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
@@ -68,5 +65,13 @@ class DefaultFirebaseOptions {
     iosClientId:
         '8350777780-jvqgo0tid79a61iksl4sfehs4vhfhtq4.apps.googleusercontent.com',
     iosBundleId: 'com.mikabe.emberkeep',
+  );
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyB2rhNlj5EkXzqi8Ra-Fc6gulls4n3JWEM',
+    appId: '1:8350777780:android:6895060d29bf67144e32e1',
+    messagingSenderId: '8350777780',
+    projectId: 'emberkeep-5b33b',
+    storageBucket: 'emberkeep-5b33b.firebasestorage.app',
   );
 }

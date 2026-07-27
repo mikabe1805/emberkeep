@@ -5,8 +5,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
+import 'platform/test_environment_stub.dart'
+    if (dart.library.io) 'platform/test_environment_io.dart';
 import 'storage.dart';
 
 /// Cloud backup (round-9): an anonymous-auth Firestore mirror of the local
@@ -26,6 +29,12 @@ class CloudSync extends ChangeNotifier {
 
   bool ready = false;
 
+  /// Firebase initialized successfully, even if this device is intentionally
+  /// staying local-only. This lets the UI distinguish an opt-out from offline.
+  bool available = false;
+  bool optedIn = false;
+  static const _cloudEnabledKey = 'emberkeep_cloud_enabled';
+
   /// Human-readable status for the Me page's YOUR DATA panel.
   String status = 'connecting…';
   DateTime? lastSynced;
@@ -38,6 +47,15 @@ class CloudSync extends ChangeNotifier {
   String? _accountEmail;
 
   Future<void> init() async {
+    // Widget tests must remain deterministic and cannot service Firebase's
+    // network timers. Real debug/release apps never receive FLUTTER_TEST=true.
+    if (isFlutterTest) {
+      ready = false;
+      available = false;
+      optedIn = false;
+      status = 'off · test';
+      return;
+    }
     try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
@@ -46,21 +64,30 @@ class CloudSync extends ChangeNotifier {
       FirebaseFirestore.instance.settings = const Settings(
         persistenceEnabled: false,
       );
+      available = true;
+      final prefs = await SharedPreferences.getInstance();
+      final cloudEnabled = prefs.getBool(_cloudEnabledKey) ?? false;
       // Reuse an existing session (a linked account, or a prior anonymous
       // one) — NEVER blindly re-sign-in anonymously, which would orphan a
       // linked account on every relaunch.
       final existing = FirebaseAuth.instance.currentUser;
       if (existing != null) {
         _uid = existing.uid;
-      } else {
+        optedIn = true;
+        await prefs.setBool(_cloudEnabledKey, true);
+      } else if (cloudEnabled) {
         final cred = await FirebaseAuth.instance.signInAnonymously().timeout(
           const Duration(seconds: 8),
         );
         _uid = cred.user?.uid;
+        optedIn = true;
+      } else {
+        _uid = null;
+        optedIn = false;
       }
       _refreshAccountEmail();
       ready = _uid != null;
-      status = ready ? _statusForUser() : 'off';
+      status = ready ? _statusForUser() : 'off · device only';
     } on TimeoutException {
       status = 'off (offline)';
       debugPrint('CloudSync init timed out (local-only)');
@@ -74,6 +101,40 @@ class CloudSync extends ChangeNotifier {
       debugPrint('CloudSync init failed (local-only): $e');
     }
     notifyListeners();
+  }
+
+  /// Explicitly start optional cloud backup for the current local keep.
+  /// Fresh installs never create a Firebase identity until this is called (or
+  /// the person signs into an existing account).
+  Future<String?> enable() async {
+    if (!available) return 'Cloud is out of reach right now.';
+    if (ready) return null;
+    try {
+      final existing = FirebaseAuth.instance.currentUser;
+      if (existing != null) {
+        _uid = existing.uid;
+      } else {
+        final cred = await FirebaseAuth.instance.signInAnonymously().timeout(
+          const Duration(seconds: 8),
+        );
+        _uid = cred.user?.uid;
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_cloudEnabledKey, true);
+      optedIn = true;
+      _refreshAccountEmail();
+      ready = _uid != null;
+      status = ready ? _statusForUser() : 'off';
+      notifyListeners();
+      return ready ? null : 'Couldn’t start cloud backup right now.';
+    } on FirebaseAuthException catch (e) {
+      return _friendlyAuth(e);
+    } on TimeoutException {
+      return 'Cloud took too long to answer — try again.';
+    } catch (e) {
+      debugPrint('CloudSync enable failed: $e');
+      return 'Couldn’t start cloud backup right now.';
+    }
   }
 
   DocumentReference<Map<String, dynamic>> get _doc =>
@@ -128,7 +189,7 @@ class CloudSync extends ChangeNotifier {
   /// account's; the caller then adopts the account's cloud save. Returns
   /// null on success or a friendly error.
   Future<String?> signIn(String email, String password) async {
-    if (!ready) return 'Cloud is offline right now.';
+    if (!available) return 'Cloud is offline right now.';
     // Drop any pending anonymous push — it must NOT land on the account's
     // document after the uid swaps and clobber the real save.
     cancelPending();
@@ -138,6 +199,9 @@ class CloudSync extends ChangeNotifier {
         password: password,
       );
       _uid = c.user?.uid;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_cloudEnabledKey, true);
+      optedIn = true;
       _refreshAccountEmail();
       status = _statusForUser();
       notifyListeners();
@@ -214,7 +278,8 @@ class CloudSync extends ChangeNotifier {
       return _friendlyAuth(e);
     } catch (e) {
       debugPrint('deleteAccount failed: $e');
-      return 'Couldn’t delete the account — nothing was removed. Try again.';
+      return 'Couldn’t finish deleting the account. Some cloud data may '
+          'already be gone — retry, or open Delete help in Me.';
     }
   }
 
@@ -376,15 +441,60 @@ class CloudSync extends ChangeNotifier {
     }
   }
 
-  /// Wipe the cloud copy (an intentional reset should not be resurrectable).
-  Future<void> deleteRemote() async {
-    if (!ready) return;
+  /// Permanently erase the current cloud save and any published room.
+  ///
+  /// Anonymous Firebase users are real backend identities even though the
+  /// person never chose a sign-in. A full reset therefore deletes that guest
+  /// identity too, then creates a fresh blank guest so cloud backup can keep
+  /// working. A linked account is deliberately retained here; its separate
+  /// password-confirmed deletion flow removes the sign-in itself.
+  ///
+  /// Returns whether every requested remote deletion succeeded. The caller
+  /// still completes the local reset when offline; the fresh local save will
+  /// replace the cloud copy when connectivity returns.
+  Future<bool> resetProfile({String? roomCode}) async {
+    if (!ready) return false;
     _debounce?.cancel();
+    var fullyErased = true;
+
+    if (roomCode != null && roomCode.isNotEmpty) {
+      try {
+        await _rooms.doc(roomCode).delete();
+      } catch (e) {
+        fullyErased = false;
+        debugPrint('CloudSync room reset failed: $e');
+      }
+    }
+
     try {
       await _doc.delete();
     } catch (e) {
-      debugPrint('CloudSync delete failed: $e');
+      fullyErased = false;
+      debugPrint('CloudSync save reset failed: $e');
     }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user?.isAnonymous == true) {
+      try {
+        await user!.delete();
+        _uid = null;
+        ready = false;
+        _refreshAccountEmail();
+        status = 'off · starting fresh';
+        notifyListeners();
+        final fresh = await FirebaseAuth.instance.signInAnonymously();
+        _uid = fresh.user?.uid;
+        _refreshAccountEmail();
+        ready = _uid != null;
+        status = ready ? _statusForUser() : 'off';
+        notifyListeners();
+      } catch (e) {
+        fullyErased = false;
+        debugPrint('CloudSync guest reset failed: $e');
+      }
+    }
+
+    return fullyErased;
   }
 
   /// The cloud copy of the save. Returns ([ok], [data]):

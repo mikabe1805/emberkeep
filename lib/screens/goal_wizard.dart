@@ -7,6 +7,7 @@ import '../models.dart';
 import '../tokens.dart';
 import '../widgets/domain_hint.dart';
 import '../widgets/ember_sheet.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/particles.dart';
@@ -146,12 +147,10 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                       horizontal: 11,
                       vertical: 7,
                     ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
+                    decoration: facetedDecoration(
+                      cut: 7,
                       color: _stat.color.withValues(alpha: 0.10),
-                      border: Border.all(
-                        color: _stat.color.withValues(alpha: 0.4),
-                      ),
+                      borderColor: _stat.color.withValues(alpha: 0.4),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -377,15 +376,13 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 11,
                                 ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
+                                decoration: facetedDecoration(
+                                  cut: 7,
                                   color: _target == t
                                       ? _stat.color.withValues(alpha: 0.2)
                                       : Colors.transparent,
-                                  border: Border.all(
-                                    color: _stat.color.withValues(
-                                      alpha: _target == t ? 0.8 : 0.3,
-                                    ),
+                                  borderColor: _stat.color.withValues(
+                                    alpha: _target == t ? 0.8 : 0.3,
                                   ),
                                 ),
                                 child: Text(
@@ -428,15 +425,13 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                               horizontal: 12,
                               vertical: 7,
                             ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(999),
+                            decoration: facetedDecoration(
+                              cut: 7,
                               color: _stat == s
                                   ? s.color.withValues(alpha: 0.22)
                                   : Colors.transparent,
-                              border: Border.all(
-                                color: s.color.withValues(
-                                  alpha: _stat == s ? 0.9 : 0.3,
-                                ),
+                              borderColor: s.color.withValues(
+                                alpha: _stat == s ? 0.9 : 0.3,
                               ),
                             ),
                             child: Text(
@@ -467,12 +462,10 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
+                      decoration: facetedDecoration(
+                        cut: 10,
                         color: Palette.glassFill,
-                        border: Border.all(
-                          color: _stat.color.withValues(alpha: 0.5),
-                        ),
+                        borderColor: _stat.color.withValues(alpha: 0.5),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -559,16 +552,14 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
       child: AnimatedContainer(
         duration: Motion.quick,
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+        decoration: facetedDecoration(
+          cut: 11,
           color: on
               ? Palette.xpLight.withValues(alpha: 0.14)
               : Palette.glassFill,
-          border: Border.all(
-            color: on
-                ? Palette.xpLight.withValues(alpha: 0.7)
-                : Palette.glassEdge,
-          ),
+          borderColor: on
+              ? Palette.xpLight.withValues(alpha: 0.7)
+              : Palette.glassEdge,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -604,11 +595,11 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                 children: [
                   Column(
                     children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
+                      Transform.rotate(
+                        angle: 0.785,
+                        child: Container(
+                          width: 8,
+                          height: 8,
                           color: _stat.color,
                         ),
                       ),

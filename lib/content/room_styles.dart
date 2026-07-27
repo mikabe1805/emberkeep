@@ -78,6 +78,14 @@ final roomStyles = <RoomStyle>[
     b: Color(0xFF47352F),
   ),
   const RoomStyle(
+    id: 'wall_amber',
+    name: 'Amber Limewash',
+    kind: RoomStyleKind.wall,
+    price: 200,
+    a: Color(0xFF38281F),
+    b: Color(0xFF4A3525),
+  ),
+  const RoomStyle(
     id: 'wall_indigo',
     name: 'Midnight',
     kind: RoomStyleKind.wall,
@@ -85,6 +93,15 @@ final roomStyles = <RoomStyle>[
     a: Color(0xFF232A3C),
     b: Color(0xFF2F3A55),
     requires: 'night-owl',
+  ),
+  const RoomStyle(
+    id: 'wall_berry',
+    name: 'Mulled Berry',
+    kind: RoomStyleKind.wall,
+    price: 260,
+    a: Color(0xFF351F2B),
+    b: Color(0xFF4A2B3B),
+    requires: 'goal-getter',
   ),
   _oakFloor,
   const RoomStyle(
@@ -110,6 +127,23 @@ final roomStyles = <RoomStyle>[
     price: 190,
     a: Color(0xFF4A2C1E),
     b: Color(0xFF31180E),
+  ),
+  const RoomStyle(
+    id: 'floor_maple',
+    name: 'Honey Maple',
+    kind: RoomStyleKind.floor,
+    price: 210,
+    a: Color(0xFF4A3421),
+    b: Color(0xFF2D1D12),
+  ),
+  const RoomStyle(
+    id: 'floor_cherry',
+    name: 'Smoked Cherry',
+    kind: RoomStyleKind.floor,
+    price: 260,
+    a: Color(0xFF43251F),
+    b: Color(0xFF281511),
+    requires: 'dedicated',
   ),
 ];
 

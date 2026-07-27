@@ -9,6 +9,7 @@ import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/constellation.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import 'journal_hub.dart';
 
@@ -122,15 +123,10 @@ class InsightsPage extends StatelessWidget {
         glow: true,
         child: Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Palette.xp.withValues(alpha: 0.16),
-                border: Border.all(color: Palette.xp.withValues(alpha: 0.4)),
-              ),
-              child: const Icon(
+            const FacetMedallion(
+              size: 40,
+              accent: Palette.xp,
+              child: Icon(
                 Icons.auto_stories_outlined,
                 size: 20,
                 color: Palette.xpLight,
@@ -288,30 +284,11 @@ class InsightsPage extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Container(
+          child: FacetedMeter(
+            value: value / maxV,
+            color: color.withValues(alpha: lead ? 0.9 : 0.55),
             height: 10,
-            decoration: BoxDecoration(
-              color: Palette.glassFill,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: (value / maxV).clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: lead ? 0.9 : 0.55),
-                  borderRadius: BorderRadius.circular(999),
-                  boxShadow: lead
-                      ? [
-                          BoxShadow(
-                            color: color.withValues(alpha: 0.4),
-                            blurRadius: 8,
-                          ),
-                        ]
-                      : const [],
-                ),
-              ),
-            ),
+            glow: lead,
           ),
         ),
         const SizedBox(width: 10),
@@ -359,8 +336,8 @@ class InsightsPage extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           // a single split bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
+          ClipPath(
+            clipper: const FacetedClipper(cut: 6),
             child: Row(
               children: [
                 for (final p in parts)
@@ -382,13 +359,9 @@ class InsightsPage extends StatelessWidget {
               for (final p in parts)
                 Row(
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: p.$3,
-                      ),
+                    Transform.rotate(
+                      angle: 0.785,
+                      child: Container(width: 7, height: 7, color: p.$3),
                     ),
                     const SizedBox(width: 5),
                     Text(
@@ -467,19 +440,21 @@ class InsightsPage extends StatelessWidget {
                           children: [
                             // a small dot crowns the strongest day
                             if (isBest)
-                              Container(
-                                width: 4,
-                                height: 4,
-                                margin: const EdgeInsets.only(bottom: 3),
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Palette.xpLight,
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 3),
+                                child: Transform.rotate(
+                                  angle: 0.785,
+                                  child: Container(
+                                    width: 4,
+                                    height: 4,
+                                    color: Palette.xpLight,
+                                  ),
                                 ),
                               ),
                             Container(
                               height: 6 + 44 * frac,
                               margin: const EdgeInsets.symmetric(horizontal: 2),
-                              decoration: BoxDecoration(
+                              decoration: facetedDecoration(
                                 color: d.$2 == 0
                                     ? Palette.glassFill
                                     : isBest
@@ -487,8 +462,9 @@ class InsightsPage extends StatelessWidget {
                                     : Palette.streak.withValues(
                                         alpha: 0.45 + 0.45 * frac,
                                       ),
-                                borderRadius: BorderRadius.circular(4),
-                                boxShadow: isBest
+                                cut: 3,
+                                borderColor: Colors.transparent,
+                                shadows: isBest
                                     ? [
                                         BoxShadow(
                                           color: Palette.xpLight.withValues(
@@ -497,7 +473,7 @@ class InsightsPage extends StatelessWidget {
                                           blurRadius: 6,
                                         ),
                                       ]
-                                    : null,
+                                    : const [],
                               ),
                             ),
                             const SizedBox(height: 4),

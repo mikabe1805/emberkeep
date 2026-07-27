@@ -4,6 +4,7 @@ import '../audio.dart';
 import '../engine.dart';
 import '../haptics.dart';
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
 import 'home_room.dart';
 import 'honey_button.dart';
@@ -12,7 +13,7 @@ import 'honey_button.dart';
 enum TimeShape { light, full, packed }
 
 /// First-run welcome: hearth → name → time shape → first fire.
-/// Short on purpose; the Oath Wizard is the real ceremony.
+/// Short on purpose; the starter board is the fastest path to a first win.
 class OnboardingFlow extends StatefulWidget {
   const OnboardingFlow({
     super.key,
@@ -103,13 +104,16 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       key: const ValueKey(0),
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(20),
+        ClipPath(
+          clipper: const FacetedClipper(cut: 18),
           child: SizedBox(
             height: (MediaQuery.sizeOf(context).height * 0.23).clamp(120, 190),
             child: const HomeRoom(
-              unlocked: {'rug', 'lamp', 'plant', 'pet'},
+              // A warm aspirational room, but no unearned companion/mascot —
+              // the living hearth is Emberkeep's first and lasting hero.
+              unlocked: {'rug', 'lamp', 'plant'},
               petAwake: true,
+              level: 10,
             ),
           ),
         ),
@@ -129,7 +133,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'Real quests. Real XP. A fire banked each night,\nrekindled each morning.',
+            'Real quests. Real XP. A keep that grows warmer\nwith every win.',
             textAlign: TextAlign.center,
             style: Type.body.copyWith(
               fontSize: 13,
@@ -225,21 +229,21 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         const SizedBox(height: 24),
         _ShapePick(
           label: 'LIGHT DAYS',
-          blurb: 'a few small quests — summer break, recovery, soft weeks',
+          blurb: '3 small quests — recovery, soft weeks, room to breathe',
           selected: _shape == TimeShape.light,
           onTap: () => setState(() => _shape = TimeShape.light),
         ),
         const SizedBox(height: 10),
         _ShapePick(
           label: 'FULL DAYS',
-          blurb: 'a balanced board — the default pace for most lives',
+          blurb: '5 balanced quests — the default pace for most lives',
           selected: _shape == TimeShape.full,
           onTap: () => setState(() => _shape = TimeShape.full),
         ),
         const SizedBox(height: 10),
         _ShapePick(
           label: 'PACKED DAYS',
-          blurb: 'more on the table — two jobs, training, a full calendar',
+          blurb: '7 varied quests — training, focus, a full calendar',
           selected: _shape == TimeShape.packed,
           onTap: () => setState(() => _shape = TimeShape.packed),
         ),
@@ -273,13 +277,13 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ),
         ),
         const SizedBox(height: 24),
-        _Cta(label: 'FORGE MY FIRST GOAL', onTap: () => _finish(forge: true)),
+        _Cta(label: 'LIGHT MY FIRST EMBER', onTap: () => _finish(forge: false)),
         const SizedBox(height: 10),
         Center(
           child: TextButton(
-            onPressed: () => _finish(forge: false),
+            onPressed: () => _finish(forge: true),
             child: Text(
-              'I’ll explore first',
+              'forge a goal first',
               style: Type.label.copyWith(fontSize: 11),
             ),
           ),
@@ -314,15 +318,13 @@ class _ShapePick extends StatelessWidget {
         child: AnimatedContainer(
           duration: Motion.settle,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+          decoration: facetedDecoration(
+            cut: 10,
             color: selected
                 ? Palette.xp.withValues(alpha: 0.18)
                 : Palette.glassFill,
-            border: Border.all(
-              color: selected ? Palette.xp : Palette.glassEdge,
-              width: selected ? 1.4 : 1,
-            ),
+            borderColor: selected ? Palette.xp : Palette.glassEdge,
+            borderWidth: selected ? 1.4 : 1,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

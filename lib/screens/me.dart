@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../audio.dart';
 import '../cloud.dart';
@@ -24,6 +25,7 @@ import '../tokens.dart';
 import '../a11y.dart';
 import '../widgets/count_up.dart';
 import '../widgets/domain_hint.dart';
+import '../widgets/facets.dart';
 import '../models.dart';
 import '../widgets/glass.dart';
 import '../widgets/glass_switch.dart';
@@ -57,6 +59,7 @@ class MePage extends StatelessWidget {
     required this.onImport,
     required this.onReset,
     required this.onNotifyChanged,
+    required this.onEnableCloud,
     required this.onLinkAccount,
     required this.onSignIn,
     required this.onSignOut,
@@ -80,11 +83,14 @@ class MePage extends StatelessWidget {
   /// Restores a pasted backup; returns false on invalid data.
   final Future<bool> Function(String raw) onImport;
 
-  /// Erases everything and starts a fresh character (guarded by a dialog).
+  /// Erases everything and starts a fresh keep (guarded by a dialog).
   final VoidCallback onReset;
 
   /// Re-applies local reminders after a settings change (native-only).
   final Future<void> Function() onNotifyChanged;
+
+  /// Explicitly enables optional anonymous cloud backup.
+  final Future<String?> Function() onEnableCloud;
 
   /// Links an email/password to the current data; null = success.
   final Future<String?> Function(String email, String pw) onLinkAccount;
@@ -97,6 +103,33 @@ class MePage extends StatelessWidget {
 
   /// Permanently deletes the linked cloud account; null = success.
   final Future<String?> Function(String password) onDeleteAccount;
+
+  static final _privacyUrl = Uri.parse(
+    'https://emberkeep-5b33b.web.app/privacy.html',
+  );
+  static final _deletionUrl = Uri.parse(
+    'https://emberkeep-5b33b.web.app/delete-account.html',
+  );
+
+  static Future<void> _openPolicyPage(BuildContext context, Uri page) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(page);
+    } catch (_) {
+      // A missing browser should never break the data controls around this link.
+    }
+    if (!context.mounted || opened) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        content: Text(
+          'Couldn’t open that page. Try again when a browser is available.',
+          style: Type.body.copyWith(color: Palette.textHi),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -116,12 +149,10 @@ class MePage extends StatelessWidget {
                     horizontal: 12,
                     vertical: 5,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
+                  decoration: facetedDecoration(
+                    cut: 8,
                     color: Palette.xp.withValues(alpha: 0.16),
-                    border: Border.all(
-                      color: Palette.xp.withValues(alpha: 0.45),
-                    ),
+                    borderColor: Palette.xp.withValues(alpha: 0.45),
                   ),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
@@ -454,20 +485,18 @@ class MePage extends StatelessWidget {
                                   horizontal: 10,
                                   vertical: 6,
                                 ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(999),
+                                decoration: facetedDecoration(
+                                  cut: 6,
                                   color: tint.withValues(
                                     alpha: worn ? 0.28 : 0.10,
                                   ),
-                                  border: Border.all(
-                                    color: worn
-                                        ? tint.withValues(alpha: 0.9)
-                                        : rarityColor(
-                                            rarity,
-                                          ).withValues(alpha: 0.55),
-                                    width: worn ? 1.4 : 1,
-                                  ),
-                                  boxShadow: legendary
+                                  borderColor: worn
+                                      ? tint.withValues(alpha: 0.9)
+                                      : rarityColor(
+                                          rarity,
+                                        ).withValues(alpha: 0.55),
+                                  borderWidth: worn ? 1.4 : 1,
+                                  shadows: legendary
                                       ? const [
                                           BoxShadow(
                                             color: Palette.honeyGlow,
@@ -479,11 +508,11 @@ class MePage extends StatelessWidget {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Container(
-                                      width: 10,
-                                      height: 10,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
+                                    Transform.rotate(
+                                      angle: 0.785,
+                                      child: Container(
+                                        width: 8,
+                                        height: 8,
                                         color: tint,
                                       ),
                                     ),
@@ -530,21 +559,21 @@ class MePage extends StatelessWidget {
                             horizontal: 10,
                             vertical: 6,
                           ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(999),
+                          decoration: facetedDecoration(
+                            cut: 6,
                             color: Palette.glassFill,
-                            border: Border.all(
-                              color: Palette.glassEdge.withValues(alpha: 0.7),
+                            borderColor: Palette.glassEdge.withValues(
+                              alpha: 0.7,
                             ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
+                              Transform.rotate(
+                                angle: 0.785,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
                                   color: Palette.textLo.withValues(alpha: 0.35),
                                 ),
                               ),
@@ -597,6 +626,7 @@ class MePage extends StatelessWidget {
 
           // ── account (sync across devices) ─────────────────────────
           _AccountPanel(
+            onEnableCloud: onEnableCloud,
             onLink: onLinkAccount,
             onSignIn: onSignIn,
             onSignOut: onSignOut,
@@ -615,9 +645,8 @@ class MePage extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Your fire’s saved to the cloud on its own. For a copy '
-                  'nothing can touch — even a cleared browser — stash a '
-                  'manual one too.',
+                  'Your save stays under your control. For a copy nothing can '
+                  'touch — even cloud backup — stash a manual one too.',
                   style: Type.body.copyWith(
                     fontSize: 11.5,
                     fontStyle: FontStyle.italic,
@@ -691,34 +720,49 @@ class MePage extends StatelessWidget {
                         );
                       },
                     ),
+                    _DataButton(
+                      label: 'PRIVACY',
+                      icon: Icons.privacy_tip_outlined,
+                      onTap: () => _openPolicyPage(context, _privacyUrl),
+                    ),
+                    _DataButton(
+                      label: 'DELETE HELP',
+                      icon: Icons.person_remove_outlined,
+                      onTap: () => _openPolicyPage(context, _deletionUrl),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 ListenableBuilder(
                   listenable: CloudSync.instance,
-                  builder: (_, _) => Row(
-                    children: [
-                      Icon(
-                        CloudSync.instance.ready
-                            ? Icons.cloud_done_outlined
-                            : Icons.cloud_off_outlined,
-                        size: 13,
-                        color: CloudSync.instance.ready
-                            ? Palette.success
-                            : Palette.textLo,
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          'your fire’s safe in the cloud · ${CloudSync.instance.status}',
-                          style: Type.body.copyWith(
-                            fontSize: 11,
-                            color: Palette.textLo,
+                  builder: (_, _) {
+                    final cloud = CloudSync.instance;
+                    return Row(
+                      children: [
+                        Icon(
+                          cloud.ready
+                              ? Icons.cloud_done_outlined
+                              : Icons.cloud_off_outlined,
+                          size: 13,
+                          color: cloud.ready ? Palette.success : Palette.textLo,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            cloud.ready
+                                ? 'cloud backup · ${cloud.status}'
+                                : cloud.available
+                                ? 'device-only · optional backup is off'
+                                : 'device-only · cloud unavailable',
+                            style: Type.body.copyWith(
+                              fontSize: 11,
+                              color: Palette.textLo,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    );
+                  },
                 ),
                 const _CorruptRecovery(),
                 const SizedBox(height: 12),
@@ -962,16 +1006,14 @@ class MePage extends StatelessWidget {
               width: 44,
               height: 40,
               alignment: Alignment.center,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+              decoration: facetedDecoration(
+                cut: 8,
                 color: selected
                     ? Palette.xp.withValues(alpha: 0.16)
                     : Palette.glassFill,
-                border: Border.all(
-                  color: selected
-                      ? Palette.xp.withValues(alpha: 0.6)
-                      : Palette.glassEdge,
-                ),
+                borderColor: selected
+                    ? Palette.xp.withValues(alpha: 0.6)
+                    : Palette.glassEdge,
               ),
               child: Text(
                 'A',
@@ -1047,10 +1089,10 @@ class MePage extends StatelessWidget {
                     horizontal: 9,
                     vertical: 5,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
+                  decoration: facetedDecoration(
+                    cut: 6,
                     color: Palette.glassFill,
-                    border: Border.all(color: Palette.glassEdge),
+                    borderColor: Palette.glassEdge,
                   ),
                   child: Text(
                     'NATIVE APP',
@@ -1130,9 +1172,10 @@ class MePage extends StatelessWidget {
                       horizontal: 12,
                       vertical: 6,
                     ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: Palette.glassEdge),
+                    decoration: facetedDecoration(
+                      cut: 7,
+                      color: Colors.transparent,
+                      borderColor: Palette.glassEdge,
                     ),
                     child: Text(
                       _fmtTime(state.notifyHour, state.notifyMinute),
@@ -1177,7 +1220,9 @@ class MePage extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 'Level ${state.level}, ${state.totalXp} XP, every goal and '
-                'trophy — gone for good. Copy a backup first if unsure.',
+                'trophy — gone for good. Your cloud save and shared keep go '
+                'too. Guest profiles are deleted; a linked sign-in stays '
+                'until you use Delete account. Copy a backup first if unsure.',
                 textAlign: TextAlign.center,
                 style: Type.body.copyWith(
                   fontSize: 13.5,
@@ -1197,8 +1242,8 @@ class MePage extends StatelessWidget {
                         horizontal: 18,
                         vertical: 9,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
+                      decoration: facetedDecoration(
+                        cut: 8,
                         gradient: const LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
@@ -1229,11 +1274,12 @@ class MePage extends StatelessWidget {
                         horizontal: 18,
                         vertical: 9,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: const Color(0xFFE89090).withValues(alpha: 0.6),
-                        ),
+                      decoration: facetedDecoration(
+                        cut: 8,
+                        color: Colors.transparent,
+                        borderColor: const Color(
+                          0xFFE89090,
+                        ).withValues(alpha: 0.6),
                       ),
                       child: Text(
                         'ERASE EVERYTHING',
@@ -1285,25 +1331,10 @@ void _showAchievementInfo(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: unlocked
-                    ? Palette.xpLight.withValues(alpha: 0.16)
-                    : Palette.glassFill,
-                border: Border.all(
-                  color: unlocked
-                      ? Palette.xpLight.withValues(alpha: 0.7)
-                      : Palette.glassEdge,
-                ),
-                boxShadow: unlocked
-                    ? const [
-                        BoxShadow(color: Palette.honeyGlow, blurRadius: 16),
-                      ]
-                    : const [],
-              ),
+            FacetMedallion(
+              size: 64,
+              accent: unlocked ? Palette.xpLight : Palette.textLo,
+              glow: unlocked,
               child: Icon(
                 unlocked ? a.icon : Icons.lock_outline,
                 size: 30,
@@ -1428,8 +1459,8 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
                       horizontal: 28,
                       vertical: 11,
                     ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
+                    decoration: facetedDecoration(
+                      cut: 9,
                       gradient: worn
                           ? null
                           : LinearGradient(
@@ -1440,11 +1471,11 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
                                 tint.withValues(alpha: 0.6),
                               ],
                             ),
-                      border: worn
-                          ? Border.all(color: Palette.glassEdge)
-                          : null,
-                      boxShadow: worn
-                          ? null
+                      borderColor: worn
+                          ? Palette.glassEdge
+                          : Colors.transparent,
+                      shadows: worn
+                          ? const []
                           : [
                               BoxShadow(
                                 color: tint.withValues(alpha: 0.4),
@@ -1538,13 +1569,9 @@ class _StatRow extends StatelessWidget {
             // when you open the page — a spatial "this row → that room" cue
             Hero(
               tag: 'domainDot-${stat.index}',
-              child: Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: stat.color,
-                ),
+              child: Transform.rotate(
+                angle: 0.785,
+                child: Container(width: 8, height: 8, color: stat.color),
               ),
             ),
             const SizedBox(width: 8),
@@ -1621,14 +1648,11 @@ class _StatRow extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 3),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(3),
-                    child: LinearProgressIndicator(
-                      value: rankProgress(value),
-                      minHeight: 4,
-                      backgroundColor: const Color(0x1FF2CD93),
-                      color: stat.color,
-                    ),
+                  FacetedMeter(
+                    value: rankProgress(value),
+                    height: 4,
+                    background: const Color(0x1FF2CD93),
+                    color: stat.color,
                   ),
                 ],
               ),
@@ -1669,14 +1693,14 @@ class _ShareButton extends StatelessWidget {
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
+        decoration: facetedDecoration(
+          cut: 9,
           gradient: const LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
           ),
-          boxShadow: const [
+          shadows: const [
             BoxShadow(
               color: Palette.honeyGlow,
               blurRadius: 18,
@@ -1788,8 +1812,8 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                 children: [
                   // the shared card's hero shot — YOUR keep, hearth lit, so the
                   // picture friends get is the cozy space you've built
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
+                  ClipPath(
+                    clipper: const FacetedClipper(cut: 14),
                     child: SizedBox(
                       height: 140,
                       child: HomeRoom(
@@ -1851,8 +1875,8 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                     horizontal: 20,
                     vertical: 10,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
+                  decoration: facetedDecoration(
+                    cut: 9,
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -1862,7 +1886,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                         Color(0xFFC08B4F),
                       ],
                     ),
-                    boxShadow: const [
+                    shadows: const [
                       BoxShadow(
                         color: Palette.honeyGlow,
                         blurRadius: 14,
@@ -1898,10 +1922,10 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                     horizontal: 18,
                     vertical: 10,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
+                  decoration: facetedDecoration(
+                    cut: 9,
                     color: Palette.glassFill,
-                    border: Border.all(color: Palette.glassEdge),
+                    borderColor: Palette.glassEdge,
                   ),
                   child: Text(
                     'COPY TEXT',
@@ -1962,37 +1986,19 @@ class _TrophyTile extends StatelessWidget {
       child: Tooltip(
         message: achievement.desc,
         textStyle: Type.body.copyWith(fontSize: 11, color: Palette.textHi),
-        decoration: BoxDecoration(
-          color: Palette.card,
-          borderRadius: BorderRadius.circular(10),
-        ),
+        decoration: facetedDecoration(color: Palette.card, cut: 8),
         child: SizedBox(
           width: 78,
           child: Column(
             children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: unlocked
-                      ? Palette.xpLight.withValues(alpha: 0.16)
-                      : closest
-                      ? Palette.streak.withValues(alpha: 0.12)
-                      : Palette.glassFill,
-                  border: Border.all(
-                    color: unlocked
-                        ? Palette.xpLight.withValues(alpha: 0.7)
-                        : closest
-                        ? Palette.streak.withValues(alpha: 0.7)
-                        : Palette.glassEdge,
-                  ),
-                  boxShadow: unlocked
-                      ? const [
-                          BoxShadow(color: Palette.honeyGlow, blurRadius: 12),
-                        ]
-                      : const [],
-                ),
+              FacetMedallion(
+                size: 46,
+                accent: unlocked
+                    ? Palette.xpLight
+                    : closest
+                    ? Palette.streak
+                    : Palette.textLo,
+                glow: unlocked,
                 child: Icon(
                   unlocked ? achievement.icon : Icons.lock_outline,
                   size: 20,
@@ -2061,20 +2067,18 @@ class _ThemeSwatch extends StatelessWidget {
             Container(
               width: 64,
               height: 44,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+              decoration: facetedDecoration(
+                cut: 8,
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [theme.top, theme.bottom],
                 ),
-                border: Border.all(
-                  color: selected
-                      ? Palette.xpLight.withValues(alpha: 0.9)
-                      : Palette.glassEdge,
-                  width: selected ? 1.8 : 1,
-                ),
-                boxShadow: selected
+                borderColor: selected
+                    ? Palette.xpLight.withValues(alpha: 0.9)
+                    : Palette.glassEdge,
+                borderWidth: selected ? 1.8 : 1,
+                shadows: selected
                     ? const [
                         BoxShadow(color: Palette.honeyGlow, blurRadius: 12),
                       ]
@@ -2147,14 +2151,12 @@ class _LockedSlot extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
+      decoration: facetedDecoration(
+        cut: 6,
         color: unlocked ? Palette.xpLight.withValues(alpha: 0.14) : null,
-        border: Border.all(
-          color: unlocked
-              ? Palette.xpLight.withValues(alpha: 0.7)
-              : Palette.textLo.withValues(alpha: 0.35),
-        ),
+        borderColor: unlocked
+            ? Palette.xpLight.withValues(alpha: 0.7)
+            : Palette.textLo.withValues(alpha: 0.35),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -2211,9 +2213,9 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
           padding: const EdgeInsets.only(top: 12),
           child: Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Palette.streak.withValues(alpha: 0.5)),
+            decoration: facetedDecoration(
+              cut: 8,
+              borderColor: Palette.streak.withValues(alpha: 0.5),
               color: Palette.streak.withValues(alpha: 0.08),
             ),
             child: Column(
@@ -2311,9 +2313,9 @@ class _DataButton extends StatelessWidget {
         onTap: enabled ? onTap : null,
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: Palette.glassEdge),
+          decoration: facetedDecoration(
+            cut: 8,
+            borderColor: Palette.glassEdge,
             color: Palette.glassFill,
           ),
           child: Row(
@@ -2424,8 +2426,8 @@ class _RestoreDialogState extends State<_RestoreDialog> {
                     horizontal: 22,
                     vertical: 10,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
+                  decoration: facetedDecoration(
+                    cut: 8,
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -2457,16 +2459,35 @@ class _RestoreDialogState extends State<_RestoreDialog> {
 /// create/sign-in; signed-in users see their email and a sign-out.
 class _AccountPanel extends StatelessWidget {
   const _AccountPanel({
+    required this.onEnableCloud,
     required this.onLink,
     required this.onSignIn,
     required this.onSignOut,
     required this.onDeleteAccount,
   });
 
+  final Future<String?> Function() onEnableCloud;
   final Future<String?> Function(String, String) onLink;
   final Future<String?> Function(String, String) onSignIn;
   final Future<void> Function() onSignOut;
   final Future<String?> Function(String) onDeleteAccount;
+
+  Future<void> _enableBackup(BuildContext context) async {
+    Sfx.instance.play('tick');
+    final error = await onEnableCloud();
+    if (!context.mounted) return;
+    Sfx.instance.play(error == null ? 'levelup' : 'boing');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        content: Text(
+          error ?? 'Cloud backup is on — your fire has a second home.',
+          style: Type.body.copyWith(color: Palette.textHi),
+        ),
+      ),
+    );
+  }
 
   void _openForm(BuildContext context, {required bool signIn}) {
     Sfx.instance.play('tick');
@@ -2494,7 +2515,7 @@ class _AccountPanel extends StatelessWidget {
               Text('Sign out?', style: Type.display.copyWith(fontSize: 18)),
               const SizedBox(height: 6),
               Text(
-                'Your character stays on this device — you’ll just stop '
+                'Your keep and progress stay on this device — you’ll just stop '
                 'syncing to your account until you sign in again. Your '
                 'account’s cloud save is kept safe.',
                 textAlign: TextAlign.center,
@@ -2516,8 +2537,8 @@ class _AccountPanel extends StatelessWidget {
                         horizontal: 18,
                         vertical: 9,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
+                      decoration: facetedDecoration(
+                        cut: 8,
                         gradient: const LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
@@ -2548,11 +2569,10 @@ class _AccountPanel extends StatelessWidget {
                         horizontal: 18,
                         vertical: 9,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: Palette.textLo.withValues(alpha: 0.5),
-                        ),
+                      decoration: facetedDecoration(
+                        cut: 8,
+                        color: Colors.transparent,
+                        borderColor: Palette.textLo.withValues(alpha: 0.5),
                       ),
                       child: Text(
                         'SIGN OUT',
@@ -2585,6 +2605,8 @@ class _AccountPanel extends StatelessWidget {
       builder: (context, _) {
         final email = CloudSync.instance.accountEmail;
         final signedIn = email != null;
+        final cloudReady = CloudSync.instance.ready;
+        final cloudAvailable = CloudSync.instance.available;
         return GlassPanel(
           glow: !signedIn && CloudSync.instance.ready,
           child: Column(
@@ -2593,13 +2615,21 @@ class _AccountPanel extends StatelessWidget {
               Row(
                 children: [
                   Icon(
-                    signedIn ? Icons.verified_user : Icons.devices,
+                    signedIn
+                        ? Icons.verified_user
+                        : cloudReady
+                        ? Icons.devices
+                        : Icons.phonelink_lock_outlined,
                     size: 14,
                     color: Palette.xpLight,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    signedIn ? 'YOUR ACCOUNT' : 'YOUR FIRE, EVERYWHERE',
+                    signedIn
+                        ? 'YOUR ACCOUNT'
+                        : cloudReady
+                        ? 'YOUR FIRE, EVERYWHERE'
+                        : 'DEVICE-ONLY BY DEFAULT',
                     style: Type.label.copyWith(fontSize: 11),
                   ),
                 ],
@@ -2647,8 +2677,14 @@ class _AccountPanel extends StatelessWidget {
                 ),
               ] else ...[
                 Text(
-                  'Create a free account so your keep survives a wiped '
-                  'phone or a cleared browser — and follows you anywhere.',
+                  cloudReady
+                      ? 'Cloud backup is on. Create a free account so your '
+                            'keep can follow you to another device.'
+                      : cloudAvailable
+                      ? 'Your keep is only on this device. Turn on optional '
+                            'backup, or sign in to an existing keep.'
+                      : 'Your keep is safe on this device. Cloud features are '
+                            'out of reach right now.',
                   style: Type.body.copyWith(
                     fontSize: 11.5,
                     fontStyle: FontStyle.italic,
@@ -2660,21 +2696,29 @@ class _AccountPanel extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _DataButton(
-                      label: 'CREATE ACCOUNT',
-                      icon: Icons.person_add_alt,
-                      enabled: CloudSync.instance.ready,
-                      onTap: () => _openForm(context, signIn: false),
-                    ),
+                    if (cloudReady)
+                      _DataButton(
+                        label: 'CREATE ACCOUNT',
+                        icon: Icons.person_add_alt,
+                        enabled: true,
+                        onTap: () => _openForm(context, signIn: false),
+                      )
+                    else if (cloudAvailable)
+                      _DataButton(
+                        label: 'TURN ON BACKUP',
+                        icon: Icons.cloud_upload_outlined,
+                        enabled: true,
+                        onTap: () => _enableBackup(context),
+                      ),
                     _DataButton(
                       label: 'SIGN IN',
                       icon: Icons.login,
-                      enabled: CloudSync.instance.ready,
+                      enabled: cloudAvailable,
                       onTap: () => _openForm(context, signIn: true),
                     ),
                   ],
                 ),
-                if (!CloudSync.instance.ready) ...[
+                if (!cloudAvailable) ...[
                   const SizedBox(height: 6),
                   Text(
                     '(the cloud’s out of reach — try again once you’re back online)',
@@ -2879,7 +2923,7 @@ class _AccountDialogState extends State<_AccountDialog> {
             const SizedBox(height: 4),
             Text(
               widget.signIn
-                  ? 'Loads your account’s character onto this device, '
+                  ? 'Loads your account’s keep and progress onto this device, '
                         'replacing what’s here now.'
                   : 'Keeps your current progress and syncs it everywhere.',
               style: Type.body.copyWith(
@@ -2920,8 +2964,8 @@ class _AccountDialogState extends State<_AccountDialog> {
                     horizontal: 24,
                     vertical: 11,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
+                  decoration: facetedDecoration(
+                    cut: 9,
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -2931,7 +2975,7 @@ class _AccountDialogState extends State<_AccountDialog> {
                         Color(0xFFC08B4F),
                       ],
                     ),
-                    boxShadow: const [
+                    shadows: const [
                       BoxShadow(
                         color: Palette.honeyGlow,
                         blurRadius: 16,

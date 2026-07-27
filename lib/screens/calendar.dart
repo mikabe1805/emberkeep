@@ -7,6 +7,7 @@ import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/domain_hint.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 
 /// The Plans page: a warm month calendar. Honey dots = your completion
@@ -201,18 +202,16 @@ class _CalendarPageState extends State<CalendarPage> {
         child: Container(
           height: 44,
           margin: const EdgeInsets.all(1.5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+          decoration: facetedDecoration(
+            cut: 7,
             color: isSelected
                 ? Palette.xpLight.withValues(alpha: 0.16)
                 : Colors.transparent,
-            border: Border.all(
-              color: isToday
-                  ? Palette.xp.withValues(alpha: 0.8)
-                  : isSelected
-                  ? Palette.xpLight.withValues(alpha: 0.5)
-                  : Colors.transparent,
-            ),
+            borderColor: isToday
+                ? Palette.xp.withValues(alpha: 0.8)
+                : isSelected
+                ? Palette.xpLight.withValues(alpha: 0.5)
+                : Colors.transparent,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -355,8 +354,8 @@ class _DayPanel extends StatelessWidget {
                       horizontal: 12,
                       vertical: 7,
                     ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(999),
+                    decoration: facetedDecoration(
+                      cut: 7,
                       gradient: const LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -560,15 +559,13 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                         horizontal: 10,
                         vertical: 5,
                       ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(999),
+                      decoration: facetedDecoration(
+                        cut: 6,
                         color: _stat == s
                             ? s.color.withValues(alpha: 0.22)
                             : Colors.transparent,
-                        border: Border.all(
-                          color: s.color.withValues(
-                            alpha: _stat == s ? 0.8 : 0.3,
-                          ),
+                        borderColor: s.color.withValues(
+                          alpha: _stat == s ? 0.8 : 0.3,
                         ),
                       ),
                       child: Text(
@@ -611,8 +608,8 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                     horizontal: 26,
                     vertical: 11,
                   ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
+                  decoration: facetedDecoration(
+                    cut: 9,
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -622,7 +619,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                         Color(0xFFC08B4F),
                       ],
                     ),
-                    boxShadow: const [
+                    shadows: const [
                       BoxShadow(
                         color: Palette.honeyGlow,
                         blurRadius: 16,

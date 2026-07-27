@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../audio.dart';
 import '../haptics.dart';
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
 import 'particles.dart';
 
@@ -182,8 +183,8 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                               child: Container(
                                 width: 90,
                                 height: 56,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(8),
+                                decoration: facetedDecoration(
+                                  cut: 8,
                                   gradient: const LinearGradient(
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
@@ -192,13 +193,11 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                                       Color(0xFF3A2410),
                                     ],
                                   ),
-                                  border: Border.all(
-                                    color: Palette.streak.withValues(
-                                      alpha: 0.4,
-                                    ),
-                                    width: 2,
+                                  borderColor: Palette.streak.withValues(
+                                    alpha: 0.4,
                                   ),
-                                  boxShadow: [
+                                  borderWidth: 2,
+                                  shadows: [
                                     BoxShadow(
                                       color: Palette.streak.withValues(
                                         alpha: 0.3,
@@ -218,11 +217,8 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                                 child: Container(
                                   width: 90,
                                   height: 28,
-                                  decoration: BoxDecoration(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(8),
-                                      topRight: Radius.circular(8),
-                                    ),
+                                  decoration: facetedDecoration(
+                                    cut: 7,
                                     gradient: const LinearGradient(
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
@@ -231,12 +227,10 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                                         Color(0xFF4A3210),
                                       ],
                                     ),
-                                    border: Border.all(
-                                      color: Palette.streak.withValues(
-                                        alpha: 0.4,
-                                      ),
-                                      width: 2,
+                                    borderColor: Palette.streak.withValues(
+                                      alpha: 0.4,
                                     ),
+                                    borderWidth: 2,
                                   ),
                                 ),
                               ),

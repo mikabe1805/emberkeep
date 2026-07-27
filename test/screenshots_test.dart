@@ -7,9 +7,11 @@
 // (round-62 pivot: the creature is gone; the keep + its hearth are the star.)
 import 'dart:convert';
 
+import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/furniture.dart';
+import 'package:emberkeep/content/room_styles.dart';
 import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/main.dart';
@@ -64,7 +66,20 @@ class _ScenePainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter old) => false;
 }
 
+class _FlamePalettePainter extends CustomPainter {
+  const _FlamePalettePainter(this.hue);
+  final Color hue;
+
+  @override
+  void paint(Canvas canvas, Size size) =>
+      paintEmberFlameSwatch(canvas, size, hue);
+
+  @override
+  bool shouldRepaint(_FlamePalettePainter old) => old.hue != hue;
+}
+
 const _capture = bool.fromEnvironment('CAPTURE_GOLDENS');
+const _captureStore = bool.fromEnvironment('CAPTURE_STORE');
 
 Future<void> _shoot(WidgetTester tester, Widget w, String name) async {
   await tester.pumpWidget(w);
@@ -75,6 +90,23 @@ Future<void> _shoot(WidgetTester tester, Widget w, String name) async {
       matchesGoldenFile('goldens/$name.png'),
     );
   }
+}
+
+Future<void> _storeShot(WidgetTester tester, String name) async {
+  await tester.pump(const Duration(milliseconds: 240));
+  if (_captureStore) {
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/store_$name.png'),
+    );
+  }
+}
+
+void _activateDock(WidgetTester tester, IconData icon) {
+  final tapTarget = find
+      .ancestor(of: find.byIcon(icon), matching: find.byType(GestureDetector))
+      .first;
+  tester.widget<GestureDetector>(tapTarget).onTap!.call();
 }
 
 void main() {
@@ -232,6 +264,42 @@ void main() {
     );
   });
 
+  testWidgets('keep: new reward variants', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(520, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const furn = {'rug', 'lamp', 'plant', 'shelf', 'picture', 'garland'};
+
+    Widget rewardKeep(String wallId, String floorId, String flameId) {
+      final flame = creatureSkinById(flameId)!;
+      return SizedBox(
+        width: 460,
+        child: HomeRoom(
+          unlocked: furn,
+          wall: wallColorsById(wallId),
+          floor: floorColorsById(floorId),
+          emberGlow: asFlameHue(flame.colors[2]),
+          petAwake: true,
+        ),
+      );
+    }
+
+    await _shoot(
+      tester,
+      _stage(
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            rewardKeep('wall_amber', 'floor_maple', 'sunstone'),
+            const SizedBox(height: 14),
+            rewardKeep('wall_berry', 'floor_cherry', 'sea_glass'),
+          ],
+        ),
+        pad: 16,
+      ),
+      'keep_new_rewards',
+    );
+  });
+
   // the HISTORY CONSTELLATION at three ages: a first week, a solid month with
   // gaps, and half a year of dense history — the three shapes a real save
   // passes through, so the spiral's turn-scaling can be eyeballed.
@@ -297,6 +365,34 @@ void main() {
         ),
       ),
       'window_scenes',
+    );
+  });
+
+  testWidgets('hearth flame palette', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(560, 520));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _shoot(
+      tester,
+      _stage(
+        bg: const Color(0xFF1C141A),
+        pad: 18,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 12,
+          runSpacing: 14,
+          children: [
+            for (final skin in creatureSkins)
+              SizedBox(
+                width: 82,
+                height: 82,
+                child: CustomPaint(
+                  painter: _FlamePalettePainter(asFlameHue(skin.colors[2])),
+                ),
+              ),
+          ],
+        ),
+      ),
+      'hearth_flame_palette',
     );
   });
 
@@ -399,5 +495,145 @@ void main() {
         matchesGoldenFile('goldens/quest_board.png'),
       );
     }
+  });
+
+  testWidgets('store screenshot story: real production surfaces', (
+    tester,
+  ) async {
+    // 430×932 logical points at 3× is Apple's 1290×2796 iPhone screenshot
+    // class. Capturing the real widgets at native density avoids a blurry
+    // post-upscale and keeps store art honest to the submitted binary.
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+
+    Clock.freeze(DateTime(2026, 7, 26, 14));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final state = GameState()
+      ..onboarded = true
+      ..playerName = 'Alex'
+      ..level = 18
+      ..xp = 284
+      ..totalXp = 4280
+      ..totalCompletions = 138
+      ..embers = 640
+      ..streakDays = 12
+      ..bestStreak = 19
+      ..lastActiveDay = '2026-07-26'
+      ..lastCompletionDay = '2026-07-26'
+      ..soundEnabled = false
+      ..reduceMotion = true
+      ..wallStyle = 'wall_plum'
+      ..floorStyle = 'floor_maple'
+      ..windowScene = 'moon'
+      ..creatureSkin = 'sunstone';
+    state.stats[Stat.str] = 88;
+    state.stats[Stat.vit] = 72;
+    state.stats[Stat.intl] = 116;
+    state.stats[Stat.foc] = 94;
+    state.stats[Stat.soc] = 61;
+    state.stats[Stat.dis] = 103;
+    state.ownedFurniture.addAll({
+      'rug',
+      'lamp',
+      'plant',
+      'shelf',
+      'picture',
+      'chair',
+      'candles',
+      'garland',
+    });
+    state.goals.addAll([
+      Goal(
+        title: 'Build a walking habit',
+        stat: Stat.vit,
+        target: 25,
+        progress: 17,
+        startedDay: '2026-07-08',
+      ),
+      Goal(
+        title: 'Make the apartment feel calm',
+        stat: Stat.dis,
+        target: 25,
+        progress: 11,
+        startedDay: '2026-07-14',
+      ),
+    ]);
+    for (var i = 0; i < 72; i++) {
+      if (i % 9 == 4 || i % 13 == 7) continue;
+      final day = DateTime(2026, 7, 26).subtract(Duration(days: i));
+      state.history[Days.key(day)] = 1 + (i * 5) % 5;
+    }
+
+    final quests = [
+      Quest(
+        title: 'Read ten pages',
+        stat: Stat.intl,
+        difficulty: 4,
+        priority: true,
+      ),
+      Quest(
+        title: 'Walk after lunch',
+        stat: Stat.vit,
+        difficulty: 3,
+        goalTitle: 'Build a walking habit',
+        lastDoneDay: '2026-07-26',
+      ),
+      Quest(
+        title: 'Clear the kitchen counter',
+        stat: Stat.dis,
+        difficulty: 5,
+        dread: true,
+        goalTitle: 'Make the apartment feel calm',
+      ),
+      Quest(title: 'Message someone I miss', stat: Stat.soc, difficulty: 4),
+      Quest(
+        title: 'Twenty-five focused minutes',
+        stat: Stat.foc,
+        difficulty: 6,
+        verification: Verification.timer,
+        timerMinutes: 25,
+      ),
+    ];
+    SharedPreferences.setMockInitialValues({
+      'liferpg_save_v1': jsonEncode({
+        'app': 'emberkeep',
+        'schema': Storage.schema,
+        'state': state.toJson(),
+        'quests': [for (final q in quests) q.toJson()],
+      }),
+    });
+
+    await tester.pumpWidget(const LifeRpgApp());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    await _storeShot(tester, '01_quests_1290x2796');
+
+    _activateDock(tester, Icons.emoji_emotions_outlined);
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '02_keep_1290x2796');
+
+    await tester.tap(find.text('FURNISH'));
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '03_shop_1290x2796');
+    await tester.tap(find.byIcon(Icons.chevron_left));
+    await tester.pump(const Duration(milliseconds: 700));
+
+    _activateDock(tester, Icons.explore_outlined);
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '04_goals_1290x2796');
+
+    _activateDock(tester, Icons.insights_outlined);
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '05_insights_1290x2796');
+
+    // Dispose AppShell so its midnight rollover timer cannot escape the test.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 }

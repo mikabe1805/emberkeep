@@ -9,6 +9,7 @@ import '../tokens.dart';
 import '../widgets/count_up.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/ember_sheet.dart';
+import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/notes_sheet.dart';
 
@@ -186,10 +187,10 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                   horizontal: 11,
                   vertical: 6,
                 ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
+                decoration: facetedDecoration(
+                  cut: 7,
                   color: _accent.withValues(alpha: 0.16),
-                  border: Border.all(color: _accent.withValues(alpha: 0.45)),
+                  borderColor: _accent.withValues(alpha: 0.45),
                 ),
                 child: Text(
                   rank.label.toUpperCase(),
@@ -200,19 +201,12 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
           ),
           const SizedBox(height: 12),
           // climb toward the next rank
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: t),
-              duration: const Duration(milliseconds: 800),
-              curve: Motion.barCurve,
-              builder: (_, v, _) => LinearProgressIndicator(
-                value: v,
-                minHeight: 7,
-                backgroundColor: Palette.glassFill,
-                valueColor: AlwaysStoppedAnimation(_accent),
-              ),
-            ),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: t),
+            duration: const Duration(milliseconds: 800),
+            curve: Motion.barCurve,
+            builder: (_, v, _) =>
+                FacetedMeter(value: v, height: 7, glow: true, color: _accent),
           ),
           const SizedBox(height: 6),
           Text(
@@ -294,13 +288,9 @@ class _DomainDetailScreenState extends State<DomainDetailScreen> {
                 padding: const EdgeInsets.only(bottom: 9),
                 child: Row(
                   children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _accent,
-                      ),
+                    Transform.rotate(
+                      angle: 0.785,
+                      child: Container(width: 7, height: 7, color: _accent),
                     ),
                     const SizedBox(width: 9),
                     Expanded(

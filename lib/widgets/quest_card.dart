@@ -6,6 +6,7 @@ import '../clock.dart';
 import '../models.dart';
 import '../tokens.dart';
 import 'day_picker.dart' show weekdayLabel;
+import 'facets.dart';
 import 'notes_sheet.dart' show relativeWhen;
 import 'pressable.dart';
 
@@ -95,29 +96,26 @@ class _QuestCardState extends State<QuestCard>
             : 'Activate to complete${widget.onManage == null ? '' : '; use the Manage action to edit'}',
         onTapUp: _handleTap,
         onLongPress: widget.onManage,
-        borderRadius: BorderRadius.circular(20),
+        shape: const FacetedBorder(cut: 12),
         child: Stack(
           children: [
             AnimatedContainer(
               duration: Motion.settle,
               curve: Motion.respond,
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
+              decoration: facetedDecoration(
                 // a finished quest is BANKED, not greyed-out clutter: a soft
                 // moss wash + a faint moss glow so it reads as a sealed win
                 color: done
                     ? Palette.success.withValues(alpha: 0.10)
                     : Palette.glassFill,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: done
-                      ? Palette.success.withValues(alpha: 0.4)
-                      : q.priority
-                      ? Palette.xpLight.withValues(alpha: 0.55)
-                      : Palette.glassEdge,
-                  width: 1.2,
-                ),
-                boxShadow: done
+                cut: 12,
+                borderColor: done
+                    ? Palette.success.withValues(alpha: 0.4)
+                    : q.priority
+                    ? Palette.xpLight.withValues(alpha: 0.55)
+                    : Palette.glassEdge,
+                shadows: done
                     ? [
                         BoxShadow(
                           color: Palette.success.withValues(alpha: 0.12),
@@ -374,11 +372,10 @@ class _QuestCardState extends State<QuestCard>
                           horizontal: 12,
                           vertical: 8,
                         ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: Palette.streak.withValues(alpha: 0.6),
-                          ),
+                        decoration: facetedDecoration(
+                          cut: 8,
+                          color: Palette.streak.withValues(alpha: 0.05),
+                          borderColor: Palette.streak.withValues(alpha: 0.6),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -431,24 +428,9 @@ class _QuestCardState extends State<QuestCard>
                 ),
               ),
             ),
-            // specular drop of light
+            // angular candlelit bevel shared with the keep architecture
             Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: RadialGradient(
-                      center: const Alignment(-0.8, -0.9),
-                      radius: 1.0,
-                      colors: [
-                        Palette.specular.withValues(alpha: done ? 0.12 : 0.30),
-                        Palette.specular.withValues(alpha: 0.0),
-                      ],
-                      stops: const [0.0, 0.5],
-                    ),
-                  ),
-                ),
-              ),
+              child: FacetGleam(cut: 12, strength: done ? 0.55 : 1.15),
             ),
           ],
         ),
@@ -557,12 +539,10 @@ class _XpChip extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
+          decoration: facetedDecoration(
+            cut: 7,
             color: Palette.xpLight.withValues(alpha: 0.35 * alpha),
-            border: Border.all(
-              color: Palette.xp.withValues(alpha: 0.35 * alpha),
-            ),
+            borderColor: Palette.xp.withValues(alpha: 0.35 * alpha),
           ),
           child: Text(
             '+$xp XP',

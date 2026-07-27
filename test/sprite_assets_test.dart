@@ -23,6 +23,8 @@ void main() {
       'boing',
       'complete',
       'crit',
+      'hearth',
+      'hearth_room',
       'levelup',
       'loot',
       'stat_0',

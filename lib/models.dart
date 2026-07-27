@@ -645,6 +645,13 @@ class RewardBundle {
   /// lit today"). One step above a normal completion, never a takeover.
   final bool firstOfDay;
 
+  /// The fire was genuinely cold before this completion: either this is the
+  /// keep's first-ever spark, or the player has returned after a real gap.
+  /// A normal first completion on the next day continues an existing fire and
+  /// should not replay the larger ignition beat.
+  bool get revivesHearth =>
+      comebackMult != null || (firstOfDay && streakMult == null);
+
   /// Loot drop name, null when nothing dropped.
   final String? loot;
 
