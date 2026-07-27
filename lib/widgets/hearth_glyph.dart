@@ -201,18 +201,24 @@ class _HearthGlyphPainter extends CustomPainter {
     if (lit || surge > 0.02) {
       final tongueCount = 1 + (stage ~/ 2); // 1..3 tongues as you grow
       final maxH = h * (0.34 + 0.44 * grow) * litK + h * 0.30 * surge;
-      const specs = <(double, double, double)>[
-        (0.0, 1.0, 1.3),
-        (-0.15, 0.66, 0.0),
-        (0.15, 0.68, 2.4),
-      ];
-      for (var i = 0; i < tongueCount; i++) {
-        final spec = specs[i];
+      final specs = switch (tongueCount) {
+        1 => const <(double, double, double, double)>[(0.0, 1.0, 1.3, 0.17)],
+        2 => const <(double, double, double, double)>[
+          (-0.15, 0.66, 0.0, 0.13),
+          (0.0, 1.0, 1.3, 0.17),
+        ],
+        _ => const <(double, double, double, double)>[
+          (-0.15, 0.66, 0.0, 0.13),
+          (0.15, 0.68, 2.4, 0.13),
+          (0.0, 1.0, 1.3, 0.17),
+        ],
+      };
+      for (final spec in specs) {
         final fx = cx + spec.$1 * w;
         final f = 1 + 0.18 * sin(t * 2 * pi * 2 + spec.$3);
         final lean = w * 0.05 * sin(t * 2 * pi + spec.$3);
         final fh = maxH * spec.$2 * f;
-        final fw = w * 0.14;
+        final fw = w * spec.$4;
         final rect = Rect.fromLTWH(fx - fw, baseY - fh, fw * 2, fh);
         paintEmberFlame(
           canvas,

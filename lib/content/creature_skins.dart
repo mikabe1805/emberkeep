@@ -36,9 +36,9 @@ const _amber = CreatureSkin(
   price: 0,
   colors: [
     Color(0xFFFFF4D9),
-    Color(0xFFF2CD93),
-    Color(0xFFC58A4E),
-    Color(0xFF6E451F),
+    Color(0xFFFFC44F),
+    Color(0xFFF06A1A),
+    Color(0xFF7E2415),
   ],
 );
 
@@ -207,8 +207,8 @@ Color flameHueById(String? id) => asFlameHue(creatureColorsById(id)[2]);
 Color asFlameHue(Color c) {
   final hsl = HSLColor.fromColor(c);
   return hsl
-      .withSaturation((hsl.saturation * 1.25 + 0.13).clamp(0.0, 0.85))
-      .withLightness((hsl.lightness * 0.95 + 0.10).clamp(0.34, 0.68))
+      .withSaturation((hsl.saturation * 1.28 + 0.14).clamp(0.0, 0.94))
+      .withLightness((hsl.lightness * 0.80 + 0.06).clamp(0.34, 0.56))
       .toColor();
 }
 

@@ -23,29 +23,38 @@ void paintEmberFlame(
   final h = rect.height;
   final cx = rect.center.dx;
   final baseY = rect.bottom;
-  final tip = Offset(cx + lean, rect.top);
-  final deep = Color.lerp(hue, const Color(0xFF3A1812), 0.34)!;
-  final warm = Color.lerp(hue, const Color(0xFFFFD58F), 0.42)!;
+  final hsv = HSVColor.fromColor(hue);
+  final deep = hsv
+      .withSaturation((hsv.saturation * 1.18).clamp(0.0, 1.0))
+      .withValue((hsv.value * 0.46).clamp(0.12, 0.48))
+      .toColor();
+  final warm = hsv
+      .withSaturation((hsv.saturation * 0.94).clamp(0.36, 1.0))
+      .withValue((hsv.value * 1.08).clamp(0.58, 1.0))
+      .toColor();
+  final gold = hsv
+      .withHue((hsv.hue - 8) % 360)
+      .withSaturation((hsv.saturation * 0.78).clamp(0.30, 0.88))
+      .withValue((hsv.value * 1.14).clamp(0.68, 1.0))
+      .toColor();
 
+  // Normalized angular points. Lean is strongest at the tip and settles to
+  // zero at the fuel line, so the flame sways without sliding off its logs.
+  Offset p(double x, double y) =>
+      Offset(rect.left + w * x + lean * (1 - y), rect.top + h * y);
+
+  // The icon's essential silhouette: a long spear tip, one cut-in shoulder,
+  // and a wider ember-facing flank. Multiple overlapping calls build the
+  // clustered blaze in the hearth; a single call still reads at HUD/tile size.
   final outer = Path()
-    ..moveTo(rect.left + w * 0.12, baseY)
-    ..cubicTo(
-      rect.left - w * 0.02,
-      rect.top + h * 0.72,
-      cx - w * 0.24 + lean * 0.35,
-      rect.top + h * 0.30,
-      tip.dx,
-      tip.dy,
-    )
-    ..cubicTo(
-      cx + w * 0.30 + lean * 0.28,
-      rect.top + h * 0.38,
-      rect.right + w * 0.02,
-      rect.top + h * 0.72,
-      rect.right - w * 0.12,
-      baseY,
-    )
-    ..quadraticBezierTo(cx, baseY + h * 0.035, rect.left + w * 0.12, baseY)
+    ..moveTo(p(0.08, 1).dx, p(0.08, 1).dy)
+    ..lineTo(p(0.04, 0.79).dx, p(0.04, 0.79).dy)
+    ..lineTo(p(0.27, 0.57).dx, p(0.27, 0.57).dy)
+    ..lineTo(p(0.23, 0.37).dx, p(0.23, 0.37).dy)
+    ..lineTo(p(0.58, 0).dx, p(0.58, 0).dy)
+    ..lineTo(p(0.56, 0.44).dx, p(0.56, 0.44).dy)
+    ..lineTo(p(0.88, 0.72).dx, p(0.88, 0.72).dy)
+    ..lineTo(p(0.76, 1).dx, p(0.76, 1).dy)
     ..close();
 
   canvas.drawOval(
@@ -66,84 +75,88 @@ void paintEmberFlame(
         begin: Alignment.bottomCenter,
         end: Alignment.topCenter,
         colors: [
-          const Color(0xFFFFFBEE).withValues(alpha: 0.98 * intensity),
           warm.withValues(alpha: intensity),
           hue.withValues(alpha: intensity),
-          deep.withValues(alpha: 0.94 * intensity),
+          deep.withValues(alpha: 0.98 * intensity),
         ],
-        stops: const [0.0, 0.18, 0.56, 1.0],
+        stops: const [0.0, 0.58, 1.0],
       ).createShader(rect),
   );
 
-  // A low inner tongue makes the fuel-contact heat explicit. It touches the
-  // base, then disappears before mid-height so no pale egg floats in the fire.
-  final innerTop = rect.top + h * 0.55;
-  final innerBase = rect.bottom;
-  final inner = Path()
-    ..moveTo(cx - w * 0.25, innerBase)
-    ..cubicTo(
-      cx - w * 0.22,
-      rect.top + h * 0.80,
-      cx - w * 0.06 + lean * 0.10,
-      rect.top + h * 0.65,
-      cx + lean * 0.18,
-      innerTop,
-    )
-    ..cubicTo(
-      cx + w * 0.10 + lean * 0.10,
-      rect.top + h * 0.66,
-      cx + w * 0.22,
-      rect.top + h * 0.81,
-      cx + w * 0.25,
-      innerBase,
-    )
-    ..close();
-  canvas.drawPath(
-    inner,
-    Paint()
-      ..shader =
-          LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              const Color(0xFFFFFFFF).withValues(alpha: 0.98 * intensity),
-              const Color(0xFFFFF3D0).withValues(alpha: 0.94 * intensity),
-              warm.withValues(alpha: 0.08 * intensity),
-            ],
-            stops: const [0.0, 0.34, 1.0],
-          ).createShader(
-            Rect.fromLTRB(cx - w * 0.28, innerTop, cx + w * 0.28, innerBase),
-          ),
-  );
-
-  // A small white foot sits exactly on the fuel line. This is the hottest
-  // pixel region and remains visibly lowest in even the smallest shop tile.
-  final foot = Path()
-    ..moveTo(cx - w * 0.20, baseY)
-    ..lineTo(cx - w * 0.11, baseY - h * 0.12)
-    ..lineTo(cx + w * 0.08, baseY - h * 0.16)
-    ..lineTo(cx + w * 0.20, baseY)
-    ..close();
-  canvas.drawPath(
-    foot,
-    Paint()
-      ..color = const Color(0xFFFFFEF4).withValues(alpha: 0.88 * intensity),
-  );
-
-  // One clipped coloured facet keeps the flame planar without dragging a
-  // white highlight back up to its tip.
+  // Large clipped facets replace the old smooth teardrop shading. They follow
+  // the same visual construction as the icon: warm left plane, ember-dark
+  // right plane, and one golden diagonal rising from the fuel-contact core.
   canvas.save();
   canvas.clipPath(outer);
   canvas.drawPath(
     Path()
-      ..moveTo(rect.left + w * 0.18, baseY)
-      ..lineTo(tip.dx, tip.dy)
-      ..lineTo(cx - w * 0.04, rect.top + h * 0.72)
-      ..lineTo(cx - w * 0.02, baseY)
+      ..moveTo(p(0.08, 1).dx, p(0.08, 1).dy)
+      ..lineTo(p(0.04, 0.79).dx, p(0.04, 0.79).dy)
+      ..lineTo(p(0.27, 0.57).dx, p(0.27, 0.57).dy)
+      ..lineTo(p(0.58, 0).dx, p(0.58, 0).dy)
+      ..lineTo(p(0.42, 0.66).dx, p(0.42, 0.66).dy)
+      ..lineTo(p(0.34, 1).dx, p(0.34, 1).dy)
       ..close(),
-    Paint()..color = warm.withValues(alpha: 0.12 * intensity),
+    Paint()..color = warm.withValues(alpha: 0.24 * intensity),
+  );
+  canvas.drawPath(
+    Path()
+      ..moveTo(p(0.58, 0).dx, p(0.58, 0).dy)
+      ..lineTo(p(0.56, 0.44).dx, p(0.56, 0.44).dy)
+      ..lineTo(p(0.88, 0.72).dx, p(0.88, 0.72).dy)
+      ..lineTo(p(0.76, 1).dx, p(0.76, 1).dy)
+      ..lineTo(p(0.58, 0.67).dx, p(0.58, 0.67).dy)
+      ..close(),
+    Paint()..color = deep.withValues(alpha: 0.42 * intensity),
+  );
+  canvas.drawPath(
+    Path()
+      ..moveTo(p(0.34, 1).dx, p(0.34, 1).dy)
+      ..lineTo(p(0.42, 0.66).dx, p(0.42, 0.66).dy)
+      ..lineTo(p(0.58, 0).dx, p(0.58, 0).dy)
+      ..lineTo(p(0.58, 0.67).dx, p(0.58, 0.67).dy)
+      ..lineTo(p(0.61, 1).dx, p(0.61, 1).dy)
+      ..close(),
+    Paint()..color = gold.withValues(alpha: 0.30 * intensity),
   );
   canvas.restore();
+
+  // The hot heart is itself faceted and joins the fuel line. The pale region
+  // reaches upward as a narrow gold wedge, but only the bottom foot is white.
+  final inner = Path()
+    ..moveTo(p(0.26, 1).dx, p(0.26, 1).dy)
+    ..lineTo(p(0.39, 0.84).dx, p(0.39, 0.84).dy)
+    ..lineTo(p(0.50, 0.66).dx, p(0.50, 0.66).dy)
+    ..lineTo(p(0.56, 0.86).dx, p(0.56, 0.86).dy)
+    ..lineTo(p(0.68, 0.76).dx, p(0.68, 0.76).dy)
+    ..lineTo(p(0.62, 1).dx, p(0.62, 1).dy)
+    ..close();
+  canvas.drawPath(
+    inner,
+    Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+        colors: [
+          const Color(0xFFFFF1B0).withValues(alpha: 0.96 * intensity),
+          gold.withValues(alpha: 0.95 * intensity),
+          warm.withValues(alpha: 0.68 * intensity),
+        ],
+        stops: const [0.0, 0.36, 1.0],
+      ).createShader(rect),
+  );
+
+  // The only near-white facet sits directly on the fuel line.
+  final foot = Path()
+    ..moveTo(cx - w * 0.12, baseY)
+    ..lineTo(cx - w * 0.02, baseY - h * 0.13)
+    ..lineTo(cx + w * 0.08, baseY)
+    ..close();
+  canvas.drawPath(
+    foot,
+    Paint()
+      ..color = const Color(0xFFFFFEF1).withValues(alpha: 0.96 * intensity),
+  );
 }
 
 /// Paints the exact flame tile used on the shop shelf. Keeping the tile here
@@ -178,9 +191,24 @@ void paintEmberFlameSwatch(Canvas canvas, Size size, Color hue) {
       ..strokeWidth = w * 0.045
       ..strokeCap = StrokeCap.square,
   );
+  // The shelf preview uses the same overlapping three-tongue construction as
+  // the room, so buying a colour previews the actual icon-like blaze rather
+  // than a simplified teardrop.
   paintEmberFlame(
     canvas,
-    Rect.fromLTWH(cx - w * 0.19, h * 0.16, w * 0.38, h * 0.66),
+    Rect.fromLTWH(cx - w * 0.25, h * 0.41, w * 0.22, h * 0.41),
+    hue,
+    lean: -w * 0.015,
+  );
+  paintEmberFlame(
+    canvas,
+    Rect.fromLTWH(cx + w * 0.03, h * 0.36, w * 0.23, h * 0.46),
+    hue,
+    lean: w * 0.012,
+  );
+  paintEmberFlame(
+    canvas,
+    Rect.fromLTWH(cx - w * 0.18, h * 0.15, w * 0.36, h * 0.67),
     hue,
   );
 }
@@ -693,7 +721,7 @@ class _RoomPainter extends CustomPainter {
   /// fire genuinely lights more of the keep.
   void _firelight(Canvas canvas, double w, double h, double floorY) {
     final u = h - floorY;
-    final glow = emberGlow ?? const Color(0xFFE8915A);
+    final glow = emberGlow ?? const Color(0xFFEC6007);
     final warm = Color.lerp(glow, const Color(0xFFFFD49A), 0.68)!;
     final lit = petAwake ? 1.0 : 0.30; // banked, never cold
     final breath = 0.5 + 0.5 * sin(t * 2 * pi * 2 + 0.4);
@@ -706,20 +734,50 @@ class _RoomPainter extends CustomPainter {
       center: centre,
       radius: w * (0.39 + 0.020 * stage) * (0.98 + 0.04 * breath),
     );
+    // The room catches the fire's light, but the fire itself must keep its
+    // saturated planes. Excluding the opening prevents the additive bloom
+    // from bleaching the orange/red flame back into a pale peach candle.
+    final openingW = w * 0.30 * 0.58;
+    final openingH = u * 0.50;
+    final openingRect = Rect.fromLTWH(
+      w * 0.5 - openingW / 2,
+      floorY - openingH,
+      openingW,
+      openingH,
+    );
+    final shoulder = openingW * 0.18;
+    final opening = Path()
+      ..moveTo(openingRect.left, openingRect.bottom)
+      ..lineTo(openingRect.left, openingRect.top + shoulder)
+      ..lineTo(openingRect.left + shoulder, openingRect.top)
+      ..lineTo(openingRect.right - shoulder, openingRect.top)
+      ..lineTo(openingRect.right, openingRect.top + shoulder)
+      ..lineTo(openingRect.right, openingRect.bottom)
+      ..close();
+    final litRoom = Path.combine(
+      PathOperation.difference,
+      Path()..addRect(Rect.fromLTWH(0, 0, w, h)),
+      opening,
+    );
+    canvas.save();
+    canvas.clipPath(litRoom);
     canvas.drawRect(
       Rect.fromLTWH(0, 0, w, h),
       Paint()
         ..blendMode = BlendMode.plus
         ..shader = RadialGradient(
           colors: [
-            warm.withValues(alpha: (0.185 + 0.032 * breath) * lit),
-            warm.withValues(alpha: (0.078 + 0.014 * breath) * lit),
+            // Bright enough to warm the room, restrained enough that additive
+            // light does not bleach the saturated icon-like flame underneath.
+            warm.withValues(alpha: (0.145 + 0.026 * breath) * lit),
+            warm.withValues(alpha: (0.064 + 0.012 * breath) * lit),
             glow.withValues(alpha: 0.016 * lit),
             const Color(0x00000000),
           ],
           stops: const [0.0, 0.30, 0.70, 1.0],
         ).createShader(bloom),
     );
+    canvas.restore();
 
     // A narrow reflected facet on the waxed boards, aligned to the floor's
     // perspective rather than painted as a fuzzy oval.
@@ -1504,7 +1562,7 @@ class _RoomPainter extends CustomPainter {
     final u = h - floorY;
     final hw = w * 0.30; // surround width
     final topY = h * 0.14; // the chimney breast rises high on the wall
-    final flameHue = emberGlow ?? const Color(0xFFE8915A);
+    final flameHue = emberGlow ?? const Color(0xFFEC6007);
     final fireWarm = Color.lerp(flameHue, const Color(0xFFFFD49A), 0.52)!;
     final lit = petAwake ? 1.0 : 0.45;
     final flick = 1 + 0.09 * sin(t * 2 * pi * 2) + 0.05 * sin(t * 2 * pi * 3);
@@ -1728,16 +1786,18 @@ class _RoomPainter extends CustomPainter {
       // Full flames when the fire is kept. The shared painter anchors the pale
       // heat at each tongue's fuel-contact base while the purchased hue rises,
       // keeping the shop colour visible through the upper silhouette.
+      // Side tongues paint first and the broad central spear overlaps them,
+      // forming the same single clustered silhouette as the app icon.
       for (final spec in const [
-        (-0.20, 0.66, 0.0),
-        (0.0, 1.0, 1.3),
-        (0.20, 0.70, 2.4),
+        (-0.18, 0.66, 0.0, 0.095),
+        (0.18, 0.72, 2.4, 0.095),
+        (0.0, 1.0, 1.3, 0.12),
       ]) {
         final fx = x + spec.$1 * fbW;
         final f = 1 + 0.16 * sin(t * 2 * pi * 2 + spec.$3);
         final lean = fbW * 0.07 * sin(t * 2 * pi + spec.$3);
         final fhh = fbH * 0.80 * spec.$2 * f * grow;
-        final bw = fbW * 0.082 * spec.$2;
+        final bw = fbW * spec.$4 * spec.$2;
         final fr = Rect.fromLTWH(fx - bw * 1.2, fb - fhh, bw * 2.4, fhh);
         paintEmberFlame(canvas, fr, flameHue, lean: lean, intensity: lit);
       }
