@@ -14,6 +14,8 @@ class Sfx {
 
   static const _all = [
     'tick',
+    'tick_warm',
+    'tick_lift',
     'complete',
     'streak',
     'crit',
@@ -58,6 +60,27 @@ class Sfx {
   static double _volFor(String name) => _volume[name] ?? 0.55;
 
   final Map<String, AudioPool> _pools = {};
+
+  // Everyday taps form a tiny six-beat cadence: neutral and warmer contacts
+  // alternate, then the sixth interaction gets a barely brighter lift. It is
+  // deterministic rather than random, so clicking around feels alive without
+  // the interface becoming musically noisy or unpredictable.
+  static const _tickCadence = [
+    'tick',
+    'tick_warm',
+    'tick',
+    'tick_warm',
+    'tick',
+    'tick_lift',
+  ];
+  int _tickBeat = 0;
+
+  String _assetFor(String name) {
+    if (name != 'tick') return name;
+    final asset = _tickCadence[_tickBeat];
+    _tickBeat = (_tickBeat + 1) % _tickCadence.length;
+    return asset;
+  }
 
   /// Sound enabled flag — set from GameState.soundEnabled. When false,
   /// play() returns immediately without making any sound.
@@ -118,20 +141,21 @@ class Sfx {
     if (!soundEnabled) return;
     try {
       final vol = (_volFor(name) * volumeScale).clamp(0.0, 1.0);
-      final pool = _pools[name];
+      final asset = _assetFor(name);
+      final pool = _pools[asset];
       if (pool != null) {
         pool.start(volume: vol).catchError((Object e) {
-          debugPrint('Sfx "$name" failed: $e');
+          debugPrint('Sfx "$name" ($asset) failed: $e');
           return () async {};
         });
       } else {
         // Pool missing (failed or still loading): best-effort one-shot.
         final p = AudioPlayer();
         p.onPlayerComplete.first.then((_) => p.dispose());
-        p.play(AssetSource('sfx/$name.wav'), volume: vol).catchError((
+        p.play(AssetSource('sfx/$asset.wav'), volume: vol).catchError((
           Object e,
         ) {
-          debugPrint('Sfx "$name" fallback failed: $e');
+          debugPrint('Sfx "$name" ($asset) fallback failed: $e');
           p.dispose();
         });
       }

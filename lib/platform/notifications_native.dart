@@ -107,7 +107,7 @@ class Notifications {
       await _plugin.zonedSchedule(
         _dailyId,
         'Your quests are waiting',
-        'One small win before the day gets away from you 🔥',
+        'One small win before the day gets away from you.',
         _nextInstanceOfTime(hour, minute),
         _details(),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,

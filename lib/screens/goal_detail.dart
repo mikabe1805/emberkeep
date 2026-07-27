@@ -5,10 +5,12 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../clock.dart';
+import '../content/creature_skins.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
+import '../widgets/ember_flame_icon.dart';
 import '../widgets/ember_sheet.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
@@ -330,7 +332,12 @@ class GoalDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 16, color: _accent),
+            emberkeepIcon(
+              icon,
+              size: 18,
+              color: _accent,
+              flameHue: flameHueFor(state),
+            ),
             const SizedBox(height: 8),
             FittedBox(
               fit: BoxFit.scaleDown,

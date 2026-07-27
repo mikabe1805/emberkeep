@@ -25,6 +25,7 @@ import '../tokens.dart';
 import '../a11y.dart';
 import '../widgets/count_up.dart';
 import '../widgets/domain_hint.dart';
+import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
 import '../models.dart';
 import '../widgets/glass.dart';
@@ -337,6 +338,7 @@ class MePage extends StatelessWidget {
                           targetLevel: f.$1,
                           name: f.$2,
                           description: f.$3,
+                          flameHue: flameHueFor(state),
                         ),
                       ),
                   ],
@@ -429,6 +431,7 @@ class MePage extends StatelessWidget {
                         progress: state.unlockedAchievements.contains(a.id)
                             ? null
                             : a.progress?.call(state),
+                        flameHue: flameHueFor(state),
                       ),
                   ],
                 ),
@@ -1325,6 +1328,7 @@ void _showHearthStageInfo(
   required int targetLevel,
   required String name,
   required String description,
+  required Color flameHue,
 }) {
   final unlocked = currentLevel >= targetLevel;
   final remaining = (targetLevel - currentLevel).clamp(0, targetLevel);
@@ -1347,11 +1351,13 @@ void _showHearthStageInfo(
               size: 64,
               accent: unlocked ? Palette.xpLight : Palette.streak,
               glow: unlocked,
-              child: Icon(
-                unlocked ? Icons.local_fire_department : Icons.lock_outline,
-                size: 30,
-                color: unlocked ? Palette.xpLight : Palette.streak,
-              ),
+              child: unlocked
+                  ? EmberFlameIcon(size: 34, color: flameHue)
+                  : const Icon(
+                      Icons.lock_outline,
+                      size: 30,
+                      color: Palette.streak,
+                    ),
             ),
             const SizedBox(height: 14),
             Text(
@@ -1410,6 +1416,7 @@ void _showAchievementInfo(
   Achievement a,
   bool unlocked,
   (int, int)? progress,
+  Color flameHue,
 ) {
   Sfx.instance.play('tick');
   showDialog(
@@ -1429,10 +1436,11 @@ void _showAchievementInfo(
               size: 64,
               accent: unlocked ? Palette.xpLight : Palette.textLo,
               glow: unlocked,
-              child: Icon(
+              child: emberkeepIcon(
                 unlocked ? a.icon : Icons.lock_outline,
                 size: 30,
                 color: unlocked ? Palette.xpLight : Palette.textLo,
+                flameHue: flameHue,
               ),
             ),
             const SizedBox(height: 14),
@@ -1769,7 +1777,7 @@ class _ShareButton extends StatelessWidget {
         .join(' · ');
     return '⚔️ ${state.buildTitle} — Level ${state.level}\n'
         '${stats.isEmpty ? "a brand-new adventurer" : stats}\n'
-        '${state.totalXp} XP of real life, and counting. 🔥 Emberkeep';
+        '${state.totalXp} XP of real life, and counting. — Emberkeep';
   }
 
   @override
@@ -1879,7 +1887,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
         content: Text(
-          'Build copied — go show it off 🔥',
+          'Build copied — go show it off.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),
       ),
@@ -1947,12 +1955,19 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    '🔥 emberkeep',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: Palette.textLo,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      EmberFlameIcon(size: 16, color: flameHueFor(state)),
+                      const SizedBox(width: 5),
+                      Text(
+                        'EMBERKEEP',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: Palette.textLo,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -2061,11 +2076,13 @@ class _TrophyTile extends StatelessWidget {
   const _TrophyTile({
     required this.achievement,
     required this.unlocked,
+    required this.flameHue,
     this.closest = false,
     this.progress,
   });
   final Achievement achievement;
   final bool unlocked;
+  final Color flameHue;
   final bool closest;
   final (int, int)? progress;
 
@@ -2075,8 +2092,13 @@ class _TrophyTile extends StatelessWidget {
     final showProgress = !unlocked && p != null && p.$1 > 0 && p.$1 < p.$2;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () =>
-          _showAchievementInfo(context, achievement, unlocked, progress),
+      onTap: () => _showAchievementInfo(
+        context,
+        achievement,
+        unlocked,
+        progress,
+        flameHue,
+      ),
       child: Tooltip(
         message: achievement.desc,
         textStyle: Type.body.copyWith(fontSize: 11, color: Palette.textHi),
@@ -2093,7 +2115,7 @@ class _TrophyTile extends StatelessWidget {
                     ? Palette.streak
                     : Palette.textLo,
                 glow: unlocked,
-                child: Icon(
+                child: emberkeepIcon(
                   unlocked ? achievement.icon : Icons.lock_outline,
                   size: 20,
                   color: unlocked
@@ -2101,6 +2123,7 @@ class _TrophyTile extends StatelessWidget {
                       : closest
                       ? Palette.streak
                       : Palette.textLo.withValues(alpha: 0.6),
+                  flameHue: flameHue,
                 ),
               ),
               const SizedBox(height: 5),
@@ -3010,8 +3033,8 @@ class _AccountDialogState extends State<_AccountDialog> {
         backgroundColor: Palette.card,
         content: Text(
           widget.signIn
-              ? 'Signed in — welcome back 🔥'
-              : 'Account created — your fire’s safe now 🔥',
+              ? 'Signed in — welcome back.'
+              : 'Account created — your fire’s safe now.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),
       ),

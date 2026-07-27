@@ -247,7 +247,15 @@ void main() {
   testWidgets('keep: style variants', (tester) async {
     await tester.binding.setSurfaceSize(const Size(520, 940));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    const furn = {'rug', 'lamp', 'plant', 'shelf', 'picture', 'garland'};
+    const furn = {
+      'rug',
+      'lamp',
+      'plant',
+      'shelf',
+      'picture',
+      'garland',
+      'candles',
+    };
     Widget keep(List<Color> wall, List<Color> floor) => SizedBox(
       width: 460,
       child: HomeRoom(unlocked: furn, wall: wall, floor: floor, petAwake: true),
@@ -283,7 +291,15 @@ void main() {
   testWidgets('keep: new reward variants', (tester) async {
     await tester.binding.setSurfaceSize(const Size(520, 700));
     addTearDown(() => tester.binding.setSurfaceSize(null));
-    const furn = {'rug', 'lamp', 'plant', 'shelf', 'picture', 'garland'};
+    const furn = {
+      'rug',
+      'lamp',
+      'plant',
+      'shelf',
+      'picture',
+      'garland',
+      'candles',
+    };
 
     Widget rewardKeep(String wallId, String floorId, String flameId) {
       final flame = creatureSkinById(flameId)!;

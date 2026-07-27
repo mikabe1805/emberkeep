@@ -609,7 +609,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               s.notifyMinute,
             ),
             title: 'Today: ${quest.displayTitle}',
-            body: 'A plan you set is due 🔥',
+            body: 'A plan you set is due.',
           ),
     ];
     await Notifications.scheduleEvents(events);

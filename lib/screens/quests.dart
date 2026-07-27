@@ -24,6 +24,7 @@ import '../widgets/workout_flow.dart';
 import '../widgets/achievement_toast.dart';
 import '../widgets/day_picker.dart';
 import '../widgets/domain_hint.dart';
+import '../widgets/ember_flame_icon.dart';
 import '../widgets/ember_sheet.dart';
 import '../widgets/epic_overlay.dart';
 import '../widgets/count_up.dart';
@@ -373,8 +374,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       Haptics.rise();
       late final OverlayEntry flourish;
       flourish = OverlayEntry(
-        builder: (_) =>
-            _ComboFlourish(combo: _combo, onDone: () => flourish.remove()),
+        builder: (_) => _ComboFlourish(
+          combo: _combo,
+          flameHue: flameHueFor(_state),
+          onDone: () => flourish.remove(),
+        ),
       );
       overlay.insert(flourish);
     }
@@ -466,6 +470,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             children: [
               AchievementToast(
                 achievement: newly[i],
+                flameHue: flameHueFor(s),
                 onDone: () => toast.remove(),
               ),
             ],
@@ -1148,7 +1153,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       child: GlassPanel(
         child: Row(
           children: [
-            Icon(Icons.local_fire_department, size: 22, color: Palette.xp),
+            EmberFlameIcon(size: 24, color: flameHueFor(_state)),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -1316,7 +1321,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         child: GlassPanel(
           child: Row(
             children: [
-              Icon(Icons.local_fire_department, size: 18, color: e.stat.color),
+              EmberFlameIcon(size: 20, color: e.stat.color),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -1826,7 +1831,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                   // there's an anchor without the loss-cliff
                                   if (_state.streakDays > 0) ...[
                                     const SizedBox(width: 10),
-                                    _StreakChip(days: _state.streakDays),
+                                    _StreakChip(
+                                      days: _state.streakDays,
+                                      flameHue: flameHueFor(_state),
+                                    ),
                                   ],
                                 ],
                               ),
@@ -1986,10 +1994,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       return GlassPanel(
                         child: Column(
                           children: [
-                            const Icon(
-                              Icons.local_fire_department_outlined,
-                              size: 26,
-                              color: Palette.xpLight,
+                            EmberFlameIcon(
+                              size: 28,
+                              color: flameHueFor(_state),
                             ),
                             const SizedBox(height: 8),
                             Text(
@@ -2337,8 +2344,13 @@ class _FocusLensToggle extends StatelessWidget {
 /// near the top, the word escalating with the combo, then fades. Never a
 /// takeover; pure momentum warmth (round-33).
 class _ComboFlourish extends StatefulWidget {
-  const _ComboFlourish({required this.combo, required this.onDone});
+  const _ComboFlourish({
+    required this.combo,
+    required this.flameHue,
+    required this.onDone,
+  });
   final int combo;
+  final Color flameHue;
   final VoidCallback onDone;
 
   @override
@@ -2417,11 +2429,7 @@ class _ComboFlourishState extends State<_ComboFlourish>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
-                            Icons.local_fire_department,
-                            size: 16,
-                            color: Palette.streak,
-                          ),
+                          EmberFlameIcon(size: 18, color: widget.flameHue),
                           const SizedBox(width: 6),
                           Text(
                             '${_word(widget.combo)} · ×${widget.combo}',
@@ -2452,8 +2460,9 @@ class _ComboFlourishState extends State<_ComboFlourish>
 /// Shields and rest days absorb misses silently upstream (never-punish), so
 /// this is only ever an anchor, never a threat.
 class _StreakChip extends StatefulWidget {
-  const _StreakChip({required this.days});
+  const _StreakChip({required this.days, required this.flameHue});
   final int days;
+  final Color flameHue;
 
   @override
   State<_StreakChip> createState() => _StreakChipState();
@@ -2496,11 +2505,7 @@ class _StreakChipState extends State<_StreakChip>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.local_fire_department,
-              size: 13,
-              color: Palette.streak,
-            ),
+            EmberFlameIcon(size: 15, color: widget.flameHue),
             const SizedBox(width: 3),
             Text(
               '${widget.days}',

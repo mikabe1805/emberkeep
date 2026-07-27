@@ -35,6 +35,8 @@ void main() {
       'stat_5',
       'streak',
       'tick',
+      'tick_lift',
+      'tick_warm',
     ]) {
       final data = await rootBundle.load('assets/sfx/$name.wav');
       expect(

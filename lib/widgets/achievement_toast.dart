@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../content/achievements.dart';
 import '../tokens.dart';
+import 'ember_flame_icon.dart';
 import 'facets.dart';
 import 'glass.dart';
 
@@ -14,10 +15,12 @@ class AchievementToast extends StatefulWidget {
     super.key,
     required this.achievement,
     required this.onDone,
+    this.flameHue = emberFlameDefaultHue,
   });
 
   final Achievement achievement;
   final VoidCallback onDone;
+  final Color flameHue;
 
   @override
   State<AchievementToast> createState() => _AchievementToastState();
@@ -92,10 +95,11 @@ class _AchievementToastState extends State<AchievementToast>
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        emberkeepIcon(
                           widget.achievement.icon,
                           size: 20,
                           color: Palette.xpLight,
+                          flameHue: widget.flameHue,
                         ),
                         const SizedBox(width: 10),
                         Column(

@@ -9,6 +9,7 @@ import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/constellation.dart';
+import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import 'journal_hub.dart';
@@ -537,13 +538,9 @@ class InsightsPage extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 2),
-                child: Icon(
-                  Icons.local_fire_department,
-                  size: 20,
-                  color: Palette.streak,
-                ),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: EmberFlameIcon(size: 22, color: flameHueFor(state)),
               ),
               const SizedBox(width: 10),
               Expanded(

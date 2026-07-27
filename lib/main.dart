@@ -10,6 +10,7 @@ import 'platform/persist_stub.dart'
     if (dart.library.js_interop) 'platform/persist_web.dart';
 import 'screens/shell.dart';
 import 'tokens.dart';
+import 'widgets/ember_flame_icon.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,7 +79,7 @@ class _FriendlyError extends StatelessWidget {
       child: const Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.local_fire_department, color: Palette.streak, size: 32),
+          EmberFlameIcon(size: 34, semanticLabel: 'Emberkeep flame'),
           SizedBox(height: 10),
           Text(
             'A flicker — but your fire is safe.',

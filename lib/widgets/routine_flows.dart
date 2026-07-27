@@ -5,10 +5,12 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../clock.dart';
+import '../content/creature_skins.dart';
 import '../content/messages.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
+import 'ember_flame_icon.dart';
 import 'ember_sheet.dart';
 import 'facets.dart';
 import 'glass.dart';
@@ -170,7 +172,7 @@ class _NightFlowState extends State<NightFlow> {
   Widget _tomorrowHook(GameState s) {
     final hooks = <String>[];
     if (s.streakDays > 0) {
-      hooks.add('keep the fire: day ${s.streakDays + 1} tomorrow 🔥');
+      hooks.add('keep the fire: day ${s.streakDays + 1} tomorrow');
     }
     Goal? near;
     var bestGap = 1 << 30;
@@ -1117,13 +1119,23 @@ class MorningFlow extends StatelessWidget {
                             ),
                             FittedBox(
                               fit: BoxFit.scaleDown,
-                              child: Text(
-                                '${state.streakDays}🔥',
-                                maxLines: 1,
-                                style: Type.numerals.copyWith(
-                                  fontSize: 22,
-                                  color: Palette.streak,
-                                ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${state.streakDays}',
+                                    maxLines: 1,
+                                    style: Type.numerals.copyWith(
+                                      fontSize: 22,
+                                      color: Palette.streak,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  EmberFlameIcon(
+                                    size: 22,
+                                    color: flameHueFor(state),
+                                  ),
+                                ],
                               ),
                             ),
                             if (state.streakShields > 0)

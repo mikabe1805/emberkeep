@@ -2310,6 +2310,8 @@ class _RoomPainter extends CustomPainter {
   // candlelight instead of three frozen teardrops
   void _candles(Canvas canvas, double w, double h, double floorY) {
     final u = h - floorY;
+    final flameHue = emberGlow ?? const Color(0xFFEC6007);
+    final candleWarm = Color.lerp(flameHue, const Color(0xFFFFD49A), 0.58)!;
     // ON THE MANTEL, not on the rug. Open flames standing on a wool rug beside
     // a sleeping cat is a fire hazard anyone who has lived with an animal reads
     // instantly, and a scene whose whole job is to feel calm cannot afford to
@@ -2325,7 +2327,7 @@ class _RoomPainter extends CustomPainter {
         height: u * 0.34,
       ),
       Paint()
-        ..color = Palette.honeyGlow.withValues(alpha: 0.16)
+        ..color = candleWarm.withValues(alpha: 0.16)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, w * 0.035),
     );
     var i = 0;
@@ -2345,7 +2347,7 @@ class _RoomPainter extends CustomPainter {
         Offset(cx, baseY - ch - 4),
         8 * pulse,
         Paint()
-          ..color = Palette.honeyGlow.withValues(alpha: 0.7 * pulse)
+          ..color = candleWarm.withValues(alpha: 0.7 * pulse)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
       );
       canvas.drawRRect(
@@ -2363,7 +2365,7 @@ class _RoomPainter extends CustomPainter {
       paintEmberFlame(
         canvas,
         Rect.fromLTWH(cx - 3.2, tipY, 6.4, (baseY - ch) - tipY),
-        const Color(0xFFE8915A),
+        flameHue,
         lean: sway,
         intensity: pulse,
       );

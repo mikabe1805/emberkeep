@@ -3,11 +3,13 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../content/cosmetics.dart';
+import '../content/creature_skins.dart';
 import '../content/evidence.dart';
 import '../engine.dart';
 import '../haptics.dart';
 import '../models.dart';
 import '../tokens.dart';
+import 'ember_flame_icon.dart';
 import 'facets.dart';
 import 'glass.dart';
 
@@ -83,7 +85,7 @@ class _RewardReceiptState extends State<RewardReceipt>
     _bubbles = [
       if (b.firstOfDay)
         _Bubble(
-          'FIRST EMBER 🔥',
+          'FIRST EMBER',
           Icons.local_fire_department,
           Palette.streak,
           'streak',
@@ -346,7 +348,7 @@ class _RewardReceiptState extends State<RewardReceipt>
             ? CrossAxisAlignment.start
             : CrossAxisAlignment.center,
         children: [
-          Icon(
+          emberkeepIcon(
             b.icon,
             size: b.wide
                 ? 13
@@ -354,6 +356,9 @@ class _RewardReceiptState extends State<RewardReceipt>
                 ? 19
                 : 16,
             color: b.color,
+            flameHue: widget.state == null
+                ? emberFlameDefaultHue
+                : flameHueFor(widget.state!),
           ),
           const SizedBox(width: 6),
           Flexible(
