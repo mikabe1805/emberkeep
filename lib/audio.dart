@@ -30,14 +30,13 @@ class Sfx {
   ];
 
   /// Per-sound volume — the palette plays SOFT (owner feedback: it felt harsh).
-  /// The press 'tick' fires on every tap, so it's nearly a whisper; reward
-  /// beats sit gently above it; only the rare big moments approach full.
-  /// (round-62: after two sample-based passes still read as harsh/"computer-
-  /// generated", the owner chose MINIMAL SOFT POPS. tools/gen_sfx_pops.py now
-  /// synthesizes barely-there rounded blips — pure low sines (~180-560Hz) with
-  /// soft cosine attacks, gentle pitch glides, a ~1.6kHz low-pass and low
-  /// levels. Nothing melodic, bright or percussive; every sound's brightness is
-  /// now well under 900Hz. Superseded the r53/r61 marimba+glock sample set.)
+  /// The press 'tick' fires on every tap, so it stays quiet; reward beats sit
+  /// gently above it; only the rare big moments approach full.
+  ///
+  /// The everyday tick is now a very short tactile tap rather than the former
+  /// single-frequency sine blip. Its softened contact transient gives a button
+  /// physical presence, while a warm low resonance and fast tail keep repeated
+  /// navigation from becoming metallic or tiring. See assets/sfx/SOURCES.md.
   static const _volume = <String, double>{
     'tick': 0.16,
     'complete': 0.55,
