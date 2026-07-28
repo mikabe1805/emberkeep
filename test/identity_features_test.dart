@@ -91,6 +91,7 @@ void main() {
     final state = GameState()..roomCode = 'ABC234';
     expect(state.addCircleCode('DEF567'), isTrue);
     state.setEnergyWeather(EnergyWeather.low);
+    state.setLowFlameQuests(['One gentle thing', 'Another gentle thing']);
     state.memoryPins.add('note-1');
     state.startQuietCompany('study', const Duration(minutes: 25));
 
@@ -99,6 +100,10 @@ void main() {
     expect(restored.hearthCircleCodes, ['DEF567']);
     expect(restored.energyWeather, EnergyWeather.low);
     expect(restored.energyHistory['2026-07-28'], EnergyWeather.low);
+    expect(restored.lowFlameQuestTitles, [
+      'One gentle thing',
+      'Another gentle thing',
+    ]);
     expect(restored.memoryPins, {'note-1'});
     expect(restored.quietCompanyKind, 'study');
     expect(restored.quietCompanyActive, isTrue);

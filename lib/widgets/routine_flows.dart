@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../clock.dart';
 import '../content/creature_skins.dart';
+import '../content/day_planning.dart';
 import '../content/messages.dart';
 import '../engine.dart';
 import '../models.dart';
@@ -60,22 +61,7 @@ class _NightFlowState extends State<NightFlow> {
   /// (round-7: weekday/month-day aware) and events due by tomorrow.
   List<Quest> _tomorrowQuests() {
     final tomorrow = Clock.now().add(const Duration(days: 1));
-    return [
-      for (final q in widget.quests)
-        if (q.isEvent
-            ? (q.lastDoneDay == null &&
-                  !q.dueDate!.isAfter(
-                    DateTime(
-                      tomorrow.year,
-                      tomorrow.month,
-                      tomorrow.day,
-                      23,
-                      59,
-                    ),
-                  ))
-            : (q.scheduledOn(tomorrow) && !q.doneFor(tomorrow)))
-          q,
-    ];
+    return planningQuestsForDay(widget.quests, tomorrow);
   }
 
   @override
@@ -758,6 +744,9 @@ class _NightFlowState extends State<NightFlow> {
   // ── step 2: tomorrow, planned ────────────────────────────────────
   Widget _planner(BuildContext context) {
     final tomorrow = _tomorrowQuests();
+    final tomorrowDay = Clock.now().add(const Duration(days: 1));
+    final tomorrowKey = Days.key(tomorrowDay);
+    final chosenCount = tomorrow.where((q) => q.priorityOn(tomorrowDay)).length;
     return ListView(
       key: const ValueKey('planner'),
       children: [
@@ -768,7 +757,7 @@ class _NightFlowState extends State<NightFlow> {
         const SizedBox(height: 4),
         Center(
           child: Text(
-            'star what matters most — the morning leads with it',
+            'choose up to three — the morning leads with them',
             style: Type.body.copyWith(
               fontSize: 13,
               fontStyle: FontStyle.italic,
@@ -782,7 +771,7 @@ class _NightFlowState extends State<NightFlow> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'ALREADY ON THE BOARD',
+                'ALREADY ON THE BOARD · ${chosenCount.clamp(0, 3)}/3 MAIN',
                 style: Type.label.copyWith(fontSize: 11),
               ),
               const SizedBox(height: 8),
@@ -823,17 +812,35 @@ class _NightFlowState extends State<NightFlow> {
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap: () {
+                          final selected = q.priorityOn(tomorrowDay);
+                          if (!selected && chosenCount >= 3) {
+                            Sfx.instance.play('boing');
+                            HapticFeedback.lightImpact();
+                            return;
+                          }
                           Sfx.instance.play('tick');
                           HapticFeedback.selectionClick();
-                          setState(() => q.priority = !q.priority);
+                          setState(() {
+                            if (selected) {
+                              q.priority = false;
+                              q.priorityDay = null;
+                            } else {
+                              q.priority = false;
+                              q.priorityDay = tomorrowKey;
+                            }
+                          });
                           // persist NOW — backing out via "NOT YET" is a
                           // supported exit and must not drop tonight's stars
                           widget.onPersist();
                         },
                         child: Icon(
-                          q.priority ? Icons.star : Icons.star_border,
+                          q.priorityOn(tomorrowDay)
+                              ? Icons.star
+                              : Icons.star_border,
                           size: 20,
-                          color: q.priority ? Palette.xpLight : Palette.textLo,
+                          color: q.priorityOn(tomorrowDay)
+                              ? Palette.xpLight
+                              : Palette.textLo,
                         ),
                       ),
                     ],
@@ -1020,8 +1027,8 @@ class MorningFlow extends StatelessWidget {
             (q.isEvent ? !q.dueDate!.isAfter(endOfToday) : q.scheduledOn(now)))
           q,
     ];
-    final main = open.where((q) => q.priority && !q.allDay).toList();
-    final side = open.where((q) => !q.priority && !q.allDay).toList();
+    final main = open.where((q) => q.priorityOn(now) && !q.allDay).toList();
+    final side = open.where((q) => !q.priorityOn(now) && !q.allDay).toList();
     final allDay = open.where((q) => q.allDay).toList();
     final potential = open.fold<int>(0, (sum, q) => sum + state.xpPreview(q));
     final line = RewardMessages.morning(Random());

@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/content/creature_skins.dart';
+import 'package:emberkeep/content/day_planning.dart';
 import 'package:emberkeep/content/furniture.dart';
 import 'package:emberkeep/content/routines.dart';
 import 'package:emberkeep/content/room_styles.dart';
@@ -20,11 +21,14 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/journal_hub.dart';
 import 'package:emberkeep/screens/hearth_circle.dart';
 import 'package:emberkeep/screens/memory_cabinet.dart';
+import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/screens/weekly_chronicle.dart';
 import 'package:emberkeep/storage.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/constellation.dart';
+import 'package:emberkeep/widgets/glass.dart';
 import 'package:emberkeep/widgets/home_room.dart';
+import 'package:emberkeep/widgets/top_three_wizard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
@@ -748,6 +752,10 @@ void main() {
 
     _activateDock(tester, Icons.task_alt);
     await tester.pump(const Duration(milliseconds: 450));
+    if (find.text('SHOW ALL').evaluate().isNotEmpty) {
+      await tester.tap(find.text('SHOW ALL'));
+      await tester.pump(const Duration(milliseconds: 300));
+    }
     await tester.scrollUntilVisible(
       find.textContaining('Guided workout'),
       420,
@@ -863,6 +871,124 @@ void main() {
       ),
     );
     await _storeShot(tester, '02b_hearth_circle_1290x2796');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('store screenshot story: capacity journeys', (tester) async {
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    final now = DateTime(2026, 7, 28, 10);
+    Clock.freeze(now);
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final state = GameState()
+      ..onboarded = true
+      ..level = 14
+      ..totalXp = 2960
+      ..totalCompletions = 86
+      ..reduceMotion = true
+      ..morningDoneDay = Days.key(now)
+      ..weekRecapSeenWeek = Days.key(Days.weekStart(now))
+      ..emberSeenDay = Days.key(now)
+      ..sparkSeenDay = Days.key(now);
+    final quests = [
+      Quest(
+        title: 'Reply to the apartment email',
+        stat: Stat.dis,
+        difficulty: 2,
+        custom: true,
+      ),
+      Quest(
+        title: 'Ten quiet minutes on the draft',
+        stat: Stat.foc,
+        difficulty: 2,
+        custom: true,
+      ),
+      Quest(
+        title: 'Put water beside the bed',
+        stat: Stat.vit,
+        difficulty: 1,
+        custom: true,
+      ),
+      Quest(
+        title: 'Finish the presentation',
+        stat: Stat.foc,
+        difficulty: 7,
+        custom: true,
+      ),
+      Quest(
+        title: 'Deep-clean the kitchen',
+        stat: Stat.dis,
+        difficulty: 8,
+        custom: true,
+      ),
+      Quest(
+        title: 'Book the appointment',
+        stat: Stat.vit,
+        difficulty: 5,
+        dread: true,
+        custom: true,
+      ),
+      Quest(
+        title: 'Read the next chapter',
+        stat: Stat.intl,
+        difficulty: 4,
+        custom: true,
+      ),
+      Quest(title: 'Call Dad', stat: Stat.soc, difficulty: 3, custom: true),
+    ];
+    state.setEnergyWeather(EnergyWeather.low);
+    state.setLowFlameQuests(
+      suggestedLowFlameQuests(quests, now).map((q) => q.title),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Palette.parchment,
+          body: WarmBackground(
+            themeId: state.canvasTheme,
+            tint: Palette.streak,
+            reduceMotion: true,
+            child: QuestsPage(
+              state: state,
+              quests: quests,
+              onRefresh: () => 0,
+              onPersist: () {},
+              onAdd: (q) {
+                quests.add(q);
+                return true;
+              },
+              onRemove: quests.remove,
+              onSnapshot: () => '{}',
+              onRestore: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await _storeShot(tester, '01b_low_flame_1290x2796');
+
+    showTopThreeWizard(
+      tester.element(find.byType(QuestsPage)),
+      title: 'Shape tomorrow',
+      subtitle:
+          'Pick up to three quests to lead the morning. This is a compass, not another obligation.',
+      dayLabel: 'Tomorrow’s Three',
+      candidates: quests,
+      initialTitles: quests.take(2).map((q) => q.title),
+      confirmLabel: 'SET TOMORROW’S THREE',
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    await _storeShot(tester, '01c_top_three_1290x2796');
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

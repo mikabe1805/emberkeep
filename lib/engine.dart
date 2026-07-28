@@ -109,18 +109,34 @@ class GameState extends ChangeNotifier {
   String? energyWeatherDay;
   final Map<String, EnergyWeather> energyHistory = {};
 
+  /// Stable choices for today's Low Flame shelter. Keeping the titles fixed
+  /// prevents a fourth quest from sliding in the moment one of the chosen
+  /// three is completed—the promise is a smaller day, not an endless queue.
+  final List<String> lowFlameQuestTitles = [];
+
   bool get energyWeatherDue => energyWeatherDay != Days.key(Clock.now());
+  bool get lowFlameActive =>
+      energyWeatherDay == Days.key(Clock.now()) &&
+      energyWeather == EnergyWeather.low;
 
   void setEnergyWeather(EnergyWeather weather) {
     energyWeather = weather;
     energyWeatherDay = Days.key(Clock.now());
     energyHistory[energyWeatherDay!] = weather;
+    if (weather != EnergyWeather.low) lowFlameQuestTitles.clear();
     if (energyHistory.length > 180) {
       final keys = energyHistory.keys.toList()..sort();
       while (energyHistory.length > 180 && keys.isNotEmpty) {
         energyHistory.remove(keys.removeAt(0));
       }
     }
+    notifyListeners();
+  }
+
+  void setLowFlameQuests(Iterable<String> titles) {
+    lowFlameQuestTitles
+      ..clear()
+      ..addAll(titles.where((t) => t.trim().isNotEmpty).toSet().take(3));
     notifyListeners();
   }
 
@@ -1164,6 +1180,7 @@ class GameState extends ChangeNotifier {
     'energyHistory': {
       for (final entry in energyHistory.entries) entry.key: entry.value.name,
     },
+    'lowFlameQuestTitles': lowFlameQuestTitles,
     'memoryPins': memoryPins.toList(),
     'quietCompanyKind': quietCompanyKind,
     'quietCompanyUntil': quietCompanyUntil,
@@ -1269,6 +1286,13 @@ class GameState extends ChangeNotifier {
       final weather = EnergyWeather.values.where((e) => e.name == entry.value);
       if (weather.isNotEmpty) s.energyHistory[entry.key] = weather.first;
     }
+    s.lowFlameQuestTitles.addAll(
+      ((j['lowFlameQuestTitles'] as List?) ?? const [])
+          .whereType<String>()
+          .where((title) => title.trim().isNotEmpty)
+          .toSet()
+          .take(3),
+    );
     s.memoryPins.addAll(
       ((j['memoryPins'] as List?) ?? const []).cast<String>(),
     );

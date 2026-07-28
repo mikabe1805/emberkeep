@@ -1,6 +1,8 @@
 import '../models.dart';
 import '../tokens.dart';
 
+const planTomorrowEmber = 'Pick tomorrow’s top three';
+
 /// "Ember of the Day" — a small, fun, today-only bonus quest offered once each
 /// day, drawn from a different life domain in rotation (round-38: content must
 /// renew — habit timescales outlast hand-authored content, so a little daily
@@ -29,7 +31,7 @@ const emberPool = <Stat, List<String>>{
     'A fifteen-minute focus sprint',
     'Clear your desktop',
     'Finish one lingering small task',
-    'Pick tomorrow’s top three',
+    planTomorrowEmber,
   ],
   Stat.soc: [
     'Send someone a kind message',

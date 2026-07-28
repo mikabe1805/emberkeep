@@ -335,7 +335,10 @@ class _EmberSheetState extends State<_EmberSheet> {
       dread: _dread,
       rising: _rising,
       goalTitle: widget.config.goalTitle,
-      priority: _isTomorrow,
+      priority: false,
+      priorityDay: _isTomorrow
+          ? Days.key(DateTime(now.year, now.month, now.day + 1))
+          : null,
     );
   }
 

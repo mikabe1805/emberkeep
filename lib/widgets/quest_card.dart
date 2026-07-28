@@ -80,6 +80,7 @@ class _QuestCardState extends State<QuestCard>
   Widget build(BuildContext context) {
     final q = widget.quest;
     final done = widget.done;
+    final isMain = q.priorityOn(Clock.now());
     return AnimatedBuilder(
       animation: _squash,
       builder: (context, child) => Transform.scale(
@@ -112,7 +113,7 @@ class _QuestCardState extends State<QuestCard>
                 cut: 12,
                 borderColor: done
                     ? Palette.success.withValues(alpha: 0.4)
-                    : q.priority
+                    : isMain
                     ? Palette.xpLight.withValues(alpha: 0.55)
                     : Palette.glassEdge,
                 shadows: done
@@ -131,7 +132,7 @@ class _QuestCardState extends State<QuestCard>
                         ),
                         // a starred MAIN quest glows honey — the priority tier
                         // is felt at a glance, not read off a border tint
-                        if (q.priority)
+                        if (isMain)
                           const BoxShadow(
                             color: Palette.honeyGlow,
                             blurRadius: 20,
@@ -177,7 +178,7 @@ class _QuestCardState extends State<QuestCard>
                                   'GUIDED',
                                   q.stat.color,
                                 ),
-                              if (q.priority)
+                              if (isMain)
                                 _MetaChip(Icons.star, 'MAIN', Palette.xpLight),
                               if (q.allDay)
                                 _MetaChip(

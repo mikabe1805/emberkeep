@@ -336,6 +336,7 @@ class Quest {
     this.snoozedDay,
     this.goalTitle,
     this.priority = false,
+    this.priorityDay,
     this.allDay = false,
     this.weekdays = const [],
     this.monthDay,
@@ -400,6 +401,14 @@ class Quest {
   /// Starred as a MAIN quest (set in the night planner; the morning
   /// briefing leads with these).
   bool priority;
+
+  /// A date-specific MAIN choice made while shaping tomorrow. Older saves
+  /// only have [priority], which remains a standing favorite until the keeper
+  /// next uses the top-three planner and turns it into a dated choice.
+  String? priorityDay;
+
+  bool priorityOn(DateTime day) =>
+      priorityDay == Days.key(day) || (priorityDay == null && priority);
 
   /// All-day abstention quest ("no caffeine after 2pm"): a reminder during
   /// the day, honestly confirmable only in the night routine's checklist.
@@ -531,6 +540,7 @@ class Quest {
     'snoozedDay': snoozedDay,
     'goalTitle': goalTitle,
     'priority': priority,
+    'priorityDay': priorityDay,
     'allDay': allDay,
     'weekdays': weekdays,
     'monthDay': monthDay,
@@ -570,6 +580,7 @@ class Quest {
     snoozedDay: Days.validKey(j['snoozedDay']),
     goalTitle: j['goalTitle'] as String?,
     priority: j['priority'] as bool? ?? false,
+    priorityDay: Days.validKey(j['priorityDay']),
     allDay: j['allDay'] as bool? ?? false,
     weekdays: ((j['weekdays'] as List?) ?? const []).cast<int>(),
     monthDay: j['monthDay'] as int?,

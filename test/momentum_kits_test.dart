@@ -123,11 +123,12 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final added = <Quest>[];
     var openedBoard = false;
+    final state = GameState();
 
     await tester.pumpWidget(
       MaterialApp(
         home: MomentumKitsPage(
-          state: GameState(),
+          state: state,
           onAdd: (q) {
             added.add(q);
             return true;
@@ -150,7 +151,9 @@ void main() {
     await tester.tap(find.text('LIGHT 2 SPARKS'));
     await tester.pump();
     expect(added, hasLength(2));
-    expect(find.text('2 sparks are waiting'), findsOneWidget);
+    expect(state.lowFlameActive, isTrue);
+    expect(state.lowFlameQuestTitles, added.map((q) => q.title));
+    expect(find.text('2 sparks will carry the day'), findsOneWidget);
 
     await tester.tap(find.text('OPEN QUESTS'));
     await tester.pump();

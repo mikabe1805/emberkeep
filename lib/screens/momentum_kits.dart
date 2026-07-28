@@ -555,6 +555,15 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
     for (final quest in quests) {
       if (widget.onAdd(quest)) added++;
     }
+    if (widget.kit.kind == MomentumKitKind.lowFlame) {
+      // This kit is a capacity choice, not three more lines on an already-full
+      // board. Carry only its chosen sparks into Low Flame shelter; everything
+      // else remains intact and quietly rests behind it for today.
+      widget.state.setEnergyWeather(EnergyWeather.low);
+      widget.state.setFocusMode(false);
+      widget.state.setLowFlameQuests(quests.map((q) => q.title));
+      widget.onPersist();
+    }
     if (added > 0) {
       switch (widget.kit.kind) {
         case MomentumKitKind.focusExpedition:
@@ -698,6 +707,7 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
                       requested: _quests().length,
                       added: _added!,
                       accent: kit.stat.color,
+                      sheltered: kit.kind == MomentumKitKind.lowFlame,
                       onOpenQuests: _openBoard,
                     )
                   else ...[
@@ -1070,11 +1080,13 @@ class _SuccessState extends StatelessWidget {
     required this.requested,
     required this.added,
     required this.accent,
+    required this.sheltered,
     required this.onOpenQuests,
   });
   final int requested;
   final int added;
   final Color accent;
+  final bool sheltered;
   final VoidCallback onOpenQuests;
 
   @override
@@ -1094,7 +1106,9 @@ class _SuccessState extends StatelessWidget {
         ),
         const SizedBox(height: 15),
         Text(
-          alreadyThere
+          sheltered
+              ? '$requested spark${requested == 1 ? '' : 's'} will carry the day'
+              : alreadyThere
               ? 'Already waiting on Quests'
               : added == 1
               ? 'One spark is waiting'
@@ -1104,7 +1118,9 @@ class _SuccessState extends StatelessWidget {
         ),
         const SizedBox(height: 7),
         Text(
-          alreadyThere
+          sheltered
+              ? 'Everything else on today’s board will rest safely behind Low Flame shelter.'
+              : alreadyThere
               ? 'This exact kit is already pinned for today. Nothing was duplicated.'
               : added < requested
               ? 'The rest were already on today’s board, so Emberkeep kept only the new ones.'

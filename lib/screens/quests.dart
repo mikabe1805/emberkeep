@@ -9,6 +9,7 @@ import '../clock.dart';
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
 import '../content/creature_skins.dart';
+import '../content/day_planning.dart';
 import '../content/embers.dart';
 import '../content/evidence.dart';
 import '../content/ladders.dart';
@@ -41,6 +42,7 @@ import '../widgets/reward_receipt.dart';
 import '../widgets/routine_flows.dart';
 import '../widgets/stat_chips.dart';
 import '../widgets/timer_overlay.dart';
+import '../widgets/top_three_wizard.dart';
 import '../widgets/streak_milestone_overlay.dart';
 import '../widgets/xp_bar.dart';
 
@@ -145,11 +147,99 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Focus mode's ordering lens (ephemeral; the on/off itself lives on state).
   _FocusLens _focusLens = _FocusLens.quickWin;
 
+  /// Low Flame shelters the board by default, but the keeper can briefly
+  /// reveal everything without changing or losing the chosen three.
+  bool _showFullLowFlame = false;
+
   void _toggleFocus() {
     _state.setFocusMode(!_state.focusMode);
     widget.onPersist();
     Haptics.tap();
     setState(() {});
+  }
+
+  List<Quest> _lowFlameCandidates(DateTime day) =>
+      planningQuestsForDay(widget.quests, day);
+
+  Future<void> _editLowFlameThree() async {
+    final now = Clock.now();
+    final candidates = _lowFlameCandidates(now);
+    final initial = _state.lowFlameQuestTitles.isEmpty
+        ? suggestedLowFlameQuests(candidates, now).map((q) => q.title)
+        : _state.lowFlameQuestTitles;
+    final chosen = await showTopThreeWizard(
+      context,
+      title: 'Shelter the day',
+      subtitle:
+          'Choose up to three things worth carrying. Everything else rests without penalty.',
+      dayLabel: 'Low Flame · Today',
+      candidates: candidates.where((q) => !q.allDay),
+      initialTitles: initial,
+      accent: Stat.vit.color,
+      confirmLabel: 'SHELTER THE DAY',
+    );
+    if (chosen == null || !mounted) return;
+    setState(() {
+      _state.setLowFlameQuests(chosen);
+      _showFullLowFlame = false;
+    });
+    widget.onPersist();
+  }
+
+  Future<void> _planTomorrow(VoidCallback dismissEmber) async {
+    final now = Clock.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final tomorrowKey = Days.key(tomorrow);
+    final candidates = planningQuestsForDay(widget.quests, tomorrow);
+    final initial = candidates
+        .where((q) => q.priorityOn(tomorrow))
+        .map((q) => q.title);
+    final chosen = await showTopThreeWizard(
+      context,
+      title: 'Shape tomorrow',
+      subtitle:
+          'Pick up to three quests to lead the morning. This is a compass, not another obligation.',
+      dayLabel: 'Tomorrow’s Three',
+      candidates: candidates.where((q) => !q.allDay),
+      initialTitles: initial,
+      accent: Palette.xpLight,
+      confirmLabel: 'SET TOMORROW’S THREE',
+      onAdd: () async {
+        final quest = await showEmberSheet(
+          context,
+          const EmberSheetConfig(surface: EmberSurface.tomorrow),
+        );
+        if (quest == null) return null;
+        if (!widget.onAdd(quest)) {
+          Sfx.instance.play('boing');
+          return null;
+        }
+        return quest;
+      },
+    );
+    if (chosen == null || !mounted) return;
+
+    for (final quest in planningQuestsForDay(widget.quests, tomorrow)) {
+      // Using the dated planner gently retires the old standing-star behavior.
+      // The choice leads one morning, then disappears on its own.
+      quest.priority = false;
+      quest.priorityDay = chosen.contains(quest.title) ? tomorrowKey : null;
+    }
+    widget.onPersist();
+    dismissEmber();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        content: Text(
+          chosen.length == 1
+              ? 'Tomorrow has one clear lead.'
+              : 'Tomorrow’s ${chosen.length} leading quests are set.',
+          style: Type.body.copyWith(color: Palette.textHi),
+        ),
+      ),
+    );
   }
 
   void _undoLast() {
@@ -602,7 +692,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
                     Sfx.instance.play('tick');
-                    setState(() => q.priority = !q.priority);
+                    setState(() {
+                      if (q.priorityOn(Clock.now())) {
+                        q.priority = false;
+                        q.priorityDay = null;
+                      } else {
+                        q.priority = true;
+                        q.priorityDay = null;
+                      }
+                    });
                     widget.onPersist();
                     Navigator.of(ctx).pop();
                   },
@@ -612,13 +710,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     child: Row(
                       children: [
                         Icon(
-                          q.priority ? Icons.star : Icons.star_border,
+                          q.priorityOn(Clock.now())
+                              ? Icons.star
+                              : Icons.star_border,
                           size: 18,
                           color: Palette.xpLight,
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          q.priority
+                          q.priorityOn(Clock.now())
                               ? 'Unstar — back to side quest'
                               : 'Star as a MAIN quest',
                           style: Type.body.copyWith(
@@ -1194,6 +1294,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             _state.setEnergyWeather(option.$1);
                             if (option.$1 == EnergyWeather.low) {
                               _focusLens = _FocusLens.quickWin;
+                              _state.setFocusMode(false);
+                              final candidates = _lowFlameCandidates(
+                                Clock.now(),
+                              );
+                              _state.setLowFlameQuests(
+                                suggestedLowFlameQuests(
+                                  candidates,
+                                  Clock.now(),
+                                ).map((q) => q.title),
+                              );
+                              _showFullLowFlame = false;
                             }
                           });
                           widget.onPersist();
@@ -1436,11 +1547,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          'EMBER OF THE DAY',
-                          style: Type.label.copyWith(
-                            fontSize: 11,
-                            color: e.stat.color,
+                        Flexible(
+                          child: Text(
+                            'EMBER OF THE DAY',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Type.label.copyWith(
+                              fontSize: 11,
+                              color: e.stat.color,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
@@ -1468,6 +1583,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
+                  if (e.title == planTomorrowEmber) {
+                    unawaited(_planTomorrow(dismiss));
+                    return;
+                  }
                   final ok = widget.onAdd(
                     Quest(
                       title: e.title,
@@ -1496,7 +1615,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     borderColor: e.stat.color.withValues(alpha: 0.6),
                   ),
                   child: Text(
-                    'ADD',
+                    e.title == planTomorrowEmber ? 'PLAN' : 'ADD',
                     style: Type.label.copyWith(
                       fontSize: 11,
                       color: e.stat.color,
@@ -1818,6 +1937,70 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     );
   }
 
+  Widget _lowFlameBar({
+    required int chosen,
+    required int resting,
+    required bool showingAll,
+  }) {
+    final accent = Stat.vit.color;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(13, 11, 11, 10),
+        decoration: facetedDecoration(
+          cut: 10,
+          color: accent.withValues(alpha: 0.1),
+          borderColor: accent.withValues(alpha: 0.55),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.nightlight_outlined, size: 17, color: accent),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    showingAll ? 'LOW FLAME · FULL BOARD' : 'LOW FLAME SHELTER',
+                    style: Type.label.copyWith(fontSize: 10.5, color: accent),
+                  ),
+                ),
+                _ShelterAction(
+                  label: 'EDIT 3',
+                  color: accent,
+                  onTap: () => unawaited(_editLowFlameThree()),
+                ),
+                const SizedBox(width: 5),
+                _ShelterAction(
+                  label: showingAll ? 'RETURN TO 3' : 'SHOW ALL',
+                  color: Palette.xpLight,
+                  onTap: () {
+                    Sfx.instance.play('tick');
+                    HapticFeedback.selectionClick();
+                    setState(() => _showFullLowFlame = !showingAll);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(
+              chosen == 0
+                  ? 'Nothing needs carrying right now. A clear day is allowed.'
+                  : showingAll
+                  ? 'All quests are visible for a moment. Your chosen $chosen still define enough.'
+                  : '$chosen chosen · $resting resting — not failed, not lost.',
+              style: Type.body.copyWith(
+                fontSize: 12.5,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = Clock.now();
@@ -1827,7 +2010,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // events only once due. Due/overdue events lead the list.
     final today = Days.key(now);
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
-    final visible =
+    final fullVisible =
         [
           for (final q in widget.quests)
             // "hide just for today" skips it from the board until tomorrow
@@ -1846,7 +2029,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           // then: due events first, starred MAIN next, the rest, all-day last
           // (nothing to tap on an all-day line until tonight)
           int rank(Quest q) =>
-              q.allDay ? 3 : (q.isEvent ? 0 : (q.priority ? 1 : 2));
+              q.allDay ? 3 : (q.isEvent ? 0 : (q.priorityOn(now) ? 1 : 2));
           final ar = rank(a), br = rank(b);
           if (ar != br) return ar.compareTo(br);
           if (_state.energyWeatherDay == today) {
@@ -1860,7 +2043,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           }
           return 0;
         });
+    final lowFlame = _state.lowFlameActive;
+    final shelterTitles = _state.lowFlameQuestTitles.isNotEmpty
+        ? _state.lowFlameQuestTitles.toSet()
+        : suggestedLowFlameQuests(fullVisible, now).map((q) => q.title).toSet();
+    final sheltered = lowFlame && !_showFullLowFlame;
+    final visible = sheltered
+        ? fullVisible.where((q) => shelterTitles.contains(q.title)).toList()
+        : fullVisible;
     final remaining = visible.where((q) => !q.doneFor(now)).length;
+    final fullRemaining = fullVisible.where((q) => !q.doneFor(now)).length;
+    final shelteredQuestCount = fullVisible
+        .where((q) => shelterTitles.contains(q.title))
+        .length;
+    final shelterRemaining = fullVisible
+        .where((q) => shelterTitles.contains(q.title) && !q.doneFor(now))
+        .length;
+    final resting = (fullRemaining - shelterRemaining).clamp(0, fullRemaining);
 
     // Focus mode: the actionable pool (all-day lines have nothing to tap until
     // night, so they're never the "next" focus — shown as a footer count).
@@ -1897,7 +2096,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               ? xb.compareTo(xa)
               : xa.compareTo(xb);
         });
-    final allDayLeft = visible.where((q) => q.allDay && !q.doneFor(now)).length;
+    final allDayLeft = fullVisible
+        .where((q) => q.allDay && !q.doneFor(now))
+        .length;
     final showFocus = _state.focusMode && actionable.isNotEmpty;
 
     return Column(
@@ -2024,6 +2225,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         // their own quiet day (audit: three stacked panels pushed the quest
         // list below the fold on smaller phones).
         _hearthPanel(),
+        if (lowFlame)
+          _lowFlameBar(
+            chosen: shelteredQuestCount,
+            resting: resting,
+            showingAll: _showFullLowFlame,
+          ),
 
         // ── Quest list ──────────────────────────────────────────
         Padding(
@@ -2033,7 +2240,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             children: [
               Expanded(
                 child: Text(
-                  showFocus ? 'FOCUS MODE' : 'TODAY · $remaining LEFT',
+                  showFocus
+                      ? 'FOCUS MODE'
+                      : lowFlame
+                      ? (_showFullLowFlame
+                            ? 'LOW FLAME · $fullRemaining ON THE BOARD'
+                            : 'LOW FLAME · $remaining LEFT')
+                      : 'TODAY · $remaining LEFT',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Type.label.copyWith(
@@ -2118,13 +2331,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'A clear board',
+                              sheltered
+                                  ? 'The day is sheltered'
+                                  : 'A clear board',
                               style: Type.display.copyWith(fontSize: 20),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'add a quest with + above, or take on a goal — '
-                              'light the first ember and the day tilts your way',
+                              sheltered
+                                  ? 'Nothing needs carrying right now. A clear day is allowed.'
+                                  : 'add a quest with + above, or take on a goal — '
+                                        'light the first ember and the day tilts your way',
                               textAlign: TextAlign.center,
                               style: Type.body.copyWith(
                                 fontSize: 13.5,
@@ -2134,7 +2351,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                             ),
                             const SizedBox(height: 12),
                             GestureDetector(
-                              onTap: _quickAdd,
+                              onTap: sheltered
+                                  ? () => unawaited(_editLowFlameThree())
+                                  : _quickAdd,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 18,
@@ -2148,7 +2367,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                   ),
                                 ),
                                 child: Text(
-                                  'ADD A QUEST',
+                                  sheltered
+                                      ? 'CHOOSE UP TO THREE'
+                                      : 'ADD A QUEST',
                                   style: Type.label.copyWith(
                                     fontSize: 11,
                                     color: Palette.xpLight,
@@ -2185,14 +2406,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Day cleared ✨',
+                                sheltered
+                                    ? 'Enough for today'
+                                    : 'Day cleared ✨',
                                 style: Type.display.copyWith(fontSize: 20),
                               ),
                               const SizedBox(height: 8),
                               // the day reflected back — which domains you
                               // tended, in the app's warm voice (round-32)
                               Text(
-                                _state.todaysShape(),
+                                sheltered
+                                    ? 'You protected your energy and still tended what mattered.'
+                                    : _state.todaysShape(),
                                 textAlign: TextAlign.center,
                                 style: Type.body.copyWith(
                                   fontSize: 14,
@@ -2202,7 +2427,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _state.nightDoneDay == today
+                                sheltered
+                                    ? '$resting quest${resting == 1 ? '' : 's'} resting safely — none failed, none lost'
+                                    : _state.nightDoneDay == today
                                     ? 'rest well — tomorrow is already taking shape'
                                     : 'nothing left but the goodnight',
                                 style: Type.body.copyWith(
@@ -2212,28 +2439,30 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 ),
                               ),
                               // peak-end: you cleared it — still hot? push further
-                              const SizedBox(height: 10),
-                              GestureDetector(
-                                onTap: _openMomentum,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.bolt,
-                                      size: 13,
-                                      color: Palette.streak,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'keep the fire going',
-                                      style: Type.label.copyWith(
-                                        fontSize: 11,
+                              if (!sheltered) ...[
+                                const SizedBox(height: 10),
+                                GestureDetector(
+                                  onTap: _openMomentum,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.bolt,
+                                        size: 13,
                                         color: Palette.streak,
                                       ),
-                                    ),
-                                  ],
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'keep the fire going',
+                                        style: Type.label.copyWith(
+                                          fontSize: 11,
+                                          color: Palette.streak,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
+                              ],
                               if (_state.nightDoneDay != today) ...[
                                 const SizedBox(height: 12),
                                 GestureDetector(
@@ -2369,6 +2598,49 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
 /// A board-header action: an icon inside a 44pt tap target (iOS HIG minimum).
 /// Omit [onTap] for a disabled/indicator state (e.g. the spent moon).
+class _ShelterAction extends StatelessWidget {
+  const _ShelterAction({
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        excludeFromSemantics: true,
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 36),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: facetedDecoration(
+            cut: 6,
+            color: Colors.transparent,
+            borderColor: color.withValues(alpha: 0.45),
+          ),
+          child: Text(
+            label,
+            style: Type.label.copyWith(
+              fontSize: 8.5,
+              letterSpacing: 0.6,
+              color: color,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HeaderAction extends StatelessWidget {
   const _HeaderAction({
     required this.icon,
