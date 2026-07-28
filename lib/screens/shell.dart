@@ -698,6 +698,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                         onRemoveGoal: _removeGoal,
                         onPersist: _persist,
                         quests: quests,
+                        onOpenQuests: () => _selectTab(1),
                       ),
                       CalendarPage(
                         state: state,

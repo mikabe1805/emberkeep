@@ -13,6 +13,7 @@ import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import 'goal_detail.dart';
 import 'goal_wizard.dart';
+import 'momentum_kits.dart';
 
 /// A catalog section (round-16) — light grouping so the longer "adopt a path"
 /// list stays scannable. Order *and* membership live here in one declarative
@@ -93,6 +94,7 @@ class GoalsPage extends StatelessWidget {
     required this.onRemoveGoal,
     required this.onPersist,
     required this.quests,
+    required this.onOpenQuests,
   });
 
   final GameState state;
@@ -111,6 +113,9 @@ class GoalsPage extends StatelessWidget {
 
   /// The live board quests — threaded to the goal-detail view (quests serving it).
   final List<Quest> quests;
+
+  /// Leaves this discovery tab and opens the shared board after a kit is lit.
+  final VoidCallback onOpenQuests;
 
   void _adoptGoal(BuildContext context, GoalIdea idea) {
     final created = state.addGoal(
@@ -185,6 +190,13 @@ class GoalsPage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
           ],
+          _MomentumKitsCard(
+            state: state,
+            onAdd: onAdd,
+            onPersist: onPersist,
+            onOpenQuests: onOpenQuests,
+          ),
+          const SizedBox(height: 12),
           _GuidedWorkoutsCard(onAdd: onAdd),
           ..._catalogSections(context),
         ],
@@ -240,6 +252,123 @@ class GoalsPage extends StatelessWidget {
     }
     return widgets;
   }
+}
+
+/// One coherent doorway for situation-shaped help: no new tab, checklist, or
+/// currency. The six kits all resolve back into ordinary quests and the Keep.
+class _MomentumKitsCard extends StatelessWidget {
+  const _MomentumKitsCard({
+    required this.state,
+    required this.onAdd,
+    required this.onPersist,
+    required this.onOpenQuests,
+  });
+
+  final GameState state;
+  final bool Function(Quest) onAdd;
+  final VoidCallback onPersist;
+  final VoidCallback onOpenQuests;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label:
+        'Momentum Kits. Specialized help for the kind of day you are having.',
+    child: GestureDetector(
+      excludeFromSemantics: true,
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Sfx.instance.play('tick');
+        HapticFeedback.selectionClick();
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => MomentumKitsPage(
+              state: state,
+              onAdd: onAdd,
+              onPersist: onPersist,
+              onOpenQuests: onOpenQuests,
+            ),
+          ),
+        );
+      },
+      child: GlassPanel(
+        glow: true,
+        padding: const EdgeInsets.fromLTRB(16, 15, 13, 15),
+        child: Row(
+          children: [
+            const FacetMedallion(
+              size: 48,
+              accent: Palette.streak,
+              glow: true,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0x55FFF4D9), Color(0x33E8915A)],
+              ),
+              child: Icon(
+                Icons.auto_awesome_outlined,
+                size: 23,
+                color: Palette.xpLight,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'MOMENTUM KITS',
+                        style: Type.label.copyWith(
+                          fontSize: 10,
+                          color: Palette.streak,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: facetedDecoration(
+                          cut: 5,
+                          color: Palette.xp.withValues(alpha: 0.1),
+                          borderColor: Palette.xp.withValues(alpha: 0.3),
+                        ),
+                        child: Text(
+                          'NEW',
+                          style: Type.label.copyWith(
+                            fontSize: 8.5,
+                            color: Palette.xpLight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'Help for this kind of day',
+                    style: Type.display.copyWith(fontSize: 19),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'get unstuck · tend a low flame · focus · make · reset',
+                    style: Type.body.copyWith(
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// A light, hand-made section rule for the catalog (round-16): a small

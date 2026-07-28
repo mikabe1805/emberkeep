@@ -683,6 +683,19 @@ void main() {
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '04_goals_1290x2796');
 
+    await tester.tap(find.text('Help for this kind of day'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await _storeShot(tester, '04b_momentum_kits_1290x2796');
+    await tester.tap(find.text('Low Flame Day'));
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '04c_low_flame_1290x2796');
+    await tester.tap(find.text('LIGHT 2 SPARKS'));
+    await tester.pump(const Duration(milliseconds: 350));
+    await _storeShot(tester, '04d_low_flame_lit_1290x2796');
+    await tester.tap(find.text('OPEN QUESTS'));
+    await tester.pump(const Duration(milliseconds: 800));
+    await _storeShot(tester, '04e_kit_quests_1290x2796');
+
     _activateDock(tester, Icons.calendar_month_outlined);
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '05_planner_1290x2796');
@@ -709,10 +722,13 @@ void main() {
 
     _activateDock(tester, Icons.task_alt);
     await tester.pump(const Duration(milliseconds: 450));
-    final workoutQuest = find.textContaining('Guided workout').last;
-    await tester.ensureVisible(workoutQuest);
+    await tester.scrollUntilVisible(
+      find.textContaining('Guided workout'),
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pump(const Duration(milliseconds: 250));
-    await tester.tap(workoutQuest);
+    await tester.tap(find.textContaining('Guided workout').last);
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '08_workout_picker_1290x2796');
 
