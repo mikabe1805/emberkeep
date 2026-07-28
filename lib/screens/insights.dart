@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../audio.dart';
 import '../clock.dart';
 import '../content/creature_skins.dart';
+import '../content/weekly_chronicle.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
@@ -13,6 +14,7 @@ import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import 'journal_hub.dart';
+import 'weekly_chronicle.dart';
 
 /// The Insights tab (round-22): what your fire is telling you — trends drawn
 /// from your OWN data (history, stat totals, rhythm, streaks). Replaces the
@@ -65,6 +67,8 @@ class InsightsPage extends StatelessWidget {
           const SizedBox(height: 16),
           _journalCard(context),
           const SizedBox(height: 14),
+          _chronicleCard(context),
+          const SizedBox(height: 14),
           if (state.totalCompletions == 0)
             _empty()
           else ...[
@@ -73,6 +77,8 @@ class InsightsPage extends StatelessWidget {
             _heroTakeaway(),
             const SizedBox(height: 14),
             _snapshot(),
+            const SizedBox(height: 14),
+            _energyWeather(),
             const SizedBox(height: 14),
             _domains(),
             const SizedBox(height: 14),
@@ -83,6 +89,60 @@ class InsightsPage extends StatelessWidget {
             _sky(context),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _chronicleCard(BuildContext context) {
+    final chronicle = weeklyChronicleFor(state);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Sfx.instance.play('tick');
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => WeeklyChronicleScreen(state: state),
+          ),
+        );
+      },
+      child: GlassPanel(
+        glow: chronicle.total > 0,
+        child: Row(
+          children: [
+            FacetMedallion(
+              size: 40,
+              accent: Palette.streak,
+              child: const Icon(
+                Icons.auto_stories_outlined,
+                size: 20,
+                color: Palette.xpLight,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Weekly Chronicle',
+                    style: Type.display.copyWith(fontSize: 18),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    chronicle.total == 0
+                        ? 'a beautiful, private-first page is waiting for your story'
+                        : '${chronicle.litDays} nights lit · ${chronicle.total} quests · ready to share',
+                    style: Type.body.copyWith(
+                      fontSize: 12,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
+          ],
+        ),
       ),
     );
   }
@@ -221,6 +281,101 @@ class InsightsPage extends StatelessWidget {
                 ],
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _energyWeather() {
+    final now = Clock.now();
+    final days = [for (var i = 6; i >= 0; i--) now.subtract(Duration(days: i))];
+    final values = [for (final day in days) state.energyHistory[Days.key(day)]];
+    final low = values.where((v) => v == EnergyWeather.low).length;
+    final bright = values.where((v) => v == EnergyWeather.bright).length;
+    final recorded = values.whereType<EnergyWeather>().length;
+    Color color(EnergyWeather? weather) => switch (weather) {
+      EnergyWeather.low => Stat.vit.color,
+      EnergyWeather.steady => Palette.xpLight,
+      EnergyWeather.bright => Palette.streak,
+      null => Palette.textLo,
+    };
+    IconData icon(EnergyWeather? weather) => switch (weather) {
+      EnergyWeather.low => Icons.nightlight_outlined,
+      EnergyWeather.steady => Icons.horizontal_rule,
+      EnergyWeather.bright => Icons.wb_sunny_outlined,
+      null => Icons.circle_outlined,
+    };
+    return GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const FacetMedallion(
+                size: 34,
+                accent: Palette.info,
+                child: Icon(
+                  Icons.cloud_outlined,
+                  size: 17,
+                  color: Palette.info,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Energy Weather',
+                      style: Type.display.copyWith(fontSize: 17),
+                    ),
+                    Text(
+                      recorded == 0
+                          ? 'check in on Quests to begin seeing your pattern'
+                          : low > bright
+                          ? 'a gentler week · low-flame days still count'
+                          : bright > low
+                          ? 'more bright weather than low this week'
+                          : 'a mixed week · capacity can change without failing',
+                      style: Type.body.copyWith(
+                        fontSize: 11.5,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (var i = 0; i < days.length; i++)
+                Column(
+                  children: [
+                    Text(
+                      _weekdayShort[days[i].weekday - 1],
+                      style: Type.label.copyWith(
+                        fontSize: 9,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    FacetMedallion(
+                      size: 29,
+                      accent: color(values[i]),
+                      glow: values[i] != null,
+                      child: Icon(
+                        icon(values[i]),
+                        size: 14,
+                        color: color(values[i]),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ],
       ),
     );

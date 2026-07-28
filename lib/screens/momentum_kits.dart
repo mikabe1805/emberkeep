@@ -53,7 +53,8 @@ class MomentumKitsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final immediate = momentumKits.take(3).toList(growable: false);
-    final rhythms = momentumKits.skip(3).toList(growable: false);
+    final rhythms = momentumKits.skip(3).take(3).toList(growable: false);
+    final chapters = momentumKits.skip(6).toList(growable: false);
     return Scaffold(
       backgroundColor: Palette.parchment,
       body: WarmBackground(
@@ -93,6 +94,18 @@ class MomentumKitsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     for (final kit in rhythms) ...[
+                      _KitCard(kit: kit, onTap: () => _openKit(context, kit)),
+                      const SizedBox(height: 10),
+                    ],
+                    const SizedBox(height: 12),
+                    const _SectionTitle(
+                      title: 'LIFE CHAPTERS',
+                      subtitle:
+                          'extra structure for a season, never a permanent identity',
+                      accent: Palette.info,
+                    ),
+                    const SizedBox(height: 10),
+                    for (final kit in chapters) ...[
                       _KitCard(kit: kit, onTap: () => _openKit(context, kit)),
                       const SizedBox(height: 10),
                     ],
@@ -328,6 +341,10 @@ IconData _iconFor(MomentumKitKind kind) => switch (kind) {
   MomentumKitKind.focusExpedition => Icons.explore_outlined,
   MomentumKitKind.creativePractice => Icons.auto_awesome_outlined,
   MomentumKitKind.steadyDay => Icons.wb_twilight_outlined,
+  MomentumKitKind.examSeason => Icons.school_outlined,
+  MomentumKitKind.movingHome => Icons.move_to_inbox_outlined,
+  MomentumKitKind.jobSearch => Icons.door_front_door_outlined,
+  MomentumKitKind.startingAgain => Icons.first_page_outlined,
 };
 
 String _badgeFor(MomentumKitKind kind) => switch (kind) {
@@ -337,6 +354,20 @@ String _badgeFor(MomentumKitKind kind) => switch (kind) {
   MomentumKitKind.focusExpedition => '15–45 MIN',
   MomentumKitKind.creativePractice => '10–45 MIN',
   MomentumKitKind.steadyDay => '1–3 SPARKS',
+  MomentumKitKind.examSeason ||
+  MomentumKitKind.movingHome ||
+  MomentumKitKind.jobSearch ||
+  MomentumKitKind.startingAgain => 'CHAPTER',
+};
+
+bool _usesCapacity(MomentumKitKind kind) => switch (kind) {
+  MomentumKitKind.lowFlame ||
+  MomentumKitKind.steadyDay ||
+  MomentumKitKind.examSeason ||
+  MomentumKitKind.movingHome ||
+  MomentumKitKind.jobSearch ||
+  MomentumKitKind.startingAgain => true,
+  _ => false,
 };
 
 class _KitCard extends StatelessWidget {
@@ -509,6 +540,12 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
       buildCreativeQuest(project: _text.text, minutes: _minutes),
     ],
     MomentumKitKind.steadyDay => buildSteadyDayQuests(capacity: _capacity),
+    MomentumKitKind.examSeason => buildExamSeasonQuests(capacity: _capacity),
+    MomentumKitKind.movingHome => buildMovingHomeQuests(capacity: _capacity),
+    MomentumKitKind.jobSearch => buildJobSearchQuests(capacity: _capacity),
+    MomentumKitKind.startingAgain => buildStartingAgainQuests(
+      capacity: _capacity,
+    ),
   };
 
   void _launch() {
@@ -533,6 +570,30 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
         case MomentumKitKind.steadyDay:
           widget.state.addGoal(
             Goal(title: 'Build a steady day', stat: Stat.soc, target: 25),
+          );
+          break;
+        case MomentumKitKind.examSeason:
+          widget.state.addGoal(
+            Goal(title: 'Cross exam season', stat: Stat.intl, target: 25),
+          );
+          break;
+        case MomentumKitKind.movingHome:
+          widget.state.addGoal(
+            Goal(
+              title: 'Make the move feel like home',
+              stat: Stat.dis,
+              target: 25,
+            ),
+          );
+          break;
+        case MomentumKitKind.jobSearch:
+          widget.state.addGoal(
+            Goal(title: 'Open the next door', stat: Stat.foc, target: 25),
+          );
+          break;
+        case MomentumKitKind.startingAgain:
+          widget.state.addGoal(
+            Goal(title: 'Start again gently', stat: Stat.vit, target: 25),
           );
           break;
         default:
@@ -726,8 +787,7 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    if (kit.kind == MomentumKitKind.lowFlame ||
-                        kit.kind == MomentumKitKind.steadyDay) ...[
+                    if (_usesCapacity(kit.kind)) ...[
                       _FieldLabel(
                         kit.kind == MomentumKitKind.lowFlame
                             ? 'How many embers do you truly have?'
@@ -784,6 +844,34 @@ String _capacityCopy(MomentumKitKind kind, int value) {
       _ => 'A small, balanced board — still deliberately gentle.',
     };
   }
+  if (kind == MomentumKitKind.examSeason) {
+    return value == 1
+        ? 'Choose the target. That is enough orientation for today.'
+        : value == 2
+        ? 'Choose the target, then protect one study block.'
+        : 'Orient, study, then test what stayed with you.';
+  }
+  if (kind == MomentumKitKind.movingHome) {
+    return value == 1
+        ? 'One category can make the room visibly different.'
+        : value == 2
+        ? 'One category and one safe path through the space.'
+        : 'A small moving-day path, including tomorrow’s essentials.';
+  }
+  if (kind == MomentumKitKind.jobSearch) {
+    return value == 1
+        ? 'Improve one line. Momentum can be quieter than sending.'
+        : value == 2
+        ? 'Prepare something, then send one considered application.'
+        : 'Prepare, send, and make one human connection.';
+  }
+  if (kind == MomentumKitKind.startingAgain) {
+    return value == 1
+        ? 'One need met without having to earn it.'
+        : value == 2
+        ? 'Tend yourself, then remove one small friction.'
+        : 'A gentle bridge from today into tomorrow.';
+  }
   return switch (value) {
     1 => 'One gentle movement is enough to begin.',
     2 => 'Movement and one everyday need.',
@@ -793,7 +881,12 @@ String _capacityCopy(MomentumKitKind kind, int value) {
 
 String _launchLabel(MomentumKitKind kind, int capacity, int minutes) =>
     switch (kind) {
-      MomentumKitKind.lowFlame || MomentumKitKind.steadyDay =>
+      MomentumKitKind.lowFlame ||
+      MomentumKitKind.steadyDay ||
+      MomentumKitKind.examSeason ||
+      MomentumKitKind.movingHome ||
+      MomentumKitKind.jobSearch ||
+      MomentumKitKind.startingAgain =>
         capacity == 1 ? 'LIGHT 1 SPARK' : 'LIGHT $capacity SPARKS',
       MomentumKitKind.homeReset =>
         minutes <= 5 ? 'PIN THE RESET' : 'PIN THE RESET PATH',

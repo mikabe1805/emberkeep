@@ -15,6 +15,7 @@ import '../journal_media.dart' as media;
 import '../models.dart';
 import '../notifications.dart';
 import '../storage.dart';
+import '../social.dart';
 import '../tokens.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
@@ -115,6 +116,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           // killed when the OS suspends the PWA, silently dropping the last
           // completions from the cloud mirror.
           CloudSync.instance.flush();
+          CloudSync.instance.flushRoom(roomDisplay(s), code: s.roomCode);
         }),
       );
     }
@@ -283,6 +285,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _saveTail = _saveTail.then((_) => Storage.save(s, q));
       if (push) {
         _saveTail = _saveTail.then((_) => CloudSync.instance.push());
+        CloudSync.instance.queueRoomUpdate(roomDisplay(s), code: s.roomCode);
       }
     }
     return _saveTail;

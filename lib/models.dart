@@ -81,6 +81,17 @@ enum Verification {
   timer,
 }
 
+/// A deliberately tiny capacity check-in. This is not a mood score or a
+/// medical measure; it only helps Emberkeep choose an honest amount of help.
+enum EnergyWeather {
+  low('LOW FLAME'),
+  steady('STEADY'),
+  bright('BRIGHT');
+
+  const EnergyWeather(this.label);
+  final String label;
+}
+
 /// What kind of ambition a goal is (round-7):
 /// [become] — an ongoing practice ("maintain healthy skin"); milestones
 /// escalate forever. [achieve] — a finish line ("finish the book"); the

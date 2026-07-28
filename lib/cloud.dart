@@ -41,6 +41,7 @@ class CloudSync extends ChangeNotifier {
 
   String? _uid;
   Timer? _debounce;
+  Timer? _roomDebounce;
 
   /// Cached signed-in email (null = anonymous). Cached rather than read from
   /// FirebaseAuth live, so the UI can query it safely before Firebase init.
@@ -327,7 +328,10 @@ class CloudSync extends ChangeNotifier {
   }
 
   /// Cancel any pending push (used around a reset that will re-push fresh).
-  void cancelPending() => _debounce?.cancel();
+  void cancelPending() {
+    _debounce?.cancel();
+    _roomDebounce?.cancel();
+  }
 
   Future<void> _pushNow() async {
     if (!ready) return;
@@ -373,6 +377,25 @@ class CloudSync extends ChangeNotifier {
 
   CollectionReference<Map<String, dynamic>> get _rooms =>
       FirebaseFirestore.instance.collection('rooms');
+
+  /// Keep an already-published appearance card fresh without writing on every
+  /// tap. Saves remain the source of truth; this is a separate, privacy-safe
+  /// five-second debounce for Circle presence and room progress only.
+  void queueRoomUpdate(Map<String, dynamic> display, {required String? code}) {
+    if (!ready || code == null || code.isEmpty) return;
+    _roomDebounce?.cancel();
+    final snapshot = Map<String, dynamic>.from(display);
+    _roomDebounce = Timer(
+      const Duration(seconds: 5),
+      () => shareRoom(snapshot, code: code),
+    );
+  }
+
+  void flushRoom(Map<String, dynamic> display, {required String? code}) {
+    if (!ready || code == null || code.isEmpty) return;
+    _roomDebounce?.cancel();
+    unawaited(shareRoom(Map<String, dynamic>.from(display), code: code));
+  }
 
   /// Publish (or update) your space's appearance to a public room doc. Pass the
   /// existing [code] to refresh it in place; otherwise a fresh short code is
@@ -441,6 +464,66 @@ class CloudSync extends ChangeNotifier {
     }
   }
 
+  /// Send one fixed, text-free encouragement. The security rules key the
+  /// pending spark by sender uid, so one person cannot stack spam; the keeper
+  /// must collect it before that sender can kindle them again.
+  Future<bool> sendSpark(String code, {String kind = 'kindle'}) async {
+    if (!ready || _uid == null) return false;
+    const allowed = {'kindle', 'steady', 'cheer'};
+    final safeKind = allowed.contains(kind) ? kind : 'kindle';
+    try {
+      await _rooms
+          .doc(code.trim().toUpperCase())
+          .collection('sparks')
+          .doc(_uid)
+          .set({
+            'sender': _uid,
+            'kind': safeKind,
+            'sentAt': FieldValue.serverTimestamp(),
+          });
+      return true;
+    } catch (e) {
+      debugPrint('sendSpark failed: $e');
+      return false;
+    }
+  }
+
+  /// Only the owner of [code] may read these under firestore.rules.
+  Future<List<Map<String, dynamic>>> fetchSparks(String code) async {
+    if (!ready || _uid == null || code.isEmpty) return const [];
+    try {
+      final snap = await _rooms
+          .doc(code.trim().toUpperCase())
+          .collection('sparks')
+          .limit(20)
+          .get()
+          .timeout(const Duration(seconds: 8));
+      return [
+        for (final doc in snap.docs) {...doc.data(), 'id': doc.id},
+      ];
+    } catch (e) {
+      debugPrint('fetchSparks failed: $e');
+      return const [];
+    }
+  }
+
+  Future<bool> collectSparks(String code, Iterable<String> ids) async {
+    if (!ready || _uid == null || code.isEmpty) return false;
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final id in ids.take(20)) {
+        batch.delete(
+          _rooms.doc(code.trim().toUpperCase()).collection('sparks').doc(id),
+        );
+      }
+      await batch.commit();
+      return true;
+    } catch (e) {
+      debugPrint('collectSparks failed: $e');
+      return false;
+    }
+  }
+
   /// Permanently erase the current cloud save and any published room.
   ///
   /// Anonymous Firebase users are real backend identities even though the
@@ -455,6 +538,7 @@ class CloudSync extends ChangeNotifier {
   Future<bool> resetProfile({String? roomCode}) async {
     if (!ready) return false;
     _debounce?.cancel();
+    _roomDebounce?.cancel();
     var fullyErased = true;
 
     if (roomCode != null && roomCode.isNotEmpty) {

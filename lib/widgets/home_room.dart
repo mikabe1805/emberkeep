@@ -282,6 +282,7 @@ class HomeRoom extends StatefulWidget {
     this.heirloomFlame = false,
     this.level = 1,
     this.lively = true,
+    this.memoryArtifacts = 0,
   });
 
   /// Furniture piece-ids the player owns (GameState.ownedFurniture) — what
@@ -326,6 +327,10 @@ class HomeRoom extends StatefulWidget {
   /// the OS-level disable-animations switch is honoured regardless. Off, the
   /// room paints one calm still frame — same beauty, parked.
   final bool lively;
+
+  /// Number of private Cabinet artifacts. Only the count reaches the painter;
+  /// journal text, goal names, and note identities never become room data.
+  final int memoryArtifacts;
 
   @override
   State<HomeRoom> createState() => _HomeRoomState();
@@ -393,6 +398,7 @@ class _HomeRoomState extends State<HomeRoom>
                         widget.emberGlow,
                         widget.heirloomFlame,
                         widget.level,
+                        widget.memoryArtifacts,
                         _RoomGrain.wall,
                         _RoomGrain.floor,
                         t,
@@ -429,6 +435,7 @@ class _RoomPainter extends CustomPainter {
     this.emberGlow,
     this.heirloomFlame,
     this.level,
+    this.memoryArtifacts,
     this.wallGrain,
     this.floorGrain,
     this.t,
@@ -447,6 +454,7 @@ class _RoomPainter extends CustomPainter {
   final Color? emberGlow;
   final bool heirloomFlame;
   final int level;
+  final int memoryArtifacts;
 
   /// 0..1 through the slow ambient loop (quantized upstream). Every motion in
   /// here is a pure function of [t] — deterministic, seamless at the wrap, and
@@ -680,6 +688,7 @@ class _RoomPainter extends CustomPainter {
     _window(canvas, w, h);
     // the keep's HEARTH — always here, the heart of the room (round-62 pivot)
     _hearth(canvas, w, h, floorY);
+    if (memoryArtifacts > 0) _memoryRelics(canvas, w, h, floorY);
     // back-to-front so nearer pieces overlap farther ones
     if (has('garland')) _garland(canvas, w, h);
     if (has('shelf')) _shelf(canvas, w, h);
@@ -721,6 +730,96 @@ class _RoomPainter extends CustomPainter {
           stops: const [0.45, 0.72, 1.0],
         ).createShader(all),
     );
+  }
+
+  /// Small objects that accumulate on the permanent mantel as the keeper saves
+  /// memories. They are symbolic only: a sealed letter, a pressed-flower frame,
+  /// and an achievement prism. Their meaning lives in the private Cabinet.
+  void _memoryRelics(Canvas canvas, double w, double h, double floorY) {
+    final u = h - floorY;
+    final y = _mantelY(h, floorY);
+    final count = memoryArtifacts.clamp(1, 3);
+    if (count >= 1) {
+      final envelope = Path()
+        ..moveTo(w * 0.405, y - u * 0.075)
+        ..lineTo(w * 0.455, y - u * 0.075)
+        ..lineTo(w * 0.450, y - u * 0.005)
+        ..lineTo(w * 0.410, y - u * 0.005)
+        ..close();
+      canvas.drawPath(envelope, Paint()..color = const Color(0xFFD9C49C));
+      canvas.drawPath(
+        Path()
+          ..moveTo(w * 0.405, y - u * 0.075)
+          ..lineTo(w * 0.430, y - u * 0.038)
+          ..lineTo(w * 0.455, y - u * 0.075),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = const Color(0xFF7A5A44),
+      );
+    }
+    if (count >= 2) {
+      final frame = Rect.fromLTWH(
+        w * 0.365,
+        y - u * 0.135,
+        w * 0.034,
+        u * 0.13,
+      );
+      canvas.drawRect(frame, Paint()..color = const Color(0xFF8A6A4F));
+      canvas.drawRect(
+        frame.deflate(2),
+        Paint()..color = const Color(0xFF322822),
+      );
+      canvas.drawCircle(
+        Offset(frame.center.dx, frame.center.dy + 1),
+        frame.width * 0.15,
+        Paint()..color = Palette.success.withValues(alpha: 0.78),
+      );
+      canvas.drawLine(
+        Offset(frame.center.dx, frame.center.dy + 1),
+        Offset(frame.center.dx - 2, frame.bottom - 3),
+        Paint()
+          ..strokeWidth = 1
+          ..color = Palette.success,
+      );
+    }
+    if (count >= 3) {
+      final cx = w * 0.475;
+      final prism = Path()
+        ..moveTo(cx, y - u * 0.14)
+        ..lineTo(cx + w * 0.018, y - u * 0.07)
+        ..lineTo(cx + w * 0.012, y - u * 0.005)
+        ..lineTo(cx - w * 0.012, y - u * 0.005)
+        ..lineTo(cx - w * 0.018, y - u * 0.07)
+        ..close();
+      canvas.drawPath(
+        prism,
+        Paint()
+          ..shader =
+              LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Palette.specular.withValues(alpha: 0.9),
+                  Palette.unlock.withValues(alpha: 0.7),
+                  const Color(0xFF5B3D65),
+                ],
+              ).createShader(
+                Rect.fromCenter(
+                  center: Offset(cx, y - u * 0.07),
+                  width: w * 0.05,
+                  height: u * 0.15,
+                ),
+              ),
+      );
+      canvas.drawCircle(
+        Offset(cx, y - u * 0.075),
+        w * 0.024,
+        Paint()
+          ..color = Palette.unlock.withValues(alpha: 0.22)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+      );
+    }
   }
 
   /// The hearth's light, composited over the finished room: an additive warm
@@ -2487,6 +2586,7 @@ class _RoomPainter extends CustomPainter {
       old.emberGlow != emberGlow ||
       old.heirloomFlame != heirloomFlame ||
       old.level != level ||
+      old.memoryArtifacts != memoryArtifacts ||
       old.wallGrain != wallGrain ||
       old.floorGrain != floorGrain ||
       // content compares, not identity: the live owned-set mutates in place

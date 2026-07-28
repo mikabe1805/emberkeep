@@ -269,6 +269,8 @@ void main() {
         (tester.widget(switchFor(label)) as GlassSwitch).value;
 
     final sound0 = valueOf('Sound effects');
+    await tester.ensureVisible(switchFor('Sound effects'));
+    await tester.pump(const Duration(milliseconds: 120));
     await tester.tap(switchFor('Sound effects'));
     await settle(tester);
     expect(
@@ -278,6 +280,8 @@ void main() {
     );
 
     final motion0 = valueOf('Reduce motion');
+    await tester.ensureVisible(switchFor('Reduce motion'));
+    await tester.pump(const Duration(milliseconds: 120));
     await tester.tap(switchFor('Reduce motion'));
     await settle(tester);
     expect(

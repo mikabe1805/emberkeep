@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'audio.dart';
+import 'clock.dart';
 import 'cloud.dart';
 import 'engine.dart';
+import 'models.dart';
 import 'screens/visit_room.dart';
 import 'tokens.dart';
 
@@ -11,6 +13,24 @@ import 'tokens.dart';
 /// includes quests, notes, streak details, free-form text, or account data —
 /// just the preset appearance/progression fields needed to redraw the room.
 Map<String, dynamic> roomDisplay(GameState s) {
+  final milestoneGoals = s.goals
+      .where((g) => g.complete || g.progress >= 25)
+      .length;
+  final hearthMemories = [
+    5,
+    10,
+    16,
+    24,
+    34,
+  ].where((level) => s.level >= level).length;
+  final memories =
+      s.memoryPins.length +
+      s.unlockedAchievements.length +
+      milestoneGoals +
+      hearthMemories;
+  final weather = s.energyWeatherDay == Days.key(Clock.now())
+      ? s.energyWeather.name
+      : 'unknown';
   return {
     // Fixed copy keeps code-gated visits personal without turning shared rooms
     // into an unmoderated user-generated-content surface.
@@ -23,7 +43,12 @@ Map<String, dynamic> roomDisplay(GameState s) {
     'skin': s.creatureSkin,
     'window': s.windowScene,
     'awake': s.streakDays > 0,
-    'v': 1,
+    'memories': memories.clamp(0, 9999),
+    'weather': weather,
+    'todayLit': (s.history[Days.key(Clock.now())] ?? 0) > 0,
+    'focusKind': s.quietCompanyActive ? s.quietCompanyKind : 'none',
+    'focusUntil': s.quietCompanyActive ? s.quietCompanyUntil : 0,
+    'v': 2,
   };
 }
 

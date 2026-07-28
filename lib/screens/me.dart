@@ -15,6 +15,7 @@ import '../content/achievements.dart';
 import '../content/cosmetics.dart';
 import '../content/creature_skins.dart';
 import '../content/furniture.dart';
+import '../content/memories.dart';
 import '../content/room_styles.dart';
 import '../content/stat_ranks.dart';
 import '../content/themes.dart';
@@ -35,6 +36,7 @@ import '../widgets/honey_button.dart';
 import '../widgets/radar.dart';
 import '../social.dart';
 import 'domain_detail.dart';
+import 'hearth_circle.dart';
 import 'shop.dart';
 
 /// The hearth-fire milestones — the keep's fire deepens as you level (the same
@@ -190,6 +192,7 @@ class MePage extends StatelessWidget {
                   emberGlow: flameHueFor(state),
                   heirloomFlame: state.creatureSkin == 'gilded',
                   level: state.level,
+                  memoryArtifacts: memoryArtifactCount(state, quests),
                 ),
                 const SizedBox(height: 10),
                 // currency + a way into the shop — furniture is now CHOSEN,
@@ -259,6 +262,22 @@ class MePage extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 11),
+                _HearthCircleLink(
+                  count: state.hearthCircleCodes.length,
+                  active: state.quietCompanyActive,
+                  onTap: () {
+                    Sfx.instance.play('tick');
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => HearthCircleScreen(
+                          state: state,
+                          onPersist: onPersist,
+                        ),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 14),
                 Text(
@@ -345,7 +364,7 @@ class MePage extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _ShareButton(state: state),
+                _ShareButton(state: state, quests: quests),
               ],
             ),
           ),
@@ -1640,6 +1659,60 @@ class _SpaceLink extends StatelessWidget {
   }
 }
 
+class _HearthCircleLink extends StatelessWidget {
+  const _HearthCircleLink({
+    required this.count,
+    required this.active,
+    required this.onTap,
+  });
+  final int count;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: onTap,
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+      decoration: facetedDecoration(
+        cut: 8,
+        color: active
+            ? Palette.unlock.withValues(alpha: 0.12)
+            : Palette.glassFill,
+        borderColor: active
+            ? Palette.unlock.withValues(alpha: 0.48)
+            : Palette.glassEdge,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            active ? Icons.hourglass_top : Icons.people_outline,
+            size: 16,
+            color: active ? Palette.unlock : Palette.xpLight,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              active
+                  ? 'QUIET COMPANY IS BURNING'
+                  : count == 0
+                  ? 'BEGIN A HEARTH CIRCLE'
+                  : 'HEARTH CIRCLE · $count ${count == 1 ? 'KEEP' : 'KEEPS'}',
+              style: Type.label.copyWith(
+                fontSize: 10,
+                color: active ? Palette.unlock : Palette.xpLight,
+              ),
+            ),
+          ),
+          const Icon(Icons.chevron_right, size: 17, color: Palette.textLo),
+        ],
+      ),
+    ),
+  );
+}
+
 class _StatRow extends StatelessWidget {
   const _StatRow({
     required this.stat,
@@ -1768,8 +1841,9 @@ class _StatRow extends StatelessWidget {
 }
 
 class _ShareButton extends StatelessWidget {
-  const _ShareButton({required this.state});
+  const _ShareButton({required this.state, required this.quests});
   final GameState state;
+  final List<Quest> quests;
 
   String _buildSummary() {
     final stats = Stat.values
@@ -1790,8 +1864,11 @@ class _ShareButton extends StatelessWidget {
         showDialog(
           context: context,
           barrierColor: const Color(0xCC140C06),
-          builder: (_) =>
-              _ShareCardDialog(state: state, summary: _buildSummary()),
+          builder: (_) => _ShareCardDialog(
+            state: state,
+            summary: _buildSummary(),
+            memoryArtifacts: memoryArtifactCount(state, quests),
+          ),
         );
       },
       child: Container(
@@ -1834,9 +1911,14 @@ class _ShareButton extends StatelessWidget {
 /// IMAGE captures the card to a PNG and hands it to the native share sheet
 /// (or downloads it), COPY AS TEXT copies the summary line.
 class _ShareCardDialog extends StatefulWidget {
-  const _ShareCardDialog({required this.state, required this.summary});
+  const _ShareCardDialog({
+    required this.state,
+    required this.summary,
+    required this.memoryArtifacts,
+  });
   final GameState state;
   final String summary;
+  final int memoryArtifacts;
 
   @override
   State<_ShareCardDialog> createState() => _ShareCardDialogState();
@@ -1928,6 +2010,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                         petAwake: true,
                         emberGlow: flameHueFor(state),
                         heirloomFlame: state.creatureSkin == 'gilded',
+                        memoryArtifacts: widget.memoryArtifacts,
                       ),
                     ),
                   ),

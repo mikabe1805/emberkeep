@@ -80,6 +80,82 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Trusted keeps remembered locally. Codes expose only the same fixed,
+  /// appearance-only public room payload as a one-off visit; no names, tasks,
+  /// notes, account details, or free-text profile fields are introduced.
+  final List<String> hearthCircleCodes = [];
+
+  bool addCircleCode(String raw) {
+    final code = raw.trim().toUpperCase();
+    if (!RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) ||
+        code == roomCode ||
+        hearthCircleCodes.contains(code) ||
+        hearthCircleCodes.length >= 5) {
+      return false;
+    }
+    hearthCircleCodes.add(code);
+    notifyListeners();
+    return true;
+  }
+
+  void removeCircleCode(String code) {
+    if (hearthCircleCodes.remove(code)) notifyListeners();
+  }
+
+  /// A private daily capacity lens. It never changes rewards, streaks, or
+  /// difficulty; it only changes suggestions and the order Emberkeep offers
+  /// help. Stamped by day so yesterday's weather is never assumed today.
+  EnergyWeather energyWeather = EnergyWeather.steady;
+  String? energyWeatherDay;
+  final Map<String, EnergyWeather> energyHistory = {};
+
+  bool get energyWeatherDue => energyWeatherDay != Days.key(Clock.now());
+
+  void setEnergyWeather(EnergyWeather weather) {
+    energyWeather = weather;
+    energyWeatherDay = Days.key(Clock.now());
+    energyHistory[energyWeatherDay!] = weather;
+    if (energyHistory.length > 180) {
+      final keys = energyHistory.keys.toList()..sort();
+      while (energyHistory.length > 180 && keys.isNotEmpty) {
+        energyHistory.remove(keys.removeAt(0));
+      }
+    }
+    notifyListeners();
+  }
+
+  /// Journal-note ids the keeper deliberately placed in their Memory Cabinet.
+  /// The note text remains private and local/cloud-save-only; public rooms
+  /// receive only a total artifact count.
+  final Set<String> memoryPins = {};
+
+  void setMemoryPinned(String noteId, bool pinned) {
+    final changed = pinned ? memoryPins.add(noteId) : memoryPins.remove(noteId);
+    if (changed) notifyListeners();
+  }
+
+  /// A quiet-company session publishes only a fixed activity kind and expiry
+  /// in the existing appearance-only room card. The actual task stays private.
+  String quietCompanyKind = 'none';
+  int quietCompanyUntil = 0;
+
+  bool get quietCompanyActive =>
+      quietCompanyKind != 'none' &&
+      quietCompanyUntil > Clock.now().millisecondsSinceEpoch;
+
+  void startQuietCompany(String kind, Duration duration) {
+    const allowed = {'study', 'making', 'reset', 'quiet'};
+    quietCompanyKind = allowed.contains(kind) ? kind : 'quiet';
+    quietCompanyUntil = Clock.now().add(duration).millisecondsSinceEpoch;
+    notifyListeners();
+  }
+
+  void stopQuietCompany() {
+    quietCompanyKind = 'none';
+    quietCompanyUntil = 0;
+    notifyListeners();
+  }
+
   /// Local-reminder prefs (round-22). Native-only — the scheduling no-ops on
   /// web (see notifications.dart). Default off; default nudge at 9:00am.
   bool notifyEnabled = false;
@@ -1082,6 +1158,15 @@ class GameState extends ChangeNotifier {
     'ownedScenes': ownedScenes.toList(),
     'stageScene': stageScene,
     'roomCode': roomCode,
+    'hearthCircleCodes': hearthCircleCodes,
+    'energyWeather': energyWeather.name,
+    'energyWeatherDay': energyWeatherDay,
+    'energyHistory': {
+      for (final entry in energyHistory.entries) entry.key: entry.value.name,
+    },
+    'memoryPins': memoryPins.toList(),
+    'quietCompanyKind': quietCompanyKind,
+    'quietCompanyUntil': quietCompanyUntil,
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
     // per-domain notes, by Stat order (parallel to 'stats'); empty lists
     // for domains with nothing kept, so a restore maps cleanly by index.
@@ -1164,6 +1249,35 @@ class GameState extends ChangeNotifier {
     s.ownedScenes.addAll(((j['ownedScenes'] as List?) ?? const []).cast());
     s.stageScene = j['stageScene'] as String? ?? 'hearthside';
     s.roomCode = j['roomCode'] as String?;
+    for (final raw in (j['hearthCircleCodes'] as List?) ?? const []) {
+      final code = raw is String ? raw.trim().toUpperCase() : '';
+      if (RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) &&
+          !s.hearthCircleCodes.contains(code) &&
+          s.hearthCircleCodes.length < 5) {
+        s.hearthCircleCodes.add(code);
+      }
+    }
+    s.energyWeather = EnergyWeather.values.firstWhere(
+      (e) => e.name == j['energyWeather'],
+      orElse: () => EnergyWeather.steady,
+    );
+    s.energyWeatherDay = Days.validKey(j['energyWeatherDay']);
+    for (final entry
+        in (((j['energyHistory'] as Map?) ?? const {}).cast<String, dynamic>())
+            .entries) {
+      if (Days.tryParse(entry.key) == null) continue;
+      final weather = EnergyWeather.values.where((e) => e.name == entry.value);
+      if (weather.isNotEmpty) s.energyHistory[entry.key] = weather.first;
+    }
+    s.memoryPins.addAll(
+      ((j['memoryPins'] as List?) ?? const []).cast<String>(),
+    );
+    final quietKind = j['quietCompanyKind'] as String? ?? 'none';
+    s.quietCompanyKind =
+        const {'none', 'study', 'making', 'reset', 'quiet'}.contains(quietKind)
+        ? quietKind
+        : 'none';
+    s.quietCompanyUntil = j['quietCompanyUntil'] as int? ?? 0;
     final st = (j['stats'] as List?)?.cast<int>() ?? const [];
     for (var i = 0; i < Stat.values.length && i < st.length; i++) {
       s.stats[Stat.values[i]] = st[i];

@@ -45,6 +45,16 @@ class VisitRoomScreen extends StatelessWidget {
     final furniture = rawFurniture is List
         ? rawFurniture.whereType<String>().take(64).toSet()
         : <String>{};
+    final rawMemories = room['memories'];
+    final memories = rawMemories is num
+        ? rawMemories.toInt().clamp(0, 9999)
+        : 0;
+    final focusUntil = room['focusUntil'] is num
+        ? (room['focusUntil'] as num).toInt()
+        : 0;
+    final focusActive = focusUntil > DateTime.now().millisecondsSinceEpoch;
+    final focusKind = safeString('focusKind', 'none');
+    final weather = safeString('weather', 'unknown');
 
     return Scaffold(
       backgroundColor: Palette.parchment,
@@ -78,6 +88,7 @@ class VisitRoomScreen extends StatelessWidget {
                         // their chosen hearth-flame colour
                         emberGlow: flameHueById(safeString('skin')),
                         heirloomFlame: safeString('skin') == 'gilded',
+                        memoryArtifacts: memories,
                       ),
                       const SizedBox(height: 14),
                       if (title.isNotEmpty)
@@ -98,6 +109,52 @@ class VisitRoomScreen extends StatelessWidget {
                           color: Palette.textLo,
                         ),
                       ),
+                      if (memories > 0)
+                        Text(
+                          '$memories memories held',
+                          style: Type.body.copyWith(
+                            fontSize: 11.5,
+                            color: Palette.textLo,
+                          ),
+                        ),
+                      if (room['todayLit'] == true ||
+                          weather != 'unknown' ||
+                          focusActive) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 7,
+                          runSpacing: 7,
+                          children: [
+                            if (room['todayLit'] == true)
+                              _StatusChip(
+                                icon: Icons.auto_awesome,
+                                label: 'LIT TODAY',
+                                color: Palette.streak,
+                              ),
+                            if (weather != 'unknown')
+                              _StatusChip(
+                                icon: weather == 'low'
+                                    ? Icons.nightlight_outlined
+                                    : weather == 'bright'
+                                    ? Icons.wb_sunny_outlined
+                                    : Icons.horizontal_rule,
+                                label: '${weather.toUpperCase()} WEATHER',
+                                color: weather == 'low'
+                                    ? Stat.vit.color
+                                    : weather == 'bright'
+                                    ? Palette.streak
+                                    : Palette.xpLight,
+                              ),
+                            if (focusActive)
+                              _StatusChip(
+                                icon: Icons.hourglass_top,
+                                label: '${focusKind.toUpperCase()} COMPANY',
+                                color: Palette.unlock,
+                              ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -119,4 +176,32 @@ class VisitRoomScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      border: Border.all(color: color.withValues(alpha: 0.34)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: color),
+        const SizedBox(width: 5),
+        Text(label, style: Type.label.copyWith(fontSize: 8.5, color: color)),
+      ],
+    ),
+  );
 }

@@ -18,6 +18,9 @@ import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/main.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/journal_hub.dart';
+import 'package:emberkeep/screens/hearth_circle.dart';
+import 'package:emberkeep/screens/memory_cabinet.dart';
+import 'package:emberkeep/screens/weekly_chronicle.dart';
 import 'package:emberkeep/storage.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/constellation.dart';
@@ -565,6 +568,29 @@ void main() {
       ..floorStyle = 'floor_maple'
       ..windowScene = 'moon'
       ..creatureSkin = 'sunstone';
+    final keptNote = Note(
+      at: DateTime(2026, 7, 16, 20, 10),
+      text: 'The first evening this room began to feel like mine.',
+      context: 'Homey Homesteader',
+    );
+    state.journal = [
+      keptNote,
+      Note(
+        at: DateTime(2026, 7, 18, 9, 20),
+        text: 'I showed up even though the day felt smaller than planned.',
+        context: 'Homey Homesteader',
+      ),
+    ];
+    state.memoryPins.add(keptNote.id);
+    state.energyWeather = EnergyWeather.steady;
+    state.energyWeatherDay = '2026-07-26';
+    state.energyHistory.addAll({
+      '2026-07-20': EnergyWeather.low,
+      '2026-07-21': EnergyWeather.steady,
+      '2026-07-23': EnergyWeather.bright,
+      '2026-07-25': EnergyWeather.steady,
+      '2026-07-26': EnergyWeather.steady,
+    });
     state.stats[Stat.str] = 88;
     state.stats[Stat.vit] = 72;
     state.stats[Stat.intl] = 116;
@@ -741,6 +767,103 @@ void main() {
     await _storeShot(tester, '10_workout_active_1290x2796');
 
     // Dispose AppShell so its midnight rollover timer cannot escape the test.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('store screenshot story: identity features', (tester) async {
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    Clock.freeze(DateTime(2026, 7, 28, 14));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+
+    final note = Note(
+      at: DateTime(2026, 7, 23, 20),
+      text: 'The first evening this room began to feel like mine.',
+      context: 'Homey Homesteader',
+    );
+    final state = GameState()
+      ..onboarded = true
+      ..playerName = 'Alex'
+      ..level = 18
+      ..totalXp = 4280
+      ..streakDays = 12
+      ..bestStreak = 19
+      ..reduceMotion = true
+      ..soundEnabled = false
+      ..wallStyle = 'wall_plum'
+      ..floorStyle = 'floor_maple'
+      ..windowScene = 'moon'
+      ..creatureSkin = 'sunstone'
+      ..journal = [note]
+      ..memoryPins.add(note.id)
+      ..unlockedAchievements.addAll({
+        'first-step',
+        'well-rounded',
+        'week-of-fire',
+        'goal-getter',
+        'ascendant',
+      });
+    state.ownedFurniture.addAll({
+      'rug',
+      'plant',
+      'shelf',
+      'picture',
+      'chair',
+      'candles',
+    });
+    state.stats[Stat.str] = 88;
+    state.stats[Stat.vit] = 72;
+    state.stats[Stat.intl] = 116;
+    state.stats[Stat.foc] = 94;
+    state.stats[Stat.soc] = 61;
+    state.stats[Stat.dis] = 103;
+    state.goals.add(
+      Goal(
+        title: 'Make the apartment feel calm',
+        stat: Stat.dis,
+        target: 25,
+        progress: 25,
+      ),
+    );
+    state.history.addAll({
+      '2026-07-20': 2,
+      '2026-07-21': 1,
+      '2026-07-23': 3,
+      '2026-07-25': 2,
+      '2026-07-26': 1,
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: WeeklyChronicleScreen(state: state),
+      ),
+    );
+    await _storeShot(tester, '06b_weekly_chronicle_1290x2796');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: MemoryCabinetScreen(state: state, quests: const []),
+      ),
+    );
+    await _storeShot(tester, '07a_memory_cabinet_1290x2796');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: HearthCircleScreen(state: state, onPersist: () {}),
+      ),
+    );
+    await _storeShot(tester, '02b_hearth_circle_1290x2796');
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });

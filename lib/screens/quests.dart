@@ -1127,18 +1127,125 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// page body so it waits politely behind the completion celebration and is
   /// trivially ignorable (never-punish: a suggestion, not a correction).
   /// The single mantel: exactly one hearth banner shows, by priority —
-  /// first-ember guide > morning briefing > re-anchor offer > week recap >
-  /// daily ember > spark. Each panel keeps its own seen/dismiss stamps, so a
+  /// first-ember guide > morning briefing > energy weather > re-anchor offer >
+  /// week recap > daily ember > spark. Each panel keeps its own seen/dismiss stamps, so a
   /// lower-priority banner simply waits for a quieter day instead of stacking.
   Widget _hearthPanel() {
     if (_state.totalCompletions == 0 && _state.onboarded) {
       return _firstEmberPanel();
     }
     if (_state.morningAvailable) return _morningPanel();
+    if (_state.energyWeatherDue) return _energyWeatherPanel();
     if (_reAnchorQuest != null && _reAnchorDay != null) return _reAnchorPanel();
     if (_state.weekRecapDue) return _weekRecapPanel();
     if (_state.emberDue) return _emberPanel();
     return _sparkPanel();
+  }
+
+  Widget _energyWeatherPanel() {
+    final options = <(EnergyWeather, IconData, Color)>[
+      (EnergyWeather.low, Icons.nightlight_outlined, Stat.vit.color),
+      (EnergyWeather.steady, Icons.horizontal_rule, Palette.xpLight),
+      (EnergyWeather.bright, Icons.wb_sunny_outlined, Palette.streak),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: GlassPanel(
+        glow: true,
+        padding: const EdgeInsets.fromLTRB(14, 13, 14, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.cloud_outlined,
+                  size: 17,
+                  color: Palette.xpLight,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'ENERGY WEATHER',
+                  style: Type.label.copyWith(
+                    fontSize: 10.5,
+                    color: Palette.xpLight,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'What is the weather inside today?',
+              style: Type.body.copyWith(fontSize: 13.5, color: Palette.textHi),
+            ),
+            const SizedBox(height: 9),
+            Row(
+              children: [
+                for (final option in options) ...[
+                  Expanded(
+                    child: Semantics(
+                      button: true,
+                      label: option.$1.label,
+                      child: GestureDetector(
+                        excludeFromSemantics: true,
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          setState(() {
+                            _state.setEnergyWeather(option.$1);
+                            if (option.$1 == EnergyWeather.low) {
+                              _focusLens = _FocusLens.quickWin;
+                            }
+                          });
+                          widget.onPersist();
+                          Sfx.instance.play('streak');
+                          HapticFeedback.selectionClick();
+                        },
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 44),
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          decoration: facetedDecoration(
+                            cut: 8,
+                            color: option.$3.withValues(alpha: 0.1),
+                            borderColor: option.$3.withValues(alpha: 0.36),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(option.$2, size: 16, color: option.$3),
+                              const SizedBox(height: 3),
+                              Text(
+                                option.$1.label,
+                                maxLines: 1,
+                                style: Type.label.copyWith(
+                                  fontSize: 8.5,
+                                  letterSpacing: 0.7,
+                                  color: option.$3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (option.$1 != EnergyWeather.bright)
+                    const SizedBox(width: 7),
+                ],
+              ],
+            ),
+            const SizedBox(height: 7),
+            Text(
+              'This changes suggestions, never rewards or streaks.',
+              style: Type.body.copyWith(
+                fontSize: 10.5,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   /// First-session nudge: highlight that the loop starts with one tap.
@@ -1740,7 +1847,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           // (nothing to tap on an all-day line until tonight)
           int rank(Quest q) =>
               q.allDay ? 3 : (q.isEvent ? 0 : (q.priority ? 1 : 2));
-          return rank(a).compareTo(rank(b));
+          final ar = rank(a), br = rank(b);
+          if (ar != br) return ar.compareTo(br);
+          if (_state.energyWeatherDay == today) {
+            if (_state.energyWeather == EnergyWeather.low) {
+              if (a.dread != b.dread) return a.dread ? 1 : -1;
+              return a.difficulty.compareTo(b.difficulty);
+            }
+            if (_state.energyWeather == EnergyWeather.bright) {
+              return b.difficulty.compareTo(a.difficulty);
+            }
+          }
+          return 0;
         });
     final remaining = visible.where((q) => !q.doneFor(now)).length;
 

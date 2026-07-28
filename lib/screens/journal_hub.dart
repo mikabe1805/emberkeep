@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../clock.dart';
+import '../content/memories.dart';
 import '../engine.dart';
 import '../journal_media.dart' as media;
 import '../models.dart';
@@ -11,6 +13,7 @@ import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/notes_sheet.dart';
 import 'journal_entry.dart';
+import 'memory_cabinet.dart';
 
 /// The Journal hub (round-45) — the discoverable home for notes. The feature
 /// always existed but lived buried (long-press a quest, a goal's panel, a
@@ -410,8 +413,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                   Expanded(
                     child: ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 6, 16, 40),
-                      // +2 header slots (composer, search); +1 footer note
-                      itemCount: total == 0 ? 2 : items.length + 3,
+                      // composer + cabinet + search, then the lazy feed/footer
+                      itemCount: total == 0 ? 3 : items.length + 4,
                       itemBuilder: (context, i) {
                         if (i == 0) {
                           return Padding(
@@ -419,9 +422,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                             child: _composer(),
                           );
                         }
+                        if (i == 1) return _cabinetCard();
                         if (total == 0) return _emptyHint();
-                        if (i == 1) return _searchField();
-                        final idx = i - 2;
+                        if (i == 2) return _searchField();
+                        final idx = i - 3;
                         if (idx < items.length) {
                           final it = items[idx];
                           if (it is String) return _monthHeader(it);
@@ -453,6 +457,67 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _cabinetCard() {
+    final count = memoryArtifactCount(_s, widget.quests);
+    final chosen = _s.memoryPins.length;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          Sfx.instance.play('tick');
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) =>
+                  MemoryCabinetScreen(state: _s, quests: widget.quests),
+            ),
+          );
+        },
+        child: GlassPanel(
+          glow: count > 0,
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              const FacetMedallion(
+                size: 42,
+                accent: Palette.unlock,
+                glow: true,
+                child: Icon(
+                  Icons.inventory_2_outlined,
+                  size: 21,
+                  color: Palette.unlock,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Memory Cabinet',
+                      style: Type.display.copyWith(fontSize: 17),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      count == 0
+                          ? 'turn moments and milestones into things your Keep can hold'
+                          : '$count artifacts · $chosen ${chosen == 1 ? 'moment' : 'moments'} chosen by you',
+                      style: Type.body.copyWith(
+                        fontSize: 11.5,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, size: 19, color: Palette.textLo),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -719,6 +784,36 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                   ),
                 ),
               const Spacer(),
+              Semantics(
+                button: true,
+                toggled: _s.memoryPins.contains(e.note.id),
+                label: _s.memoryPins.contains(e.note.id)
+                    ? 'Remove from Memory Cabinet'
+                    : 'Keep in Memory Cabinet',
+                child: GestureDetector(
+                  excludeFromSemantics: true,
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    final pinned = !_s.memoryPins.contains(e.note.id);
+                    _s.setMemoryPinned(e.note.id, pinned);
+                    Sfx.instance.play(pinned ? 'streak' : 'tick');
+                    HapticFeedback.selectionClick();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(
+                      _s.memoryPins.contains(e.note.id)
+                          ? Icons.bookmark
+                          : Icons.bookmark_border,
+                      size: 17,
+                      color: _s.memoryPins.contains(e.note.id)
+                          ? Palette.unlock
+                          : Palette.textLo,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
               // no one-tap delete here — a whole page of writing dies too
               // easily to a 15px X. The row opens the editor, whose delete
               // asks first (and cleans up the entry's photos).

@@ -14,6 +14,10 @@ enum MomentumKitKind {
   focusExpedition,
   creativePractice,
   steadyDay,
+  examSeason,
+  movingHome,
+  jobSearch,
+  startingAgain,
 }
 
 class MomentumKitSpec {
@@ -83,6 +87,38 @@ const momentumKits = <MomentumKitSpec>[
     promise: 'A plain, balanced day: move gently, tend a need, reach outward.',
     detail: 'No optimization language, no intensity contest, no failure state.',
     stat: Stat.soc,
+  ),
+  MomentumKitSpec(
+    kind: MomentumKitKind.examSeason,
+    eyebrow: 'LIFE CHAPTER · STUDENTS',
+    title: 'Exam Season',
+    promise: 'Shrink a high-pressure season into the next useful study move.',
+    detail: 'A repeatable chapter for revision, assignments, and test weeks.',
+    stat: Stat.intl,
+  ),
+  MomentumKitSpec(
+    kind: MomentumKitKind.movingHome,
+    eyebrow: 'LIFE CHAPTER · MOVING',
+    title: 'Moving Home',
+    promise: 'Build order one box, surface, and essential at a time.',
+    detail: 'For packing, unpacking, downsizing, or making a new place yours.',
+    stat: Stat.dis,
+  ),
+  MomentumKitSpec(
+    kind: MomentumKitKind.jobSearch,
+    eyebrow: 'LIFE CHAPTER · WORK',
+    title: 'The Next Door',
+    promise: 'Keep a job search moving without making every day an audition.',
+    detail: 'Small sessions for applications, portfolios, and reaching out.',
+    stat: Stat.foc,
+  ),
+  MomentumKitSpec(
+    kind: MomentumKitKind.startingAgain,
+    eyebrow: 'LIFE CHAPTER · RETURNING',
+    title: 'Starting Again',
+    promise: 'Rebuild rhythm after illness, grief, burnout, or a hard season.',
+    detail: 'A deliberately gentle chapter with no catching-up debt.',
+    stat: Stat.vit,
   ),
 ];
 
@@ -246,4 +282,113 @@ List<Quest> buildSteadyDayQuests({required int capacity, DateTime? now}) {
     ),
   ];
   return all.take(count).toList(growable: false);
+}
+
+List<Quest> buildExamSeasonQuests({required int capacity, DateTime? now}) {
+  final all = <Quest>[
+    _spark(
+      title: 'Choose the one topic that matters next',
+      stat: Stat.intl,
+      difficulty: 1,
+      goalTitle: 'Cross exam season',
+      now: now,
+    ),
+    _spark(
+      title: 'Study one protected twenty-five minute block',
+      stat: Stat.intl,
+      difficulty: 4,
+      timerMinutes: 25,
+      goalTitle: 'Cross exam season',
+      now: now,
+    ),
+    _spark(
+      title: 'Recall five things without looking',
+      stat: Stat.foc,
+      difficulty: 3,
+      goalTitle: 'Cross exam season',
+      now: now,
+    ),
+  ];
+  return all.take(capacity.clamp(1, 3)).toList(growable: false);
+}
+
+List<Quest> buildMovingHomeQuests({required int capacity, DateTime? now}) {
+  final all = <Quest>[
+    _spark(
+      title: 'Pack or unpack one clear category',
+      stat: Stat.dis,
+      difficulty: 2,
+      goalTitle: 'Make the move feel like home',
+      now: now,
+    ),
+    _spark(
+      title: 'Clear one safe walking path',
+      stat: Stat.dis,
+      difficulty: 2,
+      goalTitle: 'Make the move feel like home',
+      now: now,
+    ),
+    _spark(
+      title: 'Set aside tomorrow’s essentials',
+      stat: Stat.vit,
+      difficulty: 2,
+      goalTitle: 'Make the move feel like home',
+      now: now,
+    ),
+  ];
+  return all.take(capacity.clamp(1, 3)).toList(growable: false);
+}
+
+List<Quest> buildJobSearchQuests({required int capacity, DateTime? now}) {
+  final all = <Quest>[
+    _spark(
+      title: 'Improve one line of the application',
+      stat: Stat.foc,
+      difficulty: 2,
+      goalTitle: 'Open the next door',
+      now: now,
+    ),
+    _spark(
+      title: 'Send one considered application',
+      stat: Stat.foc,
+      difficulty: 4,
+      goalTitle: 'Open the next door',
+      now: now,
+    ),
+    _spark(
+      title: 'Make one human career connection',
+      stat: Stat.soc,
+      difficulty: 3,
+      goalTitle: 'Open the next door',
+      now: now,
+    ),
+  ];
+  return all.take(capacity.clamp(1, 3)).toList(growable: false);
+}
+
+List<Quest> buildStartingAgainQuests({required int capacity, DateTime? now}) {
+  final all = <Quest>[
+    _spark(
+      title: 'Restore one basic need without earning it',
+      stat: Stat.vit,
+      difficulty: 1,
+      goalTitle: 'Start again gently',
+      now: now,
+    ),
+    _spark(
+      title: 'Remove one small piece of friction',
+      stat: Stat.dis,
+      difficulty: 1,
+      goalTitle: 'Start again gently',
+      now: now,
+    ),
+    _spark(
+      title: 'Choose tomorrow’s first kind move',
+      stat: Stat.intl,
+      difficulty: 1,
+      goalTitle: 'Start again gently',
+      now: now,
+    ),
+  ];
+  return all.take(capacity.clamp(1, 3)).toList(growable: false);
 }

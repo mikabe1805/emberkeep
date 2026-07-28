@@ -12,7 +12,8 @@ service cloud.firestore {
       return code.matches('^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$')
         && d.keys().hasOnly([
           'uid', 'name', 'title', 'level', 'furniture', 'wall', 'floor',
-          'skin', 'window', 'awake', 'v', 'updatedAt'
+          'skin', 'window', 'awake', 'memories', 'weather', 'todayLit',
+          'focusKind', 'focusUntil', 'v', 'updatedAt'
         ])
         && d.uid == request.auth.uid
         && d.name == 'Fellow keeper'
@@ -37,7 +38,23 @@ service cloud.firestore {
         ]
         && d.window in ['moon', 'city', 'forest', 'mountains', 'rain', 'dawn', 'aurora']
         && d.awake is bool
-        && d.v == 1
+        && (
+          (d.v == 1 && !d.keys().hasAny([
+            'memories', 'weather', 'todayLit', 'focusKind', 'focusUntil'
+          ]))
+          ||
+          (d.v == 2
+            && d.keys().hasAll([
+              'memories', 'weather', 'todayLit', 'focusKind', 'focusUntil'
+            ])
+            && d.memories is int && d.memories >= 0 && d.memories <= 9999
+            && d.weather in ['unknown', 'low', 'steady', 'bright']
+            && d.todayLit is bool
+            && d.focusKind in ['none', 'study', 'making', 'reset', 'quiet']
+            && d.focusUntil is int
+            && d.focusUntil >= 0 && d.focusUntil <= 9999999999999
+          )
+        )
         && d.updatedAt == request.time;
     }
 
@@ -59,6 +76,27 @@ service cloud.firestore {
                     && validRoom(code);
       allow delete: if request.auth != null
                     && resource.data.uid == request.auth.uid;
+
+      // Text-free encouragement only. A sender has one pending document,
+      // keyed by their uid; only the room owner can see or collect it. There
+      // is no chat body, profile field, task data, or public sender list.
+      match /sparks/{senderId} {
+        allow create: if request.auth != null
+                      && senderId == request.auth.uid
+                      && exists(/databases/$(database)/documents/rooms/$(code))
+                      && request.resource.data.keys().hasOnly([
+                        'sender', 'kind', 'sentAt'
+                      ])
+                      && request.resource.data.sender == request.auth.uid
+                      && request.resource.data.kind in [
+                        'kindle', 'steady', 'cheer'
+                      ]
+                      && request.resource.data.sentAt == request.time;
+        allow read, delete: if request.auth != null
+                            && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                               == request.auth.uid;
+        allow update: if false;
+      }
     }
     match /{document=**} {
       allow read, write: if false;
