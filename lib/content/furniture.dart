@@ -115,8 +115,8 @@ final furniture = <FurnitureItem>[
   ),
   FurnitureItem(
     id: 'hearth',
-    name: 'a warm hearth',
-    blurb: 'A real fire. The heart the whole room gathers around.',
+    name: 'the carved hearth',
+    blurb: 'Week-of-Fire stonework, cut to honour the flame you kept.',
     price: 600,
     zone: 'Hearth',
     requires: 'week-of-fire',

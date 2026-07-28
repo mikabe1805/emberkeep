@@ -279,6 +279,7 @@ class HomeRoom extends StatefulWidget {
     this.window = 'moon',
     this.petAwake = false,
     this.emberGlow,
+    this.heirloomFlame = false,
     this.level = 1,
     this.lively = true,
   });
@@ -309,6 +310,11 @@ class HomeRoom extends StatefulWidget {
   /// the flames take this hue (amber by default; a chosen flame colour tints
   /// the whole keep warm). Null = default honey/amber fire.
   final Color? emberGlow;
+
+  /// Achievement-gated flames earn one restrained signature: a small crown of
+  /// gold sparks above the blaze. The room still reserves its brightest value
+  /// for the fuel-line core, and reduced motion parks the sparks in place.
+  final bool heirloomFlame;
 
   /// The player's level — the hearth burns taller/brighter as it climbs the
   /// tiers (see [hearthStageForLevel]), making the "YOUR HEARTH GROWS"
@@ -385,6 +391,7 @@ class _HomeRoomState extends State<HomeRoom>
                         widget.window,
                         widget.petAwake,
                         widget.emberGlow,
+                        widget.heirloomFlame,
                         widget.level,
                         _RoomGrain.wall,
                         _RoomGrain.floor,
@@ -420,6 +427,7 @@ class _RoomPainter extends CustomPainter {
     this.window,
     this.petAwake,
     this.emberGlow,
+    this.heirloomFlame,
     this.level,
     this.wallGrain,
     this.floorGrain,
@@ -437,6 +445,7 @@ class _RoomPainter extends CustomPainter {
   final String window;
   final bool petAwake;
   final Color? emberGlow;
+  final bool heirloomFlame;
   final int level;
 
   /// 0..1 through the slow ambient loop (quantized upstream). Every motion in
@@ -938,8 +947,8 @@ class _RoomPainter extends CustomPainter {
     // instead and produced vivid purple/mint/cornflower ovals that outshone
     // the fire. Nothing in this room may be brighter than the hearth.
     final lifted = hsl
-        .withSaturation((hsl.saturation * 0.7 + 0.04).clamp(0.0, 0.20))
-        .withLightness((hsl.lightness * 1.22 + 0.04).clamp(0.0, 0.27))
+        .withSaturation((hsl.saturation * 0.7 + 0.05).clamp(0.0, 0.28))
+        .withLightness((hsl.lightness * 1.22 + 0.06).clamp(0.0, 0.32))
         .toColor();
     // a common warm bias keeps five different walls from producing one cold
     // rug and one sickly one — every style still lands in the cozy family
@@ -1048,7 +1057,9 @@ class _RoomPainter extends CustomPainter {
   }
 
   void _lamp(Canvas canvas, double w, double h, double floorY) {
-    final x = w * 0.115;
+    // Clear the moon window: the lamp now owns the narrow hearth-side wall
+    // instead of sitting directly in front of the app's strongest light wedge.
+    final x = w * 0.35;
     final baseY = floorY + (h - floorY) * 0.46;
     final topY = h * 0.22;
     // A quiet faceted halo: the shade remains an object rather than dissolving
@@ -1462,7 +1473,8 @@ class _RoomPainter extends CustomPainter {
   }
 
   void _plant(Canvas canvas, double w, double h, double floorY) {
-    final x = w * 0.91, baseY = floorY + (h - floorY) * 0.59;
+    // A quiet far-left anchor balances the chair/cat group on the right.
+    final x = w * 0.10, baseY = floorY + (h - floorY) * 0.59;
     final u = h - floorY;
     // contact shadow — grounds the pot on the floor
     canvas.drawOval(
@@ -1560,7 +1572,8 @@ class _RoomPainter extends CustomPainter {
   void _hearth(Canvas canvas, double w, double h, double floorY) {
     final x = w * 0.5;
     final u = h - floorY;
-    final hw = w * 0.30; // surround width
+    final carved = has('hearth');
+    final hw = w * (carved ? 0.32 : 0.30); // surround width
     final topY = h * 0.14; // the chimney breast rises high on the wall
     final flameHue = emberGlow ?? const Color(0xFFEC6007);
     final fireWarm = Color.lerp(flameHue, const Color(0xFFFFD49A), 0.52)!;
@@ -1569,7 +1582,10 @@ class _RoomPainter extends CustomPainter {
     // the fire climbs its tiers with your level — taller flames, a hotter
     // heart, and at Everflame a drifting spark. Never shrinks; only grows.
     final stage = hearthStageForLevel(level);
-    final grow = 0.82 + 0.045 * stage; // 0.82 (baseline) .. ~1.05 (Everflame)
+    final grow =
+        0.82 +
+        0.045 * stage +
+        (carved ? 0.045 : 0); // trophy visibly burns taller
 
     // a soft wall shadow either side, grounding the breast against the wall
     canvas.drawRect(
@@ -1621,6 +1637,31 @@ class _RoomPainter extends CustomPainter {
       final by = topY + (floorY - topY) * i / 5;
       canvas.drawLine(Offset(x - hw / 2, by), Offset(x + hw / 2, by), brick);
     }
+    if (carved) {
+      // Week of Fire becomes architecture, not a no-op purchase. Slim carved
+      // edge stones leave the picture and garland breathing room; the visual
+      // payoff stays concentrated around the firebox below.
+      final leftTrim = Path()
+        ..moveTo(breast.left, breast.top)
+        ..lineTo(breast.left + hw * 0.075, breast.top)
+        ..lineTo(breast.left + hw * 0.11, breast.bottom)
+        ..lineTo(breast.left, breast.bottom)
+        ..close();
+      final rightTrim = Path()
+        ..moveTo(breast.right - hw * 0.075, breast.top)
+        ..lineTo(breast.right, breast.top)
+        ..lineTo(breast.right, breast.bottom)
+        ..lineTo(breast.right - hw * 0.11, breast.bottom)
+        ..close();
+      final trimPaint = Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF493A34), Color(0xFF665044), Color(0xFF392C27)],
+        ).createShader(breast);
+      canvas.drawPath(leftTrim, trimPaint);
+      canvas.drawPath(rightTrim, trimPaint);
+    }
     // mantel shelf
     final mantelY = _mantelY(h, floorY);
     final mantel = Path()
@@ -1643,6 +1684,19 @@ class _RoomPainter extends CustomPainter {
       Rect.fromLTWH(x - hw / 2 - w * 0.025, mantelY, hw + w * 0.05, 2),
       Paint()..color = Palette.xpLight.withValues(alpha: 0.12),
     );
+    if (carved) {
+      final runeY = mantelY - u * 0.10;
+      final rune = Path()
+        ..moveTo(x, runeY - u * 0.045)
+        ..lineTo(x + w * 0.014, runeY)
+        ..lineTo(x, runeY + u * 0.045)
+        ..lineTo(x - w * 0.014, runeY)
+        ..close();
+      canvas.drawPath(
+        rune,
+        Paint()..color = fireWarm.withValues(alpha: 0.50 + 0.18 * lit),
+      );
+    }
 
     // firebox opening (dark, arched)
     final fbW = hw * 0.58, fbH = u * 0.5;
@@ -1658,6 +1712,44 @@ class _RoomPainter extends CustomPainter {
       ..lineTo(fbRect.right, fbRect.bottom)
       ..close();
     canvas.drawPath(firebox, Paint()..color = const Color(0xFF140C08));
+    if (carved) {
+      // Two cut-stone jambs and a keystone frame the existing firebox. They
+      // stay outside the opening, so the pale fuel-line heart remains visible.
+      final stone = Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF8C7059), Color(0xFF5A4438), Color(0xFF372922)],
+        ).createShader(fbRect.inflate(w * 0.05));
+      Path jamb(bool left) {
+        final edge = left ? fbRect.left : fbRect.right;
+        final dir = left ? -1.0 : 1.0;
+        return Path()
+          ..moveTo(edge, fbRect.top + shoulder * 0.55)
+          ..lineTo(edge + dir * w * 0.045, fbRect.top + shoulder * 0.28)
+          ..lineTo(edge + dir * w * 0.052, fbRect.bottom)
+          ..lineTo(edge, fbRect.bottom)
+          ..close();
+      }
+
+      canvas.drawPath(jamb(true), stone);
+      canvas.drawPath(jamb(false), stone);
+      final key = Path()
+        ..moveTo(x - fbW * 0.13, fbRect.top - u * 0.055)
+        ..lineTo(x + fbW * 0.13, fbRect.top - u * 0.055)
+        ..lineTo(x + fbW * 0.18, fbRect.top + u * 0.045)
+        ..lineTo(x, fbRect.top + u * 0.085)
+        ..lineTo(x - fbW * 0.18, fbRect.top + u * 0.045)
+        ..close();
+      canvas.drawPath(key, stone);
+      canvas.drawPath(
+        key,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = fireWarm.withValues(alpha: 0.34),
+      );
+    }
     // the firebox's back wall, warmed from within — a gradient rising off the
     // coal bed, so the opening reads as a hot cavity instead of a black hole
     // (this is what keeps the BANKED hearth from looking dead: never-punish
@@ -1801,16 +1893,30 @@ class _RoomPainter extends CustomPainter {
         final fr = Rect.fromLTWH(fx - bw * 1.2, fb - fhh, bw * 2.4, fhh);
         paintEmberFlame(canvas, fr, flameHue, lean: lean, intensity: lit);
       }
-      // Everflame (top tier): a single spark drifts up from the crown
-      if (stage >= 5) {
-        final sy = (fb - fbH * grow) - u * 0.06 * (0.5 + 0.5 * sin(t * 2 * pi));
+      // Everflame and the achievement-gated Gilded flame earn a restrained
+      // crown of sparks. The carved hearth adds one more ember: trophies feel
+      // exceptional, but never outshine the fire itself.
+      final sparkCount = heirloomFlame
+          ? 3
+          : (carved ? 2 : (stage >= 5 ? 1 : 0));
+      for (var i = 0; i < sparkCount; i++) {
+        final phase = i * 2.15;
+        final sy =
+            (fb - fbH * grow) -
+            u * (0.045 + i * 0.018) * (0.5 + 0.5 * sin(t * 2 * pi + phase));
         canvas.drawCircle(
-          Offset(x + fbW * 0.10 * sin(t * 2 * pi * 1.5), sy),
-          fbW * 0.035,
+          Offset(x + fbW * 0.14 * sin(t * 2 * pi * 1.5 + phase), sy),
+          fbW * (heirloomFlame ? 0.038 : 0.032),
           Paint()
-            ..color = const Color(
-              0xFFFFF4D9,
-            ).withValues(alpha: 0.35 + 0.45 * (0.5 + 0.5 * sin(t * 2 * pi * 3)))
+            ..color =
+                (heirloomFlame
+                        ? const Color(0xFFFFE08A)
+                        : const Color(0xFFFFF4D9))
+                    .withValues(
+                      alpha:
+                          0.35 +
+                          0.45 * (0.5 + 0.5 * sin(t * 2 * pi * 3 + phase)),
+                    )
             ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
         );
       }
@@ -2235,7 +2341,7 @@ class _RoomPainter extends CustomPainter {
   /// as that thing.
   void _cushion(Canvas canvas, double w, double h, double floorY) {
     final u = h - floorY;
-    final c = Offset(w * 0.3, floorY + u * 0.52);
+    final c = Offset(w * 0.67, floorY + u * 0.58);
     final cw = w * 0.11, ch = u * 0.19;
     // warmer and a touch deeper than the rug, not lighter: a throw cushion is
     // an accent against the floor covering, and lerping toward cream just
@@ -2317,7 +2423,7 @@ class _RoomPainter extends CustomPainter {
     // instantly, and a scene whose whole job is to feel calm cannot afford to
     // make you anxious. A stone shelf above the animal is where candles
     // actually live in a room with a hearth.
-    final clusterX = w * 0.385; // off to one side, clear of the picture frame
+    final clusterX = w * 0.625; // opposite the picture, clear of its frame
     final baseY = _mantelY(h, floorY);
     // the light they throw back onto the chimney breast behind them
     canvas.drawOval(
@@ -2379,6 +2485,7 @@ class _RoomPainter extends CustomPainter {
       old.window != window ||
       old.petAwake != petAwake ||
       old.emberGlow != emberGlow ||
+      old.heirloomFlame != heirloomFlame ||
       old.level != level ||
       old.wallGrain != wallGrain ||
       old.floorGrain != floorGrain ||

@@ -45,6 +45,7 @@ class JournalEntryScreen extends StatefulWidget {
     this.reduceMotion = false,
     this.heading = 'Journal',
     this.hint = 'Start writing…',
+    this.starter,
   });
 
   final Note? initial;
@@ -56,6 +57,10 @@ class JournalEntryScreen extends StatefulWidget {
   final bool reduceMotion;
   final String heading;
   final String hint;
+
+  /// Optional first line for a guided entry. It is not saved by merely opening
+  /// the page; once the user writes, it becomes an ordinary journal paragraph.
+  final String? starter;
 
   @override
   State<JournalEntryScreen> createState() => _JournalEntryScreenState();
@@ -143,6 +148,11 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     if (doc.isEmpty && n != null && n.text.isNotEmpty) {
       doc = [JournalBlock.text(n.text)];
     }
+    if (doc.isEmpty &&
+        n == null &&
+        (widget.starter?.trim().isNotEmpty ?? false)) {
+      doc = [JournalBlock.text(widget.starter!)];
+    }
     for (final b in doc) {
       _blocks.add(
         b.isImage ? _Block.image(b.image!) : _Block.text(b.text ?? ''),
@@ -198,6 +208,20 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       }
     }
     return n;
+  }
+
+  int get _starterWords {
+    if (widget.initial != null || widget.starter == null) return 0;
+    if (_blocks.isEmpty ||
+        _blocks.first.isImage ||
+        !_blocks.first.controller!.text.startsWith(widget.starter!)) {
+      return 0;
+    }
+    return widget.starter!
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty)
+        .length;
   }
 
   List<JournalBlock> _toDoc({bool trim = false}) {
@@ -635,6 +659,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
 
   Widget _bar() {
     final saved = _everSaved && !_dirty;
+    final writtenWords = (_words - _starterWords).clamp(0, _words);
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 6, 12, 2),
       child: Row(
@@ -653,9 +678,15 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
             style: Type.display.copyWith(fontSize: 20, color: widget.accent),
           ),
           const Spacer(),
-          if (_words > 0) ...[
+          if (writtenWords > 0) ...[
             Text(
-              '$_words ${_words == 1 ? 'word' : 'words'}',
+              '$writtenWords ${writtenWords == 1 ? 'word' : 'words'}',
+              style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
+            ),
+            const SizedBox(width: 10),
+          ] else if (widget.starter != null) ...[
+            Text(
+              'PROMPT READY',
               style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
             ),
             const SizedBox(width: 10),

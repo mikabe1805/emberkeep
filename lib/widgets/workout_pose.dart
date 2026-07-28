@@ -1,3 +1,5 @@
+import 'dart:math' show cos, pi, sin;
+
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
@@ -10,11 +12,14 @@ enum WorkoutPose {
   stand,
   squat,
   pushup,
+  wallPress,
   plank,
   lunge,
   reach,
   march,
+  sideLift,
   seated,
+  breathe,
   bridge,
   twist,
 }
@@ -22,6 +27,18 @@ enum WorkoutPose {
 /// Pick a pose for a move by keyword. Falls back to a neutral standing figure.
 WorkoutPose poseForMove(String name) {
   final n = name.toLowerCase();
+  if (n.contains('box breath') || n.contains('breathing')) {
+    return WorkoutPose.breathe;
+  }
+  if (n.contains('wall') &&
+      (n.contains('push') ||
+          n.contains('press-up') ||
+          n.contains('press up'))) {
+    return WorkoutPose.wallPress;
+  }
+  if (n.contains('sideways leg') || n.contains('side leg')) {
+    return WorkoutPose.sideLift;
+  }
   if (n.contains('push') || n.contains('press-up') || n.contains('press up')) {
     return WorkoutPose.pushup;
   }
@@ -197,6 +214,19 @@ const _poses = <WorkoutPose, _Fig>{
     footR: Offset(0.13, 0.76),
     headR: 0.075,
   ),
+  WorkoutPose.wallPress: _Fig(
+    head: Offset(0.38, 0.18),
+    shoulder: Offset(0.42, 0.35),
+    hip: Offset(0.40, 0.61),
+    elbowL: Offset(0.55, 0.41),
+    handL: Offset(0.72, 0.40),
+    elbowR: Offset(0.57, 0.48),
+    handR: Offset(0.73, 0.48),
+    kneeL: Offset(0.34, 0.77),
+    footL: Offset(0.28, 0.92),
+    kneeR: Offset(0.48, 0.78),
+    footR: Offset(0.52, 0.92),
+  ),
   WorkoutPose.plank: _Fig(
     head: Offset(0.80, 0.46),
     shoulder: Offset(0.62, 0.52),
@@ -250,6 +280,19 @@ const _poses = <WorkoutPose, _Fig>{
     kneeR: Offset(0.46, 0.78),
     footR: Offset(0.45, 0.92),
   ),
+  WorkoutPose.sideLift: _Fig(
+    head: Offset(0.47, 0.16),
+    shoulder: Offset(0.47, 0.34),
+    hip: Offset(0.48, 0.60),
+    elbowL: Offset(0.35, 0.43),
+    handL: Offset(0.27, 0.52),
+    elbowR: Offset(0.58, 0.44),
+    handR: Offset(0.62, 0.57),
+    kneeL: Offset(0.45, 0.77),
+    footL: Offset(0.44, 0.92),
+    kneeR: Offset(0.66, 0.67),
+    footR: Offset(0.79, 0.73),
+  ),
   WorkoutPose.seated: _Fig(
     head: Offset(0.42, 0.22),
     shoulder: Offset(0.44, 0.38),
@@ -262,6 +305,19 @@ const _poses = <WorkoutPose, _Fig>{
     footL: Offset(0.66, 0.88),
     kneeR: Offset(0.70, 0.61),
     footR: Offset(0.70, 0.88),
+  ),
+  WorkoutPose.breathe: _Fig(
+    head: Offset(0.48, 0.18),
+    shoulder: Offset(0.48, 0.35),
+    hip: Offset(0.48, 0.60),
+    elbowL: Offset(0.40, 0.44),
+    handL: Offset(0.48, 0.49),
+    elbowR: Offset(0.56, 0.44),
+    handR: Offset(0.48, 0.49),
+    kneeL: Offset(0.40, 0.77),
+    footL: Offset(0.39, 0.92),
+    kneeR: Offset(0.56, 0.77),
+    footR: Offset(0.57, 0.92),
   ),
   WorkoutPose.bridge: _Fig(
     head: Offset(0.18, 0.66),
@@ -310,15 +366,82 @@ class _FigurePainter extends CustomPainter {
 
     final limb = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = w * 0.05
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = w * 0.034
+      ..strokeCap = StrokeCap.square
+      ..strokeJoin = StrokeJoin.miter
       ..color = color.withValues(alpha: 0.92);
     final spine = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = w * 0.058
-      ..strokeCap = StrokeCap.round
+      ..strokeWidth = w * 0.036
+      ..strokeCap = StrokeCap.square
       ..color = color;
+
+    // Props are structural cues, not decoration. A beginner should never see
+    // a floor push-up silhouette for a wall press, or a floating seated body.
+    final prop = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = w * 0.018
+      ..strokeCap = StrokeCap.square
+      ..strokeJoin = StrokeJoin.miter
+      ..color = Palette.xpLight.withValues(alpha: 0.36);
+    if (pose == WorkoutPose.wallPress) {
+      canvas.drawLine(
+        Offset(w * 0.79, h * 0.18),
+        Offset(w * 0.79, h * 0.94),
+        prop,
+      );
+      canvas.drawLine(
+        Offset(w * 0.79, h * 0.18),
+        Offset(w * 0.86, h * 0.13),
+        prop,
+      );
+    }
+    if (pose == WorkoutPose.seated) {
+      final chair = Path()
+        ..moveTo(w * 0.39, h * 0.57)
+        ..lineTo(w * 0.76, h * 0.57)
+        ..lineTo(w * 0.76, h * 0.63)
+        ..lineTo(w * 0.43, h * 0.63)
+        ..close();
+      canvas.drawPath(chair, Paint()..color = color.withValues(alpha: 0.20));
+      canvas.drawLine(
+        Offset(w * 0.44, h * 0.62),
+        Offset(w * 0.40, h * 0.91),
+        prop,
+      );
+      canvas.drawLine(
+        Offset(w * 0.72, h * 0.62),
+        Offset(w * 0.74, h * 0.91),
+        prop,
+      );
+    }
+    if (pose == WorkoutPose.sideLift) {
+      canvas.drawLine(
+        Offset(w * 0.25, h * 0.48),
+        Offset(w * 0.25, h * 0.94),
+        prop,
+      );
+      canvas.drawLine(
+        Offset(w * 0.18, h * 0.48),
+        Offset(w * 0.32, h * 0.48),
+        prop,
+      );
+    }
+    if (pose == WorkoutPose.breathe) {
+      final box = Path()
+        ..moveTo(w * 0.48, h * 0.31)
+        ..lineTo(w * 0.68, h * 0.49)
+        ..lineTo(w * 0.48, h * 0.67)
+        ..lineTo(w * 0.28, h * 0.49)
+        ..close();
+      canvas.drawPath(
+        box,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = w * 0.012
+          ..color = color.withValues(alpha: 0.18 + breathe * 0.14),
+      );
+    }
 
     // a soft ground line for grounding (skipped for floor poses)
     if (pose != WorkoutPose.pushup &&
@@ -351,6 +474,56 @@ class _FigurePainter extends CustomPainter {
       ..lineTo(p(f.kneeR).dx, p(f.kneeR).dy)
       ..lineTo(p(f.footR).dx, p(f.footR).dy);
 
+    // Angular body planes preserve the existing, well-tested joint map while
+    // lifting the art out of stick-figure territory. Every segment is a
+    // tapered quadrilateral with one bright and one shadow facet.
+    Path plane(Offset a, Offset b, double startWidth, double endWidth) {
+      final delta = b - a;
+      final length = delta.distance == 0 ? 1.0 : delta.distance;
+      final normal = Offset(-delta.dy / length, delta.dx / length);
+      return Path()
+        ..moveTo((a + normal * startWidth).dx, (a + normal * startWidth).dy)
+        ..lineTo((b + normal * endWidth).dx, (b + normal * endWidth).dy)
+        ..lineTo((b - normal * endWidth).dx, (b - normal * endWidth).dy)
+        ..lineTo((a - normal * startWidth).dx, (a - normal * startWidth).dy)
+        ..close();
+    }
+
+    void drawPlane(Offset a, Offset b, double startWidth, double endWidth) {
+      final shape = plane(a, b, startWidth, endWidth);
+      canvas.drawPath(
+        shape,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.lerp(color, Colors.white, 0.26)!.withValues(alpha: 0.82),
+              color.withValues(alpha: 0.76),
+              Color.lerp(color, Colors.black, 0.34)!.withValues(alpha: 0.86),
+            ],
+          ).createShader(shape.getBounds()),
+      );
+      canvas.drawPath(
+        shape,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = w * 0.009
+          ..strokeJoin = StrokeJoin.miter
+          ..color = color.withValues(alpha: 0.66),
+      );
+    }
+
+    drawPlane(p(f.shoulder), p(f.hip), w * 0.060, w * 0.076);
+    drawPlane(p(f.shoulder), p(f.elbowL), w * 0.034, w * 0.029);
+    drawPlane(p(f.elbowL), p(f.handL), w * 0.029, w * 0.021);
+    drawPlane(p(f.shoulder), p(f.elbowR), w * 0.034, w * 0.029);
+    drawPlane(p(f.elbowR), p(f.handR), w * 0.029, w * 0.021);
+    drawPlane(p(f.hip), p(f.kneeL), w * 0.050, w * 0.038);
+    drawPlane(p(f.kneeL), p(f.footL), w * 0.038, w * 0.024);
+    drawPlane(p(f.hip), p(f.kneeR), w * 0.050, w * 0.038);
+    drawPlane(p(f.kneeR), p(f.footR), w * 0.038, w * 0.024);
+
     canvas.drawPath(legL, limb);
     canvas.drawPath(legR, limb);
     canvas.drawLine(p(f.shoulder), p(f.hip), spine); // torso
@@ -360,22 +533,38 @@ class _FigurePainter extends CustomPainter {
     // neck + head (head bobs faintly with the breath)
     final headC = p(f.head) + Offset(0, -breathe * h * 0.006);
     canvas.drawLine(p(f.shoulder), headC, spine);
-    canvas.drawCircle(
-      headC,
-      w * f.headR,
+    final headR = w * f.headR;
+    final head = Path();
+    for (var i = 0; i < 6; i++) {
+      final angle = -pi / 2 + i * pi / 3;
+      final point = headC + Offset(cos(angle) * headR, sin(angle) * headR);
+      if (i == 0) {
+        head.moveTo(point.dx, point.dy);
+      } else {
+        head.lineTo(point.dx, point.dy);
+      }
+    }
+    head.close();
+    canvas.drawPath(
+      head,
       Paint()
-        ..color = color
-        ..style = PaintingStyle.fill,
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(color, Colors.white, 0.28)!,
+            color,
+            Color.lerp(color, Colors.black, 0.30)!,
+          ],
+        ).createShader(head.getBounds()),
     );
-    // a soft glow halo around the head
-    canvas.drawCircle(
-      headC,
-      w * f.headR,
+    canvas.drawPath(
+      head,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = w * 0.02
-        ..color = color.withValues(alpha: 0.35)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        ..strokeWidth = w * 0.012
+        ..strokeJoin = StrokeJoin.miter
+        ..color = color.withValues(alpha: 0.72),
     );
   }
 

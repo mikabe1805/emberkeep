@@ -77,6 +77,7 @@ class VisitRoomScreen extends StatelessWidget {
                         petAwake: room['awake'] == true,
                         // their chosen hearth-flame colour
                         emberGlow: flameHueById(safeString('skin')),
+                        heirloomFlame: safeString('skin') == 'gilded',
                       ),
                       const SizedBox(height: 14),
                       if (title.isNotEmpty)

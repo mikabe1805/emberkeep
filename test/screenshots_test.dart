@@ -11,6 +11,7 @@ import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/furniture.dart';
+import 'package:emberkeep/content/routines.dart';
 import 'package:emberkeep/content/room_styles.dart';
 import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/engine.dart';
@@ -570,6 +571,8 @@ void main() {
     state.stats[Stat.foc] = 94;
     state.stats[Stat.soc] = 61;
     state.stats[Stat.dis] = 103;
+    state.ownedSkins.add('sunstone');
+    state.ownedStyles.addAll({'wall_plum', 'floor_maple'});
     state.ownedFurniture.addAll({
       'rug',
       'lamp',
@@ -579,6 +582,14 @@ void main() {
       'chair',
       'candles',
       'garland',
+      'hearth',
+    });
+    state.unlockedAchievements.addAll({
+      'well-rounded',
+      'goal-getter',
+      'perfect-day',
+      'week-of-fire',
+      'ascendant',
     });
     state.goals.addAll([
       Goal(
@@ -631,6 +642,7 @@ void main() {
         verification: Verification.timer,
         timerMinutes: 25,
       ),
+      workoutLauncherQuest(),
     ];
     SharedPreferences.setMockInitialValues({
       'liferpg_save_v1': jsonEncode({
@@ -653,6 +665,17 @@ void main() {
     await tester.tap(find.text('FURNISH'));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '03_shop_1290x2796');
+    await tester.tap(find.text('FLAME'));
+    await tester.pump(const Duration(milliseconds: 350));
+    await _storeShot(tester, '03b_shop_flame_1290x2796');
+    final gilded = find.text('Gilded');
+    await tester.scrollUntilVisible(
+      gilded,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    await _storeShot(tester, '03c_shop_heirlooms_1290x2796');
     await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pump(const Duration(milliseconds: 700));
 
@@ -660,9 +683,46 @@ void main() {
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '04_goals_1290x2796');
 
+    _activateDock(tester, Icons.calendar_month_outlined);
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '05_planner_1290x2796');
+    await tester.tap(find.text('+ PLAN'));
+    await tester.pump(const Duration(milliseconds: 350));
+    await _storeShot(tester, '05b_planner_shapes_1290x2796');
+    await tester.tapAt(const Offset(12, 12));
+    await tester.pump(const Duration(milliseconds: 350));
+
     _activateDock(tester, Icons.insights_outlined);
     await tester.pump(const Duration(milliseconds: 450));
-    await _storeShot(tester, '05_insights_1290x2796');
+    await _storeShot(tester, '06_insights_1290x2796');
+
+    await tester.tap(find.text('Your Journal'));
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '07_journal_1290x2796');
+    await tester.tap(find.text('SMALL WIN'));
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '07b_journal_starter_1290x2796');
+    await tester.tap(find.byIcon(Icons.chevron_left).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.chevron_left).last);
+    await tester.pump(const Duration(milliseconds: 450));
+
+    _activateDock(tester, Icons.task_alt);
+    await tester.pump(const Duration(milliseconds: 450));
+    final workoutQuest = find.textContaining('Guided workout').last;
+    await tester.ensureVisible(workoutQuest);
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.tap(workoutQuest);
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '08_workout_picker_1290x2796');
+
+    await tester.tap(find.text('Wake-Up Snack'));
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '09_workout_preview_1290x2796');
+
+    await tester.tap(find.text('LET’S BEGIN'));
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '10_workout_active_1290x2796');
 
     // Dispose AppShell so its midnight rollover timer cannot escape the test.
     await tester.pumpWidget(const SizedBox.shrink());

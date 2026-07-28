@@ -62,6 +62,25 @@ class _CalendarPageState extends State<CalendarPage> {
       if (q.dueDate != null && Days.sameDay(q.dueDate!, day)) q,
   ];
 
+  int _reflectionsOn(DateTime day) {
+    var count = widget.state.journal
+        .where((n) => Days.sameDay(n.at, day))
+        .length;
+    for (final stat in Stat.values) {
+      count += widget.state
+          .notesFor(stat)
+          .where((n) => Days.sameDay(n.at, day))
+          .length;
+    }
+    for (final goal in widget.state.goals) {
+      count += goal.notes.where((n) => Days.sameDay(n.at, day)).length;
+    }
+    for (final quest in widget.quests) {
+      count += quest.log.where((n) => Days.sameDay(n.at, day)).length;
+    }
+    return count;
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -160,6 +179,7 @@ class _CalendarPageState extends State<CalendarPage> {
             _DayPanel(
               day: _selected,
               completions: widget.state.history[Days.key(_selected)] ?? 0,
+              reflections: _reflectionsOn(_selected),
               events: _eventsOn(_selected),
               now: now,
               onPlan: () => _showAddEvent(context),
@@ -317,6 +337,7 @@ class _DayPanel extends StatelessWidget {
   const _DayPanel({
     required this.day,
     required this.completions,
+    required this.reflections,
     required this.events,
     required this.now,
     required this.onPlan,
@@ -324,6 +345,7 @@ class _DayPanel extends StatelessWidget {
 
   final DateTime day;
   final int completions;
+  final int reflections;
   final List<Quest> events;
   final DateTime now;
   final VoidCallback onPlan;
@@ -399,7 +421,28 @@ class _DayPanel extends StatelessWidget {
                 ],
               ),
             ),
-          if (events.isEmpty && completions == 0)
+          if (reflections > 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.auto_stories_outlined,
+                    size: 14,
+                    color: Palette.xpLight,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$reflections reflection${reflections == 1 ? "" : "s"} kept',
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      color: Palette.textMid,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (events.isEmpty && completions == 0 && reflections == 0)
             Text(
               isPast
                   ? 'A quiet day.'
@@ -466,6 +509,61 @@ class _AddEventDialogState extends State<_AddEventDialog> {
   double _difficulty = 4;
   String? _error;
 
+  static const _presets =
+      <
+        ({
+          String label,
+          String title,
+          Stat stat,
+          double difficulty,
+          IconData icon,
+        })
+      >[
+        (
+          label: 'FOCUS BLOCK',
+          title: 'One focused block',
+          stat: Stat.foc,
+          difficulty: 4,
+          icon: Icons.center_focus_strong,
+        ),
+        (
+          label: 'MOVE GENTLY',
+          title: 'Move for ten minutes',
+          stat: Stat.vit,
+          difficulty: 3,
+          icon: Icons.directions_walk,
+        ),
+        (
+          label: 'RESET SPACE',
+          title: 'Reset one small space',
+          stat: Stat.dis,
+          difficulty: 3,
+          icon: Icons.auto_awesome,
+        ),
+        (
+          label: 'REACH OUT',
+          title: 'Reach out to someone',
+          stat: Stat.soc,
+          difficulty: 3,
+          icon: Icons.waving_hand_outlined,
+        ),
+      ];
+
+  void _usePreset(
+    ({String label, String title, Stat stat, double difficulty, IconData icon})
+    preset,
+  ) {
+    Sfx.instance.play('tick');
+    HapticFeedback.selectionClick();
+    setState(() {
+      _title.text = preset.title;
+      _title.selection = TextSelection.collapsed(offset: _title.text.length);
+      _stat = preset.stat;
+      _difficulty = preset.difficulty;
+      _error = null;
+    });
+  }
+
   @override
   void dispose() {
     _title.dispose();
@@ -519,6 +617,57 @@ class _AddEventDialogState extends State<_AddEventDialog> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Type.label.copyWith(fontSize: 11),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'START WITH A DAY SHAPE — OR NAME YOUR OWN',
+              style: Type.label.copyWith(fontSize: 9.5, color: Palette.textLo),
+            ),
+            const SizedBox(height: 7),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final preset in _presets)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 7),
+                      child: GestureDetector(
+                        onTap: () => _usePreset(preset),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 9,
+                            vertical: 7,
+                          ),
+                          decoration: facetedDecoration(
+                            cut: 7,
+                            color: preset.stat.color.withValues(alpha: 0.10),
+                            borderColor: preset.stat.color.withValues(
+                              alpha: 0.34,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                preset.icon,
+                                size: 13,
+                                color: preset.stat.color,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                preset.label,
+                                style: Type.label.copyWith(
+                                  fontSize: 9.5,
+                                  color: preset.stat.color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
             const SizedBox(height: 10),
             TextField(

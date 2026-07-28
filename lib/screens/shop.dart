@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../content/achievements.dart';
 import '../content/creature_skins.dart';
 import '../content/furniture.dart';
 import '../content/room_styles.dart';
@@ -23,13 +24,30 @@ import '../widgets/honey_button.dart';
 /// you want. A few special pieces are gated behind a trophy first (you still
 /// pay), so achievements quietly open new shelves. Every not-owned item now
 /// opens a try-on first (see [_showTryOn]) — nothing in the shop buys blind.
-class ShopScreen extends StatelessWidget {
+class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key, required this.state, required this.onPersist});
 
   final GameState state;
 
   /// Persist the save after a purchase.
   final VoidCallback onPersist;
+
+  @override
+  State<ShopScreen> createState() => _ShopScreenState();
+}
+
+class _ShopScreenState extends State<ShopScreen> {
+  GameState get state => widget.state;
+  VoidCallback get onPersist => widget.onPersist;
+
+  int _section = 0;
+
+  static const _collections = <({String label, String sub, IconData icon})>[
+    (label: 'ROOM', sub: 'places & light', icon: Icons.chair_outlined),
+    (label: 'FLAME', sub: 'hearth colours', icon: Icons.local_fire_department),
+    (label: 'CANVAS', sub: 'walls & floor', icon: Icons.texture),
+    (label: 'VIEW', sub: 'window scenes', icon: Icons.landscape_outlined),
+  ];
 
   /// One checkout for every shelf: run the engine buy, then play the right
   /// beat. Success is a small treasure; a refusal must SOUND like a refusal —
@@ -116,33 +134,33 @@ class ShopScreen extends StatelessWidget {
   /// The nearest currently-unlocked purchase across every shelf. Keeping one
   /// concrete reward in sight turns quest embers into a visible upgrade path
   /// instead of an abstract wallet balance.
-  ({String name, int price})? _closestUpgrade() {
-    final choices = <({String name, int price})>[];
+  ({String name, int price, int section})? _closestUpgrade() {
+    final choices = <({String name, int price, int section})>[];
     for (final item in furniture) {
       if (!state.ownedFurniture.contains(item.id) &&
           furnitureUnlocked(item, state)) {
-        choices.add((name: item.name, price: item.price));
+        choices.add((name: item.name, price: item.price, section: 0));
       }
     }
     for (final style in roomStyles) {
       if (style.price > 0 &&
           !isStyleOwned(state, style) &&
           styleUnlocked(style, state)) {
-        choices.add((name: style.name, price: style.price));
+        choices.add((name: style.name, price: style.price, section: 2));
       }
     }
     for (final skin in creatureSkins) {
       if (skin.price > 0 &&
           !isSkinOwned(state, skin) &&
           skinUnlocked(skin, state)) {
-        choices.add((name: skin.name, price: skin.price));
+        choices.add((name: skin.name, price: skin.price, section: 1));
       }
     }
     for (final view in windowViews) {
       if (view.price > 0 &&
           !isWindowOwned(state, view) &&
           windowUnlocked(view, state)) {
-        choices.add((name: view.name, price: view.price));
+        choices.add((name: view.name, price: view.price, section: 3));
       }
     }
     if (choices.isEmpty) return null;
@@ -155,53 +173,292 @@ class ShopScreen extends StatelessWidget {
     return choices.first;
   }
 
-  Widget _upgradeTarget(({String name, int price}) reward) {
+  Widget _upgradeTarget(({String name, int price, int section}) reward) {
     final remaining = reward.price - state.embers;
     final ready = remaining <= 0;
     final progress = (state.embers / reward.price).clamp(0.0, 1.0);
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
-      decoration: facetedDecoration(
-        cut: 9,
-        color: Palette.xp.withValues(alpha: 0.08),
-        borderColor: Palette.xp.withValues(alpha: 0.22),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'CLOSEST UPGRADE · ${reward.name.toUpperCase()}',
-                  overflow: TextOverflow.ellipsis,
-                  style: Type.label.copyWith(
-                    fontSize: 10.5,
-                    color: Palette.xpLight,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Sfx.instance.play('tick');
+        Haptics.tap();
+        setState(() => _section = reward.section);
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+        decoration: facetedDecoration(
+          cut: 9,
+          color: Palette.xp.withValues(alpha: 0.08),
+          borderColor: Palette.xp.withValues(alpha: 0.22),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'CLOSEST UPGRADE · ${reward.name.toUpperCase()}',
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.label.copyWith(
+                      fontSize: 10.5,
+                      color: Palette.xpLight,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
+                Text(
+                  ready ? 'READY · VIEW' : '✦ $remaining TO GO',
+                  style: Type.numerals.copyWith(
+                    fontSize: 11,
+                    color: ready ? Palette.success : Palette.xp,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            FacetedMeter(
+              value: progress,
+              height: 5,
+              background: Colors.black.withValues(alpha: 0.18),
+              color: ready ? Palette.success : Palette.xp,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _collectionNav() => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    child: Row(
+      children: [
+        for (var i = 0; i < _collections.length; i++) ...[
+          _collectionButton(i, _collections[i]),
+          if (i != _collections.length - 1) const SizedBox(width: 8),
+        ],
+      ],
+    ),
+  );
+
+  Widget _collectionButton(
+    int index,
+    ({String label, String sub, IconData icon}) collection,
+  ) {
+    final selected = index == _section;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${collection.label}, ${collection.sub}',
+      child: GestureDetector(
+        onTap: () {
+          if (selected) return;
+          Sfx.instance.play('tick');
+          Haptics.tap();
+          setState(() => _section = index);
+        },
+        child: AnimatedContainer(
+          duration: state.reduceMotion ? Duration.zero : Motion.quick,
+          width: 112,
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+          decoration: facetedDecoration(
+            cut: 9,
+            gradient: selected ? Palette.honeyGradient : null,
+            color: selected ? null : Palette.glassFill,
+            borderColor: selected
+                ? Palette.xpLight.withValues(alpha: 0.72)
+                : Palette.glassEdge,
+            shadows: selected
+                ? const [
+                    BoxShadow(
+                      color: Palette.honeyGlow,
+                      blurRadius: 16,
+                      offset: Offset(0, 5),
+                    ),
+                  ]
+                : const [],
+          ),
+          child: Row(
+            children: [
+              Icon(
+                collection.icon,
+                size: 16,
+                color: selected ? Palette.onHoney : Palette.xpLight,
               ),
-              const SizedBox(width: 8),
-              Text(
-                ready ? 'READY' : '✦ $remaining TO GO',
-                style: Type.numerals.copyWith(
-                  fontSize: 11,
-                  color: ready ? Palette.success : Palette.xp,
+              const SizedBox(width: 7),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      collection.label,
+                      style: Type.label.copyWith(
+                        fontSize: 10.5,
+                        color: selected ? Palette.onHoney : Palette.textHi,
+                      ),
+                    ),
+                    Text(
+                      collection.sub,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.body.copyWith(
+                        fontSize: 9.5,
+                        color: selected
+                            ? Palette.onHoney.withValues(alpha: 0.72)
+                            : Palette.textLo,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 7),
-          FacetedMeter(
-            value: progress,
-            height: 5,
-            background: Colors.black.withValues(alpha: 0.18),
-            color: ready ? Palette.success : Palette.xp,
-          ),
-        ],
+        ),
       ),
     );
+  }
+
+  Widget _collectionIntro({
+    required String title,
+    required String count,
+    required String copy,
+  }) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 3, 4, 10),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Type.display.copyWith(fontSize: 20)),
+              const SizedBox(height: 2),
+              Text(
+                copy,
+                style: Type.body.copyWith(
+                  fontSize: 11.5,
+                  fontStyle: FontStyle.italic,
+                  color: Palette.textLo,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: facetedDecoration(
+            cut: 6,
+            color: Palette.xp.withValues(alpha: 0.12),
+            borderColor: Palette.xp.withValues(alpha: 0.28),
+          ),
+          child: Text(
+            count,
+            style: Type.numerals.copyWith(
+              fontSize: 10.5,
+              color: Palette.xpLight,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  List<Widget> _collectionChildren(BuildContext context) {
+    switch (_section) {
+      case 0:
+        final widgets = <Widget>[
+          _collectionIntro(
+            title: 'Shape the room',
+            count: '${state.ownedFurniture.length}/${furniture.length}',
+            copy:
+                'each piece owns a place; heirlooms open through real trophies',
+          ),
+        ];
+        for (final zone in const [
+          'Floor',
+          'Light',
+          'Wall',
+          'Decor',
+          'Companion',
+          'Hearth',
+        ]) {
+          final items = furniture.where((f) => f.zone == zone).toList();
+          if (items.isEmpty) continue;
+          final owned = items
+              .where((f) => state.ownedFurniture.contains(f.id))
+              .length;
+          widgets
+            ..add(_sectionHeader('$zone · $owned/${items.length}'))
+            ..addAll([
+              for (final f in items) ...[
+                _ShopCard(item: f, state: state, onBuy: () => _buy(context, f)),
+                const SizedBox(height: 10),
+              ],
+              const SizedBox(height: 4),
+            ]);
+        }
+        return widgets;
+      case 1:
+        final owned = creatureSkins.where((s) => isSkinOwned(state, s)).length;
+        return [
+          _collectionIntro(
+            title: 'Choose your fire',
+            count: '$owned/${creatureSkins.length}',
+            copy: 'every hue keeps its palest heat at the fuel line',
+          ),
+          for (final sk in creatureSkins) ...[
+            _SkinCard(
+              skin: sk,
+              state: state,
+              onBuy: () => _buySkin(context, sk),
+              onApply: () => _applySkin(sk),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ];
+      case 2:
+        final owned = roomStyles.where((s) => isStyleOwned(state, s)).length;
+        return [
+          _collectionIntro(
+            title: 'Set the atmosphere',
+            count: '$owned/${roomStyles.length}',
+            copy: 'pair a wall and floor; the rug harmonizes with both',
+          ),
+          for (final kind in RoomStyleKind.values) ...[
+            _sectionHeader(kind == RoomStyleKind.wall ? 'WALLS' : 'FLOORS'),
+            for (final st in roomStyles.where((s) => s.kind == kind)) ...[
+              _StyleCard(
+                style: st,
+                state: state,
+                onBuy: () => _buyStyle(context, st),
+                onApply: () => _applyStyle(st),
+              ),
+              const SizedBox(height: 10),
+            ],
+            const SizedBox(height: 4),
+          ],
+        ];
+      default:
+        final owned = windowViews.where((v) => isWindowOwned(state, v)).length;
+        return [
+          _collectionIntro(
+            title: 'A world outside',
+            count: '$owned/${windowViews.length}',
+            copy: 'each scene changes the light that reaches your floor',
+          ),
+          for (final v in windowViews) ...[
+            _WindowCard(
+              view: v,
+              state: state,
+              onBuy: () => _buyWindow(context, v),
+              onApply: () => _applyWindow(v),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ];
+    }
   }
 
   @override
@@ -243,11 +500,12 @@ class ShopScreen extends StatelessWidget {
                                 window: state.windowScene,
                                 petAwake: state.streakDays > 0,
                                 emberGlow: flameHueFor(state),
+                                heirloomFlame: state.creatureSkin == 'gilded',
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                '$owned of ${furniture.length} pieces · '
-                                'you earn ✦ for every quest you finish',
+                                '$owned room pieces placed · '
+                                'every quest brings the next corner closer',
                                 textAlign: TextAlign.center,
                                 style: Type.body.copyWith(
                                   fontSize: 11,
@@ -261,49 +519,10 @@ class ShopScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        _sectionHeader('HEARTH FLAME'),
-                        for (final sk in creatureSkins) ...[
-                          _SkinCard(
-                            skin: sk,
-                            state: state,
-                            onBuy: () => _buySkin(context, sk),
-                            onApply: () => _applySkin(sk),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-                        const SizedBox(height: 8),
-                        _sectionHeader('FURNITURE'),
-                        for (final f in furniture) ...[
-                          _ShopCard(
-                            item: f,
-                            state: state,
-                            onBuy: () => _buy(context, f),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-                        const SizedBox(height: 8),
-                        _sectionHeader('WALLS & FLOOR'),
-                        for (final st in roomStyles) ...[
-                          _StyleCard(
-                            style: st,
-                            state: state,
-                            onBuy: () => _buyStyle(context, st),
-                            onApply: () => _applyStyle(st),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-                        const SizedBox(height: 8),
-                        _sectionHeader('THE VIEW'),
-                        for (final v in windowViews) ...[
-                          _WindowCard(
-                            view: v,
-                            state: state,
-                            onBuy: () => _buyWindow(context, v),
-                            onApply: () => _applyWindow(v),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
+                        const SizedBox(height: 14),
+                        _collectionNav(),
+                        const SizedBox(height: 14),
+                        ..._collectionChildren(context),
                       ],
                     ),
                   ),
@@ -355,9 +574,71 @@ Widget _pill(Color c, IconData icon, String label) => Container(
   ),
 );
 
+Achievement? _achievementFor(String? id) {
+  if (id == null) return null;
+  for (final achievement in achievements) {
+    if (achievement.id == id) return achievement;
+  }
+  return null;
+}
+
+/// Achievement pieces belong to an heirloom shelf, not the ordinary inventory
+/// stack. The badge remains after purchase so the room remembers why the piece
+/// is special; earned-but-unbought cards also receive GlassPanel.glow.
+Widget _heirloomRibbon(
+  String achievementId, {
+  required bool earned,
+  required bool owned,
+}) {
+  final achievement = _achievementFor(achievementId);
+  final color = earned || owned ? Palette.xpLight : Palette.textLo;
+  final label = owned
+      ? 'HEIRLOOM KEPT'
+      : earned
+      ? 'TROPHY SHELF OPEN'
+      : 'HEIRLOOM · LOCKED';
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: facetedDecoration(
+      cut: 5,
+      gradient: earned || owned
+          ? LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Palette.xpLight.withValues(alpha: 0.18),
+                Palette.xp.withValues(alpha: 0.06),
+              ],
+            )
+          : null,
+      color: earned || owned ? null : Colors.black.withValues(alpha: 0.14),
+      borderColor: color.withValues(alpha: earned || owned ? 0.48 : 0.22),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          achievement?.icon ?? Icons.emoji_events_outlined,
+          size: 12,
+          color: color,
+        ),
+        const SizedBox(width: 5),
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Type.label.copyWith(fontSize: 9.5, color: color),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 /// The trophy gate on a locked shelf — names the achievement, never just a
 /// dead padlock.
-Widget _lockedPill(String trophy) => Container(
+Widget _lockedPill(String trophy, {String? trophyId}) => Container(
   constraints: const BoxConstraints(maxWidth: 124),
   padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
   decoration: facetedDecoration(
@@ -368,7 +649,11 @@ Widget _lockedPill(String trophy) => Container(
   child: Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      Icon(Icons.lock_outline, size: 13, color: Palette.textLo),
+      Icon(
+        _achievementFor(trophyId)?.icon ?? Icons.lock_outline,
+        size: 13,
+        color: Palette.textLo,
+      ),
       const SizedBox(width: 6),
       Flexible(
         child: Text(
@@ -425,9 +710,10 @@ Widget _shelfCta({
   required GameState state,
   required int price,
   required String? gate,
+  String? gateId,
   required VoidCallback onPeek,
 }) {
-  if (gate != null) return _lockedPill(gate);
+  if (gate != null) return _lockedPill(gate, trophyId: gateId);
   if (state.embers >= price) {
     return HoneyButton(label: '✦ $price', onTap: onPeek);
   }
@@ -446,6 +732,7 @@ Widget _roomHero(
   List<Color>? floor,
   String? window,
   List<Color>? flame,
+  bool? heirloomFlame,
 }) => HomeRoom(
   lively: !state.reduceMotion,
   unlocked: unlocked ?? state.ownedFurniture,
@@ -455,6 +742,7 @@ Widget _roomHero(
   petAwake: true,
   // the hearth-flame hue (the item being tried on, or the current one)
   emberGlow: asFlameHue((flame ?? creatureColorsFor(state))[2]),
+  heirloomFlame: heirloomFlame ?? state.creatureSkin == 'gilded',
 );
 
 /// Every not-owned item opens this fitting room — a live look at the actual
@@ -612,8 +900,10 @@ class _ShopCard extends StatelessWidget {
       // you don't own yet to see it in YOUR room before an ember moves
       onTap: owned ? null : () => _openTryOn(context),
       child: Opacity(
-        opacity: owned ? 0.78 : 1.0,
+        opacity: owned ? 0.88 : 1.0,
         child: GlassPanel(
+          glow:
+              item.requires != null && furnitureUnlocked(item, state) && !owned,
           padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -622,6 +912,14 @@ class _ShopCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (item.requires != null) ...[
+                      _heirloomRibbon(
+                        item.requires!,
+                        earned: furnitureUnlocked(item, state),
+                        owned: owned,
+                      ),
+                      const SizedBox(height: 7),
+                    ],
                     Row(
                       children: [
                         _zoneChip(item.zone),
@@ -684,6 +982,7 @@ class _ShopCard extends StatelessWidget {
       gate: furnitureUnlocked(item, state)
           ? null
           : (furnitureGateLabel(item) ?? 'a trophy'),
+      gateId: item.requires,
       onPeek: () => _openTryOn(context),
     );
   }
@@ -730,10 +1029,12 @@ class _StyleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final applied = isStyleApplied(state, style);
+    final owned = isStyleOwned(state, style);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: isStyleOwned(state, style) ? null : () => _openTryOn(context),
       child: GlassPanel(
+        glow: style.requires != null && styleUnlocked(style, state) && !owned,
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
         child: Row(
           children: [
@@ -743,6 +1044,14 @@ class _StyleCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (style.requires != null) ...[
+                    _heirloomRibbon(
+                      style.requires!,
+                      earned: styleUnlocked(style, state),
+                      owned: owned,
+                    ),
+                    const SizedBox(height: 7),
+                  ],
                   Row(
                     children: [
                       _kindChip(),
@@ -812,6 +1121,7 @@ class _StyleCard extends StatelessWidget {
       gate: styleUnlocked(style, state)
           ? null
           : (styleGateLabel(style) ?? 'a trophy'),
+      gateId: style.requires,
       onPeek: () => _openTryOn(context),
     );
   }
@@ -865,10 +1175,12 @@ class _WindowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final applied = isWindowApplied(state, view);
+    final owned = isWindowOwned(state, view);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: isWindowOwned(state, view) ? null : () => _openTryOn(context),
       child: GlassPanel(
+        glow: view.requires != null && windowUnlocked(view, state) && !owned,
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Row(
           children: [
@@ -885,6 +1197,14 @@ class _WindowCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (view.requires != null) ...[
+                    _heirloomRibbon(
+                      view.requires!,
+                      earned: windowUnlocked(view, state),
+                      owned: owned,
+                    ),
+                    const SizedBox(height: 7),
+                  ],
                   Text(
                     view.name,
                     style: Type.label.copyWith(
@@ -942,6 +1262,7 @@ class _WindowCard extends StatelessWidget {
       gate: windowUnlocked(view, state)
           ? null
           : (windowGateLabel(view) ?? 'a trophy'),
+      gateId: view.requires,
       onPeek: () => _openTryOn(context),
     );
   }
@@ -1002,10 +1323,12 @@ class _SkinCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final applied = isSkinApplied(state, skin);
+    final owned = isSkinOwned(state, skin);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: isSkinOwned(state, skin) ? null : () => _openTryOn(context),
       child: GlassPanel(
+        glow: skin.requires != null && skinUnlocked(skin, state) && !owned,
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Row(
           children: [
@@ -1020,6 +1343,14 @@ class _SkinCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (skin.requires != null) ...[
+                    _heirloomRibbon(
+                      skin.requires!,
+                      earned: skinUnlocked(skin, state),
+                      owned: owned,
+                    ),
+                    const SizedBox(height: 7),
+                  ],
                   Text(
                     skin.name,
                     style: Type.label.copyWith(
@@ -1051,7 +1382,11 @@ class _SkinCard extends StatelessWidget {
   // your keep's hearth burning in the new flame colour
   void _openTryOn(BuildContext context) => _showTryOn(
     context,
-    hero: _roomHero(state, flame: skin.colors),
+    hero: _roomHero(
+      state,
+      flame: skin.colors,
+      heirloomFlame: skin.id == 'gilded',
+    ),
     name: skin.name,
     blurb: 'your hearth-fire, a new colour',
     price: skin.price,
@@ -1076,6 +1411,7 @@ class _SkinCard extends StatelessWidget {
       gate: skinUnlocked(skin, state)
           ? null
           : (skinGateLabel(skin) ?? 'a trophy'),
+      gateId: skin.requires,
       onPeek: () => _openTryOn(context),
     );
   }

@@ -98,7 +98,12 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
 
   /// Open the full-page editor — for a brand-new entry, or to keep writing an
   /// existing one (notes are editable now, not write-once).
-  void _openEditor({Note? entry}) {
+  void _openEditor({
+    Note? entry,
+    String heading = 'Journal',
+    String hint = 'What’s on your mind today?',
+    String? starter,
+  }) {
     Sfx.instance.play('tick');
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -107,8 +112,9 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           accent: Palette.xp,
           themeId: _s.canvasTheme,
           reduceMotion: _s.reduceMotion,
-          heading: 'Journal',
-          hint: 'What’s on your mind today?',
+          heading: heading,
+          hint: hint,
+          starter: starter,
           commit: _commit,
           onDelete: _deleteJournal,
         ),
@@ -526,42 +532,131 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
 
   /// A prominent invitation into the full-page editor — a whole page to write
   /// on, not a cramped two-line box. (round-53)
-  Widget _composer() => GestureDetector(
-    behavior: HitTestBehavior.opaque,
-    onTap: () => _openEditor(),
-    child: GlassPanel(
-      glow: true,
-      child: Row(
-        children: [
-          const FacetMedallion(
-            size: 44,
-            accent: Palette.xp,
-            gradient: Palette.honeyGradient,
-            glow: true,
-            child: Icon(Icons.edit_note, size: 26, color: Palette.onHoney),
+  Widget _composer() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _openEditor(),
+        child: GlassPanel(
+          glow: true,
+          child: Row(
+            children: [
+              const FacetMedallion(
+                size: 44,
+                accent: Palette.xp,
+                gradient: Palette.honeyGradient,
+                glow: true,
+                child: Icon(Icons.edit_note, size: 26, color: Palette.onHoney),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Write a new entry',
+                      style: Type.display.copyWith(fontSize: 17),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'a whole page to think out loud — saved as you go',
+                      style: Type.body.copyWith(
+                        fontSize: 12.5,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
+            ],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Write a new entry',
-                  style: Type.display.copyWith(fontSize: 17),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'a whole page to think out loud — saved as you go',
-                  style: Type.body.copyWith(
-                    fontSize: 12.5,
-                    color: Palette.textLo,
-                  ),
-                ),
-              ],
+        ),
+      ),
+      const SizedBox(height: 10),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Text(
+          'A WAY IN, IF YOU WANT ONE',
+          style: Type.label.copyWith(fontSize: 9.5, color: Palette.textLo),
+        ),
+      ),
+      const SizedBox(height: 7),
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _promptChip(
+              Icons.auto_awesome,
+              'SMALL WIN',
+              'A small win',
+              'Start with something that counted, even if nobody saw it.',
+              'One small win today:\n',
             ),
+            _promptChip(
+              Icons.air,
+              'UNLOAD',
+              'Set it down',
+              'Name what felt heavy. You do not need to solve it here.',
+              'What felt heavy:\n',
+            ),
+            _promptChip(
+              Icons.favorite_border,
+              'GRATEFUL',
+              'A warm detail',
+              'Hold onto one person, place, or moment you are grateful for.',
+              'Something I’m grateful for:\n',
+            ),
+            _promptChip(
+              Icons.north_east,
+              'TOMORROW',
+              'The next step',
+              'Make tomorrow smaller: what is the first gentle move?',
+              'Tomorrow’s first step:\n',
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _promptChip(
+    IconData icon,
+    String label,
+    String heading,
+    String hint,
+    String starter,
+  ) => Padding(
+    padding: const EdgeInsets.only(right: 7),
+    child: Semantics(
+      button: true,
+      label: 'Start journal prompt: $label',
+      child: GestureDetector(
+        onTap: () =>
+            _openEditor(heading: heading, hint: hint, starter: starter),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: facetedDecoration(
+            cut: 7,
+            color: Palette.xp.withValues(alpha: 0.08),
+            borderColor: Palette.xp.withValues(alpha: 0.28),
           ),
-          const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 13, color: Palette.xpLight),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: Type.label.copyWith(
+                  fontSize: 10,
+                  color: Palette.xpLight,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     ),
   );

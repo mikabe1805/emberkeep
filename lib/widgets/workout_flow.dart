@@ -192,13 +192,47 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
     } else {
       body = _moveScreen();
     }
+    final still =
+        widget.state.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     return OverlaySurface(
       child: Container(
-        color: const Color(0xF7140E08),
+        // Fully opaque: the quest board is context, not visual noise behind a
+        // movement instruction. This is especially important at large text.
+        color: const Color(0xFF140E08),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: AnimatedSwitcher(duration: Motion.settle, child: body),
+            child: AnimatedSwitcher(
+              duration: still
+                  ? Duration.zero
+                  : const Duration(milliseconds: 240),
+              // Never lay out the outgoing full-screen scene. The old default
+              // cross-fade stacked two transparent pages for 420ms, producing
+              // unreadable title/card collisions and stale hit targets.
+              layoutBuilder: (currentChild, previousChildren) =>
+                  currentChild ?? const SizedBox.shrink(),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: CurvedAnimation(
+                  parent: animation,
+                  curve: const Interval(0.18, 1, curve: Curves.easeOutCubic),
+                ),
+                child: SlideTransition(
+                  position:
+                      Tween<Offset>(
+                        begin: const Offset(0.035, 0),
+                        end: Offset.zero,
+                      ).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: Curves.easeOutCubic,
+                        ),
+                      ),
+                  child: child,
+                ),
+              ),
+              child: body,
+            ),
           ),
         ),
       ),
@@ -297,6 +331,18 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                     '${r.restDay ? " · rest day" : ""}',
                     style: Type.label.copyWith(fontSize: 11),
                   ),
+                  const SizedBox(height: 3),
+                  Text(
+                    r.restDay
+                        ? 'MOBILITY · GENTLE PACE'
+                        : r.minutes <= 4
+                        ? 'QUICK START · NO EQUIPMENT'
+                        : 'GUIDED · NO EQUIPMENT',
+                    style: Type.label.copyWith(
+                      fontSize: 9.5,
+                      color: recommended ? Palette.xpLight : Palette.textLo,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -341,6 +387,47 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           ),
         ),
         const SizedBox(height: 14),
+        GlassPanel(
+          child: SizedBox(
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'YOUR ROUTE',
+                  style: Type.label.copyWith(fontSize: 11, color: r.stat.color),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final move in r.moves.where((m) => m.isWork))
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 5,
+                        ),
+                        decoration: facetedDecoration(
+                          cut: 6,
+                          color: r.stat.color.withValues(alpha: 0.10),
+                          borderColor: r.stat.color.withValues(alpha: 0.28),
+                        ),
+                        child: Text(
+                          move.name,
+                          style: Type.body.copyWith(
+                            fontSize: 11.5,
+                            color: Palette.textMid,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         if (card != null)
           GlassPanel(
             child: Column(
@@ -446,9 +533,9 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
   // ── move screen ──────────────────────────────────────────────────
   Widget _moveScreen() {
     final m = _move;
-    // captured so a stale tap on the cross-fading OUTGOING screen (the
-    // AnimatedSwitcher keeps it tappable ~420ms) can't advance a second time
-    // (bug-hunt §13): every action no-ops once this move is no longer current.
+    // Captured so a stale/rapid tap can never advance a second time. The scene
+    // switch no longer keeps outgoing pages in layout, but this guard remains
+    // cheap insurance for repeated taps on the live control.
     final idx = _i;
     final easier = _easiered.contains(_i);
     final kicker = m.isWarmup
@@ -542,6 +629,25 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                           ),
                         ),
                       ],
+                      if (_i + 1 < _moves.length) ...[
+                        const SizedBox(height: 9),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.only(top: 8),
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              top: BorderSide(color: Color(0x24F2CD93)),
+                            ),
+                          ),
+                          child: Text(
+                            'NEXT · ${_moves[_i + 1].name}',
+                            style: Type.label.copyWith(
+                              fontSize: 10.5,
+                              color: Palette.xpLight,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -602,8 +708,8 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 180,
-          height: 180,
+          width: 220,
+          height: 220,
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -620,7 +726,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
               WorkoutFigure(
                 pose: poseForMove(m.name),
                 color: _routine!.stat.color,
-                size: 98,
+                size: 148,
               ),
             ],
           ),
