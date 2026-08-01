@@ -63,7 +63,7 @@ void main() {
     expect(Quest.fromJson(quest.toJson()).priorityDay, equals('2026-07-29'));
   });
 
-  test('Low Flame suggestion caps a crowded custom board at three', () {
+  test('Gentle Mode suggestion caps a crowded custom board at three', () {
     final now = DateTime(2026, 7, 28, 10);
     final quests = [
       _quest('Tiny first step', 1),
@@ -85,7 +85,7 @@ void main() {
     ]);
   });
 
-  testWidgets('choosing Low Flame visibly shelters a veteran board', (
+  testWidgets('choosing Gentle Mode visibly shelters a veteran board', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -105,24 +105,92 @@ void main() {
 
     await tester.pumpWidget(_board(state, quests));
     await tester.pump(const Duration(milliseconds: 300));
+    await tester.scrollUntilVisible(
+      find.text('ENERGY WEATHER'),
+      360,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 150));
     expect(find.text('ENERGY WEATHER'), findsOneWidget);
 
-    await tester.tap(find.text('LOW FLAME'));
+    await tester.tap(find.text('GENTLE MODE'));
     await tester.pump(const Duration(milliseconds: 500));
 
     expect(state.lowFlameQuestTitles, hasLength(3));
-    expect(find.text('LOW FLAME SHELTER'), findsOneWidget);
+    expect(find.text('GENTLE MODE SHELTER'), findsOneWidget);
     expect(find.byType(QuestCard), findsNWidgets(3));
     expect(find.textContaining('7 resting'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('SHOW ALL'));
+    await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('SHOW ALL'));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('LOW FLAME · 10 ON THE BOARD'), findsOneWidget);
-    expect(find.byType(QuestCard), findsAtLeastNWidgets(4));
+    await tester.fling(
+      find.byType(Scrollable).first,
+      const Offset(0, -1800),
+      2400,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('GENTLE MODE · FULL BOARD'), findsOneWidget);
+    expect(state.lowFlameQuestTitles, hasLength(3));
 
     await tester.tap(find.text('RETURN TO 3'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(QuestCard), findsNWidgets(3));
+  });
+
+  testWidgets('quests climb over the fixed room through the blur layer', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    final now = DateTime(2026, 7, 29, 10);
+    Clock.freeze(now);
+    final state = GameState()..reduceMotion = true;
+    _quietOtherMantelCards(state, now);
+    state.energyWeatherDay = Days.key(now);
+    final quests = [
+      for (var i = 1; i <= 8; i++) _quest('Quest $i', i.clamp(1, 8)),
+    ];
+
+    await tester.pumpWidget(_board(state, quests));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('MARK COMPLETE'), findsOneWidget);
+    // At rest there is no blur to gather, so the filter layer is not mounted
+    // at all — the room is simply the room. It appears as the board scrolls.
+    expect(find.byKey(const ValueKey('quest-backdrop-blur')), findsNothing);
+    final board = tester.widget<NestedScrollView>(
+      find.byKey(const ValueKey('quest-board-scroll')),
+    );
+    expect(board.controller!.offset, 0);
+
+    await tester.drag(
+      find.byKey(const ValueKey('quest-board-scroll')),
+      const Offset(0, -520),
+    );
+    await tester.pumpAndSettle();
+
+    expect(board.controller!.offset, greaterThan(180));
+    expect(find.byKey(const ValueKey('quest-backdrop-blur')), findsOneWidget);
+    expect(find.text('Quest 1'), findsWidgets);
+
+    // A downward pull from the list must hand the gesture back to the outer
+    // room header. On mobile web this used to strand the board in its
+    // collapsed position, leaving only a thin strip of the authored room even
+    // after the user had reached the first quest.
+    await tester.drag(
+      find.byKey(const ValueKey('quest-board-scroll')),
+      const Offset(0, 900),
+    );
+    await tester.pumpAndSettle();
+
+    expect(board.controller!.offset, 0);
+    expect(find.byKey(const ValueKey('quest-backdrop-blur')), findsNothing);
   });
 
   testWidgets('planning Ember opens a real two-step tomorrow chooser', (
@@ -156,6 +224,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text(planTomorrowEmber), findsOneWidget);
 
+    await tester.scrollUntilVisible(
+      find.text('PLAN'),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -120));
+    await tester.pump(const Duration(milliseconds: 150));
     await tester.tap(find.text('PLAN'));
     await tester.pump(const Duration(milliseconds: 450));
     expect(find.text('Shape tomorrow'), findsOneWidget);

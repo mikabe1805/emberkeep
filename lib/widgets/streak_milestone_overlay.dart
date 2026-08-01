@@ -275,16 +275,14 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              '✦',
-                              style: Type.display.copyWith(
-                                fontSize: 28,
-                                color: Palette.xp,
-                              ),
+                            const Icon(
+                              Icons.auto_awesome_rounded,
+                              size: 25,
+                              color: Palette.xp,
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              '+${widget.embers} embers',
+                              '+${widget.embers} Glimmers',
                               style: Type.display.copyWith(
                                 fontSize: 22,
                                 color: Palette.xpLight,

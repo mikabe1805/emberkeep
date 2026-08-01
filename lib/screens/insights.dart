@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../audio.dart';
@@ -10,13 +11,14 @@ import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/constellation.dart';
-import '../widgets/ember_flame_icon.dart';
+import '../widgets/detail_header.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
+import '../widgets/luxe_depth.dart';
 import 'journal_hub.dart';
 import 'weekly_chronicle.dart';
 
-/// The Insights tab (round-22): what your fire is telling you — trends drawn
+/// The Insights tab: what your patterns are telling you — trends drawn
 /// from your OWN data (history, stat totals, rhythm, streaks). Replaces the
 /// old passive Sparks feed; evidence now lives where it matters (stat popups,
 /// the per-quest "why this helps"). Everything here is computed locally.
@@ -26,6 +28,8 @@ class InsightsPage extends StatelessWidget {
     required this.state,
     required this.quests,
     required this.onPersist,
+    this.parallax = const AlwaysStoppedAnimation(Offset.zero),
+    this.lightDirection,
   });
 
   final GameState state;
@@ -35,6 +39,8 @@ class InsightsPage extends StatelessWidget {
 
   /// Persists the save after a journal edit in the hub.
   final VoidCallback onPersist;
+  final ValueListenable<Offset> parallax;
+  final ValueListenable<Offset>? lightDirection;
 
   static const _weekdayShort = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   static const _weekdayFull = [
@@ -51,20 +57,35 @@ class InsightsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: state,
-      builder: (context, _) => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 130),
+      builder: (context, _) => LuxePageList(
+        assetPath: 'assets/pages/journal-desk-v2.webp',
+        title: 'Journal',
+        subtitle: 'what you noticed, and what changed',
+        icon: Icons.menu_book_outlined,
+        parallax: parallax,
+        reduceMotion: state.reduceMotion,
+        trailing: Text(
+          '${_noteCount()} ENTRIES',
+          style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
+        ),
         children: [
-          Text('Insights', style: Type.display.copyWith(fontSize: 30)),
-          const SizedBox(height: 4),
-          Text(
-            'what your fire is telling you',
-            style: Type.body.copyWith(
-              fontSize: 13,
-              fontStyle: FontStyle.italic,
-              color: Palette.textLo,
-            ),
+          LuxeGoldButton(
+            label: 'Write for today',
+            icon: Icons.edit_note_rounded,
+            onTap: () => _openJournal(context, compose: true),
+            parallax: lightDirection ?? parallax,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          _JournalLensBar(
+            onEntries: () => _openJournal(context),
+            onPatterns: () => _openPatterns(context),
+            onChronicle: () => _openChronicle(context),
+          ),
+          const SizedBox(height: 14),
+          if (state.journal.isNotEmpty) ...[
+            _thenAndNow(),
+            const SizedBox(height: 14),
+          ],
           _journalCard(context),
           const SizedBox(height: 14),
           _chronicleCard(context),
@@ -93,6 +114,202 @@ class InsightsPage extends StatelessWidget {
     );
   }
 
+  void _openJournal(BuildContext context, {bool compose = false}) {
+    Sfx.instance.play('tick');
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => JournalHubScreen(
+          state: state,
+          quests: quests,
+          onPersist: onPersist,
+          compose: compose,
+        ),
+      ),
+    );
+  }
+
+  void _openChronicle(BuildContext context) {
+    Sfx.instance.play('tick');
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => WeeklyChronicleScreen(state: state)),
+    );
+  }
+
+  void _openPatterns(BuildContext context) {
+    Sfx.instance.play('tick');
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Palette.parchment,
+          body: WarmBackground(
+            themeId: state.canvasTheme,
+            reduceMotion: state.reduceMotion,
+            tint: Palette.xp,
+            child: SafeArea(
+              child: Column(
+                children: [
+                  const DetailHeader(
+                    title: 'Patterns',
+                    accent: Palette.xp,
+                    subtitle: 'what your own days are actually showing',
+                  ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+                      children: [
+                        if (state.totalCompletions == 0)
+                          _empty()
+                        else ...[
+                          _heroTakeaway(),
+                          const SizedBox(height: 14),
+                          _snapshot(),
+                          const SizedBox(height: 14),
+                          _energyWeather(),
+                          const SizedBox(height: 14),
+                          _domains(),
+                          const SizedBox(height: 14),
+                          _rhythm(),
+                          const SizedBox(height: 14),
+                          _activity(),
+                          const SizedBox(height: 14),
+                          _sky(context),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _thenAndNow() {
+    final entries = [...state.journal]..sort((a, b) => b.at.compareTo(a.at));
+    final note = entries.last;
+    const months = [
+      'JAN',
+      'FEB',
+      'MAR',
+      'APR',
+      'MAY',
+      'JUN',
+      'JUL',
+      'AUG',
+      'SEP',
+      'OCT',
+      'NOV',
+      'DEC',
+    ];
+    // The whole point of this card is being shown your own change, so it has
+    // to carry BOTH ends. It used to print only where you were when you wrote
+    // it, which is half a sentence — setup with the payoff withheld.
+    final then = note.context?.toUpperCase();
+    final nowStanding = state.buildTitle.toUpperCase();
+    final moved =
+        (then != null && then != nowStanding) ||
+        (note.trace != null && note.trace!.level != state.level);
+
+    return GlassPanel(
+      glow: true,
+      tint: const Color(0xF0332518),
+      child: Stack(
+        children: [
+          // A soft page of the authored MIND still life instead of the outsized
+          // Material flower glyph that used to sit here — at 118 px and 5%
+          // alpha that read as a smudge, not a botanical.
+          Positioned(
+            right: -14,
+            bottom: -18,
+            width: 168,
+            height: 112,
+            child: IgnorePointer(
+              child: ShaderMask(
+                blendMode: BlendMode.dstIn,
+                shaderCallback: (bounds) => const LinearGradient(
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                  colors: [Colors.transparent, Color(0xB3000000)],
+                ).createShader(bounds),
+                child: Opacity(
+                  opacity: 0.20,
+                  child: Image.asset(
+                    'assets/quest/category-mind-v2.webp',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.centerRight,
+                    filterQuality: FilterQuality.medium,
+                    excludeFromSemantics: true,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'THEN & NOW',
+                style: Type.label.copyWith(
+                  fontSize: 11,
+                  color: Palette.xp,
+                  letterSpacing: 1.7,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '“${note.text.isEmpty ? "A moment worth keeping." : note.text}”',
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: Type.display.copyWith(
+                  fontSize: 18,
+                  height: 1.25,
+                  color: Palette.textHi,
+                ),
+              ),
+              const SizedBox(height: 9),
+              Text(
+                'WRITTEN ${months[note.at.month - 1]} ${note.at.day}'
+                '${note.trace == null ? '' : '  ·  LV ${note.trace!.level}'}'
+                '${note.trace?.questTitles.isNotEmpty == true ? '  ·  ${note.trace!.questTitles.length} QUESTS' : ''}'
+                '${then == null ? '' : '  ·  $then'}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Type.label.copyWith(
+                  fontSize: 10.5,
+                  color: Palette.textLo,
+                ),
+              ),
+              if (moved) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'NOW  ·  LV ${state.level}  ·  $nowStanding',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(fontSize: 10.5, color: Palette.xp),
+                ),
+              ],
+              if (note.context != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  moved
+                      ? 'the same thought, read by someone else'
+                      : 'the same thought, seen from here',
+                  style: Type.body.copyWith(
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _chronicleCard(BuildContext context) {
     final chronicle = weeklyChronicleFor(state);
     return GestureDetector(
@@ -109,11 +326,13 @@ class InsightsPage extends StatelessWidget {
         glow: chronicle.total > 0,
         child: Row(
           children: [
+            // Your Week and Your Journal shared one open-book glyph in two
+            // tints, so the two rows read as the same destination twice.
             FacetMedallion(
               size: 40,
               accent: Palette.streak,
               child: const Icon(
-                Icons.auto_stories_outlined,
+                Icons.history_rounded,
                 size: 20,
                 color: Palette.xpLight,
               ),
@@ -123,15 +342,12 @@ class InsightsPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Weekly Chronicle',
-                    style: Type.display.copyWith(fontSize: 18),
-                  ),
+                  Text('Your Week', style: Type.display.copyWith(fontSize: 18)),
                   const SizedBox(height: 2),
                   Text(
                     chronicle.total == 0
                         ? 'a beautiful, private-first page is waiting for your story'
-                        : '${chronicle.litDays} nights lit · ${chronicle.total} quests · ready to share',
+                        : '${chronicle.litDays} days active · ${chronicle.total} quests · ready to share',
                     style: Type.body.copyWith(
                       fontSize: 12,
                       color: Palette.textLo,
@@ -188,7 +404,7 @@ class InsightsPage extends StatelessWidget {
               size: 40,
               accent: Palette.xp,
               child: Icon(
-                Icons.auto_stories_outlined,
+                Icons.menu_book_outlined,
                 size: 20,
                 color: Palette.xpLight,
               ),
@@ -225,14 +441,17 @@ class InsightsPage extends StatelessWidget {
   Widget _empty() => GlassPanel(
     child: Column(
       children: [
-        const Icon(Icons.insights_outlined, size: 28, color: Palette.xpLight),
+        const Icon(Icons.edit_note_rounded, size: 28, color: Palette.xpLight),
         const SizedBox(height: 10),
-        Text('Nothing to read yet', style: Type.display.copyWith(fontSize: 20)),
+        Text(
+          'Your first page is waiting',
+          style: Type.display.copyWith(fontSize: 20),
+        ),
         const SizedBox(height: 6),
         Text(
-          'Clear a few quests over a few days and your patterns — your '
-          'strongest domain, the time you show up, your streak shape — '
-          'will take shape here.',
+          'Write one line now. Morrowloom attaches today’s quests, goal '
+          'threads, and your current build automatically; patterns can grow '
+          'from something you actually meant.',
           textAlign: TextAlign.center,
           style: Type.body.copyWith(
             fontSize: 13,
@@ -333,7 +552,7 @@ class InsightsPage extends StatelessWidget {
                       recorded == 0
                           ? 'check in on Quests to begin seeing your pattern'
                           : low > bright
-                          ? 'a gentler week · low-flame days still count'
+                          ? 'a gentler week · Gentle Mode days still count'
                           : bright > low
                           ? 'more bright weather than low this week'
                           : 'a mixed week · capacity can change without failing',
@@ -483,7 +702,7 @@ class InsightsPage extends StatelessWidget {
           Text(
             top.$2 == 0
                 ? 'still finding your rhythm'
-                : 'you light most embers in the ${top.$1.toLowerCase()}',
+                : 'you complete most quests in the ${top.$1.toLowerCase()}',
             style: Type.body.copyWith(
               fontSize: 13,
               fontStyle: FontStyle.italic,
@@ -570,7 +789,7 @@ class InsightsPage extends StatelessWidget {
           Text('LAST TWO WEEKS', style: Type.label.copyWith(fontSize: 11)),
           const SizedBox(height: 4),
           Text(
-            '$activeIn14 of 14 days lit'
+            '$activeIn14 of 14 days active'
             '${hasWeekday ? ' · strongest on ${_weekdayFull[bestWd]}s' : ''}',
             style: Type.body.copyWith(
               fontSize: 13,
@@ -693,11 +912,18 @@ class InsightsPage extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: EmberFlameIcon(size: 22, color: flameHueFor(state)),
+              // The room's tapestry raster used to sit here as a 24 px chip —
+              // the only photoreal object on the page, in the only rounded
+              // square, wearing the only cold violet.
+              const Padding(
+                padding: EdgeInsets.only(top: 3),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Palette.xp,
+                  size: 18,
+                ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 11),
               Expanded(
                 child: Text(
                   _takeawayLine(),
@@ -737,9 +963,9 @@ class InsightsPage extends StatelessWidget {
     );
   }
 
-  /// YOUR SKY — the history constellation (ROADMAP Phase 2). Every night the
-  /// hearth was lit becomes a star on an outward spiral; unbroken runs join
-  /// into threads. It's the one surface in the app that shows the WHOLE of the
+  /// YOUR SKY — the history constellation (ROADMAP Phase 2). Every active day
+  /// becomes a star on an outward spiral; consecutive runs join into lines.
+  /// It's the one surface in the app that shows the WHOLE of the
   /// effort at once, and it only ever grows: no mark for a night you missed,
   /// so a quiet week reads as the thread pausing, never as damage.
   Widget _sky(BuildContext context) {
@@ -764,8 +990,8 @@ class InsightsPage extends StatelessWidget {
           Text('YOUR SKY', style: Type.label.copyWith(fontSize: 11)),
           const SizedBox(height: 4),
           Text(
-            '${lit.length} night${lit.length == 1 ? '' : 's'} lit'
-            '${longest > 1 ? ' · longest thread $longest nights' : ''}',
+            '${lit.length} active day${lit.length == 1 ? '' : 's'}'
+            '${longest > 1 ? ' · longest run $longest days' : ''}',
             style: Type.body.copyWith(
               fontSize: 13,
               fontStyle: FontStyle.italic,
@@ -784,8 +1010,8 @@ class InsightsPage extends StatelessWidget {
           Text(
             lit.length < 3
                 ? 'One star for every night you showed up. It only ever grows.'
-                : 'Oldest night at the centre, tonight at the rim. Nights that '
-                      'touch are joined — that thread is your streak, drawn.',
+                : 'Oldest day at the centre, today at the rim. Consecutive '
+                      'days are joined — your streak, drawn.',
             style: Type.body.copyWith(fontSize: 12, color: Palette.textLo),
           ),
         ],
@@ -821,11 +1047,108 @@ class InsightsPage extends StatelessWidget {
       );
     }
     if (lines.isEmpty) {
+      // Was "a vote for the person you're becoming" — the exact register the
+      // product's own direction rules out. State the fact; let it land.
       lines.add(
-        'Every quest you finish is a vote for the person you’re becoming. '
-        'Keep stacking them.',
+        state.totalCompletions == 0
+            ? 'Nothing recorded yet. The first entry is the hard one.'
+            : '${state.totalCompletions} quests logged. The room keeps the '
+                  'count so you don’t have to.',
       );
     }
     return lines.first;
+  }
+}
+
+class _JournalLensBar extends StatelessWidget {
+  const _JournalLensBar({
+    required this.onEntries,
+    required this.onPatterns,
+    required this.onChronicle,
+  });
+
+  final VoidCallback onEntries;
+  final VoidCallback onPatterns;
+  final VoidCallback onChronicle;
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassPanel(
+      padding: EdgeInsets.zero,
+      child: Row(
+        children: [
+          _item(0, Icons.menu_book_outlined, 'ENTRIES', onEntries),
+          _divider(),
+          _item(1, Icons.show_chart_rounded, 'PATTERNS', onPatterns),
+          _divider(),
+          _item(2, Icons.history_rounded, 'CHRONICLE', onChronicle),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() => Container(
+    width: 1,
+    height: 34,
+    color: Palette.glassEdge.withValues(alpha: 0.55),
+  );
+
+  Widget _item(int index, IconData icon, String label, VoidCallback action) {
+    final selected = index == 0;
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: '$label journal section',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: action,
+          child: AnimatedContainer(
+            duration: Motion.quick,
+            curve: Motion.respond,
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 13),
+            decoration: BoxDecoration(
+              gradient: selected
+                  ? LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Palette.xp.withValues(alpha: 0.18),
+                        Palette.xp.withValues(alpha: 0.04),
+                      ],
+                    )
+                  : null,
+              border: Border(
+                bottom: BorderSide(
+                  color: selected ? Palette.xp : Colors.transparent,
+                  width: 1.4,
+                ),
+              ),
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    icon,
+                    size: 17,
+                    color: selected ? Palette.xpLight : Palette.textLo,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: Type.label.copyWith(
+                      fontSize: 10,
+                      color: selected ? Palette.xpLight : Palette.textLo,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

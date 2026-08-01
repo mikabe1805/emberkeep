@@ -26,6 +26,7 @@ class Pressable extends StatefulWidget {
     this.borderRadius,
     this.shape,
     this.enabled = true,
+    this.pressDepth = 4,
     this.semanticLabel,
     this.semanticHint,
   });
@@ -43,6 +44,7 @@ class Pressable extends StatefulWidget {
   final BorderRadius? borderRadius;
   final ShapeBorder? shape;
   final bool enabled;
+  final double pressDepth;
   final String? semanticLabel;
   final String? semanticHint;
 
@@ -51,7 +53,6 @@ class Pressable extends StatefulWidget {
 }
 
 class _PressableState extends State<Pressable> {
-  static const _drop = 4.0;
   static const _slop = 12.0;
   bool _down = false;
   Offset _downAt = Offset.zero;
@@ -79,11 +80,12 @@ class _PressableState extends State<Pressable> {
   @override
   Widget build(BuildContext context) {
     final radius = widget.borderRadius ?? BorderRadius.circular(14);
+    final drop = widget.pressDepth.clamp(0.0, 6.0).toDouble();
     // deep espresso under-edge — warm, never grey
     final edge = widget.edgeColor ?? const Color(0xFF0F0905);
     final shadows = _down
         ? const <BoxShadow>[]
-        : [BoxShadow(color: edge, offset: const Offset(0, _drop))];
+        : [BoxShadow(color: edge, offset: Offset(0, drop))];
     final edgeDecoration = widget.shape == null
         ? BoxDecoration(borderRadius: radius, boxShadow: shadows)
         : ShapeDecoration(shape: widget.shape!, shadows: shadows);
@@ -133,7 +135,7 @@ class _PressableState extends State<Pressable> {
               // physical buttons depress instantly; only the release eases
               duration: _down ? Duration.zero : Motion.ack,
               curve: Motion.respond,
-              transform: Matrix4.translationValues(0, _down ? _drop : 0, 0),
+              transform: Matrix4.translationValues(0, _down ? drop : 0, 0),
               decoration: edgeDecoration,
               child: widget.child,
             ),

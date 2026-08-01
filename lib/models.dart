@@ -33,7 +33,7 @@ abstract final class Days {
 
   static DateTime parse(String value) =>
       tryParse(value) ??
-      (throw FormatException('Invalid Emberkeep day key', value));
+      (throw FormatException('Invalid Morrowloom day', value));
 
   /// Keeps a valid persisted key and drops a drifted one to null.
   static String? validKey(Object? value) =>
@@ -82,9 +82,9 @@ enum Verification {
 }
 
 /// A deliberately tiny capacity check-in. This is not a mood score or a
-/// medical measure; it only helps Emberkeep choose an honest amount of help.
+/// medical measure; it only helps Morrowloom choose an honest amount of help.
 enum EnergyWeather {
-  low('LOW FLAME'),
+  low('GENTLE MODE'),
   steady('STEADY'),
   bright('BRIGHT');
 
@@ -198,6 +198,91 @@ class Goal {
 /// or a free-form day reflection. It never floats alone: every note sits ON
 /// something the game already gives meaning to — that connection is the whole
 /// thesis (Notion-done-right, because the thing it's pinned to has stakes).
+/// Immutable game context captured beside a free journal page.
+///
+/// Morrowloom can remember what a generic notes app cannot know: which quests
+/// had happened, what they moved, how much XP the day carried, and which goals
+/// those actions served. Reopening an old page therefore returns the day as it
+/// actually was instead of recomputing it from today's state.
+class JournalTrace {
+  const JournalTrace({
+    required this.day,
+    required this.level,
+    required this.totalXp,
+    required this.todayXp,
+    required this.streakDays,
+    this.questTitles = const [],
+    this.goalTitles = const [],
+    this.statGains = const {},
+    this.energy,
+  });
+
+  final String day;
+  final int level;
+  final int totalXp;
+  final int todayXp;
+  final int streakDays;
+  final List<String> questTitles;
+  final List<String> goalTitles;
+  final Map<Stat, int> statGains;
+  final EnergyWeather? energy;
+
+  bool get hasDayEvidence =>
+      questTitles.isNotEmpty ||
+      goalTitles.isNotEmpty ||
+      statGains.values.any((gain) => gain > 0) ||
+      todayXp > 0 ||
+      energy != null;
+
+  Map<String, dynamic> toJson() => {
+    'day': day,
+    'level': level,
+    'totalXp': totalXp,
+    'todayXp': todayXp,
+    'streakDays': streakDays,
+    if (questTitles.isNotEmpty) 'questTitles': questTitles,
+    if (goalTitles.isNotEmpty) 'goalTitles': goalTitles,
+    if (statGains.isNotEmpty)
+      'statGains': [for (final stat in Stat.values) statGains[stat] ?? 0],
+    if (energy != null) 'energy': energy!.name,
+  };
+
+  static JournalTrace? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final j = raw.cast<String, dynamic>();
+    final day = Days.validKey(j['day']);
+    if (day == null) return null;
+    final gains = <Stat, int>{};
+    final stored = (j['statGains'] as List?)?.cast<num>() ?? const <num>[];
+    for (var i = 0; i < stored.length && i < Stat.values.length; i++) {
+      final value = stored[i].toInt();
+      if (value > 0) gains[Stat.values[i]] = value;
+    }
+    final energyName = j['energy'] as String?;
+    EnergyWeather? energy;
+    for (final value in EnergyWeather.values) {
+      if (value.name == energyName) energy = value;
+    }
+    return JournalTrace(
+      day: day,
+      level: j['level'] as int? ?? 1,
+      totalXp: j['totalXp'] as int? ?? 0,
+      todayXp: j['todayXp'] as int? ?? 0,
+      streakDays: j['streakDays'] as int? ?? 0,
+      questTitles: [
+        for (final value in (j['questTitles'] as List?) ?? const [])
+          if (value is String) value,
+      ],
+      goalTitles: [
+        for (final value in (j['goalTitles'] as List?) ?? const [])
+          if (value is String) value,
+      ],
+      statGains: gains,
+      energy: energy,
+    );
+  }
+}
+
 class Note {
   Note({
     required this.at,
@@ -206,6 +291,7 @@ class Note {
     this.editedAt,
     this.images = const [],
     this.rich,
+    this.trace,
     String? id,
   }) : id = id ?? _freshId(at);
 
@@ -247,6 +333,10 @@ class Note {
   /// set, [text] holds the plain-text flattening (for previews/search).
   final String? rich;
 
+  /// Automatic Quest/Goal/day context for a free journal page. Null on legacy
+  /// entries and notes that already live directly on a quest, goal, or domain.
+  final JournalTrace? trace;
+
   /// An edited copy that keeps the same identity, original timestamp and
   /// context. NOTE: null args mean "keep the current value" — [editedAt] is
   /// only changed when explicitly passed (an autosave of a brand-new entry
@@ -265,6 +355,7 @@ class Note {
     editedAt: editedAt ?? this.editedAt,
     images: images ?? this.images,
     rich: rich ?? this.rich,
+    trace: trace,
   );
 
   // microsecond timestamp + a monotonic per-process suffix → unique even for
@@ -281,6 +372,7 @@ class Note {
     if (editedAt != null) 'editedAt': editedAt!.toIso8601String(),
     if (images.isNotEmpty) 'images': images,
     if (rich != null) 'rich': rich,
+    if (trace != null) 'trace': trace!.toJson(),
   };
 
   static Note fromJson(Map<String, dynamic> j) => Note(
@@ -293,6 +385,7 @@ class Note {
     editedAt: DateTime.tryParse(j['editedAt'] as String? ?? ''),
     images: [for (final e in (j['images'] as List?) ?? const []) e as String],
     rich: j['rich'] as String?,
+    trace: JournalTrace.fromJson(j['trace']),
   );
 }
 
@@ -337,6 +430,7 @@ class Quest {
     this.goalTitle,
     this.priority = false,
     this.priorityDay,
+    this.priorityRank,
     this.allDay = false,
     this.weekdays = const [],
     this.monthDay,
@@ -407,8 +501,16 @@ class Quest {
   /// next uses the top-three planner and turns it into a dated choice.
   String? priorityDay;
 
+  /// One-based place among a dated top three. The rank belongs to
+  /// [priorityDay]; older saves without a rank retain their existing list
+  /// order and are normalized the next time the night planner is edited.
+  int? priorityRank;
+
   bool priorityOn(DateTime day) =>
       priorityDay == Days.key(day) || (priorityDay == null && priority);
+
+  int priorityRankOn(DateTime day) =>
+      priorityOn(day) ? (priorityRank ?? 99) : 99;
 
   /// All-day abstention quest ("no caffeine after 2pm"): a reminder during
   /// the day, honestly confirmable only in the night routine's checklist.
@@ -541,6 +643,7 @@ class Quest {
     'goalTitle': goalTitle,
     'priority': priority,
     'priorityDay': priorityDay,
+    'priorityRank': priorityRank,
     'allDay': allDay,
     'weekdays': weekdays,
     'monthDay': monthDay,
@@ -581,6 +684,10 @@ class Quest {
     goalTitle: j['goalTitle'] as String?,
     priority: j['priority'] as bool? ?? false,
     priorityDay: Days.validKey(j['priorityDay']),
+    priorityRank: switch (j['priorityRank']) {
+      final int rank when rank >= 1 && rank <= 3 => rank,
+      _ => null,
+    },
     allDay: j['allDay'] as bool? ?? false,
     weekdays: ((j['weekdays'] as List?) ?? const []).cast<int>(),
     monthDay: j['monthDay'] as int?,
@@ -629,7 +736,7 @@ class RewardBundle {
   final Stat stat;
   final int statGain;
 
-  /// Embers earned by this completion — the shop currency (round-48: shown in
+  /// Glimmers earned by this completion — the shop currency (round-48: shown in
   /// the receipt so the earn loop is felt, not silent).
   final int embers;
 

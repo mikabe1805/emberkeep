@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' show min, pi, sin;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -13,7 +14,9 @@ import '../content/day_planning.dart';
 import '../content/embers.dart';
 import '../content/evidence.dart';
 import '../content/ladders.dart';
+import '../content/quest_desk_styles.dart';
 import '../content/routines.dart';
+import '../content/space_themes.dart';
 import '../content/sparks.dart';
 import '../content/stat_ranks.dart';
 import '../engine.dart';
@@ -25,26 +28,27 @@ import '../widgets/workout_flow.dart';
 import '../widgets/achievement_toast.dart';
 import '../widgets/day_picker.dart';
 import '../widgets/domain_hint.dart';
-import '../widgets/ember_flame_icon.dart';
 import '../widgets/ember_sheet.dart';
 import '../widgets/epic_overlay.dart';
 import '../widgets/count_up.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
-import '../widgets/hearth_glyph.dart';
+import '../widgets/gold_surface.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/install_hint.dart';
 import '../widgets/levelup_overlay.dart';
+import '../widgets/luxe_depth.dart';
 import '../widgets/particles.dart';
+import '../widgets/quest_depth_room.dart';
 import '../widgets/notes_sheet.dart';
 import '../widgets/quest_card.dart';
+import '../widgets/quest_desk.dart';
 import '../widgets/reward_receipt.dart';
 import '../widgets/routine_flows.dart';
-import '../widgets/stat_chips.dart';
 import '../widgets/timer_overlay.dart';
 import '../widgets/top_three_wizard.dart';
 import '../widgets/streak_milestone_overlay.dart';
-import '../widgets/xp_bar.dart';
+import '../widgets/stat_chips.dart';
 
 /// Focus-mode ordering lens: ease in with quick wins, or take the hardest
 /// (most-dreaded / heaviest) first. Ephemeral — resets to easeIn each session.
@@ -65,6 +69,8 @@ class QuestsPage extends StatefulWidget {
     required this.onSnapshot,
     required this.onRestore,
     this.onBindFlush,
+    this.parallax,
+    this.lightDirection,
   });
 
   final GameState state;
@@ -91,12 +97,40 @@ class QuestsPage extends StatefulWidget {
   /// Lets the shell flush a pending deferred commit before pause-path saves.
   final void Function(VoidCallback flush)? onBindFlush;
 
+  /// The shell's calibrated tilt/pointer source. Directly-constructed pages
+  /// retain the local fallback below.
+  final ValueListenable<Offset>? parallax;
+
+  /// The quicker reflected-light response. Keeping this separate from the
+  /// weightier room camera makes gold answer the hand without making the
+  /// painted environment feel floaty.
+  final ValueListenable<Offset>? lightDirection;
+
   @override
   State<QuestsPage> createState() => _QuestsPageState();
 }
 
 class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   GameState get _state => widget.state;
+
+  /// One scroll surface carries the HUD and quests across the fixed room.
+  /// Listening directly keeps the atmospheric blur paint-only: quest data does
+  /// not rebuild for every pixel of a drag.
+  late final ScrollController _boardScroll = ScrollController();
+
+  /// The shell normally owns one motion source for all five pages. A local
+  /// controller remains for tests and directly-constructed quest pages.
+  LuxeMotionController? _localMotion;
+  final ValueNotifier<double> _scrollLight = ValueNotifier(0);
+
+  ValueListenable<Offset> get _activeLight =>
+      widget.lightDirection ??
+      widget.parallax ??
+      _localMotion?.light ??
+      const AlwaysStoppedAnimation<Offset>(Offset.zero);
+
+  ValueListenable<Offset> get _activeParallax =>
+      widget.parallax ?? _localMotion?.parallax ?? _activeLight;
 
   // ── deferred-commit machinery (flushable, so rapid completions and undo
   // can't corrupt each other's state) ───────────────────────────────────
@@ -111,6 +145,43 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// from stacking "First Step" over the still-arriving XP/stat bubbles.
   final List<Achievement> _pendingAchievementToasts = [];
   int _activeReceipts = 0;
+
+  /// The reward rail is a protected band above the dock. The board measures the
+  /// featured card against it so a completion can never park its receipt on top
+  /// of the next quest's action — the bible's one hard rule for the rail.
+  static const double _rewardRailBand = 200;
+  final GlobalKey _featuredAnchor = GlobalKey();
+
+  /// Lift the featured quest clear of the reward rail, by the smallest amount
+  /// that does it, and only when it is actually behind the rail. Nothing moves
+  /// when the action is already in the clear.
+  void _clearFeaturedOfRewardRail() {
+    if (!mounted) return;
+    final anchor = _featuredAnchor.currentContext;
+    if (anchor == null) return;
+    final box = anchor.findRenderObject();
+    if (box is! RenderBox || !box.hasSize || !box.attached) return;
+    final viewport = MediaQuery.sizeOf(context);
+    final railTop =
+        viewport.height -
+        MediaQuery.paddingOf(context).bottom -
+        96 -
+        _rewardRailBand;
+    final cardBottom = box.localToGlobal(Offset.zero).dy + box.size.height;
+    if (cardBottom <= railTop - 10) return;
+    final still =
+        _state.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    unawaited(
+      Scrollable.ensureVisible(
+        anchor,
+        alignment: 0.30,
+        alignmentPolicy: ScrollPositionAlignmentPolicy.explicit,
+        duration: still ? Duration.zero : const Duration(milliseconds: 340),
+        curve: Motion.respond,
+      ),
+    );
+  }
 
   /// One guided-workout runner at a time (rapid double-tap can't spawn two
   /// runners → double reward; bug-hunt §8).
@@ -147,12 +218,100 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Focus mode's ordering lens (ephemeral; the on/off itself lives on state).
   _FocusLens _focusLens = _FocusLens.quickWin;
 
-  /// Low Flame shelters the board by default, but the keeper can briefly
+  /// Gentle Mode shelters the board by default, but the keeper can briefly
   /// reveal everything without changing or losing the chosen three.
   bool _showFullLowFlame = false;
 
   void _toggleFocus() {
     _state.setFocusMode(!_state.focusMode);
+    widget.onPersist();
+    Haptics.tap();
+    setState(() {});
+  }
+
+  Future<void> _openQuestDeskStyle() async {
+    final current = activeQuestDeskLook(_state);
+    final selected = await showModalBottomSheet<QuestDeskLook>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 22),
+          child: GlassPanel(
+            blur: true,
+            // Smoked walnut glass, not a lit sheet. Lerping from the 9%-cream
+            // glassFill over a BackdropFilter made this the largest light area
+            // in the app — a pale grey-taupe plane from an older generation
+            // sitting on top of a candlelit room.
+            tint: Color.lerp(const Color(0xF41C1512), current.wood, 0.12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'QUEST DESK',
+                  style: Type.display.copyWith(
+                    fontSize: 24,
+                    color: Palette.textHi,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Carry your room’s materials onto the quest board. '
+                  'Stats and reward colours never change.',
+                  style: Type.body.copyWith(
+                    fontSize: 12,
+                    color: Palette.textLo,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 430),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        for (final look in questDeskLooks)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _QuestDeskLookRow(
+                              look: look,
+                              selected: current.roomStyleId == look.roomStyleId,
+                              owned: isQuestDeskLookOwned(_state, look),
+                              price:
+                                  spaceThemeById(look.roomStyleId)?.price ?? 0,
+                              onTap: () {
+                                if (!isQuestDeskLookOwned(_state, look)) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      behavior: SnackBarBehavior.floating,
+                                      backgroundColor: Palette.card,
+                                      content: Text(
+                                        'Choose ${look.name} in Change your space first.',
+                                        style: Type.body.copyWith(
+                                          color: Palette.textHi,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                Navigator.of(sheetContext).pop(look);
+                              },
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+    _state.setQuestDeskStyle(selected.roomStyleId);
     widget.onPersist();
     Haptics.tap();
     setState(() {});
@@ -172,7 +331,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       title: 'Shelter the day',
       subtitle:
           'Choose up to three things worth carrying. Everything else rests without penalty.',
-      dayLabel: 'Low Flame · Today',
+      dayLabel: 'Gentle Mode · Today',
       candidates: candidates.where((q) => !q.allDay),
       initialTitles: initial,
       accent: Stat.vit.color,
@@ -257,10 +416,29 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     widget.onRestore(snap);
   }
 
+  void _syncLocalMotion() {
+    final needsLocal = widget.parallax == null && widget.lightDirection == null;
+    if (needsLocal && _localMotion == null) {
+      _localMotion = LuxeMotionController(reduceMotion: _state.reduceMotion);
+      unawaited(_localMotion!.start());
+    } else if (!needsLocal && _localMotion != null) {
+      _localMotion!.dispose();
+      _localMotion = null;
+    }
+    _localMotion?.setReduceMotion(_state.reduceMotion);
+  }
+
+  void _handleScrollLight() {
+    if (!_boardScroll.hasClients) return;
+    _scrollLight.value = _boardScroll.offset;
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _boardScroll.addListener(_handleScrollLight);
+    _syncLocalMotion();
     // bind flush so the shell can settle rewards before a pause-path save
     widget.onBindFlush?.call(_flushCommit);
     Haptics.reduceMotion = _state.reduceMotion;
@@ -275,6 +453,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (old.onBindFlush != widget.onBindFlush) {
       widget.onBindFlush?.call(_flushCommit);
     }
+    _syncLocalMotion();
     Haptics.reduceMotion = _state.reduceMotion;
   }
 
@@ -312,11 +491,22 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _pendingAchievementToasts.addAll(ps.checkAchievements());
     widget.onPersist();
     if (snap != null && title != null) _offerUndo(title, snap);
+    // The list has just re-sorted and promoted the next quest. Measure the new
+    // featured card against the reward rail once that layout exists.
+    if (_activeReceipts > 0) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _clearFeaturedOfRewardRail(),
+      );
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _localMotion?.dispose();
+    _boardScroll.removeListener(_handleScrollLight);
+    _boardScroll.dispose();
+    _scrollLight.dispose();
     // data-only flush (no setState during teardown) — never lose a reward
     // that was earned but whose visual commit hadn't fired yet. Mirror
     // _flushCommit's DATA effects (perfect-day shield + achievement/cosmetic
@@ -333,13 +523,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Bumped on every completion; the header [HearthGlyph] watches this and
-  /// surges its flame once per bump, so the tap's warmth lands on the on-screen
-  /// character (the surge self-settles, and rapid completions re-trigger it).
-  int _beamGen = 0;
+  /// The everyday reward lands on the thing that actually changed: XP.
+  /// The tapestry is reserved for level-up and room progression rather than
+  /// narrating every ordinary completion.
+  final GlobalKey _xpNumberKey = GlobalKey();
 
-  void _beam() {
-    if (mounted) setState(() => _beamGen++);
+  Offset _xpDestination() {
+    final box = _xpNumberKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) {
+      return Offset(MediaQuery.sizeOf(context).width * 0.5, 96);
+    }
+    return box.localToGlobal(Offset(box.size.width * 0.5, box.size.height));
   }
 
   /// Entry point from a card tap: timer-proof quests run their countdown
@@ -350,7 +544,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       // the moment of willpower still deserves a beat, not a cold deferral.
       Sfx.instance.play('tick');
       HapticFeedback.lightImpact();
-      _beam();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -394,6 +587,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _runCompletion(q, tapPos);
   }
 
+  void _keepQuestReflection(GameState state, Quest quest, String text) {
+    if (!identical(state, _state)) return;
+    // The receipt arrives just before the staged XP commit. Settle it first so
+    // the frozen Journal trace includes the quest, XP, stat movement, streak,
+    // and linked goal the person is reflecting on.
+    _flushCommit();
+    final note = Note(
+      at: Clock.now(),
+      text: text,
+      context: state.buildTitle,
+      trace: state.todayJournalTrace(widget.quests),
+    );
+    state.setJournal([...state.journal, note]);
+    widget.onPersist();
+    Storage.logEvent('quick_reflection', [quest.stat.index]);
+  }
+
   /// The §3 completion sequence, staged (see DESIGN.md §3).
   void _runCompletion(Quest q, Offset tapPos, {bool verified = false}) {
     // settle any prior in-flight completion FIRST, so this snapshot reflects
@@ -422,43 +632,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _lastCompleteAt = nowT;
     _maybeOfferReAnchor(q); // "did your Tuesday quest on Thursday? move it?"
     _celebrateDayClearedIfDone(q); // a warm wash when the last ember is lit
-    _beam(); // the portrait shares the moment with you
-
     Sfx.instance.play('complete');
-    if (bundle.revivesHearth) {
-      // Let the completion land first, then hear the room catch: this is a
-      // fuller ignition than the subtle cue used when merely opening Me.
-      Future.delayed(
-        const Duration(milliseconds: 110),
-        () => Sfx.instance.play('hearth'),
-      );
-    }
-    HapticFeedback.lightImpact();
+    if (_combo < 2 && !bundle.shieldHeld) Haptics.questComplete();
     // a shield that held the line gets its own steady double-tap
     if (bundle.shieldHeld) {
       Future.delayed(const Duration(milliseconds: 260), Haptics.shield);
     }
 
     final overlay = Overlay.of(context);
-
-    // Particle burst — fires NOW, coincident with the squash + sound + haptic,
-    // so the embers ARE the tap's exhaust rather than a beat behind it. [tapPos]
-    // resolves to the check-ring centre (quest_card), so the spray ignites from
-    // the ring that just filled, not a random thumb spot.
-    final comboBoost = min(_combo - 1, 5); // a roll brightens the burst
-    late final OverlayEntry burst;
-    burst = OverlayEntry(
-      builder: (_) => ParticleBurst(
-        origin: tapPos,
-        colors:
-            cosmeticFor(s.equippedSkin)?.particles ??
-            [q.stat.color, Palette.xp, Palette.xpLight],
-        count: (14 + 40 * bundle.magnitude).round() + comboBoost * 8,
-        vibrancy: 0.5 + bundle.magnitude + comboBoost * 0.12,
-        reduce: s.reduceMotion,
-        onDone: () => burst.remove(),
-      ),
-    );
+    final still = s.reduceMotion || MediaQuery.disableAnimationsOf(context);
     // a flourish for a roll of clears — escalating warmth, never a takeover
     if (_combo >= 2) {
       Haptics.rise();
@@ -472,7 +654,47 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       );
       overlay.insert(flourish);
     }
-    overlay.insert(burst);
+
+    // Routine clears belong to the check + XP flight. Flecks are reserved for a
+    // genuine exceptional beat, so the page never turns into layered confetti.
+    final showBurst =
+        _combo >= 2 ||
+        bundle.critMult != null ||
+        bundle.loot != null ||
+        q.dread;
+    if (showBurst) {
+      final comboBoost = min(_combo - 1, 5);
+      late final OverlayEntry burst;
+      burst = OverlayEntry(
+        builder: (_) => ParticleBurst(
+          origin: tapPos,
+          colors:
+              cosmeticFor(s.equippedSkin)?.particles ??
+              [q.stat.color, Palette.xp, Palette.xpLight],
+          count: (5 + 12 * bundle.magnitude).round() + comboBoost * 3,
+          vibrancy: 0.38 + bundle.magnitude + comboBoost * 0.08,
+          reduce: still,
+          onDone: () => burst.remove(),
+        ),
+      );
+      overlay.insert(burst);
+    }
+
+    // A single bright trace carries the reward from the checked ring to the
+    // XP rail. The stat chip then pulses when the commit lands, so the loop is
+    // visibly game-first: quest -> XP -> build.
+    late final OverlayEntry xpFlight;
+    xpFlight = OverlayEntry(
+      builder: (_) => QuestCompletionStitch(
+        origin: tapPos,
+        destination: _xpDestination(),
+        xp: bundle.xp,
+        statColor: q.stat.color,
+        reduceMotion: still,
+        onDone: () => xpFlight.remove(),
+      ),
+    );
+    overlay.insert(xpFlight);
 
     // The reward receipt starts quickly so there's no dead gap after the tap;
     // epic + level-ups still resolve once it finishes so big moments never
@@ -488,6 +710,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               bundle: bundle,
               anchor: tapPos,
               state: s,
+              onReflect: (text) => _keepQuestReflection(s, q, text),
               onDone: () {
                 receipt.remove();
                 _activeReceipts--;
@@ -498,6 +721,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         ),
       );
       overlay.insert(receipt);
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _clearFeaturedOfRewardRail(),
+      );
     });
 
     // Commit early — right as the XP bubble lands — so the RISING XP BAR is the
@@ -1371,7 +1597,20 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       child: GlassPanel(
         child: Row(
           children: [
-            EmberFlameIcon(size: 24, color: flameHueFor(_state)),
+            Container(
+              width: 34,
+              height: 34,
+              decoration: facetedDecoration(
+                cut: 8,
+                color: Palette.xpLight.withValues(alpha: 0.08),
+                borderColor: Palette.xpLight.withValues(alpha: 0.38),
+              ),
+              child: const Icon(
+                Icons.touch_app_rounded,
+                size: 19,
+                color: Palette.xpLight,
+              ),
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -1386,7 +1625,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Tap “$tip” — feel the loop. One small win lights the hearth.',
+                    'Tap “$tip” and see what changes.',
                     style: Type.body.copyWith(
                       fontSize: 13.5,
                       color: Palette.textHi,
@@ -1519,7 +1758,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     );
   }
 
-  /// The "Ember of the Day" — a small, fun, today-only bonus quest offered once
+  /// "Today's Bonus" — a small, fun, today-only quest offered once
   /// a day (domain rotates). Tap ADD to drop it on the board as a ⚡ bonus
   /// (expires at dawn); or dismiss. Pure novelty, never an obligation.
   Widget _emberPanel() {
@@ -1539,7 +1778,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         child: GlassPanel(
           child: Row(
             children: [
-              EmberFlameIcon(size: 20, color: e.stat.color),
+              Icon(Icons.add_task_rounded, size: 20, color: e.stat.color),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -1549,7 +1788,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       children: [
                         Flexible(
                           child: Text(
-                            'EMBER OF THE DAY',
+                            'TODAY’S BONUS',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: Type.label.copyWith(
@@ -1609,16 +1848,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     horizontal: 12,
                     vertical: 7,
                   ),
-                  decoration: facetedDecoration(
-                    cut: 7,
-                    color: Colors.transparent,
-                    borderColor: e.stat.color.withValues(alpha: 0.6),
-                  ),
+                  // Controls are brass; the domain speaks through the row's
+                  // glyph and label. An outlined button that changes hue with
+                  // the bonus's category made ADD read as a different control
+                  // every day.
+                  decoration: agedBrassPlate(cut: 7),
                   child: Text(
                     e.title == planTomorrowEmber ? 'PLAN' : 'ADD',
                     style: Type.label.copyWith(
                       fontSize: 11,
-                      color: e.stat.color,
+                      letterSpacing: 1.1,
+                      color: Palette.xpLight,
                     ),
                   ),
                 ),
@@ -1682,7 +1922,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'You lit ${r.litDays} of 7 days — ${r.total} '
+                      'You showed up on ${r.litDays} of 7 days — ${r.total} '
                       'quest${r.total == 1 ? '' : 's'}.',
                       style: Type.body.copyWith(
                         fontSize: 13.5,
@@ -1763,7 +2003,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     );
   }
 
-  /// "Today's Spark" — a warm, state-aware greeting on the first open each day
+  /// A warm, state-aware note on the first open each day
   /// (scout pick #1). Dismissed → stamped, never re-shown that day. Suppressed
   /// while the morning prompt is up (the brief is the bigger greeting).
   Widget _sparkPanel() {
@@ -1811,7 +2051,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'TODAY’S SPARK',
+                      'A NOTE FOR TODAY',
                       style: Type.label.copyWith(
                         fontSize: 11,
                         color: Palette.xpLight,
@@ -1854,7 +2094,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   Widget _focusBody(List<Quest> pool, int allDayLeft, DateTime now) {
     final q = pool.first;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(6, 2, 6, 12),
@@ -1892,7 +2132,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             key: ValueKey('focus-${q.title}'),
             quest: q,
             done: false,
+            featured: true,
             xpPreview: _state.xpPreview(q),
+            deskFinish: activeQuestDeskLook(_state).wood,
+            reduceMotion: _state.reduceMotion,
+            lightDirection: _activeLight,
+            scrollPosition: _scrollLight,
             onComplete: (pos) => _completeQuest(q, pos),
             onManage: () => _manageQuest(q),
           ),
@@ -1961,13 +2206,18 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 const SizedBox(width: 7),
                 Expanded(
                   child: Text(
-                    showingAll ? 'LOW FLAME · FULL BOARD' : 'LOW FLAME SHELTER',
+                    showingAll
+                        ? 'GENTLE MODE · FULL BOARD'
+                        : 'GENTLE MODE SHELTER',
                     style: Type.label.copyWith(fontSize: 10.5, color: accent),
                   ),
                 ),
+                // Both shelter actions read as one control group in aged
+                // brass. A moss EDIT next to an amber SHOW ALL, at identical
+                // weight, implied a difference that does not exist.
                 _ShelterAction(
                   label: 'EDIT 3',
-                  color: accent,
+                  color: Palette.xpLight,
                   onTap: () => unawaited(_editLowFlameThree()),
                 ),
                 const SizedBox(width: 5),
@@ -2005,6 +2255,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final now = Clock.now();
     final next = _state.xpNeeded(_state.level + 1);
+    final deskLook = activeQuestDeskLook(_state);
 
     // Visible today: recurring quests on their scheduled days (round-7);
     // events only once due. Due/overdue events lead the list.
@@ -2100,498 +2351,909 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         .where((q) => q.allDay && !q.doneFor(now))
         .length;
     final showFocus = _state.focusMode && actionable.isNotEmpty;
+    final firstVisibleActionable = visible.indexWhere(
+      (q) => !q.doneFor(now) && !q.allDay,
+    );
+    final boardItemCount = visible.isEmpty
+        ? 1
+        : visible.length + (remaining == 0 ? 1 : 0);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // ── Header HUD ──────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-          child: GlassPanel(
-            blur: true,
-            child: Column(
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        // Compact-height windows sacrifice the cinematic reveal before they
+        // sacrifice the board's primary task. Normal phones retain the full
+        // room; short landscape/split-screen surfaces begin almost collapsed.
+        final roomHeight = bounds.maxHeight < 700
+            ? 48.0
+            : min(
+                bounds.maxWidth / 1.70,
+                bounds.maxHeight * 0.28,
+              ).clamp(168.0, 270.0).toDouble();
+        _localMotion?.setReduceMotion(
+          _state.reduceMotion ||
+              (MediaQuery.maybeDisableAnimationsOf(context) ?? false),
+        );
+        return Listener(
+          behavior: HitTestBehavior.translucent,
+          onPointerDown: _localMotion == null
+              ? null
+              : (_) {
+                  unawaited(_localMotion!.requestBrowserMotionPermission());
+                },
+          child: MouseRegion(
+            onHover: _localMotion == null
+                ? null
+                : (event) => _localMotion!.handlePointer(event, bounds.biggest),
+            onExit: _localMotion?.clearPointer,
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                Row(
-                  children: [
-                    _LevelRing(
-                      // today's clear-progress — the ring fills as you go
-                      progress: visible.isEmpty
-                          ? 0.0
-                          : (visible.length - remaining) / visible.length,
-                      // your keep's living hearth — grows with your level,
-                      // burns when the streak's kept, and surges on completion.
-                      // The living symbol of the player's real-world momentum.
-                      child: HearthGlyph(
-                        level: _state.level,
-                        lit: _state.streakDays > 0,
-                        glow: flameHueFor(_state),
-                        leap: _beamGen,
-                        reduceMotion: _state.reduceMotion,
-                        size: 42,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
+                const Positioned.fill(
+                  child: ColoredBox(color: Color(0xFF100D0B)),
+                ),
+                _QuestRoomBackdrop(
+                  state: _state,
+                  height: roomHeight,
+                  parallax: _activeParallax,
+                  scrollPosition: _scrollLight,
+                ),
+                _QuestBackdropBlur(
+                  controller: _boardScroll,
+                  height: roomHeight,
+                  parallax: _activeParallax,
+                ),
+                NestedScrollView(
+                  key: const ValueKey('quest-board-scroll'),
+                  controller: _boardScroll,
+                  // Prioritize a downward drag for the outer room header.
+                  // Without this, mobile web could strand the inner quest
+                  // list at its top while the outer header remained mostly
+                  // collapsed, so the complete room could not be revealed.
+                  floatHeaderSlivers: true,
+                  physics: const BouncingScrollPhysics(
+                    parent: AlwaysScrollableScrollPhysics(),
+                  ),
+                  headerSliverBuilder: (context, innerBoxIsScrolled) => [
+                    SliverToBoxAdapter(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    'LEVEL ${_state.level}',
-                                    style: Type.label.copyWith(fontSize: 13),
-                                  ),
-                                  // the fire the app is named for, finally on
-                                  // the daily screen — warmth that never breaks
-                                  // to zero (shields/rest absorb misses), so
-                                  // there's an anchor without the loss-cliff
-                                  if (_state.streakDays > 0) ...[
-                                    const SizedBox(width: 10),
-                                    _StreakChip(
-                                      days: _state.streakDays,
-                                      flameHue: flameHueFor(_state),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              // clamp: pre-level-up overflow reads as a full
-                              // bar, never "130 / 105". Rolls prev→new so the
-                              // hero number visibly ticks up on every gain.
-                              Flexible(
-                                child: RollingNumber(
-                                  min(_state.xp, next),
-                                  suffix: ' / $next XP',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Type.numerals.copyWith(
-                                    fontSize: 16,
-                                    color: Palette.xp,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          XpBar(
-                            progress: _state.xp / next,
-                            generation: _state.level,
-                            reduceMotion: _state.reduceMotion,
-                          ),
-                          if (_state.nextChaseLabel() != null) ...[
-                            const SizedBox(height: 6),
-                            Row(
+                          SizedBox(height: roomHeight - 8),
+                          // ── Header HUD ──────────────────────────────────────────
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Icon(
-                                  _state.nextUnlockLabel() != null
-                                      ? Icons.lock_outline
-                                      : Icons.trending_up,
-                                  size: 13,
-                                  color: Palette.textLo,
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    'NEXT · ${_state.nextChaseLabel()}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Type.label.copyWith(fontSize: 12),
+                                // ── Level + XP ──────────────────────────────────
+                                // Its own slab, the way the approved board art has
+                                // it: medallion, LEVEL as a small caps label, the
+                                // level itself as a display numeral, honey track
+                                // underneath. One string of grey mono carried all
+                                // three jobs before and no hierarchy survived it.
+                                _QuestHudPanel(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    10,
+                                    2,
+                                    12,
+                                    2,
+                                  ),
+                                  child: SizedBox(
+                                    height: 45,
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Positioned(
+                                          left: 0,
+                                          top: -4.5,
+                                          child: QuestDeskStyleButton(
+                                            look: deskLook,
+                                            onTap: _openQuestDeskStyle,
+                                            compact: true,
+                                          ),
+                                        ),
+                                        Positioned(
+                                          left: 64,
+                                          right: 0,
+                                          top: 0,
+                                          bottom: 0,
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    'LEVEL',
+                                                    style: Type.display
+                                                        .copyWith(
+                                                          fontSize: 13,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          letterSpacing: 0.8,
+                                                          color:
+                                                              Palette.textMid,
+                                                        ),
+                                                  ),
+                                                  const SizedBox(width: 7),
+                                                  Text(
+                                                    '${_state.level}',
+                                                    style: Type.numerals
+                                                        .copyWith(
+                                                          fontSize: 23,
+                                                          color: Palette.textHi,
+                                                        ),
+                                                  ),
+                                                  Expanded(
+                                                    child: Align(
+                                                      alignment:
+                                                          Alignment.centerRight,
+                                                      child: KeyedSubtree(
+                                                        key: _xpNumberKey,
+                                                        child: RollingNumber(
+                                                          min(_state.xp, next),
+                                                          suffix: ' / $next XP',
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: Type.numerals
+                                                              .copyWith(
+                                                                fontSize: 15.5,
+                                                                color:
+                                                                    Palette.xp,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 2),
+                                              _QuestXpTrack(
+                                                progress: _state.xp / next,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                StatChips(
-                  values: _state.stats,
-                  reduceMotion: _state.reduceMotion,
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 8),
-        const InstallHint(),
-        // ONE banner at a time — the hearth has a single mantel. Whichever is
-        // due wins by priority; the others keep their own seen-stamps and get
-        // their own quiet day (audit: three stacked panels pushed the quest
-        // list below the fold on smaller phones).
-        _hearthPanel(),
-        if (lowFlame)
-          _lowFlameBar(
-            chosen: shelteredQuestCount,
-            resting: resting,
-            showingAll: _showFullLowFlame,
-          ),
-
-        // ── Quest list ──────────────────────────────────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 8, 14, 2),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  showFocus
-                      ? 'FOCUS MODE'
-                      : lowFlame
-                      ? (_showFullLowFlame
-                            ? 'LOW FLAME · $fullRemaining ON THE BOARD'
-                            : 'LOW FLAME · $remaining LEFT')
-                      : 'TODAY · $remaining LEFT',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Type.label.copyWith(
-                    fontSize: 12,
-                    color: showFocus ? Palette.streak : null,
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  // one-quest-at-a-time toggle (round-21): tames the overwhelm
-                  _HeaderAction(
-                    icon: _state.focusMode
-                        ? Icons.center_focus_strong
-                        : Icons.center_focus_weak,
-                    color: _state.focusMode ? Palette.streak : Palette.xpLight,
-                    label: _state.focusMode
-                        ? 'Leave focus mode'
-                        : 'Focus mode — one quest at a time',
-                    onTap: _toggleFocus,
-                  ),
-                  _HeaderAction(
-                    icon: Icons.add_circle_outline,
-                    color: Palette.xpLight,
-                    label: 'Add a quest',
-                    onTap: _quickAdd,
-                  ),
-                  // the day's bookends: sun while a morning briefing is
-                  // reachable (always tappable, not just on auto-show),
-                  // moon until tonight's close-out is done
-                  if (_state.morningAvailable)
-                    _HeaderAction(
-                      icon: Icons.wb_twilight,
-                      color: Palette.streak,
-                      label: 'Morning briefing',
-                      onTap: _openMorning,
-                    )
-                  else if (_state.nightDoneDay != today)
-                    _HeaderAction(
-                      icon: Icons.nightlight_round,
-                      color: Palette.xpLight,
-                      label: 'Close out the day',
-                      onTap: _openNight,
-                    )
-                  else
-                    const _HeaderAction(
-                      icon: Icons.nightlight_round,
-                      color: Palette.textLo,
-                      label: 'Day closed out — see you tomorrow',
-                    ),
-                  // the momentum spark: cleared something? push further.
-                  _HeaderAction(
-                    icon: Icons.bolt,
-                    color: Palette.xpLight,
-                    label: 'Keep the fire going — encores & variety',
-                    onTap: _openMomentum,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: showFocus
-              ? _focusBody(actionable, allDayLeft, now)
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
-                  itemCount: visible.isEmpty
-                      ? 1
-                      : visible.length + (remaining == 0 ? 1 : 0),
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (_, i) {
-                    // a board with nothing on it — invite the first ember, don't
-                    // pretend a day was "cleared" when none was
-                    if (visible.isEmpty) {
-                      return GlassPanel(
-                        child: Column(
-                          children: [
-                            EmberFlameIcon(
-                              size: 28,
-                              color: flameHueFor(_state),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              sheltered
-                                  ? 'The day is sheltered'
-                                  : 'A clear board',
-                              style: Type.display.copyWith(fontSize: 20),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              sheltered
-                                  ? 'Nothing needs carrying right now. A clear day is allowed.'
-                                  : 'add a quest with + above, or take on a goal — '
-                                        'light the first ember and the day tilts your way',
-                              textAlign: TextAlign.center,
-                              style: Type.body.copyWith(
-                                fontSize: 13.5,
-                                fontStyle: FontStyle.italic,
-                                color: Palette.textLo,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            GestureDetector(
-                              onTap: sheltered
-                                  ? () => unawaited(_editLowFlameThree())
-                                  : _quickAdd,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 9,
-                                ),
-                                decoration: facetedDecoration(
-                                  cut: 8,
-                                  color: Colors.transparent,
-                                  borderColor: Palette.xpLight.withValues(
-                                    alpha: 0.6,
+                                const SizedBox(height: 7),
+                                // ── The six domains ─────────────────────────────
+                                _QuestHudPanel(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  child: SizedBox(
+                                    height: 106,
+                                    child: StatChips(
+                                      values: _state.stats,
+                                      reduceMotion: _state.reduceMotion,
+                                    ),
                                   ),
                                 ),
-                                child: Text(
-                                  sheltered
-                                      ? 'CHOOSE UP TO THREE'
-                                      : 'ADD A QUEST',
-                                  style: Type.label.copyWith(
-                                    fontSize: 11,
-                                    color: Palette.xpLight,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-                    // the day, cleared — celebrate and hand off to the night
-                    if (remaining == 0 && i == 0) {
-                      return TweenAnimationBuilder<double>(
-                        // a gentle pop-in: the candles flaring up as the day closes
-                        tween: Tween(begin: 0, end: 1),
-                        duration: Motion.takeover,
-                        curve: Curves.easeOutBack,
-                        builder: (_, t, child) => Opacity(
-                          opacity: t.clamp(0.0, 1.0),
-                          child: Transform.scale(
-                            scale: 0.9 + 0.1 * t,
-                            child: child,
-                          ),
-                        ),
-                        child: GlassPanel(
-                          glow: true,
-                          child: Column(
-                            children: [
-                              const Icon(
-                                Icons.auto_awesome,
-                                size: 26,
-                                color: Palette.xpLight,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                sheltered
-                                    ? 'Enough for today'
-                                    : 'Day cleared ✨',
-                                style: Type.display.copyWith(fontSize: 20),
-                              ),
-                              const SizedBox(height: 8),
-                              // the day reflected back — which domains you
-                              // tended, in the app's warm voice (round-32)
-                              Text(
-                                sheltered
-                                    ? 'You protected your energy and still tended what mattered.'
-                                    : _state.todaysShape(),
-                                textAlign: TextAlign.center,
-                                style: Type.body.copyWith(
-                                  fontSize: 14,
-                                  height: 1.4,
-                                  color: Palette.textMid,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                sheltered
-                                    ? '$resting quest${resting == 1 ? '' : 's'} resting safely — none failed, none lost'
-                                    : _state.nightDoneDay == today
-                                    ? 'rest well — tomorrow is already taking shape'
-                                    : 'nothing left but the goodnight',
-                                style: Type.body.copyWith(
-                                  fontSize: 13.5,
-                                  fontStyle: FontStyle.italic,
-                                  color: Palette.textLo,
-                                ),
-                              ),
-                              // peak-end: you cleared it — still hot? push further
-                              if (!sheltered) ...[
-                                const SizedBox(height: 10),
-                                GestureDetector(
-                                  onTap: _openMomentum,
+                                // ── Progression + desk finish ───────────────────
+                                // Lifted out of the panels. Boxed inside them these
+                                // were a frame within a frame, and the pair
+                                // truncated against each other on every phone —
+                                // "Expe…" sitting beside "MIDNIGHT DE…" reads as
+                                // broken, not as dense.
+                                const SizedBox.shrink(),
+                                Offstage(
+                                  offstage: true,
                                   child: Row(
-                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Icon(
-                                        Icons.bolt,
-                                        size: 13,
-                                        color: Palette.streak,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'keep the fire going',
-                                        style: Type.label.copyWith(
-                                          fontSize: 11,
-                                          color: Palette.streak,
+                                      if (_state.nextChaseLabel() != null) ...[
+                                        Icon(
+                                          _state.nextUnlockLabel() != null
+                                              ? Icons.lock_outline
+                                              : Icons.trending_up,
+                                          size: 13,
+                                          color: Palette.textLo,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            'NEXT · ${_state.nextChaseLabel()}',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: Type.label.copyWith(
+                                              fontSize: 11,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                      ] else
+                                        const Spacer(),
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 190,
+                                        ),
+                                        child: QuestDeskStyleButton(
+                                          look: deskLook,
+                                          onTap: _openQuestDeskStyle,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                               ],
-                              if (_state.nightDoneDay != today) ...[
-                                const SizedBox(height: 12),
-                                GestureDetector(
-                                  onTap: _openNight,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 18,
-                                      vertical: 9,
-                                    ),
-                                    decoration: facetedDecoration(
-                                      cut: 8,
-                                      color: Colors.transparent,
-                                      borderColor: Palette.xpLight.withValues(
-                                        alpha: 0.6,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'CLOSE OUT THE DAY 🌙',
-                                      style: Type.label.copyWith(
-                                        fontSize: 11,
-                                        color: Palette.xpLight,
-                                      ),
+                            ),
+                          ),
+
+                          Offstage(
+                            offstage: true,
+                            child: Column(
+                              children: [
+                                const InstallHint(),
+                                // ONE banner at a time — the hearth has a single mantel. Whichever is
+                                // due wins by priority; the others keep their own seen-stamps and get
+                                // their own quiet day (audit: three stacked panels pushed the quest
+                                // list below the fold on smaller phones).
+                                _hearthPanel(),
+                                if (lowFlame)
+                                  _lowFlameBar(
+                                    chosen: shelteredQuestCount,
+                                    resting: resting,
+                                    showingAll: _showFullLowFlame,
+                                  ),
+                              ],
+                            ),
+                          ),
+
+                          // ── Quest list ──────────────────────────────────────────
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(18, 7, 13, 4),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    showFocus
+                                        ? 'FOCUS MODE'
+                                        : lowFlame
+                                        ? (_showFullLowFlame
+                                              ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
+                                              : 'GENTLE MODE · $remaining LEFT')
+                                        : 'TODAY · $remaining LEFT',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Type.label.copyWith(
+                                      fontSize: 12,
+                                      color: showFocus ? Palette.streak : null,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    final q = visible[remaining == 0 ? i - 1 : i];
-                    final isDone = q.doneFor(now);
-                    final card = QuestCard(
-                      // stable key so a card's squash/state follows it as the list
-                      // re-sorts a finished quest down to the bottom
-                      key: ValueKey('card-${q.title}'),
-                      quest: q,
-                      done: isDone,
-                      xpPreview: _state.xpPreview(q),
-                      onComplete: (pos) => _completeQuest(q, pos),
-                      onManage: () => _manageQuest(q),
-                      // a finished, still-climbable quest offers the next rung
-                      // right on the card
-                      onEncore: (isDone && !q.bonus && !q.workout && q.canRise)
-                          ? _openMomentum
-                          : null,
-                    );
-                    // the latest finished quest can be swiped left to undo (a calmer
-                    // affordance than chasing the snackbar)
-                    if (isDone &&
-                        _undoSnapshot != null &&
-                        q.title == _undoTitle) {
-                      return Dismissible(
-                        key: ValueKey('undo-${q.title}'),
-                        direction: DismissDirection.endToStart,
-                        dismissThresholds: const {
-                          DismissDirection.endToStart: 0.42,
-                        },
-                        confirmDismiss: (_) async {
-                          _undoLast();
-                          return false; // restore handles the state change
-                        },
-                        secondaryBackground: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 26),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.undo,
-                                size: 16,
-                                color: Palette.xpLight,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'UNDO',
-                                style: Type.label.copyWith(
-                                  fontSize: 11,
-                                  color: Palette.xpLight,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        background: const SizedBox.shrink(),
-                        // a whisper of the affordance — without it the swipe
-                        // undo is invisible and a fat-finger "done" feels
-                        // unrecoverable (the calm alternative to a snackbar)
-                        child: Stack(
-                          children: [
-                            card,
-                            Positioned(
-                              right: 20,
-                              top: 0,
-                              bottom: 0,
-                              child: IgnorePointer(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
+                                Row(
                                   children: [
-                                    Icon(
-                                      Icons.chevron_left,
-                                      size: 13,
-                                      color: Palette.textLo.withValues(
-                                        alpha: 0.55,
+                                    // one-quest-at-a-time toggle (round-21): tames the overwhelm
+                                    _HeaderAction(
+                                      icon: _state.focusMode
+                                          ? Icons.center_focus_strong
+                                          : Icons.center_focus_weak,
+                                      color: _state.focusMode
+                                          ? Palette.streak
+                                          : Palette.xpLight,
+                                      label: _state.focusMode
+                                          ? 'Leave focus mode'
+                                          : 'Focus mode — one quest at a time',
+                                      onTap: _toggleFocus,
+                                    ),
+                                    _HeaderAction(
+                                      icon: Icons.add_circle_outline,
+                                      color: Palette.xpLight,
+                                      label: 'Add a quest',
+                                      onTap: _quickAdd,
+                                    ),
+                                    // the day's bookends: sun while a morning briefing is
+                                    // reachable (always tappable, not just on auto-show),
+                                    // moon until tonight's close-out is done
+                                    if (_state.morningAvailable)
+                                      _HeaderAction(
+                                        icon: Icons.wb_twilight,
+                                        color: Palette.streak,
+                                        label: 'Morning briefing',
+                                        onTap: _openMorning,
+                                      )
+                                    else if (_state.nightDoneDay != today)
+                                      _HeaderAction(
+                                        // All four toolbar marks are outlines;
+                                        // the solid moon was the one filled glyph
+                                        // in the row.
+                                        icon: Icons.nightlight_outlined,
+                                        color: Palette.xpLight,
+                                        label: 'Close out the day',
+                                        onTap: _openNight,
+                                      )
+                                    else
+                                      const _HeaderAction(
+                                        // All four toolbar marks are outlines;
+                                        // the solid moon was the one filled glyph
+                                        // in the row.
+                                        icon: Icons.nightlight_outlined,
+                                        color: Palette.textLo,
+                                        label:
+                                            'Day closed out — see you tomorrow',
+                                      ),
+                                    // the momentum spark: cleared something? push further.
+                                    Offstage(
+                                      offstage: true,
+                                      child: _HeaderAction(
+                                        icon: Icons.bolt,
+                                        color: Palette.xpLight,
+                                        label:
+                                            'Take one more step — encores & variety',
+                                        onTap: _openMomentum,
                                       ),
                                     ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  body: showFocus
+                      ? _focusBody(actionable, allDayLeft, now)
+                      : ListView.separated(
+                          // 130 is the shared dock inset (widgets/luxe_depth.dart);
+                          // this board was the one list that used its own number,
+                          // so its last quest stopped 14px shy of where every
+                          // other page's does.
+                          padding: const EdgeInsets.fromLTRB(12, 3, 12, 130),
+                          itemCount: boardItemCount + 1,
+                          separatorBuilder: (_, _) => const SizedBox(height: 8),
+                          itemBuilder: (_, i) {
+                            if (i == boardItemCount) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  const InstallHint(),
+                                  _hearthPanel(),
+                                  if (lowFlame)
+                                    _lowFlameBar(
+                                      chosen: shelteredQuestCount,
+                                      resting: resting,
+                                      showingAll: _showFullLowFlame,
+                                    ),
+                                ],
+                              );
+                            }
+                            // a board with nothing on it — invite the first ember, don't
+                            // pretend a day was "cleared" when none was
+                            if (visible.isEmpty) {
+                              return GlassPanel(
+                                child: Column(
+                                  children: [
+                                    const Icon(
+                                      Icons.add_task_rounded,
+                                      size: 28,
+                                      color: Palette.xpLight,
+                                    ),
+                                    const SizedBox(height: 8),
                                     Text(
-                                      'undo',
-                                      style: Type.label.copyWith(
-                                        fontSize: 9,
-                                        color: Palette.textLo.withValues(
-                                          alpha: 0.55,
+                                      sheltered
+                                          ? 'The day is sheltered'
+                                          : 'A clear board',
+                                      style: Type.display.copyWith(
+                                        fontSize: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      sheltered
+                                          ? 'Nothing needs carrying right now. A clear day is allowed.'
+                                          : 'add a quest with + above, or take on a goal — '
+                                                'choose one next step and the day tilts your way',
+                                      textAlign: TextAlign.center,
+                                      style: Type.body.copyWith(
+                                        fontSize: 13.5,
+                                        fontStyle: FontStyle.italic,
+                                        color: Palette.textLo,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    GestureDetector(
+                                      onTap: sheltered
+                                          ? () =>
+                                                unawaited(_editLowFlameThree())
+                                          : _quickAdd,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 18,
+                                          vertical: 9,
+                                        ),
+                                        decoration: facetedDecoration(
+                                          cut: 8,
+                                          color: Colors.transparent,
+                                          borderColor: Palette.xpLight
+                                              .withValues(alpha: 0.6),
+                                        ),
+                                        child: Text(
+                                          sheltered
+                                              ? 'CHOOSE UP TO THREE'
+                                              : 'ADD A QUEST',
+                                          style: Type.label.copyWith(
+                                            fontSize: 11,
+                                            color: Palette.xpLight,
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              ),
-                            ),
+                              );
+                            }
+                            // the day, cleared — celebrate and hand off to the night
+                            if (remaining == 0 && i == 0) {
+                              return TweenAnimationBuilder<double>(
+                                // a gentle pop-in: the candles flaring up as the day closes
+                                tween: Tween(begin: 0, end: 1),
+                                duration: Motion.takeover,
+                                curve: Curves.easeOutBack,
+                                builder: (_, t, child) => Opacity(
+                                  opacity: t.clamp(0.0, 1.0),
+                                  child: Transform.scale(
+                                    scale: 0.9 + 0.1 * t,
+                                    child: child,
+                                  ),
+                                ),
+                                child: GlassPanel(
+                                  glow: true,
+                                  child: Column(
+                                    children: [
+                                      const Icon(
+                                        Icons.auto_awesome,
+                                        size: 26,
+                                        color: Palette.xpLight,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        sheltered
+                                            ? 'Enough for today'
+                                            : 'Day cleared ✨',
+                                        style: Type.display.copyWith(
+                                          fontSize: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      // the day reflected back — which domains you
+                                      // tended, in the app's warm voice (round-32)
+                                      Text(
+                                        sheltered
+                                            ? 'You protected your energy and still tended what mattered.'
+                                            : _state.todaysShape(),
+                                        textAlign: TextAlign.center,
+                                        style: Type.body.copyWith(
+                                          fontSize: 14,
+                                          height: 1.4,
+                                          color: Palette.textMid,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        sheltered
+                                            ? '$resting quest${resting == 1 ? '' : 's'} resting safely — none failed, none lost'
+                                            : _state.nightDoneDay == today
+                                            ? 'rest well — tomorrow is already taking shape'
+                                            : 'nothing left but the goodnight',
+                                        style: Type.body.copyWith(
+                                          fontSize: 13.5,
+                                          fontStyle: FontStyle.italic,
+                                          color: Palette.textLo,
+                                        ),
+                                      ),
+                                      // peak-end: you cleared it — still hot? push further
+                                      if (!sheltered) ...[
+                                        const SizedBox(height: 10),
+                                        GestureDetector(
+                                          onTap: _openMomentum,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.bolt,
+                                                size: 13,
+                                                color: Palette.streak,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'take one more step',
+                                                style: Type.label.copyWith(
+                                                  fontSize: 11,
+                                                  color: Palette.streak,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      if (_state.nightDoneDay != today) ...[
+                                        const SizedBox(height: 12),
+                                        GestureDetector(
+                                          onTap: _openNight,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 18,
+                                              vertical: 9,
+                                            ),
+                                            decoration: facetedDecoration(
+                                              cut: 8,
+                                              color: Colors.transparent,
+                                              borderColor: Palette.xpLight
+                                                  .withValues(alpha: 0.6),
+                                            ),
+                                            child: Text(
+                                              'CLOSE OUT THE DAY 🌙',
+                                              style: Type.label.copyWith(
+                                                fontSize: 11,
+                                                color: Palette.xpLight,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                            final q = visible[remaining == 0 ? i - 1 : i];
+                            final isDone = q.doneFor(now);
+                            final isFeatured =
+                                !isDone &&
+                                firstVisibleActionable >= 0 &&
+                                identical(q, visible[firstVisibleActionable]);
+                            final card = QuestCard(
+                              // stable key so a card's squash/state follows it as the list
+                              // re-sorts a finished quest down to the bottom
+                              key: ValueKey('card-${q.title}'),
+                              featuredAnchor: isFeatured
+                                  ? _featuredAnchor
+                                  : null,
+                              quest: q,
+                              done: isDone,
+                              featured: isFeatured,
+                              xpPreview: _state.xpPreview(q),
+                              deskFinish: deskLook.wood,
+                              reduceMotion: _state.reduceMotion,
+                              lightDirection: _activeLight,
+                              scrollPosition: _scrollLight,
+                              onComplete: (pos) => _completeQuest(q, pos),
+                              onManage: () => _manageQuest(q),
+                              // a finished, still-climbable quest offers the next rung
+                              // right on the card
+                              onEncore:
+                                  (isDone &&
+                                      !q.bonus &&
+                                      !q.workout &&
+                                      q.canRise)
+                                  ? _openMomentum
+                                  : null,
+                            );
+                            // the latest finished quest can be swiped left to undo (a calmer
+                            // affordance than chasing the snackbar)
+                            if (isDone &&
+                                _undoSnapshot != null &&
+                                q.title == _undoTitle) {
+                              return Dismissible(
+                                key: ValueKey('undo-${q.title}'),
+                                direction: DismissDirection.endToStart,
+                                dismissThresholds: const {
+                                  DismissDirection.endToStart: 0.42,
+                                },
+                                confirmDismiss: (_) async {
+                                  _undoLast();
+                                  return false; // restore handles the state change
+                                },
+                                secondaryBackground: Container(
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 26),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.undo,
+                                        size: 16,
+                                        color: Palette.xpLight,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'UNDO',
+                                        style: Type.label.copyWith(
+                                          fontSize: 11,
+                                          color: Palette.xpLight,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                background: const SizedBox.shrink(),
+                                // The receipt teaches "swipe card to undo".
+                                // Keeping a second hint on the card collided with
+                                // XP on long titles and cheapened the settled win.
+                                child: card,
+                              );
+                            }
+                            return card;
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// A fixed slice of the player's selected complete room behind the quest board,
+/// so the backdrop carries the same identity rather than acting as wallpaper.
+class _QuestRoomBackdrop extends StatelessWidget {
+  const _QuestRoomBackdrop({
+    required this.state,
+    required this.height,
+    required this.parallax,
+    required this.scrollPosition,
+  });
+
+  final GameState state;
+  final double height;
+  final ValueListenable<Offset> parallax;
+  final ValueListenable<double> scrollPosition;
+
+  @override
+  Widget build(BuildContext context) {
+    final still =
+        state.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    return Positioned(
+      top: 0,
+      left: -17,
+      right: -17,
+      height: height + 18,
+      child: IgnorePointer(
+        child: ClipRect(
+          child: LayoutBuilder(
+            builder: (context, bounds) {
+              final roomWidth = bounds.maxWidth;
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.cover,
+                    child: SizedBox(
+                      width: roomWidth,
+                      height: roomWidth / 1.7,
+                      child: QuestDepthRoom(
+                        parallax: parallax,
+                        scrollPosition: scrollPosition,
+                        flameHue: flameHueFor(state),
+                        lively: !still,
+                      ),
+                    ),
+                  ),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x12000000),
+                          Color(0x04000000),
+                          Color(0x24191210),
+                          Color(0xB0191210),
+                        ],
+                        stops: [0, 0.66, 0.92, 1],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Lives between the fixed room and scrolling content. As the board climbs,
+/// the environment becomes progressively softer and warmer while every quest
+/// label and action above this layer stays crisp.
+class _QuestBackdropBlur extends StatelessWidget {
+  const _QuestBackdropBlur({
+    required this.controller,
+    required this.height,
+    required this.parallax,
+  });
+
+  final ScrollController controller;
+  final double height;
+  final ValueListenable<Offset> parallax;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([controller, parallax]),
+      builder: (context, _) {
+        final offset = controller.hasClients
+            ? controller.offset.clamp(0.0, 220.0)
+            : 0.0;
+        final strength = Curves.easeOutCubic.transform(offset / 220);
+        // At rest there is no veil to composite. During scroll a registered,
+        // pre-softened copy of the room replaces the former live
+        // BackdropFilter, preserving the expensive-looking depth cue without
+        // asking a phone GPU to reblur the full animated room every frame.
+        if (strength <= 0.001) return const SizedBox.shrink();
+        final tilt = parallax.value;
+        return Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          height: height,
+          child: IgnorePointer(
+            child: ClipRect(
+              child: Opacity(
+                key: const ValueKey('quest-backdrop-blur'),
+                opacity: strength,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Transform.translate(
+                      offset: Offset(-tilt.dx * 2.2, -tilt.dy * 1.5),
+                      child: Transform.scale(
+                        scale: 1.055,
+                        child: Image.asset(
+                          QuestDepthRoom.scrollSoftAsset,
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.low,
+                          excludeFromSemantics: true,
+                        ),
+                      ),
+                    ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x101A120E),
+                            Color(0x38211610),
+                            Color(0x7A140D0A),
                           ],
                         ),
-                      );
-                    }
-                    return card;
-                  },
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Liquid-honey progress chrome. The tapestry remains a quiet permanent room
+/// object instead of being repeated as an everyday HUD element.
+/// The level mark: a cut-stone plate carrying one honey star. In the approved
+/// board art this is the only piece of jewellery on the header, and it's what
+/// anchors the left edge — without it LEVEL/XP is a line of text floating in a
+/// slab with nothing holding it down.
+class _QuestHudPanel extends StatelessWidget {
+  const _QuestHudPanel({
+    required this.child,
+    this.padding = const EdgeInsets.all(12),
+  });
+
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    const cut = 10.0;
+    return DecoratedBox(
+      decoration: facetedDecoration(
+        cut: cut,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xEC27201A), Color(0xF2181411), Color(0xF5100D0B)],
+          stops: [0, 0.58, 1],
         ),
-      ],
+        borderColor: const Color(0xFF584C40),
+        borderWidth: 1,
+        shadows: const [
+          BoxShadow(
+            color: Color(0x8F080605),
+            blurRadius: 14,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipPath(
+        clipper: const FacetedClipper(cut: cut),
+        child: Stack(
+          children: [
+            Padding(padding: padding, child: child),
+            Positioned(
+              left: 18,
+              right: 18,
+              top: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: 1,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0x00FFE3AD),
+                        Color(0x90FFE3AD),
+                        Color(0x12FFE3AD),
+                        Color(0x00FFE3AD),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestXpTrack extends StatelessWidget {
+  const _QuestXpTrack({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = progress.clamp(0.0, 1.0);
+    return Container(
+      height: 10,
+      padding: const EdgeInsets.all(1.5),
+      decoration: facetedDecoration(
+        cut: 4,
+        color: const Color(0xFF0E0B09),
+        borderColor: const Color(0xFF4E4033),
+        borderWidth: 0.8,
+      ),
+      child: ClipPath(
+        clipper: const FacetedClipper(cut: 2.8),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: FractionallySizedBox(
+            widthFactor: value,
+            // Without heightFactor the childless DecoratedBox below lays out at
+            // constraints.smallest — height 0 — and the fill vanishes entirely.
+            // (FacetedMeter already carries this; this one had lost it.)
+            heightFactor: 1,
+            child: const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0xFFFFD98B),
+                    Color(0xFFE4A347),
+                    Color(0xFFB96520),
+                  ],
+                ),
+                boxShadow: [BoxShadow(color: Palette.honeyGlow, blurRadius: 7)],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -2641,6 +3303,133 @@ class _ShelterAction extends StatelessWidget {
   }
 }
 
+class _QuestDeskLookRow extends StatelessWidget {
+  const _QuestDeskLookRow({
+    required this.look,
+    required this.selected,
+    required this.owned,
+    required this.price,
+    required this.onTap,
+  });
+
+  final QuestDeskLook look;
+  final bool selected;
+  final bool owned;
+  final int price;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: selected,
+    enabled: owned,
+    label: '${look.name} Quest Desk style${owned ? '' : ', locked'}',
+    child: InkWell(
+      customBorder: const FacetedBorder(cut: 9),
+      onTap: onTap,
+      child: AnimatedOpacity(
+        duration: Motion.quick,
+        opacity: owned ? 1 : 0.52,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+          decoration: facetedDecoration(
+            cut: 9,
+            color: Color.lerp(const Color(0xD9241A15), look.wood, 0.22),
+            borderColor: selected
+                ? look.brass.withValues(alpha: 0.86)
+                : look.brass.withValues(alpha: 0.30),
+          ),
+          child: Row(
+            children: [
+              // A swatch of the actual finish — wood, textile, brass — instead
+              // of a 12 px slice of the tapestry raster, which showed the same
+              // picture seven times and told you nothing about the desk.
+              _DeskSwatch(look: look),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Text(
+                  look.name.toUpperCase(),
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    color: owned ? Palette.textHi : Palette.textLo,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (selected)
+                Icon(Icons.check, size: 17, color: look.brass)
+              else if (owned)
+                Icon(Icons.chevron_right, size: 18, color: Palette.textLo)
+              else ...[
+                Icon(Icons.lock_outline, size: 14, color: Palette.textLo),
+                const SizedBox(width: 4),
+                if (price == 0)
+                  Text(
+                    'ROOM',
+                    style: Type.label.copyWith(
+                      fontSize: 9,
+                      color: Palette.textLo,
+                    ),
+                  )
+                else ...[
+                  Icon(Icons.auto_awesome, size: 11, color: Palette.textLo),
+                  const SizedBox(width: 2),
+                  Text(
+                    '$price',
+                    style: Type.label.copyWith(
+                      fontSize: 9,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                ],
+              ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// A material swatch for one Quest Desk finish: the wood plane it is cut from,
+/// its textile band, and the brass it is trimmed in.
+class _DeskSwatch extends StatelessWidget {
+  const _DeskSwatch({required this.look});
+  final QuestDeskLook look;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 64,
+    height: 26,
+    child: ClipPath(
+      clipper: const FacetedClipper(cut: 6),
+      child: DecoratedBox(
+        decoration: facetedDecoration(
+          cut: 6,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color.lerp(look.wood, const Color(0xFFFFE9C4), 0.16)!,
+              look.wood,
+              Color.lerp(look.wood, const Color(0xFF14100C), 0.42)!,
+            ],
+          ),
+          borderColor: look.brass.withValues(alpha: 0.62),
+          borderWidth: 0.9,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Container(height: 7, color: look.textile),
+            Container(height: 2, color: look.brass.withValues(alpha: 0.86)),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 class _HeaderAction extends StatelessWidget {
   const _HeaderAction({
     required this.icon,
@@ -2666,10 +3455,22 @@ class _HeaderAction extends StatelessWidget {
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
-          child: SizedBox(
+          child: Container(
             width: 44,
             height: 44,
-            child: Icon(icon, size: 23, color: color),
+            margin: const EdgeInsets.only(left: 5),
+            alignment: Alignment.center,
+            decoration: facetedDecoration(
+              cut: 8,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF241D18), Color(0xFF13100E)],
+              ),
+              borderColor: const Color(0xFF4D4035),
+              borderWidth: 0.9,
+            ),
+            child: Icon(icon, size: 20, color: color),
           ),
         ),
       ),
@@ -2771,8 +3572,8 @@ class _ComboFlourishState extends State<_ComboFlourish>
 
   static String _word(int n) {
     if (n >= 5) return 'UNSTOPPABLE';
-    if (n == 4) return 'BLAZING';
-    if (n == 3) return 'ON FIRE';
+    if (n == 4) return 'LOCKED IN';
+    if (n == 3) return 'IN FLOW';
     return 'ON A ROLL';
   }
 
@@ -2819,7 +3620,11 @@ class _ComboFlourishState extends State<_ComboFlourish>
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          EmberFlameIcon(size: 18, color: widget.flameHue),
+                          Icon(
+                            Icons.bolt_rounded,
+                            size: 18,
+                            color: widget.flameHue,
+                          ),
                           const SizedBox(width: 6),
                           Text(
                             '${_word(widget.combo)} · ×${widget.combo}',
@@ -2845,14 +3650,13 @@ class _ComboFlourishState extends State<_ComboFlourish>
 /// The portrait's ring now tracks TODAY'S clear-progress (it fills as you clear
 /// the board), not XP — XP already lives in the bar + numeral right beside it,
 /// so the ring earns its own job (round-31: no triple-encoding one value).
-/// The streak shown as forgiving warmth — a flame + day count that flares
+/// The streak shown as forgiving continuity — a link + day count that lifts
 /// gently when it extends and NEVER turns red, urgent, or "don't lose this".
 /// Shields and rest days absorb misses silently upstream (never-punish), so
 /// this is only ever an anchor, never a threat.
 class _StreakChip extends StatefulWidget {
-  const _StreakChip({required this.days, required this.flameHue});
+  const _StreakChip({required this.days});
   final int days;
-  final Color flameHue;
 
   @override
   State<_StreakChip> createState() => _StreakChipState();
@@ -2885,141 +3689,22 @@ class _StreakChipState extends State<_StreakChip>
         final s = _flare.value > 0 ? sin(_flare.value * pi) : 0.0;
         return Transform.scale(scale: 1 + 0.18 * s, child: child);
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: facetedDecoration(
-          cut: 5,
-          color: Palette.streak.withValues(alpha: 0.14),
-          borderColor: Palette.streak.withValues(alpha: 0.4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            EmberFlameIcon(size: 15, color: widget.flameHue),
-            const SizedBox(width: 3),
-            Text(
-              '${widget.days}',
-              style: Type.label.copyWith(fontSize: 12, color: Palette.streak),
-            ),
-          ],
-        ),
+      // Unboxed on purpose. Inside an already-bordered panel this pill was one
+      // more frame in a stack of frames, and it lit up an area of chrome that
+      // should be reading as dark glass. The ember hue alone carries it.
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.link_rounded, size: 14, color: Palette.streak),
+          const SizedBox(width: 3),
+          Text(
+            '${widget.days}',
+            style: Type.label.copyWith(fontSize: 12, color: Palette.streak),
+          ),
+        ],
       ),
     );
   }
-}
-
-class _LevelRing extends StatefulWidget {
-  const _LevelRing({required this.progress, required this.child});
-  final double progress;
-  final Widget child;
-
-  @override
-  State<_LevelRing> createState() => _LevelRingState();
-}
-
-class _LevelRingState extends State<_LevelRing>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _breathe = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2800),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _breathe.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: AnimatedBuilder(
-        animation: _breathe,
-        builder: (context, child) {
-          // quantized so shouldRepaint dedupes to ~20 repaints/s
-          final wave = Motion.ambient.transform(
-            (_breathe.value * 56).round() / 56,
-          );
-          return Transform.scale(
-            scale: 1 + 0.02 * wave,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: widget.progress),
-              duration: Motion.barFill,
-              curve: Motion.barCurve,
-              builder: (_, value, _) => CustomPaint(
-                painter: _RingPainter(progress: value, glow: 0.15 + 0.2 * wave),
-                child: child,
-              ),
-            ),
-          );
-        },
-        child: SizedBox(
-          width: 58,
-          height: 58,
-          child: Center(child: widget.child),
-        ),
-      ),
-    );
-  }
-}
-
-class _RingPainter extends CustomPainter {
-  _RingPainter({required this.progress, required this.glow});
-  final double progress;
-  final double glow;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = size.center(Offset.zero);
-    final radius = size.width / 2 - 3;
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 4
-        ..color = const Color(0x1FF2CD93),
-    );
-    if (progress > 0) {
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -1.5708, // start at 12 o'clock
-        6.2832 * progress,
-        false,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 4
-          ..strokeCap = StrokeCap.round
-          ..color = Palette.xpLight.withValues(alpha: 0.7)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
-      );
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        -1.5708,
-        6.2832 * progress,
-        false,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 4
-          ..strokeCap = StrokeCap.round
-          ..color = Palette.xp,
-      );
-    }
-    // ambient breathe: a faint halo that swells and settles
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = Palette.xp.withValues(alpha: glow * 0.5)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.progress != progress || old.glow != glow;
 }
 
 /// The "WHY THIS WORKS" celebration beat shown when a stat crosses a rank
@@ -3132,7 +3817,7 @@ class _RankUpBeat extends StatelessWidget {
 /// anti-overexertion rail (RESEARCH-momentum.md §4). Two encores, then rest.
 const int _bonusCapPerBase = 2;
 
-/// The "keep the fire going" encore sheet. For each quest cleared today it
+/// The "one more step" encore sheet. For each quest cleared today it
 /// offers STOKE (the next rung of its ladder) or SWITCH (a fresh sibling
 /// toward the same stat) — spawned as a one-off bonus for today only. The
 /// banked win is never touched; the daily baseline and streak are never
@@ -3257,7 +3942,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                   const Icon(Icons.bolt, size: 16, color: Palette.xpLight),
                   const SizedBox(width: 6),
                   Text(
-                    'KEEP THE FIRE GOING',
+                    'TAKE ONE MORE STEP',
                     style: Type.label.copyWith(
                       fontSize: 11,
                       color: Palette.xpLight,

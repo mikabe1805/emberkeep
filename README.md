@@ -1,12 +1,13 @@
-# Emberkeep
+# Morrowloom
 
-Emberkeep is a local-first life RPG for Android, iOS, and the web. Completing
-real-life quests grows six life domains, earns XP and embers, and gradually
-furnishes a candlelit keep whose hearth reflects the player's momentum.
+Morrowloom is a local-first life RPG for Android, iOS, and the web. Completing
+real-life quests grows six life domains, earns XP and Glimmers, and changes
+your build while you furnish a candlelit personal space.
 
 The product is deliberately non-punitive: progress never decays, lapses never
-erase earned growth, and all core functionality works offline. The keep and
-hearth are the visual heart of the app; there is no companion creature.
+erase earned growth, and all core functionality works offline. The build
+and room are the visual heart of the app; the fireplace is ambient warmth, not
+a health meter, and there is no companion creature.
 
 ## Design compass
 
@@ -47,9 +48,9 @@ Open the PNGs in `test/goldens/` after any visual change.
 - `lib/engine.dart` — XP, stats, streaks, rewards, achievements, and rollover
 - `lib/models.dart` — persisted goals, quests, notes, and reward models
 - `lib/storage.dart` — validated local JSON persistence and user-held backups
-- `lib/cloud.dart` — optional Firebase auth, save mirror, and shared keeps
+- `lib/cloud.dart` — optional Firebase auth, save mirror, and shared spaces
 - `lib/screens/` — the five primary destinations and detail flows
-- `lib/widgets/` — the keep, quest cards, glass primitives, and celebrations
+- `lib/widgets/` — the room, tapestry, quest cards, glass, and celebrations
 - `lib/content/` — offline quest, evidence, cosmetic, and progression catalogs
 
 ## Release setup still requiring owner credentials

@@ -2,8 +2,11 @@
 // window scenes, the journal hub) to PNGs via golden files, so I can actually
 // SEE what the CustomPainters produce instead of shipping blind. Regenerate:
 //   flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true \
-//     test/screenshots_test.dart
+//     --dart-define=CAPTURE_STORE=true test/screenshots_test.dart
 // then open test/goldens/*.png. Not a pass/fail guard — purely a render dump.
+// BOTH flags are needed: CAPTURE_GOLDENS gates the widget dumps, CAPTURE_STORE
+// gates the full-screen store_* shots. With only the first, the tests still
+// report "All tests passed" while every store_*.png silently stays stale.
 // (round-62 pivot: the creature is gone; the keep + its hearth are the star.)
 import 'dart:convert';
 
@@ -13,6 +16,8 @@ import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/day_planning.dart';
 import 'package:emberkeep/content/furniture.dart';
 import 'package:emberkeep/content/routines.dart';
+import 'package:emberkeep/content/space_themes.dart';
+import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:emberkeep/content/room_styles.dart';
 import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/engine.dart';
@@ -28,6 +33,9 @@ import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/constellation.dart';
 import 'package:emberkeep/widgets/glass.dart';
 import 'package:emberkeep/widgets/home_room.dart';
+import 'package:emberkeep/widgets/onboarding_flow.dart';
+import 'package:emberkeep/widgets/pressable.dart';
+import 'package:emberkeep/widgets/quest_desk.dart';
 import 'package:emberkeep/widgets/top_three_wizard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
@@ -91,7 +99,12 @@ const _captureStore = bool.fromEnvironment('CAPTURE_STORE');
 
 Future<void> _shoot(WidgetTester tester, Widget w, String name) async {
   await tester.pumpWidget(w);
-  await tester.pump(const Duration(milliseconds: 120));
+  // Give asynchronously decoded room textures and the tapestry more than one
+  // frame to arrive. A single long pump advances fake time only once and can
+  // capture the painter before its image-decoding future schedules a repaint.
+  for (var frame = 0; frame < 4; frame++) {
+    await tester.pump(const Duration(milliseconds: 120));
+  }
   if (_capture) {
     await expectLater(
       find.byType(MaterialApp),
@@ -100,8 +113,64 @@ Future<void> _shoot(WidgetTester tester, Widget w, String name) async {
   }
 }
 
+/// Decode every routine asset for real before capturing. `Image.asset` resolves
+/// through an async codec, and the fake-async test clock never lets that finish
+/// — so without this the folio, the clasp and the room all capture as empty
+/// black boxes while the layout around them looks perfectly fine.
+Future<void> _precacheRoutineArt(WidgetTester tester) async {
+  const assets = <String>[
+    'assets/routine/ledger-night-v2.webp',
+    'assets/routine/ledger-morning-v2.webp',
+    'assets/routine/ledger-clasp-v2.webp',
+    'assets/routine/begin-here-bookmark-v2.webp',
+    'assets/routine/room-night-v1.webp',
+    'assets/routine/room-morning-v1.webp',
+    'assets/routine/top-three-tray-v2.webp',
+    'assets/routine/gilded-section-rule-v2.webp',
+    'assets/routine/gilded-section-rule-left-v2.webp',
+    'assets/routine/gilded-section-rule-right-v2.webp',
+    'assets/routine/priority-ribbon-plum-v2.webp',
+    'assets/routine/priority-ribbon-blue-v2.webp',
+    'assets/routine/priority-ribbon-umber-v2.webp',
+  ];
+  final context = tester.element(find.byType(MaterialApp));
+  await tester.runAsync(() async {
+    for (final a in assets) {
+      await precacheImage(AssetImage(a), context);
+    }
+  });
+  for (var i = 0; i < 6; i++) {
+    await tester.pump(const Duration(milliseconds: 120));
+  }
+}
+
+/// Decode the lighter chooser thumbnails before a deterministic capture. The
+/// full room plates are awaited before the app mounts, because AppShell starts
+/// its own production preload and a fake-async test must not inherit that
+/// in-flight Future into `runAsync`.
+Future<void> _precacheSpaceThemeArt(WidgetTester tester) async {
+  final context = tester.element(find.byType(MaterialApp));
+  await tester.runAsync(() async {
+    for (final theme in spaceThemes) {
+      await precacheImage(AssetImage(theme.previewAsset), context);
+    }
+  });
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
 Future<void> _storeShot(WidgetTester tester, String name) async {
-  await tester.pump(const Duration(milliseconds: 240));
+  for (var frame = 0; frame < 4; frame++) {
+    await tester.pump(const Duration(milliseconds: 120));
+  }
+  if (_captureStore) {
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/store_$name.png'),
+    );
+  }
+}
+
+Future<void> _storeShotNow(WidgetTester tester, String name) async {
   if (_captureStore) {
     await expectLater(
       find.byType(MaterialApp),
@@ -112,9 +181,9 @@ Future<void> _storeShot(WidgetTester tester, String name) async {
 
 void _activateDock(WidgetTester tester, IconData icon) {
   final tapTarget = find
-      .ancestor(of: find.byIcon(icon), matching: find.byType(GestureDetector))
+      .ancestor(of: find.byIcon(icon), matching: find.byType(Pressable))
       .first;
-  tester.widget<GestureDetector>(tapTarget).onTap!.call();
+  tester.widget<Pressable>(tapTarget).onTapUp!.call(Offset.zero);
 }
 
 void main() {
@@ -131,6 +200,43 @@ void main() {
     final loader = FontLoader('MaterialIcons')
       ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
     await loader.load();
+    final fraunces = FontLoader('Fraunces')
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-Bold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-SemiBold.ttf'))
+      ..addFont(
+        rootBundle.load('assets/google_fonts/Fraunces-SemiBoldItalic.ttf'),
+      );
+    final inter = FontLoader('Inter')
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Regular.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Medium.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-SemiBold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Bold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Italic.ttf'));
+    final mono = FontLoader('JetBrainsMono')
+      ..addFont(
+        rootBundle.load('assets/google_fonts/JetBrainsMono-SemiBold.ttf'),
+      )
+      ..addFont(rootBundle.load('assets/google_fonts/JetBrainsMono-Bold.ttf'));
+    // The ledger's printed voice (widgets/routine_ledger.dart). It is declared
+    // in pubspec fonts: rather than through google_fonts, so it needs loading
+    // here like the rest — without it every EB Garamond string in the two daily
+    // bookends captured as a solid Ahem block, which makes those goldens look
+    // like a layout catastrophe that the shipping app does not have.
+    final garamond = FontLoader('EBGaramond')
+      ..addFont(rootBundle.load('assets/google_fonts/EBGaramond-Variable.ttf'))
+      ..addFont(
+        rootBundle.load('assets/google_fonts/EBGaramond-Italic-Variable.ttf'),
+      );
+    await Future.wait([
+      fraunces.load(),
+      inter.load(),
+      mono.load(),
+      garamond.load(),
+    ]);
+    // Load every complete room in this real-async setup phase. Individual
+    // widget tests run on a fake clock; starting a codec there and awaiting it
+    // later from runAsync can strand the same Future across two zones.
+    await preloadHomeRoomAssets();
     GoogleFonts.config.allowRuntimeFetching = false; // no network in tests
   });
 
@@ -448,6 +554,17 @@ void main() {
             'Long day, but I kept the fire going. Two quests done and a '
             'walk after dinner — small, but it counts.',
         context: 'Kindling',
+        trace: const JournalTrace(
+          day: '2026-07-07',
+          level: 8,
+          totalXp: 1360,
+          todayXp: 96,
+          streakDays: 5,
+          questTitles: ['Walk after dinner', 'Clear the kitchen counter'],
+          goalTitles: ['Build a walking habit'],
+          statGains: {Stat.vit: 3, Stat.dis: 2},
+          energy: EnergyWeather.steady,
+        ),
       ),
       Note(
         at: DateTime(2026, 7, 2, 8, 15),
@@ -456,7 +573,7 @@ void main() {
       Note(
         at: DateTime(2026, 6, 24, 19),
         text: 'A quieter reflection from last month — looking back already.',
-        context: 'Emberkeeper',
+        context: 'Morrowloom',
       ),
     ]);
     await _shoot(
@@ -537,6 +654,125 @@ void main() {
     }
   });
 
+  testWidgets('phone audit: time-aware first run', (tester) async {
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    Clock.freeze(DateTime(2026, 7, 31, 20, 15));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final state = GameState()..reduceMotion = true;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: OnboardingFlow(
+          state: state,
+          onFinish: ({required forgeFirstGoal, required timeShape}) {},
+        ),
+      ),
+    );
+    await tester.runAsync(() async {
+      await precacheImage(
+        const AssetImage('assets/rooms/wall_walnut-clean-v2.webp'),
+        tester.element(find.byType(MaterialApp)),
+      );
+    });
+    await tester.pump(const Duration(milliseconds: 600));
+    await _storeShot(tester, 'audit_00_welcome_1290x2796');
+    await tester.tap(find.text('ENTER MORROWLOOM'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _storeShot(tester, 'audit_01_evening_name_1290x2796');
+    await tester.tap(find.text('skip for now'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _storeShot(tester, 'audit_02_day_shape_1290x2796');
+    await tester.tap(find.text('CONTINUE'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _storeShot(tester, 'audit_03_first_board_1290x2796');
+  });
+
+  testWidgets('phone audit: fresh Me, room identities, and Journal', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+      Sfx.instance.soundEnabled = true;
+    });
+    Clock.freeze(DateTime(2026, 7, 31, 20, 15));
+    final state = GameState()
+      ..onboarded = true
+      ..reduceMotion = true
+      ..soundEnabled = false;
+    SharedPreferences.setMockInitialValues({
+      'liferpg_save_v1': jsonEncode({
+        'app': 'emberkeep',
+        'schema': Storage.schema,
+        'state': state.toJson(),
+        'quests': const [],
+      }),
+    });
+
+    await tester.pumpWidget(const LifeRpgApp());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 900));
+    await _precacheSpaceThemeArt(tester);
+
+    _activateDock(tester, Icons.emoji_emotions_outlined);
+    await tester.pump(const Duration(milliseconds: 500));
+    await _storeShot(tester, 'audit_10_fresh_me_1290x2796');
+    await tester.tap(find.text('0 GLIMMERS'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _storeShot(tester, 'audit_11_space_themes_1290x2796');
+    final conservatory = find.text('The Living Conservatory');
+    await tester.ensureVisible(conservatory);
+    await tester.pump(const Duration(milliseconds: 300));
+    await _storeShot(tester, 'audit_11a_conservatory_choice_1290x2796');
+    await tester.tap(conservatory);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+    await _storeShot(tester, 'audit_11b_conservatory_preview_1290x2796');
+    expect(find.text('STEP INSIDE'), findsOneWidget);
+    expect(find.text('280 MORE GLIMMERS'), findsOneWidget);
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pump(const Duration(milliseconds: 350));
+    final archive = find.text('The Moonlit Archive');
+    await tester.ensureVisible(archive);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(archive);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+    await _storeShot(tester, 'audit_11c_archive_preview_1290x2796');
+    expect(find.text('STEP INSIDE'), findsOneWidget);
+    expect(find.text('420 MORE GLIMMERS'), findsOneWidget);
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pump(const Duration(milliseconds: 350));
+    Navigator.of(tester.element(find.text('Change your space'))).pop();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    _activateDock(tester, Icons.menu_book_outlined);
+    await tester.pump(const Duration(milliseconds: 500));
+    await _storeShot(tester, 'audit_12_fresh_journal_1290x2796');
+    await tester.tap(find.text('Your Journal'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _storeShot(tester, 'audit_13_empty_journal_hub_1290x2796');
+    await tester.tap(find.text('Write a new entry'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _storeShot(tester, 'audit_14_journal_editor_1290x2796');
+  });
+
   testWidgets('store screenshot story: real production surfaces', (
     tester,
   ) async {
@@ -566,16 +802,31 @@ void main() {
       ..bestStreak = 19
       ..lastActiveDay = '2026-07-26'
       ..lastCompletionDay = '2026-07-26'
+      ..weekRecapSeenWeek = Days.key(Days.weekStart(Clock.now()))
       ..soundEnabled = false
       ..reduceMotion = true
-      ..wallStyle = 'wall_plum'
-      ..floorStyle = 'floor_maple'
+      // The free defaults. Capturing on a purchased skin meant every visual
+      // review was judging a wall most players have never seen.
+      ..wallStyle = 'wall_walnut'
+      ..floorStyle = 'floor_oak'
+      ..questDeskStyle = 'wall_indigo'
       ..windowScene = 'moon'
       ..creatureSkin = 'sunstone';
     final keptNote = Note(
       at: DateTime(2026, 7, 16, 20, 10),
       text: 'The first evening this room began to feel like mine.',
       context: 'Homey Homesteader',
+      trace: const JournalTrace(
+        day: '2026-07-16',
+        level: 16,
+        totalXp: 3670,
+        todayXp: 72,
+        streakDays: 4,
+        questTitles: ['Clear the kitchen counter', 'Make the bed'],
+        goalTitles: ['Make the apartment feel calm'],
+        statGains: {Stat.dis: 4},
+        energy: EnergyWeather.steady,
+      ),
     );
     state.journal = [
       keptNote,
@@ -583,6 +834,17 @@ void main() {
         at: DateTime(2026, 7, 18, 9, 20),
         text: 'I showed up even though the day felt smaller than planned.',
         context: 'Homey Homesteader',
+        trace: const JournalTrace(
+          day: '2026-07-18',
+          level: 17,
+          totalXp: 3890,
+          todayXp: 48,
+          streakDays: 6,
+          questTitles: ['Walk after lunch'],
+          goalTitles: ['Build a walking habit'],
+          statGains: {Stat.vit: 3},
+          energy: EnergyWeather.low,
+        ),
       ),
     ];
     state.memoryPins.add(keptNote.id);
@@ -602,7 +864,11 @@ void main() {
     state.stats[Stat.soc] = 61;
     state.stats[Stat.dis] = 103;
     state.ownedSkins.add('sunstone');
-    state.ownedStyles.addAll({'wall_plum', 'floor_maple'});
+    state.ownedStyles.addAll({
+      'wall_conservatory',
+      'wall_archive',
+      'floor_maple',
+    });
     state.ownedFurniture.addAll({
       'rug',
       'lamp',
@@ -613,6 +879,7 @@ void main() {
       'candles',
       'garland',
       'hearth',
+      'pet',
     });
     state.unlockedAchievements.addAll({
       'well-rounded',
@@ -686,26 +953,79 @@ void main() {
     await tester.pumpWidget(const LifeRpgApp());
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
+    await _precacheSpaceThemeArt(tester);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 350)),
+    );
+    await tester.pump();
     await _storeShot(tester, '01_quests_1290x2796');
+
+    // The Quest board is one continuous surface over a fixed room. Capture
+    // the real scrolled state so the progressive blur and crisp foreground
+    // hierarchy are judged, not just inferred from the resting frame.
+    final questBoard = find.byKey(const ValueKey('quest-board-scroll'));
+    await tester.drag(questBoard, const Offset(0, -335));
+    await tester.pump(const Duration(milliseconds: 280));
+    await _storeShot(tester, '01a_quests_scrolled_1290x2796');
+    tester.widget<NestedScrollView>(questBoard).controller!.jumpTo(0);
+    await tester.pump(const Duration(milliseconds: 280));
+
+    await tester.tap(find.byType(QuestDeskStyleButton));
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '01b_quest_desk_1290x2796');
+    Navigator.of(tester.element(find.text('QUEST DESK'))).pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+
+    // Store story beat two: one real quest becomes XP, Glimmers, and visible
+    // permanent progress. Capture the production receipt while its reward
+    // bubbles are fully readable, then let it clear before navigating.
+    await tester.tap(find.text('Read ten pages'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 170));
+    await _storeShotNow(tester, '02a_stitch_1290x2796');
+    await tester.pump(const Duration(milliseconds: 730));
+    await _storeShot(tester, '02_reward_1290x2796');
+
+    // The optional ten-second Journal door is part of the production reward
+    // path, not a disconnected mock. Keep one real line so the later Journal
+    // capture can prove that completion context travelled with it.
+    await tester.tap(find.textContaining('KEEP ONE LINE'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 420));
+    await _storeShot(tester, '02c_quick_reflection_1290x2796');
+    await tester.enterText(
+      find.byType(TextField).last,
+      'Leaving the book open on my desk made starting almost automatic.',
+    );
+    await tester.pump();
+    await tester.ensureVisible(find.text('KEEP IN JOURNAL'));
+    await tester.pump();
+    await _storeShot(tester, '02d_quick_reflection_written_1290x2796');
+    await tester.tap(find.text('KEEP IN JOURNAL'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 420));
+    await _storeShot(tester, '02e_reflection_kept_1290x2796');
+    await tester.pump(const Duration(seconds: 4));
 
     _activateDock(tester, Icons.emoji_emotions_outlined);
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '02_keep_1290x2796');
 
-    await tester.tap(find.text('FURNISH'));
+    await tester.tap(find.text('CHANGE SPACE'));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '03_shop_1290x2796');
-    await tester.tap(find.text('FLAME'));
-    await tester.pump(const Duration(milliseconds: 350));
-    await _storeShot(tester, '03b_shop_flame_1290x2796');
-    final gilded = find.text('Gilded');
-    await tester.scrollUntilVisible(
-      gilded,
-      420,
-      scrollable: find.byType(Scrollable).first,
-    );
+    final conservatory = find.text('The Living Conservatory');
+    await tester.ensureVisible(conservatory);
     await tester.pump(const Duration(milliseconds: 300));
-    await _storeShot(tester, '03c_shop_heirlooms_1290x2796');
+    await tester.tap(conservatory);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pump(const Duration(milliseconds: 550));
+    await _storeShot(tester, '03b_conservatory_preview_1290x2796');
+    await tester.tap(find.byTooltip('Close'));
+    await tester.pump(const Duration(milliseconds: 250));
     await tester.tap(find.byIcon(Icons.chevron_left));
     await tester.pump(const Duration(milliseconds: 700));
 
@@ -716,10 +1036,10 @@ void main() {
     await tester.tap(find.text('Help for this kind of day'));
     await tester.pump(const Duration(milliseconds: 600));
     await _storeShot(tester, '04b_momentum_kits_1290x2796');
-    await tester.tap(find.text('Low Flame Day'));
+    await tester.tap(find.text('Gentle Mode Day'));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '04c_low_flame_1290x2796');
-    await tester.tap(find.text('LIGHT 2 SPARKS'));
+    await tester.tap(find.text('CHOOSE 2 STEPS'));
     await tester.pump(const Duration(milliseconds: 350));
     await _storeShot(tester, '04d_low_flame_lit_1290x2796');
     await tester.tap(find.text('OPEN QUESTS'));
@@ -735,14 +1055,16 @@ void main() {
     await tester.tapAt(const Offset(12, 12));
     await tester.pump(const Duration(milliseconds: 350));
 
-    _activateDock(tester, Icons.insights_outlined);
+    _activateDock(tester, Icons.menu_book_outlined);
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '06_insights_1290x2796');
 
     await tester.tap(find.text('Your Journal'));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '07_journal_1290x2796');
-    await tester.tap(find.text('SMALL WIN'));
+    // This story has already completed a quest, so Journal offers a prompt
+    // tied to that evidence rather than the generic fresh-day starter.
+    await tester.tap(find.text('QUEST THREAD'));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '07b_journal_starter_1290x2796');
     await tester.tap(find.byIcon(Icons.chevron_left).last);
@@ -753,6 +1075,12 @@ void main() {
     _activateDock(tester, Icons.task_alt);
     await tester.pump(const Duration(milliseconds: 450));
     if (find.text('SHOW ALL').evaluate().isNotEmpty) {
+      await tester.scrollUntilVisible(
+        find.text('SHOW ALL'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump(const Duration(milliseconds: 150));
       await tester.tap(find.text('SHOW ALL'));
       await tester.pump(const Duration(milliseconds: 300));
     }
@@ -805,8 +1133,8 @@ void main() {
       ..bestStreak = 19
       ..reduceMotion = true
       ..soundEnabled = false
-      ..wallStyle = 'wall_plum'
-      ..floorStyle = 'floor_maple'
+      ..wallStyle = 'wall_walnut'
+      ..floorStyle = 'floor_oak'
       ..windowScene = 'moon'
       ..creatureSkin = 'sunstone'
       ..journal = [note]
@@ -989,6 +1317,114 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, '01c_top_three_1290x2796');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  // The two daily bookends had NO render coverage at all — the only captures
+  // that ever existed were from a one-off script that no longer exists, so the
+  // most materially-detailed screens in the app were the two nobody could look
+  // at. They drift precisely because of that.
+  testWidgets('store screenshot story: the daily bookends', (tester) async {
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    Clock.freeze(DateTime(2026, 7, 30, 21, 40));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+
+    final today = Days.key(Clock.now());
+    final state = GameState()
+      ..onboarded = true
+      ..playerName = 'Alex'
+      ..level = 18
+      ..totalXp = 4280
+      ..streakDays = 12
+      ..bestStreak = 19
+      ..reduceMotion = true
+      ..soundEnabled = false
+      ..wallStyle = 'wall_walnut'
+      ..floorStyle = 'floor_oak'
+      ..windowScene = 'moon';
+    state.stats[Stat.str] = 88;
+    state.stats[Stat.vit] = 72;
+    state.stats[Stat.intl] = 116;
+    state.stats[Stat.foc] = 94;
+    state.stats[Stat.soc] = 61;
+    state.stats[Stat.dis] = 103;
+
+    // The night ledger reads the live day-record (todayXp / todayStats /
+    // todayQuestTitles), not each quest's lastDoneDay — stamping only the
+    // quests captured the "nothing had to be proven today" empty state, which
+    // is not the screen anyone needs to review.
+    state.todayXp = 114;
+    state.todayStats[Stat.foc] = 7;
+    state.todayStats[Stat.intl] = 4;
+    state.todayStats[Stat.dis] = 3;
+    state.todayQuestTitles.addAll([
+      'Finish the visual pass',
+      'Read ten pages',
+      'Clear the kitchen counter',
+      'Take a ten-minute walk',
+    ]);
+
+    Quest done(String title, Stat stat, int difficulty) => Quest(
+      title: title,
+      stat: stat,
+      difficulty: difficulty,
+      lastDoneDay: today,
+    );
+    final quests = <Quest>[
+      done('Finish the visual pass', Stat.foc, 5),
+      done('Read ten pages', Stat.intl, 3),
+      done('Clear the kitchen counter', Stat.dis, 3),
+      done('Take a ten-minute walk', Stat.str, 2),
+      Quest(title: 'Draft the chapter', stat: Stat.foc, difficulty: 4),
+      Quest(title: 'Message someone I miss', stat: Stat.soc, difficulty: 2),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: NightFlow(
+            state: state,
+            quests: quests,
+            onAdd: (_) => true,
+            onPersist: () {},
+            onClose: () {},
+          ),
+        ),
+      ),
+    );
+    await _precacheRoutineArt(tester);
+    await _storeShot(tester, '11_night_close_1290x2796');
+
+    await tester.tap(find.text('keep one line'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 420));
+    await _storeShot(tester, '11b_night_reflection_1290x2796');
+    await tester.tap(find.byTooltip('Not now'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 320));
+
+    Clock.reset();
+    Clock.freeze(DateTime(2026, 7, 31, 7, 20));
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: MorningFlow(state: state, quests: quests, onClose: () {}),
+        ),
+      ),
+    );
+    await _precacheRoutineArt(tester);
+    await _storeShot(tester, '12_morning_open_1290x2796');
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

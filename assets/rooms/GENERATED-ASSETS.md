@@ -1,0 +1,175 @@
+# Morrowloom room generated-asset record
+
+Updated: 2026-07-31
+
+Visual truth:
+
+- `design/visual-targets/2026-07-30/quest-selected.png`
+- Existing composition reference:
+  `design/source-assets/runtime-originals/assets/rooms/wall_walnut.png`
+
+All source generations used the built-in image generator. The originals remain
+in the Codex generated-images folder; only the production-ready derivatives
+listed below are bundled with the app.
+
+## Registered room planes
+
+All four planes share a 1635 x 962 camera and are composed in this order.
+
+| Production asset | Generated original | Mode | Content |
+| --- | --- | --- | --- |
+| `quest-depth-base-v2.webp` | `call_DwaqLhMGVtX1SERkDx77tyvP.png` | generation | Slot-sized runtime derivative of the complete distant architecture: moonlit window, plaster wall, floor, rug, and empty masonry fireplace. |
+| `quest-depth-wall-v4.png` | `call_boNQN5p6xBxHf8O70XGWGRnk.png` | generation | Registered wall shelves, books, plants, lamp, and woven hanging on a flat magenta key. |
+| `quest-depth-furniture-v1.png` | `call_y0szMh5XFiwmEH7Yy0BKP63u.png` | generation | Registered desk, work objects, and stool on a flat magenta key. |
+| `quest-depth-foreground-v1.png` | `call_LWaIyPHZgJUu4buMMrgFf1TI.png` | generation | Registered leather chair and foreground plant on a flat magenta key. |
+
+Production prompt set, normalized from the generation calls:
+
+1. Create a clean, complete distant architectural painting that matches the
+   approved dark-warm moonlit study: deep-blue window and crescent moon at
+   left, warm textured plaster, walnut floor and rug, and a masonry fireplace
+   at right with an empty firebox. Preserve the registered 1635 x 962 camera.
+   No furniture, wall decor, fire, people, text, UI, borders, or transparent
+   gaps. Painterly, authored, low-detail luxury game illustration.
+2. On a perfectly flat magenta background, paint only the registered middle
+   wall-decor plane for that same camera: shelves, restrained books and plants,
+   warm lamp, and woven hanging. Preserve the approved placement, dark walnut,
+   aged brass, parchment, and candle-amber palette. No wall, floor, window,
+   fireplace, furniture, shadows detached from the objects, text, or UI.
+3. On a perfectly flat magenta background, paint only the registered furniture
+   plane for the same camera: walnut writing desk, stool, open book and small
+   authored work objects. Keep clean silhouettes and coherent warm lighting.
+   No architecture, foreground chair, text, or UI.
+4. On a perfectly flat magenta background, paint only the nearest plane for the
+   same camera: the leather reading chair and potted plant at left, with clean
+   silhouettes and the same painterly finish. No wall, window, desk, fireplace,
+   text, or UI.
+
+The keyed planes were converted to alpha with
+`remove_chroma_key.py`. The selected wall pass uses no despill and a one-pixel
+edge contraction to avoid a pale or magenta halo.
+
+## Autonomous fire frames
+
+| Production asset | Generated original | Mode |
+| --- | --- | --- |
+| `quest-fire-a-v3.png` | `call_XcVw0JQ7vFrhjOr3kdAA8Y2D.png` | generation |
+| `quest-fire-b-v3.png` | `call_XcXsO4JipjcxepHSdlYyDG13.png` | edit |
+| `quest-fire-c-v3.png` | `call_Qi7UQwVTlPP0pSbLLmyNq2M1.png` | edit |
+
+Production prompt set:
+
+1. On a pure black 1635 x 962 registered canvas, paint one compact hearth fire
+   and fixed log pile at the approved fireplace location. Use simplified,
+   hand-painted faceted strokes in deep ember red, amber, honey, and parchment
+   cream. No photorealism, room, fireplace surround, smoke, text, or UI.
+2. Edit the registered fire into the next modest animation state. Preserve the
+   exact canvas, black background, log anchors, footprint, palette, and
+   painterly style; alter only the flame silhouette and lean so it can
+   crossfade seamlessly.
+3. Create the third animation frame by editing the exact registered fire image.
+   Preserve the 1635 x 962 canvas, pure solid black background, exact log pile
+   position and scale, overall footprint, palette, lighting, and hand-painted
+   low-detail faceted style. Make the central tongue a little shorter and split
+   near its upper third, let a narrow right-hand tongue rise slightly higher,
+   and lower the left tongue. No room, fireplace surround, smoke, text, extra
+   objects, or transparent checkerboard; do not move or redraw the logs.
+
+Post-processing:
+
+- Black was converted to alpha with a soft matte, transparent threshold 1,
+  opaque threshold 92, and one-pixel edge contraction.
+- Each registered fire was scaled to 62% and positioned inside the source
+  firebox.
+- The final 320 x 300 transparent crops preserve that registration while
+  reducing decoded animation memory from roughly 19 MB to roughly 1.1 MB for
+  all three frames.
+
+## Me room plate repair
+
+The original walnut room included an accidental rendered `LEVEL 18` HUD at
+its lower edge. A built-in image-edit pass removed only that HUD and continued
+the existing floorboards. The clean full-resolution source is
+`design/source-assets/rooms/wall_walnut-clean-v2.png`; the app bundles
+`wall_walnut-clean-v2.webp`.
+
+## Complete Me room identities
+
+As of 2026-07-31, every player begins in a completed room. The room chooser
+offers three whole, authored identities rather than a catalogue of necessities.
+Glimmers unlock a transformation; they do not rescue an empty space.
+
+| Identity | Runtime plate | Durable source | Generated original | Role |
+| --- | --- | --- | --- | --- |
+| The Writer’s Hearth | `wall_walnut-clean-v2.webp` | `design/source-assets/rooms/wall_walnut-clean-v2.png` | built-in image edit | Free default; the approved completed walnut room with the accidental Level-18 HUD removed. |
+| The Living Conservatory | `wall_conservatory-v1.webp` | `design/source-assets/rooms/themes/wall_conservatory-full-v1.png` | `C:/Users/mikus/.codex/generated_images/019faf64-832e-7d63-8247-d71ac627fd36/exec-abaa3c3c-4de3-4848-b3b5-d8c348e6228b.png` | Complete plant-forward study: aged oak, restrained living greenery, terracotta, moonlight, and a working hearth. |
+| The Moonlit Archive | `wall_archive-v1.webp` | `design/source-assets/rooms/themes/wall_archive-full-v1.png` | `C:/Users/mikus/.codex/generated_images/019faf64-832e-7d63-8247-d71ac627fd36/exec-30fa712d-1365-46c5-8250-8c5cfa42f3eb.png` | Complete scholarly study: smoked wood, books, maps, star chart, restrained brass instruments, and a working hearth. |
+
+The canonical edit target for all three is
+`design/source-assets/rooms/wall_walnut-clean-v2.png`. Each master is opaque
+1536 × 1024 RGB with the same 3:2 camera, left window, right fireplace, floor
+foreground, and hearth focal near `(0.83, 0.63)`. No plate contains UI, live
+text, people, logos, or a watermark.
+
+`tool/prepare_room_themes.py` creates the two new full-size WebPs and all three
+720 × 480 chooser previews in `assets/rooms/previews/`. It preserves the
+approved Writer’s Hearth runtime file byte-for-byte. The app preloads the room
+selected for a full-screen preview, then moves the intact plate as one
+overscanned camera; it never reconstructs these rooms from shop-item masks.
+
+### Living Conservatory production prompt
+
+Precise edit of the canonical walnut room into a complete plant-forward room
+identity. Preserve the exact 1536 × 1024 camera, horizon, vanishing perspective,
+room boundaries, left mullioned window, right stone fireplace footprint, floor
+foreground, and hearth focal. Replace the interior coherently with lighter
+aged-oak desk furniture, woven seating, layered shelves, carefully composed
+ferns, trailing pothos, olive or laurel leaves, terracotta and dark-brass
+planters, and restrained botanical specimens. Match the source’s painterly
+faceted architectural illustration, crisp geometry, strong silhouettes,
+selective handmade grain, and angular moon/fire light. Use espresso, warm oak,
+deep moss, muted olive, oxidized brass, terracotta, parchment, amber, and
+restrained blue-green moonlight. Keep it dark, warm, tactile, expensive, alive,
+and fully furnished. Avoid bright greenhouse daylight, oversaturated emerald,
+fairy lights, magical sparkles, excessive vines, random flowers, glossy tech,
+incoherent perspective, equal detail everywhere, empty gaps, text, and UI.
+
+### Moonlit Archive production prompt
+
+Precise edit of the canonical walnut room into a complete celestial archive
+for reading, planning, and looking outward. Preserve the same exact camera,
+window, fireplace, floor foreground, and hearth focal. Replace the room
+coherently with smoked-oak or ebony shelves, a substantial archival writing
+desk, dark upholstered reading chair, practical desk chair, books, rolled maps,
+one restrained brass armillary, and one framed hand-drawn star chart. Match the
+source’s painterly faceted architectural illustration and two-source lighting:
+silver-blue moonlight from the left, cream-hot amber firelight from the right,
+and at most one explained task-light pool. Use ink blue, midnight indigo,
+smoked walnut, charcoal plum, parchment, aged brass, muted silver-blue, amber,
+and warm-brown shadows. Keep it serious, personal, calm, luxurious, and not
+wizard-themed. Avoid runes, floating objects, magical sparkles, purple neon,
+generic fantasy-library props, excessive celestial symbols, glossy tech,
+incoherent perspective, empty gaps, readable text, and UI.
+
+### Archived additive-furnishing exploration
+
+The former empty-room, rug, and isolated furnishing WebPs are retained for
+recoverability under
+`design/source-assets/rooms/furnishing-layers/runtime-archive/`; they are not
+bundled at runtime and no longer define product truth. Their source masters may
+still be useful for a future optional keepsake system, but a keepsake must add
+one isolated object and can never be required to make a room feel complete.
+
+## Quest scroll softening plate
+
+`quest-depth-scroll-soft-v1.webp` is a deterministic runtime derivative, not a
+new visual source. `tool/prepare_quest_scroll_backdrop.py` composites the
+approved 1635 × 962 Quest camera in the same order as `QuestDepthRoom`—base,
+registered middle fire frame, wall, furniture, and foreground—then applies a
+22-source-pixel Gaussian softening pass and downsamples to 1024 × 603 RGB WebP
+at quality 80.
+
+The plate appears only as quests scroll over the live room. It replaces a
+full-room animated BackdropFilter while preserving the approved perceptual
+depth transition. At rest the live registered layers remain untouched; the
+soft plate never contains live text or UI.

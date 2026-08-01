@@ -1,6 +1,6 @@
-# Emberkeep Release Checklist
+# Morrowloom Release Checklist
 
-Updated July 26, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 1, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
 ## Repository-ready
@@ -11,13 +11,13 @@ not replace a signed device build or store-console review.
 - [x] Core experience works without account or network.
 - [x] Cloud backup is explicit opt-in and account deletion exists in-app.
 - [x] Privacy and deletion pages are live and linked from Me.
-- [x] Shared keeps publish no free-form name, note, quest, or account data.
+- [x] Shared spaces publish no free-form name, note, quest, or account data.
 - [x] Firestore rules constrain shared data to known appearance/title values.
 - [x] Android notification permission is declared and requested in context.
 - [x] Exact-alarm permission is unnecessary; reminders use inexact scheduling.
 - [x] Journal photos are local-only and erased by full reset.
-- [x] Cold-start backgrounds match the dark Emberkeep canvas.
-- [x] Native/PWA icons use the faceted, base-hot hearth mark.
+- [x] Cold-start backgrounds match the dark Morrowloom canvas.
+- [x] Native/PWA icons use the approved woven-dawn Morrow Tapestry mark.
 - [x] Google Play 1024×500 feature graphic is ready in `store-assets/`.
 - [x] Five opaque 1290×2796 production screenshots are ready in
   `store-assets/screenshots/`.
@@ -35,6 +35,14 @@ not replace a signed device build or store-console review.
 - [ ] Build a signed Android App Bundle and inspect its certificate.
 - [ ] Build/upload iOS with Xcode 26+ and the iOS 26 SDK.
 - [ ] Install release builds on physical Android and iPhone devices.
+- [ ] On a physical iPhone, continuously scroll the Quest board, tilt while
+  scrolling, complete a Quest, open the one-line Journal sheet, and switch all
+  five tabs twice. Confirm immediate press feedback, stable frame pacing, no
+  audio crackle, no accidental taps, and no warm-device degradation.
+- [ ] Repeat the phone performance pass with Low Power Mode and Reduce Motion.
+- [ ] Profile in Xcode/Instruments if Quest scroll, room tilt, fire, or tab
+  switching visibly misses frames; screenshots and Windows builds cannot close
+  this gate.
 - [ ] Exercise fresh install, upgrade, offline, cloud, account deletion, media,
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.

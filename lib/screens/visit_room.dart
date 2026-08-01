@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../content/creature_skins.dart';
 import '../content/room_styles.dart';
+import '../content/space_themes.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/glass.dart';
@@ -27,7 +28,7 @@ class VisitRoomScreen extends StatelessWidget {
   final String? themeId;
 
   /// The LOCAL user's reduce-motion setting — a friend's room should honour it
-  /// just like every other surface (the room ambient + the companion park).
+  /// just like every other surface (the room ambience and optional cat park).
   final bool lively;
 
   @override
@@ -55,6 +56,7 @@ class VisitRoomScreen extends StatelessWidget {
     final focusActive = focusUntil > DateTime.now().millisecondsSinceEpoch;
     final focusKind = safeString('focusKind', 'none');
     final weather = safeString('weather', 'unknown');
+    final sharedTheme = spaceThemeById(safeString('wall')) ?? spaceThemes.first;
 
     return Scaffold(
       backgroundColor: Palette.parchment,
@@ -66,7 +68,7 @@ class VisitRoomScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 36),
             children: [
               DetailHeader(
-                title: name.isNotEmpty ? '$name’s keep' : 'a keep',
+                title: name.isNotEmpty ? '$name’s space' : 'a space',
                 accent: Palette.xp,
                 subtitle: 'visiting · $code',
                 pill: 'LV $level',
@@ -78,12 +80,15 @@ class VisitRoomScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       HomeRoom(
+                        aspect: 1.5,
                         lively: lively,
                         unlocked: furniture,
-                        wall: wallColorsById(safeString('wall')),
+                        wall: wallColorsById(sharedTheme.id),
+                        plateId: sharedTheme.id,
                         floor: floorColorsById(safeString('floor')),
                         window: safeString('window', 'moon'),
-                        // the friend's hearth is lit if they're on a streak
+                        level: level,
+                        // the friend's cat may be awake if they're active
                         petAwake: room['awake'] == true,
                         // their chosen hearth-flame colour
                         emberGlow: flameHueById(safeString('skin')),
@@ -103,7 +108,7 @@ class VisitRoomScreen extends StatelessWidget {
                         ),
                       const SizedBox(height: 4),
                       Text(
-                        '${furniture.length} pieces furnished',
+                        sharedTheme.name,
                         style: Type.body.copyWith(
                           fontSize: 12,
                           color: Palette.textLo,
@@ -162,7 +167,7 @@ class VisitRoomScreen extends StatelessWidget {
               const SizedBox(height: 18),
               Center(
                 child: Text(
-                  'someone building their life, one ember at a time',
+                  'someone building their life, one quest at a time',
                   style: Type.body.copyWith(
                     fontSize: 12,
                     fontStyle: FontStyle.italic,

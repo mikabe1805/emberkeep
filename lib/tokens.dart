@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// Design tokens — "Candlelit Glass" (Art Direction v3): the owner's cozy
 /// liquid-glass language on a dark, warm canvas. Espresso/plum-dusk night,
@@ -20,7 +19,8 @@ abstract final class Palette {
   static const xp = Color(0xFFE0A865); // honey glow — XP / level
   static const xpLight = Color(0xFFF2CD93); // bright honey highlights
   static const streak = Color(0xFFE8915A); // ember
-  static const success = Color(0xFF9BC08F); // moss light — complete
+  // Moss and CARE are the same pigment; they were two near-identical greens.
+  static const success = Color(0xFF9CBC88); // moss light — complete
   static const unlock = Color(0xFFC9A3DC); // plum light — unlocks / crit
   static const info = Color(0xFF8FBAB6); // teal light — evidence
   static const verify = Color(0xFF93A7E0); // periwinkle — proof / verified
@@ -35,6 +35,20 @@ abstract final class Palette {
   // modal and the warm smoked-glass surface a GlassPanel dialog sits on.
   static const dialogBarrier = Color(0xCC140C06);
   static const dialogSurface = Color(0xF22A211D);
+
+  // The HUD/dock slab. Measured against the approved board art, the chrome
+  // there sits at ~0.13 value while the room's wall sits at ~0.20 — the panel
+  // is DARKER than the space behind it, so the room stays the lit thing and
+  // the glass reads as a pane held up against it. The previous recipe (a light
+  // wood tint over a BackdropFilter) landed at 0.35 and read as frosted
+  // plastic, which flattened the whole first frame. Keep this dark.
+  static const hudGlass = Color(0xD11A120E);
+
+  // A card is a dark plane the room does NOT shine through. The old recipe
+  // (glassFill lerped toward the desk wood, ~18% opacity) let the lit room
+  // through at ~0.44 value — the cards came out brighter than the wall behind
+  // them, and a screen where everything is mid-grey has nothing left to glow.
+  static const cardGlass = Color(0xC2211812);
 
   // Glass recipe — dark glass holding warm light
   static const glassFill = Color(0x17FFF2DC); // rgba(255,242,220,.09)
@@ -52,16 +66,38 @@ abstract final class Palette {
   static const glassTop = Color(0x22FFF2DC); // top: catching the light
   static const glassBottom = Color(0x0BFFF2DC); // bottom: settling into shadow
 
-  // The one honey CTA gradient — a lozenge of warm glass with a top sheen, dim
-  // amber base. Tokenized so every gold button reads identically (was inlined
-  // ~8 places). [onHoney] is the ink that sits on it.
+  // The one gold CTA ramp — satin physical gold, not a mustard slab and not an
+  // orange block. Measured off the approved target's MARK COMPLETE: a lit upper
+  // plane around (216,168,102), a mid body around (194,142,80) and a lower
+  // plane around (169,118,63), i.e. ~0.59 saturation and a value range that
+  // stays *inside* metal. The previous recipe peaked at 0xFFF6D9A2 (near-white,
+  // read as plastic) while the Quest control ran to 0xFF9B5A1D (0.81 sat, read
+  // as an orange block). Both are the same material now.
+  // [onHoney] is the engraved ink that sits on it.
   static const honeyGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
-    stops: [0.0, 0.5, 1.0],
+    colors: [
+      Color(0xFFDDB474),
+      Color(0xFFCE9C5B),
+      Color(0xFFBE884C),
+      Color(0xFFA9743D),
+    ],
+    stops: [0.0, 0.26, 0.62, 1.0],
   );
   static const onHoney = Color(0xFF4A2F1A);
+
+  /// Gold hardware, in the three values it actually needs.
+  /// [brass] is the resting rim (aged, quiet); [brassLit] is the catch-light
+  /// along a top lip; [brassDeep] is the under-lip a raised plate sits on.
+  static const brass = Color(0xFF8E6134);
+  static const brassLit = Color(0xFFF3DDAE);
+  static const brassDeep = Color(0xFF4C2F13);
+
+  /// The recessed channel every progress rail is cut into. Dark, warm, and
+  /// darker than the panel it sits in — a rail is a groove, not a light strip.
+  static const railTrack = Color(0x5C120C08);
+  static const railRim = Color(0x33FFE0AE);
 }
 
 /// The six LIFE DOMAINS you level up — tangible parts of a life, not abstract
@@ -74,46 +110,53 @@ abstract final class Palette {
 /// exertion, CARE is keeping living things well, HOME is the physical space)
 /// are surfaced wherever you pick a domain, so "which one is this?" answers
 /// itself at categorization time.
+/// Hues are warm-keyed off the approved targets, where every domain glyph is a
+/// pigment lit by the same candle. Two of them had real defects:
+/// PEOPLE was 0xFFF0AFAF against BODY's 0xFFE89090 — the same pink twice, so a
+/// PEOPLE quest ring and a BODY quest ring were not distinguishable; and HOME
+/// was 0xFFB3A897, a neutral bark that made every HOME ring, medallion and
+/// progress rail read *disabled*. PEOPLE is now terracotta and HOME is aged
+/// bronze — still below [Palette.xp] so honey keeps meaning "actionable".
 enum Stat {
   str(
     'BODY',
     'Body',
-    Color(0xFFE89090), // ember rose
+    Color(0xFFE0908A), // ember rose
     'Moving and training your body.',
     'workouts, walks, sports, stretching',
   ),
   vit(
     'CARE',
     'Care',
-    Color(0xFF9BC08F), // moss
+    Color(0xFF9CBC88), // moss
     'Keeping yourself and what you tend alive and well.',
     'meals, sleep, water, meds, plants, pets',
   ),
   intl(
     'MIND',
     'Mind',
-    Color(0xFF85B7CE), // teal-blue
+    Color(0xFF8AAFC6), // dusk blue
     'Feeding your head.',
     'reading, learning, reflecting',
   ),
   foc(
     'CRAFT',
     'Craft',
-    Color(0xFFB79BC8), // lilac
+    Color(0xFFAE9AC4), // lilac
     'Focused work and making things.',
     'deep work, projects, practice, skills',
   ),
   soc(
     'PEOPLE',
     'People',
-    Color(0xFFF0AFAF), // bloom
+    Color(0xFFDD9A72), // terracotta
     'Tending the people in your life.',
     'reaching out, friends, family, plans',
   ),
   dis(
     'HOME',
     'Home',
-    Color(0xFFB3A897), // warm bark
+    Color(0xFFC79355), // aged bronze
     'Keeping your space in order.',
     'chores, tidying, errands, repairs',
   );
@@ -130,6 +173,20 @@ enum Stat {
   final String examples;
 }
 
+/// The glyph that carries a domain when there is no room for its word — the
+/// header row reads icon-first, the way the approved board art does. Tokenized
+/// here so the six domains keep one mark each everywhere they appear.
+extension StatGlyph on Stat {
+  IconData get icon => switch (this) {
+    Stat.str => Icons.favorite_outline, // BODY — a heart
+    Stat.vit => Icons.eco_outlined, // CARE — a leaf
+    Stat.intl => Icons.visibility_outlined, // MIND — an eye
+    Stat.foc => Icons.handyman_rounded, // CRAFT — crossed maker tools
+    Stat.soc => Icons.people_alt_rounded, // PEOPLE — two figures
+    Stat.dis => Icons.home_rounded, // HOME — a house
+  };
+}
+
 /// Motion vocabulary. The 100ms rule: first feedback frame lands inside
 /// [ack]. Ease-out for responses to input; ease-in-out for ambient motion.
 abstract final class Motion {
@@ -138,7 +195,9 @@ abstract final class Motion {
   static const settle = Duration(milliseconds: 420); // card sweep, chip pulse
   static const barFill = Duration(milliseconds: 650); // XP bar fill
   static const bubbleStagger = Duration(milliseconds: 85); // tighter cascade
-  static const bubbleLife = Duration(milliseconds: 1500);
+  // Completion receipts are one protected, readable rail now—not a pile of
+  // bubbles. Give the user enough time to understand what changed.
+  static const bubbleLife = Duration(milliseconds: 3000);
   static const takeover = Duration(milliseconds: 700); // level-up slam
 
   static const respond = Curves.easeOutCubic;
@@ -163,27 +222,31 @@ abstract final class Type {
   static const double minLabel = 11;
 
   /// Numbers are the heroes: big, animated count-ups, soft serif warmth.
-  static TextStyle get numerals => GoogleFonts.fraunces(
-    fontFeatures: const [FontFeature.tabularFigures()],
+  static const TextStyle numerals = TextStyle(
+    fontFamily: 'Fraunces',
+    fontFeatures: [FontFeature.tabularFigures()],
     fontWeight: FontWeight.w700,
     fontSize: 18,
     letterSpacing: 0.2,
     color: Palette.textHi,
   );
 
-  static TextStyle get display => GoogleFonts.fraunces(
+  static const TextStyle display = TextStyle(
+    fontFamily: 'Fraunces',
     fontWeight: FontWeight.w600,
     fontSize: 22,
     color: Palette.textHi,
   );
 
-  static TextStyle get body => GoogleFonts.inter(
+  static const TextStyle body = TextStyle(
+    fontFamily: 'Inter',
     fontWeight: FontWeight.w500,
     fontSize: 16,
     color: Palette.textMid,
   );
 
-  static TextStyle get label => GoogleFonts.jetBrainsMono(
+  static const TextStyle label = TextStyle(
+    fontFamily: 'JetBrainsMono',
     fontWeight: FontWeight.w600,
     fontSize: minLabel,
     letterSpacing: 1.1,

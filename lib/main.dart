@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'a11y.dart';
 import 'audio.dart';
@@ -10,7 +9,7 @@ import 'platform/persist_stub.dart'
     if (dart.library.js_interop) 'platform/persist_web.dart';
 import 'screens/shell.dart';
 import 'tokens.dart';
-import 'widgets/ember_flame_icon.dart';
+import 'widgets/morrow_tapestry_glyph.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,12 +17,12 @@ void main() {
   // The brand fonts ship IN the app (assets/google_fonts/) — an offline first
   // launch must not fall back to system type. No runtime fetching, ever; and
   // the OFL licenses ride along in the license registry as the OFL requires.
-  GoogleFonts.config.allowRuntimeFetching = false;
   LicenseRegistry.addLicense(() async* {
     for (final f in const [
       'OFL-Fraunces.txt',
       'OFL-Inter.txt',
       'OFL-JetBrainsMono.txt',
+      'OFL-EBGaramond.txt',
     ]) {
       final text = await rootBundle.loadString('assets/google_fonts/$f');
       yield LicenseEntryWithLineBreaks(const ['google_fonts'], text);
@@ -79,10 +78,15 @@ class _FriendlyError extends StatelessWidget {
       child: const Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          EmberFlameIcon(size: 34, semanticLabel: 'Emberkeep flame'),
+          MorrowTapestryGlyph(
+            level: 1,
+            lit: true,
+            reduceMotion: true,
+            size: 34,
+          ),
           SizedBox(height: 10),
           Text(
-            'A flicker — but your fire is safe.',
+            'A snag — but your progress is safe.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -108,7 +112,7 @@ class LifeRpgApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Emberkeep',
+      title: 'Morrowloom',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,

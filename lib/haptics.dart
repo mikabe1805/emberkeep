@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 /// Centralized haptics — semantic taps mapped to the iOS Taptic Engine. These
 /// are REAL on a native build and silent no-ops on iOS Safari web (which
-/// blocks the Vibration API) — a core reason Emberkeep wants to go native.
+/// blocks the Vibration API) — a core reason Morrowloom wants to go native.
 /// Big moments layer the built-in impacts into a richer, sequenced pattern.
 ///
 /// When [reduceMotion] is true (DESIGN.md: honor reduce-motion), composed
@@ -17,6 +17,20 @@ abstract final class Haptics {
 
   /// A single soft bump — a routine quest completion.
   static void light() => HapticFeedback.lightImpact();
+
+  /// The everyday quest cadence: the pointer-down selection is followed by a
+  /// one soft landing as the drawn check turns. Heavy and composed impacts
+  /// remain reserved for exceptional rewards.
+  static void questComplete() {
+    if (reduceMotion) {
+      HapticFeedback.lightImpact();
+      return;
+    }
+    Future.delayed(
+      const Duration(milliseconds: 58),
+      HapticFeedback.lightImpact,
+    );
+  }
 
   /// A confirming bump — adding, saving, equipping.
   static void success() => reduceMotion

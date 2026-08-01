@@ -97,7 +97,7 @@ abstract final class Storage {
     }
   }
 
-  /// Does [raw] decode as a real Emberkeep save? Used to refuse mirroring a
+  /// Does [raw] decode as a real Morrowloom save? Used to refuse mirroring a
   /// corrupt/foreign blob to the cloud (same gates as [importRaw]).
   static bool isValidSave(String raw) {
     try {
@@ -162,7 +162,7 @@ abstract final class Storage {
       final j = (jsonDecode(raw) as Map).cast<String, dynamic>();
       // gate 1: our marker — rejects {} / {state:{},quests:[]} / foreign JSON
       if (j['app'] != _marker) {
-        debugPrint('Storage.importRaw rejected: not an Emberkeep save');
+        debugPrint('Storage.importRaw rejected: not a Morrowloom backup');
         return false;
       }
       // gate 2: the state must actually carry a save (a real character has

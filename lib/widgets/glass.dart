@@ -47,10 +47,16 @@ class GlassPanel extends StatelessWidget {
       decoration: facetedDecoration(
         color: tint,
         gradient: tint == null
-            ? const LinearGradient(
+            ? LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Palette.glassTop, Palette.glassBottom],
+                colors: [
+                  Color.alphaBlend(Palette.glassTop, const Color(0xEF181210)),
+                  Color.alphaBlend(
+                    Palette.glassBottom,
+                    const Color(0xF617110E),
+                  ),
+                ],
               )
             : null,
         cut: cut,
@@ -82,7 +88,7 @@ class GlassPanel extends StatelessWidget {
               ),
             ),
           panel,
-          Positioned.fill(child: FacetGleam(cut: cut, strength: 0.95)),
+          Positioned.fill(child: FacetGleam(cut: cut, strength: 0.52)),
         ],
       ),
     );
@@ -235,38 +241,80 @@ class _AmbientPlanesPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final left = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width * 0.62, 0)
-      ..lineTo(size.width * 0.28, size.height * 0.46)
-      ..lineTo(0, size.height * 0.34)
-      ..close();
-    canvas.drawPath(
-      left,
-      Paint()..color = Color.lerp(top, accent, 0.35)!.withValues(alpha: 0.10),
+    // Three light planes, each fading along its own length. They used to be
+    // flat-filled polygons at 8–14% alpha across the whole viewport, which read
+    // as hard-edged shafts terminating in mid-air — the same seam three
+    // separate screen audits reported at roughly x = 0.5 of the canvas. A plane
+    // with a falloff still gives the canvas construction, but it has somewhere
+    // for the light to go.
+    void plane(Path path, Rect bounds, Color tone, double alpha) {
+      canvas.drawPath(
+        path,
+        Paint()
+          ..shader = LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              tone.withValues(alpha: alpha),
+              tone.withValues(alpha: alpha * 0.35),
+              tone.withValues(alpha: 0),
+            ],
+            stops: const [0, 0.55, 1],
+          ).createShader(bounds),
+      );
+    }
+
+    plane(
+      Path()
+        ..moveTo(0, 0)
+        ..lineTo(size.width * 0.62, 0)
+        ..lineTo(size.width * 0.28, size.height * 0.46)
+        ..lineTo(0, size.height * 0.34)
+        ..close(),
+      Rect.fromLTWH(0, 0, size.width * 0.62, size.height * 0.46),
+      Color.lerp(top, accent, 0.35)!,
+      0.11,
     );
 
-    final right = Path()
-      ..moveTo(size.width, size.height * 0.12)
-      ..lineTo(size.width, size.height * 0.72)
-      ..lineTo(size.width * 0.58, size.height * 0.45)
-      ..lineTo(size.width * 0.78, size.height * 0.08)
-      ..close();
+    plane(
+      Path()
+        ..moveTo(size.width, size.height * 0.12)
+        ..lineTo(size.width, size.height * 0.72)
+        ..lineTo(size.width * 0.58, size.height * 0.45)
+        ..lineTo(size.width * 0.78, size.height * 0.08)
+        ..close(),
+      Rect.fromLTWH(
+        size.width,
+        size.height * 0.08,
+        -size.width * 0.42,
+        size.height * 0.64,
+      ),
+      Color.lerp(bottom, accent, 0.24)!,
+      0.09,
+    );
+
+    final floorRect = Rect.fromLTWH(
+      0,
+      size.height * 0.78,
+      size.width,
+      size.height * 0.22,
+    );
     canvas.drawPath(
-      right,
+      Path()
+        ..moveTo(0, size.height)
+        ..lineTo(size.width, size.height)
+        ..lineTo(size.width * 0.64, size.height * 0.78)
+        ..lineTo(size.width * 0.22, size.height * 0.86)
+        ..close(),
       Paint()
-        ..color = Color.lerp(bottom, accent, 0.24)!.withValues(alpha: 0.08),
-    );
-
-    final floor = Path()
-      ..moveTo(0, size.height)
-      ..lineTo(size.width, size.height)
-      ..lineTo(size.width * 0.64, size.height * 0.78)
-      ..lineTo(size.width * 0.22, size.height * 0.86)
-      ..close();
-    canvas.drawPath(
-      floor,
-      Paint()..color = Palette.warmShadow.withValues(alpha: 0.14),
+        ..shader = LinearGradient(
+          begin: Alignment.bottomCenter,
+          end: Alignment.topCenter,
+          colors: [
+            Palette.warmShadow.withValues(alpha: 0.16),
+            Palette.warmShadow.withValues(alpha: 0),
+          ],
+        ).createShader(floorRect),
     );
   }
 
@@ -276,7 +324,7 @@ class _AmbientPlanesPainter extends CustomPainter {
 }
 
 /// Drifting, twinkling motes of warm light. One repaint-bounded layer,
-/// quantized to ~20 fps — ambience, not a particle storm.
+/// quantized to ~12 fps — ambience, not a particle storm.
 class _Fireflies extends StatefulWidget {
   const _Fireflies({this.still = false});
   final bool still;
@@ -302,7 +350,7 @@ class _Mote {
 
 class _FirefliesState extends State<_Fireflies>
     with SingleTickerProviderStateMixin {
-  static const _count = 12; // trimmed (round-39 perf): fewer blurred motes
+  static const _count = 8;
   late final List<_Mote> _motes;
   late final AnimationController _c;
 
@@ -342,10 +390,12 @@ class _FirefliesState extends State<_Fireflies>
           animation: _c,
           builder: (_, _) => CustomPaint(
             size: Size.infinite,
-            // quantize: ~20 repaints/s is invisible for slow motes
+            // Twelve paints a second is ample for minute-long drift. The old
+            // 20 fps field spent battery under every scroll for motion almost
+            // nobody could consciously see.
             painter: _MotePainter(
               motes: _motes,
-              t: widget.still ? 0.15 : (_c.value * 1200).round() / 1200,
+              t: widget.still ? 0.15 : (_c.value * 720).round() / 720,
             ),
           ),
         ),

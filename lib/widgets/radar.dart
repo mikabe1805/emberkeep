@@ -95,11 +95,15 @@ class _RadarPainter extends CustomPainter {
       final s = stats[i];
       final v = max(0.06, values[s] ?? 0);
       canvas.drawCircle(point(i, v), 4, Paint()..color = s.color);
+      // Type.label, not a bare TextStyle: this was the one string in the app
+      // rendered in the platform's default face, so on a host without it the
+      // six axis names came out as solid colour blocks floating around the
+      // diagram, and everywhere else they were simply the wrong typeface.
       final tp = TextPainter(
         text: TextSpan(
           text: s.abbr,
-          style: TextStyle(
-            fontSize: 11,
+          style: Type.label.copyWith(
+            fontSize: 10.5,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.0,
             color: s.color,

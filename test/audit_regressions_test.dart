@@ -190,8 +190,8 @@ void main() {
     );
     await tester.pump();
     expect(tester.takeException(), isNull);
-    expect(find.text('a keep'), findsOneWidget);
-    expect(find.text('1 pieces furnished'), findsOneWidget);
+    expect(find.text('a space'), findsOneWidget);
+    expect(find.text('The Writer’s Hearth'), findsOneWidget);
   });
 
   test('relative note labels use calendar days across DST', () {
@@ -228,10 +228,20 @@ void main() {
     await tester.pump();
     expect(tester.takeException(), isNull);
 
-    await tester.tap(find.text('BEGIN'));
+    expect(
+      tester.getBottomLeft(find.text('ENTER MORROWLOOM')).dy,
+      lessThanOrEqualTo(568),
+      reason: 'the first action should be visible without discovering a scroll',
+    );
+    await tester.tap(find.text('ENTER MORROWLOOM'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(tester.takeException(), isNull);
-    await tester.tap(find.text('rather not say'));
+    expect(
+      tester.getBottomLeft(find.text('skip for now')).dy,
+      lessThanOrEqualTo(568),
+      reason: 'name and skip actions should remain visible on a small phone',
+    );
+    await tester.tap(find.text('skip for now'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(tester.takeException(), isNull);
 
@@ -245,5 +255,22 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);
     expect(find.text('50'), findsOneWidget);
+  });
+
+  testWidgets('onboarding greets the actual time of day', (tester) async {
+    Clock.freeze(DateTime(2026, 7, 31, 20, 15));
+    final state = GameState();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: OnboardingFlow(
+          state: state,
+          onFinish: ({required forgeFirstGoal, required timeShape}) {},
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.text('ENTER MORROWLOOM'));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.textContaining('Good evening.'), findsOneWidget);
   });
 }

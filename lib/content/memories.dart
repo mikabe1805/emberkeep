@@ -7,6 +7,40 @@ import 'achievements.dart';
 
 enum MemoryKind { journal, trophy, goal, hearth }
 
+class ProgressMilestone {
+  const ProgressMilestone(this.level, this.name, this.description);
+
+  final int level;
+  final String name;
+  final String description;
+}
+
+/// Long-arc room landmarks. Their names describe what the player accomplished,
+/// leaving the tapestry itself to be seen rather than constantly explained.
+const progressMilestones = <ProgressMilestone>[
+  ProgressMilestone(5, 'First Five', 'Five levels in. The room has receipts.'),
+  ProgressMilestone(
+    10,
+    'Double Digits',
+    'This is officially a build, not a good week.',
+  ),
+  ProgressMilestone(
+    16,
+    'Taking Shape',
+    'Your strongest domains are getting hard to miss.',
+  ),
+  ProgressMilestone(
+    24,
+    'Built Different',
+    'Nobody else has made this exact stat shape.',
+  ),
+  ProgressMilestone(
+    34,
+    'All Yours',
+    'Nothing here came from logging in. You did the quests.',
+  ),
+];
+
 class MemoryArtifact {
   const MemoryArtifact({
     required this.id,
@@ -116,23 +150,16 @@ MemoryCollection memoryCollection(GameState state, List<Quest> quests) {
         ),
   ];
 
-  const stages = <(int, String, String)>[
-    (5, 'First Spark', 'The hearth first rose above its embers.'),
-    (10, 'Steady Flame', 'Showing up became something the room could hold.'),
-    (16, 'Bright Crest', 'The Keep learned to throw light farther.'),
-    (24, 'Twin Fire', 'A second flame joined the heart of the room.'),
-    (34, 'Everflame', 'The hearth reached its tallest living form.'),
-  ];
   final hearth = <MemoryArtifact>[
-    for (final stage in stages)
-      if (state.level >= stage.$1)
+    for (final stage in progressMilestones)
+      if (state.level >= stage.level)
         MemoryArtifact(
-          id: 'hearth:${stage.$1}',
+          id: 'hearth:${stage.level}',
           kind: MemoryKind.hearth,
-          title: stage.$2,
-          subtitle: 'HEARTH · LEVEL ${stage.$1}',
-          detail: stage.$3,
-          icon: Icons.local_fire_department_outlined,
+          title: stage.name,
+          subtitle: 'ROOM MILESTONE · LEVEL ${stage.level}',
+          detail: stage.description,
+          icon: Icons.auto_stories_outlined,
           accent: Palette.streak,
         ),
   ];

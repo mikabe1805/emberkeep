@@ -34,13 +34,16 @@ class RoomStyle {
   final String? requires;
 }
 
+// The free default. `a` used to be 0xFF34262F, which is a mauve-pink at hue
+// ~332 — the starter wall was reading cold before a single skin was bought.
+// Top is dark espresso, bottom is warm walnut catching the hearth.
 const _walnutWall = RoomStyle(
   id: 'wall_walnut',
   name: 'Walnut',
   kind: RoomStyleKind.wall,
   price: 0,
-  a: Color(0xFF34262F),
-  b: Color(0xFF49332E),
+  a: Color(0xFF2A201C),
+  b: Color(0xFF3B2C24),
 );
 const _oakFloor = RoomStyle(
   id: 'floor_oak',
@@ -53,13 +56,16 @@ const _oakFloor = RoomStyle(
 
 final roomStyles = <RoomStyle>[
   _walnutWall,
+  // Dusk, not magenta. The old pair (0xFF312339 / 0xFF3E2E48) sat at ~0.38
+  // saturation and was single-handedly responsible for most of the cold-hue
+  // area on the quest board. Same plum read, a third of the chroma.
   const RoomStyle(
     id: 'wall_plum',
     name: 'Plum Dusk',
     kind: RoomStyleKind.wall,
     price: 140,
-    a: Color(0xFF312339),
-    b: Color(0xFF3E2E48),
+    a: Color(0xFF272029),
+    b: Color(0xFF322A38),
   ),
   const RoomStyle(
     id: 'wall_sage',

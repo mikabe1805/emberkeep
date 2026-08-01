@@ -1,15 +1,21 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
-import 'facets.dart';
 
-/// Header row of the six attribute chips. A chip pulses with its own color
+/// Header row of the six domain readouts. A column pulses with its own color
 /// and counts up when its stat gains — the header is a live mini character
-/// sheet, reacting to every completion (DESIGN.md §7). Between events a
-/// faint border shimmer drifts across the row (§2 ambient idle motion),
-/// driven by one shared controller and quantized to ~20 repaints/s.
+/// sheet, reacting to every completion (DESIGN.md §7).
+///
+/// It used to also run a 4.2 s brightness loop across all six glyphs, forever,
+/// on the two most-visited screens. That is exactly the autonomous sparkle the
+/// direction rules out: shine moves because the user did something. The pulse
+/// on an actual gain stays; the idle loop is gone.
+///
+/// Deliberately borderless. This row sits *inside* an already-bordered glass
+/// panel, and boxing each domain again produced the nested-frame look the
+/// approved board art doesn't have — six lit chips competing with the hearth
+/// for the top of the value range. Hairline rules separate the columns instead,
+/// so the only things carrying light here are the six glyphs and their numbers.
 class StatChips extends StatefulWidget {
   const StatChips({super.key, required this.values, this.reduceMotion = false});
 
@@ -20,68 +26,56 @@ class StatChips extends StatefulWidget {
   State<StatChips> createState() => _StatChipsState();
 }
 
-class _StatChipsState extends State<StatChips>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ambient = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 4200),
-  );
-
-  @override
-  void initState() {
-    super.initState();
-    if (!widget.reduceMotion) _ambient.repeat();
-  }
-
-  @override
-  void didUpdateWidget(StatChips old) {
-    super.didUpdateWidget(old);
-    if (widget.reduceMotion && !old.reduceMotion) {
-      _ambient.stop();
-    } else if (!widget.reduceMotion && old.reduceMotion) {
-      _ambient.repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _ambient.dispose();
-    super.dispose();
-  }
-
+class _StatChipsState extends State<StatChips> {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        for (final s in Stat.values)
+        for (final s in Stat.values) ...[
+          if (s.index != 0) const _DomainRule(),
           Expanded(
             child: RepaintBoundary(
-              child: _StatChip(
-                stat: s,
-                value: widget.values[s] ?? 0,
-                ambient: _ambient,
-                still: widget.reduceMotion,
-              ),
+              child: _StatChip(stat: s, value: widget.values[s] ?? 0),
             ),
           ),
+        ],
       ],
     );
   }
 }
 
+/// The hairline between two domains: a short vertical rule that fades out at
+/// both ends, so it reads as light catching an edge rather than a drawn border.
+class _DomainRule extends StatelessWidget {
+  const _DomainRule();
+
+  // A fixed height rather than CrossAxisAlignment.stretch: with every child
+  // stretching there is nothing left to size the row from.
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 62,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Palette.glassEdge.withValues(alpha: 0),
+          Palette.glassEdge.withValues(alpha: 0.5),
+          Palette.glassEdge.withValues(alpha: 0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ),
+    ),
+  );
+}
+
 class _StatChip extends StatefulWidget {
-  const _StatChip({
-    required this.stat,
-    required this.value,
-    required this.ambient,
-    this.still = false,
-  });
+  const _StatChip({required this.stat, required this.value});
 
   final Stat stat;
   final int value;
-  final Animation<double> ambient;
-  final bool still;
 
   @override
   State<_StatChip> createState() => _StatChipState();
@@ -114,60 +108,50 @@ class _StatChipState extends State<_StatChip>
   Widget build(BuildContext context) {
     final c = widget.stat.color;
     return AnimatedBuilder(
-      animation: Listenable.merge([_pulse, widget.ambient]),
+      animation: _pulse,
       builder: (context, _) {
         // quick swell then settle: peak mid-animation
         final wave = Curves.easeOutBack.transform(
           1 - (_pulse.value - 0.5).abs() * 2,
         );
         final active = _pulse.isAnimating;
-        // ambient shimmer drifting across the row, staggered per chip;
-        // quantized so repaints dedupe to ~20/s
-        final phase = (widget.ambient.value * 84).round() / 84;
-        final shimmer = widget.still
-            ? 0.5
-            : 0.5 +
-                  0.5 *
-                      sin(
-                        2 *
-                            pi *
-                            (phase + widget.stat.index / Stat.values.length),
-                      );
+        final glyphAlpha = (0.86 + 0.14 * (active ? wave : 0)).clamp(0.0, 1.0);
         return Transform.scale(
-          scale: 1 + 0.10 * (active ? wave : 0),
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            decoration: facetedDecoration(
-              color: Palette.glassFill,
-              cut: 7,
-              borderColor: active
-                  ? c.withValues(alpha: 0.4 + 0.6 * wave)
-                  : Color.lerp(
-                      Palette.glassEdge,
-                      c.withValues(alpha: 0.55),
-                      0.16 * shimmer,
-                    )!,
-              shadows: active
-                  ? [
-                      BoxShadow(
-                        color: c.withValues(alpha: 0.35 * wave),
-                        blurRadius: 12,
-                      ),
-                    ]
-                  : const [],
-            ),
+          scale: 1 + 0.08 * (active ? wave : 0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
+                Icon(
+                  widget.stat.icon,
+                  size: 24,
+                  color: c.withValues(alpha: glyphAlpha),
+                  // the only place a domain is allowed to throw light, and
+                  // only while it is actually gaining
+                  shadows: active
+                      ? [
+                          Shadow(
+                            color: c.withValues(alpha: 0.55 * wave),
+                            blurRadius: 11,
+                          ),
+                        ]
+                      : const [],
+                ),
+                const SizedBox(height: 5),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
                     widget.stat.abbr,
                     maxLines: 1,
-                    style: Type.label.copyWith(fontSize: 11, color: c),
+                    style: Type.label.copyWith(
+                      fontSize: 10,
+                      letterSpacing: 0.7,
+                      color: c.withValues(alpha: 0.82),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 TweenAnimationBuilder<int>(
                   tween: IntTween(begin: _shownFrom, end: widget.value),
                   duration: Motion.settle,
@@ -176,7 +160,10 @@ class _StatChipState extends State<_StatChip>
                     child: Text(
                       '$v',
                       maxLines: 1,
-                      style: Type.numerals.copyWith(fontSize: 14),
+                      style: Type.numerals.copyWith(
+                        fontSize: 20,
+                        color: Palette.textMid,
+                      ),
                     ),
                   ),
                 ),

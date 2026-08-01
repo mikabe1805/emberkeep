@@ -6,7 +6,7 @@ import '../models.dart';
 import '../tokens.dart';
 
 /// THE HISTORY CONSTELLATION — a persistent trace of lifetime effort
-/// (ROADMAP Phase 2). Every night you lit the hearth becomes a star, laid down
+/// (ROADMAP Phase 2). Every active day becomes a star, laid down
 /// on a slow spiral that winds outward as your history grows: the oldest night
 /// you still hold is nearest the centre, tonight is out at the rim. Nights that
 /// touch become threads, so a streak literally draws a line across your sky.

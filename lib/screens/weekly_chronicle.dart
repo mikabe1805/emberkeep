@@ -15,10 +15,10 @@ import '../platform/share_stub.dart'
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/constellation.dart';
-import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
+import '../widgets/morrow_tapestry_glyph.dart';
 
 class WeeklyChronicleScreen extends StatefulWidget {
   const WeeklyChronicleScreen({super.key, required this.state});
@@ -49,8 +49,8 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
           bytes != null &&
           await sharePng(
             bytes.buffer.asUint8List(),
-            'emberkeep-weekly-chronicle.png',
-            '${data.shareText} — Emberkeep',
+            'morrowloom-weekly-chronicle.png',
+            '${data.shareText} — Morrowloom',
           );
       if (!mounted) return;
       Sfx.instance.play(ok ? 'streak' : 'boing');
@@ -63,7 +63,7 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
   }
 
   void _copySummary() {
-    Clipboard.setData(ClipboardData(text: '${_data.shareText} — Emberkeep'));
+    Clipboard.setData(ClipboardData(text: '${_data.shareText} — Morrowloom'));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -90,9 +90,9 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
           child: Column(
             children: [
               const DetailHeader(
-                title: 'Weekly Chronicle',
-                subtitle: 'a shareable page from the life behind your Keep',
-                accent: Palette.xpLight,
+                title: 'Your Week',
+                subtitle: 'a shareable page from the life behind your space',
+                accent: Palette.xp,
                 pill: '9:16',
               ),
               Expanded(
@@ -195,14 +195,19 @@ class _ChronicleCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      EmberFlameIcon(size: 24, color: flameHueFor(state)),
+                      MorrowTapestryGlyph(
+                        level: state.level,
+                        lit: state.streakDays > 0,
+                        reduceMotion: true,
+                        size: 26,
+                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'EMBERKEEP CHRONICLE',
+                              'YOUR WEEK',
                               style: Type.label.copyWith(
                                 fontSize: 9,
                                 color: Palette.xpLight,
@@ -237,6 +242,7 @@ class _ChronicleCard extends StatelessWidget {
                         level: state.level,
                         unlocked: state.ownedFurniture,
                         wall: wallColorsFor(state),
+                        plateId: state.wallStyle,
                         floor: floorColorsFor(state),
                         window: state.windowScene,
                         petAwake: data.litDays > 0,
@@ -249,7 +255,7 @@ class _ChronicleCard extends StatelessWidget {
                   Text(
                     data.total == 0
                         ? 'A quiet chapter'
-                        : '${data.total} ${data.total == 1 ? 'quest' : 'quests'} became light',
+                        : '${data.total} ${data.total == 1 ? 'quest' : 'quests'} became progress',
                     textAlign: TextAlign.center,
                     style: Type.display.copyWith(
                       fontSize: 23,
@@ -259,7 +265,7 @@ class _ChronicleCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    '${data.litDays} OF 7 NIGHTS LIT · ${data.deltaLine.toUpperCase()}',
+                    '${data.litDays} OF 7 DAYS ACTIVE · ${data.deltaLine.toUpperCase()}',
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     style: Type.label.copyWith(
@@ -340,7 +346,7 @@ class _ChronicleCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${state.totalXp} XP OF REAL LIFE · EMBERKEEP',
+                    '${state.totalXp} XP OF REAL LIFE · MORROWLOOM',
                     textAlign: TextAlign.center,
                     style: Type.label.copyWith(
                       fontSize: 7.8,

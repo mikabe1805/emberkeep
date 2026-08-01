@@ -46,6 +46,7 @@ class JournalEntryScreen extends StatefulWidget {
     this.heading = 'Journal',
     this.hint = 'Start writing…',
     this.starter,
+    this.trace,
   });
 
   final Note? initial;
@@ -57,6 +58,7 @@ class JournalEntryScreen extends StatefulWidget {
   final bool reduceMotion;
   final String heading;
   final String hint;
+  final JournalTrace? trace;
 
   /// Optional first line for a guided entry. It is not saved by merely opening
   /// the page; once the user writes, it becomes an ordinary journal paragraph.
@@ -307,8 +309,8 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
             backgroundColor: Palette.card,
             content: Text(
               fromCamera
-                  ? 'Emberkeep couldn’t reach your camera — you can allow it in Settings.'
-                  : 'Emberkeep couldn’t reach your photos — you can allow it in Settings.',
+                  ? 'Morrowloom couldn’t reach your camera — you can allow it in Settings.'
+                  : 'Morrowloom couldn’t reach your photos — you can allow it in Settings.',
               style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
             ),
           ),
@@ -563,6 +565,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                     ),
                   ),
                 ),
+                if (widget.trace != null) _tracePanel(widget.trace!),
                 Expanded(
                   // the WHOLE page is the writing surface: tapping the empty
                   // space below the last paragraph puts the cursor at the end
@@ -583,6 +586,76 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _tracePanel(JournalTrace trace) {
+    final gains = trace.statGains.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final facts = <String>[
+      if (trace.questTitles.isNotEmpty)
+        '${trace.questTitles.length} ${trace.questTitles.length == 1 ? 'quest' : 'quests'}',
+      if (trace.todayXp > 0) '+${trace.todayXp} XP',
+      if (gains.isNotEmpty)
+        '${gains.first.key.label.toUpperCase()} +${gains.first.value}',
+      if (trace.goalTitles.isNotEmpty) trace.goalTitles.first,
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: GlassPanel(
+        padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+        tint: const Color(0xE8251C17),
+        child: Row(
+          children: [
+            const FacetMedallion(
+              size: 30,
+              accent: Palette.xp,
+              child: Icon(Icons.link_rounded, size: 15, color: Palette.xpLight),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ATTACHED TO THIS PAGE',
+                    style: Type.label.copyWith(
+                      fontSize: 9,
+                      color: Palette.xpLight,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    facts.isEmpty
+                        ? 'Level ${trace.level} · ${trace.totalXp} total XP'
+                        : facts.join('  ·  '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.body.copyWith(
+                      fontSize: 11.5,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                  if (trace.questTitles.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      trace.questTitles.take(2).join('  ·  '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.body.copyWith(
+                        fontSize: 11.5,
+                        fontStyle: FontStyle.italic,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

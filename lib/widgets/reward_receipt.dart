@@ -12,6 +12,8 @@ import '../tokens.dart';
 import 'ember_flame_icon.dart';
 import 'facets.dart';
 import 'glass.dart';
+import 'pressable.dart';
+import 'quick_reflection_sheet.dart';
 
 /// The "receipt of rewards": a vertical stack of color-coded bubbles popping
 /// in one by one near the completed quest — one tap can deliver 2–6 distinct
@@ -27,6 +29,7 @@ class RewardReceipt extends StatefulWidget {
     required this.anchor,
     required this.onDone,
     this.state,
+    this.onReflect,
   });
 
   final RewardBundle bundle;
@@ -37,6 +40,10 @@ class RewardReceipt extends StatefulWidget {
 
   /// When set, enables the evidence-card tap on the +Stat bubble.
   final GameState? state;
+
+  /// Saves one optional, day-attached line without forcing a full journal
+  /// detour in the middle of the completion reward.
+  final ValueChanged<String>? onReflect;
 
   @override
   State<RewardReceipt> createState() => _RewardReceiptState();
@@ -67,7 +74,8 @@ class _RewardReceiptState extends State<RewardReceipt>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
   late final List<_Bubble> _bubbles;
-  bool _heldForEvidence = false;
+  bool _heldForSheet = false;
+  bool _reflectionSaved = false;
 
   @override
   void initState() {
@@ -81,17 +89,17 @@ class _RewardReceiptState extends State<RewardReceipt>
         ? null
         : projectedXp >= nextLevelCost
         ? 'LEVEL $nextLevel READY'
-        : '${nextLevelCost - projectedXp} XP → LEVEL $nextLevel';
+        : '${nextLevelCost - projectedXp} XP · LEVEL $nextLevel';
     _bubbles = [
       if (b.firstOfDay)
         _Bubble(
-          'FIRST EMBER',
-          Icons.local_fire_department,
+          'FIRST WIN TODAY',
+          Icons.wb_twilight_rounded,
           Palette.streak,
           'streak',
         ),
       _Bubble(
-        '+${b.xp} XP${b.embers > 0 ? ' · +${b.embers} ✦' : ''}',
+        '+${b.xp} XP${b.embers > 0 ? ' · +${b.embers} Glimmers' : ''}',
         Icons.bolt,
         Palette.xp,
         null,
@@ -100,7 +108,7 @@ class _RewardReceiptState extends State<RewardReceipt>
       // per-stat pitched blip (§8: pitch varies by stat) — tappable when
       // an unread evidence card waits behind it (DESIGN §5)
       _Bubble(
-        '+${b.statGain} ${b.stat.abbr}${b.hasEvidence ? ' ⓘ' : ''}',
+        '+${b.statGain} ${b.stat.abbr}${b.hasEvidence ? ' · WHY' : ''}',
         Icons.trending_up,
         b.stat.color,
         'stat_${b.stat.index}',
@@ -116,14 +124,14 @@ class _RewardReceiptState extends State<RewardReceipt>
       if (b.streakMult != null)
         _Bubble(
           'STREAK ×${b.streakMult!.toStringAsFixed(1)}',
-          Icons.local_fire_department,
+          Icons.link_rounded,
           Palette.streak,
           'streak',
         ),
       if (b.comebackMult != null)
         _Bubble(
           'WELCOME BACK ×${b.comebackMult!.toStringAsFixed(1)}',
-          Icons.local_fire_department,
+          Icons.replay_rounded,
           Palette.streak,
           'streak',
         ),
@@ -152,10 +160,15 @@ class _RewardReceiptState extends State<RewardReceipt>
       _Bubble(b.message, Icons.favorite, b.stat.color, null, wide: true),
     ];
 
-    final total = Motion.bubbleLife + Motion.bubbleStagger * _bubbles.length;
+    final total =
+        Motion.bubbleLife +
+        Motion.bubbleStagger * _bubbles.length +
+        (widget.onReflect == null
+            ? Duration.zero
+            : const Duration(milliseconds: 700));
     _c = AnimationController(vsync: this, duration: total)
       ..addStatusListener((s) {
-        if (s == AnimationStatus.completed && !_heldForEvidence) {
+        if (s == AnimationStatus.completed && !_heldForSheet) {
           widget.onDone();
         }
       })
@@ -186,7 +199,8 @@ class _RewardReceiptState extends State<RewardReceipt>
     final card = evidenceForStat(widget.bundle.stat);
     final s = widget.state;
     if (card == null || s == null) return;
-    _heldForEvidence = true;
+    _c.stop();
+    setState(() => _heldForSheet = true);
     s.markEvidenceSeen([card.title]);
     Sfx.instance.play('tick');
     Haptics.tap();
@@ -249,11 +263,45 @@ class _RewardReceiptState extends State<RewardReceipt>
       ),
     ).whenComplete(() {
       if (!mounted) return;
-      _heldForEvidence = false;
+      setState(() => _heldForSheet = false);
       if (_c.status == AnimationStatus.completed) {
         widget.onDone();
+      } else {
+        _c.forward();
       }
     });
+  }
+
+  Future<void> _openReflection() async {
+    final onReflect = widget.onReflect;
+    if (onReflect == null || _reflectionSaved || _heldForSheet) return;
+    _c.stop();
+    setState(() => _heldForSheet = true);
+    final text = await showQuickReflectionSheet(
+      context,
+      title: 'What made this work?',
+      prompt:
+          'A trick, person, place, or mood you may want the next time this '
+          'quest comes around.',
+      attached: widget.bundle.questTitle,
+    );
+    if (!mounted) return;
+    if (text != null) onReflect(text);
+    setState(() {
+      if (text != null) _reflectionSaved = true;
+      _heldForSheet = false;
+    });
+    if (_c.status == AnimationStatus.completed) {
+      if (_reflectionSaved) {
+        Future<void>.delayed(const Duration(milliseconds: 520), () {
+          if (mounted) widget.onDone();
+        });
+      } else {
+        widget.onDone();
+      }
+    } else {
+      _c.forward();
+    }
   }
 
   @override
@@ -266,33 +314,46 @@ class _RewardReceiptState extends State<RewardReceipt>
   Widget build(BuildContext context) {
     final screen = MediaQuery.sizeOf(context);
     final totalMs = _c.duration!.inMilliseconds.toDouble();
-    final staggerMs = Motion.bubbleStagger.inMilliseconds.toDouble();
-
-    // Keep the whole bubble stack on screen: estimate its height and clamp the
-    // top so the bottom never runs off the bottom edge (stack can be ~10 tall).
-    final stackH = 60.0 * _bubbles.length;
-    final top = (widget.anchor.dy - stackH).clamp(
-      8.0,
-      (screen.height - stackH - 16).clamp(8.0, screen.height),
-    );
-
+    final safeBottom = MediaQuery.paddingOf(context).bottom;
     return Positioned(
-      left: (widget.anchor.dx - 110).clamp(8.0, screen.width - 228),
-      top: top,
+      left: 12,
+      right: 12,
+      bottom: 96 + safeBottom,
       child: OverlaySurface(
         child: AnimatedBuilder(
           animation: _c,
           builder: (context, _) {
             final elapsed = _c.value * totalMs;
-            return ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: screen.height - 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (var i = 0; i < _bubbles.length; i++)
-                    _bubbleView(_bubbles[i], elapsed - i * staggerMs, totalMs),
-                ],
+            final enter = Curves.easeOutCubic.transform(
+              (elapsed / 320).clamp(0.0, 1.0),
+            );
+            final exit = _heldForSheet
+                ? 0.0
+                : ((elapsed - (totalMs - 430)) / 430).clamp(0.0, 1.0);
+            final opacity = (enter * (1 - exit)).clamp(0.0, 1.0);
+            return IgnorePointer(
+              ignoring: _heldForSheet,
+              child: Opacity(
+                opacity: _heldForSheet ? 0 : opacity,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - enter) * 22 + exit * 14),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: 520,
+                      // Compact phones need a little more vertical room now that
+                      // the optional Journal door is part of the receipt. This
+                      // still leaves the completed quest visible above it.
+                      maxHeight:
+                          screen.height * (screen.height < 700 ? 0.46 : 0.34),
+                    ),
+                    child: GlassPanel(
+                      glow: true,
+                      tint: const Color(0xF21B1511),
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                      child: _receiptBody(elapsed),
+                    ),
+                  ),
+                ),
               ),
             );
           },
@@ -301,106 +362,218 @@ class _RewardReceiptState extends State<RewardReceipt>
     );
   }
 
-  Widget _bubbleView(_Bubble b, double localMs, double totalMs) {
-    // entrance: 220ms pop (ease-out-back); exit: shared fade at the end
-    final enter = (localMs / 220).clamp(0.0, 1.0);
-    if (enter <= 0) return const SizedBox(height: 44);
-    final scale = Curves.easeOutBack.transform(enter);
-    final fadeStart = totalMs - 350;
-    final exit = _heldForEvidence
-        ? 0.0
-        : ((_c.value * totalMs - fadeStart) / 350).clamp(0.0, 1.0);
+  Widget _receiptBody(double elapsedMs) {
+    final visibleCount =
+        1 +
+        (elapsedMs / Motion.bubbleStagger.inMilliseconds)
+            .floor()
+            .clamp(0, _bubbles.length - 1)
+            .toInt();
+    final rewards = [
+      for (final bubble in _bubbles.take(visibleCount))
+        if (!bubble.wide) bubble,
+    ];
+    final message = _bubbles.lastWhere((bubble) => bubble.wide);
+    _Bubble? hero;
+    for (final bubble in rewards) {
+      if (bubble.hero) {
+        hero = bubble;
+        break;
+      }
+    }
+    final compact = [
+      for (final bubble in rewards)
+        if (!identical(bubble, hero)) bubble,
+    ];
 
-    final pill = Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: EdgeInsets.symmetric(horizontal: 13, vertical: b.hero ? 10 : 8),
-      constraints: BoxConstraints(maxWidth: b.wide ? 230 : 220),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            FacetMedallion(
+              size: 38,
+              accent: Palette.xp,
+              glow: true,
+              child: const Icon(
+                Icons.done_rounded,
+                size: 20,
+                color: Palette.xpLight,
+              ),
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'QUEST COMPLETE',
+                    style: Type.label.copyWith(
+                      fontSize: 10.5,
+                      color: Palette.xpLight,
+                      letterSpacing: 1.7,
+                    ),
+                  ),
+                  if (hero != null)
+                    Text(
+                      hero.text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.numerals.copyWith(
+                        fontSize: 19,
+                        color: hero.color,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            // Was 8.5 pt in textLo — the smallest, lowest-contrast string in
+            // the app, sitting beside its brightest numeral.
+            Text(
+              'SWIPE TO UNDO',
+              style: Type.label.copyWith(fontSize: 10, color: Palette.textMid),
+            ),
+          ],
+        ),
+        if (compact.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final bubble in compact.take(5)) _receiptChip(bubble),
+            ],
+          ),
+        ],
+        const SizedBox(height: 9),
+        Text(
+          message.text,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Type.body.copyWith(
+            fontSize: 12,
+            height: 1.25,
+            fontStyle: FontStyle.italic,
+            color: Palette.textMid,
+          ),
+        ),
+        if (widget.onReflect != null) ...[
+          const SizedBox(height: 9),
+          Semantics(
+            button: !_reflectionSaved,
+            label: _reflectionSaved
+                ? 'One line kept in Journal'
+                : 'Keep one line about this quest in Journal',
+            child: Pressable(
+              enabled: !_reflectionSaved,
+              pressDepth: 2,
+              edgeColor: Colors.transparent,
+              semanticLabel: _reflectionSaved
+                  ? 'One line kept in Journal'
+                  : 'Keep one line in Journal',
+              onTapUp: _reflectionSaved ? null : (_) => _openReflection(),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 38),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: facetedDecoration(
+                  cut: 7,
+                  color: (_reflectionSaved ? Palette.success : Palette.xp)
+                      .withValues(alpha: 0.07),
+                  borderColor:
+                      (_reflectionSaved ? Palette.success : Palette.brass)
+                          .withValues(alpha: 0.42),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _reflectionSaved
+                          ? Icons.bookmark_added_rounded
+                          : Icons.history_edu_rounded,
+                      size: 16,
+                      color: _reflectionSaved
+                          ? Palette.success
+                          : Palette.xpLight,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _reflectionSaved
+                            ? 'ONE LINE KEPT IN JOURNAL'
+                            : 'KEEP ONE LINE  ·  OPTIONAL',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.label.copyWith(
+                          fontSize: 9.8,
+                          color: _reflectionSaved
+                              ? Palette.success
+                              : Palette.xpLight,
+                        ),
+                      ),
+                    ),
+                    if (!_reflectionSaved)
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: Palette.textLo,
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _receiptChip(_Bubble bubble) {
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: facetedDecoration(
+        cut: 6,
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color.alphaBlend(
-              b.color.withValues(alpha: b.hero || b.evidence ? 0.30 : 0.20),
-              Palette.card,
-            ),
-            Color.alphaBlend(b.color.withValues(alpha: 0.10), Palette.card),
+            bubble.color.withValues(alpha: 0.18),
+            bubble.color.withValues(alpha: 0.045),
           ],
         ),
-        cut: b.hero ? 11 : 8,
-        borderColor: b.color.withValues(
-          alpha: b.hero || b.evidence ? 0.85 : 0.6,
-        ),
-        borderWidth: b.hero || b.evidence ? 1.4 : 1.0,
-        shadows: [
-          BoxShadow(
-            color: b.color.withValues(
-              alpha: b.hero || b.evidence ? 0.40 : 0.22,
-            ),
-            blurRadius: b.hero || b.evidence ? 18 : 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderColor: bubble.color.withValues(alpha: 0.48),
+        borderWidth: 0.8,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: b.wide
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.center,
         children: [
           emberkeepIcon(
-            b.icon,
-            size: b.wide
-                ? 13
-                : b.hero
-                ? 19
-                : 16,
-            color: b.color,
+            bubble.icon,
+            size: 13,
+            color: bubble.color,
             flameHue: widget.state == null
                 ? emberFlameDefaultHue
                 : flameHueFor(widget.state!),
           ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: b.wide
-                ? Text(
-                    b.text,
-                    style: Type.body.copyWith(
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textMid,
-                    ),
-                  )
-                : Text(
-                    b.text,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Type.numerals.copyWith(
-                      fontSize: b.hero ? 18 : 13,
-                      color: b.color,
-                    ),
-                  ),
+          const SizedBox(width: 5),
+          Text(
+            bubble.text,
+            style: Type.label.copyWith(
+              fontSize: 10.5,
+              color: bubble.color,
+              letterSpacing: 0.6,
+            ),
           ),
         ],
       ),
     );
-
-    return Opacity(
-      opacity: (enter * (1 - exit)).clamp(0.0, 1.0),
-      child: Transform.translate(
-        offset: Offset(0, (1 - scale) * 14 - 18 * exit),
-        child: Transform.scale(
-          scale: 0.6 + 0.4 * scale,
-          alignment: Alignment.centerLeft,
-          child: b.evidence
-              ? GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _openEvidence,
-                  child: pill,
-                )
-              : IgnorePointer(child: pill),
-        ),
-      ),
+    if (!bubble.evidence) return IgnorePointer(child: chip);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _openEvidence,
+      child: chip,
     );
   }
 }

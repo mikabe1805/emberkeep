@@ -1,5 +1,5 @@
 name: emberkeep
-description: "Emberkeep — turn your life into the game worth playing. Bank your embers at night; rekindle them at dawn."
+description: "Morrowloom — weave real-life quests into the person and story you are becoming."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -52,6 +52,7 @@ dependencies:
   flutter_timezone: ^3.0.1
   image_picker: ^1.2.3
   path_provider: ^2.1.6
+  sensors_plus: ^7.1.0
 
 dev_dependencies:
   flutter_test:
@@ -65,7 +66,7 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
 
-# App launcher icons — the angular keep-and-hearth emblem, from a true 1024²
+# App launcher icons — the approved Morrow Tapestry, from a true 1024²
 # master. Regenerate platform sizes after changing:
 #   dart run flutter_launcher_icons
 flutter_launcher_icons:
@@ -73,9 +74,9 @@ flutter_launcher_icons:
   android: true
   remove_alpha_ios: true
   background_color_ios: "#191210"
-  image_path: "web/icons/Icon-1024-v3.png"
+  image_path: "web/icons/Icon-1024.png"
   adaptive_icon_background: "#170D0A"
-  adaptive_icon_foreground: "web/icons/Icon-1024-v3.png"
+  adaptive_icon_foreground: "web/icons/Icon-1024.png"
   adaptive_icon_foreground_inset: 0
 
 # For information on the generic Dart part of this file, see the
@@ -93,9 +94,55 @@ flutter:
     - assets/sfx/
     - assets/google_fonts/
     - assets/room/
+    # painted room plates, one per wall style (see ROOM-PLATES.md). Optional:
+    # a style with no plate falls through to the procedural painter.
+    - assets/rooms/
+    - assets/rooms/previews/
+    - assets/routine/
+    - assets/brand/
+    - assets/quest/
+    - assets/pages/
     # (round-62) the character + stage scenes are now fully code-painted
     # (widgets/portrait.dart, widgets/stage_scene.dart) — the old AI-generated
     # mascot PNGs and backdrop webps are retired, cutting ~30MB from the bundle.
+
+  fonts:
+    - family: Fraunces
+      fonts:
+        - asset: assets/google_fonts/Fraunces-SemiBold.ttf
+          weight: 600
+        - asset: assets/google_fonts/Fraunces-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+        - asset: assets/google_fonts/Fraunces-Bold.ttf
+          weight: 700
+    - family: Inter
+      fonts:
+        - asset: assets/google_fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/google_fonts/Inter-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/google_fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/google_fonts/Inter-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/google_fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/google_fonts/Inter-Bold.ttf
+          weight: 700
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/google_fonts/JetBrainsMono-SemiBold.ttf
+          weight: 600
+        - asset: assets/google_fonts/JetBrainsMono-Bold.ttf
+          weight: 700
+    - family: EBGaramond
+      fonts:
+        - asset: assets/google_fonts/EBGaramond-Variable.ttf
+        - asset: assets/google_fonts/EBGaramond-Italic-Variable.ttf
+          style: italic
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

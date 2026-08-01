@@ -2,7 +2,7 @@ import '../engine.dart';
 import 'achievements.dart';
 
 /// "Your Space" — the cozy room behind your avatar (round-40 scaffold), now a
-/// SHOP you furnish by choice (round-42). You earn Embers (✦) by playing and
+/// SHOP you furnish by choice (round-42). You earn Glimmers (✦) by playing and
 /// spend them on the pieces you want, in any order — customization is about
 /// options, not a fixed unlock track. A few special pieces are gated behind an
 /// achievement first (you still pay for them), so trophies open new shelves.
@@ -28,10 +28,10 @@ class FurnitureItem {
   /// A cozy one-line pitch for the shop card.
   final String blurb;
 
-  /// Cost in Embers (✦).
+  /// Cost in Glimmers (✦).
   final int price;
 
-  /// Grouping label in the shop (Floor / Light / Wall / Companion / Hearth).
+  /// Grouping label in the shop (Floor / Light / Wall / Room Life / Hearth).
   final String zone;
 
   /// Achievement id that must be earned before this piece can be bought
@@ -49,8 +49,8 @@ final furniture = <FurnitureItem>[
   ),
   FurnitureItem(
     id: 'cushion',
-    name: 'a floor cushion',
-    blurb: 'A soft place to land at the end of a long day.',
+    name: 'a walnut side table',
+    blurb: 'A small landing place for the book you are not quite done with.',
     price: 70,
     zone: 'Floor',
   ),
@@ -63,8 +63,8 @@ final furniture = <FurnitureItem>[
   ),
   FurnitureItem(
     id: 'candles',
-    name: 'a cluster of candles',
-    blurb: 'Three small flames. The room breathes warmer.',
+    name: 'a candle ledge',
+    blurb: 'One working flame, held safely against the wall.',
     price: 120,
     zone: 'Light',
   ),
@@ -77,10 +77,10 @@ final furniture = <FurnitureItem>[
   ),
   FurnitureItem(
     id: 'garland',
-    name: 'a string of lights',
-    blurb: 'Warm bulbs draped across the wall — instant cozy.',
+    name: 'a writing desk',
+    blurb: 'A real place for plans, pages, and the next thing worth making.',
     price: 200,
-    zone: 'Light',
+    zone: 'Room',
     requires: 'well-rounded',
   ),
   FurnitureItem(
@@ -92,8 +92,8 @@ final furniture = <FurnitureItem>[
   ),
   FurnitureItem(
     id: 'picture',
-    name: 'a framed picture',
-    blurb: 'A memory worth hanging where you can see it.',
+    name: 'the woven dawn',
+    blurb: 'The Morrowloom mark, hung where the room can grow around it.',
     price: 300,
     zone: 'Wall',
     requires: 'goal-getter',
@@ -107,16 +107,16 @@ final furniture = <FurnitureItem>[
   ),
   FurnitureItem(
     id: 'pet',
-    name: 'a little companion',
-    blurb: 'A small sleeping friend who keeps you company.',
+    name: 'a desk chair',
+    blurb: 'A proper seat for the work that keeps asking you back.',
     price: 460,
-    zone: 'Companion',
+    zone: 'Room',
     requires: 'perfect-day',
   ),
   FurnitureItem(
     id: 'hearth',
-    name: 'the carved hearth',
-    blurb: 'Week-of-Fire stonework, cut to honour the flame you kept.',
+    name: 'the living hearth',
+    blurb: 'The fire catches for the weeks you kept showing up.',
     price: 600,
     zone: 'Hearth',
     requires: 'week-of-fire',

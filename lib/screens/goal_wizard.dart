@@ -250,6 +250,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
   @override
   Widget build(BuildContext context) {
     final canSwear = _name.text.trim().isNotEmpty && _quests.isNotEmpty;
+    final short = MediaQuery.sizeOf(context).height < 640;
     return WarmBackground(
       // carry the player's chosen canvas theme through — without it, opening
       // the wizard flickered the background to default and back on pop
@@ -261,7 +262,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
           child: Stack(
             children: [
               ListView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 128),
+                padding: EdgeInsets.fromLTRB(20, short ? 4 : 8, 20, 128),
                 children: [
                   GestureDetector(
                     onTap: () {
@@ -269,33 +270,36 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                       Navigator.of(context).pop(false);
                     },
                     behavior: HitTestBehavior.opaque,
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 4),
-                      child: Icon(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: short ? 2 : 4),
+                      child: const Icon(
                         Icons.arrow_back,
                         size: 20,
                         color: Palette.textLo,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: short ? 4 : 8),
                   Text('A NEW OATH', style: Type.label.copyWith(fontSize: 11)),
-                  const SizedBox(height: 8),
+                  SizedBox(height: short ? 4 : 8),
                   Text(
                     'What do you want\nto become?',
-                    style: Type.display.copyWith(fontSize: 30, height: 1.15),
+                    style: Type.display.copyWith(
+                      fontSize: short ? 24 : 30,
+                      height: short ? 1.08 : 1.15,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: short ? 10 : 16),
                   TextField(
                     controller: _name,
                     style: Type.display.copyWith(
-                      fontSize: 19,
+                      fontSize: short ? 17 : 19,
                       color: Palette.textHi,
                     ),
                     decoration: InputDecoration(
                       hintText: 'keep my skin healthy…',
                       hintStyle: Type.display.copyWith(
-                        fontSize: 19,
+                        fontSize: short ? 17 : 19,
                         color: Palette.textLo.withValues(alpha: 0.6),
                       ),
                       errorText: _error,
@@ -305,9 +309,9 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                       ),
                       filled: true,
                       fillColor: Palette.glassFill,
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 16,
+                        vertical: short ? 11 : 16,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -319,7 +323,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  SizedBox(height: short ? 11 : 18),
                   Row(
                     children: [
                       Expanded(

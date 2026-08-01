@@ -75,7 +75,7 @@ Future<void> shareSpace(
     _toast(
       context,
       cloud.available
-          ? 'Turn on cloud backup in Me before sharing a keep.'
+          ? 'Turn on cloud backup in Me before sharing a space.'
           : 'Sharing needs a connection — try again in a moment.',
     );
     return;
@@ -117,7 +117,7 @@ Future<void> visitSpace(
     _toast(
       context,
       CloudSync.instance.available
-          ? 'Turn on cloud backup in Me before visiting a keep.'
+          ? 'Turn on cloud backup in Me before visiting a space.'
           : 'Visiting needs a connection — try again in a moment.',
     );
     return;
@@ -131,7 +131,7 @@ Future<void> visitSpace(
   final room = await CloudSync.instance.fetchRoom(code);
   if (!context.mounted) return;
   if (room == null) {
-    _toast(context, 'No keep found with that code.');
+    _toast(context, 'No space found with that code.');
     return;
   }
   Navigator.of(context).push(
@@ -157,7 +157,7 @@ class _ShareDialog extends StatelessWidget {
       backgroundColor: Palette.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
-        'Your keep is live',
+        'Your space is live',
         style: Type.display.copyWith(fontSize: 20, color: Palette.textHi),
       ),
       content: Column(
@@ -165,7 +165,7 @@ class _ShareDialog extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Share this code — anyone can visit your keep:',
+            'Share this code — anyone can visit your space:',
             style: Type.body.copyWith(fontSize: 13, color: Palette.textMid),
           ),
           const SizedBox(height: 14),
@@ -265,7 +265,7 @@ class _VisitPromptState extends State<_VisitPrompt> {
       backgroundColor: Palette.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
-        'Visit a keep',
+        'Visit a space',
         style: Type.display.copyWith(fontSize: 20, color: Palette.textHi),
       ),
       content: Column(

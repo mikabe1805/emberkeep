@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../tokens.dart';
 
-/// Emberkeep's shared architectural silhouette: a pane with deliberate cut
+/// Morrowloom's shared architectural silhouette: a pane with deliberate cut
 /// corners, like the fireplace stone, window light, rugs, and framed art in the
 /// keep. The asymmetry keeps it illustrated rather than feeling like a generic
 /// octagonal UI kit.
@@ -167,6 +167,13 @@ class FacetMedallion extends StatelessWidget {
 
 /// A crisp progress rail with angled ends, used wherever the keep records
 /// growth. It makes data visualization feel engraved into the architecture.
+///
+/// A rail is a *groove*: a dark warm channel with a quiet brass rim and a lit
+/// fill. The old recipe called `Palette.glassEdge.withValues(alpha: 0.55)`,
+/// which replaced the token's own 0x2E alpha with 0.55 and drew a near-cream
+/// hairline all the way round — at 6 px tall that rim was most of the rail, so
+/// every empty track in the app read light and generic. Rim alpha is explicit
+/// here for that reason.
 class FacetedMeter extends StatelessWidget {
   const FacetedMeter({
     super.key,
@@ -174,7 +181,7 @@ class FacetedMeter extends StatelessWidget {
     required this.color,
     this.height = 8,
     this.glow = false,
-    this.background = Palette.glassFill,
+    this.background = Palette.railTrack,
   });
 
   final double value;
@@ -194,7 +201,7 @@ class FacetedMeter extends StatelessWidget {
           decoration: facetedDecoration(
             color: background,
             cut: cut,
-            borderColor: Palette.glassEdge.withValues(alpha: 0.55),
+            borderColor: Palette.railRim,
             borderWidth: 0.7,
           ),
           child: Align(
@@ -204,7 +211,18 @@ class FacetedMeter extends StatelessWidget {
               heightFactor: 1,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: color,
+                  // Lit along the top lip, settling into its own colour below —
+                  // the same read as every other raised surface in the app.
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color.lerp(color, const Color(0xFFFFF3D8), 0.34)!,
+                      color,
+                      Color.lerp(color, const Color(0xFF2A1A10), 0.30)!,
+                    ],
+                    stops: const [0, 0.45, 1],
+                  ),
                   boxShadow: glow
                       ? [
                           BoxShadow(
@@ -221,6 +239,49 @@ class FacetedMeter extends StatelessWidget {
       ),
     );
   }
+}
+
+/// One "this is chosen" mark for the whole app. Before this the product had a
+/// Material square checkbox on the Shape-tomorrow sheet, a circular checkbox in
+/// kit quests, a ring on the board and a diamond slab on capacity — four
+/// shapes for one idea. This is the chamfered plate everything else already is.
+class FacetCheck extends StatelessWidget {
+  const FacetCheck({
+    super.key,
+    required this.selected,
+    required this.accent,
+    this.size = 22,
+  });
+
+  final bool selected;
+  final Color accent;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: size,
+    child: DecoratedBox(
+      decoration: facetedDecoration(
+        cut: size * 0.26,
+        color: selected
+            ? accent.withValues(alpha: 0.22)
+            : const Color(0x3D0F0A07),
+        borderColor: selected
+            ? accent.withValues(alpha: 0.92)
+            : Palette.brass.withValues(alpha: 0.55),
+        borderWidth: selected ? 1.3 : 1,
+      ),
+      child: selected
+          ? Center(
+              child: Icon(
+                Icons.check_rounded,
+                size: size * 0.66,
+                color: accent,
+              ),
+            )
+          : null,
+    ),
+  );
 }
 
 /// A clipped highlight layer shared by panels and buttons. It draws the same
@@ -267,21 +328,47 @@ class _FacetGleamPainter extends CustomPainter {
       top,
     );
 
+    // The catch-light where the pane meets the corner. It used to be a flat
+    // triangle scaled to the panel, so on anything large — the Plans calendar,
+    // the identity plate, the Shape-tomorrow sheet — it became a hard-edged
+    // shaft that terminated in mid-air with no light source. It is now capped
+    // at a real-world size and faded out along its length, so it reads as a
+    // corner catching candlelight on every panel size.
+    final w = size.width * 0.34 < 92 ? size.width * 0.34 : 92.0;
+    final h = size.height * 0.42 < 108 ? size.height * 0.42 : 108.0;
     final shard = Path()
       ..moveTo(0, 0)
-      ..lineTo(size.width * 0.34, 0)
-      ..lineTo(size.width * 0.12, size.height * 0.42)
-      ..close();
-    canvas.drawPath(shard, Paint()..color = light.withValues(alpha: 0.045 * s));
-
-    final lower = Path()
-      ..moveTo(size.width * 0.38, size.height)
-      ..lineTo(size.width, size.height * 0.72)
-      ..lineTo(size.width, size.height)
+      ..lineTo(w, 0)
+      ..lineTo(w * 0.34, h)
       ..close();
     canvas.drawPath(
+      shard,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            light.withValues(alpha: 0.055 * s),
+            light.withValues(alpha: 0.016 * s),
+            light.withValues(alpha: 0),
+          ],
+          stops: const [0, 0.5, 1],
+        ).createShader(Rect.fromLTWH(0, 0, w, h)),
+    );
+
+    final lowerH = size.height * 0.28 < 90 ? size.height * 0.28 : 90.0;
+    final lower = Rect.fromLTWH(0, size.height - lowerH, size.width, lowerH);
+    canvas.drawRect(
       lower,
-      Paint()..color = Palette.warmShadow.withValues(alpha: 0.18 * s),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Palette.warmShadow.withValues(alpha: 0),
+            Palette.warmShadow.withValues(alpha: 0.20 * s),
+          ],
+        ).createShader(lower),
     );
   }
 

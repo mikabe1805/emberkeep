@@ -97,7 +97,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
 
   Future<void> _addKeep() async {
     if (!CloudSync.instance.ready) {
-      _toast('Turn on cloud backup in Me before opening a Hearth Circle.');
+      _toast('Turn on cloud backup in Me before opening a Circle.');
       return;
     }
     final code = await showDialog<String>(
@@ -109,14 +109,14 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
     final room = await CloudSync.instance.fetchRoom(clean);
     if (!mounted) return;
     if (room == null) {
-      _toast('No shared keep found with that code.');
+      _toast('No shared space found with that code.');
       return;
     }
     if (!_state.addCircleCode(clean)) {
       _toast(
         _state.hearthCircleCodes.length >= 5
-            ? 'A Hearth Circle holds up to five trusted keeps.'
-            : 'That keep is already in your Circle.',
+            ? 'A Circle holds up to five trusted spaces.'
+            : 'That space is already in your Circle.',
       );
       return;
     }
@@ -137,7 +137,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
       code: _state.roomCode,
     );
     if (!mounted || code == null) {
-      if (mounted) _toast('Couldn’t update your shared hearth right now.');
+      if (mounted) _toast('Couldn’t update your shared space right now.');
       return false;
     }
     if (_state.roomCode != code) _state.setRoomCode(code);
@@ -164,7 +164,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
         : 0;
     final left = until - _now;
     if (left <= 0) {
-      _toast('That quiet-company fire has just settled.');
+      _toast('That quiet-company session has just settled.');
       return;
     }
     final kind = room['focusKind'] is String
@@ -190,9 +190,9 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
     if (ok) {
       Sfx.instance.play('streak');
       HapticFeedback.mediumImpact();
-      _toast('A warm spark is waiting in $code.');
+      _toast('A warm note is waiting in $code.');
     } else {
-      _toast('A spark from you may already be waiting there.');
+      _toast('A note from you may already be waiting there.');
     }
   }
 
@@ -237,10 +237,10 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
           child: Column(
             children: [
               DetailHeader(
-                title: 'Hearth Circle',
+                title: 'Circle',
                 subtitle:
-                    'trusted keeps · quiet encouragement · no leaderboard',
-                accent: Palette.streak,
+                    'trusted spaces · quiet encouragement · no leaderboard',
+                accent: Palette.xp,
                 pill: '${_state.hearthCircleCodes.length}/5',
               ),
               Expanded(
@@ -275,7 +275,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'TRUSTED KEEPS',
+                              'TRUSTED SPACES',
                               style: Type.label.copyWith(
                                 fontSize: 11,
                                 color: Palette.textHi,
@@ -410,7 +410,7 @@ class _CircleLantern extends StatelessWidget {
               ),
               const SizedBox(height: 3),
               Text(
-                '$lit of $total hearths have found one spark today',
+                '$lit of $total spaces checked in today',
                 style: Type.body.copyWith(
                   fontSize: 12.5,
                   color: Palette.textLo,
@@ -445,7 +445,7 @@ class _IncomingSparks extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Text(
-            '$count warm ${count == 1 ? 'spark is' : 'sparks are'} waiting by your door',
+            '$count warm ${count == 1 ? 'note is' : 'notes are'} waiting by your door',
             style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
           ),
         ),
@@ -506,7 +506,7 @@ class _QuietCompanyCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   active
-                      ? 'your flame is visible · your actual task is not'
+                      ? 'your presence is visible · your actual task is not'
                       : 'light a private focus timer friends can sit beside',
                   style: Type.body.copyWith(
                     fontSize: 11.5,
@@ -571,7 +571,7 @@ class _CircleKeepCard extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                '$code · keep unavailable',
+                '$code · space unavailable',
                 style: Type.body.copyWith(fontSize: 13, color: Palette.textLo),
               ),
             ),
@@ -612,6 +612,7 @@ class _CircleKeepCard extends StatelessWidget {
                 level: level,
                 unlocked: furniture,
                 wall: wallColorsById(string('wall')),
+                plateId: string('wall'),
                 floor: floorColorsById(string('floor')),
                 window: string('window', 'moon'),
                 petAwake: data['awake'] == true,
@@ -671,13 +672,13 @@ class _CircleKeepCard extends StatelessWidget {
                 onTap: onVisit,
               ),
               _CircleAction(
-                label: 'SEND SPARK',
+                label: 'SEND A NOTE',
                 icon: Icons.auto_awesome,
                 onTap: onSpark,
               ),
               if (onJoin != null)
                 _CircleAction(
-                  label: 'SIT BY THIS FIRE',
+                  label: 'SIT IN QUIET COMPANY',
                   icon: Icons.people_outline,
                   onTap: onJoin,
                   highlight: true,
@@ -768,7 +769,7 @@ class _EmptyCircle extends StatelessWidget {
           style: Type.body.copyWith(fontSize: 12.5, color: Palette.textLo),
         ),
         const SizedBox(height: 12),
-        _CircleAction(label: 'ADD A KEEP', icon: Icons.add, onTap: onAdd),
+        _CircleAction(label: 'ADD A SPACE', icon: Icons.add, onTap: onAdd),
       ],
     ),
   );
@@ -792,7 +793,7 @@ class _CircleCodeDialogState extends State<_CircleCodeDialog> {
   Widget build(BuildContext context) => AlertDialog(
     backgroundColor: Palette.card,
     title: Text(
-      'Add a trusted keep',
+      'Add a trusted space',
       style: Type.display.copyWith(fontSize: 20),
     ),
     content: TextField(
@@ -854,7 +855,7 @@ class _QuietCompanySheetState extends State<_QuietCompanySheet> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Light a quiet-company fire',
+            'Start quiet company',
             style: Type.display.copyWith(fontSize: 22),
           ),
           const SizedBox(height: 5),

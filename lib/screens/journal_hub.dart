@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../clock.dart';
 import '../content/memories.dart';
+import '../content/stat_ranks.dart';
 import '../engine.dart';
 import '../journal_media.dart' as media;
 import '../models.dart';
@@ -30,28 +31,68 @@ class JournalHubScreen extends StatefulWidget {
     required this.state,
     required this.quests,
     required this.onPersist,
+    this.compose = false,
   });
 
   final GameState state;
   final List<Quest> quests;
   final VoidCallback onPersist;
+  final bool compose;
 
   @override
   State<JournalHubScreen> createState() => _JournalHubScreenState();
 }
 
 class _Entry {
-  _Entry(this.note, this.source, this.color, {this.journal = false});
+  _Entry(
+    this.note,
+    this.source,
+    this.color, {
+    this.journal = false,
+    this.currentContext,
+  });
   final Note note;
   final String source;
   final Color color;
   final bool journal; // a free entry (deletable here)
+  final String? currentContext;
 }
 
 class _JournalHubScreenState extends State<JournalHubScreen> {
   GameState get _s => widget.state;
   final _search = TextEditingController();
   String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.compose) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _openEditor();
+      });
+    }
+  }
+
+  JournalTrace _todayTrace() => _s.todayJournalTrace(widget.quests);
+
+  String _traceLine(JournalTrace trace) {
+    final parts = <String>[];
+    if (trace.questTitles.isNotEmpty) {
+      parts.add(
+        '${trace.questTitles.length} ${trace.questTitles.length == 1 ? 'quest' : 'quests'}',
+      );
+    }
+    if (trace.todayXp > 0) parts.add('+${trace.todayXp} XP');
+    final strongest = trace.statGains.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    if (strongest.isNotEmpty) {
+      parts.add(
+        '${strongest.first.key.label.toUpperCase()} +${strongest.first.value}',
+      );
+    }
+    if (parts.isEmpty) parts.add('LEVEL ${trace.level}');
+    return parts.join('  ·  ');
+  }
 
   @override
   void dispose() {
@@ -62,11 +103,26 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
   List<_Entry> _all() {
     final out = <_Entry>[];
     for (final n in _s.journal) {
-      out.add(_Entry(n, 'JOURNAL', Palette.xp, journal: true));
+      out.add(
+        _Entry(
+          n,
+          'JOURNAL',
+          Palette.xp,
+          journal: true,
+          currentContext: _s.buildTitle,
+        ),
+      );
     }
     for (final st in Stat.values) {
       for (final n in _s.notesFor(st)) {
-        out.add(_Entry(n, st.label.toUpperCase(), st.color));
+        out.add(
+          _Entry(
+            n,
+            st.label.toUpperCase(),
+            st.color,
+            currentContext: rankFor(st, _s.stats[st] ?? 0).label,
+          ),
+        );
       }
     }
     for (final g in _s.goals) {
@@ -81,6 +137,32 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     }
     out.sort((a, b) => b.note.at.compareTo(a.note.at));
     return out;
+  }
+
+  String _contextLine(_Entry entry) {
+    final then = entry.note.context?.trim();
+    if (then == null || then.isEmpty) return '';
+    final now = entry.currentContext?.trim();
+    Stat? domain;
+    for (final stat in Stat.values) {
+      if (entry.source == stat.label.toUpperCase()) {
+        domain = stat;
+        break;
+      }
+    }
+    if (domain != null) {
+      final before = 'written when ${domain.label.toUpperCase()} was $then';
+      if (now == null ||
+          now.isEmpty ||
+          now.toLowerCase() == then.toLowerCase()) {
+        return before;
+      }
+      return '$before · now $now';
+    }
+    if (now == null || now.isEmpty || now.toLowerCase() == then.toLowerCase()) {
+      return 'written as $then';
+    }
+    return 'written as $then · now $now';
   }
 
   /// The feed after the search box — matches on the note text, its source
@@ -108,6 +190,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     String? starter,
   }) {
     Sfx.instance.play('tick');
+    final trace = entry == null ? _todayTrace() : entry.trace;
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => JournalEntryScreen(
@@ -118,7 +201,9 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           heading: heading,
           hint: hint,
           starter: starter,
-          commit: _commit,
+          trace: trace,
+          commit: (payload, existing, markEdited) =>
+              _commit(payload, existing, markEdited, trace),
           onDelete: _deleteJournal,
         ),
       ),
@@ -129,7 +214,12 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
   /// autosaving into the same entry. setJournal notifies GameState, which the
   /// shell already persists on — so we do NOT also call widget.onPersist here
   /// (that double-encoded the whole save blob on every 650ms autosave tick).
-  Note _commit(JournalPayload payload, Note? existing, bool markEdited) {
+  Note _commit(
+    JournalPayload payload,
+    Note? existing,
+    bool markEdited,
+    JournalTrace? trace,
+  ) {
     if (existing == null) {
       // stamp who you were when you wrote it — proof of becoming
       final note = Note(
@@ -138,6 +228,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         context: _s.buildTitle,
         rich: payload.rich,
         images: payload.images,
+        trace: trace,
       );
       _s.setJournal([..._s.journal, note]);
       return note;
@@ -218,7 +309,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                 if (e.note.context != null && e.note.context!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'written as ${e.note.context}',
+                    _contextLine(e),
                     style: Type.label.copyWith(
                       fontSize: 10,
                       color: e.color.withValues(alpha: 0.8),
@@ -497,13 +588,13 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Memory Cabinet',
+                      'Keepsakes',
                       style: Type.display.copyWith(fontSize: 17),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       count == 0
-                          ? 'turn moments and milestones into things your Keep can hold'
+                          ? 'turn moments and milestones into things your space can hold'
                           : '$count artifacts · $chosen ${chosen == 1 ? 'moment' : 'moments'} chosen by you',
                       style: Type.body.copyWith(
                         fontSize: 11.5,
@@ -640,6 +731,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         ),
       ),
       const SizedBox(height: 10),
+      _todayThread(),
+      const SizedBox(height: 12),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Text(
@@ -652,13 +745,22 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _promptChip(
-              Icons.auto_awesome,
-              'SMALL WIN',
-              'A small win',
-              'Start with something that counted, even if nobody saw it.',
-              'One small win today:\n',
-            ),
+            if (_s.todayQuestTitles.isNotEmpty)
+              _promptChip(
+                Icons.route_rounded,
+                'QUEST THREAD',
+                'After the quest',
+                'What made it easier, harder, or worth repeating?',
+                'After “${_s.todayQuestTitles.last}”:\n',
+              )
+            else
+              _promptChip(
+                Icons.auto_awesome,
+                'SMALL WIN',
+                'A small win',
+                'Start with something that counted, even if nobody saw it.',
+                'One small win today:\n',
+              ),
             _promptChip(
               Icons.air,
               'UNLOAD',
@@ -685,6 +787,70 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       ),
     ],
   );
+
+  Widget _todayThread() {
+    final trace = _todayTrace();
+    final hasQuests = trace.questTitles.isNotEmpty;
+    return GlassPanel(
+      padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+      tint: const Color(0xE8251C17),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          FacetMedallion(
+            size: 34,
+            accent: hasQuests ? Palette.success : Palette.xp,
+            glow: hasQuests,
+            child: Icon(
+              hasQuests ? Icons.link_rounded : Icons.bookmark_add_outlined,
+              size: 17,
+              color: hasQuests ? Palette.success : Palette.xpLight,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'TODAY’S THREAD',
+                  style: Type.label.copyWith(
+                    fontSize: 10,
+                    color: Palette.xpLight,
+                    letterSpacing: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  hasQuests
+                      ? '${_traceLine(trace)} — attached automatically when you write.'
+                      : 'The date, your build, and what you’ve completed so far today attach to this page.',
+                  style: Type.body.copyWith(
+                    fontSize: 11.8,
+                    height: 1.35,
+                    color: Palette.textLo,
+                  ),
+                ),
+                if (hasQuests) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    trace.questTitles.take(2).join('  ·  '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.body.copyWith(
+                      fontSize: 11.5,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textMid,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _promptChip(
     IconData icon,
@@ -729,21 +895,17 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
   Widget _emptyHint() => GlassPanel(
     child: Column(
       children: [
-        const Icon(
-          Icons.auto_stories_outlined,
-          size: 26,
-          color: Palette.xpLight,
-        ),
+        const Icon(Icons.edit_note_rounded, size: 26, color: Palette.xpLight),
         const SizedBox(height: 10),
         Text(
-          'Your journal is open',
+          'Your first page is ready',
           style: Type.display.copyWith(fontSize: 19),
         ),
         const SizedBox(height: 6),
         Text(
-          'Jot a thought above — how today went, what you’re tracking, '
-          'what you’re grateful for. Anything you note on a quest, goal '
-          'or domain shows up here too.',
+          'Write one line above. Morrowloom keeps the date, today’s quests, '
+          'your goal threads, and the build you had when you wrote it — no '
+          'manual tagging required.',
           textAlign: TextAlign.center,
           style: Type.body.copyWith(
             fontSize: 13,
@@ -788,8 +950,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                 button: true,
                 toggled: _s.memoryPins.contains(e.note.id),
                 label: _s.memoryPins.contains(e.note.id)
-                    ? 'Remove from Memory Cabinet'
-                    : 'Keep in Memory Cabinet',
+                    ? 'Remove from Keepsakes'
+                    : 'Keep in Keepsakes',
                 child: GestureDetector(
                   excludeFromSemantics: true,
                   behavior: HitTestBehavior.opaque,
@@ -842,10 +1004,20 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           if (e.note.context != null && e.note.context!.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
-              'written as ${e.note.context}',
+              _contextLine(e),
               style: Type.label.copyWith(
                 fontSize: 9.5,
                 color: e.color.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+          if (e.journal && e.note.trace?.hasDayEvidence == true) ...[
+            const SizedBox(height: 5),
+            Text(
+              _traceLine(e.note.trace!),
+              style: Type.label.copyWith(
+                fontSize: 9.5,
+                color: Palette.xpLight.withValues(alpha: 0.78),
               ),
             ),
           ],

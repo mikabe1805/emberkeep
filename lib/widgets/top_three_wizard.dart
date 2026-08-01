@@ -359,9 +359,16 @@ class _ChoiceTile extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 9, 11, 9),
           decoration: facetedDecoration(
             cut: 9,
-            color: selected
-                ? accent.withValues(alpha: 0.13)
-                : Palette.glassFill,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: selected
+                  ? [
+                      accent.withValues(alpha: 0.17),
+                      accent.withValues(alpha: 0.05),
+                    ]
+                  : const [Color(0x2EFFF2DC), Color(0x0AFFF2DC)],
+            ),
             borderColor: selected
                 ? accent.withValues(alpha: 0.72)
                 : Palette.glassEdge,
@@ -393,17 +400,13 @@ class _ChoiceTile extends StatelessWidget {
                           : quest.difficulty <= 6
                           ? 'STEADY'
                           : 'HEAVY'}',
-                      style: Type.label.copyWith(fontSize: 9.5),
+                      style: Type.label.copyWith(fontSize: 10.5),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                selected ? Icons.check_box : Icons.check_box_outline_blank,
-                size: 21,
-                color: selected ? accent : Palette.textLo,
-              ),
+              FacetCheck(selected: selected, accent: accent, size: 22),
             ],
           ),
         ),

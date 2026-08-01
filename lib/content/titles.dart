@@ -14,7 +14,7 @@ abstract final class BuildTitles {
     'str+soc': 'GENTLE GIANT', // Body + People
     'str+dis': 'HOMESTEADER', // Body + Home
     'vit+intl': 'CLEAR SPRING', // Care + Mind
-    'vit+foc': 'STEADY FLAME', // Care + Craft
+    'vit+foc': 'STEADY HAND', // Care + Craft
     'vit+soc': 'SUNSHINE SOUL', // Care + People
     'vit+dis': 'EVERGREEN', // Care + Home
     'intl+foc': 'DEEP CURRENT', // Mind + Craft
@@ -22,7 +22,7 @@ abstract final class BuildTitles {
     'intl+dis': 'QUIET MASTER', // Mind + Home
     'foc+soc': 'PRESENT HEART', // Craft + People
     'foc+dis': 'UNSHAKEABLE', // Craft + Home
-    'soc+dis': 'OPEN HEARTH', // People + Home
+    'soc+dis': 'OPEN HOUSE', // People + Home
   };
 
   static const _solo = <Stat, String>{

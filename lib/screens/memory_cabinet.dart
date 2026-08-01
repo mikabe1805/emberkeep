@@ -35,9 +35,9 @@ class MemoryCabinetScreen extends StatelessWidget {
             child: Column(
               children: [
                 DetailHeader(
-                  title: 'Memory Cabinet',
-                  subtitle: 'proof that your Keep has a history',
-                  accent: Palette.unlock,
+                  title: 'Keepsakes',
+                  subtitle: 'proof that your space has a history',
+                  accent: Palette.xp,
                   pill: '${memories.length}',
                 ),
                 Expanded(
@@ -95,8 +95,8 @@ class MemoryCabinetScreen extends StatelessWidget {
                       if (memories.hearth.isNotEmpty) ...[
                         const SizedBox(height: 12),
                         const _SectionHeading(
-                          title: 'THE FIRE REMEMBERS',
-                          subtitle: 'every form your living hearth has taken',
+                          title: 'ROOM MILESTONES',
+                          subtitle: 'the level landmarks you actually reached',
                           accent: Palette.streak,
                         ),
                         const SizedBox(height: 9),
@@ -184,7 +184,7 @@ class _CabinetHero extends StatelessWidget {
               ),
               const SizedBox(height: 5),
               Text(
-                'Pin journal moments you want to remember. Hearth forms, goals, and achievements arrive here on their own.',
+                'Pin journal moments you want to remember. Goal milestones and achievements arrive here on their own.',
                 style: Type.body.copyWith(
                   fontSize: 12.5,
                   height: 1.38,
@@ -334,7 +334,7 @@ class _MemoryCard extends StatelessWidget {
         if (onRemove != null)
           Semantics(
             button: true,
-            label: 'Remove ${memory.title} from Memory Cabinet',
+            label: 'Remove ${memory.title} from Keepsakes',
             child: GestureDetector(
               excludeFromSemantics: true,
               behavior: HitTestBehavior.opaque,

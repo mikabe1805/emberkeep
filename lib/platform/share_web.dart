@@ -17,7 +17,7 @@ Future<bool> sharePng(Uint8List bytes, String filename, String text) async {
     );
     final data = web.ShareData(
       files: <web.File>[file].toJS,
-      title: 'Emberkeep',
+      title: 'Morrowloom',
       text: text,
     );
     if (web.window.navigator.canShare(data)) {

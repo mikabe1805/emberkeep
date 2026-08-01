@@ -1,4 +1,4 @@
-"""Build Emberkeep's two polished hearth cues from CC0 recordings."""
+"""Build Morrowloom's two polished hearth cues from CC0 recordings."""
 
 from __future__ import annotations
 

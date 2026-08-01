@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Synthesize soft, warm UI sounds for Emberkeep (candlelit-glass aesthetic).
+"""Synthesize soft, warm UI sounds for Morrowloom (candlelit-glass aesthetic).
 
 Design goals (owner feedback: the old set felt harsh; wanted softer + higher
 quality): gentle marimba/music-box/bell timbres, smooth click-free envelopes

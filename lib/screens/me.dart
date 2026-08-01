@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -14,7 +14,6 @@ import '../platform/share_stub.dart'
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
 import '../content/creature_skins.dart';
-import '../content/furniture.dart';
 import '../content/memories.dart';
 import '../content/room_styles.dart';
 import '../content/stat_ranks.dart';
@@ -33,23 +32,16 @@ import '../widgets/glass.dart';
 import '../widgets/glass_switch.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
+import '../widgets/luxe_depth.dart';
+import '../widgets/morrow_tapestry_glyph.dart';
 import '../widgets/radar.dart';
+import '../widgets/stat_chips.dart';
 import '../social.dart';
 import 'domain_detail.dart';
 import 'hearth_circle.dart';
 import 'shop.dart';
 
-/// The hearth-fire milestones — the keep's fire deepens as you level (the same
-/// warm names the creature's growth stages used, now the hearth's).
-const _hearthStages = <(int, String, String)>[
-  (5, 'First Spark', 'The hearth wakes taller and throws a warmer halo.'),
-  (10, 'Steady Flame', 'The fire steadies and begins lifting more sparks.'),
-  (16, 'Bright Crest', 'A brighter crown sends richer light into the keep.'),
-  (24, 'Twin Fire', 'A second strong flame joins the heart of the room.'),
-  (34, 'Everflame', 'The full hearth burns tallest with drifting embers.'),
-];
-
-/// The "Me" page: your keep + your build. The stats radar, the attribution
+/// The "Me" page: your space + your build. The stats radar, the attribution
 /// ledger, and the share card (a build this earnest deserves showing off).
 class MePage extends StatelessWidget {
   const MePage({
@@ -67,6 +59,7 @@ class MePage extends StatelessWidget {
     required this.onSignIn,
     required this.onSignOut,
     required this.onDeleteAccount,
+    this.parallax = const AlwaysStoppedAnimation(Offset.zero),
   });
 
   final GameState state;
@@ -107,6 +100,10 @@ class MePage extends StatelessWidget {
   /// Permanently deletes the linked cloud account; null = success.
   final Future<String?> Function(String password) onDeleteAccount;
 
+  /// Shared room perspective. Text and controls stay anchored while the
+  /// authored plate and light respond beneath them.
+  final ValueListenable<Offset> parallax;
+
   static final _privacyUrl = Uri.parse(
     'https://emberkeep-5b33b.web.app/privacy.html',
   );
@@ -138,164 +135,124 @@ class MePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: state,
-      builder: (context, _) => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 130),
+      builder: (context, _) => LuxeCustomPageList(
+        hero: HomeRoom(
+          aspect: 1.5,
+          lively: !state.reduceMotion,
+          unlocked: const {},
+          wall: wallColorsFor(state),
+          plateId: state.wallStyle,
+          floor: floorColorsFor(state),
+          window: state.windowScene,
+          petAwake: state.streakDays > 0,
+          emberGlow: flameHueFor(state),
+          heirloomFlame: state.creatureSkin == 'gilded',
+          level: state.level,
+          memoryArtifacts: memoryArtifactCount(state, quests),
+          parallax: state.reduceMotion ? null : parallax,
+        ),
+        title: 'Me',
+        subtitle: 'your space, already yours',
+        icon: Icons.emoji_emotions_outlined,
+        reduceMotion: state.reduceMotion,
+        trailing: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: facetedDecoration(
+            cut: 8,
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Palette.xp.withValues(alpha: 0.20),
+                Palette.xp.withValues(alpha: 0.06),
+              ],
+            ),
+            borderColor: Palette.xp.withValues(alpha: 0.52),
+          ),
+          child: RollingNumber(
+            state.totalXp,
+            prefix: 'LV ${state.level} · ',
+            suffix: ' XP',
+            maxLines: 1,
+            style: Type.label.copyWith(fontSize: 10, color: Palette.xpLight),
+          ),
+        ),
         children: [
+          // ── the room's own rail: what you have to spend, and the way in ──
+          // Glimmers/room choice, sharing and the circle used to live *inside* the
+          // identity plate, which turned the one page element that should read
+          // as a nameplate into a grab bag of unrelated controls.
+          _SpaceRail(
+            embers: state.embers,
+            onChangeSpace: () {
+              Sfx.instance.play('tick');
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      ShopScreen(state: state, onPersist: onPersist),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Me', style: Type.display.copyWith(fontSize: 30)),
-              const Spacer(),
-              Flexible(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
-                  decoration: facetedDecoration(
-                    cut: 8,
-                    color: Palette.xp.withValues(alpha: 0.16),
-                    borderColor: Palette.xp.withValues(alpha: 0.45),
-                  ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: RollingNumber(
-                      state.totalXp,
-                      prefix: 'LEVEL ${state.level} · ',
-                      suffix: ' XP',
-                      maxLines: 1,
-                      style: Type.label.copyWith(
-                        fontSize: 11,
-                        color: Palette.xp,
-                      ),
-                    ),
-                  ),
+              _SpaceLink(
+                icon: Icons.ios_share,
+                label: state.roomCode == null
+                    ? 'Share my space'
+                    : 'Shared · ${state.roomCode}',
+                onTap: () => shareSpace(context, state, onPersist),
+              ),
+              Container(
+                width: 1,
+                height: 14,
+                margin: const EdgeInsets.symmetric(horizontal: 14),
+                color: Palette.textLo.withValues(alpha: 0.3),
+              ),
+              _SpaceLink(
+                icon: Icons.travel_explore,
+                label: 'Visit a space',
+                onTap: () => visitSpace(
+                  context,
+                  themeId: state.canvasTheme,
+                  lively: !state.reduceMotion,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // ── your keep: the room that warms up as you grow, its hearth lit
-          // when you're keeping your streak ──
+          // ── the nameplate ────────────────────────────────────────
           GlassPanel(
             blur: true,
             child: Column(
               children: [
-                HomeRoom(
-                  lively: !state.reduceMotion,
-                  unlocked: state.ownedFurniture,
-                  wall: wallColorsFor(state),
-                  floor: floorColorsFor(state),
-                  window: state.windowScene,
-                  petAwake: state.streakDays > 0,
-                  emberGlow: flameHueFor(state),
-                  heirloomFlame: state.creatureSkin == 'gilded',
-                  level: state.level,
-                  memoryArtifacts: memoryArtifactCount(state, quests),
-                ),
-                const SizedBox(height: 10),
-                // currency + a way into the shop — furniture is now CHOSEN,
-                // bought with the embers each quest earns (round-42)
-                Row(
-                  children: [
-                    Builder(
-                      builder: (_) {
-                        final next = nextToBuy(state);
-                        final have = state.ownedFurniture.length;
-                        return Expanded(
-                          child: Text(
-                            next == null
-                                ? '✦ ${state.embers} · $have/${furniture.length} · your keep is full'
-                                : '✦ ${state.embers} · saving up for ${next.name} (✦${next.price})',
-                            style: Type.label.copyWith(
-                              fontSize: 10,
-                              color: Palette.textLo,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(width: 10),
-                    HoneyButton(
-                      label: 'FURNISH',
-                      icon: Icons.chair_outlined,
-                      fontSize: 11,
-                      glow: false,
-                      onTap: () {
-                        Sfx.instance.play('tick');
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                ShopScreen(state: state, onPersist: onPersist),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                // share your space / visit a friend's (round-52, social)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _SpaceLink(
-                      icon: Icons.ios_share,
-                      label: state.roomCode == null
-                          ? 'Share my space'
-                          : 'Shared · ${state.roomCode}',
-                      onTap: () => shareSpace(context, state, onPersist),
-                    ),
-                    Container(
-                      width: 1,
-                      height: 14,
-                      margin: const EdgeInsets.symmetric(horizontal: 14),
-                      color: Palette.textLo.withValues(alpha: 0.3),
-                    ),
-                    _SpaceLink(
-                      icon: Icons.travel_explore,
-                      label: 'Visit a space',
-                      onTap: () => visitSpace(
-                        context,
-                        themeId: state.canvasTheme,
-                        lively: !state.reduceMotion,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 11),
-                _HearthCircleLink(
-                  count: state.hearthCircleCodes.length,
-                  active: state.quietCompanyActive,
-                  onTap: () {
-                    Sfx.instance.play('tick');
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => HearthCircleScreen(
-                          state: state,
-                          onPersist: onPersist,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 14),
+                const _PlateOrnament(),
+                const SizedBox(height: 12),
                 Text(
-                  state.buildTitle,
+                  (state.playerName ?? 'You').toUpperCase(),
                   style: Type.display.copyWith(
-                    fontSize: 22,
-                    color: state.dominantStat?.color ?? Palette.xpLight,
-                    letterSpacing: 2,
+                    fontSize: 29,
+                    color: Palette.textHi,
+                    letterSpacing: 3.2,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
-                  state.totalXp == 0
-                      ? '${state.playerName ?? "you"} · every legend starts at zero'
-                      : '${state.playerName ?? "you"} · built from ${state.totalXp} XP of real life',
+                  state.buildTitle.toUpperCase(),
                   style: Type.body.copyWith(
-                    fontSize: 13,
-                    fontStyle: FontStyle.italic,
+                    fontSize: 14,
+                    letterSpacing: 2.2,
+                    color: state.dominantStat?.color ?? Palette.xpLight,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  '${state.totalCompletions} QUESTS DONE  ·  ${state.streakDays} DAY STREAK',
+                  style: Type.label.copyWith(
+                    fontSize: 10.5,
                     color: Palette.textLo,
                   ),
                 ),
@@ -327,44 +284,54 @@ class MePage extends StatelessWidget {
                     },
                   ),
                 ],
-                const SizedBox(height: 14),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'YOUR HEARTH GROWS',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: Palette.textLo,
-                    ),
+                const SizedBox(height: 16),
+                // Milestones remain a compact record inside the nameplate.
+                // Complete-room identities now live in Change your space, so
+                // this row no longer implies the room begins unfinished.
+                _InsetSection(
+                  label: 'MILESTONES',
+                  child: Row(
+                    children: [
+                      for (final f in progressMilestones.take(3)) ...[
+                        if (f != progressMilestones.take(3).first)
+                          const SizedBox(width: 7),
+                        Expanded(
+                          child: _LockedSlot(
+                            // The name always; the padlock says "not yet" and
+                            // the sheet behind the tap gives the exact level.
+                            // "FIRST FIVE · LV 5" in a third of a row shrank
+                            // below the readable floor.
+                            label: f.name.toUpperCase(),
+                            unlocked: state.level >= f.level,
+                            onTap: () => _showRoomMilestoneInfo(
+                              context,
+                              currentLevel: state.level,
+                              targetLevel: f.level,
+                              name: f.name,
+                              description: f.description,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    // the fire deepens as you level — the same warm milestones,
-                    // now the keep's hearth rather than a creature
-                    for (final f in _hearthStages)
-                      _LockedSlot(
-                        label: state.level >= f.$1
-                            ? f.$2.toUpperCase()
-                            : '${f.$2.toUpperCase()} · LV ${f.$1}',
-                        unlocked: state.level >= f.$1,
-                        onTap: () => _showHearthStageInfo(
-                          context,
-                          currentLevel: state.level,
-                          targetLevel: f.$1,
-                          name: f.$2,
-                          description: f.$3,
-                          flameHue: flameHueFor(state),
+                const SizedBox(height: 12),
+                _HearthCircleLink(
+                  count: state.hearthCircleCodes.length,
+                  active: state.quietCompanyActive,
+                  onTap: () {
+                    Sfx.instance.play('tick');
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => HearthCircleScreen(
+                          state: state,
+                          onPersist: onPersist,
                         ),
                       ),
-                  ],
+                    );
+                  },
                 ),
-                const SizedBox(height: 16),
-                _ShareButton(state: state, quests: quests),
               ],
             ),
           ),
@@ -384,7 +351,18 @@ class MePage extends StatelessWidget {
                     const DomainLegendButton(),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 8),
+                // The engraved six-domain measure leads, exactly as it does on
+                // Quests and in the approved target. The radar follows as the
+                // shape of the same numbers — before this the panel opened on a
+                // diagram with three unlabelled colour blocks floating round it.
+                _InsetSection(
+                  child: StatChips(
+                    values: state.stats,
+                    reduceMotion: state.reduceMotion,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Center(child: StatRadar(values: state.stats)),
                 const SizedBox(height: 10),
                 for (final s in Stat.values)
@@ -411,6 +389,8 @@ class MePage extends StatelessWidget {
               ],
             ),
           ),
+          const SizedBox(height: 12),
+          _ShareButton(state: state, quests: quests),
           const SizedBox(height: 14),
 
           // ── recent gains (near the build — both are your progress) ──
@@ -481,7 +461,7 @@ class MePage extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   state.collectedLoot.isEmpty
-                      ? 'empty slots wait for drops and trophies — keep lighting embers'
+                      ? 'empty slots wait for drops and trophies — keep earning Glimmers'
                       : 'skins you’ve found — tap to try on; silhouettes wait for the rest',
                   style: Type.body.copyWith(
                     fontSize: 11,
@@ -1162,7 +1142,7 @@ class MePage extends StatelessWidget {
           Text(
             kIsWeb
                 ? 'Daily nudges and plan reminders are available in the iOS and Android apps.'
-                : 'a daily nudge to light your first ember, plus reminders for dated plans',
+                : 'a daily nudge for your first quest, plus reminders for dated plans',
             style: Type.body.copyWith(
               fontSize: 11,
               fontStyle: FontStyle.italic,
@@ -1250,7 +1230,7 @@ class MePage extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 'Level ${state.level}, ${state.totalXp} XP, every goal and '
-                'trophy — gone for good. Your cloud save and shared keep go '
+                'trophy — gone for good. Your cloud save and shared space go '
                 'too. Guest profiles are deleted; a linked sign-in stays '
                 'until you use Delete account. Copy a backup first if unsure.',
                 textAlign: TextAlign.center,
@@ -1285,7 +1265,7 @@ class MePage extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        'KEEP MY FIRE',
+                        'KEEP MY PROGRESS',
                         style: Type.label.copyWith(
                           fontSize: 11,
                           color: const Color(0xFF3A2510),
@@ -1340,15 +1320,14 @@ String _fmtTime(int hour, int minute) {
   return '$h:${minute.toString().padLeft(2, '0')} $ampm';
 }
 
-/// Hearth milestones used to look like controls but were inert. They now
-/// explain both the visual reward and the exact progress remaining.
-void _showHearthStageInfo(
+/// Room milestones used to look like controls but were inert. They now explain
+/// the earned landmark and the exact progress remaining.
+void _showRoomMilestoneInfo(
   BuildContext context, {
   required int currentLevel,
   required int targetLevel,
   required String name,
   required String description,
-  required Color flameHue,
 }) {
   final unlocked = currentLevel >= targetLevel;
   final remaining = (targetLevel - currentLevel).clamp(0, targetLevel);
@@ -1372,7 +1351,12 @@ void _showHearthStageInfo(
               accent: unlocked ? Palette.xpLight : Palette.streak,
               glow: unlocked,
               child: unlocked
-                  ? EmberFlameIcon(size: 34, color: flameHue)
+                  ? MorrowTapestryGlyph(
+                      level: currentLevel,
+                      lit: true,
+                      reduceMotion: true,
+                      size: 42,
+                    )
                   : const Icon(
                       Icons.lock_outline,
                       size: 30,
@@ -1418,7 +1402,7 @@ void _showHearthStageInfo(
             if (!unlocked) ...[
               const SizedBox(height: 9),
               Text(
-                'Complete quests to feed the hearth and raise your level.',
+                'Complete quests, earn XP, and reach level $targetLevel.',
                 textAlign: TextAlign.center,
                 style: Type.body.copyWith(fontSize: 12, color: Palette.textLo),
               ),
@@ -1526,17 +1510,19 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // the find, glowing in your keep
+                // the find, glowing in your space
                 SizedBox(
                   height: 150,
                   child: HomeRoom(
                     lively: !state.reduceMotion,
                     unlocked: state.ownedFurniture,
                     wall: wallColorsFor(state),
+                    plateId: state.wallStyle,
                     floor: floorColorsFor(state),
                     window: state.windowScene,
                     petAwake: true,
                     emberGlow: tint,
+                    level: state.level,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -1696,10 +1682,10 @@ class _HearthCircleLink extends StatelessWidget {
           Expanded(
             child: Text(
               active
-                  ? 'QUIET COMPANY IS BURNING'
+                  ? 'QUIET COMPANY IS HERE'
                   : count == 0
-                  ? 'BEGIN A HEARTH CIRCLE'
-                  : 'HEARTH CIRCLE · $count ${count == 1 ? 'KEEP' : 'KEEPS'}',
+                  ? 'BEGIN A CIRCLE'
+                  : 'CIRCLE · $count ${count == 1 ? 'SPACE' : 'SPACES'}',
               style: Type.label.copyWith(
                 fontSize: 10,
                 color: active ? Palette.unlock : Palette.xpLight,
@@ -1827,7 +1813,7 @@ class _StatRow extends StatelessWidget {
                   FacetedMeter(
                     value: rankProgress(value),
                     height: 4,
-                    background: const Color(0x1FF2CD93),
+                    background: Palette.railTrack,
                     color: stat.color,
                   ),
                 ],
@@ -1852,7 +1838,7 @@ class _ShareButton extends StatelessWidget {
         .join(' · ');
     return '⚔️ ${state.buildTitle} — Level ${state.level}\n'
         '${stats.isEmpty ? "a brand-new adventurer" : stats}\n'
-        '${state.totalXp} XP of real life, and counting. — Emberkeep';
+        '${state.totalXp} XP of real life, and counting. — Morrowloom';
   }
 
   @override
@@ -1941,7 +1927,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
           data != null &&
           await sharePng(
             data.buffer.asUint8List(),
-            'emberkeep-build.png',
+            'morrowloom-build.png',
             widget.summary,
           );
       if (!mounted) return;
@@ -1995,8 +1981,8 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // the shared card's hero shot — YOUR keep, hearth lit, so the
-                  // picture friends get is the cozy space you've built
+                  // The shared card's hero shot: the space and permanent
+                  // tapestry progress the player has built.
                   ClipPath(
                     clipper: const FacetedClipper(cut: 14),
                     child: SizedBox(
@@ -2005,11 +1991,13 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                         lively: !state.reduceMotion,
                         unlocked: state.ownedFurniture,
                         wall: wallColorsFor(state),
+                        plateId: state.wallStyle,
                         floor: floorColorsFor(state),
                         window: state.windowScene,
                         petAwake: true,
                         emberGlow: flameHueFor(state),
                         heirloomFlame: state.creatureSkin == 'gilded',
+                        level: state.level,
                         memoryArtifacts: widget.memoryArtifacts,
                       ),
                     ),
@@ -2043,10 +2031,15 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      EmberFlameIcon(size: 16, color: flameHueFor(state)),
+                      MorrowTapestryGlyph(
+                        level: state.level,
+                        lit: state.streakDays > 0,
+                        reduceMotion: true,
+                        size: 18,
+                      ),
                       const SizedBox(width: 5),
                       Text(
-                        'EMBERKEEP',
+                        'MORROWLOOM',
                         style: Type.label.copyWith(
                           fontSize: 11,
                           color: Palette.textLo,
@@ -2344,6 +2337,146 @@ class _ThemeSwatch extends StatelessWidget {
   }
 }
 
+/// Glimmers and the way into the complete-room chooser, on their own brass rail above the
+/// nameplate — the arrangement the approved Me target uses.
+class _SpaceRail extends StatelessWidget {
+  const _SpaceRail({required this.embers, required this.onChangeSpace});
+  final int embers;
+  final VoidCallback onChangeSpace;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Open room chooser. $embers Glimmers available.',
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onChangeSpace,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+        // A pane is darker than the lit art behind it (DESIGN-BIBLE), so this is
+        // opaque warm glass, not a film — a translucent rail let the room's own
+        // light and anything beneath it read straight through.
+        decoration: facetedDecoration(
+          cut: 10,
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xF02A211B), Color(0xF61A130F)],
+          ),
+          borderColor: Palette.brass.withValues(alpha: 0.52),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.auto_awesome_rounded, color: Palette.xp, size: 17),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                '$embers GLIMMERS',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Type.label.copyWith(
+                  fontSize: 11.5,
+                  letterSpacing: 1.5,
+                  color: Palette.textMid,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            HoneyButton(
+              label: 'CHANGE SPACE',
+              icon: Icons.meeting_room_outlined,
+              fontSize: 10.5,
+              glow: false,
+              onTap: onChangeSpace,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// The engraved flourish at the head of the nameplate: a hairline rule out to
+/// each side of a small brass star. It is what turns a stack of centred text
+/// into something struck onto a plate.
+class _PlateOrnament extends StatelessWidget {
+  const _PlateOrnament();
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      const Expanded(child: _OrnamentRule(flip: false)),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: const Icon(
+          Icons.auto_awesome_rounded,
+          color: Palette.xp,
+          size: 15,
+        ),
+      ),
+      const Expanded(child: _OrnamentRule(flip: true)),
+    ],
+  );
+}
+
+class _OrnamentRule extends StatelessWidget {
+  const _OrnamentRule({required this.flip});
+  final bool flip;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 1,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: flip ? Alignment.centerRight : Alignment.centerLeft,
+        end: flip ? Alignment.centerLeft : Alignment.centerRight,
+        colors: [
+          Palette.brass.withValues(alpha: 0),
+          Palette.brass.withValues(alpha: 0.75),
+        ],
+      ),
+    ),
+  );
+}
+
+/// A shallow well cut into a panel, for a measure or a row of seals. It gives
+/// the nested content its own edge so a long page reads as one composed plate
+/// instead of a column of same-weight modules.
+class _InsetSection extends StatelessWidget {
+  const _InsetSection({required this.child, this.label});
+  final Widget child;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: EdgeInsets.fromLTRB(11, label == null ? 6 : 9, 11, 9),
+    decoration: facetedDecoration(
+      cut: 9,
+      gradient: const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0x2E1A120D), Color(0x4D110C09)],
+      ),
+      borderColor: Palette.brass.withValues(alpha: 0.30),
+      borderWidth: 0.9,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (label != null) ...[
+          Text(
+            label!,
+            style: Type.label.copyWith(fontSize: 10.5, color: Palette.textLo),
+          ),
+          const SizedBox(height: 9),
+        ],
+        child,
+      ],
+    ),
+  );
+}
+
 class _LockedSlot extends StatelessWidget {
   const _LockedSlot({required this.label, this.unlocked = false, this.onTap});
   final String label;
@@ -2353,32 +2486,41 @@ class _LockedSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tile = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      height: 30,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: facetedDecoration(
         cut: 6,
-        color: unlocked ? Palette.xpLight.withValues(alpha: 0.14) : null,
+        color: unlocked ? Palette.xp.withValues(alpha: 0.10) : null,
         borderColor: unlocked
-            ? Palette.xpLight.withValues(alpha: 0.7)
-            : Palette.textLo.withValues(alpha: 0.35),
+            ? Palette.brass.withValues(alpha: 0.9)
+            : Palette.textLo.withValues(alpha: 0.32),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            unlocked ? Icons.check_circle : Icons.lock_outline,
+            unlocked ? Icons.check_circle_outline : Icons.lock_outline,
             size: 13,
             color: unlocked
                 ? Palette.xpLight
                 : Palette.textLo.withValues(alpha: 0.7),
           ),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: Type.label.copyWith(
-              fontSize: 11,
-              color: unlocked
-                  ? Palette.xpLight
-                  : Palette.textLo.withValues(alpha: 0.8),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: Type.label.copyWith(
+                  fontSize: 11,
+                  letterSpacing: 0.7,
+                  color: unlocked
+                      ? Palette.xpLight
+                      : Palette.textLo.withValues(alpha: 0.8),
+                ),
+              ),
             ),
           ),
         ],
@@ -2389,8 +2531,8 @@ class _LockedSlot extends StatelessWidget {
       button: true,
       label: label,
       hint: unlocked
-          ? 'Hearth milestone unlocked. Tap for details.'
-          : 'Tap to hear what this hearth milestone unlocks.',
+          ? 'Room milestone unlocked. Tap for details.'
+          : 'Tap to hear what this room milestone unlocks.',
       child: Tooltip(
         message: unlocked ? 'Milestone unlocked' : 'Tap for progress',
         child: Material(
@@ -2582,7 +2724,7 @@ class _RestoreDialogState extends State<_RestoreDialog> {
       Sfx.instance.play('boing');
       setState(() {
         _busy = false;
-        _error = 'that doesn’t look like an Emberkeep backup';
+        _error = 'that doesn’t look like a Morrowloom backup';
       });
       return;
     }
@@ -2704,7 +2846,7 @@ class _AccountPanel extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
         content: Text(
-          error ?? 'Cloud backup is on — your fire has a second home.',
+          error ?? 'Cloud backup is on — your story has a second home.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),
       ),
@@ -2737,7 +2879,7 @@ class _AccountPanel extends StatelessWidget {
               Text('Sign out?', style: Type.display.copyWith(fontSize: 18)),
               const SizedBox(height: 6),
               Text(
-                'Your keep and progress stay on this device — you’ll just stop '
+                'Your space and progress stay on this device — you’ll just stop '
                 'syncing to your account until you sign in again. Your '
                 'account’s cloud save is kept safe.',
                 textAlign: TextAlign.center,
@@ -2772,7 +2914,7 @@ class _AccountPanel extends StatelessWidget {
                         ),
                       ),
                       child: Text(
-                        'KEEP MY FIRE',
+                        'KEEP MY PROGRESS',
                         style: Type.label.copyWith(
                           fontSize: 11,
                           color: const Color(0xFF3A2510),
@@ -2850,7 +2992,7 @@ class _AccountPanel extends StatelessWidget {
                     signedIn
                         ? 'YOUR ACCOUNT'
                         : cloudReady
-                        ? 'YOUR FIRE, EVERYWHERE'
+                        ? 'YOUR STORY, EVERYWHERE'
                         : 'DEVICE-ONLY BY DEFAULT',
                     style: Type.label.copyWith(fontSize: 11),
                   ),
@@ -2868,7 +3010,7 @@ class _AccountPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Your fire follows you to any device you sign in on.',
+                  'Your story follows you to any device you sign in on.',
                   style: Type.body.copyWith(
                     fontSize: 11.5,
                     fontStyle: FontStyle.italic,
@@ -2901,11 +3043,11 @@ class _AccountPanel extends StatelessWidget {
                 Text(
                   cloudReady
                       ? 'Cloud backup is on. Create a free account so your '
-                            'keep can follow you to another device.'
+                            'space can follow you to another device.'
                       : cloudAvailable
-                      ? 'Your keep is only on this device. Turn on optional '
-                            'backup, or sign in to an existing keep.'
-                      : 'Your keep is safe on this device. Cloud features are '
+                      ? 'Your space is only on this device. Turn on optional '
+                            'backup, or sign in to an existing space.'
+                      : 'Your space is safe on this device. Cloud features are '
                             'out of reach right now.',
                   style: Type.body.copyWith(
                     fontSize: 11.5,
@@ -3001,7 +3143,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
       const SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
-        content: Text('Account and Emberkeep data deleted.'),
+        content: Text('Account and Morrowloom data deleted.'),
       ),
     );
   }
@@ -3022,7 +3164,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
             const SizedBox(height: 8),
             Text(
               'This permanently removes your sign-in, cloud backup, and shared '
-              'keep, plus progress and journal media on this device. Export a '
+              'space, plus progress and journal media on this device. Export a '
               'backup first if you want to keep a copy.',
               style: Type.body.copyWith(fontSize: 13, color: Palette.textMid),
             ),
@@ -3119,7 +3261,7 @@ class _AccountDialogState extends State<_AccountDialog> {
         content: Text(
           widget.signIn
               ? 'Signed in — welcome back.'
-              : 'Account created — your fire’s safe now.',
+              : 'Account created — your story’s safe now.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),
       ),
@@ -3145,7 +3287,7 @@ class _AccountDialogState extends State<_AccountDialog> {
             const SizedBox(height: 4),
             Text(
               widget.signIn
-                  ? 'Loads your account’s keep and progress onto this device, '
+                  ? 'Loads your account’s space and progress onto this device, '
                         'replacing what’s here now.'
                   : 'Keeps your current progress and syncs it everywhere.',
               style: Type.body.copyWith(

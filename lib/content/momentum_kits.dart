@@ -2,11 +2,11 @@ import '../clock.dart';
 import '../models.dart';
 import '../tokens.dart';
 
-/// Optional, situation-shaped doorways into Emberkeep's existing quest loop.
+/// Optional, situation-shaped doorways into Morrowloom's existing quest loop.
 ///
 /// A kit never creates a second economy or a parallel checklist. It simply
 /// forges a few compassionate, today-only quests which earn the same XP,
-/// embers, domain growth, and room progress as anything else on the board.
+/// Glimmers, domain growth, and tapestry progress as anything else on the board.
 enum MomentumKitKind {
   unstick,
   lowFlame,
@@ -50,8 +50,8 @@ const momentumKits = <MomentumKitSpec>[
   MomentumKitSpec(
     kind: MomentumKitKind.lowFlame,
     eyebrow: 'LOW-ENERGY DAYS',
-    title: 'Low Flame Day',
-    promise: 'Choose how much capacity you truly have. One ember still counts.',
+    title: 'Gentle Mode Day',
+    promise: 'Choose how much capacity you truly have. One step still counts.',
     detail: 'A gentle board for burnout, illness, grief, or caregiving days.',
     stat: Stat.vit,
   ),
@@ -60,7 +60,7 @@ const momentumKits = <MomentumKitSpec>[
     eyebrow: 'OVERWHELMED SPACES',
     title: 'Guided Home Reset',
     promise: 'Give one room a visible win without trying to fix everything.',
-    detail: 'Pick the room and the time; Emberkeep supplies the order.',
+    detail: 'Pick the room and the time; Morrowloom supplies the order.',
     stat: Stat.dis,
   ),
   MomentumKitSpec(

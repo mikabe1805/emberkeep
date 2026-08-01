@@ -5,7 +5,7 @@
 - Source: [Soft App Button Tap Sound #2](https://pixabay.com/sound-effects/technology-soft-app-button-tap-sound-2-547872/) by Vadim_Makes_Sound.
 - License: [Pixabay Content License](https://pixabay.com/service/license-summary/).
 - Retrieved: 2026-07-27.
-- Emberkeep processing: the neutral tap was trimmed to 110 ms, converted to mono 44.1 kHz PCM, stripped of leading silence, high-passed at 80 Hz, low-passed at 5.2 kHz, warmed gently around 480 Hz, faded quickly, and given a conservative peak level.
+- Morrowloom processing: the neutral tap was trimmed to 110 ms, converted to mono 44.1 kHz PCM, stripped of leading silence, high-passed at 80 Hz, low-passed at 5.2 kHz, warmed gently around 480 Hz, faded quickly, and given a conservative peak level.
 - `tick_warm.wav`: a 3% lower, slightly darker variation of the neutral tap.
 - `tick_lift.wav`: a 3% higher variation with a restrained upper-mid lift.
 

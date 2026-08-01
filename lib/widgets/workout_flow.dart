@@ -560,7 +560,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                         value: (_i + 1) / _moves.length,
                         height: 4,
                         color: _routine!.stat.color,
-                        background: const Color(0x1FF2CD93),
+                        background: Palette.railTrack,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -607,7 +607,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                         easier ? 'EASIER VERSION' : 'FORM',
                         style: Type.label.copyWith(
                           fontSize: 11,
-                          color: easier ? Palette.success : Palette.textLo,
+                          color: easier ? Palette.xpLight : Palette.textLo,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -657,7 +657,9 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (!easier)
-                      _smallButton('EASIER', Palette.success, () {
+                      // Moss is "you finished it". Taking the gentler version
+                      // is not a completion, so it wears aged brass instead.
+                      _smallButton('EASIER', Palette.xpLight, () {
                         if (idx != _i) return;
                         Sfx.instance.play('tick');
                         Haptics.tap();
@@ -686,8 +688,8 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                     child: Text(
                       'I already did it →',
                       style: Type.label.copyWith(
-                        fontSize: 11,
-                        color: Palette.success,
+                        fontSize: 12,
+                        color: Palette.xpLight,
                       ),
                     ),
                   ),
@@ -699,6 +701,13 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
       ),
     );
   }
+
+  /// The figure is carved out of the room's own light, not painted in the raw
+  /// domain hue — at 148 px on a near-black screen, BODY rose read as a pink
+  /// plastic mannequin. Pulling it toward honey keeps the domain legible and
+  /// puts the one large illustrated object back inside the candlelit palette.
+  static Color _figureTone(Color statColor) =>
+      Color.lerp(statColor, Palette.xp, 0.42)!;
 
   Widget _timedBody(WorkoutMove m) {
     final progress = _total == 0
@@ -725,7 +734,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
               // the move, illustrated, breathing inside the countdown ring
               WorkoutFigure(
                 pose: poseForMove(m.name),
-                color: _routine!.stat.color,
+                color: _figureTone(_routine!.stat.color),
                 size: 148,
               ),
             ],
@@ -756,7 +765,9 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           },
           child: WorkoutFigure(
             pose: poseForMove(m.name),
-            color: reached ? Palette.success : _routine!.stat.color,
+            color: reached
+                ? Palette.success
+                : _figureTone(_routine!.stat.color),
             size: 150,
             bump: _repCount,
           ),

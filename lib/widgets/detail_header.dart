@@ -43,79 +43,98 @@ class DetailHeader extends StatelessWidget {
         ),
       ),
     );
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 6, 16, 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Semantics(
-            button: true,
-            label: 'Back',
-            child: GestureDetector(
-              excludeFromSemantics: true,
-              behavior: HitTestBehavior.opaque,
-              onTap: () => Navigator.of(context).maybePop(),
-              child: const Padding(
-                padding: EdgeInsets.all(8),
-                child: Icon(
-                  Icons.chevron_left,
-                  size: 26,
-                  color: Palette.textMid,
-                ),
-              ),
-            ),
-          ),
-          if (heroTag != null) ...[
-            Padding(
-              padding: const EdgeInsets.only(top: 9, right: 10),
-              child: Hero(tag: heroTag!, child: medallion),
-            ),
-          ] else
-            const SizedBox(width: 2),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Type.display.copyWith(fontSize: 24, color: accent),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle!,
-                    style: Type.body.copyWith(
-                      fontSize: 12,
-                      color: Palette.textLo,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          if (pill != null) ...[
-            const SizedBox(width: 10),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                decoration: facetedDecoration(
-                  cut: 6,
-                  color: accent.withValues(alpha: 0.16),
-                  borderColor: accent.withValues(alpha: 0.45),
-                ),
-                child: Text(
-                  pill!,
-                  style: Type.label.copyWith(fontSize: 11, color: accent),
-                ),
-              ),
-            ),
-          ],
-        ],
+    final back = Semantics(
+      button: true,
+      label: 'Back',
+      child: GestureDetector(
+        excludeFromSemantics: true,
+        behavior: HitTestBehavior.opaque,
+        onTap: () => Navigator.of(context).maybePop(),
+        child: const Padding(
+          padding: EdgeInsets.all(8),
+          child: Icon(Icons.chevron_left, size: 26, color: Palette.textMid),
+        ),
       ),
+    );
+    final lead = heroTag != null
+        ? Padding(
+            padding: const EdgeInsets.only(top: 9, right: 10),
+            child: Hero(tag: heroTag!, child: medallion),
+          )
+        : const SizedBox(width: 2);
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Type.display.copyWith(fontSize: 24, color: accent)),
+        if (subtitle != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            subtitle!,
+            style: Type.body.copyWith(fontSize: 12, color: Palette.textLo),
+          ),
+        ],
+      ],
+    );
+    final pillChip = pill == null
+        ? null
+        : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: facetedDecoration(
+              cut: 6,
+              color: accent.withValues(alpha: 0.16),
+              borderColor: accent.withValues(alpha: 0.45),
+            ),
+            child: Text(
+              pill!,
+              style: Type.label.copyWith(fontSize: 11, color: accent),
+            ),
+          );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final stacked = constraints.maxWidth < 370 || textScale > 1.15;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(6, 6, 16, 4),
+          child: stacked
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        back,
+                        lead,
+                        Expanded(child: titleBlock),
+                      ],
+                    ),
+                    if (pillChip != null)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 52, top: 6),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: pillChip,
+                        ),
+                      ),
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    back,
+                    lead,
+                    Expanded(child: titleBlock),
+                    if (pillChip != null) ...[
+                      const SizedBox(width: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: pillChip,
+                      ),
+                    ],
+                  ],
+                ),
+        );
+      },
     );
   }
 }

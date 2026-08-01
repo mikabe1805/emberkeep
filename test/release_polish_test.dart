@@ -112,7 +112,11 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.text('+ PLAN'));
-    await tester.pumpAndSettle();
+    // Advance the finite dialog transition explicitly. The authored planner
+    // plate keeps its candle attached to the desk; no independent screen-space
+    // flame ticker should remain on this page.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
     await tester.tap(find.text('FOCUS BLOCK'));
     await tester.pump();
 

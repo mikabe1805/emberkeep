@@ -1,13 +1,18 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
 import 'facets.dart';
+import 'gold_surface.dart';
 import 'pressable.dart';
 
-/// The one honey CTA — a lozenge of warm glass routed through [Pressable] so
-/// the primary action depresses (faux-3D) with a haptic tick, exactly like a
-/// quest card (round-30: the most important button should feel the MOST
-/// physical, not flatter than a list row). One gradient/ink token everywhere.
+/// The one honey CTA — a plate of satin gold routed through [Pressable] so the
+/// primary action depresses (faux-3D) with a haptic tick, exactly like a quest
+/// card (round-30: the most important button should feel the MOST physical, not
+/// flatter than a list row).
+///
+/// The face itself is [GoldSurface], which is also what the Quest control and
+/// the page rails on Goals/Journal use — one material, one reflection, one ink.
 class HoneyButton extends StatelessWidget {
   const HoneyButton({
     super.key,
@@ -18,6 +23,7 @@ class HoneyButton extends StatelessWidget {
     this.glow = true,
     this.expand = false,
     this.fontSize = 12,
+    this.light,
   });
 
   final String label;
@@ -32,25 +38,18 @@ class HoneyButton extends StatelessWidget {
   final bool expand;
   final double fontSize;
 
+  /// The page's shared tilt/pointer light, when one is available. Without it
+  /// the reflection simply parks — the still frame is the designed one.
+  final ValueListenable<Offset>? light;
+
   @override
   Widget build(BuildContext context) {
     const cut = 11.0;
     const shape = FacetedBorder(cut: cut);
-    final face = DecoratedBox(
-      decoration: facetedDecoration(
-        gradient: Palette.honeyGradient,
-        cut: cut,
-        borderColor: const Color(0x66FFF0C7),
-        shadows: glow
-            ? const [
-                BoxShadow(
-                  color: Palette.honeyGlow,
-                  blurRadius: 18,
-                  offset: Offset(0, 5),
-                ),
-              ]
-            : const [],
-      ),
+    final button = GoldSurface(
+      cut: cut,
+      glow: glow,
+      light: light,
       child: Container(
         constraints: const BoxConstraints(minHeight: 48),
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
@@ -60,7 +59,7 @@ class HoneyButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[
-              Icon(icon, size: 17, color: Palette.onHoney),
+              Icon(icon, size: fontSize + 5, color: Palette.onHoney),
               const SizedBox(width: 8),
             ],
             Flexible(
@@ -70,20 +69,17 @@ class HoneyButton extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Type.label.copyWith(
                   fontSize: fontSize,
+                  letterSpacing: 1.3,
                   color: Palette.onHoney,
+                  shadows: const [
+                    Shadow(color: Color(0x59FFEBBE), offset: Offset(0, 1)),
+                  ],
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
-    final button = Stack(
-      fit: StackFit.passthrough,
-      children: [
-        face,
-        const Positioned.fill(child: FacetGleam(cut: cut, strength: 0.75)),
-      ],
     );
     return Opacity(
       opacity: enabled ? 1.0 : 0.45,
@@ -93,7 +89,7 @@ class HoneyButton extends StatelessWidget {
         onTapUp: enabled ? (_) => onTap() : null,
         shape: shape,
         // a warm dark-amber under-edge, never grey
-        edgeColor: const Color(0xFF7A4E22),
+        edgeColor: Palette.brassDeep,
         child: button,
       ),
     );

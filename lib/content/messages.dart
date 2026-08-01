@@ -118,7 +118,7 @@ abstract final class RewardMessages {
     'Start absurdly small. Momentum does the rest.',
     'You woke up. You opened this. The hard part’s already behind you.',
     'One tiny quest before coffee and the day tilts your way.',
-    'No need to conquer the day. Just light the first ember.',
+    'No need to conquer the day. Just choose one next step.',
   ];
 
   static String night(Random rng) => nightLines[rng.nextInt(nightLines.length)];

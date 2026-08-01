@@ -41,7 +41,7 @@ class WeeklyChronicleData {
   }
 
   String get shareText =>
-      'I kept my Emberkeep lit $litDays of 7 days and completed $total '
+      'I showed up on $litDays of 7 days and completed $total '
       '${total == 1 ? 'quest' : 'quests'} this week.';
 }
 

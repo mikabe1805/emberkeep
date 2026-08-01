@@ -36,11 +36,16 @@ const canvasThemes = <CanvasTheme>[
     locked: false,
     top: Color(0xFF191210),
     bottom: Color(0xFF231A20),
+    // The default canvas is candlelight and hearth, so all four pools have a
+    // cause. The moss and lilac pools that used to sit at the bottom of every
+    // short page were the app's most-reported sourceless bloom: nothing in a
+    // walnut room at night is green or violet. Named themes keep their own
+    // palettes — those are chosen, this one is the world.
     glows: [
       Color(0x30E0A865),
-      Color(0x26D88A8A),
-      Color(0x226F8A6B),
-      Color(0x1CC9A3DC),
+      Color(0x24D8956A),
+      Color(0x1E8A5A2E),
+      Color(0x18C08A50),
     ],
   ),
   CanvasTheme(

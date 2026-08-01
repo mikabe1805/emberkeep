@@ -10,9 +10,8 @@ import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
-import '../widgets/hearth_glyph.dart';
 
-/// Specialized help for distinct kinds of days, all feeding the same Keep.
+/// Specialized help for distinct kinds of days, all feeding the same weave.
 /// Kits are deliberately housed in Goals instead of becoming a sixth tab.
 class MomentumKitsPage extends StatelessWidget {
   const MomentumKitsPage({
@@ -65,9 +64,9 @@ class MomentumKitsPage extends StatelessWidget {
           child: Column(
             children: [
               const DetailHeader(
-                title: 'Momentum Kits',
-                subtitle: 'specialized help · the same growing Keep',
-                accent: Palette.xpLight,
+                title: 'Help for Today',
+                subtitle: 'specialized help · the same growing story',
+                accent: Palette.xp,
                 pill: 'OPTIONAL',
               ),
               Expanded(
@@ -111,7 +110,7 @@ class MomentumKitsPage extends StatelessWidget {
                     ],
                     const SizedBox(height: 6),
                     Text(
-                      'Kits never make a second checklist. They place a few today-only sparks on Quests; completing them grows your usual domains, XP, embers, and hearth.',
+                      'This never makes a second checklist. It adds a few today-only steps to Quests with the same XP, Glimmers, and domain growth.',
                       textAlign: TextAlign.center,
                       style: Type.body.copyWith(
                         fontSize: 12,
@@ -176,19 +175,23 @@ class _KitsHero extends StatelessWidget {
               top: 37,
               child: FacetMedallion(
                 size: 78,
-                accent: flame,
-                glow: true,
+                // Aged brass, not the hearth's own hue: on sunstone this
+                // medallion came out hot terracotta and became the loudest
+                // object on a page whose real actions are the kit rows below.
+                accent: Palette.brass,
                 gradient: const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0x55FFF4D9), Color(0x332E1810)],
+                  colors: [Color(0x2EFFF4D9), Color(0x4A2A1B12)],
                 ),
-                child: HearthGlyph(
-                  level: state.level,
-                  lit: state.streakDays > 0,
-                  glow: flame,
-                  reduceMotion: state.reduceMotion,
-                  size: 58,
+                // The room's tapestry raster used to sit here, shrunk into a
+                // rounded-square chip — a photoreal object in a page made
+                // entirely of chamfered brass and glass, and the one place it
+                // was doing a job it wasn't authored for.
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Palette.xp,
+                  size: 42,
                 ),
               ),
             ),
@@ -216,7 +219,7 @@ class _KitsHero extends StatelessWidget {
                       maxLines: 1,
                       textAlign: TextAlign.right,
                       style: Type.label.copyWith(
-                        fontSize: 9,
+                        fontSize: 10.5,
                         letterSpacing: 0.75,
                         color: Palette.xpLight,
                       ),
@@ -349,11 +352,11 @@ IconData _iconFor(MomentumKitKind kind) => switch (kind) {
 
 String _badgeFor(MomentumKitKind kind) => switch (kind) {
   MomentumKitKind.unstick => '2–10 MIN',
-  MomentumKitKind.lowFlame => '1–3 SPARKS',
+  MomentumKitKind.lowFlame => '1–3 STEPS',
   MomentumKitKind.homeReset => '5–30 MIN',
   MomentumKitKind.focusExpedition => '15–45 MIN',
   MomentumKitKind.creativePractice => '10–45 MIN',
-  MomentumKitKind.steadyDay => '1–3 SPARKS',
+  MomentumKitKind.steadyDay => '1–3 STEPS',
   MomentumKitKind.examSeason ||
   MomentumKitKind.movingHome ||
   MomentumKitKind.jobSearch ||
@@ -557,7 +560,7 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
     }
     if (widget.kit.kind == MomentumKitKind.lowFlame) {
       // This kit is a capacity choice, not three more lines on an already-full
-      // board. Carry only its chosen sparks into Low Flame shelter; everything
+      // board. Carry only its chosen sparks into Gentle Mode shelter; everything
       // else remains intact and quietly rests behind it for today.
       widget.state.setEnergyWeather(EnergyWeather.low);
       widget.state.setFocusMode(false);
@@ -800,7 +803,7 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
                     if (_usesCapacity(kit.kind)) ...[
                       _FieldLabel(
                         kit.kind == MomentumKitKind.lowFlame
-                            ? 'How many embers do you truly have?'
+                            ? 'How much capacity do you truly have?'
                             : 'How full should today feel?',
                       ),
                       const SizedBox(height: 8),
@@ -897,7 +900,7 @@ String _launchLabel(MomentumKitKind kind, int capacity, int minutes) =>
       MomentumKitKind.movingHome ||
       MomentumKitKind.jobSearch ||
       MomentumKitKind.startingAgain =>
-        capacity == 1 ? 'LIGHT 1 SPARK' : 'LIGHT $capacity SPARKS',
+        capacity == 1 ? 'CHOOSE 1 STEP' : 'CHOOSE $capacity STEPS',
       MomentumKitKind.homeReset =>
         minutes <= 5 ? 'PIN THE RESET' : 'PIN THE RESET PATH',
       _ => 'PIN TO QUESTS',
@@ -994,7 +997,7 @@ class _CapacityPicker extends StatelessWidget {
           child: Semantics(
             button: true,
             selected: i == value,
-            label: '$i ${i == 1 ? 'spark' : 'sparks'}',
+            label: '$i ${i == 1 ? 'step' : 'steps'}',
             child: GestureDetector(
               excludeFromSemantics: true,
               onTap: () {
@@ -1107,24 +1110,24 @@ class _SuccessState extends StatelessWidget {
         const SizedBox(height: 15),
         Text(
           sheltered
-              ? '$requested spark${requested == 1 ? '' : 's'} will carry the day'
+              ? '$requested step${requested == 1 ? '' : 's'} will carry the day'
               : alreadyThere
               ? 'Already waiting on Quests'
               : added == 1
-              ? 'One spark is waiting'
-              : '$added sparks are waiting',
+              ? 'One step is waiting'
+              : '$added steps are waiting',
           textAlign: TextAlign.center,
           style: Type.display.copyWith(fontSize: 23),
         ),
         const SizedBox(height: 7),
         Text(
           sheltered
-              ? 'Everything else on today’s board will rest safely behind Low Flame shelter.'
+              ? 'Everything else on today’s board will rest safely behind Gentle Mode shelter.'
               : alreadyThere
               ? 'This exact kit is already pinned for today. Nothing was duplicated.'
               : added < requested
-              ? 'The rest were already on today’s board, so Emberkeep kept only the new ones.'
-              : 'They are ordinary Emberkeep quests now: same XP, same embers, same growing hearth.',
+              ? 'The rest were already on today’s board, so Morrowloom kept only the new ones.'
+              : 'They are ordinary quests now: same XP, same Glimmers, same build.',
           textAlign: TextAlign.center,
           style: Type.body.copyWith(
             fontSize: 13,

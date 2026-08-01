@@ -316,7 +316,7 @@ void main() {
   test('todays shape recaps which domains were tended', () {
     today = DateTime(2026, 6, 15);
     final s = GameState();
-    expect(s.todaysShape(), contains('every ember')); // nothing done yet
+    expect(s.todaysShape(), contains('every small step')); // nothing done yet
     complete(s, Quest(title: 'Push-ups', stat: Stat.str, difficulty: 2));
     expect(s.todaysShape(), contains('Body'));
     complete(s, Quest(title: 'Tidy up', stat: Stat.dis, difficulty: 2));

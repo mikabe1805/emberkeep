@@ -1,14 +1,17 @@
-import 'dart:math' show cos, pi, sin;
+import 'dart:async' show unawaited;
+import 'dart:math' show cos, min, pi, sin;
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show listEquals, setEquals;
+import 'package:flutter/foundation.dart'
+    show ValueListenable, listEquals, setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../content/space_themes.dart';
 import '../tokens.dart';
 import 'facets.dart';
 
-/// Emberkeep's shared flame language: a graphic outer tongue in the purchased
+/// Morrowloom's shared flame language: a graphic outer tongue in the purchased
 /// hue rising from a pale, white-hot base. Room hearth, HUD, candles, and shop
 /// swatches all call this painter so the heat model cannot drift again.
 void paintEmberFlame(
@@ -213,11 +216,9 @@ void paintEmberFlameSwatch(Canvas canvas, Size size, Color hue) {
   );
 }
 
-/// "Your Space" — a cozy, code-painted room built around the hearth, that fills
-/// with earned furniture as you grow (round-40, the home/world scaffold). The
-/// painter switches on the unlocked piece-ids from content/furniture.dart.
-/// Phase 1: a warm room + window + the pieces; later phases add placement,
-/// nicer art, and visiting others' rooms.
+/// Procedural fallback for legacy/missing room plates. Current Me spaces use
+/// complete authored identities; this painter exists so an old shared payload
+/// or damaged asset still has a warm, readable room instead of a blank panel.
 const _defaultWall = [Color(0xFF34262F), Color(0xFF49332E)];
 const _defaultFloor = [Color(0xFF4A3322), Color(0xFF2A190F)];
 
@@ -230,35 +231,157 @@ const _defaultFloor = [Color(0xFF4A3322), Color(0xFF2A190F)];
 class _RoomGrain {
   static ui.Image? wall;
   static ui.Image? floor;
-  static bool _requested = false;
+  static ui.Image? tapestry;
+  static Future<void>? _loading;
 
   /// Bumped when a texture finishes decoding, so live rooms repaint.
   static final ValueNotifier<int> version = ValueNotifier(0);
 
   static void ensure() {
-    if (_requested) return;
-    _requested = true;
-    _load('assets/room/wall_grain.png', (i) => wall = i);
-    _load('assets/room/floor_grain.png', (i) => floor = i);
+    _loading ??= _loadAll();
   }
 
-  static Future<void> _load(String asset, void Function(ui.Image) set) async {
+  static Future<void> preload() {
+    ensure();
+    return _loading!;
+  }
+
+  static Future<void> _loadAll() async {
+    try {
+      await Future.wait([
+        _load('assets/room/wall_grain.png', (i) => wall = i),
+        _load('assets/room/floor_grain.png', (i) => floor = i),
+        _loadTapestry(),
+      ]);
+    } catch (_) {
+      // Permit a later room build to retry after a transient decode failure.
+      _loading = null;
+      rethrow;
+    }
+  }
+
+  static Future<void> _loadTapestry() async {
+    try {
+      await _load(
+        'assets/brand/morrowloom-tapestry-room-v2.webp',
+        (i) => tapestry = i,
+        required: true,
+      );
+    } catch (_) {
+      // The canonical approved source is the no-blank fallback if the
+      // room-specific transparent derivative is missing or damaged.
+      await _load(
+        'assets/brand/morrowloom-icon-runtime-v2.webp',
+        (i) => tapestry = i,
+        required: true,
+      );
+    }
+  }
+
+  static Future<void> _load(
+    String asset,
+    void Function(ui.Image) set, {
+    bool required = false,
+  }) async {
+    ui.Codec? codec;
     try {
       final bytes = await rootBundle.load(asset);
-      final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
+      codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
       set((await codec.getNextFrame()).image);
       version.value++;
     } catch (_) {
+      codec?.dispose();
+      codec = null;
+      if (required) rethrow;
       // a missing grain texture is fine — the room just paints flat
     }
+    codec?.dispose();
   }
 }
 
-/// Maps a player [level] to the hearth's visual stage 0..5, matching the
-/// "YOUR HEARTH GROWS" milestones on the Me page (First Spark L5 → Steady Flame
-/// L10 → Bright Crest L16 → Twin Fire L24 → Everflame L34). Kept here so the
-/// keep's own hearth and the daily-HUD [HearthGlyph] read the same tiers from
-/// one source of truth.
+/// Painted room plates — one image per wall style in `assets/rooms/<id>.png`.
+///
+/// The procedural room below is a flat elevation: a wall rect and a floor rect
+/// with decals on top. It has no perspective and no single light source, which
+/// is why it reads as an illustration of a room rather than a lit space. A
+/// plate is a painted interior with the geometry, the furniture, the fire AND
+/// its light baked in — see ROOM-PLATES.md for how they're generated.
+///
+/// Plates are optional and per-style. A wall style with no plate falls straight
+/// through to the painter, so the set can land one file at a time.
+class _RoomPlate {
+  static final Map<String, ui.Image> _plates = {};
+  static final Map<String, Future<void>> _loading = {};
+
+  /// Bumped when a plate finishes decoding, so live rooms repaint.
+  static final ValueNotifier<int> version = ValueNotifier(0);
+
+  /// Returns the decoded, already-complete room texture for this identity.
+  static ui.Image? displayOf(String? id) => id == null ? null : _plates[id];
+
+  static void ensure(String? id) {
+    if (id == null) return;
+    unawaited(preload(id));
+  }
+
+  static Future<void> preload(String id) =>
+      _loading.putIfAbsent(id, () => _load(id));
+
+  /// Decodes every plate that exists. Screenshot surfaces await this so a
+  /// capture never records the one-frame procedural fallback.
+  static Future<void> preloadAll(Iterable<String> ids) async {
+    await Future.wait(ids.map(preload), eagerError: false);
+  }
+
+  static Future<void> _load(String id) async {
+    try {
+      final theme = spaceThemeById(id);
+      if (theme != null) {
+        _plates[id] = await _decode(theme.plateAsset);
+      } else {
+        _plates[id] = await _decode('assets/rooms/$id.png');
+      }
+      version.value++;
+    } catch (_) {
+      // No plate for this style yet — the painter handles it. Not an error.
+    }
+  }
+
+  static Future<ui.Image> _decode(String asset) async {
+    final bytes = await rootBundle.load(asset);
+    final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
+    try {
+      return (await codec.getNextFrame()).image;
+    } finally {
+      codec.dispose();
+    }
+  }
+
+  // Complete themes deliberately have no furniture-composition branch.
+}
+
+/// Where the fire sits inside a plate, as a fraction of the room. The flicker
+/// overlay is the only thing in the code that assumes anything about what the
+/// painting contains, and this is the single place it assumes it. Measured off
+/// the approved board art; move it if a generated room puts the hearth
+/// somewhere else.
+const _plateHearth = Offset(0.83, 0.63);
+
+/// Decodes the room's reusable raster textures before a deterministic capture.
+/// Live rooms still load lazily through [HomeRoom]; screenshot and share-card
+/// surfaces can await this to avoid recording the one-frame loading fallback.
+Future<void> preloadHomeRoomAssets() async {
+  await _RoomGrain.preload();
+  await _RoomPlate.preloadAll(spaceThemes.map((theme) => theme.id));
+}
+
+/// Prepares one full room before a user moves into it, preventing a procedural
+/// fallback frame from flashing between two authored identities.
+Future<void> preloadSpaceTheme(String id) => _RoomPlate.preload(id);
+
+/// Legacy hearth-glyph tier mapping retained for compatibility with old visual
+/// tests. The production room no longer maps level to fire size; level belongs
+/// exclusively to the permanent Morrow Tapestry.
 int hearthStageForLevel(int level) {
   if (level >= 34) return 5;
   if (level >= 24) return 4;
@@ -283,10 +406,23 @@ class HomeRoom extends StatefulWidget {
     this.level = 1,
     this.lively = true,
     this.memoryArtifacts = 0,
+    this.plateId,
+    this.parallax,
   });
 
-  /// Furniture piece-ids the player owns (GameState.ownedFurniture) — what
-  /// the room draws. Bought in the shop with embers (content/furniture.dart).
+  /// The wall-style id, used to look up a painted plate in `assets/rooms/`.
+  /// When a plate exists it replaces the whole procedural room — geometry,
+  /// furniture, fire and light are all baked into the painting, and only the
+  /// hearth flicker stays live. Null, or a style with no plate on disk, paints
+  /// procedurally exactly as before.
+  ///
+  /// NOTE: a plate bakes in its floor, so the floor picker has no visual effect
+  /// on a plated wall style. That is the trade for painted light — plating
+  /// every wall×floor pair would be 42 images instead of 7.
+  final String? plateId;
+
+  /// Legacy furniture ids used only by the procedural fallback. Complete room
+  /// identities ignore this set because all of their contents are authored.
   final Set<String> unlocked;
 
   /// Optional overlay in the middle of the room. Round-62 pivot: the keep has
@@ -302,9 +438,8 @@ class HomeRoom extends StatefulWidget {
   /// The scene painted outside the window (content/window_scenes.dart).
   final String window;
 
-  /// Whether the keep's hearth-fire is LIT (you're keeping your streak) vs
-  /// banked to glowing embers (you've been away). The heart of "Emberkeep":
-  /// show up and the fire burns; the little pet by the fire wakes too.
+  /// Whether the room's cat is awake. The ambient fireplace no longer mirrors
+  /// streak or level; it stays welcoming regardless of recent activity.
   final bool petAwake;
 
   /// The hearth-flame's mid-tone colour — its firelight pools on the floor and
@@ -317,9 +452,8 @@ class HomeRoom extends StatefulWidget {
   /// for the fuel-line core, and reduced motion parks the sparks in place.
   final bool heirloomFlame;
 
-  /// The player's level — the hearth burns taller/brighter as it climbs the
-  /// tiers (see [hearthStageForLevel]), making the "YOUR HEARTH GROWS"
-  /// milestones real instead of text. Defaults to 1 for preview/visit callers.
+  /// The player's level — controls the permanent woven portion of the Morrow
+  /// Tapestry. Defaults to 1 for preview/visit callers.
   final int level;
 
   /// The ambient-life switch (round-61): fire flickers, candles sway, rain
@@ -331,6 +465,12 @@ class HomeRoom extends StatefulWidget {
   /// Number of private Cabinet artifacts. Only the count reaches the painter;
   /// journal text, goal names, and note identities never become room data.
   final int memoryArtifacts;
+
+  /// A normalized -1..1 light/view direction supplied by the quest board.
+  /// Painted plates use it for a tiny overscanned camera drift and responsive
+  /// reflected light. Null parks the composition at its finished still
+  /// (including reduced-motion and every non-interactive room caller).
+  final ValueListenable<Offset>? parallax;
 
   @override
   State<HomeRoom> createState() => _HomeRoomState();
@@ -354,6 +494,7 @@ class _HomeRoomState extends State<HomeRoom>
   @override
   Widget build(BuildContext context) {
     _RoomGrain.ensure();
+    _RoomPlate.ensure(widget.plateId);
     final lively =
         widget.lively &&
         !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
@@ -378,9 +519,12 @@ class _HomeRoomState extends State<HomeRoom>
               // never the avatar (who has his own boundary) or the screen
               child: RepaintBoundary(
                 child: AnimatedBuilder(
-                  animation: life == null
-                      ? _RoomGrain.version
-                      : Listenable.merge([_RoomGrain.version, life]),
+                  animation: Listenable.merge([
+                    _RoomGrain.version,
+                    _RoomPlate.version,
+                    ?life,
+                    ?widget.parallax,
+                  ]),
                   builder: (_, _) {
                     // quantize the loop to 110 steps (~11fps) — alive to the
                     // eye, near-free to paint; t=0 is the calm reduced-motion
@@ -401,7 +545,10 @@ class _HomeRoomState extends State<HomeRoom>
                         widget.memoryArtifacts,
                         _RoomGrain.wall,
                         _RoomGrain.floor,
+                        _RoomGrain.tapestry,
                         t,
+                        _RoomPlate.displayOf(widget.plateId),
+                        widget.parallax?.value ?? Offset.zero,
                       ),
                     );
                   },
@@ -438,7 +585,10 @@ class _RoomPainter extends CustomPainter {
     this.memoryArtifacts,
     this.wallGrain,
     this.floorGrain,
+    this.tapestryImage,
     this.t,
+    this.plate,
+    this.parallax,
   )
     // snapshot the furniture set: some callers hand us the live
     // GameState.ownedFurniture, which the engine mutates IN PLACE — the old
@@ -456,15 +606,24 @@ class _RoomPainter extends CustomPainter {
   final int level;
   final int memoryArtifacts;
 
+  /// The painted room for this wall style, if one has been generated. Non-null
+  /// replaces every procedural pass below.
+  final ui.Image? plate;
+
   /// 0..1 through the slow ambient loop (quantized upstream). Every motion in
   /// here is a pure function of [t] — deterministic, seamless at the wrap, and
   /// t=0 must always be a finished, pretty still frame (reduced motion parks
   /// there, and the goldens capture wherever the pump lands).
   final double t;
 
+  /// Normalized view/light direction. Only painted plates use the optical
+  /// response today; the procedural room remains its deterministic fallback.
+  final Offset parallax;
+
   /// Brush-stroke grain (see [_RoomGrain]); null paints flat, like always.
   final ui.Image? wallGrain;
   final ui.Image? floorGrain;
+  final ui.Image? tapestryImage;
   bool has(String id) => unlocked.contains(id);
 
   /// softLight-tile [img] over [rect] — the grain pass. The texture is
@@ -499,6 +658,10 @@ class _RoomPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
+    if (plate != null) {
+      _paintPlate(canvas, w, h, plate!);
+      return;
+    }
     final floorY = h * 0.66;
 
     // ── back wall (recoloured by the chosen room style) ─────────────
@@ -534,10 +697,8 @@ class _RoomPainter extends CustomPainter {
         ..close(),
       Paint()..color = Colors.black.withValues(alpha: 0.055),
     );
-    // Built-in angular wainscot gives even a brand-new keep architectural
-    // character. It is part of the room itself, not a free shop furnishing:
-    // bought shelves, pictures, lights and furniture still transform the
-    // silhouette, while the starter state no longer reads as an empty box.
+    // Give a legacy/missing-asset fallback enough architecture to remain
+    // intentional rather than reading as a blank error surface.
     final wainscotY = floorY * 0.69;
     canvas.drawRect(
       Rect.fromLTRB(0, wainscotY, w, floorY),
@@ -590,18 +751,17 @@ class _RoomPainter extends CustomPainter {
       canvas.drawLine(Offset(topX, floorY), Offset(botX, h), plankDark);
       canvas.drawLine(Offset(topX + 1, floorY), Offset(botX + 1, h), plankLit);
     }
-    // ── the hearth's firelight pooling on the floor in front of it — the warm
-    // heart of the keep. Brighter + breathing when the fire is LIT (a kept
-    // streak), dimmer when banked to embers. Tinted by the chosen flame hue. ──
+    // ── the ambient fireplace pooling warm light across the floor. Its
+    // brightness never tracks streak or level; only the chosen hue changes. ──
     final glow = emberGlow ?? Palette.honeyGlow;
     final warmBounce = Color.lerp(glow, const Color(0xFFFFD49A), 0.58)!;
     final glowBreath = 0.5 + 0.5 * sin(t * 2 * pi * 2 + 0.4);
-    final lit = petAwake ? 1.0 : 0.45;
+    const lit = 0.86;
     final spill = Path()
-      ..moveTo(w * 0.43, floorY)
-      ..lineTo(w * 0.57, floorY)
-      ..lineTo(w * (0.76 + 0.012 * glowBreath), h)
-      ..lineTo(w * (0.24 - 0.012 * glowBreath), h)
+      ..moveTo(w * 0.73, floorY)
+      ..lineTo(w * 0.85, floorY)
+      ..lineTo(w * (0.98 + 0.006 * glowBreath), h)
+      ..lineTo(w * (0.53 - 0.012 * glowBreath), h)
       ..close();
     canvas.drawPath(
       spill,
@@ -615,14 +775,14 @@ class _RoomPainter extends CustomPainter {
             glow.withValues(alpha: 0),
           ],
           stops: const [0.0, 0.58, 1.0],
-        ).createShader(Rect.fromLTRB(w * 0.22, floorY, w * 0.78, h)),
+        ).createShader(Rect.fromLTRB(w * 0.51, floorY, w, h)),
     );
     canvas.drawPath(
       Path()
-        ..moveTo(w * 0.475, floorY)
-        ..lineTo(w * 0.525, floorY)
-        ..lineTo(w * 0.59, h)
-        ..lineTo(w * 0.42, h)
+        ..moveTo(w * 0.77, floorY)
+        ..lineTo(w * 0.82, floorY)
+        ..lineTo(w * 0.93, h)
+        ..lineTo(w * 0.62, h)
         ..close(),
       Paint()..color = Palette.specular.withValues(alpha: 0.050 * lit),
     );
@@ -639,16 +799,16 @@ class _RoomPainter extends CustomPainter {
     // soft floor silhouette further into the room.
     final apronU = h - floorY;
     final apron = Path()
-      ..moveTo(w * 0.405, floorY - 1)
-      ..lineTo(w * 0.595, floorY - 1)
-      ..lineTo(w * 0.635, floorY + apronU * 0.19)
-      ..lineTo(w * 0.365, floorY + apronU * 0.19)
+      ..moveTo(w * 0.715, floorY - 1)
+      ..lineTo(w * 0.865, floorY - 1)
+      ..lineTo(w * 0.905, floorY + apronU * 0.17)
+      ..lineTo(w * 0.675, floorY + apronU * 0.17)
       ..close();
     final apronBounds = Rect.fromLTRB(
-      w * 0.36,
+      w * 0.67,
       floorY,
-      w * 0.64,
-      floorY + apronU * 0.2,
+      w * 0.91,
+      floorY + apronU * 0.18,
     );
     canvas.drawPath(
       apron,
@@ -668,8 +828,8 @@ class _RoomPainter extends CustomPainter {
         ..color = Palette.xpLight.withValues(alpha: 0.14),
     );
     canvas.drawLine(
-      Offset(w * 0.5, floorY),
-      Offset(w * 0.5, floorY + apronU * 0.19),
+      Offset(w * 0.79, floorY),
+      Offset(w * 0.79, floorY + apronU * 0.17),
       Paint()
         ..strokeWidth = 1
         ..color = Colors.black.withValues(alpha: 0.12),
@@ -685,6 +845,7 @@ class _RoomPainter extends CustomPainter {
       Paint()..color = Palette.xpLight.withValues(alpha: 0.10),
     );
 
+    _tapestryBay(canvas, w, h);
     _window(canvas, w, h);
     // the keep's HEARTH — always here, the heart of the room (round-62 pivot)
     _hearth(canvas, w, h, floorY);
@@ -709,26 +870,321 @@ class _RoomPainter extends CustomPainter {
     // between a lit room and a flat illustration. ──
     _firelight(canvas, w, h, floorY);
 
-    // ── a soft vignette: the corners settle into shadow so the lit centre
-    // (where the avatar lives) reads as the warm heart of the room ──
+    // ── KEY-LIGHT FALLOFF ────────────────────────────────────────────────
+    // The hearth is the only real light in this room, so everything has to
+    // fall away from IT — not from the middle of the screen. Measured against
+    // the approved board art, the lit wall beside the fire sits near 0.20
+    // value and the far floor near 0.04: a range of about five to one. The
+    // previous pass was a symmetric vignette centred on the room that capped
+    // at 0.22 in the corners, which compressed that range to nothing and left
+    // the whole space reading as evenly-lit mid-grey — technically polished,
+    // emotionally flat. Anchored on the firebox and taken deep, the same one
+    // draw call gives the room a light source and a dark side.
     final all = Rect.fromLTWH(0, 0, w, h);
-    final corner = petAwake ? const Color(0xFF140C06) : const Color(0xFF0C1020);
+    const corner = Color(0xFF0B0705);
     canvas.drawRect(
       all,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(0, -0.05),
-          radius: 0.98,
-          // deepened to hold contrast against the additive firelight pass —
-          // the bloom lifts the whole room, so the corners have to fall
-          // further for the hearth to still read as the brightest thing here
+          // the firebox itself — measured off the render at ~0.83w, ~0.63h,
+          // converted to Alignment space. Guessing this put the light in the
+          // middle of the room and darkened the hearth, which inverted the
+          // whole thing: the far wall came out brighter than the fire.
+          center: const Alignment(0.66, 0.26),
+          // radius is a fraction of the SHORTEST side; the room is wide, so
+          // this has to exceed 1 to carry past the far bottom-left corner
+          radius: 1.32,
           colors: [
             corner.withValues(alpha: 0),
-            corner.withValues(alpha: petAwake ? 0.10 : 0.16),
-            corner.withValues(alpha: petAwake ? 0.22 : 0.38),
+            corner.withValues(alpha: 0.26),
+            corner.withValues(alpha: 0.58),
+            corner.withValues(alpha: 0.82),
           ],
-          stops: const [0.45, 0.72, 1.0],
+          stops: const [0.10, 0.42, 0.72, 1.0],
         ).createShader(all),
+    );
+
+    // The moon and the standing lamp are light SOURCES, so they have to
+    // survive their own room's shadow — but only just. These pools stay tight
+    // to the fixture: sized generously they lift the whole left half and
+    // invert the room, putting more light on the far wall than on the hearth.
+    _reliteFixture(
+      canvas,
+      Offset(w * 0.115, h * 0.185),
+      h * 0.11,
+      const Color(0x24BFD4E8),
+    );
+    if (has('lamp')) {
+      _reliteFixture(
+        canvas,
+        Offset(w * 0.225, h * 0.26),
+        h * 0.12,
+        const Color(0x2EFFD9A0),
+      );
+    }
+  }
+
+  /// Gives the painted room a restrained optical response, then keeps the fire
+  /// alive with additive light and drifting embers.
+  ///
+  /// The whole authored plate moves as one continuous painting. Earlier
+  /// versions redrew broad polygon samples from the same raster; those samples
+  /// dragged pieces of the window with the chair and exposed their cut edges.
+  /// A tiny overscanned camera drift plus independent window/hearth light now
+  /// creates depth without separating pixels that belong together.
+  void _paintPlate(Canvas canvas, double w, double h, ui.Image img) {
+    // cover-fit: fill the room, crop the overflowing axis, never letterbox
+    final scale = (w / img.width) > (h / img.height)
+        ? w / img.width
+        : h / img.height;
+    final sw = w / scale, sh = h / scale;
+    final src = Rect.fromLTWH(
+      (img.width - sw) / 2,
+      (img.height - sh) / 2,
+      sw,
+      sh,
+    );
+    final px = parallax.dx.clamp(-1.0, 1.0).toDouble();
+    final py = parallax.dy.clamp(-1.0, 1.0).toDouble();
+    // Enough real image beyond the crop for a visible, weighty camera drift.
+    // The entire plate still moves intact, so stronger motion does not
+    // reintroduce the cut-window/chair seam from the old sampled approach.
+    final overscan = w * 0.045;
+    final plateRect = Rect.fromLTWH(
+      -overscan,
+      -overscan,
+      w + overscan * 2,
+      h + overscan * 2,
+    );
+    final roomShift = Offset(-px * w * 0.0145, -py * h * 0.022);
+    final samplePaint = Paint()..filterQuality = FilterQuality.medium;
+
+    canvas.drawImageRect(img, src, plateRect.shift(roomShift), samplePaint);
+
+    // A cool window reflection and a warmer room key move at different rates
+    // across the intact painting. That material response supplies the depth
+    // cue without turning any object into a visible paper cut-out.
+    final windowAt = Offset(w * (0.14 + px * 0.022), h * (0.23 + py * 0.014));
+    canvas.drawCircle(
+      windowAt,
+      w * 0.34,
+      Paint()
+        ..blendMode = BlendMode.screen
+        ..shader = const RadialGradient(
+          colors: [Color(0x0A7895B8), Color(0x03627E9E), Color(0x00627E9E)],
+          stops: [0, 0.48, 1],
+        ).createShader(Rect.fromCircle(center: windowAt, radius: w * 0.34)),
+    );
+
+    // A moving key-light veil unifies the depth samples. It is too faint to
+    // recolour the art; it only makes the authored planes catch light together.
+    final lightAt = Offset(w * (0.48 + px * 0.055), h * (0.30 + py * 0.035));
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, w, h),
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..shader = RadialGradient(
+          colors: const [
+            Color(0x10FFD9A0),
+            Color(0x05FFD9A0),
+            Color(0x00FFD9A0),
+          ],
+          stops: const [0, 0.42, 1],
+        ).createShader(Rect.fromCircle(center: lightAt, radius: w * 0.62)),
+    );
+
+    // The plate owns every fixture and its cast light. Keeping those pixels
+    // intact avoids guessed glows floating over differently furnished themes.
+    // Every complete room includes a working hearth; it never has to be bought
+    // before the room is allowed to feel warm.
+
+    // the hearth breathing. Two offset sines so the loop never reads as a
+    // metronome, and a floor of 0.55 so it glows rather than blinks.
+    final breath =
+        0.55 + 0.30 * sin(t * 2 * pi * 2) + 0.15 * sin(t * 2 * pi * 3 + 1.1);
+    final at =
+        Offset(w * _plateHearth.dx, h * _plateHearth.dy) + roomShift * 0.72;
+    final glow = emberGlow ?? const Color(0xFFE8915A);
+    final radius = w * 0.30;
+    canvas.drawCircle(
+      at,
+      radius,
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..shader = RadialGradient(
+          colors: [
+            glow.withValues(alpha: 0.085 * breath),
+            glow.withValues(alpha: 0.030 * breath),
+            glow.withValues(alpha: 0),
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ).createShader(Rect.fromCircle(center: at, radius: radius)),
+    );
+    // a tighter, brighter core right on the firebox
+    canvas.drawCircle(
+      at,
+      w * 0.075,
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..shader = RadialGradient(
+          colors: [
+            glow.withValues(alpha: 0.16 * breath),
+            glow.withValues(alpha: 0),
+          ],
+        ).createShader(Rect.fromCircle(center: at, radius: w * 0.075)),
+    );
+
+    // The plate contains the beautifully painted fire, but a baked flame alone
+    // cannot feel alive. Three very low-opacity tongues from Morrowloom's
+    // established flame painter move inside that existing firebox. Screen
+    // compositing preserves the authored texture underneath instead of
+    // replacing it with a new graphic.
+    final flameSway =
+        sin(t * pi * 4.0) * w * 0.004 + sin(t * pi * 6.0 + 0.8) * w * 0.002;
+    final flameBounds = Rect.fromCenter(
+      center: at.translate(0, h * 0.020),
+      width: w * 0.105,
+      height: h * (0.15 + 0.012 * breath),
+    );
+    canvas.saveLayer(
+      flameBounds.inflate(w * 0.03),
+      Paint()..blendMode = BlendMode.screen,
+    );
+    paintEmberFlame(
+      canvas,
+      Rect.fromLTWH(
+        flameBounds.left,
+        flameBounds.top + flameBounds.height * 0.12,
+        flameBounds.width * 0.48,
+        flameBounds.height * 0.88,
+      ),
+      glow,
+      lean: flameSway,
+      intensity: 0.18 * breath,
+    );
+    paintEmberFlame(
+      canvas,
+      Rect.fromLTWH(
+        flameBounds.left + flameBounds.width * 0.28,
+        flameBounds.top,
+        flameBounds.width * 0.50,
+        flameBounds.height,
+      ),
+      glow,
+      lean: -flameSway * 0.75,
+      intensity: 0.22 * breath,
+    );
+    paintEmberFlame(
+      canvas,
+      Rect.fromLTWH(
+        flameBounds.left + flameBounds.width * 0.56,
+        flameBounds.top + flameBounds.height * 0.18,
+        flameBounds.width * 0.40,
+        flameBounds.height * 0.82,
+      ),
+      glow,
+      lean: flameSway * 0.55,
+      intensity: 0.16 * breath,
+    );
+    canvas.restore();
+
+    // Warm light skates over the nearest floor plane instead of ending as a
+    // circular glow. The thin angular reflection is what makes the fireplace
+    // feel embedded in a room with depth.
+    final reflection = Path()
+      ..moveTo(at.dx - w * 0.035, at.dy + h * 0.015)
+      ..lineTo(at.dx + w * 0.045, at.dy + h * 0.015)
+      ..lineTo(w * (0.97 + px * 0.006), h)
+      ..lineTo(w * (0.52 + px * 0.012), h)
+      ..close();
+    canvas.drawPath(
+      reflection,
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            glow.withValues(alpha: 0),
+            glow.withValues(alpha: 0.022 * breath),
+            const Color(0x00E8915A),
+          ],
+          stops: const [0, 0.62, 1],
+        ).createShader(Rect.fromLTWH(0, at.dy, w, h - at.dy)),
+    );
+
+    _paintPlateEmbers(canvas, w, h, at, glow);
+  }
+
+  /// Tiny deterministic embers give the baked fireplace a living edge without
+  /// redrawing its flames. At t=0 they form an intentional still composition;
+  /// with ambient motion enabled they rise, sway and trade brightness.
+  void _paintPlateEmbers(
+    Canvas canvas,
+    double w,
+    double h,
+    Offset hearth,
+    Color glow,
+  ) {
+    final count = heirloomFlame ? 9 : 6;
+    for (var i = 0; i < count; i++) {
+      final cycle = (t * (0.58 + i * 0.037) + i * 0.173) % 1.0;
+      final lift = Curves.easeOutCubic.transform(cycle);
+      final sway = sin(cycle * pi * 2 + i * 1.71);
+      final alpha = sin(cycle * pi).abs() * (i.isEven ? 0.64 : 0.44);
+      final point = Offset(
+        hearth.dx + sway * w * (0.006 + (i % 3) * 0.0025),
+        hearth.dy - h * (0.045 + lift * (0.13 + (i % 4) * 0.018)),
+      );
+      final hot = Color.lerp(glow, const Color(0xFFFFF0BC), 0.76)!;
+      canvas.drawCircle(
+        point,
+        w * (i.isEven ? 0.0055 : 0.0042),
+        Paint()
+          ..blendMode = BlendMode.plus
+          ..color = hot.withValues(alpha: alpha * 0.24)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+      );
+      canvas.drawCircle(
+        point,
+        w * (i.isEven ? 0.0018 : 0.0013),
+        Paint()
+          ..blendMode = BlendMode.plus
+          ..color = hot.withValues(alpha: alpha),
+      );
+      if (heirloomFlame && i % 3 == 0) {
+        final flare = w * 0.0055 * alpha;
+        final line = Paint()
+          ..blendMode = BlendMode.plus
+          ..color = const Color(0xFFFFF3C8).withValues(alpha: alpha * 0.62)
+          ..strokeWidth = 0.75
+          ..strokeCap = StrokeCap.round;
+        canvas.drawLine(
+          point.translate(-flare, 0),
+          point.translate(flare, 0),
+          line,
+        );
+        canvas.drawLine(
+          point.translate(0, -flare * 1.5),
+          point.translate(0, flare * 1.5),
+          line,
+        );
+      }
+    }
+  }
+
+  /// One additive pool of light, drawn after the key-light falloff so a fixture
+  /// on the dark side of the room still reads as lit.
+  void _reliteFixture(Canvas canvas, Offset at, double radius, Color hue) {
+    canvas.drawCircle(
+      at,
+      radius,
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..shader = RadialGradient(
+          colors: [hue, hue.withValues(alpha: 0)],
+          stops: const [0.0, 1.0],
+        ).createShader(Rect.fromCircle(center: at, radius: radius)),
     );
   }
 
@@ -741,17 +1197,17 @@ class _RoomPainter extends CustomPainter {
     final count = memoryArtifacts.clamp(1, 3);
     if (count >= 1) {
       final envelope = Path()
-        ..moveTo(w * 0.405, y - u * 0.075)
-        ..lineTo(w * 0.455, y - u * 0.075)
-        ..lineTo(w * 0.450, y - u * 0.005)
-        ..lineTo(w * 0.410, y - u * 0.005)
+        ..moveTo(w * 0.735, y - u * 0.075)
+        ..lineTo(w * 0.785, y - u * 0.075)
+        ..lineTo(w * 0.780, y - u * 0.005)
+        ..lineTo(w * 0.740, y - u * 0.005)
         ..close();
       canvas.drawPath(envelope, Paint()..color = const Color(0xFFD9C49C));
       canvas.drawPath(
         Path()
-          ..moveTo(w * 0.405, y - u * 0.075)
-          ..lineTo(w * 0.430, y - u * 0.038)
-          ..lineTo(w * 0.455, y - u * 0.075),
+          ..moveTo(w * 0.735, y - u * 0.075)
+          ..lineTo(w * 0.760, y - u * 0.038)
+          ..lineTo(w * 0.785, y - u * 0.075),
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1
@@ -760,7 +1216,7 @@ class _RoomPainter extends CustomPainter {
     }
     if (count >= 2) {
       final frame = Rect.fromLTWH(
-        w * 0.365,
+        w * 0.695,
         y - u * 0.135,
         w * 0.034,
         u * 0.13,
@@ -784,7 +1240,7 @@ class _RoomPainter extends CustomPainter {
       );
     }
     if (count >= 3) {
-      final cx = w * 0.475;
+      final cx = w * 0.830;
       final prism = Path()
         ..moveTo(cx, y - u * 0.14)
         ..lineTo(cx + w * 0.018, y - u * 0.07)
@@ -824,17 +1280,17 @@ class _RoomPainter extends CustomPainter {
 
   /// The hearth's light, composited over the finished room: an additive warm
   /// bloom centred on the firebox, a reflection smear on the floorboards, and
-  /// (when the fire is kept) sparks lifting off the coals. Everything here is
-  /// deterministic in [t] and scales with [level]'s hearth tier, so a bigger
-  /// fire genuinely lights more of the keep.
+  /// sparks lifting off the coals. Everything here is deterministic in [t].
+  /// The ambient light deliberately ignores level and streak.
   void _firelight(Canvas canvas, double w, double h, double floorY) {
     final u = h - floorY;
     final glow = emberGlow ?? const Color(0xFFEC6007);
     final warm = Color.lerp(glow, const Color(0xFFFFD49A), 0.68)!;
-    final lit = petAwake ? 1.0 : 0.30; // banked, never cold
+    const lit = 0.86;
     final breath = 0.5 + 0.5 * sin(t * 2 * pi * 2 + 0.4);
-    final stage = hearthStageForLevel(level);
-    final centre = Offset(w * 0.5, floorY - u * 0.16);
+    const stage = 2;
+    final fireX = w * 0.79;
+    final centre = Offset(fireX, floorY - u * 0.16);
 
     // A generous but controlled warm bloom is the emotional reward for a live
     // hearth. Crisp light planes still provide structure underneath it.
@@ -845,10 +1301,10 @@ class _RoomPainter extends CustomPainter {
     // The room catches the fire's light, but the fire itself must keep its
     // saturated planes. Excluding the opening prevents the additive bloom
     // from bleaching the orange/red flame back into a pale peach candle.
-    final openingW = w * 0.30 * 0.58;
+    final openingW = w * 0.225 * 0.58;
     final openingH = u * 0.50;
     final openingRect = Rect.fromLTWH(
-      w * 0.5 - openingW / 2,
+      fireX - openingW / 2,
       floorY - openingH,
       openingW,
       openingH,
@@ -890,10 +1346,10 @@ class _RoomPainter extends CustomPainter {
     // A narrow reflected facet on the waxed boards, aligned to the floor's
     // perspective rather than painted as a fuzzy oval.
     final reflection = Path()
-      ..moveTo(w * 0.47, floorY)
-      ..lineTo(w * 0.53, floorY)
-      ..lineTo(w * (0.59 + 0.01 * breath), h)
-      ..lineTo(w * (0.41 - 0.01 * breath), h)
+      ..moveTo(w * 0.76, floorY)
+      ..lineTo(w * 0.82, floorY)
+      ..lineTo(w * (0.93 + 0.01 * breath), h)
+      ..lineTo(w * (0.62 - 0.01 * breath), h)
       ..close();
     canvas.drawPath(
       reflection,
@@ -907,18 +1363,18 @@ class _RoomPainter extends CustomPainter {
             glow.withValues(alpha: 0.030 * lit),
             glow.withValues(alpha: 0),
           ],
-        ).createShader(Rect.fromLTRB(w * 0.4, floorY, w * 0.6, h)),
+        ).createShader(Rect.fromLTRB(w * 0.59, floorY, w * 0.99, h)),
     );
 
     // sparks lifting off the coals and winking out inside the arch — the one
     // thing in the room that travels upward, so the eye keeps returning to
     // the fire. Count climbs with the hearth's tier.
-    if (petAwake) {
+    {
       final count = 2 + stage ~/ 2; // 2 sparks at First Spark … 4 at Everflame
       for (var i = 0; i < count; i++) {
         final phase = (t * (1.3 + i * 0.21) + i * 0.29) % 1.0;
         final sx =
-            w * 0.5 +
+            fireX +
             w *
                 (0.008 + 0.035 * phase) *
                 sin(phase * pi * (1.7 + i * 0.5)) *
@@ -961,7 +1417,7 @@ class _RoomPainter extends CustomPainter {
     final srcL = Offset(w * 0.10, h * 0.16);
     final srcR = Offset(w * 0.30, h * 0.16);
     final footL = Offset(w * 0.30, h);
-    final footR = Offset(w * 0.66, h);
+    final footR = Offset(w * 0.56, h);
     final beam = Path()
       ..moveTo(srcL.dx, srcL.dy)
       ..lineTo(srcR.dx, srcR.dy)
@@ -977,8 +1433,11 @@ class _RoomPainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [tint.withValues(alpha: 0.105), tint.withValues(alpha: 0)],
-        ).createShader(Rect.fromLTWH(w * 0.1, h * 0.16, w * 0.56, h * 0.84)),
+          // 0.105 laid a pale wedge across a third of the floor that read as
+          // haze rather than moonlight — the room's second-largest light
+          // source competing with the hearth from the cold side.
+          colors: [tint.withValues(alpha: 0.048), tint.withValues(alpha: 0)],
+        ).createShader(Rect.fromLTWH(w * 0.1, h * 0.16, w * 0.46, h * 0.84)),
     );
     canvas.drawPath(
       Path()
@@ -1009,16 +1468,97 @@ class _RoomPainter extends CustomPainter {
     canvas.restore();
   }
 
+  /// A purpose-built faceted wall bay for the Morrow Tapestry. The textile is
+  /// a quiet permanent record rather than the room's loudest object. Its small
+  /// architectural recess keeps the authored cloth grounded without turning
+  /// the whole wall into interface chrome.
+  void _tapestryBay(Canvas canvas, double w, double h) {
+    final outerBounds = Rect.fromLTRB(
+      w * 0.365,
+      h * 0.075,
+      w * 0.545,
+      h * 0.49,
+    );
+    final outer = Path()
+      ..moveTo(w * 0.385, h * 0.075)
+      ..lineTo(w * 0.525, h * 0.075)
+      ..lineTo(w * 0.545, h * 0.11)
+      ..lineTo(w * 0.545, h * 0.46)
+      ..lineTo(w * 0.525, h * 0.49)
+      ..lineTo(w * 0.385, h * 0.49)
+      ..lineTo(w * 0.365, h * 0.46)
+      ..lineTo(w * 0.365, h * 0.11)
+      ..close();
+    canvas.drawPath(
+      outer.shift(Offset(w * 0.008, h * 0.010)),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.28)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+    canvas.drawPath(
+      outer,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF514441), Color(0xFF2D292D), Color(0xFF463839)],
+        ).createShader(outerBounds),
+    );
+
+    final inner = Path()
+      ..moveTo(w * 0.397, h * 0.105)
+      ..lineTo(w * 0.513, h * 0.105)
+      ..lineTo(w * 0.525, h * 0.126)
+      ..lineTo(w * 0.525, h * 0.438)
+      ..lineTo(w * 0.513, h * 0.458)
+      ..lineTo(w * 0.397, h * 0.458)
+      ..lineTo(w * 0.385, h * 0.438)
+      ..lineTo(w * 0.385, h * 0.126)
+      ..close();
+    canvas.drawPath(inner, Paint()..color = const Color(0xFF241F27));
+    canvas.drawPath(
+      inner,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2
+        ..strokeJoin = StrokeJoin.miter
+        ..color = Palette.specular.withValues(alpha: 0.14),
+    );
+
+    // Cool moonlight catches the left mitre while the fireplace gives the
+    // right edge a restrained warm return. The textile itself never glows.
+    canvas.drawPath(
+      Path()
+        ..moveTo(w * 0.365, h * 0.11)
+        ..lineTo(w * 0.385, h * 0.126)
+        ..lineTo(w * 0.385, h * 0.438)
+        ..lineTo(w * 0.365, h * 0.46)
+        ..close(),
+      Paint()..color = Palette.specular.withValues(alpha: 0.065),
+    );
+    canvas.drawPath(
+      Path()
+        ..moveTo(w * 0.525, h * 0.126)
+        ..lineTo(w * 0.545, h * 0.11)
+        ..lineTo(w * 0.545, h * 0.46)
+        ..lineTo(w * 0.525, h * 0.438)
+        ..close(),
+      Paint()..color = Palette.honeyGlow.withValues(alpha: 0.045),
+    );
+
+    _morrowTapestry(canvas, w * 0.455, h * 0.095, h * 0.465, w * 0.15);
+  }
+
   void _window(Canvas canvas, double w, double h) {
-    final fx = w * 0.07, fy = h * 0.13, fw = w * 0.26, fh = h * 0.3;
+    final fx = w * 0.055, fy = h * 0.17, fw = w * 0.205, fh = h * 0.39;
     final rect = Rect.fromLTWH(fx, fy, fw, fh);
-    final r = RRect.fromRectAndRadius(rect, const Radius.circular(6));
+    final r = RRect.fromRectAndRadius(rect, const Radius.circular(2));
     // the view outside (clipped to the pane) — t makes the weather live
     paintWindowScene(canvas, window, rect, t: t);
     // frame + mullions on top
     final edge = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
+      ..strokeWidth = 3.2
       ..color = const Color(0xFF5A4536);
     canvas.drawRRect(r, edge);
     final bar = Paint()
@@ -1158,18 +1698,18 @@ class _RoomPainter extends CustomPainter {
   void _lamp(Canvas canvas, double w, double h, double floorY) {
     // Clear the moon window: the lamp now owns the narrow hearth-side wall
     // instead of sitting directly in front of the app's strongest light wedge.
-    final x = w * 0.35;
+    final x = w * 0.265;
     final baseY = floorY + (h - floorY) * 0.46;
-    final topY = h * 0.22;
+    final topY = h * 0.29;
     // A quiet faceted halo: the shade remains an object rather than dissolving
     // into a round blur, and the moonlight keeps ownership of the large beam.
     canvas.drawPath(
       Path()
         ..moveTo(x, topY - h * 0.055)
-        ..lineTo(x + w * 0.075, topY - h * 0.005)
-        ..lineTo(x + w * 0.052, topY + h * 0.075)
-        ..lineTo(x - w * 0.052, topY + h * 0.075)
-        ..lineTo(x - w * 0.075, topY - h * 0.005)
+        ..lineTo(x + w * 0.058, topY - h * 0.005)
+        ..lineTo(x + w * 0.040, topY + h * 0.060)
+        ..lineTo(x - w * 0.040, topY + h * 0.060)
+        ..lineTo(x - w * 0.058, topY - h * 0.005)
         ..close(),
       Paint()..color = Palette.honeyGlow.withValues(alpha: 0.065),
     );
@@ -1207,53 +1747,53 @@ class _RoomPainter extends CustomPainter {
     );
     // shade
     final shade = Path()
-      ..moveTo(x - w * 0.05, topY + 10)
-      ..lineTo(x + w * 0.05, topY + 10)
-      ..lineTo(x + w * 0.034, topY - 8)
-      ..lineTo(x - w * 0.034, topY - 8)
+      ..moveTo(x - w * 0.041, topY + 8)
+      ..lineTo(x + w * 0.041, topY + 8)
+      ..lineTo(x + w * 0.028, topY - 7)
+      ..lineTo(x - w * 0.028, topY - 7)
       ..close();
     canvas.drawPath(shade, Paint()..color = const Color(0xFFD4B27A));
     canvas.save();
     canvas.clipPath(shade);
     canvas.drawPath(
       Path()
-        ..moveTo(x - w * 0.034, topY - 8)
-        ..lineTo(x, topY - 8)
-        ..lineTo(x - w * 0.008, topY + 10)
-        ..lineTo(x - w * 0.05, topY + 10)
+        ..moveTo(x - w * 0.028, topY - 7)
+        ..lineTo(x, topY - 7)
+        ..lineTo(x - w * 0.006, topY + 8)
+        ..lineTo(x - w * 0.041, topY + 8)
         ..close(),
       Paint()..color = const Color(0xFFF0D49A).withValues(alpha: 0.42),
     );
     canvas.drawPath(
       Path()
-        ..moveTo(x, topY - 8)
-        ..lineTo(x + w * 0.034, topY - 8)
-        ..lineTo(x + w * 0.05, topY + 10)
-        ..lineTo(x - w * 0.008, topY + 10)
+        ..moveTo(x, topY - 7)
+        ..lineTo(x + w * 0.028, topY - 7)
+        ..lineTo(x + w * 0.041, topY + 8)
+        ..lineTo(x - w * 0.006, topY + 8)
         ..close(),
       Paint()..color = const Color(0xFF9B7548).withValues(alpha: 0.36),
     );
     canvas.restore();
     canvas.drawLine(
-      Offset(x - w * 0.05, topY + 10),
-      Offset(x + w * 0.05, topY + 10),
+      Offset(x - w * 0.041, topY + 8),
+      Offset(x + w * 0.041, topY + 8),
       Paint()
         ..color = const Color(0xFF6B4A2E)
         ..strokeWidth = 1.5,
     );
     canvas.drawPath(
       Path()
-        ..moveTo(x - w * 0.043, topY + 8.5)
-        ..lineTo(x + w * 0.043, topY + 8.5)
-        ..lineTo(x + w * 0.032, topY + 12)
-        ..lineTo(x - w * 0.032, topY + 12)
+        ..moveTo(x - w * 0.035, topY + 6.8)
+        ..lineTo(x + w * 0.035, topY + 6.8)
+        ..lineTo(x + w * 0.027, topY + 10)
+        ..lineTo(x - w * 0.027, topY + 10)
         ..close(),
       Paint()..color = const Color(0xFFF4C96F).withValues(alpha: 0.30),
     );
   }
 
   void _shelf(Canvas canvas, double w, double h) {
-    final x = w * 0.6, y = h * 0.26, sw = w * 0.3;
+    final x = w * 0.70, y = h * 0.30, sw = w * 0.235;
     // A narrow cast shadow, then separate top and front planes: one readable
     // piece of timber rather than a floating line.
     canvas.drawRect(
@@ -1334,7 +1874,9 @@ class _RoomPainter extends CustomPainter {
   }
 
   void _picture(Canvas canvas, double w, double h) {
-    final x = w * 0.46, y = h * 0.14, pw = w * 0.16, ph = h * 0.16;
+    // The Morrow Tapestry owns the chimney breast. This collected picture
+    // hangs above the right-side shelf instead of obscuring permanent progress.
+    final x = w * 0.815, y = h * 0.16, pw = w * 0.105, ph = h * 0.115;
     final outer = Rect.fromLTWH(x, y, pw, ph);
     // soft drop shadow on the wall behind the frame
     canvas.drawRRect(
@@ -1421,8 +1963,8 @@ class _RoomPainter extends CustomPainter {
 
   void _chair(Canvas canvas, double w, double h, double floorY) {
     final u = h - floorY;
-    final x = w * 0.81, seatY = floorY + u * 0.34;
-    final cw = w * 0.14, ch = u * 0.54;
+    final x = w * 0.19, seatY = floorY + u * 0.38;
+    final cw = w * 0.18, ch = u * 0.60;
     const walnut = Color(0xFF4B3024);
     const walnutLit = Color(0xFF79503A);
     const cloth = Color(0xFF835146);
@@ -1663,24 +2205,21 @@ class _RoomPainter extends CustomPainter {
     }
   }
 
-  /// The keep's HEARTH — the central heart of the room (round-62 pivot). Always
-  /// present. When the fire is kept LIT (a live streak, [petAwake]) it burns
-  /// with full flames; when you've been away it banks down to glowing embers,
-  /// never cold — never-punish, the warmth is the reward for showing up. The
-  /// flame takes [emberGlow]'s hue so a chosen flame colour warms the whole keep.
+  /// The room's ambient hearth. It remains warmly lit regardless of streak or
+  /// level; permanent progress belongs to the tapestry above it. The flame
+  /// takes [emberGlow]'s hue so a chosen color still personalizes the room.
   void _hearth(Canvas canvas, double w, double h, double floorY) {
-    final x = w * 0.5;
+    final x = w * 0.79;
     final u = h - floorY;
     final carved = has('hearth');
-    final hw = w * (carved ? 0.32 : 0.30); // surround width
-    final topY = h * 0.14; // the chimney breast rises high on the wall
+    final hw = w * (carved ? 0.225 : 0.205); // compact ambient surround
+    final topY = h * 0.36; // secondary side-wall fireplace
     final flameHue = emberGlow ?? const Color(0xFFEC6007);
     final fireWarm = Color.lerp(flameHue, const Color(0xFFFFD49A), 0.52)!;
-    final lit = petAwake ? 1.0 : 0.45;
+    const lit = 0.86;
     final flick = 1 + 0.09 * sin(t * 2 * pi * 2) + 0.05 * sin(t * 2 * pi * 3);
-    // the fire climbs its tiers with your level — taller flames, a hotter
-    // heart, and at Everflame a drifting spark. Never shrinks; only grows.
-    final stage = hearthStageForLevel(level);
+    // Ambient fire uses one stable scale; level now changes only the tapestry.
+    const stage = 2;
     final grow =
         0.82 +
         0.045 * stage +
@@ -1784,11 +2323,13 @@ class _RoomPainter extends CustomPainter {
       Paint()..color = Palette.xpLight.withValues(alpha: 0.12),
     );
     if (carved) {
-      final runeY = mantelY - u * 0.10;
+      // Keep the earned carving on the mantel's front edge so the tapestry
+      // remains an uninterrupted, readable record of permanent progress.
+      final runeY = mantelY + u * 0.038;
       final rune = Path()
-        ..moveTo(x, runeY - u * 0.045)
+        ..moveTo(x, runeY - u * 0.018)
         ..lineTo(x + w * 0.014, runeY)
-        ..lineTo(x, runeY + u * 0.045)
+        ..lineTo(x, runeY + u * 0.018)
         ..lineTo(x - w * 0.014, runeY)
         ..close();
       canvas.drawPath(
@@ -1913,7 +2454,7 @@ class _RoomPainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
     );
     // ── the log bed: two split logs crossed over live coals. Both stay when
-    // the fire banks — a keep's hearth banks down, it never goes out. ──
+    // the fireplace stays consistently warm; activity never banks it. ──
     void log(double x0, double y0, double x1, double y1, double thick) {
       canvas.drawLine(
         Offset(x0, y0),
@@ -1973,8 +2514,8 @@ class _RoomPainter extends CustomPainter {
       );
     }
 
-    if (petAwake) {
-      // Full flames when the fire is kept. The shared painter anchors the pale
+    {
+      // The shared painter anchors the pale
       // heat at each tongue's fuel-contact base while the purchased hue rises,
       // keeping the shop colour visible through the upper silhouette.
       // Side tongues paint first and the broad central spear overlaps them,
@@ -2022,8 +2563,111 @@ class _RoomPainter extends CustomPainter {
     }
   }
 
-  /// The keep's cat: sitting up and watching you when the fire is kept, curled
-  /// into a loaf when it's banked. Never-punish — sleeping is rest, not a scold.
+  /// The permanent progress object: a future landscape woven one lasting row
+  /// at a time. The source stays opaque and textural; future rows are colour-
+  /// muted instead of faded, and a soft transition replaces the old hard crop.
+  /// Level never falls, so neither can the woven edge.
+  void _morrowTapestry(
+    Canvas canvas,
+    double centerX,
+    double topY,
+    double mantelY,
+    double hearthWidth,
+  ) {
+    final image = tapestryImage;
+    if (image == null) return;
+
+    final availableH = mantelY - topY;
+    final source = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    final aspect = source.width / source.height;
+    final width = min(hearthWidth * 1.08, availableH * 1.04 * aspect);
+    final height = width / aspect;
+    final dest = Rect.fromCenter(
+      center: Offset(centerX, topY + availableH * 0.48),
+      width: width,
+      height: height,
+    );
+    final woven = ((level + 2) / 36).clamp(0.12, 1.0);
+    // Progress belongs to the cloth itself, not to the already-finished rod or
+    // tassels. These bounds track the woven body inside the approved source.
+    final clothTop = dest.top + dest.height * 0.18;
+    final clothBottom = dest.top + dest.height * 0.78;
+    final edgeY = clothBottom - (clothBottom - clothTop) * woven;
+    final feather = min(dest.height * 0.055, 7.0);
+    final transitionTop = (edgeY - feather / 2).clamp(dest.top, dest.bottom);
+    final transitionBottom = (edgeY + feather / 2).clamp(dest.top, dest.bottom);
+    const futureTint = Color(0xFF766A79);
+
+    void drawSlice(double top, double bottom, Color tint) {
+      if (bottom <= top) return;
+      final topT = (top - dest.top) / dest.height;
+      final bottomT = (bottom - dest.top) / dest.height;
+      final sourceSlice = Rect.fromLTRB(
+        source.left,
+        source.top + source.height * topT,
+        source.right,
+        source.top + source.height * bottomT,
+      );
+      final destinationSlice = Rect.fromLTRB(
+        dest.left,
+        top,
+        dest.right,
+        bottom,
+      );
+      canvas.drawImageRect(
+        image,
+        sourceSlice,
+        destinationSlice,
+        Paint()
+          ..colorFilter = ColorFilter.mode(tint, BlendMode.modulate)
+          ..filterQuality = FilterQuality.high,
+      );
+    }
+
+    // The derived room asset removes only the edge-connected near-black
+    // backdrop from the approved source. The tapestry itself remains opaque,
+    // so it hangs naturally on the stone instead of reading as a pasted icon.
+    drawSlice(dest.top, clothTop, Colors.white);
+    drawSlice(clothTop, transitionTop, futureTint);
+    const transitionSteps = 6;
+    for (var i = 0; i < transitionSteps; i++) {
+      final start = i / transitionSteps;
+      final end = (i + 1) / transitionSteps;
+      drawSlice(
+        transitionTop + (transitionBottom - transitionTop) * start,
+        transitionTop + (transitionBottom - transitionTop) * end,
+        Color.lerp(futureTint, Colors.white, (start + end) / 2)!,
+      );
+    }
+    drawSlice(transitionBottom, clothBottom, Colors.white);
+    drawSlice(clothBottom, dest.bottom, Colors.white);
+
+    // One intentionally stitched frontier makes the current completed row
+    // legible without turning the artwork into a progress bar or restoring the
+    // old hard crop. The dashes move upward only as level increases.
+    final stitchLeft = dest.left + dest.width * 0.17;
+    final stitchRight = dest.right - dest.width * 0.17;
+    const stitchCount = 9;
+    final slot = (stitchRight - stitchLeft) / stitchCount;
+    final stitchPaint = Paint()
+      ..color = const Color(0xFFF1AA3C).withValues(alpha: 0.72)
+      ..strokeWidth = dest.width * 0.008
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < stitchCount; i++) {
+      final startX = stitchLeft + slot * (i + 0.16);
+      final endX = stitchLeft + slot * (i + 0.72);
+      canvas.drawLine(Offset(startX, edgeY), Offset(endX, edgeY), stitchPaint);
+    }
+  }
+
+  /// The room's optional cat: sitting up when the space is active, curled into
+  /// a loaf when it is quiet. It is ambient furniture, never the product's
+  /// companion, progress meter, or reason to return.
   ///
   /// Built from a locked set of proportions rather than free offsets, because
   /// the previous version drifted: the head had grown as wide as the entire
@@ -2032,17 +2676,18 @@ class _RoomPainter extends CustomPainter {
   /// clearly smaller than the body it sits on, a muzzle, and paws on the floor.
   void _pet(Canvas canvas, double w, double h, double floorY, bool awake) {
     final u = h - floorY;
-    final cx = w * 0.70;
-    final baseY = floorY + u * 0.90; // the floorboard the cat sits on
+    final cx = w * 0.63;
+    final baseY = floorY + u * 0.88; // the floorboard the cat sits on
 
-    const coat = Color(0xFFC9A06D);
-    const coatLit = Color(0xFFE4C795); // surfaces the hearth reaches
-    const coatShade = Color(0xFFA37C4B); // undersides and the far flank
-    const innerEar = Color(0xFFD08F88);
-    const ink = Color(0xFF4E3524);
+    const coat = Color(0xFF29262F);
+    const coatLit = Color(0xFF62505E); // surfaces the hearth reaches
+    const coatShade = Color(0xFF17151C); // undersides and the far flank
+    const innerEar = Color(0xFF8C6678);
+    const ink = Color(0xFF0E0C12);
     final fur = Paint()..color = coat;
 
-    // the hearth is to the LEFT of the cat, so its left side is the lit one
+    // Moonlight describes the left planes; the side-wall fireplace adds a
+    // warm rim through the final additive light pass.
     final lit = Paint()..color = coatLit;
 
     // one soft contact shadow, pooled under whatever pose is drawn
@@ -2394,9 +3039,11 @@ class _RoomPainter extends CustomPainter {
 
   // a string of warm bulbs draped across the upper wall (sags in the middle)
   void _garland(Canvas canvas, double w, double h) {
-    final left = Offset(w * 0.36, h * 0.07);
-    final right = Offset(w * 0.97, h * 0.09);
-    final mid = Offset((left.dx + right.dx) / 2, h * 0.07 + h * 0.07); // sag
+    // Keep the strand in the high wall band so the enlarged Morrow Tapestry
+    // retains an uninterrupted silhouette on the chimney breast.
+    final left = Offset(w * 0.36, h * 0.012);
+    final right = Offset(w * 0.97, h * 0.025);
+    final mid = Offset((left.dx + right.dx) / 2, h * 0.045); // shallow sag
     final wire = Path()
       ..moveTo(left.dx, left.dy)
       ..quadraticBezierTo(mid.dx, mid.dy, right.dx, right.dy);
@@ -2522,7 +3169,7 @@ class _RoomPainter extends CustomPainter {
     // instantly, and a scene whose whole job is to feel calm cannot afford to
     // make you anxious. A stone shelf above the animal is where candles
     // actually live in a room with a hearth.
-    final clusterX = w * 0.625; // opposite the picture, clear of its frame
+    final clusterX = w * 0.855; // on the compact side-wall mantel
     final baseY = _mantelY(h, floorY);
     // the light they throw back onto the chimney breast behind them
     canvas.drawOval(
@@ -2581,14 +3228,17 @@ class _RoomPainter extends CustomPainter {
   @override
   bool shouldRepaint(_RoomPainter old) =>
       old.t != t ||
+      old.parallax != parallax ||
       old.window != window ||
       old.petAwake != petAwake ||
       old.emberGlow != emberGlow ||
       old.heirloomFlame != heirloomFlame ||
       old.level != level ||
       old.memoryArtifacts != memoryArtifacts ||
+      old.tapestryImage != tapestryImage ||
       old.wallGrain != wallGrain ||
       old.floorGrain != floorGrain ||
+      old.plate != plate ||
       // content compares, not identity: the live owned-set mutates in place
       // (same instance ≠ same furniture) and visit_room builds a fresh set
       // every build (different instance ≠ different furniture)

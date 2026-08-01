@@ -1,7 +1,7 @@
 import '../models.dart';
 
 /// Open quests that can honestly be considered for [day]. This is shared by
-/// the night planner, the guided daily Ember, and Low Flame shelter so each
+/// the night planner, the guided daily Ember, and Gentle Mode shelter so each
 /// surface tells the same story about what belongs to a day.
 List<Quest> planningQuestsForDay(Iterable<Quest> quests, DateTime day) {
   final key = Days.key(day);
@@ -17,7 +17,7 @@ List<Quest> planningQuestsForDay(Iterable<Quest> quests, DateTime day) {
   ];
 }
 
-/// Pick a compassionate starting three for a crowded Low Flame day. Urgent
+/// Pick a compassionate starting three for a crowded Gentle Mode day. Urgent
 /// dated commitments remain visible first, then a dated MAIN choice, then the
 /// least-dreaded and lightest work. The result stays fixed until the keeper
 /// explicitly edits it.

@@ -127,6 +127,15 @@ class _WorkoutFigureState extends State<WorkoutFigure>
 
   @override
   Widget build(BuildContext context) {
+    // The breath was the one continuous loop in the app that never checked the
+    // reduced-motion preference.
+    final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    if (still && _breathe.isAnimating) {
+      _breathe.stop();
+      _breathe.value = 0.5;
+    } else if (!still && !_breathe.isAnimating) {
+      _breathe.repeat(reverse: true);
+    }
     return RepaintBoundary(
       child: AnimatedBuilder(
         animation: Listenable.merge([_breathe, _squash]),

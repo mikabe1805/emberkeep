@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,6 +9,7 @@ import '../audio.dart';
 import '../clock.dart';
 import '../cloud.dart';
 import '../content/ladders.dart';
+import '../content/quest_desk_styles.dart';
 import '../content/routines.dart';
 import '../engine.dart';
 import '../haptics.dart';
@@ -18,8 +20,11 @@ import '../storage.dart';
 import '../social.dart';
 import '../tokens.dart';
 import '../widgets/facets.dart';
-import '../widgets/glass.dart';
+import '../widgets/glass.dart' show WarmBackground;
+import '../widgets/home_room.dart' show preloadSpaceTheme;
+import '../widgets/luxe_depth.dart';
 import '../widgets/onboarding_flow.dart';
+import '../widgets/pressable.dart';
 import '../widgets/routine_flows.dart';
 import 'calendar.dart';
 import 'goal_wizard.dart';
@@ -43,6 +48,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   GameState? _state;
   List<Quest>? _quests;
   int _tab = 1; // Quests is home
+  final Set<int> _visitedTabs = {1};
+  late final LuxeMotionController _luxeMotion;
   OverlayEntry? _morningOverlay;
   Timer? _midnight; // fires at the next local midnight to roll the day over
 
@@ -58,6 +65,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _luxeMotion = LuxeMotionController();
+    unawaited(_luxeMotion.start());
     WidgetsBinding.instance.addObserver(this);
     _load();
   }
@@ -66,6 +75,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _midnight?.cancel();
+    _luxeMotion.dispose();
     super.dispose();
   }
 
@@ -151,6 +161,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (saved == null) await Storage.save(state, quests);
     if (!mounted) return;
     Haptics.reduceMotion = state.reduceMotion;
+    // Decode the selected complete room while the Quest home is appearing, so
+    // opening Me never flashes the procedural legacy fallback.
+    unawaited(preloadSpaceTheme(state.wallStyle));
     setState(() {
       _state = state;
       _quests = quests;
@@ -500,7 +513,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         !await Storage.importRaw(cloudRaw)) {
       await CloudSync.instance.signOut(saveAccount: false);
       if (mounted) setState(() {});
-      return 'That account save needs a newer Emberkeep build or is damaged. '
+      return 'That account save needs a newer Morrowloom build or is damaged. '
           'Nothing was overwritten.';
     } else {
       await _loadFromStorage(); // adopt the account's keep and progress
@@ -523,7 +536,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   Future<String?> _deleteAccount(String password) async {
     final s = _state;
-    if (s == null) return 'Your keep is still loading — try again.';
+    if (s == null) return 'Your space is still loading — try again.';
     final error = await CloudSync.instance.deleteAccount(
       password,
       roomCode: s.roomCode,
@@ -620,12 +633,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   void _selectTab(int i) {
     if (i == _tab) return;
-    // The keep is visited often; auto-playing fire on every return became
-    // tiring on a real phone. Keep Me quiet and reserve the full ignition for
-    // a genuine hearth revival. Other tab changes retain the soft nav cue.
-    if (i != 0) Sfx.instance.play('tick');
-    Haptics.tap();
-    setState(() => _tab = i);
+    // The dock owns pointer-down sound/haptic feedback so acknowledgement is
+    // immediate instead of waiting for the gesture arena. Build a destination
+    // only on its first visit; keeping five illustrated pages alive from frame
+    // one decoded tens of megabytes the person had not asked to see yet.
+    setState(() {
+      _visitedTabs.add(i);
+      _tab = i;
+    });
+    Sfx.instance.setHearthRoomActive(i == 0 || i == 1);
   }
 
   @override
@@ -640,138 +656,262 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         ),
       );
     }
+    _luxeMotion.setReduceMotion(
+      state.reduceMotion ||
+          (MediaQuery.maybeDisableAnimationsOf(context) ?? false),
+    );
+    const parkedMotion = AlwaysStoppedAnimation<Offset>(Offset.zero);
+    ValueListenable<Offset> cameraFor(int index) =>
+        _tab == index ? _luxeMotion.parallax : parkedMotion;
+    ValueListenable<Offset> lightFor(int index) =>
+        _tab == index ? _luxeMotion.light : parkedMotion;
 
     // Only the canvas listens to the notifier (theme swaps recolor it live);
     // the Scaffold subtree is passed as `child` and not rebuilt on every notify.
     return ListenableBuilder(
       listenable: state,
-      builder: (context, child) => WarmBackground(
-        themeId: state.canvasTheme,
-        reduceMotion: state.reduceMotion,
-        child: child!,
-      ),
+      builder: (context, child) {
+        _luxeMotion.setReduceMotion(
+          state.reduceMotion ||
+              (MediaQuery.maybeDisableAnimationsOf(context) ?? false),
+        );
+        Sfx.instance.setHearthRoomActive(
+          state.soundEnabled && (_tab == 0 || _tab == 1),
+        );
+        return WarmBackground(
+          themeId: state.canvasTheme,
+          reduceMotion: state.reduceMotion,
+          child: child!,
+        );
+      },
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: SafeArea(
-          bottom: false,
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: IndexedStack(
-                  index: _tab,
-                  // IndexedStack keeps all five tabs alive, and nothing about
-                  // being un-indexed stops a ticker — so before this the
-                  // keep's hearth, the fireflies, the sky and every other
-                  // ambient loop ran on ALL FIVE tabs at once, forever, four
-                  // of them invisible. TickerMode mutes the vsync for the
-                  // subtrees you can't see; each controller resumes exactly
-                  // where it was when its tab comes forward. Free battery.
+        body: LayoutBuilder(
+          builder: (context, bounds) => MouseRegion(
+            onHover: (event) =>
+                _luxeMotion.handlePointer(event, bounds.biggest),
+            onExit: _luxeMotion.clearPointer,
+            child: Listener(
+              behavior: HitTestBehavior.translucent,
+              // iPhone browsers only unlock device orientation from a genuine
+              // touch. Calling here keeps the request in that first gesture;
+              // native builds and browsers without the gate simply no-op.
+              onPointerDown: (_) {
+                if (!state.reduceMotion) {
+                  unawaited(_luxeMotion.requestBrowserMotionPermission());
+                }
+              },
+              child: SafeArea(
+                bottom: false,
+                child: Stack(
                   children: [
-                    for (final (i, page) in <Widget>[
-                      MePage(
-                        state: state,
-                        quests: quests,
-                        onPersist: _persist,
-                        onAddQuest: _addQuest,
-                        onExport: _export,
-                        onImport: _import,
-                        onReset: _reset,
-                        onNotifyChanged: _rescheduleNotifications,
-                        onEnableCloud: _enableCloud,
-                        onLinkAccount: _linkAccount,
-                        onSignIn: _signIn,
-                        onSignOut: _signOut,
-                        onDeleteAccount: _deleteAccount,
+                    Positioned.fill(
+                      child: IndexedStack(
+                        index: _tab,
+                        // IndexedStack keeps all five tabs alive, and nothing about
+                        // being un-indexed stops a ticker — so before this the
+                        // keep's hearth, the fireflies, the sky and every other
+                        // ambient loop ran on ALL FIVE tabs at once, forever, four
+                        // of them invisible. TickerMode mutes the vsync for the
+                        // subtrees you can't see; each controller resumes exactly
+                        // where it was when its tab comes forward. Free battery.
+                        children: [
+                          for (final (i, page) in <Widget>[
+                            _visitedTabs.contains(0)
+                                ? MePage(
+                                    state: state,
+                                    quests: quests,
+                                    onPersist: _persist,
+                                    onAddQuest: _addQuest,
+                                    onExport: _export,
+                                    onImport: _import,
+                                    onReset: _reset,
+                                    onNotifyChanged: _rescheduleNotifications,
+                                    onEnableCloud: _enableCloud,
+                                    onLinkAccount: _linkAccount,
+                                    onSignIn: _signIn,
+                                    onSignOut: _signOut,
+                                    onDeleteAccount: _deleteAccount,
+                                    parallax: cameraFor(0),
+                                  )
+                                : const SizedBox.shrink(),
+                            _visitedTabs.contains(1)
+                                ? QuestsPage(
+                                    state: state,
+                                    quests: quests,
+                                    onRefresh: _refreshQuests,
+                                    onPersist: _persist,
+                                    onAdd: _addQuest,
+                                    onRemove: _removeQuest,
+                                    onSnapshot: _captureSnapshot,
+                                    onRestore: _restoreSnapshot,
+                                    onBindFlush: (flush) =>
+                                        _flushQuestsCommit = flush,
+                                    parallax: cameraFor(1),
+                                    lightDirection: lightFor(1),
+                                  )
+                                : const SizedBox.shrink(),
+                            _visitedTabs.contains(2)
+                                ? GoalsPage(
+                                    state: state,
+                                    onAdd: _addQuest,
+                                    activeTitles: {
+                                      for (final q in quests) q.title,
+                                    },
+                                    onRemoveGoal: _removeGoal,
+                                    onPersist: _persist,
+                                    quests: quests,
+                                    onOpenQuests: () => _selectTab(1),
+                                    parallax: cameraFor(2),
+                                    lightDirection: lightFor(2),
+                                  )
+                                : const SizedBox.shrink(),
+                            _visitedTabs.contains(3)
+                                ? CalendarPage(
+                                    state: state,
+                                    quests: quests,
+                                    onAdd: _addQuest,
+                                    parallax: cameraFor(3),
+                                    lightDirection: lightFor(3),
+                                  )
+                                : const SizedBox.shrink(),
+                            _visitedTabs.contains(4)
+                                ? InsightsPage(
+                                    state: state,
+                                    quests: quests,
+                                    onPersist: _persist,
+                                    parallax: cameraFor(4),
+                                    lightDirection: lightFor(4),
+                                  )
+                                : const SizedBox.shrink(),
+                          ].indexed)
+                            TickerMode(enabled: _tab == i, child: page),
+                        ],
                       ),
-                      QuestsPage(
-                        state: state,
-                        quests: quests,
-                        onRefresh: _refreshQuests,
-                        onPersist: _persist,
-                        onAdd: _addQuest,
-                        onRemove: _removeQuest,
-                        onSnapshot: _captureSnapshot,
-                        onRestore: _restoreSnapshot,
-                        onBindFlush: (flush) => _flushQuestsCommit = flush,
+                    ),
+                    // Content passes UNDER the dock, so without this it was
+                    // guillotined mid-glyph on every page long enough to scroll —
+                    // a section header sliced in half at the dock's hard top
+                    // edge. A short warm fade turns that cut into depth.
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 88 + MediaQuery.paddingOf(context).bottom,
+                      height: 34,
+                      child: const IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Color(0x0017120F), Color(0xE617120F)],
+                            ),
+                          ),
+                        ),
                       ),
-                      GoalsPage(
-                        state: state,
-                        onAdd: _addQuest,
-                        activeTitles: {for (final q in quests) q.title},
-                        onRemoveGoal: _removeGoal,
-                        onPersist: _persist,
-                        quests: quests,
-                        onOpenQuests: () => _selectTab(1),
+                    ),
+                    // The board owns the scene; navigation is one anchored dark
+                    // rail, not another floating glass object competing with it.
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: _BottomDock(
+                        selected: _tab,
+                        questAccent: activeQuestDeskLook(state).brass,
+                        bottomInset: MediaQuery.paddingOf(context).bottom,
+                        onSelect: _selectTab,
                       ),
-                      CalendarPage(
-                        state: state,
-                        quests: quests,
-                        onAdd: _addQuest,
-                      ),
-                      InsightsPage(
-                        state: state,
-                        quests: quests,
-                        onPersist: _persist,
-                      ),
-                    ].indexed)
-                      TickerMode(enabled: _tab == i, child: page),
+                    ),
                   ],
                 ),
               ),
-              // ── floating glass dock ─────────────────────────────
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 18 + MediaQuery.paddingOf(context).bottom,
-                child: Center(
-                  child: GlassPanel(
-                    blur: true,
-                    radius: 999,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _DockItem(
-                          icon: Icons.emoji_emotions_outlined,
-                          label: 'ME',
-                          selected: _tab == 0,
-                          onTap: () => _selectTab(0),
-                        ),
-                        _DockItem(
-                          icon: Icons.task_alt,
-                          label: 'QUESTS',
-                          selected: _tab == 1,
-                          onTap: () => _selectTab(1),
-                        ),
-                        _DockItem(
-                          icon: Icons.explore_outlined,
-                          label: 'GOALS',
-                          selected: _tab == 2,
-                          onTap: () => _selectTab(2),
-                        ),
-                        _DockItem(
-                          icon: Icons.calendar_month_outlined,
-                          label: 'PLANS',
-                          selected: _tab == 3,
-                          onTap: () => _selectTab(3),
-                        ),
-                        _DockItem(
-                          icon: Icons.insights_outlined,
-                          label: 'INSIGHTS',
-                          selected: _tab == 4,
-                          onTap: () => _selectTab(4),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BottomDock extends StatelessWidget {
+  const _BottomDock({
+    required this.selected,
+    required this.questAccent,
+    required this.bottomInset,
+    required this.onSelect,
+  });
+
+  final int selected;
+  final Color questAccent;
+  final double bottomInset;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 88 + bottomInset,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      decoration: const BoxDecoration(
+        color: Color(0xFA17120F),
+        border: Border(top: BorderSide(color: Color(0xFF654526), width: 1)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xC0000000),
+            blurRadius: 24,
+            offset: Offset(0, -7),
+          ),
+          BoxShadow(
+            color: Color(0x2AAF721E),
+            blurRadius: 18,
+            offset: Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _DockItem(
+              icon: Icons.emoji_emotions_outlined,
+              label: 'ME',
+              selected: selected == 0,
+              onTap: () => onSelect(0),
+            ),
+          ),
+          Expanded(
+            child: _DockItem(
+              icon: Icons.task_alt,
+              label: 'QUESTS',
+              selected: selected == 1,
+              accent: questAccent,
+              onTap: () => onSelect(1),
+            ),
+          ),
+          Expanded(
+            child: _DockItem(
+              icon: Icons.explore_outlined,
+              label: 'GOALS',
+              selected: selected == 2,
+              onTap: () => onSelect(2),
+            ),
+          ),
+          Expanded(
+            child: _DockItem(
+              icon: Icons.calendar_month_outlined,
+              label: 'PLANS',
+              selected: selected == 3,
+              onTap: () => onSelect(3),
+            ),
+          ),
+          Expanded(
+            child: _DockItem(
+              icon: Icons.menu_book_outlined,
+              label: 'JOURNAL',
+              selected: selected == 4,
+              onTap: () => onSelect(4),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -783,68 +923,100 @@ class _DockItem extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
+    this.accent,
   });
 
   final IconData icon;
   final String label;
   final bool selected;
   final VoidCallback onTap;
+  final Color? accent;
 
   @override
   Widget build(BuildContext context) {
+    final selectedAccent = accent ?? const Color(0xFFC49C6C);
     return Semantics(
-      button: true,
+      container: true,
       selected: selected,
-      label: '$label tab',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
+      child: Pressable(
+        pressDepth: 2,
+        edgeColor: Colors.transparent,
+        semanticLabel: '$label tab',
+        onTapUp: (_) => onTap(),
         child: AnimatedContainer(
-          duration: Motion.settle,
+          duration: Motion.quick,
           curve: Motion.respond,
-          constraints: const BoxConstraints(minHeight: 48),
+          constraints: const BoxConstraints(minHeight: 88),
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          // The selected tab used to invert to a near-white honey slab with dark
+          // ink on it, which made the navigation the single brightest object in
+          // the app — brighter than the hearth. Selection now reads as a warm
+          // lit tab with honey ink, so the top of the value range goes back to
+          // the fire and the one primary action.
           decoration: facetedDecoration(
-            cut: 9,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: selected
-                  ? const [Color(0xFFF2CD93), Color(0xFFC49C6C)]
-                  : const [Colors.transparent, Colors.transparent],
-            ),
+            cut: 11,
+            gradient: selected
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      selectedAccent.withValues(alpha: 0.21),
+                      const Color(0xFF221A14),
+                    ],
+                  )
+                : null,
             borderColor: selected
-                ? const Color(0x66FFF0C7)
+                ? selectedAccent.withValues(alpha: 0.52)
                 : Colors.transparent,
             shadows: selected
-                ? const [
+                ? [
                     BoxShadow(
-                      color: Palette.honeyGlow,
-                      blurRadius: 14,
-                      offset: Offset(0, 4),
+                      color: selectedAccent.withValues(alpha: 0.14),
+                      blurRadius: 12,
+                      offset: const Offset(0, -2),
                     ),
                   ]
                 : const [],
           ),
-          child: Row(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 23,
-                color: selected ? const Color(0xFF4A2F1A) : Palette.textLo,
-              ),
-              if (selected) ...[
-                const SizedBox(width: 7),
-                Text(
-                  label,
-                  style: Type.label.copyWith(
-                    fontSize: 12,
-                    color: const Color(0xFF4A2F1A),
+              Container(
+                width: 31,
+                height: 31,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected
+                      ? selectedAccent.withValues(alpha: 0.90)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: selected
+                        ? const Color(0xFFFFD98E)
+                        : Colors.transparent,
+                    width: 1,
                   ),
                 ),
-              ],
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: selected ? const Color(0xFF3A210E) : Palette.textLo,
+                ),
+              ),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: Type.label.copyWith(
+                    fontSize: 9.5,
+                    letterSpacing: 0.8,
+                    color: selected ? Palette.xpLight : Palette.textLo,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

@@ -1,18 +1,25 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:math' show min, pi, sin;
+import 'dart:ui' show ImageFilter;
 
-import 'dart:math' show min;
+import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:flutter/material.dart';
 
 import '../clock.dart';
 import '../models.dart';
 import '../tokens.dart';
 import 'day_picker.dart' show weekdayLabel;
 import 'facets.dart';
+import 'gold_surface.dart';
 import 'notes_sheet.dart' show relativeWhen;
 import 'pressable.dart';
 
-/// One quest row as a warm glass card: stat-colored check ring, title,
-/// ladder hint, dread storm, and the XP payout preview — the reward IS the
-/// difficulty signal (the abstract pips failed playtesting, DESIGN.md §11.4).
+/// A quest row from the approved room-backed board.
+///
+/// The leading quest is allowed to become a generous game object with a
+/// luminous completion control. Everything after it returns to a compact,
+/// scan-friendly row. Both states share one material, one border language,
+/// one title treatment, and one XP badge.
 class QuestCard extends StatefulWidget {
   const QuestCard({
     super.key,
@@ -22,21 +29,29 @@ class QuestCard extends StatefulWidget {
     required this.onComplete,
     this.onManage,
     this.onEncore,
+    this.deskFinish,
+    this.reduceMotion = false,
+    this.featured = false,
+    this.lightDirection,
+    this.scrollPosition,
+    this.featuredAnchor,
   });
 
-  final Quest quest;
+  /// Set on whichever card is currently [featured], so the board can measure it
+  /// and keep its action out from under the reward rail.
+  final GlobalKey? featuredAnchor;
 
-  /// Done for the current period (computed by the page against today).
+  final Quest quest;
   final bool done;
   final int xpPreview;
   final void Function(Offset globalTapPosition) onComplete;
-
-  /// Long-press: star / remove (round-9 management affordance).
   final VoidCallback? onManage;
-
-  /// Shown as a ⚡ on a finished, still-climbable card — the peak-end encore
-  /// (RESEARCH-momentum.md §1), right where the win just landed.
   final VoidCallback? onEncore;
+  final Color? deskFinish;
+  final bool reduceMotion;
+  final bool featured;
+  final ValueListenable<Offset>? lightDirection;
+  final ValueListenable<double>? scrollPosition;
 
   @override
   State<QuestCard> createState() => _QuestCardState();
@@ -46,392 +61,815 @@ class _QuestCardState extends State<QuestCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _squash = AnimationController(
     vsync: this,
-    duration: Motion.quick,
+    duration: Motion.ack,
   );
-
-  /// Resolves the check ring's on-screen centre so the celebration ignites
-  /// from the ring that just filled, not wherever the thumb happened to land.
   final GlobalKey _ringKey = GlobalKey();
+  Timer? _encoreTimer;
+  Timer? _completionSettleTimer;
+  late bool _showEncore = widget.done;
+  bool _holdResolvedFeature = false;
 
-  void _handleTap(Offset globalPos) {
+  @override
+  void didUpdateWidget(QuestCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.done && widget.done) {
+      _encoreTimer?.cancel();
+      _completionSettleTimer?.cancel();
+      _showEncore = false;
+      // Let the hero action physically resolve before it banks into the compact
+      // list. The old card vanished into a row on the same frame as the tap,
+      // which made an otherwise rich completion feel like a layout jump.
+      // Reduced Motion still receives the resolved state, just without travel.
+      _holdResolvedFeature = oldWidget.featured;
+      if (_holdResolvedFeature) {
+        _completionSettleTimer = Timer(const Duration(milliseconds: 760), () {
+          if (mounted) setState(() => _holdResolvedFeature = false);
+        });
+      }
+      _encoreTimer = Timer(const Duration(milliseconds: 620), () {
+        if (mounted) setState(() => _showEncore = true);
+      });
+    } else if (oldWidget.done && !widget.done) {
+      _encoreTimer?.cancel();
+      _completionSettleTimer?.cancel();
+      _showEncore = false;
+      _holdResolvedFeature = false;
+    }
+  }
+
+  void _handleTap(Offset globalPosition) {
     if (widget.done) return;
-    _squash.forward(from: 0).then((_) => _squash.reverse());
+    final still =
+        widget.reduceMotion || MediaQuery.disableAnimationsOf(context);
+    if (!still) {
+      _squash.forward(from: 0).then((_) => _squash.reverse());
+    }
     final box = _ringKey.currentContext?.findRenderObject() as RenderBox?;
-    final origin = box != null
-        ? box.localToGlobal(box.size.center(Offset.zero))
-        : globalPos;
+    final origin = box == null
+        ? globalPosition
+        : box.localToGlobal(box.size.center(Offset.zero));
     widget.onComplete(origin);
   }
 
   @override
   void dispose() {
+    _encoreTimer?.cancel();
+    _completionSettleTimer?.cancel();
     _squash.dispose();
     super.dispose();
   }
 
-  static String _difficultyWord(int d) {
-    if (d <= 2) return 'EASY';
-    if (d <= 4) return 'SOLID';
-    if (d <= 6) return 'TOUGH';
-    return 'EPIC';
+  static String _difficultyWord(int difficulty) {
+    if (difficulty <= 2) return 'easy';
+    if (difficulty <= 4) return 'solid';
+    if (difficulty <= 6) return 'tough';
+    return 'epic';
   }
 
   @override
   Widget build(BuildContext context) {
-    final q = widget.quest;
+    final quest = widget.quest;
     final done = widget.done;
-    final isMain = q.priorityOn(Clock.now());
+    final isMain = quest.priorityOn(Clock.now());
+    final featured = widget.featured && !done;
+    final resolvedFeature = done && _holdResolvedFeature;
+    final heroLayout = featured || resolvedFeature;
+    final still =
+        widget.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    final desk = widget.deskFinish;
+    final base = desk == null
+        ? const Color(0xF21A1512)
+        : Color.lerp(
+            const Color(0xF21A1512),
+            desk.withValues(alpha: 0.86),
+            0.10,
+          )!;
+    // The featured frame is a quiet brass rule, not a second bright surface —
+    // the action is the only thing on the board allowed to be luminous.
+    final edge = featured
+        ? const Color(0xFFA97A41)
+        : done
+        ? const Color(0xFF806747)
+        : const Color(0xFF51463B);
+
     return AnimatedBuilder(
+      key: widget.featuredAnchor,
       animation: _squash,
       builder: (context, child) => Transform.scale(
-        scaleY: 1 - 0.08 * _squash.value,
-        scaleX: 1 + 0.02 * _squash.value,
+        scaleX: 1 + 0.008 * _squash.value,
+        scaleY: 1 - 0.045 * _squash.value,
         child: child,
       ),
-      child: Pressable(
-        enabled: !done,
-        semanticLabel:
-            '${q.displayTitle}, ${done ? 'completed' : '${_difficultyWord(q.difficulty).toLowerCase()}, ${widget.xpPreview} XP'}',
-        semanticHint: done
-            ? (widget.onManage == null ? null : 'Use the Manage action to edit')
-            : 'Activate to complete${widget.onManage == null ? '' : '; use the Manage action to edit'}',
-        onTapUp: _handleTap,
-        onLongPress: widget.onManage,
-        shape: const FacetedBorder(cut: 12),
-        child: Stack(
-          children: [
-            AnimatedContainer(
-              duration: Motion.settle,
-              curve: Motion.respond,
-              padding: const EdgeInsets.all(16),
-              decoration: facetedDecoration(
-                // a finished quest is BANKED, not greyed-out clutter: a soft
-                // moss wash + a faint moss glow so it reads as a sealed win
-                color: done
-                    ? Palette.success.withValues(alpha: 0.10)
-                    : Palette.glassFill,
-                cut: 12,
-                borderColor: done
-                    ? Palette.success.withValues(alpha: 0.4)
-                    : isMain
-                    ? Palette.xpLight.withValues(alpha: 0.55)
-                    : Palette.glassEdge,
-                shadows: done
-                    ? [
-                        BoxShadow(
-                          color: Palette.success.withValues(alpha: 0.12),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ]
-                    : [
-                        const BoxShadow(
-                          color: Palette.warmShadow,
-                          blurRadius: 14,
-                          offset: Offset(0, 5),
-                        ),
-                        // a starred MAIN quest glows honey — the priority tier
-                        // is felt at a glance, not read off a border tint
-                        if (isMain)
-                          const BoxShadow(
-                            color: Palette.honeyGlow,
-                            blurRadius: 20,
-                            offset: Offset(0, 6),
-                          ),
-                      ],
+      child: AnimatedSize(
+        // AnimatedSize cannot use an exactly-zero controller duration while
+        // a lazy sliver is laying itself out (it completes synchronously and
+        // re-dirties that same render object). One millisecond is visually
+        // parked while preserving the reduced-motion contract.
+        duration: still ? const Duration(milliseconds: 1) : Motion.settle,
+        curve: Motion.respond,
+        alignment: Alignment.topCenter,
+        child: Pressable(
+          enabled: !done,
+          semanticLabel:
+              '${quest.displayTitle}, ${done ? 'completed' : '${_difficultyWord(quest.difficulty)}, ${widget.xpPreview} XP'}',
+          semanticHint: done
+              ? (widget.onManage == null ? null : 'Use Manage to edit')
+              : 'Activate to complete${widget.onManage == null ? '' : '; use Manage to edit'}',
+          onTapUp: _handleTap,
+          onLongPress: widget.onManage,
+          shape: const FacetedBorder(cut: 11),
+          child: AnimatedContainer(
+            duration: Motion.settle,
+            curve: Motion.respond,
+            decoration: facetedDecoration(
+              cut: 11,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  done
+                      ? Color.lerp(base, const Color(0xFFB78A50), 0.055)!
+                      : Color.lerp(base, const Color(0xFF4B3627), 0.12)!,
+                  base,
+                  const Color(0xFF100D0B),
+                ],
+                stops: const [0, 0.54, 1],
               ),
-              child: Row(
+              borderColor: edge,
+              borderWidth: featured ? 1.35 : (resolvedFeature ? 1.15 : 1.05),
+              shadows: [
+                const BoxShadow(
+                  color: Color(0x8A090605),
+                  blurRadius: 14,
+                  offset: Offset(0, 6),
+                ),
+                if (featured)
+                  BoxShadow(
+                    color: Palette.xp.withValues(alpha: 0.10),
+                    blurRadius: 22,
+                    offset: const Offset(0, 6),
+                  ),
+              ],
+            ),
+            child: ClipPath(
+              clipper: const FacetedClipper(cut: 11),
+              child: Stack(
                 children: [
-                  _CheckRing(key: _ringKey, stat: q.stat, done: done),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        AnimatedDefaultTextStyle(
-                          duration: Motion.settle,
-                          style: Type.body.copyWith(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: done ? Palette.textLo : Palette.textHi,
-                            decoration: done
-                                ? TextDecoration.lineThrough
+                  if (heroLayout)
+                    Positioned(
+                      top: 42,
+                      right: -4,
+                      width: 208,
+                      height: 112,
+                      child: IgnorePointer(
+                        child: Opacity(
+                          opacity: done ? 0.30 : 1,
+                          child: _QuestCategoryVignette(
+                            stat: quest.stat,
+                            lightDirection: featured
+                                ? widget.lightDirection
                                 : null,
-                            decorationColor: Palette.textLo,
-                          ),
-                          child: Text(
-                            q.displayTitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                            scrollPosition: featured
+                                ? widget.scrollPosition
+                                : null,
+                            reduceMotion: widget.reduceMotion,
                           ),
                         ),
-                        Builder(
-                          builder: (_) {
-                            // Short status chips in a Wrap (reflow, never
-                            // overflow). Time-sensitive ones (due / schedule /
-                            // bonus) drop once done, so a finished card never
-                            // reads "STILL WAITING".
-                            final chips = <Widget>[
-                              if (q.workout)
-                                _MetaChip(
-                                  Icons.fitness_center,
-                                  'GUIDED',
-                                  q.stat.color,
+                      ),
+                    ),
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              const Color(0x18FFD493),
+                              Colors.transparent,
+                              Colors.transparent,
+                              const Color(0x3D000000),
+                            ],
+                            stops: const [0, 0.24, 0.72, 1],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (featured)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: _QuestCardGleam(
+                          lightDirection: widget.lightDirection,
+                          scrollPosition: widget.scrollPosition,
+                          reduceMotion: widget.reduceMotion,
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    left: 18,
+                    right: 18,
+                    top: 1,
+                    child: IgnorePointer(
+                      child: Container(
+                        height: 1,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color(0x00FFE3AD),
+                              Color(0xA8FFE3AD),
+                              Color(0x20FFE3AD),
+                              Color(0x00FFE3AD),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (heroLayout)
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: IgnorePointer(
+                          child: DecoratedBox(
+                            decoration: facetedDecoration(
+                              cut: 8,
+                              color: Colors.transparent,
+                              borderColor: done
+                                  ? const Color(0x3DBF9560)
+                                  : const Color(0x66FFD38A),
+                              borderWidth: 0.7,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      heroLayout ? 15 : 14,
+                      heroLayout ? 14 : 13,
+                      heroLayout ? 15 : 12,
+                      heroLayout ? 13 : 13,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: heroLayout ? 106 : 46,
+                          ),
+                          child: Transform.translate(
+                            offset: Offset.zero,
+                            child: Row(
+                              children: [
+                                _CheckRing(
+                                  key: _ringKey,
+                                  stat: quest.stat,
+                                  done: done,
+                                  reduceMotion: widget.reduceMotion,
+                                  accent: featured ? Palette.xpLight : null,
+                                  size: heroLayout ? 54 : 40,
+                                  showReadyCheck: featured,
+                                  // Only the featured open orbit carries reactive
+                                  // light. Repainting every compact ring on every
+                                  // sensor sample made long boards needlessly
+                                  // expensive and made ordinary rows look restless.
+                                  lightDirection: featured
+                                      ? widget.lightDirection
+                                      : null,
+                                  scrollPosition: featured
+                                      ? widget.scrollPosition
+                                      : null,
                                 ),
-                              if (isMain)
-                                _MetaChip(Icons.star, 'MAIN', Palette.xpLight),
-                              if (q.allDay)
-                                _MetaChip(
-                                  Icons.nightlight_round,
-                                  'ALL DAY',
-                                  Palette.unlock,
+                                SizedBox(width: heroLayout ? 12 : 10),
+                                Expanded(
+                                  child: _QuestTitleBlock(
+                                    quest: quest,
+                                    done: done,
+                                    isMain: isMain,
+                                    featured: heroLayout,
+                                  ),
                                 ),
-                              if (q.rising)
-                                _MetaChip(
-                                  Icons.trending_up,
-                                  '${q.risingStreak}/${Quest.risesAt}',
-                                  Palette.streak,
-                                ),
-                              if (!done && q.bonus)
-                                _MetaChip(
-                                  Icons.bolt,
-                                  'BONUS · TODAY',
-                                  Palette.streak,
-                                )
-                              else if (!done && q.isEvent)
-                                Builder(
-                                  builder: (_) {
-                                    final now = Clock.now();
-                                    final overdue = q.dueDate!.isBefore(
-                                      DateTime(now.year, now.month, now.day),
-                                    );
-                                    return _MetaChip(
-                                      null,
-                                      overdue ? 'STILL WAITING' : 'DUE TODAY',
-                                      overdue
-                                          ? Palette.streak
-                                          : Palette.xpLight,
-                                    );
-                                  },
-                                )
-                              else if (!done &&
-                                  q.schedule == QuestSchedule.weekly &&
-                                  q.weekdays.isNotEmpty)
-                                Builder(
-                                  builder: (_) {
-                                    // an anchored weekly names its day; once that
-                                    // day has passed it reads "STILL THIS WEEK" —
-                                    // a calm carry-forward, never a red miss.
-                                    final anchor = q.weekdays.reduce(min);
-                                    final lingering =
-                                        Clock.now().weekday > anchor;
-                                    return _MetaChip(
-                                      lingering ? Icons.east : null,
-                                      lingering
-                                          ? 'STILL THIS WEEK'
-                                          : weekdayLabel(
-                                              q.weekdays,
-                                            ).toUpperCase(),
-                                      lingering
-                                          ? Palette.info
-                                          : Palette.xpLight.withValues(
-                                              alpha: 0.8,
-                                            ),
-                                    );
-                                  },
-                                )
-                              else if (!done &&
-                                  q.schedule == QuestSchedule.once)
-                                // a kept to-do (no due date) — it waits patiently
-                                // until done, never an overdue scold
-                                _MetaChip(
-                                  Icons.push_pin_outlined,
-                                  'UNTIL DONE',
-                                  Palette.info,
-                                )
-                              else if (!done &&
-                                  q.schedule != QuestSchedule.daily)
-                                _MetaChip(
-                                  null,
-                                  q.schedule.label,
-                                  Palette.xpLight.withValues(alpha: 0.8),
-                                ),
-                              if (q.verification == Verification.timer)
-                                _MetaChip(
-                                  Icons.timer_outlined,
-                                  '${q.timerMinutes}M PROOF ×1.2',
-                                  Palette.verify,
-                                ),
-                            ];
-                            final hint = q.ladderHint;
-                            final note = q.latestNote;
-                            if (chips.isEmpty && hint == null && note == null) {
-                              return const SizedBox.shrink();
-                            }
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 5),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (chips.isNotEmpty)
-                                    Wrap(
-                                      spacing: 10,
-                                      runSpacing: 4,
-                                      crossAxisAlignment:
-                                          WrapCrossAlignment.center,
-                                      children: chips,
-                                    ),
-                                  // the latest log note — the "last watered 3
-                                  // days ago · front bed" context, right where
-                                  // you decide whether to do it again. Only when
-                                  // a quest is actually being logged.
-                                  if (note != null)
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                        top: chips.isNotEmpty ? 4 : 0,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.sticky_note_2_outlined,
-                                            size: 12,
-                                            color: Palette.textLo.withValues(
-                                              alpha: done ? 0.5 : 0.9,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Flexible(
-                                            child: Text(
-                                              '${note.text} · ${relativeWhen(note.at)}',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: Type.label.copyWith(
-                                                fontSize: 11,
-                                                letterSpacing: 0.2,
-                                                color: Palette.textLo
-                                                    .withValues(
-                                                      alpha: done ? 0.5 : 1.0,
-                                                    ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  // a ladder hint can be long ("WHO’S THIRSTY ·
-                                  // WHO’S REACHING FOR LIGHT") — give it its own
-                                  // ellipsized line so it never runs under the
-                                  // XP chip on the right.
-                                  if (hint != null)
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                        top: chips.isNotEmpty ? 4 : 0,
-                                      ),
-                                      child: Text(
-                                        hint,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: Type.label.copyWith(
-                                          fontSize: 11,
-                                          color: Palette.textLo,
-                                        ),
-                                      ),
-                                    ),
+                                if (quest.dread) ...[
+                                  const SizedBox(width: 5),
+                                  Icon(
+                                    Icons.thunderstorm_rounded,
+                                    size: heroLayout ? 20 : 18,
+                                    color: done
+                                        ? Palette.dread.withValues(alpha: 0.38)
+                                        : Palette.dread,
+                                  ),
                                 ],
-                              ),
-                            );
-                          },
+                                const SizedBox(width: 8),
+                                if (done &&
+                                    widget.onEncore != null &&
+                                    _showEncore)
+                                  _EncoreButton(onTap: widget.onEncore!)
+                                else
+                                  _XpChip(
+                                    xp: widget.xpPreview,
+                                    dim: done,
+                                    featured: heroLayout,
+                                  ),
+                                if (!heroLayout) ...[
+                                  const SizedBox(width: 5),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 19,
+                                    color: Palette.textLo.withValues(
+                                      alpha: 0.72,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
                         ),
+                        if (heroLayout) ...[
+                          const SizedBox(height: 10),
+                          IgnorePointer(
+                            child: AnimatedSwitcher(
+                              duration: still
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 260),
+                              switchInCurve: Motion.respond,
+                              switchOutCurve: Curves.easeInCubic,
+                              child: done
+                                  ? const _ResolvedQuestPlate(
+                                      key: ValueKey('quest-resolved-plate'),
+                                    )
+                                  : _CompleteQuestButton(
+                                      key: const ValueKey(
+                                        'quest-complete-plate',
+                                      ),
+                                      lightDirection: widget.lightDirection,
+                                      scrollPosition: widget.scrollPosition,
+                                      reduceMotion: widget.reduceMotion,
+                                    ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                  if (q.dread)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      // storm-in-steel, NOT the ember flame — that pair
-                      // belongs exclusively to the streak mechanic
-                      child: Icon(
-                        Icons.thunderstorm,
-                        size: 20,
-                        color: done
-                            ? Palette.dread.withValues(alpha: 0.4)
-                            : Palette.dread,
-                      ),
-                    ),
-                  if (done && widget.onEncore != null)
-                    GestureDetector(
-                      onTap: widget.onEncore,
-                      behavior: HitTestBehavior.opaque,
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 0,
+                    child: IgnorePointer(
                       child: Container(
-                        margin: const EdgeInsets.only(left: 4),
-                        constraints: const BoxConstraints(
-                          minHeight: 44,
-                          minWidth: 44,
-                        ),
-                        alignment: Alignment.center,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: facetedDecoration(
-                          cut: 8,
-                          color: Palette.streak.withValues(alpha: 0.05),
-                          borderColor: Palette.streak.withValues(alpha: 0.6),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.bolt,
-                              size: 15,
-                              color: Palette.streak,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'MORE',
-                              style: Type.label.copyWith(
-                                fontSize: 11,
-                                color: Palette.streak,
-                              ),
-                            ),
-                          ],
+                        height: 2,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              heroLayout && !done
+                                  ? const Color(0xFF754117)
+                                  : resolvedFeature
+                                  ? const Color(0xFF51391F)
+                                  : const Color(0xFF2B211C),
+                              Colors.transparent,
+                            ],
+                          ),
                         ),
                       ),
-                    )
-                  else
-                    _XpChip(
-                      xp: widget.xpPreview,
-                      word: _difficultyWord(q.difficulty),
-                      dim: done,
                     ),
+                  ),
                 ],
               ),
             ),
-            // stat-colored spine — the board reads as a spectrum of life
-            // domains at a glance, reinforcing the six-domains spine of the app
-            Positioned(
-              left: 0,
-              top: 12,
-              bottom: 12,
-              child: Container(
-                width: 3,
-                decoration: BoxDecoration(
-                  color: q.stat.color.withValues(alpha: done ? 0.3 : 0.95),
-                  borderRadius: BorderRadius.circular(3),
-                  boxShadow: done
-                      ? null
-                      : [
-                          BoxShadow(
-                            color: q.stat.color.withValues(alpha: 0.5),
-                            blurRadius: 6,
-                          ),
-                        ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestTitleBlock extends StatelessWidget {
+  const _QuestTitleBlock({
+    required this.quest,
+    required this.done,
+    required this.isMain,
+    required this.featured,
+  });
+
+  final Quest quest;
+  final bool done;
+  final bool isMain;
+  final bool featured;
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = <Widget>[
+      if (quest.workout)
+        _MetaChip(Icons.fitness_center_rounded, 'GUIDED', quest.stat.color),
+      if (isMain) const _MetaChip(Icons.star_rounded, 'MAIN', Palette.xpLight),
+      if (quest.allDay)
+        const _MetaChip(Icons.nightlight_round, 'ALL DAY', Palette.unlock),
+      if (quest.rising)
+        _MetaChip(
+          Icons.trending_up_rounded,
+          '${quest.risingStreak}/${Quest.risesAt}',
+          Palette.streak,
+        ),
+      if (!done && quest.bonus)
+        const _MetaChip(Icons.bolt_rounded, 'BONUS · TODAY', Palette.streak)
+      else if (!done && quest.isEvent)
+        _eventChip(quest)
+      else if (!done &&
+          quest.schedule == QuestSchedule.weekly &&
+          quest.weekdays.isNotEmpty)
+        _weeklyChip(quest)
+      else if (!done && quest.schedule == QuestSchedule.once)
+        const _MetaChip(Icons.push_pin_outlined, 'UNTIL DONE', Palette.info)
+      else if (!done && quest.schedule != QuestSchedule.daily)
+        _MetaChip(null, quest.schedule.label, Palette.xpLight),
+      if (quest.verification == Verification.timer)
+        _MetaChip(
+          Icons.timer_outlined,
+          '${quest.timerMinutes}M PROOF',
+          Palette.verify,
+        ),
+    ];
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          quest.displayTitle,
+          maxLines: featured || done ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+          style: Type.display.copyWith(
+            fontSize: featured ? 20 : 15.5,
+            height: 1.08,
+            fontWeight: FontWeight.w500,
+            color: done ? Palette.textMid : Palette.textHi,
+          ),
+        ),
+        if (chips.isNotEmpty) ...[
+          const SizedBox(height: 5),
+          Wrap(
+            spacing: 9,
+            runSpacing: 3,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: chips,
+          ),
+        ],
+        if (featured && quest.latestNote != null) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(
+                Icons.sticky_note_2_outlined,
+                size: 11,
+                color: Palette.textLo,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  '${quest.latestNote!.text} · ${relativeWhen(quest.latestNote!.at)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: 9.5,
+                    letterSpacing: 0.15,
+                    color: Palette.textLo,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ] else if (featured && quest.ladderHint != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            quest.ladderHint!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Type.label.copyWith(
+              fontSize: 9.5,
+              letterSpacing: 0.2,
+              color: Palette.textLo,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  static Widget _eventChip(Quest quest) {
+    final now = Clock.now();
+    final overdue = quest.dueDate!.isBefore(
+      DateTime(now.year, now.month, now.day),
+    );
+    return _MetaChip(
+      null,
+      overdue ? 'STILL WAITING' : 'DUE TODAY',
+      overdue ? Palette.streak : Palette.xpLight,
+    );
+  }
+
+  static Widget _weeklyChip(Quest quest) {
+    final anchor = quest.weekdays.reduce(min);
+    final lingering = Clock.now().weekday > anchor;
+    return _MetaChip(
+      lingering ? Icons.east_rounded : null,
+      lingering
+          ? 'STILL THIS WEEK'
+          : weekdayLabel(quest.weekdays).toUpperCase(),
+      lingering ? Palette.info : Palette.xpLight,
+    );
+  }
+}
+
+/// One authored still-life per quest category. Each scene uses the same walnut,
+/// parchment and candlelight language as the approved card, while its props do
+/// the category-identification work that a flat colour block otherwise would.
+///
+/// The artwork itself never loops. It drifts by at most a couple of pixels in
+/// response to the same scroll/tilt signal as the card's material highlight.
+class _QuestCategoryVignette extends StatelessWidget {
+  const _QuestCategoryVignette({
+    required this.stat,
+    required this.lightDirection,
+    required this.scrollPosition,
+    required this.reduceMotion,
+  });
+
+  final Stat stat;
+  final ValueListenable<Offset>? lightDirection;
+  final ValueListenable<double>? scrollPosition;
+  final bool reduceMotion;
+
+  String get _asset => switch (stat) {
+    Stat.str => 'assets/quest/category-body-v2.webp',
+    Stat.vit => 'assets/quest/category-care-v2.webp',
+    Stat.intl => 'assets/quest/category-mind-v2.webp',
+    Stat.foc => 'assets/quest/category-craft-v2.webp',
+    Stat.soc => 'assets/quest/category-people-v2.webp',
+    Stat.dis => 'assets/quest/category-home-v2.webp',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final still =
+        reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    return AnimatedBuilder(
+      animation: Listenable.merge([?lightDirection, ?scrollPosition]),
+      builder: (context, _) {
+        final light = still
+            ? Offset.zero
+            : lightDirection?.value ?? Offset.zero;
+        final scroll = still ? 0.0 : scrollPosition?.value ?? 0.0;
+        final drift = still ? 0.0 : sin(scroll * 0.0042);
+        return ShaderMask(
+          blendMode: BlendMode.dstIn,
+          shaderCallback: (bounds) => const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [
+              Colors.transparent,
+              Color(0xD9000000),
+              Colors.black,
+              Color(0xF0000000),
+              Colors.transparent,
+            ],
+            stops: [0, 0.22, 0.43, 0.94, 1],
+          ).createShader(bounds),
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(sigmaX: 0.9, sigmaY: 0.9),
+            child: Transform.translate(
+              offset: Offset(
+                light.dx * 2.6 + drift * 1.1,
+                light.dy * 1.6 - drift * 0.45,
+              ),
+              child: Opacity(
+                opacity: 0.52,
+                child: Image.asset(
+                  _asset,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.bottomRight,
+                  filterQuality: FilterQuality.medium,
+                  excludeFromSemantics: true,
                 ),
               ),
             ),
-            // angular candlelit bevel shared with the keep architecture
-            Positioned.fill(
-              child: FacetGleam(cut: 12, strength: done ? 0.55 : 1.15),
+          ),
+        );
+      },
+    );
+  }
+}
+
+double _polishPhase({
+  required ValueListenable<Offset>? lightDirection,
+  required ValueListenable<double>? scrollPosition,
+  required bool still,
+}) {
+  if (still) return 0.22;
+  final light = lightDirection?.value ?? Offset.zero;
+  final raw =
+      0.22 +
+      (scrollPosition?.value ?? 0) * 0.00092 +
+      light.dx * 0.110 -
+      light.dy * 0.040;
+  final wrapped = raw % 1.0;
+  return wrapped < 0 ? wrapped + 1 : wrapped;
+}
+
+Offset _polishLight(
+  ValueListenable<Offset>? lightDirection, {
+  required bool still,
+}) => still ? Offset.zero : lightDirection?.value ?? Offset.zero;
+
+/// A shared film of warm light over the featured card keeps its border, ring
+/// and action in one material world. The edge sheen changes only when the user
+/// scrolls or moves the device; there is no self-performing sparkle loop.
+class _QuestCardGleam extends StatelessWidget {
+  const _QuestCardGleam({
+    required this.lightDirection,
+    required this.scrollPosition,
+    required this.reduceMotion,
+  });
+
+  final ValueListenable<Offset>? lightDirection;
+  final ValueListenable<double>? scrollPosition;
+  final bool reduceMotion;
+
+  @override
+  Widget build(BuildContext context) {
+    final still =
+        reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    return AnimatedBuilder(
+      animation: Listenable.merge([?lightDirection, ?scrollPosition]),
+      builder: (context, _) => CustomPaint(
+        painter: _QuestCardGleamPainter(
+          phase: _polishPhase(
+            lightDirection: lightDirection,
+            scrollPosition: scrollPosition,
+            still: still,
+          ),
+          light: _polishLight(lightDirection, still: still),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestCardGleamPainter extends CustomPainter {
+  const _QuestCardGleamPainter({required this.phase, required this.light});
+
+  final double phase;
+  final Offset light;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final lightAt = Offset(
+      size.width * (0.30 + light.dx * 0.12),
+      size.height * (0.10 + light.dy * 0.07),
+    );
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()
+        ..blendMode = BlendMode.plus
+        ..shader =
+            RadialGradient(
+              colors: const [
+                Color(0x0DFFD69A),
+                Color(0x03FFD69A),
+                Color(0x00FFD69A),
+              ],
+              stops: const [0, 0.46, 1],
+            ).createShader(
+              Rect.fromCircle(center: lightAt, radius: size.width * 0.58),
+            ),
+    );
+
+    final x = size.width * (0.06 + phase * 0.88);
+    final edge = Rect.fromCenter(
+      center: Offset(x, 1.1),
+      width: 52,
+      height: 1.7,
+    );
+    canvas.drawRect(
+      edge,
+      Paint()
+        ..blendMode = BlendMode.screen
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0x00FFE5A7),
+            Color(0x18FFE5A7),
+            Color(0x74FFF0C2),
+            Color(0x14FFE5A7),
+            Color(0x00FFE5A7),
+          ],
+          stops: [0, 0.32, 0.5, 0.68, 1],
+        ).createShader(edge),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_QuestCardGleamPainter old) =>
+      old.phase != phase || old.light != light;
+}
+
+/// The one surface allowed to own the brightest gold in the everyday board.
+///
+/// It is the shared [GoldSurface] — the same satin plate as every other primary
+/// action in the app. The previous local recipe ran a 0xFF9B5A1D → 0xFF3B1807
+/// gradient under a modulated texture, which landed at ~0.81 saturation and
+/// read as an orange block instead of physical gold, and it set pale amber
+/// label ink on an amber plate. The approved target engraves the label instead.
+class _CompleteQuestButton extends StatelessWidget {
+  const _CompleteQuestButton({
+    super.key,
+    required this.lightDirection,
+    required this.scrollPosition,
+    required this.reduceMotion,
+  });
+
+  final ValueListenable<Offset>? lightDirection;
+  final ValueListenable<double>? scrollPosition;
+  final bool reduceMotion;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: GoldSurface(
+        cut: 10,
+        light: lightDirection,
+        scroll: scrollPosition,
+        reduceMotion: reduceMotion,
+        child: const GoldLabel(text: 'MARK COMPLETE'),
+      ),
+    );
+  }
+}
+
+/// The honey action cools into quiet resolved metal before the card banks.
+/// Keeping the same plate geometry makes completion feel remembered; lowering
+/// its value keeps the next open quest as the only luminous action.
+class _ResolvedQuestPlate extends StatelessWidget {
+  const _ResolvedQuestPlate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: DecoratedBox(
+        decoration: facetedDecoration(
+          cut: 10,
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF5A4024), Color(0xFF372719), Color(0xFF211710)],
+            stops: [0, 0.48, 1],
+          ),
+          borderColor: const Color(0xFF8D6B3E),
+          borderWidth: 1,
+          shadows: const [
+            BoxShadow(
+              color: Color(0xA30A0705),
+              blurRadius: 0,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const Positioned(
+              left: 18,
+              right: 18,
+              top: 1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color(0x00F3D59C),
+                      Color(0x7AF3D59C),
+                      Color(0x18F3D59C),
+                      Color(0x00F3D59C),
+                    ],
+                  ),
+                ),
+                child: SizedBox(height: 1),
+              ),
+            ),
+            Center(
+              child: Text(
+                'QUEST COMPLETE',
+                style: Type.label.copyWith(
+                  fontSize: 11.5,
+                  letterSpacing: 1.75,
+                  color: const Color(0xFFE1C58E),
+                  shadows: const [
+                    Shadow(color: Color(0xB30F0A07), offset: Offset(0, -1)),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -440,72 +878,365 @@ class _QuestCardState extends State<QuestCard>
   }
 }
 
-class _CheckRing extends StatelessWidget {
-  const _CheckRing({super.key, required this.stat, required this.done});
+class _CheckRing extends StatefulWidget {
+  const _CheckRing({
+    super.key,
+    required this.stat,
+    required this.done,
+    required this.size,
+    this.reduceMotion = false,
+    this.accent,
+    this.showReadyCheck = false,
+    this.lightDirection,
+    this.scrollPosition,
+  });
+
   final Stat stat;
   final bool done;
+  final double size;
+  final bool reduceMotion;
+  final Color? accent;
+  final bool showReadyCheck;
+  final ValueListenable<Offset>? lightDirection;
+  final ValueListenable<double>? scrollPosition;
+
+  @override
+  State<_CheckRing> createState() => _CheckRingState();
+}
+
+class _CheckRingState extends State<_CheckRing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _resolve = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 430),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.done) _resolve.value = 1;
+  }
+
+  @override
+  void didUpdateWidget(_CheckRing oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.done && widget.done) {
+      final still =
+          widget.reduceMotion || MediaQuery.disableAnimationsOf(context);
+      if (still) {
+        _resolve.value = 1;
+      } else {
+        _resolve.forward(from: 0);
+      }
+    } else if (oldWidget.done && !widget.done) {
+      _resolve.value = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _resolve.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // The single most-tapped control in the app, so it gets real dimension:
-    // a domed disc lit from the top-left (the same light every other glass
-    // surface answers to), ringed in its domain's colour, that fills with moss
-    // when it's done. Both states carry a gradient AND a shadow list of the
-    // same shape so the easeOutBack overshoot always has something continuous
-    // to lerp — a null↔value swap pops, and a negative-blur lerp asserts.
-    return AnimatedContainer(
-      duration: Motion.quick,
-      curve: Curves.easeOutBack,
-      width: 32,
-      height: 32,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          center: const Alignment(-0.45, -0.5),
-          radius: 1.05,
-          colors: done
-              ? [
-                  Color.lerp(Palette.success, Palette.specular, 0.45)!,
-                  Palette.success,
-                  Color.lerp(Palette.success, Palette.parchment, 0.38)!,
-                ]
-              : [
-                  Palette.specular.withValues(alpha: 0.18),
-                  Palette.glassTop,
-                  Palette.glassRim,
-                ],
-          stops: const [0.0, 0.5, 1.0],
-        ),
-        border: Border.all(
-          color: done ? Palette.success : stat.color,
-          width: 2.4,
-        ),
-        boxShadow: [
-          // the domain's own light spilling off the rim while it waits
-          BoxShadow(
-            color: stat.color.withValues(alpha: done ? 0.0 : 0.28),
-            blurRadius: 8,
+    final still =
+        widget.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        _resolve,
+        ?widget.lightDirection,
+        ?widget.scrollPosition,
+      ]),
+      builder: (context, _) {
+        final light = _polishLight(widget.lightDirection, still: still);
+        final shine = _polishPhase(
+          lightDirection: widget.lightDirection,
+          scrollPosition: widget.scrollPosition,
+          still: still,
+        );
+        return SizedBox.square(
+          dimension: widget.size,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CustomPaint(
+                key: const ValueKey('quest-check-draw'),
+                painter: _CheckRingPainter(
+                  stat: widget.stat,
+                  done: widget.done,
+                  progress: _resolve.value,
+                  accent: widget.accent,
+                  showReadyCheck: widget.showReadyCheck,
+                  shine: shine,
+                  light: light,
+                ),
+              ),
+            ],
           ),
-          // and the disc's own drop shadow, so it sits above the card face
-          const BoxShadow(
-            color: Palette.warmShadow,
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: done
-          ? const Icon(Icons.check, size: 20, color: Palette.parchment)
-          : null,
+        );
+      },
     );
   }
 }
 
-/// One meta tag under a quest title (GUIDED / MAIN / ALL DAY / proof / …).
-/// A self-contained pill so the parent can lay these out in a Wrap that
-/// reflows instead of overflowing once the type is at a readable size.
+class _CheckRingPainter extends CustomPainter {
+  const _CheckRingPainter({
+    required this.stat,
+    required this.done,
+    required this.progress,
+    required this.showReadyCheck,
+    required this.shine,
+    required this.light,
+    this.accent,
+  });
+
+  final Stat stat;
+  final bool done;
+  final double progress;
+  final Color? accent;
+  final bool showReadyCheck;
+  final double shine;
+  final Offset light;
+
+  Color get _hue => accent ?? stat.color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = size.shortestSide * (showReadyCheck ? 0.42 : 0.39);
+    final resolved = Curves.easeOutBack.transform(progress);
+    final ready = showReadyCheck && !done;
+    if (ready) {
+      final orbit = Rect.fromCircle(center: center, radius: radius);
+      // A wider break at 4 o'clock than before, so the silhouette reads OPEN at
+      // a glance. Closed-plus-a-check was the tell that made the ready control
+      // look like an already-completed token.
+      const gapCenter = pi * 0.28;
+      const gap = pi * 0.36;
+      const orbitStart = gapCenter + gap / 2;
+      const orbitSweep = pi * 2 - gap;
+
+      // The centre is the card, not another disc — only a whisper of contact
+      // shadow, so the ring reads as jewellery mounted into the surface.
+      canvas.drawCircle(
+        center,
+        radius - size.width * 0.055,
+        Paint()
+          ..shader = RadialGradient(
+            center: Alignment(-0.30 + light.dx * 0.10, -0.34 + light.dy * 0.08),
+            colors: const [
+              Color(0x00120C08),
+              Color(0x33120C08),
+              Color(0x7A0C0806),
+            ],
+            stops: const [0, 0.62, 1],
+          ).createShader(orbit),
+      );
+      canvas.drawArc(
+        orbit,
+        orbitStart,
+        orbitSweep,
+        false,
+        Paint()
+          ..color = const Color(0x44000000)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4.2
+          ..strokeCap = StrokeCap.round
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.2),
+      );
+      // A fine drawn wire, not a fat bezel. Its brightest point tracks the
+      // shared light field; nothing here moves on a timer.
+      canvas.drawArc(
+        orbit,
+        orbitStart,
+        orbitSweep,
+        false,
+        Paint()
+          ..shader = SweepGradient(
+            transform: GradientRotation(shine * pi * 2 + light.dx * 0.16),
+            colors: const [
+              Color(0xFF7A4C24),
+              Color(0xFFE3BE7C),
+              Color(0xFF95602E),
+              Color(0xFFF0D69C),
+              Color(0xFF7A4C24),
+            ],
+          ).createShader(orbit)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.0
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - 1.55),
+        orbitStart + 0.06,
+        orbitSweep - 0.12,
+        false,
+        Paint()
+          ..color = const Color(0x4DFFE7B0)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.6
+          ..strokeCap = StrokeCap.round,
+      );
+    } else if (done) {
+      final closure = Curves.easeOutCubic.transform(progress.clamp(0.0, 1.0));
+      final orbit = Rect.fromCircle(center: center, radius: radius);
+      canvas.drawCircle(
+        center,
+        radius + 1.1,
+        Paint()
+          ..color = const Color(0x2B9E6E36)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.4),
+      );
+      // The card remains visible through the centre. Completion closes and
+      // warms the orbit; it does not replace it with a filled reward token.
+      canvas.drawCircle(
+        center,
+        radius - 2.2,
+        Paint()
+          ..shader = RadialGradient(
+            center: const Alignment(-0.38, -0.46),
+            radius: 1.12,
+            colors: const [
+              Color(0x18C89A58),
+              Color(0x081B130E),
+              Color(0x1F100B08),
+            ],
+            stops: const [0, 0.58, 1],
+          ).createShader(orbit),
+      );
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = const Color(0xA30A0705)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.4,
+      );
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = const Color(0xFF6A4B2D)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2,
+      );
+      canvas.drawArc(
+        orbit,
+        -pi / 2,
+        pi * 2 * closure,
+        false,
+        Paint()
+          ..shader = const SweepGradient(
+            transform: GradientRotation(-0.48),
+            colors: [
+              Color(0xFF7B542C),
+              Color(0xFFE0BD78),
+              Color(0xFF9B6B38),
+              Color(0xFFF0D8A0),
+              Color(0xFF7B542C),
+            ],
+          ).createShader(orbit)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.8
+          ..strokeCap = StrokeCap.round,
+      );
+      canvas.drawCircle(
+        center,
+        radius - 2.0,
+        Paint()
+          ..color = const Color(0x4DF0D7A1)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.5,
+      );
+    } else {
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..shader = const RadialGradient(
+            center: Alignment(-0.34, -0.42),
+            radius: 1.1,
+            colors: [Color(0x331E1713), Color(0xFF17120F), Color(0xFF0E0B09)],
+          ).createShader(Rect.fromCircle(center: center, radius: radius)),
+      );
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = _hue.withValues(alpha: 0.88)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius - 1.15),
+        3.45,
+        1.55,
+        false,
+        Paint()
+          ..color = const Color(0xB8FFF0BD)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+
+    if (!done && !showReadyCheck) return;
+    final check = Path();
+    if (ready) {
+      // A clasp hooked onto the outside of the break, the way the approved
+      // target draws it — the short arm starts inside the orbit, the joint sits
+      // on the wire, the long arm hangs past it. A centred check inside a ring
+      // is the completed state and must not be borrowed here.
+      check
+        ..moveTo(size.width * 0.672, size.height * 0.706)
+        ..lineTo(size.width * 0.752, size.height * 0.856)
+        ..lineTo(size.width * 0.942, size.height * 0.590);
+    } else {
+      check
+        ..moveTo(size.width * 0.29, size.height * 0.51)
+        ..lineTo(size.width * 0.44, size.height * 0.65)
+        ..lineTo(size.width * 0.72, size.height * 0.35);
+    }
+    final metric = check.computeMetrics().first;
+    final fraction = done ? resolved.clamp(0.0, 1.0) : 1.0;
+    final visibleCheck = metric.extractPath(0, metric.length * fraction);
+    canvas.drawPath(
+      visibleCheck,
+      Paint()
+        ..color = done ? const Color(0xD10A0705) : const Color(0xB3231207)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * (ready ? 0.062 : (done ? 0.068 : 0.105))
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+    canvas.drawPath(
+      visibleCheck,
+      Paint()
+        ..color = done ? const Color(0xFFE5C98F) : const Color(0xFFDCB477)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.width * (ready ? 0.038 : (done ? 0.034 : 0.060))
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CheckRingPainter old) =>
+      old.stat != stat ||
+      old.done != done ||
+      old.progress != progress ||
+      old.accent != accent ||
+      old.showReadyCheck != showReadyCheck ||
+      old.shine != shine ||
+      old.light != light;
+}
+
 class _MetaChip extends StatelessWidget {
   const _MetaChip(this.icon, this.text, this.color);
+
   final IconData? icon;
   final String text;
   final Color color;
@@ -516,52 +1247,85 @@ class _MetaChip extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 13, color: color),
+          Icon(icon, size: 12, color: color),
           const SizedBox(width: 3),
         ],
-        Text(text, style: Type.label.copyWith(fontSize: 11, color: color)),
+        Text(
+          text,
+          style: Type.label.copyWith(
+            fontSize: 10,
+            letterSpacing: 0.72,
+            color: color,
+          ),
+        ),
       ],
     );
   }
 }
 
-/// The payout preview: "+34 XP" in honey with a plain difficulty word.
 class _XpChip extends StatelessWidget {
-  const _XpChip({required this.xp, required this.word, required this.dim});
+  const _XpChip({required this.xp, required this.dim, required this.featured});
+
   final int xp;
-  final String word;
   final bool dim;
+  final bool featured;
 
   @override
   Widget build(BuildContext context) {
-    final alpha = dim ? 0.4 : 1.0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-          decoration: facetedDecoration(
-            cut: 7,
-            color: Palette.xpLight.withValues(alpha: 0.35 * alpha),
-            borderColor: Palette.xp.withValues(alpha: 0.35 * alpha),
-          ),
-          child: Text(
-            '+$xp XP',
-            style: Type.numerals.copyWith(
-              fontSize: 15,
-              color: Palette.xp.withValues(alpha: alpha),
-            ),
-          ),
+    final alpha = dim ? 0.42 : 1.0;
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: featured ? 10 : 7,
+        vertical: featured ? 6 : 5,
+      ),
+      decoration: facetedDecoration(
+        cut: featured ? 7 : 6,
+        // A dark plaque with a brass rim. Filling it with honey made a second
+        // gold surface compete with the action on the same card.
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Palette.xp.withValues(alpha: 0.15 * alpha),
+            const Color(0xFF3A2311).withValues(alpha: 0.86 * alpha),
+          ],
         ),
-        const SizedBox(height: 4),
-        Text(
-          word,
-          style: Type.label.copyWith(
-            fontSize: 11,
-            color: Palette.textLo.withValues(alpha: alpha),
-          ),
+        borderColor: Palette.brass.withValues(alpha: 0.92 * alpha),
+        borderWidth: 0.9,
+      ),
+      child: Text(
+        '+$xp XP',
+        maxLines: 1,
+        style: Type.numerals.copyWith(
+          fontSize: featured ? 15.5 : 13.5,
+          color: Palette.xp.withValues(alpha: alpha),
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _EncoreButton extends StatelessWidget {
+  const _EncoreButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 42, minWidth: 48),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: facetedDecoration(
+          cut: 7,
+          color: Palette.streak.withValues(alpha: 0.08),
+          borderColor: Palette.streak.withValues(alpha: 0.52),
+        ),
+        child: const Icon(Icons.bolt_rounded, size: 18, color: Palette.streak),
+      ),
     );
   }
 }

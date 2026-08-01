@@ -1,3 +1,6 @@
+import 'dart:ui' show ImageFilter;
+
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -11,6 +14,7 @@ import '../tokens.dart';
 import '../widgets/day_picker.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
+import '../widgets/luxe_depth.dart';
 import 'goal_detail.dart';
 import 'goal_wizard.dart';
 import 'momentum_kits.dart';
@@ -95,6 +99,8 @@ class GoalsPage extends StatelessWidget {
     required this.onPersist,
     required this.quests,
     required this.onOpenQuests,
+    this.parallax = const AlwaysStoppedAnimation(Offset.zero),
+    this.lightDirection,
   });
 
   final GameState state;
@@ -116,6 +122,18 @@ class GoalsPage extends StatelessWidget {
 
   /// Leaves this discovery tab and opens the shared board after a kit is lit.
   final VoidCallback onOpenQuests;
+  final ValueListenable<Offset> parallax;
+  final ValueListenable<Offset>? lightDirection;
+
+  void _openWizard(BuildContext context) {
+    Sfx.instance.play('tick');
+    HapticFeedback.selectionClick();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => GoalWizardScreen(state: state, onAdd: onAdd),
+      ),
+    );
+  }
 
   void _adoptGoal(BuildContext context, GoalIdea idea) {
     final created = state.addGoal(
@@ -151,22 +169,29 @@ class GoalsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: state,
-      builder: (context, _) => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 130),
+      builder: (context, _) => LuxePageList(
+        assetPath: 'assets/pages/goals-desk-v2.webp',
+        title: 'Goals',
+        subtitle: 'what you’re building toward',
+        icon: Icons.explore_outlined,
+        parallax: parallax,
+        reduceMotion: state.reduceMotion,
+        fireFocal: const Offset(0.93, 0.58),
         children: [
-          Text('Take on quests!', style: Type.display.copyWith(fontSize: 30)),
-          const SizedBox(height: 4),
-          Text(
-            'every quest serves a goal — that’s the point',
-            style: Type.body.copyWith(
-              fontSize: 13,
-              fontStyle: FontStyle.italic,
-              color: Palette.textLo,
-            ),
+          LuxeGoldButton(
+            label: 'Begin a new goal',
+            icon: Icons.add_rounded,
+            onTap: () => _openWizard(context),
+            parallax: lightDirection ?? parallax,
           ),
-          const SizedBox(height: 16),
-          _WizardHero(state: state, onAdd: onAdd),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
+          _CategoryHeader(
+            label: 'YOUR GOALS',
+            blurb: 'the promises already taking shape',
+            icon: Icons.auto_awesome_outlined,
+            accent: Palette.xp,
+          ),
+          const SizedBox(height: 10),
           if (state.goals.isNotEmpty) ...[
             _YourGoals(
               state: state,
@@ -174,8 +199,9 @@ class GoalsPage extends StatelessWidget {
               onPersist: onPersist,
               onAddQuest: onAdd,
               quests: quests,
+              parallax: parallax,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 18),
           ] else ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -188,15 +214,29 @@ class GoalsPage extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 18),
           ],
+          _CategoryHeader(
+            label: 'HELP FOR TODAY',
+            blurb: 'choose the kind of support this day needs',
+            icon: Icons.auto_awesome_outlined,
+            accent: Palette.streak,
+          ),
+          const SizedBox(height: 10),
           _MomentumKitsCard(
             state: state,
             onAdd: onAdd,
             onPersist: onPersist,
             onOpenQuests: onOpenQuests,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 18),
+          _CategoryHeader(
+            label: 'GUIDED WORKOUTS',
+            blurb: 'gentle sessions that meet you where you are',
+            icon: Icons.fitness_center,
+            accent: Stat.str.color,
+          ),
+          const SizedBox(height: 10),
           _GuidedWorkoutsCard(onAdd: onAdd),
           ..._catalogSections(context),
         ],
@@ -273,7 +313,7 @@ class _MomentumKitsCard extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     button: true,
     label:
-        'Momentum Kits. Specialized help for the kind of day you are having.',
+        'Help for Today. A few useful quests for the kind of day you are having.',
     child: GestureDetector(
       excludeFromSemantics: true,
       behavior: HitTestBehavior.opaque,
@@ -316,44 +356,16 @@ class _MomentumKitsCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        'MOMENTUM KITS',
-                        style: Type.label.copyWith(
-                          fontSize: 10,
-                          color: Palette.streak,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: facetedDecoration(
-                          cut: 5,
-                          color: Palette.xp.withValues(alpha: 0.1),
-                          borderColor: Palette.xp.withValues(alpha: 0.3),
-                        ),
-                        child: Text(
-                          'NEW',
-                          style: Type.label.copyWith(
-                            fontSize: 8.5,
-                            color: Palette.xpLight,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 3),
+                  // The section rule directly above already says HELP FOR
+                  // TODAY; repeating it as this card's eyebrow said the same
+                  // words twice in 40 px and left the card without a subject.
                   Text(
                     'Help for this kind of day',
                     style: Type.display.copyWith(fontSize: 19),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
-                    'get unstuck · tend a low flame · focus · make · reset',
+                    'get unstuck · choose a gentle day · focus · make · reset',
                     style: Type.body.copyWith(
                       fontSize: 12,
                       fontStyle: FontStyle.italic,
@@ -523,73 +535,6 @@ class _GuidedWorkoutsCard extends StatelessWidget {
   }
 }
 
-/// The doorway to the Oath Wizard — creation as ceremony.
-class _WizardHero extends StatelessWidget {
-  const _WizardHero({required this.state, required this.onAdd});
-  final GameState state;
-  final bool Function(Quest) onAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Sfx.instance.play('tick');
-        HapticFeedback.selectionClick();
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => GoalWizardScreen(state: state, onAdd: onAdd),
-          ),
-        );
-      },
-      child: GlassPanel(
-        blur: true,
-        glow: true,
-        padding: const EdgeInsets.all(18),
-        child: Row(
-          children: [
-            const FacetMedallion(
-              size: 46,
-              accent: Palette.xp,
-              glow: true,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFFFFF4D9), Color(0xFFC08B4F)],
-              ),
-              child: Icon(Icons.flag, size: 22, color: Color(0xFF3A2510)),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Begin a new goal',
-                    style: Type.display.copyWith(fontSize: 19),
-                  ),
-                  Text(
-                    'name it · forge its path · swear the oath',
-                    style: Type.body.copyWith(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textLo,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 14,
-              color: Palette.textLo,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// "YOUR GOALS" — each ambition with its bar inching toward full.
 /// Long-press a goal to abandon it (clears its quests too).
 class _YourGoals extends StatelessWidget {
@@ -599,12 +544,23 @@ class _YourGoals extends StatelessWidget {
     required this.onPersist,
     required this.onAddQuest,
     required this.quests,
+    required this.parallax,
   });
   final GameState state;
   final void Function(Goal goal) onRemoveGoal;
   final VoidCallback onPersist;
   final bool Function(Quest quest) onAddQuest;
   final List<Quest> quests;
+  final ValueListenable<Offset> parallax;
+
+  String _artFor(Stat stat) => switch (stat) {
+    Stat.str => 'assets/quest/category-body-v2.webp',
+    Stat.vit => 'assets/quest/category-care-v2.webp',
+    Stat.intl => 'assets/quest/category-mind-v2.webp',
+    Stat.foc => 'assets/quest/category-craft-v2.webp',
+    Stat.soc => 'assets/quest/category-people-v2.webp',
+    Stat.dis => 'assets/quest/category-home-v2.webp',
+  };
 
   void _openDetail(BuildContext context, Goal g) {
     Sfx.instance.play('tick');
@@ -742,84 +698,143 @@ class _YourGoals extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('YOUR GOALS', style: Type.label.copyWith(fontSize: 11)),
-              const Spacer(),
-              Flexible(
-                child: Text(
-                  'tap to open · hold to abandon',
-                  textAlign: TextAlign.right,
-                  overflow: TextOverflow.ellipsis,
-                  style: Type.label.copyWith(fontSize: 11),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          for (final g in state.goals) ...[
-            GestureDetector(
+    return Column(
+      children: [
+        for (final g in state.goals)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () => _openDetail(context, g),
               onLongPress: () => _confirmAbandon(context, g),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+              child: GlassPanel(
+                padding: EdgeInsets.zero,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 106),
+                  child: Stack(
+                    fit: StackFit.passthrough,
                     children: [
-                      Icon(
-                        g.complete
-                            ? Icons.emoji_events
-                            : g.kind == GoalKind.become
-                            ? Icons.all_inclusive
-                            : Icons.flag,
-                        size: 13,
-                        color: g.complete ? Palette.xpLight : g.stat.color,
-                      ),
-                      const SizedBox(width: 7),
-                      Expanded(
-                        child: Text(
-                          g.title,
-                          overflow: TextOverflow.ellipsis,
-                          style: Type.body.copyWith(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Palette.textHi,
+                      Positioned(
+                        top: 0,
+                        right: -8,
+                        bottom: 0,
+                        width: 184,
+                        child: IgnorePointer(
+                          child: ShaderMask(
+                            blendMode: BlendMode.dstIn,
+                            shaderCallback: (bounds) => const LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Color(0x8A000000),
+                                Color(0xF0000000),
+                              ],
+                              stops: [0, 0.55, 1],
+                            ).createShader(bounds),
+                            child: ImageFiltered(
+                              imageFilter: ImageFilter.blur(
+                                sigmaX: 0.65,
+                                sigmaY: 0.65,
+                              ),
+                              child: AnimatedBuilder(
+                                animation: parallax,
+                                builder: (context, child) {
+                                  final p = state.reduceMotion
+                                      ? Offset.zero
+                                      : parallax.value;
+                                  return Transform.translate(
+                                    offset: Offset(p.dx * 3.6, p.dy * 2.2),
+                                    child: child,
+                                  );
+                                },
+                                child: Opacity(
+                                  opacity: 0.46,
+                                  child: Image.asset(
+                                    _artFor(g.stat),
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.centerRight,
+                                    filterQuality: FilterQuality.medium,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                      Flexible(
-                        child: Text(
-                          g.complete ? 'ACHIEVED' : '${g.progress}/${g.target}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Type.label.copyWith(
-                            fontSize: 11,
-                            color: g.complete ? Palette.xpLight : g.stat.color,
-                          ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 14, 14, 13),
+                        child: Row(
+                          children: [
+                            FacetMedallion(
+                              size: 46,
+                              accent: g.complete
+                                  ? Palette.xpLight
+                                  : g.stat.color,
+                              glow: g.complete,
+                              child: Icon(
+                                g.complete
+                                    ? Icons.emoji_events_outlined
+                                    : g.stat.icon,
+                                size: 22,
+                                color: g.complete
+                                    ? Palette.xpLight
+                                    : g.stat.color,
+                              ),
+                            ),
+                            const SizedBox(width: 13),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    g.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Type.display.copyWith(
+                                      fontSize: 17,
+                                      height: 1.08,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    g.complete
+                                        ? 'ACHIEVED'
+                                        : '${g.progress} / ${g.target} QUESTS',
+                                    style: Type.label.copyWith(
+                                      fontSize: 10.5,
+                                      color: g.complete
+                                          ? Palette.xpLight
+                                          : g.stat.color,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  FacetedMeter(
+                                    value: g.complete ? 1 : g.fraction,
+                                    height: 6,
+                                    glow: g.complete,
+                                    background: Palette.railTrack,
+                                    color: g.complete
+                                        ? Palette.xpLight
+                                        : g.stat.color,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            const Icon(
+                              Icons.chevron_right_rounded,
+                              size: 21,
+                              color: Palette.textLo,
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 5),
-                  FacetedMeter(
-                    value: g.complete ? 1 : g.fraction,
-                    height: 7,
-                    glow: g.complete,
-                    background: const Color(0x1FF2CD93),
-                    color: g.complete ? Palette.xpLight : g.stat.color,
-                  ),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 12),
-          ],
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

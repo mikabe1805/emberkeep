@@ -1,3 +1,5 @@
+import 'dart:async' show unawaited;
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
@@ -82,9 +84,62 @@ class Sfx {
     return asset;
   }
 
-  /// Sound enabled flag — set from GameState.soundEnabled. When false,
-  /// play() returns immediately without making any sound.
-  bool soundEnabled = true;
+  /// Sound enabled flag — set from GameState.soundEnabled. Turning sound off
+  /// also stops the room bed immediately.
+  bool _soundEnabled = true;
+  bool get soundEnabled => _soundEnabled;
+  set soundEnabled(bool value) {
+    _soundEnabled = value;
+    if (!value) {
+      unawaited(_stopHearthRoom());
+    } else if (_hearthRoomWanted) {
+      unawaited(_startHearthRoom());
+    }
+  }
+
+  AudioPlayer? _hearthRoom;
+  bool _hearthRoomWanted = false;
+  bool _hearthRoomPlaying = false;
+
+  /// A near-subliminal room bed. The asset is original project audio and loops
+  /// only while a room-facing page is active. It stays far below event sounds
+  /// and mixes with the user's own music through the ambient audio context.
+  void setHearthRoomActive(bool active) {
+    _hearthRoomWanted = active;
+    if (!active || !_soundEnabled) {
+      unawaited(_stopHearthRoom());
+    } else {
+      unawaited(_startHearthRoom());
+    }
+  }
+
+  Future<void> _startHearthRoom() async {
+    if (!_soundEnabled || !_hearthRoomWanted || _hearthRoomPlaying) return;
+    // Constructing an AudioPlayer subscribes to the global event channel on a
+    // microtask, *outside* any try/catch here — so on a host with no plugin
+    // (tests, some web contexts) that surfaced as an uncaught
+    // MissingPluginException rather than a silent no-op. Gate the bed on a
+    // pool having actually loaded: no audio backend, no player, no noise.
+    if (_pools.isEmpty) return;
+    final player = _hearthRoom ??= AudioPlayer();
+    try {
+      await player.setReleaseMode(ReleaseMode.loop);
+      await player.play(AssetSource('sfx/hearth_room.wav'), volume: 0.045);
+      _hearthRoomPlaying = true;
+    } catch (e) {
+      debugPrint('Hearth room ambience (continuing silent): $e');
+    }
+  }
+
+  Future<void> _stopHearthRoom() async {
+    if (!_hearthRoomPlaying) return;
+    try {
+      await _hearthRoom?.stop();
+    } catch (_) {
+      // Sound is enhancement-only.
+    }
+    _hearthRoomPlaying = false;
+  }
 
   Future<void> init() async {
     // FIRST, before any pool ever activates the audio session: make our SFX

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -9,8 +10,35 @@ import '../tokens.dart';
 import '../widgets/domain_hint.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
+import '../widgets/gold_surface.dart';
+import '../widgets/luxe_depth.dart';
 
-/// The Plans page: a warm month calendar. Honey dots = your completion
+const _monthNames = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+const _weekdayNames = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+];
+
+/// The Plans page: a warm month calendar. Honey tallies = your completion
 /// history; stat-colored diamonds = upcoming events/long-term goals. Tap a
 /// day to see or plan it. (Push reminders arrive with the phone build —
 /// due quests surface on the Quests page meanwhile.)
@@ -20,11 +48,15 @@ class CalendarPage extends StatefulWidget {
     required this.state,
     required this.quests,
     required this.onAdd,
+    this.parallax = const AlwaysStoppedAnimation(Offset.zero),
+    this.lightDirection,
   });
 
   final GameState state;
   final List<Quest> quests;
   final bool Function(Quest) onAdd;
+  final ValueListenable<Offset> parallax;
+  final ValueListenable<Offset>? lightDirection;
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -42,25 +74,37 @@ class _CalendarPageState extends State<CalendarPage> {
     _selected = DateTime(now.year, now.month, now.day);
   }
 
-  static const _monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
   List<Quest> _eventsOn(DateTime day) => [
     for (final q in widget.quests)
       if (q.dueDate != null && Days.sameDay(q.dueDate!, day)) q,
   ];
+
+  List<Quest> _questsOn(DateTime day) {
+    final dayKey = Days.key(day);
+    final isToday = Days.sameDay(day, Clock.now());
+    final quests = <Quest>[
+      for (final q in widget.quests)
+        if (q.snoozedDay != dayKey &&
+            (q.dueDate != null
+                ? Days.sameDay(q.dueDate!, day)
+                : q.schedule != QuestSchedule.once
+                ? q.scheduledOn(day)
+                : isToday))
+          q,
+    ];
+    quests.sort((a, b) {
+      final priority = (b.priorityOn(day) ? 1 : 0).compareTo(
+        a.priorityOn(day) ? 1 : 0,
+      );
+      if (priority != 0) return priority;
+      final completion = (a.doneFor(day) ? 1 : 0).compareTo(
+        b.doneFor(day) ? 1 : 0,
+      );
+      if (completion != 0) return completion;
+      return b.difficulty.compareTo(a.difficulty);
+    });
+    return quests;
+  }
 
   int _reflectionsOn(DateTime day) {
     var count = widget.state.journal
@@ -90,24 +134,22 @@ class _CalendarPageState extends State<CalendarPage> {
         final firstWeekday = DateTime(_month.year, _month.month, 1).weekday;
         final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 130),
+        return LuxePageList(
+          assetPath: 'assets/pages/plans-desk-v2.webp',
+          title: 'Plans',
+          subtitle: 'your days, held in one place',
+          icon: Icons.calendar_month_outlined,
+          parallax: widget.parallax,
+          reduceMotion: widget.state.reduceMotion,
           children: [
-            Text('Plans', style: Type.display.copyWith(fontSize: 30)),
-            const SizedBox(height: 4),
-            Text(
-              'your story, laid out in days',
-              style: Type.body.copyWith(
-                fontSize: 13,
-                fontStyle: FontStyle.italic,
-                color: Palette.textLo,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // ── month grid ───────────────────────────────────────
+            // ── month folio ──────────────────────────────────────
+            // The calendar is the largest single plane in the app, so it is
+            // built like the bound month-folio in the approved target: a
+            // book-cloth board, a brass-ruled masthead, then the dated page
+            // inset into it. A flat panel this size read as an empty block.
             GlassPanel(
               blur: true,
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
               child: Column(
                 children: [
                   Row(
@@ -123,8 +165,12 @@ class _CalendarPageState extends State<CalendarPage> {
                       Expanded(
                         child: Center(
                           child: Text(
-                            '${_monthNames[_month.month - 1]} ${_month.year}',
-                            style: Type.display.copyWith(fontSize: 17),
+                            '${_monthNames[_month.month - 1].toUpperCase()} ${_month.year}',
+                            style: Type.display.copyWith(
+                              fontSize: 16,
+                              letterSpacing: 2.4,
+                              color: Palette.textHi,
+                            ),
                           ),
                         ),
                       ),
@@ -138,38 +184,66 @@ class _CalendarPageState extends State<CalendarPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      for (final d in const ['M', 'T', 'W', 'T', 'F', 'S', 'S'])
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              d,
-                              style: Type.label.copyWith(fontSize: 11),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
                   const SizedBox(height: 6),
-                  for (
-                    var week = 0;
-                    week * 7 - (firstWeekday - 1) < daysInMonth;
-                    week++
-                  )
-                    Row(
-                      children: [
-                        for (var col = 0; col < 7; col++)
-                          Expanded(
-                            child: _dayCell(
-                              week * 7 + col - (firstWeekday - 1) + 1,
-                              daysInMonth,
-                              now,
-                            ),
+                  const _FolioRule(),
+                  const SizedBox(height: 8),
+                  DecoratedBox(
+                    decoration: _folioPage,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              for (var i = 0; i < 7; i++)
+                                Expanded(
+                                  child: Center(
+                                    child: Text(
+                                      const [
+                                        'M',
+                                        'T',
+                                        'W',
+                                        'T',
+                                        'F',
+                                        'S',
+                                        'S',
+                                      ][i],
+                                      style: Type.label.copyWith(
+                                        fontSize: 11,
+                                        letterSpacing: 1.4,
+                                        color: i >= 5
+                                            ? Palette.brass
+                                            : Palette.textLo,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                      ],
+                          const SizedBox(height: 5),
+                          const _FolioRule(strength: 0.55),
+                          const SizedBox(height: 3),
+                          for (
+                            var week = 0;
+                            week * 7 - (firstWeekday - 1) < daysInMonth;
+                            week++
+                          )
+                            Row(
+                              children: [
+                                for (var col = 0; col < 7; col++)
+                                  Expanded(
+                                    child: _dayCell(
+                                      week * 7 + col - (firstWeekday - 1) + 1,
+                                      daysInMonth,
+                                      now,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                        ],
+                      ),
                     ),
+                  ),
                 ],
               ),
             ),
@@ -180,9 +254,10 @@ class _CalendarPageState extends State<CalendarPage> {
               day: _selected,
               completions: widget.state.history[Days.key(_selected)] ?? 0,
               reflections: _reflectionsOn(_selected),
-              events: _eventsOn(_selected),
+              quests: _questsOn(_selected),
               now: now,
               onPlan: () => _showAddEvent(context),
+              lightDirection: widget.lightDirection ?? widget.parallax,
             ),
           ],
         );
@@ -191,7 +266,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Widget _dayCell(int day, int daysInMonth, DateTime now) {
-    if (day < 1 || day > daysInMonth) return const SizedBox(height: 44);
+    if (day < 1 || day > daysInMonth) return const SizedBox(height: 55);
     final date = DateTime(_month.year, _month.month, day);
     final isToday = Days.sameDay(date, now);
     final isSelected = Days.sameDay(date, _selected);
@@ -219,75 +294,112 @@ class _CalendarPageState extends State<CalendarPage> {
           Sfx.instance.play('tick');
           setState(() => _selected = date);
         },
-        child: Container(
-          height: 44,
-          margin: const EdgeInsets.all(1.5),
-          decoration: facetedDecoration(
-            cut: 7,
-            color: isSelected
-                ? Palette.xpLight.withValues(alpha: 0.16)
-                : Colors.transparent,
-            borderColor: isToday
-                ? Palette.xp.withValues(alpha: 0.8)
-                : isSelected
-                ? Palette.xpLight.withValues(alpha: 0.5)
-                : Colors.transparent,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '$day',
-                style: Type.numerals.copyWith(
-                  fontSize: 13,
-                  color: isToday ? Palette.xp : Palette.textMid,
-                ),
-              ),
-              const SizedBox(height: 2),
-              SizedBox(
-                height: 11,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // one ember whose heat (size + glow) scales with the day's
-                    // haul — a 12-quest day burns hotter than a 3-quest one
-                    if (done > 0)
-                      Container(
-                        width: 4.0 + (done.clamp(1, 9)) * 0.7,
-                        height: 4.0 + (done.clamp(1, 9)) * 0.7,
-                        margin: const EdgeInsets.symmetric(horizontal: 1),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Palette.xpLight.withValues(
-                            alpha: (0.45 + 0.07 * done).clamp(0.45, 1.0),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Palette.honeyGlow.withValues(
-                                alpha: (0.12 * done).clamp(0.0, 0.7),
-                              ),
-                              blurRadius: 2.0 + done.clamp(0, 8) * 0.8,
-                            ),
-                          ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _dayPlate(day, date, isToday, isSelected, done, events),
+            // The folio names today under its date, the way the target does —
+            // the honey plate alone doesn't say WHICH kind of mark it is.
+            SizedBox(
+              height: 12,
+              child: isToday
+                  ? Center(
+                      child: Text(
+                        'TODAY',
+                        style: Type.label.copyWith(
+                          fontSize: 8,
+                          letterSpacing: 0.9,
+                          color: Palette.xp.withValues(alpha: 0.85),
                         ),
                       ),
-                    // stat-colored diamonds: planned events
-                    for (final e in events.take(2))
-                      Transform.rotate(
-                        angle: 0.785,
-                        child: Container(
-                          width: 4.5,
-                          height: 4.5,
-                          margin: const EdgeInsets.symmetric(horizontal: 1),
-                          color: e.stat.color,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+                    )
+                  : null,
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _dayPlate(
+    int day,
+    DateTime date,
+    bool isToday,
+    bool isSelected,
+    int done,
+    List<Quest> events,
+  ) {
+    return Container(
+      height: 43,
+      margin: const EdgeInsets.all(1.5),
+      decoration: facetedDecoration(
+        cut: 7,
+        gradient: isSelected
+            ? LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Palette.xpLight.withValues(alpha: 0.22),
+                  Palette.xp.withValues(alpha: 0.07),
+                ],
+              )
+            : null,
+        borderColor: isToday
+            ? Palette.xp.withValues(alpha: 0.85)
+            : isSelected
+            ? Palette.xpLight.withValues(alpha: 0.55)
+            : Colors.transparent,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '$day',
+            style: Type.numerals.copyWith(
+              fontSize: 13,
+              color: isToday
+                  ? Palette.xp
+                  : done > 0
+                  ? Palette.textHi
+                  : Palette.textMid,
+            ),
+          ),
+          const SizedBox(height: 2),
+          SizedBox(
+            height: 10,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // One brass pip whose size carries the day's haul. It was a
+                // glowing blob whose halo bled into the neighbouring dates;
+                // a hard-edged dot is the mark the folio actually wants.
+                if (done > 0)
+                  Container(
+                    width: 3.6 + (done.clamp(1, 9)) * 0.42,
+                    height: 3.6 + (done.clamp(1, 9)) * 0.42,
+                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Palette.xpLight.withValues(
+                        alpha: (0.46 + 0.06 * done).clamp(0.46, 0.95),
+                      ),
+                    ),
+                  ),
+                // stat-colored diamonds: planned events
+                for (final e in events.take(2))
+                  Transform.rotate(
+                    angle: 0.785,
+                    child: Container(
+                      width: 4.5,
+                      height: 4.5,
+                      margin: const EdgeInsets.symmetric(horizontal: 1),
+                      color: e.stat.color,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -300,6 +412,41 @@ class _CalendarPageState extends State<CalendarPage> {
       builder: (_) => _AddEventDialog(day: _selected, onAdd: widget.onAdd),
     );
   }
+}
+
+/// The dated page inset into the folio board — a shade darker than the board,
+/// warmer at the top lip where the desk candle reaches it.
+final _folioPage = facetedDecoration(
+  cut: 10,
+  gradient: const LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x33241A12), Color(0x4D14100D)],
+  ),
+  borderColor: Palette.brass.withValues(alpha: 0.30),
+  borderWidth: 0.9,
+);
+
+/// A brass hairline that fades at both ends — the folio's ruled divisions.
+class _FolioRule extends StatelessWidget {
+  const _FolioRule({this.strength = 1});
+  final double strength;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    height: 1,
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          Palette.brass.withValues(alpha: 0),
+          Palette.brass.withValues(alpha: 0.62 * strength),
+          Palette.brass.withValues(alpha: 0.62 * strength),
+          Palette.brass.withValues(alpha: 0),
+        ],
+        stops: const [0, 0.14, 0.86, 1],
+      ),
+    ),
+  );
 }
 
 class _Chevron extends StatelessWidget {
@@ -326,7 +473,15 @@ class _Chevron extends StatelessWidget {
         child: SizedBox(
           width: 44,
           height: 44,
-          child: Icon(icon, size: 22, color: Palette.textLo),
+          child: Center(
+            child: SizedBox.square(
+              dimension: 28,
+              child: DecoratedBox(
+                decoration: agedBrassPlate(cut: 7, strength: 0.8),
+                child: Icon(icon, size: 19, color: Palette.xpLight),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -338,17 +493,19 @@ class _DayPanel extends StatelessWidget {
     required this.day,
     required this.completions,
     required this.reflections,
-    required this.events,
+    required this.quests,
     required this.now,
     required this.onPlan,
+    required this.lightDirection,
   });
 
   final DateTime day;
   final int completions;
   final int reflections;
-  final List<Quest> events;
+  final List<Quest> quests;
   final DateTime now;
   final VoidCallback onPlan;
+  final ValueListenable<Offset> lightDirection;
 
   @override
   Widget build(BuildContext context) {
@@ -360,39 +517,49 @@ class _DayPanel extends StatelessWidget {
           Row(
             children: [
               Expanded(
+                // "26.7.2026" was a raw numeric locale dump in the one place
+                // the design speaks a date out loud. The approved target reads
+                // THURSDAY 30 · TODAY.
                 child: Text(
-                  '${day.day}.${day.month}.${day.year}'
-                  '${Days.sameDay(day, now) ? " · TODAY" : ""}',
+                  '${_weekdayNames[day.weekday - 1]} ${day.day}'
+                  '${Days.sameDay(day, now) ? " · TODAY" : " · ${_monthNames[day.month - 1].toUpperCase()}"}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Type.label.copyWith(fontSize: 11),
+                  style: Type.label.copyWith(
+                    fontSize: 11.5,
+                    letterSpacing: 1.5,
+                    color: Days.sameDay(day, now)
+                        ? Palette.xpLight
+                        : Palette.textMid,
+                  ),
                 ),
               ),
               if (!isPast)
                 GestureDetector(
                   onTap: onPlan,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 7,
-                    ),
-                    decoration: facetedDecoration(
-                      cut: 7,
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFFF6D9A2),
-                          Color(0xFFEFC074),
-                          Color(0xFFC08B4F),
-                        ],
+                  child: GoldSurface(
+                    cut: 7,
+                    glow: false,
+                    textured: false,
+                    light: lightDirection,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 8,
                       ),
-                    ),
-                    child: Text(
-                      '+ PLAN',
-                      style: Type.label.copyWith(
-                        fontSize: 11,
-                        color: const Color(0xFF3A2510),
+                      child: Text(
+                        '+ PLAN',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          letterSpacing: 1.2,
+                          color: Palette.onHoney,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x59FFEBBE),
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -442,7 +609,7 @@ class _DayPanel extends StatelessWidget {
                 ],
               ),
             ),
-          if (events.isEmpty && completions == 0 && reflections == 0)
+          if (quests.isEmpty && completions == 0 && reflections == 0)
             Text(
               isPast
                   ? 'A quiet day.'
@@ -453,38 +620,119 @@ class _DayPanel extends StatelessWidget {
                 color: Palette.textLo,
               ),
             ),
-          for (final e in events)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Transform.rotate(
-                    angle: 0.785,
-                    child: Container(width: 7, height: 7, color: e.stat.color),
+          if (quests.isNotEmpty) ...[
+            if (completions > 0 || reflections > 0)
+              const Divider(height: 17, color: Color(0x2EE7C47E)),
+            for (final quest in quests.take(4))
+              _PlannedQuestRow(quest: quest, day: day),
+            if (quests.length > 4)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, left: 44),
+                child: Text(
+                  '+ ${quests.length - 4} MORE ON THE QUEST BOARD',
+                  style: Type.label.copyWith(
+                    fontSize: 9.5,
+                    color: Palette.textLo,
                   ),
-                  const SizedBox(width: 9),
-                  Expanded(
-                    child: Text(
-                      e.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Type.body.copyWith(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
-                        color: e.doneFor(now) ? Palette.textLo : Palette.textHi,
-                        decoration: e.doneFor(now)
-                            ? TextDecoration.lineThrough
-                            : null,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    'd${e.difficulty}',
-                    style: Type.label.copyWith(fontSize: 11),
-                  ),
-                ],
+                ),
               ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannedQuestRow extends StatelessWidget {
+  const _PlannedQuestRow({required this.quest, required this.day});
+
+  final Quest quest;
+  final DateTime day;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = quest.doneFor(day);
+    final timing = quest.dueDate != null
+        ? 'PLANNED FOR THIS DAY'
+        : quest.schedule.label;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: done
+                  ? const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFFF4D99E),
+                        Color(0xFFC28B47),
+                        Color(0xFF70502D),
+                      ],
+                    )
+                  : null,
+              color: done ? null : const Color(0x3A120E0C),
+              border: Border.all(
+                color: done ? const Color(0xFFF3D49A) : const Color(0x997E705E),
+                width: 1.2,
+              ),
+              boxShadow: done
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x3DE8B865),
+                        blurRadius: 10,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
             ),
+            child: done
+                ? const Icon(
+                    Icons.check_rounded,
+                    size: 19,
+                    color: Color(0xFF3B2916),
+                  )
+                : Icon(quest.stat.icon, size: 15, color: quest.stat.color),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  quest.displayTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.body.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: done ? Palette.textMid : Palette.textHi,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  '${quest.stat.abbr}  ·  $timing',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: 9,
+                    color: quest.stat.color.withValues(alpha: 0.82),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            Icons.drag_handle_rounded,
+            size: 19,
+            color: Palette.textLo.withValues(alpha: 0.55),
+          ),
         ],
       ),
     );
@@ -613,7 +861,8 @@ class _AddEventDialogState extends State<_AddEventDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'PLAN FOR ${widget.day.day}.${widget.day.month}.${widget.day.year}',
+              'PLAN FOR ${_weekdayNames[widget.day.weekday - 1]} '
+              '${widget.day.day} ${_monthNames[widget.day.month - 1].toUpperCase()}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: Type.label.copyWith(fontSize: 11),

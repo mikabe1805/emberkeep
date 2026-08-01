@@ -7,6 +7,7 @@ import 'content/achievements.dart';
 import 'content/cosmetics.dart';
 import 'content/evidence.dart';
 import 'content/messages.dart';
+import 'content/space_themes.dart';
 import 'content/stat_ranks.dart';
 import 'content/titles.dart';
 import 'models.dart';
@@ -20,8 +21,8 @@ class GameState extends ChangeNotifier {
 
   final Random _rng;
 
-  /// What the keeper of this fire is called (set in onboarding; greetings
-  /// use it). Null = not given.
+  /// What the player is called (set in onboarding; greetings use it sparingly).
+  /// Null = not given.
   String? playerName;
 
   /// First-run welcome completed?
@@ -103,13 +104,13 @@ class GameState extends ChangeNotifier {
   }
 
   /// A private daily capacity lens. It never changes rewards, streaks, or
-  /// difficulty; it only changes suggestions and the order Emberkeep offers
+  /// difficulty; it only changes suggestions and the order Morrowloom offers
   /// help. Stamped by day so yesterday's weather is never assumed today.
   EnergyWeather energyWeather = EnergyWeather.steady;
   String? energyWeatherDay;
   final Map<String, EnergyWeather> energyHistory = {};
 
-  /// Stable choices for today's Low Flame shelter. Keeping the titles fixed
+  /// Stable choices for today's Gentle Mode shelter. Keeping the titles fixed
   /// prevents a fourth quest from sliding in the moment one of the chosen
   /// three is completed—the promise is a smaller day, not an endless queue.
   final List<String> lowFlameQuestTitles = [];
@@ -195,13 +196,13 @@ class GameState extends ChangeNotifier {
   int totalXp = 0;
   final Map<Stat, int> stats = {for (final s in Stat.values) s: 0};
 
-  /// Embers — the earn-by-play currency (round-41). Spent in the shop on
-  /// furniture for "Your Space" (never bought with money; the locked rule).
-  /// Earned on every completion alongside XP.
+  /// Glimmers — the earn-by-play currency. They unlock a small number of
+  /// complete room identities and are never bought with money. Earned on every
+  /// completion alongside XP.
   int embers = 0;
 
-  /// Furniture pieces bought (ids from content/furniture.dart) — what the room
-  /// draws. Owned forever once purchased.
+  /// Legacy additive-furniture ownership retained for old saves and shared
+  /// room payloads. Current complete room identities do not render this set.
   final Set<String> ownedFurniture = {};
 
   /// Buy a piece if affordable and allowed (the caller resolves any
@@ -214,9 +215,8 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
-  /// Room styling (round-46) — wall/floor looks you choose. Unlike furniture
-  /// (additive), a style is exclusive per surface: own many, display one.
-  /// Free default styles ('wall_walnut'/'floor_oak') are implicitly owned.
+  /// Whole-room identity ownership plus legacy floor-style compatibility. Own
+  /// many complete rooms, display one; Writer’s Hearth is implicitly owned.
   final Set<String> ownedStyles = {};
   String wallStyle = 'wall_walnut';
   String floorStyle = 'floor_oak';
@@ -345,6 +345,39 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Freezes the part of today that a generic notes page cannot know: the
+  /// quests that happened, the goals they served, the build they moved, and
+  /// the energy the person brought. Quick reflections, full journal pages,
+  /// and the night ledger all use this one source so an old entry never
+  /// quietly changes when today's state changes.
+  JournalTrace todayJournalTrace(List<Quest> quests) {
+    final today = Days.key(Clock.now());
+    final questTitles = todayQuestTitles.toSet().toList(growable: false);
+    final goalTitles = <String>{};
+    for (final quest in quests) {
+      if (!questTitles.contains(quest.displayTitle) &&
+          !questTitles.contains(quest.title)) {
+        continue;
+      }
+      final goal = quest.goalTitle?.trim();
+      if (goal != null && goal.isNotEmpty) goalTitles.add(goal);
+    }
+    return JournalTrace(
+      day: today,
+      level: level,
+      totalXp: totalXp,
+      todayXp: todayXp,
+      streakDays: streakDays,
+      questTitles: questTitles,
+      goalTitles: goalTitles.toList(growable: false),
+      statGains: {
+        for (final entry in todayStats.entries)
+          if (entry.value > 0) entry.key: entry.value,
+      },
+      energy: energyWeatherDay == today ? energyWeather : null,
+    );
+  }
+
   /// Recent gains, newest first — the Me page's attribution ledger.
   final List<LedgerEntry> ledger = [];
 
@@ -413,6 +446,20 @@ class GameState extends ChangeNotifier {
   void setTheme(String id) {
     if (canvasTheme == id) return;
     canvasTheme = id;
+    notifyListeners();
+  }
+
+  /// The wall-style id whose material language dresses the Quests HUD.
+  ///
+  /// This is deliberately independent from [wallStyle]: a player can keep a
+  /// walnut room and still carry an owned Midnight look to their Quest Desk.
+  /// The UI validates ownership before applying a look. Older saves simply
+  /// fall back to the free Walnut Desk.
+  String questDeskStyle = 'wall_walnut';
+
+  void setQuestDeskStyle(String id) {
+    if (questDeskStyle == id) return;
+    questDeskStyle = id;
     notifyListeners();
   }
 
@@ -535,7 +582,7 @@ class GameState extends ChangeNotifier {
     return weekRecapSeenWeek != wk && _weekTotal(1) > 0;
   }
 
-  /// Last week's shape: days lit (of 7), total completions, and the change vs
+  /// Last week's shape: active days (of 7), total completions, and the change vs
   /// the week before.
   ({int litDays, int total, int delta}) weeklyRecap() => (
     litDays: _weekLitDays(1),
@@ -548,7 +595,7 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Day-key the "Ember of the Day" offer was acted on/dismissed — so the daily
+  /// Day-key the "Today's Bonus" offer was acted on/dismissed — so the daily
   /// bonus shows once per day, never nags.
   String? emberSeenDay;
   bool get emberDue => emberSeenDay != Days.key(Clock.now());
@@ -608,8 +655,7 @@ class GameState extends ChangeNotifier {
     4: 'EVIDENCE ARCHIVE',
     5: 'THEMES',
     6: 'STREAK SHIELDS',
-    8: 'EMBER OF THE DAY',
-    10: 'THE COMPANION',
+    8: 'TODAY’S BONUS',
     12: 'WINDOW VIEWS',
     14: 'ROOM STYLES+',
     15: 'GILDED SKIN',
@@ -1044,10 +1090,8 @@ class GameState extends ChangeNotifier {
       level++;
       reached = level;
     }
-    // The first few levels visibly furnish the keep even when a player spends
-    // every ember on flame colours first. These three starter gifts establish
-    // warmth and life; the larger light, wall, seating, companion and hearth
-    // rewards remain aspirational shop transformations.
+    // Keep the old starter-piece flags for backup/share compatibility. The
+    // current room system is complete from level one and does not render them.
     if (level >= 2) ownedFurniture.add('rug');
     if (level >= 3) ownedFurniture.add('plant');
     if (level >= 4) ownedFurniture.add('cushion');
@@ -1102,7 +1146,7 @@ class GameState extends ChangeNotifier {
       ..sort((a, b) => (todayStats[b] ?? 0).compareTo(todayStats[a] ?? 0));
     final n = todayQuestTitles.length;
     final plural = n == 1 ? 'quest' : 'quests';
-    if (worked.isEmpty) return 'A day cleared — every ember you light counts.';
+    if (worked.isEmpty) return 'A day cleared — every small step counts.';
     if (worked.length == 1) {
       return 'You poured today into ${worked.first.label} — '
           '$n $plural, all in one direction.';
@@ -1215,6 +1259,7 @@ class GameState extends ChangeNotifier {
     'equippedSkin': equippedSkin,
     'seenEvidence': seenEvidence.toList(),
     'canvasTheme': canvasTheme,
+    'questDeskStyle': questDeskStyle,
     'unlockedAchievements': unlockedAchievements.toList(),
     'history': history,
     'goals': [for (final g in goals) g.toJson()],
@@ -1252,12 +1297,38 @@ class GameState extends ChangeNotifier {
     s.ownedFurniture.addAll(
       ((j['ownedFurniture'] as List?) ?? const []).cast(),
     );
-    // Backfill starter-room gifts for existing TestFlight saves.
+    // Preserve legacy starter-piece flags for existing TestFlight backups.
     if (s.level >= 2) s.ownedFurniture.add('rug');
     if (s.level >= 3) s.ownedFurniture.add('plant');
     if (s.level >= 4) s.ownedFurniture.add('cushion');
     s.ownedStyles.addAll(((j['ownedStyles'] as List?) ?? const []).cast());
-    s.wallStyle = j['wallStyle'] as String? ?? 'wall_walnut';
+    final savedWall = j['wallStyle'] as String? ?? 'wall_walnut';
+    // Grandfather old wall-paint purchases into the nearest complete room.
+    // Nobody who spent Glimmers before this model changed should have to buy
+    // their way back into an equivalent atmosphere.
+    if (s.ownedStyles.contains('wall_sage')) {
+      s.ownedStyles.add('wall_conservatory');
+    }
+    if (s.ownedStyles.any(
+      const {'wall_plum', 'wall_indigo', 'wall_berry'}.contains,
+    )) {
+      s.ownedStyles.add('wall_archive');
+    }
+    if (isSpaceThemeId(savedWall)) {
+      s.wallStyle = savedWall;
+    } else if (savedWall == 'wall_sage') {
+      s.wallStyle = 'wall_conservatory';
+      s.ownedStyles.add('wall_conservatory');
+    } else if (const {
+      'wall_plum',
+      'wall_indigo',
+      'wall_berry',
+    }.contains(savedWall)) {
+      s.wallStyle = 'wall_archive';
+      s.ownedStyles.add('wall_archive');
+    } else {
+      s.wallStyle = 'wall_walnut';
+    }
     s.floorStyle = j['floorStyle'] as String? ?? 'floor_oak';
     s.ownedSkins.addAll(((j['ownedSkins'] as List?) ?? const []).cast());
     s.creatureSkin = j['creatureSkin'] as String? ?? 'ember_amber';
@@ -1345,6 +1416,17 @@ class GameState extends ChangeNotifier {
     s.equippedSkin = j['equippedSkin'] as String?;
     s.seenEvidence.addAll(((j['seenEvidence'] as List?) ?? const []).cast());
     s.canvasTheme = j['canvasTheme'] as String? ?? 'walnut';
+    final savedDesk = j['questDeskStyle'] as String? ?? 'wall_walnut';
+    s.questDeskStyle = switch (savedDesk) {
+      'wall_sage' => 'wall_conservatory',
+      'wall_plum' || 'wall_indigo' || 'wall_berry' => 'wall_archive',
+      _ when isSpaceThemeId(savedDesk) => savedDesk,
+      _ => 'wall_walnut',
+    };
+    if (s.questDeskStyle != 'wall_walnut' &&
+        !s.ownedStyles.contains(s.questDeskStyle)) {
+      s.questDeskStyle = 'wall_walnut';
+    }
     s.unlockedAchievements.addAll(
       ((j['unlockedAchievements'] as List?) ?? const []).cast(),
     );

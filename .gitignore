@@ -37,6 +37,8 @@ migrate_working_dir/
 /coverage/
 .playwright-cli/
 /output/
+/tmp/
+test/failures/
 
 # Symbolication related
 app.*.symbols

@@ -3,7 +3,7 @@ import '../tokens.dart';
 
 const planTomorrowEmber = 'Pick tomorrow’s top three';
 
-/// "Ember of the Day" — a small, fun, today-only bonus quest offered once each
+/// "Today's Bonus" — a small, fun, today-only quest offered once each
 /// day, drawn from a different life domain in rotation (round-38: content must
 /// renew — habit timescales outlast hand-authored content, so a little daily
 /// procedural variety keeps the board fresh). Light by design: a tiny extra

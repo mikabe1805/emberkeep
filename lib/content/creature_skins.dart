@@ -4,7 +4,7 @@ import '../engine.dart';
 import 'achievements.dart';
 
 /// Hearth-flame colours (round-47 creature skins, repurposed round-62 for the
-/// keep) — the colour of the fire in your keep's hearth, the most personal
+/// keep) — the colour of the fire in your space's hearth, the most personal
 /// customization there is. Bought with embers, exclusive (own many, choose
 /// one). [colors] are four warm stops, light → deep; the flame and its
 /// firelight pool take the mid-tone, so a chosen colour warms the whole keep.

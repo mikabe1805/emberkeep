@@ -83,7 +83,7 @@ void main() {
       cabinet.goals.map((m) => m.title),
       contains('Make a room feel calm'),
     );
-    expect(cabinet.hearth.map((m) => m.title), ['First Spark', 'Steady Flame']);
+    expect(cabinet.hearth.map((m) => m.title), ['First Five', 'Double Digits']);
   });
 
   test('identity features survive a save round trip', () {
@@ -195,7 +195,7 @@ void main() {
       MaterialApp(home: WeeklyChronicleScreen(state: state)),
     );
     await tester.pump();
-    expect(find.text('Weekly Chronicle'), findsOneWidget);
+    expect(find.text('Your Week'), findsOneWidget);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -203,7 +203,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('Memory Cabinet'), findsOneWidget);
+    expect(find.text('Keepsakes'), findsOneWidget);
     expect(find.text('First Step'), findsOneWidget);
 
     await tester.pumpWidget(
@@ -212,7 +212,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('Hearth Circle'), findsOneWidget);
+    expect(find.text('Circle'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

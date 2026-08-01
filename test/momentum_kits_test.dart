@@ -140,20 +140,20 @@ void main() {
     );
     await tester.pump();
 
-    await tester.tap(find.text('Low Flame Day'));
+    await tester.tap(find.text('Gentle Mode Day'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
     expect(
-      find.text('How many embers do you truly have?'.toUpperCase()),
+      find.text('How much capacity do you truly have?'.toUpperCase()),
       findsOneWidget,
     );
 
-    await tester.tap(find.text('LIGHT 2 SPARKS'));
+    await tester.tap(find.text('CHOOSE 2 STEPS'));
     await tester.pump();
     expect(added, hasLength(2));
     expect(state.lowFlameActive, isTrue);
     expect(state.lowFlameQuestTitles, added.map((q) => q.title));
-    expect(find.text('2 sparks will carry the day'), findsOneWidget);
+    expect(find.text('2 steps will carry the day'), findsOneWidget);
 
     await tester.tap(find.text('OPEN QUESTS'));
     await tester.pump();

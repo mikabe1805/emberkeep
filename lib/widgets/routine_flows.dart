@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -10,12 +11,16 @@ import '../content/day_planning.dart';
 import '../content/messages.dart';
 import '../engine.dart';
 import '../models.dart';
+import '../storage.dart';
 import '../tokens.dart';
 import 'ember_flame_icon.dart';
 import 'ember_sheet.dart';
 import 'facets.dart';
 import 'glass.dart';
+import 'gold_surface.dart';
 import 'honey_button.dart';
+import 'quick_reflection_sheet.dart';
+import 'routine_ledger.dart';
 
 /// The night routine (round-5): goodnight → animated recap of today's haul
 /// (XP up, stats up, goal bars inching toward full) → plan tomorrow (star
@@ -43,17 +48,63 @@ class NightFlow extends StatefulWidget {
 
 class _NightFlowState extends State<NightFlow> {
   int _step = 0;
+  bool _closing = false;
+  bool _showAllFinished = false;
   late final String _line = RewardMessages.night(Random());
 
   /// Lines logged as "not today" this session — shown warm, never red
   /// (AVE-safe: a slip is data, not failure).
   final Set<Quest> _slipped = {};
 
-  void _finish() {
-    widget.state.closeNight(); // stamps the night + arms tomorrow's morning
+  bool get _hasTodayJournalLine {
+    final now = Clock.now();
+    return widget.state.journal.any((note) {
+      final traceDay = note.trace?.day;
+      return traceDay == Days.key(now) || Days.sameDay(note.at, now);
+    });
+  }
+
+  Future<void> _keepNightReflection() async {
+    final s = widget.state;
+    final done = s.history[Days.key(Clock.now())] ?? s.todayQuestTitles.length;
+    final recent = s.todayQuestTitles.take(2).join('  ·  ');
+    final text = await showQuickReflectionSheet(
+      context,
+      title: done > 0 ? 'What made today work?' : 'What is worth carrying?',
+      prompt: done > 0
+          ? 'Keep the condition you may want again—a trick, person, place, '
+                'or way you made the day easier.'
+          : 'A quiet day can still leave one detail worth returning to.',
+      attached: done > 0
+          ? '$done ${done == 1 ? 'thread' : 'threads'}${recent.isEmpty ? '' : '  ·  $recent'}'
+          : 'today’s quiet page',
+    );
+    if (text == null || !mounted) return;
+    s.setJournal([
+      ...s.journal,
+      Note(
+        at: Clock.now(),
+        text: text,
+        context: s.buildTitle,
+        trace: s.todayJournalTrace(widget.quests),
+      ),
+    ]);
     widget.onPersist();
+    Storage.logEvent('night_reflection');
+    setState(() {});
+  }
+
+  Future<void> _finish() async {
+    if (_closing) return;
+    setState(() => _closing = true);
     Sfx.instance.play('streak');
     HapticFeedback.mediumImpact();
+    if (!widget.state.reduceMotion) {
+      await Future<void>.delayed(const Duration(milliseconds: 430));
+    }
+    if (!mounted) return;
+    widget.state.closeNight(); // stamps the night + arms tomorrow's morning
+    widget.onPersist();
     widget.onClose();
   }
 
@@ -61,58 +112,474 @@ class _NightFlowState extends State<NightFlow> {
   /// (round-7: weekday/month-day aware) and events due by tomorrow.
   List<Quest> _tomorrowQuests() {
     final tomorrow = Clock.now().add(const Duration(days: 1));
-    return planningQuestsForDay(widget.quests, tomorrow);
+    return planningQuestsForDay(
+      widget.quests,
+      tomorrow,
+    ).where((quest) => !quest.allDay).toList();
+  }
+
+  List<Quest> _orderedPriorities(List<Quest> quests, DateTime day) {
+    final sourceOrder = <Quest, int>{
+      for (var index = 0; index < quests.length; index++) quests[index]: index,
+    };
+    final chosen = quests.where((quest) => quest.priorityOn(day)).toList()
+      ..sort((a, b) {
+        final byRank = a.priorityRankOn(day).compareTo(b.priorityRankOn(day));
+        if (byRank != 0) return byRank;
+        return sourceOrder[a]!.compareTo(sourceOrder[b]!);
+      });
+    return chosen.take(3).toList();
+  }
+
+  void _normalizePriorityRanks(List<Quest> quests, DateTime day) {
+    final chosen = _orderedPriorities(quests, day);
+    for (var index = 0; index < chosen.length; index++) {
+      chosen[index].priorityRank = index + 1;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return OverlaySurface(
-      child: Container(
-        color: const Color(0xFB100A05), // deepest walnut night — darker, calmer
-        child: SafeArea(
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: AnimatedSwitcher(
-                  duration: Motion.settle,
-                  child: _step == 0 ? _recap(context) : _planner(context),
-                ),
-              ),
-              // back out — winding down isn't a commitment; just dismiss
-              // (the night isn't stamped done, so the moon stays available)
-              Positioned(
-                top: 2,
-                right: 2,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {
-                    Sfx.instance.play('tick');
-                    widget.onClose();
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'NOT YET',
-                          style: Type.label.copyWith(
-                            fontSize: 11,
-                            color: Palette.textLo,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.close,
-                          size: 16,
-                          color: Palette.textLo,
-                        ),
-                      ],
-                    ),
+    final title = _step == 0 ? 'Close the ledger' : 'Mark tomorrow';
+    return RoutineLedgerScaffold(
+      time: RoutineTime.night,
+      title: title,
+      dateLabel: _routineDateLabel(Clock.now()),
+      dismissLabel: 'NOT YET',
+      onDismiss: () {
+        Sfx.instance.play('tick');
+        widget.onClose();
+      },
+      reduceMotion: widget.state.reduceMotion,
+      scrollKey: const ValueKey('recap'),
+      builder: (context, parallax, light, scroll, entrance) {
+        return RoutineLedgerPage(
+          time: RoutineTime.night,
+          parallax: parallax,
+          light: light,
+          scroll: scroll,
+          entrance: entrance,
+          closing: _closing,
+          primaryLabel: _step == 0 ? 'CLOSE THE DAY' : 'KEEP THESE THREE',
+          onPrimary: _step == 0
+              ? _finish
+              : () {
+                  Sfx.instance.play('tick_lift');
+                  HapticFeedback.selectionClick();
+                  setState(() => _step = 0);
+                },
+          secondaryLabel: _step == 0
+              ? (_hasTodayJournalLine ? 'keep another line' : 'keep one line')
+              : 'back to recap',
+          onSecondary: _step == 0
+              ? _keepNightReflection
+              : () {
+                  Sfx.instance.play('tick');
+                  setState(() => _step = 0);
+                },
+          child: AnimatedSwitcher(
+            duration: widget.state.reduceMotion
+                ? Duration.zero
+                : const Duration(milliseconds: 460),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              if (widget.state.reduceMotion) {
+                return FadeTransition(opacity: animation, child: child);
+              }
+              final turn = Tween<double>(
+                begin: -0.13,
+                end: 0,
+              ).animate(animation);
+              return FadeTransition(
+                opacity: animation,
+                child: AnimatedBuilder(
+                  animation: turn,
+                  child: child,
+                  builder: (context, page) => Transform(
+                    alignment: Alignment.centerLeft,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.0012)
+                      ..rotateY(turn.value),
+                    child: page,
                   ),
                 ),
+              );
+            },
+            child: _step == 0 ? _ledgerRecap(context) : _ledgerPlanner(context),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _ledgerRecap(BuildContext context) {
+    final s = widget.state;
+    final today = Clock.now();
+    final done = s.history[Days.key(today)] ?? s.todayQuestTitles.length;
+    final statGains = s.todayStats.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final shownGains = statGains.take(3).toList();
+    final openAllDay = _openAllDay();
+    final risers = _readyToRise();
+    final tomorrow = _tomorrowQuests();
+    final selected = _orderedPriorities(
+      tomorrow,
+      today.add(const Duration(days: 1)),
+    );
+
+    return LayoutBuilder(
+      builder: (context, bounds) {
+        final accessibilityText =
+            MediaQuery.textScalerOf(context).scale(1) > 1.15;
+        final compact = bounds.maxWidth < 300 || accessibilityText;
+        final tomorrowTray = _LedgerTomorrowTray(
+          selected: selected,
+          compact: compact,
+          onTap: () {
+            Sfx.instance.play('tick_warm');
+            HapticFeedback.selectionClick();
+            setState(() => _step = 1);
+          },
+        );
+
+        return SizedBox.expand(
+          key: const ValueKey('ledger-recap'),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: Column(
+                  children: [
+                    LedgerSectionTitle(
+                      label: 'WHAT MOVED',
+                      morning: false,
+                      color: Palette.brassLit.withValues(alpha: 0.76),
+                    ),
+                    SizedBox(height: compact ? 4 : 13),
+                    TweenAnimationBuilder<int>(
+                      tween: IntTween(begin: 0, end: s.todayXp),
+                      duration: s.reduceMotion
+                          ? Duration.zero
+                          : const Duration(milliseconds: 1050),
+                      curve: Curves.easeOutCubic,
+                      builder: (context, value, _) => Text(
+                        '+$value XP',
+                        style: Type.numerals.copyWith(
+                          fontSize: compact ? 34 : 42,
+                          height: 1,
+                          color: Palette.xpLight,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x5AE0A865),
+                              blurRadius: 12,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: compact ? 5 : 12),
+                    if (statGains.isEmpty)
+                      Text(
+                        'the quiet days still count',
+                        style: LedgerType.body.copyWith(
+                          fontSize: 13,
+                          fontStyle: FontStyle.italic,
+                          color: Palette.textLo,
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: compact ? 47 : 58,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            for (
+                              var index = 0;
+                              index < shownGains.length;
+                              index++
+                            ) ...[
+                              Expanded(
+                                child: _LedgerStatGain(
+                                  stat: shownGains[index].key,
+                                  gain: shownGains[index].value,
+                                  morning: false,
+                                  compact: compact,
+                                ),
+                              ),
+                              if (index != shownGains.length - 1)
+                                Container(
+                                  width: 1,
+                                  height: compact ? 33 : 42,
+                                  color: Palette.brass.withValues(alpha: 0.34),
+                                ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    SizedBox(height: compact ? 7 : 14),
+                    LedgerSectionTitle(
+                      label:
+                          '${_ledgerCountWord(done)} THREAD${done == 1 ? '' : 'S'} FINISHED',
+                      morning: false,
+                    ),
+                    SizedBox(height: compact ? 3 : 6),
+                    _FinishedThreadsLedger(
+                      titles: s.todayQuestTitles,
+                      expanded: _showAllFinished,
+                      onExpand: () => setState(() => _showAllFinished = true),
+                      onCollapse: () =>
+                          setState(() => _showAllFinished = false),
+                      compact: compact,
+                    ),
+                    if (risers.isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => _showRisers(context, risers),
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(44, 32),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            foregroundColor: Palette.streak,
+                          ),
+                          icon: const Icon(Icons.trending_up_rounded, size: 14),
+                          label: Text(
+                            '${risers.length} ready to rise',
+                            style: Type.label.copyWith(
+                              fontSize: 10.5,
+                              color: Palette.streak,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      SizedBox(height: compact ? 3 : 6),
+                    if (openAllDay.isNotEmpty) ...[
+                      _AllDayLedgerLine(
+                        quest: openAllDay.first,
+                        xp: s.xpPreview(openAllDay.first),
+                        onHeld: () => _confirmAllDay(openAllDay.first),
+                        onNotToday: () => _logSlip(openAllDay.first),
+                        remaining: openAllDay.length - 1,
+                        compact: compact,
+                      ),
+                      SizedBox(height: compact ? 4 : 10),
+                    ],
+                    if (compact) ...[
+                      const Spacer(),
+                      SizedBox(
+                        height: accessibilityText ? 84 : 92,
+                        child: tomorrowTray,
+                      ),
+                    ],
+                  ],
+                ),
               ),
+              if (!compact)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 126,
+                  child: tomorrowTray,
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _ledgerPlanner(BuildContext context) {
+    final tomorrowDay = Clock.now().add(const Duration(days: 1));
+    final tomorrowKey = Days.key(tomorrowDay);
+    final tomorrow = _tomorrowQuests();
+    final ordered = _orderedPriorities(tomorrow, tomorrowDay);
+    final chosenCount = ordered.length;
+
+    return SizedBox.expand(
+      key: const ValueKey('ledger-planner'),
+      child: Column(
+        children: [
+          LedgerSectionTitle(
+            label: 'KEEP THREE CLOSE · ${chosenCount.clamp(0, 3)}/3',
+            morning: false,
+            color: Palette.brassLit.withValues(alpha: 0.76),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'These become the first page you see tomorrow.',
+            textAlign: TextAlign.center,
+            style: LedgerType.body.copyWith(
+              fontSize: 12.5,
+              height: 1.25,
+              fontStyle: FontStyle.italic,
+              color: Palette.textLo,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: tomorrow.isEmpty
+                ? Center(
+                    child: Text(
+                      'Tomorrow is still open.',
+                      style: LedgerType.body.copyWith(
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: EdgeInsets.zero,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: tomorrow.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
+                    itemBuilder: (context, index) {
+                      final quest = tomorrow[index];
+                      final selected = quest.priorityOn(tomorrowDay);
+                      return _LedgerChoiceRow(
+                        quest: quest,
+                        selected: selected,
+                        rank: selected ? ordered.indexOf(quest) + 1 : null,
+                        onTap: () {
+                          if (!selected && chosenCount >= 3) {
+                            Sfx.instance.play('boing');
+                            HapticFeedback.lightImpact();
+                            return;
+                          }
+                          Sfx.instance.play(selected ? 'tick' : 'tick_warm');
+                          HapticFeedback.selectionClick();
+                          setState(() {
+                            if (selected) {
+                              quest.priority = false;
+                              quest.priorityDay = null;
+                              quest.priorityRank = null;
+                            } else {
+                              quest.priority = false;
+                              quest.priorityDay = tomorrowKey;
+                              quest.priorityRank = chosenCount + 1;
+                            }
+                            _normalizePriorityRanks(tomorrow, tomorrowDay);
+                          });
+                          widget.onPersist();
+                        },
+                      );
+                    },
+                  ),
+          ),
+          const SizedBox(height: 7),
+          TextButton.icon(
+            onPressed: _addTomorrowQuest,
+            style: TextButton.styleFrom(
+              foregroundColor: Palette.xpLight,
+              minimumSize: const Size(44, 38),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 16),
+            label: Text(
+              'ADD A THREAD FOR TOMORROW',
+              style: Type.label.copyWith(
+                fontSize: 10.5,
+                color: Palette.xpLight,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _addTomorrowQuest() async {
+    final quest = await showEmberSheet(
+      context,
+      const EmberSheetConfig(surface: EmberSurface.tomorrow),
+    );
+    if (quest == null || !mounted) return;
+    if (widget.onAdd(quest)) {
+      Sfx.instance.play('streak');
+      HapticFeedback.selectionClick();
+      widget.onPersist();
+      setState(() {});
+    } else {
+      Sfx.instance.play('boing');
+      HapticFeedback.lightImpact();
+    }
+  }
+
+  Future<void> _showRisers(BuildContext context, List<Quest> risers) {
+    return showDialog<void>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Palette.dialogSurface,
+        shape: const FacetedBorder(cut: 14),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Ready to rise', style: Type.display.copyWith(fontSize: 24)),
+              const SizedBox(height: 5),
+              Text(
+                'You have held these long enough to choose a new rung.',
+                style: Type.body.copyWith(fontSize: 13, color: Palette.textLo),
+              ),
+              const SizedBox(height: 14),
+              for (final quest in risers)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        quest.displayTitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.body.copyWith(
+                          fontSize: 14,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                      if (quest.canRise)
+                        Text(
+                          'next · ${quest.ladder![quest.rung + 1]}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.body.copyWith(
+                            fontSize: 12,
+                            color: Palette.streak,
+                          ),
+                        ),
+                      const SizedBox(height: 7),
+                      Row(
+                        children: [
+                          FilledButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                              _rise(quest);
+                            },
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Palette.xp,
+                              foregroundColor: Palette.onHoney,
+                            ),
+                            child: const Text('RISE'),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(dialogContext).pop();
+                              _notYet(quest);
+                            },
+                            child: const Text('NOT YET'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
@@ -158,7 +625,7 @@ class _NightFlowState extends State<NightFlow> {
   Widget _tomorrowHook(GameState s) {
     final hooks = <String>[];
     if (s.streakDays > 0) {
-      hooks.add('keep the fire: day ${s.streakDays + 1} tomorrow');
+      hooks.add('continue the rhythm: day ${s.streakDays + 1} tomorrow');
     }
     Goal? near;
     var bestGap = 1 << 30;
@@ -238,6 +705,7 @@ class _NightFlowState extends State<NightFlow> {
   }
 
   // ── step 1: the day, replayed ─────────────────────────────────────
+  // ignore: unused_element
   Widget _recap(BuildContext context) {
     final s = widget.state;
     final today = Days.key(Clock.now());
@@ -674,7 +1142,7 @@ class _NightFlowState extends State<NightFlow> {
                     builder: (_, v, _) => FacetedMeter(
                       value: v,
                       height: 7,
-                      background: const Color(0x1FF2CD93),
+                      background: Palette.railTrack,
                       color: g.stat.color,
                     ),
                   ),
@@ -742,6 +1210,7 @@ class _NightFlowState extends State<NightFlow> {
   }
 
   // ── step 2: tomorrow, planned ────────────────────────────────────
+  // ignore: unused_element
   Widget _planner(BuildContext context) {
     final tomorrow = _tomorrowQuests();
     final tomorrowDay = Clock.now().add(const Duration(days: 1));
@@ -952,9 +1421,234 @@ class _TomorrowAdderState extends State<_TomorrowAdder> {
 
 /// The morning briefing: greet, lead with the starred MAIN quests, show the
 /// XP on the table, send them off with a clear head.
-class MorningFlow extends StatelessWidget {
+class MorningFlow extends StatefulWidget {
   const MorningFlow({
     super.key,
+    required this.state,
+    required this.quests,
+    required this.onClose,
+  });
+
+  final GameState state;
+  final List<Quest> quests;
+  final VoidCallback onClose;
+
+  @override
+  State<MorningFlow> createState() => _MorningFlowState();
+}
+
+class _MorningFlowState extends State<MorningFlow> {
+  late EnergyWeather _weather;
+  bool _closing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final currentDay = widget.state.energyWeatherDay == Days.key(Clock.now());
+    _weather = currentDay ? widget.state.energyWeather : EnergyWeather.steady;
+  }
+
+  List<Quest> _openQuests(DateTime now) {
+    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    final today = Days.key(now);
+    return [
+      for (final quest in widget.quests)
+        if (quest.snoozedDay != today &&
+            !quest.doneFor(now) &&
+            (quest.isEvent
+                ? !quest.dueDate!.isAfter(endOfToday)
+                : quest.scheduledOn(now)))
+          quest,
+    ];
+  }
+
+  List<Quest> _leadQuests(List<Quest> open, DateTime now) {
+    if (_weather == EnergyWeather.low) {
+      final byTitle = {for (final quest in open) quest.title: quest};
+      final saved = [
+        for (final title in widget.state.lowFlameQuestTitles)
+          if (byTitle[title] case final Quest quest) quest,
+      ];
+      if (saved.isNotEmpty) return saved.take(3).toList();
+      return suggestedLowFlameQuests(open, now);
+    }
+
+    final main =
+        open.where((quest) => quest.priorityOn(now) && !quest.allDay).toList()
+          ..sort((a, b) {
+            final byRank = a
+                .priorityRankOn(now)
+                .compareTo(b.priorityRankOn(now));
+            if (byRank != 0) return byRank;
+            return open.indexOf(a).compareTo(open.indexOf(b));
+          });
+    final side = open
+        .where((quest) => !quest.priorityOn(now) && !quest.allDay)
+        .toList();
+    return [...main, ...side].take(3).toList();
+  }
+
+  void _chooseWeather(EnergyWeather weather, List<Quest> open, DateTime now) {
+    if (_weather == weather) return;
+    Sfx.instance.play(weather == EnergyWeather.low ? 'tick_warm' : 'tick');
+    HapticFeedback.selectionClick();
+    setState(() {
+      _weather = weather;
+      widget.state.setEnergyWeather(weather);
+      if (weather == EnergyWeather.low) {
+        widget.state.setLowFlameQuests(
+          suggestedLowFlameQuests(open, now).map((quest) => quest.title),
+        );
+      }
+    });
+  }
+
+  Future<void> _finish() async {
+    if (_closing) return;
+    setState(() => _closing = true);
+    Sfx.instance.play('tick_lift');
+    HapticFeedback.mediumImpact();
+    if (!widget.state.reduceMotion) {
+      await Future<void>.delayed(const Duration(milliseconds: 430));
+    }
+    if (mounted) widget.onClose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = Clock.now();
+    final open = _openQuests(now);
+    final lead = _leadQuests(open, now);
+    final allDay = open.where((quest) => quest.allDay).length;
+    final nearby = open
+        .where((quest) => !quest.allDay && !lead.contains(quest))
+        .length;
+
+    return RoutineLedgerScaffold(
+      time: RoutineTime.morning,
+      title: 'Open the day',
+      dateLabel: _routineDateLabel(now),
+      dismissLabel: 'LATER',
+      onDismiss: () {
+        Sfx.instance.play('tick');
+        widget.onClose();
+      },
+      reduceMotion: widget.state.reduceMotion,
+      scrollKey: const ValueKey('morning-ledger'),
+      builder: (context, parallax, light, scroll, entrance) {
+        return RoutineLedgerPage(
+          time: RoutineTime.morning,
+          parallax: parallax,
+          light: light,
+          scroll: scroll,
+          entrance: entrance,
+          closing: _closing,
+          primaryLabel: 'OPEN THE DAY',
+          onPrimary: _finish,
+          child: SizedBox.expand(
+            key: const ValueKey('morning-ledger-content'),
+            child: Column(
+              children: [
+                LedgerSectionTitle(
+                  label: _weather == EnergyWeather.low
+                      ? 'YOUR GENTLE THREE'
+                      : 'YOUR THREE',
+                  morning: true,
+                  color: LedgerInk.pageGold,
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  flex: 6,
+                  child: lead.isEmpty
+                      ? _EmptyMorningPage(onOpen: _finish)
+                      : Column(
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: _MorningLeadQuest(
+                                quest: lead.first,
+                                xp: widget.state.xpPreview(lead.first),
+                                onBegin: _finish,
+                                compact: true,
+                              ),
+                            ),
+                            for (var index = 1; index < 3; index++)
+                              Expanded(
+                                flex: 4,
+                                child: _MorningQuestLine(
+                                  quest: index < lead.length
+                                      ? lead[index]
+                                      : null,
+                                  xp: index < lead.length
+                                      ? widget.state.xpPreview(lead[index])
+                                      : null,
+                                  compact: true,
+                                ),
+                              ),
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 23),
+                const LedgerSectionTitle(
+                  label: 'TODAY FEELS',
+                  morning: true,
+                  color: LedgerInk.pageGold,
+                ),
+                const SizedBox(height: 9),
+                Row(
+                  children: [
+                    for (final weather in EnergyWeather.values)
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: weather == EnergyWeather.bright ? 0 : 5,
+                          ),
+                          child: _CapacityLedgerTab(
+                            weather: weather,
+                            selected: _weather == weather,
+                            light: light,
+                            scroll: scroll,
+                            onTap: () => _chooseWeather(weather, open, now),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  _weather == EnergyWeather.low
+                      ? 'A smaller flame is still a flame.'
+                      : 'You can change this anytime.',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: LedgerType.body.copyWith(
+                    fontSize: 12,
+                    height: 1.1,
+                    fontStyle: FontStyle.italic,
+                    color: LedgerInk.quiet,
+                  ),
+                ),
+                const SizedBox(height: 26),
+                _MorningFootnote(
+                  nearby: nearby,
+                  allDay: allDay,
+                  weather: _weather,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Kept temporarily as a behavior reference while the ledger implementation is
+// proven against the routine regression suite.
+// ignore: unused_element
+class _LegacyMorningFlow extends StatelessWidget {
+  const _LegacyMorningFlow({
     required this.state,
     required this.quests,
     required this.onClose,
@@ -1319,6 +2013,1203 @@ class MorningFlow extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _routineDateLabel(DateTime date) {
+  const weekdays = [
+    'MONDAY',
+    'TUESDAY',
+    'WEDNESDAY',
+    'THURSDAY',
+    'FRIDAY',
+    'SATURDAY',
+    'SUNDAY',
+  ];
+  const months = [
+    'JAN',
+    'FEB',
+    'MAR',
+    'APR',
+    'MAY',
+    'JUN',
+    'JUL',
+    'AUG',
+    'SEP',
+    'OCT',
+    'NOV',
+    'DEC',
+  ];
+  return '${weekdays[date.weekday - 1]} · ${months[date.month - 1]} ${date.day}';
+}
+
+String _ledgerCountWord(int count) => switch (count) {
+  0 => 'NO',
+  1 => 'ONE',
+  2 => 'TWO',
+  3 => 'THREE',
+  4 => 'FOUR',
+  5 => 'FIVE',
+  6 => 'SIX',
+  7 => 'SEVEN',
+  8 => 'EIGHT',
+  9 => 'NINE',
+  10 => 'TEN',
+  11 => 'ELEVEN',
+  12 => 'TWELVE',
+  _ => '$count',
+};
+
+class _LedgerStatGain extends StatelessWidget {
+  const _LedgerStatGain({
+    required this.stat,
+    required this.gain,
+    required this.morning,
+    required this.compact,
+  });
+
+  final Stat stat;
+  final int gain;
+  final bool morning;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    // The night source treats the three gains as one engraved brass
+    // instrument. Domain color returns on parchment in the morning, where it
+    // reads like ink rather than three unrelated neon accents.
+    final ink = morning ? stat.color : Palette.brassLit;
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(stat.icon, size: compact ? 24 : 30, color: ink),
+            SizedBox(width: compact ? 6 : 9),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  stat.abbr,
+                  style: Type.label.copyWith(
+                    fontSize: compact ? 9 : 10,
+                    letterSpacing: 1.25,
+                    color: ink,
+                  ),
+                ),
+                Text(
+                  '+$gain',
+                  style: Type.numerals.copyWith(
+                    fontSize: compact ? 15.5 : 19,
+                    height: 1.05,
+                    color: ink,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LedgerThreadLine extends StatelessWidget {
+  const _LedgerThreadLine({
+    required this.title,
+    required this.morning,
+    required this.compact,
+  });
+
+  final String title;
+  final bool morning;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = morning ? LedgerInk.dark : Palette.textMid;
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: compact ? 2 : 5.5),
+      child: Row(
+        children: [
+          Container(
+            width: compact ? 15 : 17,
+            height: compact ? 15 : 17,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: morning
+                  ? const Color(0x0F51653E)
+                  : const Color(0x1810150D),
+              border: Border.all(
+                color: const Color(0xFF879359).withValues(alpha: 0.88),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              Icons.check_rounded,
+              size: compact ? 9.5 : 11,
+              color: const Color(0xFFAAB47A),
+            ),
+          ),
+          SizedBox(width: compact ? 6 : 8),
+          Expanded(
+            child: Text(
+              title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: LedgerType.body.copyWith(
+                fontSize: compact ? 12.5 : 15.5,
+                height: 1.08,
+                fontWeight: FontWeight.w600,
+                color: ink,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FinishedThreadsLedger extends StatelessWidget {
+  const _FinishedThreadsLedger({
+    required this.titles,
+    required this.expanded,
+    required this.onExpand,
+    required this.onCollapse,
+    required this.compact,
+  });
+
+  final List<String> titles;
+  final bool expanded;
+  final VoidCallback onExpand;
+  final VoidCallback onCollapse;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final collapsedCount = 3;
+    final visible = titles.take(collapsedCount).toList();
+    final remaining = titles.length - visible.length;
+    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.15;
+    final height = compact ? (largeText ? 94.0 : 82.0) : 112.0;
+
+    if (titles.isEmpty) {
+      return SizedBox(
+        height: height,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              'Nothing had to be proven today.',
+              style: LedgerType.body.copyWith(
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget moreButton(String label, VoidCallback onPressed) => Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          foregroundColor: Palette.xpLight,
+          minimumSize: const Size(44, 25),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+        child: Text(
+          label,
+          style: LedgerType.body.copyWith(
+            fontSize: compact ? 11.5 : 13,
+            fontWeight: FontWeight.w600,
+            fontStyle: FontStyle.italic,
+            color: Palette.xpLight,
+          ),
+        ),
+      ),
+    );
+
+    return SizedBox(
+      height: height,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 260),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: expanded
+            ? ListView(
+                key: const ValueKey('all-finished-threads'),
+                padding: EdgeInsets.zero,
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  for (final title in titles)
+                    _LedgerThreadLine(
+                      title: title,
+                      morning: false,
+                      compact: compact,
+                    ),
+                  moreButton('show fewer', onCollapse),
+                ],
+              )
+            : Column(
+                key: const ValueKey('finished-thread-summary'),
+                children: [
+                  for (final title in visible)
+                    _LedgerThreadLine(
+                      title: title,
+                      morning: false,
+                      compact: compact,
+                    ),
+                  if (remaining > 0)
+                    moreButton('and $remaining more!', onExpand),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _AllDayLedgerLine extends StatelessWidget {
+  const _AllDayLedgerLine({
+    required this.quest,
+    required this.xp,
+    required this.onHeld,
+    required this.onNotToday,
+    required this.remaining,
+    required this.compact,
+  });
+
+  final Quest quest;
+  final int xp;
+  final VoidCallback onHeld;
+  final VoidCallback onNotToday;
+  final int remaining;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        compact ? 4 : 7,
+        compact ? 5 : 5,
+        compact ? 3 : 5,
+        compact ? 5 : 5,
+      ),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Palette.brass.withValues(alpha: 0.34)),
+          bottom: BorderSide(color: Palette.brass.withValues(alpha: 0.34)),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, bounds) {
+          final questCopy = Row(
+            children: [
+              const Icon(
+                Icons.nightlight_round,
+                size: 19,
+                color: Color(0xFFD6C38C),
+              ),
+              SizedBox(width: compact ? 6 : 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      compact ? 'ALL-DAY LINE' : 'ALL-DAY LINE · +$xp XP',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.label.copyWith(
+                        fontSize: compact ? 8 : 9,
+                        letterSpacing: 1.0,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                    Text(
+                      quest.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: LedgerType.body.copyWith(
+                        fontSize: compact ? 11.5 : 14,
+                        height: 1.05,
+                        fontWeight: FontWeight.w600,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                    if (remaining > 0)
+                      Text(
+                        '$remaining more tonight',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.label.copyWith(
+                          fontSize: 8.5,
+                          color: Palette.textLo,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          );
+          final actions = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _LedgerMiniAction(label: 'HELD', onTap: onHeld, warm: true),
+              const SizedBox(width: 3),
+              _LedgerMiniAction(label: 'NOT TODAY', onTap: onNotToday),
+            ],
+          );
+          if (bounds.maxWidth < 235) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                questCopy,
+                const SizedBox(height: 4),
+                Align(alignment: Alignment.centerRight, child: actions),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: questCopy),
+              const SizedBox(width: 5),
+              actions,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LedgerMiniAction extends StatelessWidget {
+  const _LedgerMiniAction({
+    required this.label,
+    required this.onTap,
+    this.warm = false,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final bool warm;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const FacetedBorder(cut: 5),
+        child: Container(
+          constraints: BoxConstraints(
+            minHeight: 30,
+            minWidth: label == 'HELD' ? 48 : 72,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 7),
+          alignment: Alignment.center,
+          decoration: ShapeDecoration(
+            color: warm ? const Color(0x1F78834F) : Colors.transparent,
+            shape: FacetedBorder(
+              cut: 5,
+              side: BorderSide(
+                color: warm
+                    ? const Color(0xFF8F9A61).withValues(alpha: 0.82)
+                    : Palette.textLo.withValues(alpha: 0.34),
+              ),
+            ),
+          ),
+          child: Text(
+            label,
+            style: Type.label.copyWith(
+              fontSize: 9,
+              letterSpacing: 0.4,
+              color: warm ? const Color(0xFFB9C08A) : Palette.textLo,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LedgerTomorrowTray extends StatelessWidget {
+  const _LedgerTomorrowTray({
+    required this.selected,
+    required this.onTap,
+    required this.compact,
+  });
+
+  final List<Quest> selected;
+  final VoidCallback onTap;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Mark tomorrow, ${selected.length} of 3 priorities selected',
+      child: Material(
+        color: Colors.transparent,
+        child: LayoutBuilder(
+          builder: (context, bounds) {
+            final trayHeight = min(
+              bounds.maxHeight * 0.78,
+              bounds.maxWidth / 3.58,
+            );
+            return InkWell(
+              onTap: onTap,
+              customBorder: const FacetedBorder(cut: 8),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    height: trayHeight,
+                    child: Image.asset(
+                      'assets/routine/top-three-tray-v2.webp',
+                      fit: BoxFit.fill,
+                      filterQuality: FilterQuality.high,
+                      excludeFromSemantics: true,
+                    ),
+                  ),
+                  Positioned(
+                    left: bounds.maxWidth * 0.29,
+                    right: bounds.maxWidth * 0.29,
+                    top: trayHeight * 0.035,
+                    height: trayHeight * 0.18,
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'MARK TOMORROW',
+                          style: LedgerType.smallCaps.copyWith(
+                            fontSize: compact ? 9 : 10.5,
+                            letterSpacing: 1.55,
+                            color: Palette.xpLight,
+                            shadows: const [
+                              Shadow(
+                                color: Color(0x78000000),
+                                blurRadius: 1,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 4,
+                    right: 4,
+                    top: trayHeight * 0.24,
+                    height: trayHeight * 0.66,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var index = 0; index < 3; index++)
+                          Expanded(
+                            child: _TomorrowTrayEntry(
+                              index: index + 1,
+                              quest: index < selected.length
+                                  ? selected[index]
+                                  : null,
+                              compact: compact,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  for (
+                    var index = 0;
+                    index < selected.length && index < 3;
+                    index++
+                  )
+                    Positioned(
+                      left:
+                          bounds.maxWidth * ((index + 0.5) / 3) -
+                          (compact ? 11 : 13.5),
+                      top: trayHeight * 0.75,
+                      width: compact ? 22 : 27,
+                      height: compact ? 29 : 36,
+                      child: _PriorityRibbon(index: index),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+String _priorityRibbonAsset(int index) => switch (index) {
+  0 => 'assets/routine/priority-ribbon-plum-v2.webp',
+  1 => 'assets/routine/priority-ribbon-blue-v2.webp',
+  _ => 'assets/routine/priority-ribbon-umber-v2.webp',
+};
+
+class _PriorityRibbon extends StatelessWidget {
+  const _PriorityRibbon({required this.index});
+
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = _priorityRibbonAsset(index);
+    return Stack(
+      fit: StackFit.expand,
+      clipBehavior: Clip.none,
+      children: [
+        Transform.translate(
+          offset: const Offset(0, 1.4),
+          child: Opacity(
+            opacity: 0.52,
+            child: ColorFiltered(
+              colorFilter: const ColorFilter.mode(
+                Color(0xFF090503),
+                BlendMode.srcIn,
+              ),
+              child: Image.asset(
+                asset,
+                fit: BoxFit.fill,
+                filterQuality: FilterQuality.medium,
+                excludeFromSemantics: true,
+              ),
+            ),
+          ),
+        ),
+        Image.asset(
+          asset,
+          fit: BoxFit.fill,
+          filterQuality: FilterQuality.high,
+          excludeFromSemantics: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _TomorrowTrayEntry extends StatelessWidget {
+  const _TomorrowTrayEntry({
+    required this.index,
+    required this.quest,
+    required this.compact,
+  });
+
+  final int index;
+  final Quest? quest;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final chosen = quest != null;
+    final horizontal = compact ? 3.0 : 5.0;
+    return LayoutBuilder(
+      builder: (context, bounds) => Padding(
+        padding: EdgeInsets.symmetric(horizontal: horizontal),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.topCenter,
+          children: [
+            Positioned.fill(
+              child: Column(
+                children: [
+                  Text(
+                    '$index',
+                    style: LedgerType.display.copyWith(
+                      fontSize: compact ? 24 : 30,
+                      height: 0.86,
+                      color: chosen ? Palette.brassLit : Palette.brass,
+                      shadows: const [
+                        Shadow(
+                          color: Color(0x73000000),
+                          blurRadius: 1,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: compact ? 2 : 4),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Text(
+                        chosen ? quest!.displayTitle : 'Choose one',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: LedgerType.body.copyWith(
+                          fontSize: compact ? 9.5 : 12.5,
+                          height: 1.02,
+                          fontWeight: FontWeight.w600,
+                          fontStyle: chosen
+                              ? FontStyle.normal
+                              : FontStyle.italic,
+                          color: chosen ? Palette.textMid : Palette.textLo,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LedgerChoiceRow extends StatelessWidget {
+  const _LedgerChoiceRow({
+    required this.quest,
+    required this.selected,
+    required this.rank,
+    required this.onTap,
+  });
+
+  final Quest quest;
+  final bool selected;
+  final int? rank;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${selected ? 'Unmark' : 'Mark'} ${quest.displayTitle}',
+      child: Material(
+        color: Colors.transparent,
+        shape: const FacetedBorder(cut: 7),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            constraints: const BoxConstraints(minHeight: 50),
+            padding: const EdgeInsets.fromLTRB(9, 6, 8, 6),
+            decoration: ShapeDecoration(
+              color: selected
+                  ? const Color(0x3D8A4E2C)
+                  : const Color(0x1C1B120E),
+              shape: FacetedBorder(
+                cut: 7,
+                side: BorderSide(
+                  color: selected
+                      ? Palette.brassLit.withValues(alpha: 0.62)
+                      : Palette.brass.withValues(alpha: 0.34),
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                _LedgerSelectionSeal(selected: selected, rank: rank),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        quest.displayTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: LedgerType.body.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                      Text(
+                        '${quest.stat.abbr} · ${quest.isEvent ? 'DUE' : quest.schedule.label}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.label.copyWith(
+                          fontSize: 9.5,
+                          color: quest.stat.color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(quest.stat.icon, size: 17, color: quest.stat.color),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LedgerSelectionSeal extends StatelessWidget {
+  const _LedgerSelectionSeal({required this.selected, required this.rank});
+
+  final bool selected;
+  final int? rank;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      width: 29,
+      height: 29,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: selected
+            ? const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFD4AD70),
+                  Color(0xFF996431),
+                  Color(0xFF573418),
+                ],
+              )
+            : null,
+        color: selected ? null : const Color(0x24130D09),
+        border: Border.all(
+          color: selected ? Palette.brassLit : Palette.brass,
+          width: selected ? 1.2 : 0.8,
+        ),
+        boxShadow: selected
+            ? const [
+                BoxShadow(
+                  color: Color(0x4D000000),
+                  blurRadius: 5,
+                  offset: Offset(0, 2),
+                ),
+                BoxShadow(
+                  color: Color(0x24F3DDAE),
+                  blurRadius: 5,
+                  offset: Offset(-1, -1),
+                ),
+              ]
+            : null,
+      ),
+      child: selected
+          ? Center(
+              child: Text(
+                '${rank ?? 1}',
+                style: LedgerType.display.copyWith(
+                  fontSize: 19,
+                  height: 0.9,
+                  color: const Color(0xFF2D1B12),
+                  shadows: const [
+                    Shadow(color: Color(0x64F8DFAE), offset: Offset(0, 1)),
+                  ],
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
+    );
+  }
+}
+
+class _MorningLeadQuest extends StatelessWidget {
+  const _MorningLeadQuest({
+    required this.quest,
+    required this.xp,
+    required this.onBegin,
+    required this.compact,
+  });
+
+  final Quest quest;
+  final int xp;
+  final VoidCallback onBegin;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Begin here, ${quest.displayTitle}',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onBegin,
+          child: Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: compact ? 6 : 11,
+                right: 5,
+                top: 0,
+                bottom: 0,
+                child: Row(
+                  children: [
+                    Icon(
+                      quest.stat.icon,
+                      size: compact ? 24 : 31,
+                      color: LedgerInk.dark.withValues(alpha: 0.88),
+                    ),
+                    SizedBox(width: compact ? 7 : 12),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                '1',
+                                style: LedgerType.display.copyWith(
+                                  fontSize: compact ? 12.5 : 15,
+                                  height: 0.9,
+                                  color: LedgerInk.pageGold,
+                                ),
+                              ),
+                              SizedBox(width: compact ? 4 : 5),
+                              Text(
+                                'BEGIN HERE',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: LedgerType.smallCaps.copyWith(
+                                  fontSize: compact ? 7.5 : 9,
+                                  height: 1,
+                                  letterSpacing: compact ? 1.05 : 1.3,
+                                  color: LedgerInk.pageGold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: compact ? 1 : 2),
+                          Text(
+                            quest.displayTitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: LedgerType.display.copyWith(
+                              fontSize: compact ? 16 : 21,
+                              height: 1.06,
+                              color: LedgerInk.dark,
+                            ),
+                          ),
+                          SizedBox(height: compact ? 2 : 4),
+                          Row(
+                            children: [
+                              Icon(
+                                quest.stat.icon,
+                                size: compact ? 10.5 : 12,
+                                color: quest.stat.color,
+                              ),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  '${quest.stat.abbr} · +$xp XP',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Type.label.copyWith(
+                                    fontSize: compact ? 8.5 : 10,
+                                    color: quest.stat.color,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: compact ? 5 : 10,
+                right: 0,
+                bottom: 0,
+                height: 1,
+                child: ColoredBox(
+                  color: LedgerInk.rule.withValues(alpha: 0.72),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MorningQuestLine extends StatelessWidget {
+  const _MorningQuestLine({
+    required this.quest,
+    required this.xp,
+    required this.compact,
+  });
+
+  final Quest? quest;
+  final int? xp;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(compact ? 6 : 11, 5, compact ? 5 : 9, 5),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: LedgerInk.rule.withValues(alpha: 0.65)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            quest?.stat.icon ?? Icons.bookmark_border_rounded,
+            size: compact ? 23 : 31,
+            color: quest?.stat.color ?? LedgerInk.quiet,
+          ),
+          SizedBox(width: compact ? 8 : 13),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  quest?.displayTitle ?? 'Leave room for what arrives',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: LedgerType.body.copyWith(
+                    fontSize: compact ? 15 : 19,
+                    height: 1.05,
+                    fontStyle: quest == null
+                        ? FontStyle.italic
+                        : FontStyle.normal,
+                    color: quest == null ? LedgerInk.quiet : LedgerInk.dark,
+                  ),
+                ),
+                if (quest != null) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        quest!.stat.icon,
+                        size: 11,
+                        color: quest!.stat.color,
+                      ),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          '${quest!.stat.abbr} · +$xp XP',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.label.copyWith(
+                            fontSize: compact ? 8.5 : 10,
+                            color: quest!.stat.color,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CapacityLedgerTab extends StatelessWidget {
+  const _CapacityLedgerTab({
+    required this.weather,
+    required this.selected,
+    required this.light,
+    required this.scroll,
+    required this.onTap,
+  });
+
+  final EnergyWeather weather;
+  final bool selected;
+  final ValueListenable<Offset> light;
+  final ValueListenable<double> scroll;
+  final VoidCallback onTap;
+
+  String get _label => switch (weather) {
+    EnergyWeather.low => 'LOW',
+    EnergyWeather.steady => 'STEADY',
+    EnergyWeather.bright => 'BRIGHT',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: 'Today feels $_label',
+      child: Material(
+        color: Colors.transparent,
+        shape: const FacetedBorder(cut: 5),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(
+            height: 48,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 230),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child: selected
+                  ? GoldSurface(
+                      key: ValueKey('selected-${weather.name}'),
+                      cut: 5,
+                      light: light,
+                      scroll: scroll,
+                      glow: false,
+                      textured: true,
+                      child: _CapacityLedgerLabel(
+                        label: _label,
+                        selected: true,
+                      ),
+                    )
+                  : DecoratedBox(
+                      key: ValueKey('idle-${weather.name}'),
+                      decoration: ShapeDecoration(
+                        color: const Color(0x0F7A5735),
+                        shape: FacetedBorder(
+                          cut: 5,
+                          side: BorderSide(color: LedgerInk.rule),
+                        ),
+                      ),
+                      child: _CapacityLedgerLabel(
+                        label: _label,
+                        selected: false,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CapacityLedgerLabel extends StatelessWidget {
+  const _CapacityLedgerLabel({required this.label, required this.selected});
+
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          child: Text(
+            label,
+            style: LedgerType.smallCaps.copyWith(
+              fontSize: 10.5,
+              letterSpacing: 1.1,
+              color: selected ? Palette.onHoney : LedgerInk.mid,
+              shadows: selected
+                  ? const [
+                      Shadow(color: Color(0x73FFE2AE), offset: Offset(0, 1)),
+                    ]
+                  : null,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MorningFootnote extends StatelessWidget {
+  const _MorningFootnote({
+    required this.nearby,
+    required this.allDay,
+    required this.weather,
+  });
+
+  final int nearby;
+  final int allDay;
+  final EnergyWeather weather;
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = <String>[
+      if (weather == EnergyWeather.low) 'these three are sheltered',
+      if (nearby > 0) '$nearby side quest${nearby == 1 ? '' : 's'} waiting',
+      if (nearby == 0 && allDay > 0)
+        '$allDay all-day line${allDay == 1 ? '' : 's'}',
+    ];
+    final copy = parts.isEmpty ? 'The page is yours.' : parts.join(' · ');
+    return Row(
+      children: [
+        const Icon(Icons.group_outlined, size: 18, color: LedgerInk.pageGold),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            copy,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: LedgerType.body.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: LedgerInk.mid,
+            ),
+          ),
+        ),
+        if (nearby > 0)
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 18,
+            color: LedgerInk.pageGold,
+          ),
+      ],
+    );
+  }
+}
+
+class _EmptyMorningPage extends StatelessWidget {
+  const _EmptyMorningPage({required this.onOpen});
+
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onOpen,
+      customBorder: const FacetedBorder(cut: 8),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        alignment: Alignment.center,
+        decoration: const ShapeDecoration(
+          color: Color(0x147A5735),
+          shape: FacetedBorder(
+            cut: 8,
+            side: BorderSide(color: Color(0x4D7A5A36)),
+          ),
+        ),
+        child: Text(
+          'An open page is a real kind of morning.',
+          textAlign: TextAlign.center,
+          style: LedgerType.body.copyWith(
+            fontSize: 14,
+            fontStyle: FontStyle.italic,
+            color: LedgerInk.mid,
           ),
         ),
       ),
