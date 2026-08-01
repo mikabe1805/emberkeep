@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/room_styles.dart';
+import 'package:emberkeep/content/space_themes.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/journal_doc.dart';
 import 'package:emberkeep/main.dart';
@@ -1277,4 +1280,38 @@ void main() {
     expect(loaded, isNotNull);
     expect(loaded!.$1.roomCode, 'AB23CD');
   });
+
+  test(
+    'retired wall paints all grandfather into a room they can still use',
+    () {
+      // Every paid wall style from the old model must land its owner in a real
+      // room. Rose Clay and Amber Limewash previously fell through every branch
+      // and their owners lost 180-200 Glimmers with nothing back.
+      for (final retired in const {
+        'wall_sage': 'wall_conservatory',
+        'wall_clay': 'wall_conservatory',
+        'wall_amber': 'wall_conservatory',
+        'wall_plum': 'wall_archive',
+        'wall_indigo': 'wall_archive',
+        'wall_berry': 'wall_archive',
+      }.entries) {
+        final old = GameState()
+          ..wallStyle = retired.key
+          ..ownedStyles.add(retired.key);
+        final revived = GameState.fromJson(
+          jsonDecode(jsonEncode(old.toJson())),
+        );
+        expect(
+          isSpaceThemeId(revived.wallStyle),
+          isTrue,
+          reason: '${retired.key} left the player on a non-existent room',
+        );
+        expect(
+          revived.ownedStyles,
+          contains(retired.value),
+          reason: '${retired.key} owner was not granted ${retired.value}',
+        );
+      }
+    },
+  );
 }

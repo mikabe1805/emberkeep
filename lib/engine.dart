@@ -1306,7 +1306,14 @@ class GameState extends ChangeNotifier {
     // Grandfather old wall-paint purchases into the nearest complete room.
     // Nobody who spent Glimmers before this model changed should have to buy
     // their way back into an equivalent atmosphere.
-    if (s.ownedStyles.contains('wall_sage')) {
+    // Rose Clay (180) and Amber Limewash (200) are warm earth tones and the
+    // only warm room is the free one, so there was no hue-true landing spot and
+    // they fell through every branch below — their owners lost the purchase
+    // outright, which is exactly what the comment above says must not happen.
+    // Conservatory is the cheaper paid room and worth more than either cost.
+    if (s.ownedStyles.any(
+      const {'wall_sage', 'wall_clay', 'wall_amber'}.contains,
+    )) {
       s.ownedStyles.add('wall_conservatory');
     }
     if (s.ownedStyles.any(
@@ -1316,7 +1323,11 @@ class GameState extends ChangeNotifier {
     }
     if (isSpaceThemeId(savedWall)) {
       s.wallStyle = savedWall;
-    } else if (savedWall == 'wall_sage') {
+    } else if (const {
+      'wall_sage',
+      'wall_clay',
+      'wall_amber',
+    }.contains(savedWall)) {
       s.wallStyle = 'wall_conservatory';
       s.ownedStyles.add('wall_conservatory');
     } else if (const {
