@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../content/achievements.dart';
+import '../haptics.dart';
 import '../tokens.dart';
 import 'ember_flame_icon.dart';
 import 'facets.dart';
@@ -16,11 +18,13 @@ class AchievementToast extends StatefulWidget {
     required this.achievement,
     required this.onDone,
     this.flameHue = emberFlameDefaultHue,
+    this.reduceMotion = false,
   });
 
   final Achievement achievement;
   final VoidCallback onDone;
   final Color flameHue;
+  final bool reduceMotion;
 
   @override
   State<AchievementToast> createState() => _AchievementToastState();
@@ -30,13 +34,11 @@ class _AchievementToastState extends State<AchievementToast>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c =
       AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 2600),
-        )
-        ..addStatusListener((s) {
-          if (s == AnimationStatus.completed) widget.onDone();
-        })
-        ..forward();
+        vsync: this,
+        duration: const Duration(milliseconds: 2600),
+      )..addStatusListener((s) {
+        if (s == AnimationStatus.completed) _finish();
+      });
 
   late final Animation<double> _in = CurvedAnimation(
     parent: _c,
@@ -46,35 +48,66 @@ class _AchievementToastState extends State<AchievementToast>
     parent: _c,
     curve: const Interval(0.88, 1.0, curve: Curves.easeIn),
   );
+  bool _started = false;
+  bool _done = false;
+  Timer? _doneTimer;
+
+  void _finish() {
+    if (_done || !mounted) return;
+    _done = true;
+    widget.onDone();
+  }
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    final still =
+        widget.reduceMotion || MediaQuery.disableAnimationsOf(context);
     Sfx.instance.play('loot');
-    HapticFeedback.mediumImpact();
+    if (still) {
+      Haptics.light();
+    } else {
+      Haptics.success();
+    }
+    if (still) {
+      // Accessibility mode parks the banner in its final readable state. A
+      // wall-clock timer owns teardown so OS animation scaling cannot shorten
+      // or indefinitely extend its reading window.
+      _doneTimer = Timer(const Duration(milliseconds: 2600), _finish);
+    } else {
+      _c.forward();
+    }
   }
 
   @override
   void dispose() {
+    _doneTimer?.cancel();
     _c.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final still =
+        widget.reduceMotion || MediaQuery.disableAnimationsOf(context);
     return Positioned(
       top: MediaQuery.paddingOf(context).top + 10,
       left: 0,
       right: 0,
       child: OverlaySurface(
-        child: IgnorePointer(
-          child: AnimatedBuilder(
-            animation: _c,
-            builder: (context, _) => Opacity(
-              opacity: ((_in.value) * (1 - _out.value)).clamp(0.0, 1.0),
-              child: Transform.translate(
-                offset: Offset(0, -30 * (1 - _in.value)),
-                child: Center(
+        child: Semantics(
+          liveRegion: true,
+          label: 'Achievement unlocked: ${widget.achievement.title}',
+          child: IgnorePointer(
+            child: AnimatedBuilder(
+              animation: _c,
+              builder: (context, _) {
+                final opacity = still
+                    ? 1.0
+                    : ((_in.value) * (1 - _out.value)).clamp(0.0, 1.0);
+                final banner = Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -121,8 +154,17 @@ class _AchievementToastState extends State<AchievementToast>
                       ],
                     ),
                   ),
-                ),
-              ),
+                );
+                return Opacity(
+                  opacity: opacity,
+                  child: still
+                      ? banner
+                      : Transform.translate(
+                          offset: Offset(0, -30 * (1 - _in.value)),
+                          child: banner,
+                        ),
+                );
+              },
             ),
           ),
         ),

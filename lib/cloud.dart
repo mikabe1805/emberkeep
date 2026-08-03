@@ -29,6 +29,11 @@ class CloudSync extends ChangeNotifier {
 
   bool ready = false;
 
+  /// A lightweight anonymous Firebase session may exist for explicitly-used
+  /// social features while backup remains off. This distinction keeps
+  /// visiting and sharing from silently opting a device into cloud saves.
+  bool get socialReady => _uid != null;
+
   /// Firebase initialized successfully, even if this device is intentionally
   /// staying local-only. This lets the UI distinguish an opt-out from offline.
   bool available = false;
@@ -42,6 +47,27 @@ class CloudSync extends ChangeNotifier {
   String? _uid;
   Timer? _debounce;
   Timer? _roomDebounce;
+  bool _savePushHeld = false;
+
+  /// A merge conflict keeps local play available but freezes only save
+  /// mirroring, so a later local mutation cannot overwrite the remote copy.
+  bool get savePushHeld => _savePushHeld;
+
+  void holdSavePushes({bool report = true}) {
+    _savePushHeld = true;
+    _debounce?.cancel();
+    if (report) {
+      status = 'paused · cloud copy kept safe';
+      notifyListeners();
+    }
+  }
+
+  void releaseSavePushes() {
+    if (!_savePushHeld) return;
+    _savePushHeld = false;
+    if (ready) status = _statusForUser();
+    notifyListeners();
+  }
 
   /// Cached signed-in email (null = anonymous). Cached rather than read from
   /// FirebaseAuth live, so the UI can query it safely before Firebase init.
@@ -74,8 +100,8 @@ class CloudSync extends ChangeNotifier {
       final existing = FirebaseAuth.instance.currentUser;
       if (existing != null) {
         _uid = existing.uid;
-        optedIn = true;
-        await prefs.setBool(_cloudEnabledKey, true);
+        optedIn = cloudEnabled || !existing.isAnonymous;
+        if (optedIn) await prefs.setBool(_cloudEnabledKey, true);
       } else if (cloudEnabled) {
         final cred = await FirebaseAuth.instance.signInAnonymously().timeout(
           const Duration(seconds: 8),
@@ -87,7 +113,7 @@ class CloudSync extends ChangeNotifier {
         optedIn = false;
       }
       _refreshAccountEmail();
-      ready = _uid != null;
+      ready = _uid != null && optedIn;
       status = ready ? _statusForUser() : 'off · device only';
     } on TimeoutException {
       status = 'off (offline)';
@@ -135,6 +161,26 @@ class CloudSync extends ChangeNotifier {
     } catch (e) {
       debugPrint('CloudSync enable failed: $e');
       return 'Couldn’t start cloud backup right now.';
+    }
+  }
+
+  /// Creates only the anonymous identity required to own a shared room or
+  /// send a fixed spark. It does not enable save backup or change the person's
+  /// device-only preference.
+  Future<bool> ensureSocialSession() async {
+    if (!available) return false;
+    if (socialReady) return true;
+    try {
+      final cred = await FirebaseAuth.instance.signInAnonymously().timeout(
+        const Duration(seconds: 8),
+      );
+      _uid = cred.user?.uid;
+      _refreshAccountEmail();
+      notifyListeners();
+      return socialReady;
+    } catch (e) {
+      debugPrint('Social session failed: $e');
+      return false;
     }
   }
 
@@ -204,6 +250,9 @@ class CloudSync extends ChangeNotifier {
       await prefs.setBool(_cloudEnabledKey, true);
       optedIn = true;
       _refreshAccountEmail();
+      // The caller still has to pull and adopt this account's save. Keep the
+      // new uid guarded until that read finishes so no local timer can race it.
+      _savePushHeld = true;
       status = _statusForUser();
       notifyListeners();
       return null;
@@ -221,10 +270,10 @@ class CloudSync extends ChangeNotifier {
   /// reaches the account before the uid swaps away.
   Future<void> signOut({bool saveAccount = true}) async {
     _debounce?.cancel();
-    if (saveAccount) {
+    if (saveAccount && !_savePushHeld) {
       try {
         final raw = await Storage.exportRaw();
-        if (raw != null && Storage.isValidSave(raw)) {
+        if (!_savePushHeld && raw != null && Storage.isValidSave(raw)) {
           await _doc.set({
             'data': raw,
             'updatedAt': FieldValue.serverTimestamp(),
@@ -238,6 +287,7 @@ class CloudSync extends ChangeNotifier {
       await FirebaseAuth.instance.signOut();
       final cred = await FirebaseAuth.instance.signInAnonymously();
       _uid = cred.user?.uid;
+      _savePushHeld = false; // fresh uid: no held remote conflict follows it
       _refreshAccountEmail();
       status = _statusForUser();
       notifyListeners();
@@ -270,6 +320,7 @@ class CloudSync extends ChangeNotifier {
       await user.delete();
       final fresh = await FirebaseAuth.instance.signInAnonymously();
       _uid = fresh.user?.uid;
+      _savePushHeld = false;
       _refreshAccountEmail();
       ready = _uid != null;
       status = ready ? _statusForUser() : 'off';
@@ -312,7 +363,7 @@ class CloudSync extends ChangeNotifier {
   /// Schedule a push of the CURRENT save (read at fire time, so rapid
   /// completions collapse into one write).
   void push() {
-    if (!ready) return;
+    if (!ready || _savePushHeld) return;
     _debounce?.cancel();
     _debounce = Timer(const Duration(seconds: 4), _pushNow);
   }
@@ -322,7 +373,7 @@ class CloudSync extends ChangeNotifier {
   /// trap). Fire-and-forget: the OS may suspend us mid-flight, but the
   /// request is at least dispatched.
   void flush() {
-    if (!ready) return;
+    if (!ready || _savePushHeld) return;
     _debounce?.cancel();
     _pushNow();
   }
@@ -334,10 +385,10 @@ class CloudSync extends ChangeNotifier {
   }
 
   Future<void> _pushNow() async {
-    if (!ready) return;
+    if (!ready || _savePushHeld) return;
     try {
       final raw = await Storage.exportRaw();
-      if (raw == null) return;
+      if (raw == null || _savePushHeld) return;
       // NEVER mirror a corrupt/foreign blob — that would overwrite the one
       // good cloud backup with garbage, defeating disaster recovery exactly
       // when it matters.
@@ -355,6 +406,7 @@ class CloudSync extends ChangeNotifier {
         debugPrint('CloudSync: save is ${raw.length}B, over the safe limit');
         return;
       }
+      if (_savePushHeld) return;
       await _doc.set({'data': raw, 'updatedAt': FieldValue.serverTimestamp()});
       lastSynced = DateTime.now();
       status = _statusForUser();
@@ -382,7 +434,7 @@ class CloudSync extends ChangeNotifier {
   /// tap. Saves remain the source of truth; this is a separate, privacy-safe
   /// five-second debounce for Circle presence and room progress only.
   void queueRoomUpdate(Map<String, dynamic> display, {required String? code}) {
-    if (!ready || code == null || code.isEmpty) return;
+    if (!socialReady || code == null || code.isEmpty) return;
     _roomDebounce?.cancel();
     final snapshot = Map<String, dynamic>.from(display);
     _roomDebounce = Timer(
@@ -392,7 +444,7 @@ class CloudSync extends ChangeNotifier {
   }
 
   void flushRoom(Map<String, dynamic> display, {required String? code}) {
-    if (!ready || code == null || code.isEmpty) return;
+    if (!socialReady || code == null || code.isEmpty) return;
     _roomDebounce?.cancel();
     unawaited(shareRoom(Map<String, dynamic>.from(display), code: code));
   }
@@ -405,7 +457,7 @@ class CloudSync extends ChangeNotifier {
     Map<String, dynamic> display, {
     String? code,
   }) async {
-    if (!ready || _uid == null) return null;
+    if (!socialReady || _uid == null) return null;
     final data = {
       ...display,
       'uid': _uid,
@@ -437,7 +489,7 @@ class CloudSync extends ChangeNotifier {
 
   /// Read a shared space by code (case-insensitive). Null = not found / error.
   Future<Map<String, dynamic>?> fetchRoom(String code) async {
-    if (!ready) return null;
+    if (!available) return null;
     final c = code.trim().toUpperCase();
     if (c.isEmpty) return null;
     try {
@@ -454,7 +506,7 @@ class CloudSync extends ChangeNotifier {
 
   /// Take your space down (only your own — the rules enforce it).
   Future<bool> unshareRoom(String code) async {
-    if (!ready || code.isEmpty) return false;
+    if (!socialReady || code.isEmpty) return false;
     try {
       await _rooms.doc(code).delete();
       return true;
@@ -468,7 +520,7 @@ class CloudSync extends ChangeNotifier {
   /// pending spark by sender uid, so one person cannot stack spam; the keeper
   /// must collect it before that sender can kindle them again.
   Future<bool> sendSpark(String code, {String kind = 'kindle'}) async {
-    if (!ready || _uid == null) return false;
+    if (!socialReady || _uid == null) return false;
     const allowed = {'kindle', 'steady', 'cheer'};
     final safeKind = allowed.contains(kind) ? kind : 'kindle';
     try {
@@ -490,7 +542,7 @@ class CloudSync extends ChangeNotifier {
 
   /// Only the owner of [code] may read these under firestore.rules.
   Future<List<Map<String, dynamic>>> fetchSparks(String code) async {
-    if (!ready || _uid == null || code.isEmpty) return const [];
+    if (!socialReady || _uid == null || code.isEmpty) return const [];
     try {
       final snap = await _rooms
           .doc(code.trim().toUpperCase())
@@ -508,7 +560,7 @@ class CloudSync extends ChangeNotifier {
   }
 
   Future<bool> collectSparks(String code, Iterable<String> ids) async {
-    if (!ready || _uid == null || code.isEmpty) return false;
+    if (!socialReady || _uid == null || code.isEmpty) return false;
     try {
       final batch = FirebaseFirestore.instance.batch();
       for (final id in ids.take(20)) {
@@ -552,6 +604,9 @@ class CloudSync extends ChangeNotifier {
 
     try {
       await _doc.delete();
+      // The conflicted copy no longer exists, so an explicit successful reset
+      // may start mirroring the fresh local profile again.
+      _savePushHeld = false;
     } catch (e) {
       fullyErased = false;
       debugPrint('CloudSync save reset failed: $e');

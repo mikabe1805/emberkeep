@@ -23,16 +23,22 @@ import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/main.dart';
 import 'package:emberkeep/models.dart';
+import 'package:emberkeep/screens/journal_entry.dart';
 import 'package:emberkeep/screens/journal_hub.dart';
 import 'package:emberkeep/screens/hearth_circle.dart';
 import 'package:emberkeep/screens/memory_cabinet.dart';
+import 'package:emberkeep/screens/me.dart';
 import 'package:emberkeep/screens/quests.dart';
+import 'package:emberkeep/screens/visit_room.dart';
 import 'package:emberkeep/screens/weekly_chronicle.dart';
+import 'package:emberkeep/social.dart';
 import 'package:emberkeep/storage.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/constellation.dart';
 import 'package:emberkeep/widgets/glass.dart';
 import 'package:emberkeep/widgets/home_room.dart';
+import 'package:emberkeep/widgets/gold_surface.dart';
+import 'package:emberkeep/widgets/luxe_depth.dart';
 import 'package:emberkeep/widgets/onboarding_flow.dart';
 import 'package:emberkeep/widgets/pressable.dart';
 import 'package:emberkeep/widgets/quest_desk.dart';
@@ -142,6 +148,25 @@ Future<void> _precacheRoutineArt(WidgetTester tester) async {
   for (var i = 0; i < 6; i++) {
     await tester.pump(const Duration(milliseconds: 120));
   }
+}
+
+/// Decode the three primary desk plates before comparing their destinations.
+/// Widget-test fake time does not complete image codecs reliably, which made
+/// Goals, Plans, and a fresh Journal look like featureless black screens even
+/// though production resolves the same bundled assets normally.
+Future<void> _precachePageArt(WidgetTester tester) async {
+  const assets = <String>[
+    'assets/pages/goals-desk-v2.webp',
+    'assets/pages/plans-desk-v2.webp',
+    'assets/pages/journal-desk-v2.webp',
+  ];
+  final context = tester.element(find.byType(MaterialApp));
+  await tester.runAsync(() async {
+    for (final asset in assets) {
+      await precacheImage(AssetImage(asset), context);
+    }
+  });
+  await tester.pump(const Duration(milliseconds: 300));
 }
 
 /// Decode the lighter chooser thumbnails before a deterministic capture. The
@@ -573,7 +598,7 @@ void main() {
       Note(
         at: DateTime(2026, 6, 24, 19),
         text: 'A quieter reflection from last month — looking back already.',
-        context: 'Morrowloom',
+        context: 'Room of Days',
       ),
     ]);
     await _shoot(
@@ -684,7 +709,7 @@ void main() {
     });
     await tester.pump(const Duration(milliseconds: 600));
     await _storeShot(tester, 'audit_00_welcome_1290x2796');
-    await tester.tap(find.text('ENTER MORROWLOOM'));
+    await tester.tap(find.text('ENTER ROOM OF DAYS'));
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_01_evening_name_1290x2796');
     await tester.tap(find.text('skip for now'));
@@ -725,6 +750,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 900));
     await _precacheSpaceThemeArt(tester);
+    await _precachePageArt(tester);
 
     _activateDock(tester, Icons.emoji_emotions_outlined);
     await tester.pump(const Duration(milliseconds: 500));
@@ -771,6 +797,111 @@ void main() {
     await tester.tap(find.text('Write a new entry'));
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_14_journal_editor_1290x2796');
+  });
+
+  testWidgets('store screenshot story: Journal Quest doorway', (tester) async {
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+      Sfx.instance.soundEnabled = true;
+    });
+    final now = DateTime(2026, 8, 3, 14);
+    Clock.freeze(now);
+    Sfx.instance.soundEnabled = false;
+    SharedPreferences.setMockInitialValues({});
+
+    final state = GameState()
+      ..onboarded = true
+      ..playerName = 'Alex'
+      ..level = 8
+      ..totalXp = 1260
+      ..totalCompletions = 42
+      ..reduceMotion = true
+      ..soundEnabled = false
+      ..morningDoneDay = Days.key(now)
+      ..weekRecapSeenWeek = Days.key(Days.weekStart(now))
+      ..emberSeenDay = Days.key(now)
+      ..sparkSeenDay = Days.key(now);
+    final journalQuest = Quest(
+      title: 'Name three good things',
+      stat: Stat.intl,
+      difficulty: 2,
+      goalTitle: 'Keep a journal',
+      journalPrompt: const JournalQuestPrompt(
+        starter: 'Three things I’m thankful for:\n',
+        hint: 'A person, place, moment, or tiny detail all count.',
+      ),
+    );
+    final quests = <Quest>[
+      journalQuest,
+      Quest(title: 'Read ten pages', stat: Stat.intl, difficulty: 2),
+      Quest(title: 'Clear one surface', stat: Stat.dis, difficulty: 2),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: Palette.parchment,
+          body: WarmBackground(
+            themeId: state.canvasTheme,
+            tint: Palette.streak,
+            reduceMotion: true,
+            child: QuestsPage(
+              state: state,
+              quests: quests,
+              onRefresh: () => 0,
+              onPersist: () {},
+              onAdd: (quest) {
+                quests.add(quest);
+                return true;
+              },
+              onRemove: quests.remove,
+              onSnapshot: () => '{}',
+              onRestore: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.runAsync(() async {
+      final context = tester.element(find.byType(MaterialApp));
+      await precacheImage(
+        const AssetImage('assets/quest/category-mind-v2.webp'),
+        context,
+      );
+      await precacheImage(
+        const AssetImage('assets/pages/journal-desk-v2.webp'),
+        context,
+      );
+    });
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('Name three good things'), findsOneWidget);
+    expect(find.text('JOURNAL'), findsOneWidget);
+    expect(find.text('OPEN JOURNAL'), findsOneWidget);
+    await _storeShot(tester, '13_journal_quest_1290x2796');
+
+    final journalCard = find.byKey(ValueKey('card-${journalQuest.title}'));
+    final journalAction = find.descendant(
+      of: journalCard,
+      matching: find.byType(Pressable),
+    );
+    tester
+        .widget<Pressable>(journalAction)
+        .onTapUp!
+        .call(tester.getCenter(journalCard));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(JournalEntryScreen), findsOneWidget);
+    expect(find.text('Name three good things'), findsWidgets);
+    expect(find.text('Three things I’m thankful for:\n'), findsOneWidget);
+    await _storeShot(tester, '13b_journal_quest_entry_1290x2796');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 
   testWidgets('store screenshot story: real production surfaces', (
@@ -904,6 +1035,13 @@ void main() {
         startedDay: '2026-07-14',
       ),
     ]);
+    state.setSpaceProfile(
+      intro:
+          'Building a calmer home, keeping my promises small, and making time '
+          'for the people I love.',
+      goals: {'Build a walking habit', 'Make the apartment feel calm'},
+      shared: false,
+    );
     for (var i = 0; i < 72; i++) {
       if (i % 9 == 4 || i % 13 == 7) continue;
       final day = DateTime(2026, 7, 26).subtract(Duration(days: i));
@@ -954,6 +1092,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
     await _precacheSpaceThemeArt(tester);
+    await _precachePageArt(tester);
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 350)),
     );
@@ -1200,6 +1339,65 @@ void main() {
     );
     await _storeShot(tester, '02b_hearth_circle_1290x2796');
 
+    final friend = GameState()
+      ..playerName = 'Mara'
+      ..level = 21
+      ..totalXp = 5360
+      ..wallStyle = 'wall_conservatory'
+      ..floorStyle = 'floor_maple'
+      ..windowScene = 'rain'
+      ..creatureSkin = 'sunstone'
+      ..reduceMotion = true
+      ..ownedFurniture.addAll({
+        'rug',
+        'plant',
+        'shelf',
+        'picture',
+        'chair',
+        'candles',
+        'garland',
+      });
+    friend.goals.addAll([
+      Goal(
+        title: 'Make mornings feel unhurried',
+        stat: Stat.dis,
+        target: 25,
+        progress: 14,
+      ),
+      Goal(
+        title: 'Grow a small kitchen garden',
+        stat: Stat.vit,
+        target: 25,
+        progress: 9,
+      ),
+    ]);
+    friend.stats[Stat.soc] = 61;
+    friend.stats[Stat.dis] = 55;
+    friend.setSpaceProfile(
+      intro:
+          'I’m making a calmer home, growing things slowly, and leaving room '
+          'for people I love.',
+      goals: {'Make mornings feel unhurried', 'Grow a small kitchen garden'},
+      shared: true,
+    );
+    friend.history[Days.key(Clock.now())] = 2;
+    friend.setEnergyWeather(EnergyWeather.steady);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: VisitRoomScreen(
+          room: roomDisplay(friend),
+          code: 'DAY234',
+          themeId: state.canvasTheme,
+          lively: false,
+          localState: state,
+          onPersist: () {},
+        ),
+      ),
+    );
+    await _storeShot(tester, '02c_visitor_profile_1290x2796');
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
@@ -1277,33 +1475,41 @@ void main() {
       suggestedLowFlameQuests(quests, now).map((q) => q.title),
     );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
-          backgroundColor: Palette.parchment,
-          body: WarmBackground(
-            themeId: state.canvasTheme,
-            tint: Palette.streak,
-            reduceMotion: true,
-            child: QuestsPage(
-              state: state,
-              quests: quests,
-              onRefresh: () => 0,
-              onPersist: () {},
-              onAdd: (q) {
-                quests.add(q);
-                return true;
-              },
-              onRemove: quests.remove,
-              onSnapshot: () => '{}',
-              onRestore: (_) {},
-            ),
+    Widget capacityJourney() => MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Palette.parchment,
+        body: WarmBackground(
+          themeId: state.canvasTheme,
+          tint: Palette.streak,
+          reduceMotion: true,
+          child: QuestsPage(
+            state: state,
+            quests: quests,
+            onRefresh: () => 0,
+            onPersist: () {},
+            onAdd: (q) {
+              quests.add(q);
+              return true;
+            },
+            onRemove: quests.remove,
+            onSnapshot: () => '{}',
+            onRestore: (_) {},
           ),
         ),
       ),
     );
+
+    await tester.pumpWidget(capacityJourney());
     await _storeShot(tester, '01b_low_flame_1290x2796');
+
+    // At wind-down time, Quests grows one quiet, unmistakable door into the
+    // nightly ledger even when the board still has work on it.
+    Clock.freeze(DateTime(2026, 7, 28, 20, 30));
+    state.setEnergyWeather(EnergyWeather.steady);
+    await tester.pumpWidget(capacityJourney());
+    await tester.pump(const Duration(milliseconds: 350));
+    await _storeShot(tester, '01d_evening_close_1290x2796');
 
     showTopThreeWizard(
       tester.element(find.byType(QuestsPage)),
@@ -1405,13 +1611,22 @@ void main() {
     await _precacheRoutineArt(tester);
     await _storeShot(tester, '11_night_close_1290x2796');
 
-    await tester.tap(find.text('keep one line'));
+    await tester.tap(find.text('reflect · optional'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 420));
     await _storeShot(tester, '11b_night_reflection_1290x2796');
     await tester.tap(find.byTooltip('Not now'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 320));
+
+    state.saveNightJournal(
+      const NightJournalData(
+        tomorrowMessage: 'Put the chapter first. The rest can wait.',
+      ),
+      state.todayJournalTrace(quests),
+    );
+    state.finalizeNightJournal(state.todayJournalTrace(quests));
+    state.closeNight();
 
     Clock.reset();
     Clock.freeze(DateTime(2026, 7, 31, 7, 20));
@@ -1425,6 +1640,297 @@ void main() {
     );
     await _precacheRoutineArt(tester);
     await _storeShot(tester, '12_morning_open_1290x2796');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('store screenshot story: arrangeable My Space cards', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    Clock.freeze(DateTime(2026, 8, 3, 16, 20));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+
+    final firstMoment = Note(
+      id: 'space-moment-first',
+      at: DateTime(2026, 7, 29, 19),
+      text: 'Dinner ran long because nobody wanted to leave the table.',
+    );
+    final secondMoment = Note(
+      id: 'space-moment-second',
+      at: DateTime(2026, 8, 2, 11),
+      text: 'Found the first tiny tomato hiding under the leaves.',
+    );
+    final state = GameState()
+      ..onboarded = true
+      ..playerName = 'Mika'
+      ..level = 14
+      ..totalXp = 3180
+      ..streakDays = 8
+      ..reduceMotion = true
+      ..soundEnabled = false
+      ..journal = [firstMoment, secondMoment]
+      ..memoryPins.addAll({firstMoment.id, secondMoment.id});
+    state.goals.addAll([
+      Goal(
+        title: 'Finish the room with care',
+        stat: Stat.foc,
+        target: 20,
+        progress: 14,
+      ),
+      Goal(
+        title: 'Make more time for family dinners',
+        stat: Stat.soc,
+        target: 12,
+        progress: 5,
+      ),
+      Goal(
+        title: 'Keep the little garden alive',
+        stat: Stat.vit,
+        target: 18,
+        progress: 9,
+      ),
+    ]);
+    state.setSpacePage(
+      order: defaultSpaceCardOrder,
+      hidden: const [],
+      intro:
+          'I make things, care for people, and keep trying to notice the days while they are here.',
+      featuredGoalTitles: state.goals.map((goal) => goal.title),
+      seasonText:
+          'Finishing one chapter slowly, keeping the windows open, and letting August be August.',
+      seasonPhotoNoteId: null,
+      shareProfile: false,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: MePage(
+            state: state,
+            quests: const [],
+            onPersist: () {},
+            onAddQuest: (_) => true,
+            onExport: () async => true,
+            onImport: (_) async => true,
+            onReset: () {},
+            onNotifyChanged: () async {},
+            onEnableCloud: () async => null,
+            onLinkAccount: (_, _) async => null,
+            onSignIn: (_, _) async => null,
+            onSignOut: () async {},
+            onDeleteAccount: (_) async => null,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final pageScroll = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('MY SPACE'),
+      360,
+      scrollable: pageScroll,
+    );
+    await tester.pump(const Duration(milliseconds: 250));
+    await _storeShot(tester, '14_my_space_cards_1290x2796');
+
+    await tester.scrollUntilVisible(
+      find.text('THIS SEASON'),
+      300,
+      scrollable: pageScroll,
+    );
+    await tester.pump(const Duration(milliseconds: 250));
+    await _storeShot(tester, '14b_my_space_season_1290x2796');
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('space-page-open-arranger')),
+      -360,
+      scrollable: pageScroll,
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(find.byKey(const ValueKey('space-page-open-arranger')));
+    await tester.pumpAndSettle();
+    await _storeShot(tester, '14c_my_space_arranger_1290x2796');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
+
+  testWidgets('store screenshot story: controlled primary-button light', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 700));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+
+    final states = <({String label, String note, Offset light, double scroll})>[
+      (
+        label: 'PHONE RESTING',
+        note: 'tiny hand motion stays here',
+        light: Offset.zero,
+        scroll: 0,
+      ),
+      (
+        label: 'INTENTIONAL LEFT TILT',
+        note: 'the satin reflection rolls left',
+        light: calmMotionTarget(const Offset(-0.84, 0.16)),
+        scroll: 0,
+      ),
+      (
+        label: 'INTENTIONAL RIGHT TILT',
+        note: 'the same reflection rolls right',
+        light: calmMotionTarget(const Offset(0.84, -0.16)),
+        scroll: 0,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: const Color(0xFF100D0B),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(-0.72, -0.92),
+                radius: 1.2,
+                colors: [
+                  Color(0xFF342416),
+                  Color(0xFF17110D),
+                  Color(0xFF0E0B09),
+                ],
+                stops: [0, 0.44, 1],
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(22, 24, 22, 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'ONE LIGHT · ONE PIECE OF METAL',
+                      style: Type.label.copyWith(
+                        color: Palette.xpLight,
+                        fontSize: 11,
+                        letterSpacing: 1.7,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'The button does not shimmer on its own. It only answers '
+                      'a deliberate tilt or the Quest page moving beneath it.',
+                      style: Type.body.copyWith(
+                        color: Palette.textMid,
+                        fontSize: 14,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    for (final state in states) ...[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              state.label,
+                              style: Type.label.copyWith(
+                                color: Palette.textHi,
+                                fontSize: 10.5,
+                                letterSpacing: 1.25,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            state.note,
+                            style: Type.body.copyWith(
+                              color: Palette.textLo,
+                              fontSize: 10.5,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 7),
+                      SizedBox(
+                        height: 104,
+                        child: GoldSurface(
+                          cut: 10,
+                          light: AlwaysStoppedAnimation(state.light),
+                          scroll: AlwaysStoppedAnimation(state.scroll),
+                          child: const GoldLabel(
+                            text: 'MARK COMPLETE',
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                    ],
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.wb_sunny_outlined,
+                          color: Palette.xpLight,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'The implied candlelight stays fixed above-left; '
+                            'the metal changes angle beneath it.',
+                            style: Type.body.copyWith(
+                              color: Palette.textMid,
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.runAsync(() async {
+      await precacheImage(
+        const AssetImage('assets/quest/luminous-honey-gold-v2.webp'),
+        tester.element(find.byType(MaterialApp)),
+      );
+    });
+    await tester.pump(const Duration(milliseconds: 300));
+    await _storeShot(tester, '15_button_light_angles_1290x2100');
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();

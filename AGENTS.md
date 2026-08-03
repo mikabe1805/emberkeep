@@ -1,9 +1,9 @@
-# Morrowloom — Project Context for AI Agents
+# Room of Days — Project Context for AI Agents
 
 ## Overview
-Morrowloom is a gamified habit-tracker / life-RPG mobile app. "Min-max your real life" — your character sheet IS you. Built with Flutter. Android-first, iOS second; also ships as an installable PWA.
+Room of Days is a gamified habit-tracker / life-RPG mobile app. "Min-max your real life" — your character sheet IS you. Built with Flutter. Android-first, iOS second; also ships as an installable PWA.
 
-**Morrowloom direction (locked):** there is **no companion creature**. The **Morrow Tapestry** remains the app mark and a permanent room object: it grows with level and never unweaves. It is a quiet long-term record, not the narrator, everyday Quest HUD, or the app's claim about a user's future. Ordinary completions visibly feed XP and the six-stat build; the code-painted room carries long-term change. The fireplace stays ambient furniture, never health or progression. Read `../ART-PIPELINE.md` before touching any art.
+**Room of Days direction (locked):** there is **no companion creature**. The public mark is the isometric little room holding the sun. **The Woven Dawn** remains a permanent room object: it grows with level and never unweaves. It is a quiet long-term record, not the narrator, everyday Quest HUD, or the app's claim about a user's future. Ordinary completions visibly feed XP and the six-stat build; the code-painted room carries long-term change. The fireplace stays ambient furniture, never health or progression. Read `../ART-PIPELINE.md` before touching any art.
 
 **Compatibility identifiers (locked):** keep the existing package name, bundle ID `com.mikabe.emberkeep`, Firebase project `emberkeep-5b33b`, serialized field names, Firestore fields, and preference keys unless a deliberate migration is designed and tested. These internal legacy identifiers are not public brand copy.
 

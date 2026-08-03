@@ -11,7 +11,7 @@ import '../content/space_themes.dart';
 import '../tokens.dart';
 import 'facets.dart';
 
-/// Morrowloom's shared flame language: a graphic outer tongue in the purchased
+/// Room of Days' shared flame language: a graphic outer tongue in the purchased
 /// hue rising from a pale, white-hot base. Room hearth, HUD, candles, and shop
 /// swatches all call this painter so the heat model cannot drift again.
 void paintEmberFlame(
@@ -311,26 +311,38 @@ class _RoomGrain {
 /// through to the painter, so the set can land one file at a time.
 class _RoomPlate {
   static final Map<String, ui.Image> _plates = {};
+  static final Map<String, ui.Image> _previews = {};
   static final Map<String, Future<void>> _loading = {};
+  static final Map<String, Future<void>> _previewLoading = {};
 
   /// Bumped when a plate finishes decoding, so live rooms repaint.
   static final ValueNotifier<int> version = ValueNotifier(0);
 
   /// Returns the decoded, already-complete room texture for this identity.
-  static ui.Image? displayOf(String? id) => id == null ? null : _plates[id];
+  static ui.Image? displayOf(String? id, {bool preview = false}) {
+    if (id == null) return null;
+    return preview ? _previews[id] ?? _plates[id] : _plates[id];
+  }
 
-  static void ensure(String? id) {
+  static void ensure(String? id, {bool preview = false}) {
     if (id == null) return;
-    unawaited(preload(id));
+    unawaited(preview ? preloadPreview(id) : preload(id));
   }
 
   static Future<void> preload(String id) =>
       _loading.putIfAbsent(id, () => _load(id));
 
+  static Future<void> preloadPreview(String id) =>
+      _previewLoading.putIfAbsent(id, () => _loadPreview(id));
+
   /// Decodes every plate that exists. Screenshot surfaces await this so a
   /// capture never records the one-frame procedural fallback.
   static Future<void> preloadAll(Iterable<String> ids) async {
     await Future.wait(ids.map(preload), eagerError: false);
+  }
+
+  static Future<void> preloadAllPreviews(Iterable<String> ids) async {
+    await Future.wait(ids.map(preloadPreview), eagerError: false);
   }
 
   static Future<void> _load(String id) async {
@@ -344,6 +356,19 @@ class _RoomPlate {
       version.value++;
     } catch (_) {
       // No plate for this style yet — the painter handles it. Not an error.
+    }
+  }
+
+  static Future<void> _loadPreview(String id) async {
+    try {
+      final theme = spaceThemeById(id);
+      if (theme == null) return;
+      _previews[id] = await _decode(theme.previewAsset);
+      version.value++;
+    } catch (_) {
+      // Chooser previews are optional. Fall back to the complete room instead
+      // of flattening the card into the old procedural placeholder.
+      await preload(id);
     }
   }
 
@@ -372,7 +397,11 @@ const _plateHearth = Offset(0.83, 0.63);
 /// surfaces can await this to avoid recording the one-frame loading fallback.
 Future<void> preloadHomeRoomAssets() async {
   await _RoomGrain.preload();
-  await _RoomPlate.preloadAll(spaceThemes.map((theme) => theme.id));
+  final ids = spaceThemes.map((theme) => theme.id);
+  await Future.wait([
+    _RoomPlate.preloadAll(ids),
+    _RoomPlate.preloadAllPreviews(ids),
+  ]);
 }
 
 /// Prepares one full room before a user moves into it, preventing a procedural
@@ -381,7 +410,7 @@ Future<void> preloadSpaceTheme(String id) => _RoomPlate.preload(id);
 
 /// Legacy hearth-glyph tier mapping retained for compatibility with old visual
 /// tests. The production room no longer maps level to fire size; level belongs
-/// exclusively to the permanent Morrow Tapestry.
+/// exclusively to the permanent Woven Dawn.
 int hearthStageForLevel(int level) {
   if (level >= 34) return 5;
   if (level >= 24) return 4;
@@ -407,6 +436,7 @@ class HomeRoom extends StatefulWidget {
     this.lively = true,
     this.memoryArtifacts = 0,
     this.plateId,
+    this.lightweightPreview = false,
     this.parallax,
   });
 
@@ -420,6 +450,12 @@ class HomeRoom extends StatefulWidget {
   /// on a plated wall style. That is the trade for painted light — plating
   /// every wall×floor pair would be 42 images instead of 7.
   final String? plateId;
+
+  /// Uses the identity's 720 x 480 chooser derivative while retaining the
+  /// exact same intact-camera, moving-light, hearth, and ember treatment as
+  /// the full room. This keeps the chooser responsive without flattening its
+  /// alternate rooms into static thumbnails or decoding three full masters.
+  final bool lightweightPreview;
 
   /// Legacy furniture ids used only by the procedural fallback. Complete room
   /// identities ignore this set because all of their contents are authored.
@@ -494,7 +530,7 @@ class _HomeRoomState extends State<HomeRoom>
   @override
   Widget build(BuildContext context) {
     _RoomGrain.ensure();
-    _RoomPlate.ensure(widget.plateId);
+    _RoomPlate.ensure(widget.plateId, preview: widget.lightweightPreview);
     final lively =
         widget.lively &&
         !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
@@ -547,7 +583,10 @@ class _HomeRoomState extends State<HomeRoom>
                         _RoomGrain.floor,
                         _RoomGrain.tapestry,
                         t,
-                        _RoomPlate.displayOf(widget.plateId),
+                        _RoomPlate.displayOf(
+                          widget.plateId,
+                          preview: widget.lightweightPreview,
+                        ),
                         widget.parallax?.value ?? Offset.zero,
                       ),
                     );
@@ -1035,7 +1074,7 @@ class _RoomPainter extends CustomPainter {
     );
 
     // The plate contains the beautifully painted fire, but a baked flame alone
-    // cannot feel alive. Three very low-opacity tongues from Morrowloom's
+    // cannot feel alive. Three very low-opacity tongues from Room of Days'
     // established flame painter move inside that existing firebox. Screen
     // compositing preserves the authored texture underneath instead of
     // replacing it with a new graphic.
@@ -1468,7 +1507,7 @@ class _RoomPainter extends CustomPainter {
     canvas.restore();
   }
 
-  /// A purpose-built faceted wall bay for the Morrow Tapestry. The textile is
+  /// A purpose-built faceted wall bay for the Woven Dawn. The textile is
   /// a quiet permanent record rather than the room's loudest object. Its small
   /// architectural recess keeps the authored cloth grounded without turning
   /// the whole wall into interface chrome.
@@ -1874,7 +1913,7 @@ class _RoomPainter extends CustomPainter {
   }
 
   void _picture(Canvas canvas, double w, double h) {
-    // The Morrow Tapestry owns the chimney breast. This collected picture
+    // The Woven Dawn owns the chimney breast. This collected picture
     // hangs above the right-side shelf instead of obscuring permanent progress.
     final x = w * 0.815, y = h * 0.16, pw = w * 0.105, ph = h * 0.115;
     final outer = Rect.fromLTWH(x, y, pw, ph);
@@ -3039,7 +3078,7 @@ class _RoomPainter extends CustomPainter {
 
   // a string of warm bulbs draped across the upper wall (sags in the middle)
   void _garland(Canvas canvas, double w, double h) {
-    // Keep the strand in the high wall band so the enlarged Morrow Tapestry
+    // Keep the strand in the high wall band so the enlarged Woven Dawn
     // retains an uninterrupted silhouette on the chimney breast.
     final left = Offset(w * 0.36, h * 0.012);
     final right = Offset(w * 0.97, h * 0.025);

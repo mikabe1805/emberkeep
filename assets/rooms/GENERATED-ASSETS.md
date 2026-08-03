@@ -1,4 +1,4 @@
-# Morrowloom room generated-asset record
+# Room of Days room generated-asset record
 
 Updated: 2026-07-31
 

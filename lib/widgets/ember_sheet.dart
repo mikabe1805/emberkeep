@@ -21,6 +21,7 @@ class EmberSheetConfig {
     this.lockStat = false,
     this.accent,
     this.defaultTitle,
+    this.targetDay,
   });
 
   final EmberSurface surface;
@@ -28,6 +29,10 @@ class EmberSheetConfig {
   /// Pre-fills the quest name — e.g. when turning a journal reflection ("call
   /// Mom") straight into a quest (round-29 notes-with-consequence loop-closer).
   final String? defaultTitle;
+
+  /// Explicit calendar target for a night-ledger "tomorrow". This matters
+  /// after midnight, when tomorrow-after-sleep is the current calendar date.
+  final DateTime? targetDay;
 
   /// Pre-lit life domain. Inside a goal this is the goal's domain.
   final Stat? defaultStat;
@@ -291,7 +296,10 @@ class _EmberSheetState extends State<_EmberSheet> {
 
     if (_isTomorrow) {
       schedule = QuestSchedule.once;
-      dueDate = DateTime(now.year, now.month, now.day + 1);
+      final target = widget.config.targetDay;
+      dueDate = target == null
+          ? DateTime(now.year, now.month, now.day + 1)
+          : DateTime(target.year, target.month, target.day);
     } else {
       switch (_freq) {
         case _Freq.everyDay:
@@ -646,57 +654,101 @@ class _EmberSheetState extends State<_EmberSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text('HOW BIG A LIFT?', style: Type.label.copyWith(fontSize: 11)),
-              const Spacer(),
-              Text(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final textScale = MediaQuery.textScalerOf(context).scale(1);
+              final stack = constraints.maxWidth < 340 || textScale > 1.15;
+              final label = Text(
+                'HOW BIG A LIFT?',
+                style: Type.label.copyWith(fontSize: 11),
+              );
+              final value = Text(
                 '+${_xpFor(_difficulty)} XP each',
                 style: Type.numerals.copyWith(fontSize: 13, color: Palette.xp),
-              ),
-            ],
+              );
+              if (stack) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [label, const SizedBox(height: 3), value],
+                );
+              }
+              return Row(children: [label, const Spacer(), value]);
+            },
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              for (final step in const [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final textScale = MediaQuery.textScalerOf(context).scale(1);
+              final stack = constraints.maxWidth < 300 || textScale > 1.25;
+              const steps = [
                 ('Small', 2),
                 ('A real effort', 4),
                 ('A big push', 7),
-              ])
-                Expanded(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => setState(() => _difficulty = step.$2),
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 6),
-                      padding: const EdgeInsets.symmetric(vertical: 9),
-                      alignment: Alignment.center,
-                      decoration: facetedDecoration(
-                        cut: 8,
-                        color: _difficulty == step.$2
-                            ? Palette.xpLight.withValues(alpha: 0.2)
-                            : Colors.transparent,
-                        borderColor: Palette.xp.withValues(
-                          alpha: _difficulty == step.$2 ? 0.7 : 0.25,
-                        ),
+              ];
+
+              Widget option((String, int) step, {required EdgeInsets margin}) {
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _difficulty = step.$2),
+                  child: Container(
+                    width: double.infinity,
+                    margin: margin,
+                    constraints: const BoxConstraints(minHeight: 50),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                    alignment: Alignment.center,
+                    decoration: facetedDecoration(
+                      cut: 8,
+                      color: _difficulty == step.$2
+                          ? Palette.xpLight.withValues(alpha: 0.2)
+                          : Colors.transparent,
+                      borderColor: Palette.xp.withValues(
+                        alpha: _difficulty == step.$2 ? 0.7 : 0.25,
                       ),
-                      child: Text(
-                        step.$1,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Type.label.copyWith(
-                          fontSize: 10,
-                          color: _difficulty == step.$2
-                              ? Palette.xpLight
-                              : Palette.textLo,
-                        ),
+                    ),
+                    child: Text(
+                      step.$1,
+                      textAlign: TextAlign.center,
+                      style: Type.label.copyWith(
+                        fontSize: 10,
+                        color: _difficulty == step.$2
+                            ? Palette.xpLight
+                            : Palette.textLo,
                       ),
                     ),
                   ),
-                ),
-            ],
+                );
+              }
+
+              if (stack) {
+                return Column(
+                  children: [
+                    for (var i = 0; i < steps.length; i++)
+                      option(
+                        steps[i],
+                        margin: EdgeInsets.only(
+                          bottom: i == steps.length - 1 ? 0 : 6,
+                        ),
+                      ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  for (var i = 0; i < steps.length; i++)
+                    Expanded(
+                      child: option(
+                        steps[i],
+                        margin: EdgeInsets.only(
+                          right: i == steps.length - 1 ? 0 : 6,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
           if (!widget.config.lockStat) ...[
             const SizedBox(height: 14),
@@ -797,8 +849,8 @@ class _EmberSheetState extends State<_EmberSheet> {
               ),
             ),
           _Toggle(
-            label: 'A line I hold all day',
-            sub: 'a "don\'t", checked at night',
+            label: 'Check at day’s end',
+            sub: 'for an all-day goal or boundary',
             value: _allDay,
             color: Palette.unlock,
             enabled: !_timed,

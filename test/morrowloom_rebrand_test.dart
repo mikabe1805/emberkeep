@@ -91,7 +91,7 @@ void main() {
     );
   });
 
-  testWidgets('Morrow Tapestry stays crisp while its woven cord grows', (
+  testWidgets('The Woven Dawn stays crisp while its woven cord grows', (
     tester,
   ) async {
     Future<void> show(int level) => tester.pumpWidget(
@@ -111,7 +111,7 @@ void main() {
 
     await show(1);
     expect(
-      find.bySemanticsLabel('Morrow Tapestry, 12 percent woven'),
+      find.bySemanticsLabel('The Woven Dawn, 12 percent woven'),
       findsOneWidget,
     );
     final images = tester.widgetList<Image>(find.byType(Image)).toList();
@@ -128,7 +128,7 @@ void main() {
 
     await show(34);
     expect(
-      find.bySemanticsLabel('Morrow Tapestry, 100 percent woven'),
+      find.bySemanticsLabel('The Woven Dawn, 100 percent woven'),
       findsOneWidget,
     );
     final completeProgress = tester.widget<SizedBox>(
@@ -162,7 +162,7 @@ void main() {
     );
 
     expect(
-      find.bySemanticsLabel('Morrow Tapestry, 12 percent permanently woven'),
+      find.bySemanticsLabel('The Woven Dawn, 12 percent permanently woven'),
       findsOneWidget,
     );
     final images = tester.widgetList<Image>(find.byType(Image));

@@ -5,8 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'engine.dart';
 import 'clock.dart';
+import 'content/goal_catalog.dart';
 import 'models.dart';
 import 'tokens.dart';
+
+/// The only safe outcomes after comparing a local save with its cloud mirror.
+enum CloudMergeDecision { adoptRemote, pushLocal, hold }
 
 /// Local-first persistence (zero-cost infra): one JSON blob in
 /// shared_preferences (localStorage on web). Graduates to Drift/SQLite in
@@ -17,7 +21,7 @@ abstract final class Storage {
   /// Save-format version. BUMP whenever new persisted fields are added so the
   /// cloud-merge can refuse to adopt an OLDER build's save that would have
   /// silently stripped fields it doesn't know about (bug-hunt §5).
-  static const schema = 16; // anti-grind counters + timeShape + createdDay
+  static const schema = 21; // arrangeable private My Space cards
 
   /// Where an unparseable save is quarantined before a fresh start, so a
   /// corrupt blob is never silently destroyed (it may be hand-recoverable).
@@ -61,6 +65,9 @@ abstract final class Storage {
           for (final q in (j['quests'] as List? ?? const []))
             Quest.fromJson((q as Map).cast<String, dynamic>()),
         ];
+        for (final quest in quests) {
+          enrichLegacyCuratedJournalQuest(quest);
+        }
         return (state, quests);
       } catch (parseErr) {
         // a save existed but is unreadable — preserve it, don't destroy it.
@@ -97,17 +104,61 @@ abstract final class Storage {
     }
   }
 
-  /// Does [raw] decode as a real Morrowloom save? Used to refuse mirroring a
+  /// Does [raw] decode as a real Room of Days save? Used to refuse mirroring a
   /// corrupt/foreign blob to the cloud (same gates as [importRaw]).
   static bool isValidSave(String raw) {
     try {
       final j = (jsonDecode(raw) as Map).cast<String, dynamic>();
       if (j['app'] != _marker) return false;
+      final encodedSchema = j['schema'];
+      if (encodedSchema != null &&
+          (encodedSchema is! int || encodedSchema < 0)) {
+        return false;
+      }
       final state = (j['state'] as Map?)?.cast<String, dynamic>();
-      return state != null && state['stats'] is List;
+      if (state == null || state['stats'] is! List) return false;
+      GameState.fromJson(state);
+      for (final q in (j['quests'] as List? ?? const [])) {
+        Quest.fromJson((q as Map).cast<String, dynamic>());
+      }
+      return true;
     } catch (_) {
       return false;
     }
+  }
+
+  /// Pure last-write-wins decision for the cloud mirror, with schema safety.
+  ///
+  /// A newer remote may be adopted only when its schema is at least as new as
+  /// the local blob's. This deliberately lets two legacy-schema saves merge
+  /// (the adopted one is migrated by the caller), while holding an ambiguous
+  /// newer-remote conflict such as local schema 19 versus remote schema 18.
+  /// Neither side may overwrite an unreadable or future-format save.
+  static CloudMergeDecision decideCloudMerge({
+    required String? localRaw,
+    required String? remoteRaw,
+  }) {
+    if (localRaw == null || !isValidSave(localRaw)) {
+      return CloudMergeDecision.hold;
+    }
+    final localSchema = schemaOf(localRaw);
+    if (localSchema > schema) return CloudMergeDecision.hold;
+
+    if (remoteRaw == null) return CloudMergeDecision.pushLocal;
+    if (!isValidSave(remoteRaw)) return CloudMergeDecision.hold;
+    final remoteSchema = schemaOf(remoteRaw);
+    if (remoteSchema > schema) return CloudMergeDecision.hold;
+
+    final localModified = lastModifiedOf(localRaw);
+    final remoteModified = lastModifiedOf(remoteRaw);
+    if (remoteModified > localModified) {
+      return remoteSchema >= localSchema
+          ? CloudMergeDecision.adoptRemote
+          : CloudMergeDecision.hold;
+    }
+    return localSchema >= remoteSchema
+        ? CloudMergeDecision.pushLocal
+        : CloudMergeDecision.hold;
   }
 
   /// Clears a quarantined corrupt save once the user has dealt with it.
@@ -162,7 +213,7 @@ abstract final class Storage {
       final j = (jsonDecode(raw) as Map).cast<String, dynamic>();
       // gate 1: our marker — rejects {} / {state:{},quests:[]} / foreign JSON
       if (j['app'] != _marker) {
-        debugPrint('Storage.importRaw rejected: not a Morrowloom backup');
+        debugPrint('Storage.importRaw rejected: not a Room of Days backup');
         return false;
       }
       // gate 2: the state must actually carry a save (a real character has

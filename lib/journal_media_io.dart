@@ -22,6 +22,18 @@ Future<String?> _docsPath() async {
 /// the editor say "allow access in Settings" instead of failing silently.
 bool lastPickFailed = false;
 
+Future<String?> _storePicked(XFile x, {int suffix = 0}) async {
+  final base = await _docsPath();
+  if (base == null) return null;
+  final dir = Directory('$base/$_dir');
+  if (!await dir.exists()) await dir.create(recursive: true);
+  final dot = x.name.lastIndexOf('.');
+  final ext = dot >= 0 ? x.name.substring(dot) : '.jpg';
+  final name = 'jimg_${DateTime.now().microsecondsSinceEpoch}_$suffix$ext';
+  await File(x.path).copy('${dir.path}/$name');
+  return name;
+}
+
 /// Pick a photo, copy it into the journal-images dir, return its relative name.
 Future<String?> pick(bool fromCamera) async {
   lastPickFailed = false;
@@ -33,21 +45,42 @@ Future<String?> pick(bool fromCamera) async {
       imageQuality: 82, // keep files small — they live on-device
     );
     if (x == null) return null; // user cancelled — not a failure
-    final base = await _docsPath();
-    if (base == null) {
+    final stored = await _storePicked(x);
+    if (stored == null) {
       lastPickFailed = true;
       return null;
     }
-    final dir = Directory('$base/$_dir');
-    if (!await dir.exists()) await dir.create(recursive: true);
-    final dot = x.name.lastIndexOf('.');
-    final ext = dot >= 0 ? x.name.substring(dot) : '.jpg';
-    final name = 'jimg_${DateTime.now().microsecondsSinceEpoch}$ext';
-    await File(x.path).copy('${dir.path}/$name');
-    return name;
+    return stored;
   } catch (_) {
     lastPickFailed = true;
     return null;
+  }
+}
+
+/// Pick several library photos in one trip and copy them into the journal in
+/// the order the picker returned them. Camera capture remains single-photo.
+Future<List<String>> pickMany() async {
+  lastPickFailed = false;
+  try {
+    final picked = await ImagePicker().pickMultiImage(
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 82,
+    );
+    if (picked.isEmpty) return const [];
+    final stored = <String>[];
+    for (var i = 0; i < picked.length && i < 12; i++) {
+      final name = await _storePicked(picked[i], suffix: i);
+      if (name == null) {
+        lastPickFailed = true;
+        continue;
+      }
+      stored.add(name);
+    }
+    return stored;
+  } catch (_) {
+    lastPickFailed = true;
+    return const [];
   }
 }
 
@@ -104,36 +137,50 @@ class _JournalImage extends StatelessWidget {
   // are device-local, they don't ride the save blob) shouldn't read as a
   // broken app. A warm parchment card that says so plainly, in the app's own
   // voice, keeps a restored journal feeling whole rather than damaged.
-  Widget _missing() => Container(
-    height: 128,
-    alignment: Alignment.center,
-    padding: const EdgeInsets.symmetric(horizontal: 20),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF34281F), Color(0xFF281E17)],
-      ),
-      borderRadius: BorderRadius.circular(14),
-      border: Border.all(color: const Color(0x22FFFFFF)),
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: const [
-        Icon(Icons.photo_outlined, size: 22, color: Color(0xFFB9A488)),
-        SizedBox(height: 8),
-        Text(
-          'This photo stayed on your old device',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 12.5,
-            height: 1.3,
-            color: Color(0xFFB9A488),
-          ),
+  Widget _missing() {
+    final compact = maxHeight < 104;
+    return Container(
+      height: compact ? maxHeight : 128,
+      alignment: Alignment.center,
+      padding: compact
+          ? EdgeInsets.zero
+          : const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF34281F), Color(0xFF281E17)],
         ),
-      ],
-    ),
-  );
+        borderRadius: BorderRadius.circular(compact ? 8 : 14),
+        border: Border.all(color: const Color(0x22FFFFFF)),
+      ),
+      child: compact
+          ? Semantics(
+              label: 'This photo stayed on your old device',
+              child: Icon(
+                Icons.photo_outlined,
+                size: maxHeight < 60 ? 18 : 22,
+                color: const Color(0xFFB9A488),
+              ),
+            )
+          : const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.photo_outlined, size: 22, color: Color(0xFFB9A488)),
+                SizedBox(height: 8),
+                Text(
+                  'This photo stayed on your old device',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    height: 1.3,
+                    color: Color(0xFFB9A488),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

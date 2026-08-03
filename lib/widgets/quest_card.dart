@@ -130,10 +130,14 @@ class _QuestCardState extends State<QuestCard>
   Widget build(BuildContext context) {
     final quest = widget.quest;
     final done = widget.done;
+    final opensJournal = quest.journalPrompt != null;
     final isMain = quest.priorityOn(Clock.now());
     final featured = widget.featured && !done;
     final resolvedFeature = done && _holdResolvedFeature;
     final heroLayout = featured || resolvedFeature;
+    final largePhoneType =
+        MediaQuery.textScalerOf(context).scale(1) >= 1.6 &&
+        MediaQuery.sizeOf(context).width <= 360;
     final still =
         widget.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
@@ -172,10 +176,14 @@ class _QuestCardState extends State<QuestCard>
         child: Pressable(
           enabled: !done,
           semanticLabel:
-              '${quest.displayTitle}, ${done ? 'completed' : '${_difficultyWord(quest.difficulty)}, ${widget.xpPreview} XP'}',
+              '${quest.displayTitle}, ${done
+                  ? 'completed'
+                  : opensJournal
+                  ? 'Open Journal, ${widget.xpPreview} XP'
+                  : '${_difficultyWord(quest.difficulty)}, ${widget.xpPreview} XP'}',
           semanticHint: done
               ? (widget.onManage == null ? null : 'Use Manage to edit')
-              : 'Activate to complete${widget.onManage == null ? '' : '; use Manage to edit'}',
+              : '${opensJournal ? 'Activate to open a dedicated Journal entry' : 'Activate to complete'}${widget.onManage == null ? '' : '; use Manage to edit'}',
           onTapUp: _handleTap,
           onLongPress: widget.onManage,
           shape: const FacetedBorder(cut: 11),
@@ -362,11 +370,12 @@ class _QuestCardState extends State<QuestCard>
                                   ),
                                 ],
                                 const SizedBox(width: 8),
-                                if (done &&
+                                if (!largePhoneType &&
+                                    done &&
                                     widget.onEncore != null &&
                                     _showEncore)
                                   _EncoreButton(onTap: widget.onEncore!)
-                                else
+                                else if (!largePhoneType)
                                   _XpChip(
                                     xp: widget.xpPreview,
                                     dim: done,
@@ -386,6 +395,17 @@ class _QuestCardState extends State<QuestCard>
                             ),
                           ),
                         ),
+                        if (heroLayout && largePhoneType) ...[
+                          const SizedBox(height: 6),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: _XpChip(
+                              xp: widget.xpPreview,
+                              dim: done,
+                              featured: true,
+                            ),
+                          ),
+                        ],
                         if (heroLayout) ...[
                           const SizedBox(height: 10),
                           IgnorePointer(
@@ -403,6 +423,7 @@ class _QuestCardState extends State<QuestCard>
                                       key: const ValueKey(
                                         'quest-complete-plate',
                                       ),
+                                      opensJournal: opensJournal,
                                       lightDirection: widget.lightDirection,
                                       scrollPosition: widget.scrollPosition,
                                       reduceMotion: widget.reduceMotion,
@@ -462,6 +483,8 @@ class _QuestTitleBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chips = <Widget>[
+      if (quest.journalPrompt != null)
+        const _MetaChip(Icons.menu_book_rounded, 'JOURNAL', Palette.xpLight),
       if (quest.workout)
         _MetaChip(Icons.fitness_center_rounded, 'GUIDED', quest.stat.color),
       if (isMain) const _MetaChip(Icons.star_rounded, 'MAIN', Palette.xpLight),
@@ -774,27 +797,32 @@ class _QuestCardGleamPainter extends CustomPainter {
       old.phase != phase || old.light != light;
 }
 
-/// The one surface allowed to own the brightest gold in the everyday board.
+/// The featured Quest's primary action.
 ///
-/// It is the shared [GoldSurface] — the same satin plate as every other primary
-/// action in the app. The previous local recipe ran a 0xFF9B5A1D → 0xFF3B1807
-/// gradient under a modulated texture, which landed at ~0.81 saturation and
-/// read as an orange block instead of physical gold, and it set pale amber
-/// label ink on an amber plate. The approved target engraves the label instead.
+/// Ordinary completion keeps the board's single luminous [GoldSurface]. A
+/// Journal doorway belongs to the book it opens instead: a quieter oxblood
+/// bookplate with aged-brass hardware. That distinction makes the action feel
+/// attached to the Quest card instead of resembling a shop button pasted onto
+/// it, while its depth and clear label keep it unmistakably actionable.
 class _CompleteQuestButton extends StatelessWidget {
   const _CompleteQuestButton({
     super.key,
+    required this.opensJournal,
     required this.lightDirection,
     required this.scrollPosition,
     required this.reduceMotion,
   });
 
+  final bool opensJournal;
   final ValueListenable<Offset>? lightDirection;
   final ValueListenable<double>? scrollPosition;
   final bool reduceMotion;
 
   @override
   Widget build(BuildContext context) {
+    if (opensJournal) {
+      return const _JournalQuestBookplate();
+    }
     return SizedBox(
       height: 48,
       child: GoldSurface(
@@ -804,6 +832,236 @@ class _CompleteQuestButton extends StatelessWidget {
         reduceMotion: reduceMotion,
         child: const GoldLabel(text: 'MARK COMPLETE'),
       ),
+    );
+  }
+}
+
+/// A restrained book-cloth doorway for a Quest-authored Journal page.
+///
+/// This intentionally has no moving reflection. The outer under-lip, inset
+/// double rule, spine-mounted seal and page-edge cue do the physical work, so
+/// the control remains a finished object when motion is parked. Its loose
+/// height allows the label to wrap safely at 2x text size while preserving a
+/// minimum 52 logical-pixel tap target.
+class _JournalQuestBookplate extends StatelessWidget {
+  const _JournalQuestBookplate();
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      key: const ValueKey('journal-quest-bookplate'),
+      constraints: const BoxConstraints(
+        minWidth: 220,
+        maxWidth: 260,
+        minHeight: 52,
+      ),
+      child: DecoratedBox(
+        decoration: facetedDecoration(
+          cut: 9,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF43251E), Color(0xFF2C1916), Color(0xFF170E0C)],
+            stops: [0, 0.48, 1],
+          ),
+          borderColor: const Color(0xFFA07843),
+          borderWidth: 1.15,
+          shadows: const [
+            BoxShadow(
+              color: Color(0xB30A0604),
+              blurRadius: 0,
+              offset: Offset(0, 3),
+            ),
+            BoxShadow(
+              color: Color(0x2E9A6734),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipPath(
+          clipper: const FacetedClipper(cut: 9),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: DecoratedBox(
+                      decoration: facetedDecoration(
+                        cut: 6.5,
+                        color: Colors.transparent,
+                        borderColor: const Color(0x6BC09A61),
+                        borderWidth: 0.65,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const Positioned(
+                left: 48,
+                right: 22,
+                top: 1,
+                child: _BookplateRule(
+                  colors: [
+                    Color(0x00F1D6A1),
+                    Color(0x8AF1D6A1),
+                    Color(0x24F1D6A1),
+                    Color(0x00F1D6A1),
+                  ],
+                ),
+              ),
+              const Positioned(
+                left: 52,
+                right: 24,
+                bottom: 3,
+                child: _BookplateRule(
+                  colors: [
+                    Color(0x006C4527),
+                    Color(0x886C4527),
+                    Color(0x336C4527),
+                    Color(0x006C4527),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 7, 9, 7),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    const _JournalBookSeal(),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'OPEN JOURNAL',
+                        maxLines: 2,
+                        softWrap: true,
+                        overflow: TextOverflow.visible,
+                        textAlign: TextAlign.center,
+                        style: Type.label.copyWith(
+                          fontSize: 12,
+                          height: 1.12,
+                          letterSpacing: 1.45,
+                          color: const Color(0xFFF0D8A8),
+                          shadows: const [
+                            Shadow(
+                              color: Color(0xB30D0806),
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    const _JournalPageEdgeCue(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _JournalBookSeal extends StatelessWidget {
+  const _JournalBookSeal();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.square(
+      dimension: 36,
+      child: DecoratedBox(
+        decoration: facetedDecoration(
+          cut: 6,
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2B1A15), Color(0xFF130C0A)],
+          ),
+          borderColor: const Color(0xFF9D7542),
+          borderWidth: 1,
+          shadows: const [
+            BoxShadow(
+              color: Color(0x8A080503),
+              blurRadius: 0,
+              offset: Offset(1, 2),
+            ),
+          ],
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(3),
+              child: DecoratedBox(
+                decoration: ShapeDecoration(
+                  shape: FacetedBorder(
+                    cut: 3.5,
+                    side: BorderSide(color: Color(0x4DF1D6A1), width: 0.6),
+                  ),
+                ),
+              ),
+            ),
+            const Center(
+              child: Icon(
+                Icons.menu_book_rounded,
+                size: 19,
+                color: Color(0xFFE4BE7E),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JournalPageEdgeCue extends StatelessWidget {
+  const _JournalPageEdgeCue();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 22,
+      height: 30,
+      child: Stack(
+        alignment: Alignment.centerRight,
+        children: [
+          Positioned(
+            left: 1,
+            top: 7,
+            bottom: 7,
+            child: Container(width: 1, color: const Color(0x5CC9A36B)),
+          ),
+          Positioned(
+            left: 4,
+            top: 9,
+            bottom: 9,
+            child: Container(width: 1, color: const Color(0x3DF0D7A1)),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 19,
+            color: Color(0xFFBF935A),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookplateRule extends StatelessWidget {
+  const _BookplateRule({required this.colors});
+
+  final List<Color> colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(gradient: LinearGradient(colors: colors)),
+      child: const SizedBox(height: 1),
     );
   }
 }

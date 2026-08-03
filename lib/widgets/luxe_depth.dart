@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math' show pi, sin;
+import 'dart:math' show pi, pow, sin;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -92,16 +92,21 @@ class LuxeMotionController {
       _sensorRest = Offset.lerp(_sensorRest, reading, 1 / _sensorSamples)!;
       return;
     }
-    _sensorTarget = Offset(
+    final calibrated = Offset(
       ((reading.dx - _sensorRest.dx) / 3.4).clamp(-1.0, 1.0),
       (-(reading.dy - _sensorRest.dy) / 3.4).clamp(-1.0, 1.0),
     );
+    _sensorTarget = Offset.lerp(
+      _sensorTarget,
+      calmMotionTarget(calibrated),
+      0.20,
+    )!;
     _scheduleFrame();
   }
 
   void _onBrowserTilt(Offset target) {
     if (reduceMotion) return;
-    _sensorTarget = target;
+    _sensorTarget = Offset.lerp(_sensorTarget, calmMotionTarget(target), 0.20)!;
     _scheduleFrame();
   }
 
@@ -193,7 +198,7 @@ class LuxeMotionResponse {
 
   ({Offset camera, Offset light}) step(Offset target) {
     camera = Offset.lerp(camera, target, 0.18)!;
-    light = Offset.lerp(light, target, 0.46)!;
+    light = Offset.lerp(light, target, 0.26)!;
     return (camera: camera, light: light);
   }
 
@@ -201,6 +206,19 @@ class LuxeMotionResponse {
     camera = Offset.zero;
     light = Offset.zero;
   }
+}
+
+/// Removes hand tremor and sensor noise before either motion plane sees it.
+/// The radial dead zone keeps a phone that is merely being held still truly
+/// still; the eased outer range then makes an intentional tilt feel gradual
+/// instead of snapping the reflection between tiny readings.
+@visibleForTesting
+Offset calmMotionTarget(Offset input, {double deadZone = 0.12}) {
+  final distance = input.distance.clamp(0.0, 1.0);
+  if (distance <= deadZone || distance == 0) return Offset.zero;
+  final travel = ((distance - deadZone) / (1 - deadZone)).clamp(0.0, 1.0);
+  final eased = pow(travel, 1.35).toDouble();
+  return input / input.distance * eased;
 }
 
 /// Shared cinematic page construction for Goals, Plans, and Journal.

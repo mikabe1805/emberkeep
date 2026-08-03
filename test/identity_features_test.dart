@@ -143,7 +143,11 @@ void main() {
 
       final room = roomDisplay(state);
 
-      expect(room['v'], 2);
+      expect(room['v'], 3);
+      expect(room['profileVisible'], isFalse);
+      expect(room['displayName'], isEmpty);
+      expect(room['about'], isEmpty);
+      expect(room['featuredGoals'], isEmpty);
       expect(room['todayLit'], isTrue);
       expect(room['weather'], 'steady');
       expect(room['focusKind'], 'study');

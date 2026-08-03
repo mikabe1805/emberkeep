@@ -49,8 +49,8 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
           bytes != null &&
           await sharePng(
             bytes.buffer.asUint8List(),
-            'morrowloom-weekly-chronicle.png',
-            '${data.shareText} — Morrowloom',
+            'room-of-days-weekly-chronicle.png',
+            '${data.shareText} — Room of Days',
           );
       if (!mounted) return;
       Sfx.instance.play(ok ? 'streak' : 'boing');
@@ -63,7 +63,7 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
   }
 
   void _copySummary() {
-    Clipboard.setData(ClipboardData(text: '${_data.shareText} — Morrowloom'));
+    Clipboard.setData(ClipboardData(text: '${_data.shareText} — Room of Days'));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
@@ -346,7 +346,7 @@ class _ChronicleCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${state.totalXp} XP OF REAL LIFE · MORROWLOOM',
+                    '${state.totalXp} XP OF REAL LIFE · ROOM OF DAYS',
                     textAlign: TextAlign.center,
                     style: Type.label.copyWith(
                       fontSize: 7.8,
@@ -467,7 +467,7 @@ class _DomainSeal extends StatelessWidget {
         ),
         const SizedBox(height: 3),
         Text(
-          stat?.blurb ?? 'The story begins by showing up once.',
+          stat?.blurb ?? 'Complete a quest to see your leading area here.',
           textAlign: TextAlign.center,
           style: Type.body.copyWith(fontSize: 10.5, color: Palette.textLo),
         ),

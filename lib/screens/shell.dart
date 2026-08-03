@@ -33,6 +33,27 @@ import 'insights.dart';
 import 'me.dart';
 import 'quests.dart';
 
+/// Returns the next occurrence of a reminder's local wall-clock time.
+/// Calendar construction keeps the displayed hour stable across DST changes.
+DateTime nextNightReminderOccurrence(DateTime now, int hour, int minute) {
+  var next = DateTime(now.year, now.month, now.day, hour, minute);
+  if (!next.isAfter(now)) {
+    next = DateTime(now.year, now.month, now.day + 1, hour, minute);
+  }
+  return next;
+}
+
+bool shouldSuppressNextNightReminder({
+  required DateTime now,
+  required int hour,
+  required int minute,
+  required String? nightDoneDay,
+}) {
+  if (nightDoneDay == null) return false;
+  final next = nextNightReminderOccurrence(now, hour, minute);
+  return Days.nightKey(next) == nightDoneDay;
+}
+
 /// App shell: warm candlelit desk, five pages (Me · Quests · Goals · Plans ·
 /// Insights), floating glass nav dock. Owns the GameState + quest list,
 /// persists them locally, and runs day-rollover on launch/resume + at an
@@ -51,7 +72,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   final Set<int> _visitedTabs = {1};
   late final LuxeMotionController _luxeMotion;
   OverlayEntry? _morningOverlay;
+  bool _morningCheckScheduled = false;
+  bool _startupSettled = false;
   Timer? _midnight; // fires at the next local midnight to roll the day over
+  Future<void> _notificationSchedule = Future<void>.value();
 
   /// Bound by QuestsPage so pause-path saves always flush a pending
   /// deferred commit before writing (bug-hunt §1 — observer order alone
@@ -111,6 +135,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       if (s.rollover(q)) setState(() {});
       _armMidnight(); // re-aim at the (possibly new) next midnight
       _maybeMorning();
+      unawaited(_rescheduleNotifications(refreshTimeZone: true));
     } else if (lifecycle == AppLifecycleState.paused ||
         lifecycle == AppLifecycleState.inactive) {
       // flush any in-flight quest completion BEFORE saving — otherwise a
@@ -133,6 +158,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   Future<void> _load() async {
+    // A restore can call _load again while the shell is already mounted. Do
+    // not let a lifecycle resume surface a briefing from the transient local
+    // copy before cloud/restore reconciliation has finished.
+    _startupSettled = false;
     await _loadFromStorage();
     _armMidnight(); // begin the in-app day-rollover clock
     Storage.logEvent('open');
@@ -141,6 +170,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // reinstalled device. (Cloud-disabled path settles near-instantly.)
     await _connectCloud();
     if (!mounted) return;
+    _startupSettled = true;
     _maybeOnboard();
     _maybeMorning();
     _rescheduleNotifications(); // refresh reminders for today (native-only)
@@ -175,39 +205,86 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// overwrite a newer cloud save — the local-only LWW trap. Cloud newer →
   /// adopt it; otherwise push local up. No recursion: a single re-load.
   Future<void> _connectCloud() async {
-    await CloudSync.instance.init();
-    if (!mounted || !CloudSync.instance.ready) return;
-    // the UI is interactive during the pull (up to 8s) — remember how new the
-    // local save was WHEN WE STARTED, so a completion made in those seconds
-    // isn't silently overwritten by the adopted cloud blob
-    final localBefore = _state?.lastModified ?? 0;
-    final res = await CloudSync.instance.pull();
+    final cloud = CloudSync.instance;
+    // Block save pushes for the whole read/compare window. The UI remains
+    // interactive, but no mutation can race ahead and overwrite the copy we
+    // have not inspected yet.
+    cloud.holdSavePushes(report: false);
+    await cloud.init();
+    if (!mounted) return;
+    if (!cloud.ready) {
+      cloud.releaseSavePushes();
+      return;
+    }
+    // The UI is interactive during the pull (up to 8s). Snapshot the actual
+    // blob — including its schema — so a legacy local save can safely compare
+    // with a legacy remote before this build migrates either one.
+    final localRawBefore = await Storage.exportRaw();
+    final localBefore = localRawBefore == null
+        ? 0
+        : Storage.lastModifiedOf(localRawBefore);
+    final res = await cloud.pull();
     // pull FAILED → we don't know the cloud's state; pushing local could
     // clobber a newer unread save. Skip entirely; retry next launch.
-    if (!res.ok) return;
-    // local changed while we were pulling → don't adopt; our newer local wins,
-    // and the push below mirrors it up (recheck next launch handles the rest)
-    if ((_state?.lastModified ?? 0) != localBefore) {
-      CloudSync.instance.push();
+    if (!res.ok) {
+      cloud.holdSavePushes();
       return;
     }
     final cloudRaw = res.data;
-    if (cloudRaw == null) {
-      CloudSync.instance.push();
+    // Local changed while we were pulling → never adopt over that live work.
+    // Flush it to the blob, then push only when the normal schema/readability
+    // gate says doing so cannot destroy a cloud recovery copy.
+    if ((_state?.lastModified ?? 0) != localBefore) {
+      await _saveTail;
+      final liveRaw = await Storage.exportRaw();
+      if (Storage.decideCloudMerge(localRaw: liveRaw, remoteRaw: cloudRaw) ==
+          CloudMergeDecision.pushLocal) {
+        cloud.releaseSavePushes();
+        cloud.push();
+      } else {
+        cloud.holdSavePushes();
+      }
       return;
     }
-    // A non-null unreadable/newer-format remote is not an empty document.
-    // Preserve the only possible recovery copy instead of replacing it.
-    if (!Storage.isValidSave(cloudRaw) ||
-        Storage.schemaOf(cloudRaw) > Storage.schema) {
-      return;
+
+    switch (Storage.decideCloudMerge(
+      localRaw: localRawBefore,
+      remoteRaw: cloudRaw,
+    )) {
+      case CloudMergeDecision.hold:
+        cloud.holdSavePushes();
+        return;
+      case CloudMergeDecision.pushLocal:
+        cloud.releaseSavePushes();
+        cloud.push();
+        return;
+      case CloudMergeDecision.adoptRemote:
+        if (cloudRaw == null || !await Storage.importRaw(cloudRaw)) {
+          cloud.holdSavePushes();
+          return;
+        }
+        await _loadFromStorage();
+        // A same-schema legacy winner (for example 17 ↔ 17) is safe to adopt,
+        // but must be rewritten as this build's schema before it is mirrored.
+        if (Storage.schemaOf(cloudRaw) < Storage.schema) {
+          final state = _state;
+          final quests = _quests;
+          if (state == null || quests == null) {
+            cloud.holdSavePushes();
+            return;
+          }
+          _saveTail = _saveTail.then((_) => Storage.save(state, quests));
+          await _saveTail;
+          final migratedRaw = await Storage.exportRaw();
+          if (migratedRaw == null ||
+              Storage.schemaOf(migratedRaw) != Storage.schema) {
+            cloud.holdSavePushes();
+            return;
+          }
+        }
+        cloud.releaseSavePushes();
+        cloud.push();
     }
-    if (Storage.lastModifiedOf(cloudRaw) > localBefore &&
-        Storage.schemaOf(cloudRaw) >= Storage.schema) {
-      if (!await Storage.importRaw(cloudRaw)) return;
-      await _loadFromStorage();
-    }
-    CloudSync.instance.push(); // safe: we successfully read the cloud state
   }
 
   /// First run: the welcome flow before anything else.
@@ -262,17 +339,31 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   /// Auto-greet: last night was closed out, today hasn't been briefed.
   void _maybeMorning() {
+    if (!_startupSettled || _morningCheckScheduled) return;
+    _morningCheckScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _morningCheckScheduled = false;
       final s = _state;
       final q = _quests;
-      if (!mounted || s == null || q == null) return;
+      if (!mounted || !_startupSettled || s == null || q == null) return;
       if (!s.onboarded) return; // welcome first; morning can wait
-      if (!s.morningPending || _morningOverlay != null) return;
+      // [morningArmed] is persisted separately for old-save migration. Treat
+      // today's completion stamp as authoritative if a restored/cloud copy
+      // ever contains a stale armed bit.
+      final alreadyCompleted = s.morningDoneDay == Days.key(Clock.now());
+      if (alreadyCompleted || !s.morningPending || _morningOverlay != null) {
+        return;
+      }
       late final OverlayEntry e;
       e = OverlayEntry(
         builder: (_) => MorningFlow(
           state: s,
           quests: q,
+          onDismiss: () {
+            e.remove();
+            _morningOverlay = null;
+            if (mounted) setState(() {});
+          },
           onClose: () {
             s.closeMorning(); // disarms the briefing
             _persist();
@@ -464,6 +555,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         if (extra.isNotEmpty) {
           state.setJournal([...state.journal, ...extra]);
         }
+        final mergedIds = {for (final note in state.journal) note.id};
+        if (mergedIds.contains(live.nightDraftNoteId)) {
+          state.nightDraftNoteId = live.nightDraftNoteId;
+        }
+        if (mergedIds.contains(live.pendingMorningNoteId)) {
+          state.pendingMorningNoteId = live.pendingMorningNoteId;
+        }
       }
       _state?.removeListener(_persist);
       state.addListener(_persist);
@@ -507,16 +605,18 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
     final cloudRaw = res.data;
     if (cloudRaw == null) {
+      CloudSync.instance.releaseSavePushes();
       CloudSync.instance.push(); // doc confirmed absent → push first save
     } else if (!Storage.isValidSave(cloudRaw) ||
         Storage.schemaOf(cloudRaw) > Storage.schema ||
         !await Storage.importRaw(cloudRaw)) {
       await CloudSync.instance.signOut(saveAccount: false);
       if (mounted) setState(() {});
-      return 'That account save needs a newer Morrowloom build or is damaged. '
+      return 'That account save needs a newer Room of Days build or is damaged. '
           'Nothing was overwritten.';
     } else {
       await _loadFromStorage(); // adopt the account's keep and progress
+      CloudSync.instance.releaseSavePushes();
       await _rescheduleNotifications();
     }
     if (mounted) setState(() {});
@@ -603,32 +703,67 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   /// (Re)schedule local reminders from the current prefs + dated plans.
   /// No-ops on web (the native plugin isn't compiled there).
-  Future<void> _rescheduleNotifications() async {
+  Future<void> _rescheduleNotifications({bool refreshTimeZone = false}) {
+    _notificationSchedule = _notificationSchedule.then(
+      (_) => _rescheduleNotificationsNow(refreshTimeZone: refreshTimeZone),
+    );
+    return _notificationSchedule;
+  }
+
+  Future<void> _rescheduleNotificationsNow({
+    required bool refreshTimeZone,
+  }) async {
     final s = _state;
     final q = _quests;
     if (s == null || q == null) return;
-    if (!s.notifyEnabled) {
-      await Notifications.cancelAll();
-      return;
+    if (refreshTimeZone) await Notifications.refreshTimeZone();
+    // Restores and system-settings changes can leave a persisted switch on
+    // after notification delivery has become impossible. Verify silently:
+    // only the explicit switches in Me are allowed to request permission.
+    if (Notifications.isSupported &&
+        (s.notifyEnabled || s.nightReminderEnabled)) {
+      final permission = await Notifications.permissionStatus();
+      if (permission == ReminderPermissionStatus.denied) {
+        s.disableRemindersWithoutPermission();
+      }
     }
-    await Notifications.scheduleDailyNudge(s.notifyHour, s.notifyMinute);
     final now = Clock.now();
-    final events = <EventReminder>[
-      for (final quest in q)
-        if (quest.isEvent && quest.dueDate != null && !quest.doneFor(now))
-          EventReminder(
-            when: DateTime(
-              quest.dueDate!.year,
-              quest.dueDate!.month,
-              quest.dueDate!.day,
-              s.notifyHour,
-              s.notifyMinute,
+    if (s.notifyEnabled) {
+      await Notifications.scheduleDailyNudge(s.notifyHour, s.notifyMinute);
+      final events = <EventReminder>[
+        for (final quest in q)
+          if (quest.isEvent && quest.dueDate != null && !quest.doneFor(now))
+            EventReminder(
+              when: DateTime(
+                quest.dueDate!.year,
+                quest.dueDate!.month,
+                quest.dueDate!.day,
+                s.notifyHour,
+                s.notifyMinute,
+              ),
+              title: 'Today: ${quest.displayTitle}',
+              body: 'A plan you set is due.',
             ),
-            title: 'Today: ${quest.displayTitle}',
-            body: 'A plan you set is due.',
-          ),
-    ];
-    await Notifications.scheduleEvents(events);
+      ];
+      await Notifications.scheduleEvents(events);
+    } else {
+      await Notifications.cancelDailyNudge();
+      await Notifications.cancelEvents();
+    }
+    if (s.nightReminderEnabled) {
+      await Notifications.scheduleNightRoutine(
+        s.nightReminderHour,
+        s.nightReminderMinute,
+        skipNext: shouldSuppressNextNightReminder(
+          now: now,
+          hour: s.nightReminderHour,
+          minute: s.nightReminderMinute,
+          nightDoneDay: s.nightDoneDay,
+        ),
+      );
+    } else {
+      await Notifications.cancelNightRoutine();
+    }
   }
 
   void _selectTab(int i) {
@@ -747,6 +882,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                     onRestore: _restoreSnapshot,
                                     onBindFlush: (flush) =>
                                         _flushQuestsCommit = flush,
+                                    onNightClosed: () =>
+                                        unawaited(_rescheduleNotifications()),
                                     parallax: cameraFor(1),
                                     lightDirection: lightFor(1),
                                   )

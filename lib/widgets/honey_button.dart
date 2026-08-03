@@ -65,8 +65,8 @@ class HoneyButton extends StatelessWidget {
             Flexible(
               child: Text(
                 label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+                textAlign: TextAlign.center,
                 style: Type.label.copyWith(
                   fontSize: fontSize,
                   letterSpacing: 1.3,

@@ -6,7 +6,7 @@ import '../platform/install_stub.dart'
 import '../tokens.dart';
 import 'glass.dart';
 
-/// A one-time, dismissible nudge to install Morrowloom to the home screen —
+/// A one-time, dismissible nudge to install Room of Days to the home screen —
 /// the practical "download" on iPhone. Only appears in a mobile browser
 /// tab, never in the installed PWA or native builds. Dismissal is persisted
 /// so it never nags twice (and a rare false-positive stays gone once shut).
@@ -56,8 +56,8 @@ class _InstallHintState extends State<InstallHint> {
             Expanded(
               child: Text(
                 ios
-                    ? 'Keep Morrowloom close — add it to your Home Screen. Tap Share, then “Add to Home Screen.”'
-                    : 'Keep Morrowloom close — add it to your Home Screen from your browser menu: “Add to Home Screen.”',
+                    ? 'Keep Room of Days close — add it to your Home Screen. Tap Share, then “Add to Home Screen.”'
+                    : 'Keep Room of Days close — add it to your Home Screen from your browser menu: “Add to Home Screen.”',
                 style: Type.body.copyWith(fontSize: 12, color: Palette.textMid),
               ),
             ),

@@ -53,8 +53,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   }
 
   void _finish({required bool forge}) {
-    final name = _name.text.trim();
-    widget.state.playerName = name.isEmpty ? null : name;
+    widget.state.setPlayerName(_name.text);
     widget.state.onboarded = true;
     widget.state.timeShape = _shape.name;
     Sfx.instance.play('streak');
@@ -233,7 +232,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         ),
         SizedBox(height: short ? 7 : (compact ? 12 : 22)),
         Text(
-          'Morrowloom',
+          'Room of Days',
           style: Type.display.copyWith(
             fontSize: short ? 27 : (compact ? 31 : 36),
             letterSpacing: 0.6,
@@ -264,7 +263,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ),
         ),
         SizedBox(height: short ? 9 : (compact ? 14 : 28)),
-        _Cta(label: 'ENTER MORROWLOOM', onTap: _next),
+        _Cta(label: 'ENTER ROOM OF DAYS', onTap: _next),
       ],
     );
   }

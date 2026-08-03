@@ -93,7 +93,7 @@ final furniture = <FurnitureItem>[
   FurnitureItem(
     id: 'picture',
     name: 'the woven dawn',
-    blurb: 'The Morrowloom mark, hung where the room can grow around it.',
+    blurb: 'The woven dawn, hung where the room can grow around it.',
     price: 300,
     zone: 'Wall',
     requires: 'goal-getter',

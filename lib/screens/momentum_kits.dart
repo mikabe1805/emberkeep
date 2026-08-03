@@ -65,7 +65,7 @@ class MomentumKitsPage extends StatelessWidget {
             children: [
               const DetailHeader(
                 title: 'Help for Today',
-                subtitle: 'specialized help · the same growing story',
+                subtitle: 'structured help for the day you’re having',
                 accent: Palette.xp,
                 pill: 'OPTIONAL',
               ),
@@ -1126,7 +1126,7 @@ class _SuccessState extends StatelessWidget {
               : alreadyThere
               ? 'This exact kit is already pinned for today. Nothing was duplicated.'
               : added < requested
-              ? 'The rest were already on today’s board, so Morrowloom kept only the new ones.'
+              ? 'Only the new ones were added; the rest were already on today’s board.'
               : 'They are ordinary quests now: same XP, same Glimmers, same build.',
           textAlign: TextAlign.center,
           style: Type.body.copyWith(

@@ -30,6 +30,7 @@ class QuestTemplate {
     this.timerMinutes = 0,
     this.allDay = false,
     this.rising = false,
+    this.journalPrompt,
     this.weekdays = const [],
     this.monthDay,
   });
@@ -43,6 +44,7 @@ class QuestTemplate {
   final int timerMinutes;
   final bool allDay;
   final bool rising;
+  final JournalQuestPrompt? journalPrompt;
 
   /// Default schedule anchors; usually empty (the adopt-time day picker fills
   /// them in for weekly/monthly quests).
@@ -63,6 +65,7 @@ class QuestTemplate {
     goalTitle: goalTitle,
     allDay: allDay,
     rising: rising,
+    journalPrompt: journalPrompt,
     weekdays: weekdays ?? this.weekdays,
     monthDay: monthDay ?? this.monthDay,
   );
@@ -223,16 +226,28 @@ const goalCatalog = <GoalIdea>[
         stat: Stat.intl,
         difficulty: 1,
         ladderHint: 'ONE HONEST SENTENCE COUNTS',
+        journalPrompt: JournalQuestPrompt(
+          starter: 'One honest line about today:\n',
+          hint: 'What feels true about today?',
+        ),
       ),
       QuestTemplate(
         title: 'Name three good things',
         stat: Stat.intl,
         difficulty: 2,
+        journalPrompt: JournalQuestPrompt(
+          starter: 'Three things I’m thankful for:\n',
+          hint: 'A person, place, moment, or tiny detail all count.',
+        ),
       ),
       QuestTemplate(
         title: 'Empty your head before bed',
         stat: Stat.intl,
         difficulty: 2,
+        journalPrompt: JournalQuestPrompt(
+          starter: 'What I want to put down before bed:\n',
+          hint: 'It does not need to be solved here.',
+        ),
       ),
       QuestTemplate(
         title: 'Write it all out',
@@ -240,12 +255,20 @@ const goalCatalog = <GoalIdea>[
         difficulty: 4,
         schedule: QuestSchedule.weekly,
         ladderHint: '~15 MIN · WHATEVER IS HEAVY',
+        journalPrompt: JournalQuestPrompt(
+          starter: 'What feels heavy right now:\n',
+          hint: 'Take as much room as you need.',
+        ),
       ),
       QuestTemplate(
         title: 'Look back on your week',
         stat: Stat.intl,
         difficulty: 3,
         schedule: QuestSchedule.weekly,
+        journalPrompt: JournalQuestPrompt(
+          starter: 'This week, I want to remember:\n',
+          hint: 'What changed, surprised you, or stayed with you?',
+        ),
       ),
     ],
   ),
@@ -550,6 +573,33 @@ const goalCatalog = <GoalIdea>[
     ],
   ),
 ];
+
+/// Restores Journal routing metadata onto a schema-19 Quest that was adopted
+/// from the authored "Keep a journal" catalog before that metadata existed.
+///
+/// This deliberately requires the exact authored Quest title and
+/// `custom == false`. The goal may be absent because Goals also lets someone
+/// adopt one catalog row without adopting its parent goal; when it is present,
+/// it must be the exact authored goal. A hand-forged Quest with similar wording
+/// remains an ordinary Quest.
+bool enrichLegacyCuratedJournalQuest(Quest quest) {
+  if (quest.journalPrompt != null ||
+      quest.custom ||
+      (quest.goalTitle != null && quest.goalTitle != 'Keep a journal')) {
+    return false;
+  }
+  for (final goal in goalCatalog) {
+    if (goal.title != 'Keep a journal') continue;
+    for (final template in goal.quests) {
+      if (template.title != quest.title || template.journalPrompt == null) {
+        continue;
+      }
+      quest.journalPrompt = template.journalPrompt;
+      return true;
+    }
+  }
+  return false;
+}
 
 /// Per-quest research backing (round-19) — keyed by quest title, this powers the
 /// tappable "why this helps" info-dot on catalog quest rows. Claims are warm and

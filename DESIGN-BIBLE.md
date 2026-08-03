@@ -1,8 +1,8 @@
-# Morrowloom — Canonical Design Bible
+# Room of Days — Canonical Design Bible
 
-Status: current visual and interaction canon, 2026-08-01.
+Status: current visual and interaction canon, 2026-08-03.
 
-This file explains both what Morrowloom should look like and why the current
+This file explains both what Room of Days should look like and why the current
 look works. It is the first authority for visual implementation. When an older
 audit, prompt, mock, report, or historical code comment conflicts with it, use
 this order:
@@ -24,7 +24,7 @@ they belong to a light source, material, depth transition, or earned event.
 
 ## The feeling
 
-Morrowloom is a private room at night where real effort becomes visible. It
+Room of Days is a private room at night where real effort becomes visible. It
 should feel intimate, useful, handcrafted, slightly enchanted, and expensive
 in the way a beautiful book, a brass instrument, or a restrained luxury
 product film feels expensive.
@@ -170,7 +170,7 @@ If it does none of these, remove it.
   lower edge.
 - Real backdrop blur is reserved for spatial overlap: fixed hero scenes,
   headers, docks, and content crossing the backdrop.
-- A generic translucent grey card with a drop shadow is not Morrowloom glass.
+- A generic translucent grey card with a drop shadow is not Room of Days glass.
 
 ### Gold and brass
 
@@ -200,7 +200,7 @@ If it does none of these, remove it.
 
 ## Light
 
-Morrowloom has motivated light, not decorative brightness.
+Room of Days has motivated light, not decorative brightness.
 
 - Hearth, candle, lamp, moon, and dawn are legitimate sources.
 - Highlights, cast warmth, and reflection direction should point back to one
@@ -298,7 +298,7 @@ The interface does not sparkle on a timer.
 
 ## Authored art and live UI
 
-Morrowloom deliberately uses a hybrid production model.
+Room of Days deliberately uses a hybrid production model.
 
 Authored raster art owns:
 
@@ -451,6 +451,28 @@ Rules:
   layer may tear, expose neighboring objects, or drift out of perspective.
 - The tapestry remains a literal room object and level record, not everyday
   Quest chrome or a narrator.
+- `My Space` is a person-authored deck beneath the room hero. About, Right now,
+  Pinned moments, and This season may be reordered or hidden in a full-screen
+  arranger without turning the Me page into a generic dashboard.
+- The cards use distinct physical roles: book-cloth introduction, recessed goal
+  plate, Journal shelf, and private seasonal postcard. An empty This season is
+  omitted so an existing save keeps the original three-card rhythm.
+- About holds a short introduction, Right now holds up to three chosen goals,
+  Pinned moments holds up to four Journal pages, and This season holds a short
+  reflection with an optional photo selected from the Journal.
+- A visitor profile is private by default. Publishing it requires an explicit
+  choice; opting in exposes only the chosen name plus any visible About and
+  Right now content. Hiding either eligible card publishes its value empty
+  without erasing the private draft or silently changing consent.
+- Card order, hidden-card state, pinned writing and photo references, and This
+  season never enter the public room document. They remain part of the private
+  save and may follow the save only when optional cloud backup is enabled.
+- Journal writing and photos, Quest details, streak history, and account data
+  never enter a room payload. A six-character room code is a bearer invitation,
+  collection listing stays forbidden, and every visit explains the boundary.
+- A visited room can be kept in the trusted Circle only by an explicit action.
+  Validation, loading, not-found, and retry states remain inside the room-code
+  dialog so the person never waits on a blank screen.
 
 ### Goals
 
@@ -487,6 +509,15 @@ Rules:
   Quest plus the day's XP, domain, goal, build, streak, and energy evidence
   beside the line. The full editor remains available when the person wants a
   page rather than a sentence.
+- An authored Journal Quest opens a dedicated, autosaving Journal page instead
+  of behaving like an ordinary check-off. The Quest and page remain explicitly
+  linked; this is a product behavior, not a guess based on the Quest title.
+- Merely opening or leaving that page empty never completes the Quest and never
+  awards its reward. Meaningful saved writing completes the linked Quest once
+  when the person returns to Quests.
+- Reopening the same Journal Quest on the same day resumes its existing linked
+  page. It must not create duplicate drafts, duplicate entries, or a second
+  completion reward.
 - The night ledger may offer the same one-line door as its quiet secondary
   action. `CLOSE THE DAY` remains primary; writing neither blocks nor closes
   the ritual, and an existing line changes the invitation to `keep another
@@ -626,3 +657,5 @@ procedure.
 - Current Journal and phone-performance audit:
   `design/audits/2026-08-01/journal-performance-audit.md` and
   `design/comparisons/2026-08-01/journal-and-phone-performance-pass.webp`
+- Current pre-TestFlight release audit:
+  `design/audits/2026-08-03/pre-testflight-release-audit.md`

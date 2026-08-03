@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'home_room.dart' show paintEmberFlame;
 
-/// The default Morrowloom fire hue, shared by branded flame marks when no
+/// The default Room of Days fire hue, shared by branded flame marks when no
 /// player-selected hearth colour is available (for example the crash-safe
 /// fallback shown before a save can be read).
 const emberFlameDefaultHue = Color(0xFFEC6007);
 
-/// A compact, static Morrowloom flame mark for semantic icon slots.
+/// A compact, static Room of Days flame mark for semantic icon slots.
 ///
 /// The room hearth, HUD, candles and shop previews use the same
 /// [paintEmberFlame] primitive. This wrapper keeps small achievements, streak

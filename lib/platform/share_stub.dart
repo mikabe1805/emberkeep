@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:ui' show Rect;
 
 import 'package:share_plus/share_plus.dart';
 
@@ -12,6 +13,19 @@ Future<bool> sharePng(Uint8List bytes, String filename, String text) async {
         files: [XFile.fromData(bytes, mimeType: 'image/png', name: filename)],
         text: text,
       ),
+    );
+    return result.status != ShareResultStatus.dismissed;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Hand plain invitation copy to the system share sheet. WhatsApp and any
+/// other installed messaging apps appear naturally without hard-coding one.
+Future<bool> shareText(String text, {Rect? origin}) async {
+  try {
+    final result = await SharePlus.instance.share(
+      ShareParams(text: text, sharePositionOrigin: origin),
     );
     return result.status != ShareResultStatus.dismissed;
   } catch (_) {

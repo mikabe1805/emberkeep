@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 /// Centralized haptics — semantic taps mapped to the iOS Taptic Engine. These
 /// are REAL on a native build and silent no-ops on iOS Safari web (which
-/// blocks the Vibration API) — a core reason Morrowloom wants to go native.
+/// blocks the Vibration API) — a core reason Room of Days wants to go native.
 /// Big moments layer the built-in impacts into a richer, sequenced pattern.
 ///
 /// When [reduceMotion] is true (DESIGN.md: honor reduce-motion), composed

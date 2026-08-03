@@ -2,14 +2,28 @@
 /// native plugin). Selected by default in lib/notifications.dart; the native
 /// impl swaps in when dart:io is available. Mirrors the native public API so
 /// callers never branch on platform.
+enum ReminderPermissionStatus { granted, denied, unknown }
+
 class Notifications {
   Notifications._();
 
+  static bool get isSupported => false;
+
   static Future<void> init() async {}
+  static Future<void> refreshTimeZone() async {}
   static Future<bool> requestPermission() async => false;
+  static Future<ReminderPermissionStatus> permissionStatus() async =>
+      ReminderPermissionStatus.unknown;
   static Future<void> scheduleDailyNudge(int hour, int minute) async {}
   static Future<void> cancelDailyNudge() async {}
+  static Future<void> scheduleNightRoutine(
+    int hour,
+    int minute, {
+    bool skipNext = false,
+  }) async {}
+  static Future<void> cancelNightRoutine() async {}
   static Future<void> scheduleEvents(List<EventReminder> events) async {}
+  static Future<void> cancelEvents() async {}
   static Future<void> cancelAll() async {}
 }
 

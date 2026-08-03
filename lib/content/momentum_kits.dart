@@ -2,7 +2,7 @@ import '../clock.dart';
 import '../models.dart';
 import '../tokens.dart';
 
-/// Optional, situation-shaped doorways into Morrowloom's existing quest loop.
+/// Optional, situation-shaped doorways into Room of Days' existing quest loop.
 ///
 /// A kit never creates a second economy or a parallel checklist. It simply
 /// forges a few compassionate, today-only quests which earn the same XP,
@@ -60,7 +60,7 @@ const momentumKits = <MomentumKitSpec>[
     eyebrow: 'OVERWHELMED SPACES',
     title: 'Guided Home Reset',
     promise: 'Give one room a visible win without trying to fix everything.',
-    detail: 'Pick the room and the time; Morrowloom supplies the order.',
+    detail: 'Pick the room and the time; the guide supplies the order.',
     stat: Stat.dis,
   ),
   MomentumKitSpec(

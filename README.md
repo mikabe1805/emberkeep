@@ -1,6 +1,6 @@
-# Morrowloom
+# Room of Days
 
-Morrowloom is a local-first life RPG for Android, iOS, and the web. Completing
+Room of Days is a local-first life RPG for Android, iOS, and the web. Completing
 real-life quests grows six life domains, earns XP and Glimmers, and changes
 your build while you furnish a candlelit personal space.
 

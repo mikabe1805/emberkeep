@@ -31,7 +31,7 @@ void main() {
     }
   });
 
-  testWidgets('all legacy fire glyphs render as the Morrowloom flame mark', (
+  testWidgets('all legacy fire glyphs render as the Room of Days flame mark', (
     tester,
   ) async {
     await tester.pumpWidget(

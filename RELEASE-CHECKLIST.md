@@ -1,6 +1,6 @@
-# Morrowloom Release Checklist
+# Room of Days Release Checklist
 
-Updated August 1, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 3, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
 ## Repository-ready
@@ -11,13 +11,17 @@ not replace a signed device build or store-console review.
 - [x] Core experience works without account or network.
 - [x] Cloud backup is explicit opt-in and account deletion exists in-app.
 - [x] Privacy and deletion pages are live and linked from Me.
-- [x] Shared spaces publish no free-form name, note, quest, or account data.
-- [x] Firestore rules constrain shared data to known appearance/title values.
+- [x] Visitor profiles are private by default and publish only an explicitly
+  chosen display name, introduction, and up to three featured goals.
+- [x] Shared spaces never publish Journal text/photos, quest details, streak
+  history, email, or account data.
+- [x] Firestore rules bound every shared appearance, presence, and opt-in
+  profile field; exact room-code reads work while collection listing is denied.
 - [x] Android notification permission is declared and requested in context.
 - [x] Exact-alarm permission is unnecessary; reminders use inexact scheduling.
 - [x] Journal photos are local-only and erased by full reset.
-- [x] Cold-start backgrounds match the dark Morrowloom canvas.
-- [x] Native/PWA icons use the approved woven-dawn Morrow Tapestry mark.
+- [x] Cold-start backgrounds match the dark Room of Days canvas.
+- [x] Native/PWA icons use the approved lit-window Room of Days mark.
 - [x] Google Play 1024×500 feature graphic is ready in `store-assets/`.
 - [x] Five opaque 1290×2796 production screenshots are ready in
   `store-assets/screenshots/`.
@@ -31,7 +35,7 @@ not replace a signed device build or store-console review.
 - [x] `flutter analyze`
 - [x] `flutter test`
 - [x] `flutter build web --release`
-- [ ] Render and inspect the screenshot-golden suite.
+- [x] Render and inspect the screenshot-golden suite.
 - [ ] Build a signed Android App Bundle and inspect its certificate.
 - [ ] Build/upload iOS with Xcode 26+ and the iOS 26 SDK.
 - [ ] Install release builds on physical Android and iPhone devices.
@@ -47,6 +51,8 @@ not replace a signed device build or store-console review.
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.
 - [ ] Confirm the submitted version/build number exceeds every prior upload.
+- [ ] Deploy the checked-in Firestore rules before testing Share, Visit, or
+  Circle; the iOS workflow does not deploy Firebase infrastructure.
 
 ## Owner gates before submission
 

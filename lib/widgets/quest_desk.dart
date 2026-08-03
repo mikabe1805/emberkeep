@@ -34,7 +34,7 @@ class QuestTapestryPanel extends StatelessWidget {
       container: true,
       excludeSemantics: true,
       label:
-          'Morrow Tapestry, ${(woven * 100).round()} percent permanently woven',
+          'The Woven Dawn, ${(woven * 100).round()} percent permanently woven',
       child: TweenAnimationBuilder<double>(
         key: ValueKey('tapestry-frontier-$generation'),
         tween: Tween(begin: 0, end: 1),
@@ -82,7 +82,7 @@ class QuestTapestryPanel extends StatelessWidget {
                     child: Row(
                       children: [
                         Text(
-                          'MORROW TAPESTRY',
+                          'THE WOVEN DAWN',
                           style: Type.label.copyWith(
                             fontSize: 8.5,
                             color: Palette.textHi,

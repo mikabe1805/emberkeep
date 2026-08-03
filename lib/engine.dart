@@ -13,6 +13,19 @@ import 'content/titles.dart';
 import 'models.dart';
 import 'tokens.dart';
 
+/// The authored pieces that can be arranged on the owner's My Space page.
+///
+/// These names are persisted as strings. Keep existing names stable when the
+/// presentation copy changes so a saved arrangement survives app updates.
+enum SpaceCardKind { about, rightNow, pinnedMoments, thisSeason }
+
+const defaultSpaceCardOrder = <SpaceCardKind>[
+  SpaceCardKind.about,
+  SpaceCardKind.rightNow,
+  SpaceCardKind.pinnedMoments,
+  SpaceCardKind.thisSeason,
+];
+
 /// The game engine. XP = base × difficulty × dread × streak × proof × crit
 /// (RESEARCH.md §5). Persisted via toJson/fromJson; period resets happen in
 /// [rollover].
@@ -24,6 +37,16 @@ class GameState extends ChangeNotifier {
   /// What the player is called (set in onboarding; greetings use it sparingly).
   /// Null = not given.
   String? playerName;
+
+  void setPlayerName(String value) {
+    final cleaned = value.trim().replaceAll(RegExp(r'\s+'), ' ');
+    final next = cleaned.isEmpty
+        ? null
+        : String.fromCharCodes(cleaned.runes.take(40));
+    if (playerName == next) return;
+    playerName = next;
+    notifyListeners();
+  }
 
   /// First-run welcome completed?
   bool onboarded = false;
@@ -104,7 +127,7 @@ class GameState extends ChangeNotifier {
   }
 
   /// A private daily capacity lens. It never changes rewards, streaks, or
-  /// difficulty; it only changes suggestions and the order Morrowloom offers
+  /// difficulty; it only changes suggestions and the order Room of Days offers
   /// help. Stamped by day so yesterday's weather is never assumed today.
   EnergyWeather energyWeather = EnergyWeather.steady;
   String? energyWeatherDay;
@@ -146,6 +169,137 @@ class GameState extends ChangeNotifier {
   /// receive only a total artifact count.
   final Set<String> memoryPins = {};
 
+  /// A small, authored profile for the owner's room. It stays private unless
+  /// [shareSpaceProfile] is explicitly enabled; callers that publish a room
+  /// must honor that consent bit rather than inferring consent from content.
+  String spaceIntro = '';
+  final List<String> featuredGoalTitles = [];
+  bool shareSpaceProfile = false;
+
+  /// The private arrangement of the My Space deck. The first three entries
+  /// reproduce the page that existed before cards became arrangeable; the
+  /// empty This season card is omitted by the UI until the owner writes it.
+  final List<SpaceCardKind> spaceCardOrder = [...defaultSpaceCardOrder];
+  final Set<SpaceCardKind> hiddenSpaceCards = {};
+  String spaceSeasonText = '';
+  String? spaceSeasonPhotoNoteId;
+
+  /// The Journal page supplying This season's optional photo. A cloud-restored
+  /// note can legitimately have no local media, and a selected note can later
+  /// be deleted, so both cases quietly fall back to the text-only card.
+  Note? get spaceSeasonPhotoNote {
+    final id = spaceSeasonPhotoNoteId;
+    if (id == null) return null;
+    for (final note in journal) {
+      if (note.id == id) return note.images.isEmpty ? null : note;
+    }
+    return null;
+  }
+
+  static String _cleanSpaceIntro(String intro) {
+    final lines = intro
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n')
+        .split('\n')
+        .map((line) => line.trim().replaceAll(RegExp(r'\s+'), ' '))
+        .toList();
+    while (lines.isNotEmpty && lines.first.isEmpty) {
+      lines.removeAt(0);
+    }
+    while (lines.isNotEmpty && lines.last.isEmpty) {
+      lines.removeLast();
+    }
+    return String.fromCharCodes(lines.join('\n').runes.take(180));
+  }
+
+  static String _cleanSpaceSeasonText(String text) => _cleanSpaceIntro(text);
+
+  static String? _cleanSpaceSeasonPhotoNoteId(String? noteId) {
+    final clean = noteId?.trim() ?? '';
+    if (clean.isEmpty) return null;
+    return String.fromCharCodes(clean.runes.take(120));
+  }
+
+  static List<SpaceCardKind> _cleanSpaceCardOrder(
+    Iterable<SpaceCardKind> order,
+  ) {
+    final seen = <SpaceCardKind>{};
+    return [
+      for (final kind in order)
+        if (seen.add(kind)) kind,
+      for (final kind in defaultSpaceCardOrder)
+        if (seen.add(kind)) kind,
+    ];
+  }
+
+  static Iterable<SpaceCardKind> _spaceCardKindsFromJson(Object? raw) sync* {
+    if (raw is! List) return;
+    for (final value in raw) {
+      if (value is! String) continue;
+      for (final kind in SpaceCardKind.values) {
+        if (kind.name == value) {
+          yield kind;
+          break;
+        }
+      }
+    }
+  }
+
+  /// Applies the entire My Space editor draft in one coherent state change.
+  /// Unknown save values are filtered by the decoder; duplicates are removed
+  /// and newly introduced card kinds are appended so they cannot disappear.
+  void setSpacePage({
+    required Iterable<SpaceCardKind> order,
+    required Iterable<SpaceCardKind> hidden,
+    required String intro,
+    required Iterable<String> featuredGoalTitles,
+    required String seasonText,
+    required String? seasonPhotoNoteId,
+    required bool shareProfile,
+  }) {
+    final cleanOrder = _cleanSpaceCardOrder(order);
+    final cleanHidden = hidden.toSet();
+    final cleanFeatured = featuredGoalTitles.toList(growable: false);
+    spaceCardOrder
+      ..clear()
+      ..addAll(cleanOrder);
+    hiddenSpaceCards
+      ..clear()
+      ..addAll(cleanHidden);
+    spaceIntro = _cleanSpaceIntro(intro);
+    spaceSeasonText = _cleanSpaceSeasonText(seasonText);
+    spaceSeasonPhotoNoteId = _cleanSpaceSeasonPhotoNoteId(seasonPhotoNoteId);
+    shareSpaceProfile = shareProfile;
+
+    final valid = goals.map((goal) => goal.title).toSet();
+    this.featuredGoalTitles
+      ..clear()
+      ..addAll(
+        cleanFeatured
+            .map((title) => title.trim())
+            .where((title) => title.isNotEmpty && valid.contains(title))
+            .toSet()
+            .take(3),
+      );
+    notifyListeners();
+  }
+
+  void setSpaceProfile({
+    required String intro,
+    required Iterable<String> goals,
+    bool? shared,
+  }) {
+    setSpacePage(
+      order: spaceCardOrder,
+      hidden: hiddenSpaceCards,
+      intro: intro,
+      featuredGoalTitles: goals,
+      seasonText: spaceSeasonText,
+      seasonPhotoNoteId: spaceSeasonPhotoNoteId,
+      shareProfile: shared ?? shareSpaceProfile,
+    );
+  }
+
   void setMemoryPinned(String noteId, bool pinned) {
     final changed = pinned ? memoryPins.add(noteId) : memoryPins.remove(noteId);
     if (changed) notifyListeners();
@@ -179,10 +333,34 @@ class GameState extends ChangeNotifier {
   int notifyHour = 9;
   int notifyMinute = 0;
 
+  /// A separate, opt-in reminder for the daily closing ledger. The existing
+  /// morning quest nudge stays on when notifications are enabled; this one is
+  /// deliberately off until the person asks for it.
+  bool nightReminderEnabled = false;
+  int nightReminderHour = 21;
+  int nightReminderMinute = 0;
+
   void setNotify({bool? enabled, int? hour, int? minute}) {
     if (enabled != null) notifyEnabled = enabled;
     if (hour != null) notifyHour = hour;
     if (minute != null) notifyMinute = minute;
+    notifyListeners();
+  }
+
+  void setNightReminder({bool? enabled, int? hour, int? minute}) {
+    if (enabled != null) nightReminderEnabled = enabled;
+    if (hour != null) nightReminderHour = hour.clamp(0, 23);
+    if (minute != null) nightReminderMinute = minute.clamp(0, 59);
+    notifyListeners();
+  }
+
+  /// Keeps the in-app reminder switches honest when the operating-system
+  /// permission has been revoked (or a backup restores an enabled switch onto
+  /// a device that never granted it). This never requests permission.
+  void disableRemindersWithoutPermission() {
+    if (!notifyEnabled && !nightReminderEnabled) return;
+    notifyEnabled = false;
+    nightReminderEnabled = false;
     notifyListeners();
   }
 
@@ -342,6 +520,109 @@ class GameState extends ChangeNotifier {
   List<Note> journal = const [];
   void setJournal(List<Note> notes) {
     journal = notes;
+    final byId = {for (final note in notes) note.id: note};
+    if (byId[nightDraftNoteId]?.night == null) nightDraftNoteId = null;
+    final pendingMessage = byId[pendingMorningNoteId]?.night?.tomorrowMessage
+        ?.trim();
+    if (pendingMessage == null || pendingMessage.isEmpty) {
+      pendingMorningNoteId = null;
+    }
+    notifyListeners();
+  }
+
+  Note? _journalNote(String? id) {
+    if (id == null) return null;
+    for (final note in journal) {
+      if (note.id == id) return note;
+    }
+    return null;
+  }
+
+  Note? get nightDraftNote {
+    final note = _journalNote(nightDraftNoteId);
+    if (note?.night == null || note?.trace?.day != Days.nightKey(Clock.now())) {
+      return null;
+    }
+    return note;
+  }
+
+  String? get morningSelfMessage {
+    final message = _journalNote(
+      pendingMorningNoteId,
+    )?.night?.tomorrowMessage?.trim();
+    return message == null || message.isEmpty ? null : message;
+  }
+
+  /// Creates or replaces tonight's one composite Journal page. Blank drafts
+  /// are ignored, and repeated saves keep the same note identity.
+  Note? saveNightJournal(NightJournalData data, JournalTrace trace) {
+    final existing = nightDraftNote;
+    if (data.isEmpty) {
+      if (existing != null) {
+        journal = journal.without(existing);
+        if (pendingMorningNoteId == existing.id) pendingMorningNoteId = null;
+      }
+      nightDraftNoteId = null;
+      notifyListeners();
+      return null;
+    }
+
+    final note = existing == null
+        ? Note(
+            at: Clock.now(),
+            text: data.plainText,
+            context: buildTitle,
+            trace: trace,
+            night: data,
+          )
+        : existing.withNight(data, updatedTrace: trace);
+    journal = existing == null ? [...journal, note] : journal.replacing(note);
+    nightDraftNoteId = note.id;
+    notifyListeners();
+    return note;
+  }
+
+  /// Updates a structured night page from Journal or Calendar without turning
+  /// an old page into tonight's draft. An empty edit removes the page and any
+  /// delivery pointer that referenced it.
+  Note? updateNightJournalEntry(Note entry, NightJournalData data) {
+    final existing = _journalNote(entry.id);
+    if (existing == null || existing.night == null) return null;
+    if (data.isEmpty) {
+      journal = journal.without(existing);
+      if (nightDraftNoteId == existing.id) nightDraftNoteId = null;
+      if (pendingMorningNoteId == existing.id) pendingMorningNoteId = null;
+      notifyListeners();
+      return null;
+    }
+    final updated = existing.withNight(data, updatedTrace: existing.trace);
+    journal = journal.replacing(updated);
+    if (pendingMorningNoteId == existing.id &&
+        (updated.night?.tomorrowMessage?.trim().isEmpty ?? true)) {
+      pendingMorningNoteId = null;
+    }
+    notifyListeners();
+    return updated;
+  }
+
+  /// Seals the current draft into this night and arms its tomorrow-message,
+  /// if one was written. Repeated calls do not duplicate the Journal entry.
+  void finalizeNightJournal(JournalTrace trace) {
+    final draft = nightDraftNote;
+    if (draft == null || draft.night == null) {
+      // A genuinely new close with no message supersedes an older, unviewed
+      // message. A duplicate finalize after this same night closed is a no-op.
+      if (nightDoneDay != activeNightDayKey && pendingMorningNoteId != null) {
+        pendingMorningNoteId = null;
+        notifyListeners();
+      }
+      return;
+    }
+    final finalNote = draft.withNight(draft.night!, updatedTrace: trace);
+    journal = journal.replacing(finalNote);
+    final message = finalNote.night?.tomorrowMessage?.trim() ?? '';
+    pendingMorningNoteId = message.isEmpty ? null : finalNote.id;
+    nightDraftNoteId = null;
     notifyListeners();
   }
 
@@ -350,31 +631,74 @@ class GameState extends ChangeNotifier {
   /// the energy the person brought. Quick reflections, full journal pages,
   /// and the night ledger all use this one source so an old entry never
   /// quietly changes when today's state changes.
-  JournalTrace todayJournalTrace(List<Quest> quests) {
-    final today = Days.key(Clock.now());
-    final questTitles = todayQuestTitles.toSet().toList(growable: false);
+  JournalTrace todayJournalTrace(List<Quest> quests) => _journalTrace(
+    quests,
+    day: Days.key(Clock.now()),
+    xp: todayXp,
+    statGains: todayStats,
+    questTitles: todayQuestTitles,
+    energy: energyWeatherDay == Days.key(Clock.now()) ? energyWeather : null,
+  );
+
+  String get activeNightDayKey => Days.nightKey(Clock.now());
+
+  bool get _nightUsesSnapshot => previousDayKey == activeNightDayKey;
+
+  int get nightXp => _nightUsesSnapshot ? previousDayXp : todayXp;
+
+  Map<Stat, int> get nightStatGains =>
+      _nightUsesSnapshot ? previousDayStats : todayStats;
+
+  List<String> get nightQuestTitles =>
+      _nightUsesSnapshot ? previousDayQuestTitles : todayQuestTitles;
+
+  int get nightCompletionCount =>
+      history[activeNightDayKey] ?? nightQuestTitles.length;
+
+  JournalTrace nightJournalTrace(List<Quest> quests) => _journalTrace(
+    quests,
+    day: activeNightDayKey,
+    xp: nightXp,
+    statGains: nightStatGains,
+    questTitles: nightQuestTitles,
+    energy: _nightUsesSnapshot
+        ? previousDayEnergy
+        : energyWeatherDay == activeNightDayKey
+        ? energyWeather
+        : null,
+  );
+
+  JournalTrace _journalTrace(
+    List<Quest> quests, {
+    required String day,
+    required int xp,
+    required Map<Stat, int> statGains,
+    required List<String> questTitles,
+    required EnergyWeather? energy,
+  }) {
+    final titles = questTitles.toSet().toList(growable: false);
     final goalTitles = <String>{};
     for (final quest in quests) {
-      if (!questTitles.contains(quest.displayTitle) &&
-          !questTitles.contains(quest.title)) {
+      if (!titles.contains(quest.displayTitle) &&
+          !titles.contains(quest.title)) {
         continue;
       }
       final goal = quest.goalTitle?.trim();
       if (goal != null && goal.isNotEmpty) goalTitles.add(goal);
     }
     return JournalTrace(
-      day: today,
+      day: day,
       level: level,
       totalXp: totalXp,
-      todayXp: todayXp,
+      todayXp: xp,
       streakDays: streakDays,
-      questTitles: questTitles,
+      questTitles: titles,
       goalTitles: goalTitles.toList(growable: false),
       statGains: {
-        for (final entry in todayStats.entries)
+        for (final entry in statGains.entries)
           if (entry.value > 0) entry.key: entry.value,
       },
-      energy: energyWeatherDay == today ? energyWeather : null,
+      energy: energy,
     );
   }
 
@@ -510,6 +834,15 @@ class GameState extends ChangeNotifier {
   final Map<Stat, int> todayStats = {};
   final List<String> todayQuestTitles = [];
 
+  /// One rollover-deep snapshot keeps a just-finished day available to the
+  /// 00:00–03:59 wind-down. Without it, midnight erased the very haul the
+  /// closing ledger was meant to reflect.
+  String? previousDayKey;
+  int previousDayXp = 0;
+  final Map<Stat, int> previousDayStats = {};
+  final List<String> previousDayQuestTitles = [];
+  EnergyWeather? previousDayEnergy;
+
   // ── routine day-stamps ──────────────────────────────────────────
   String? nightDoneDay;
   String? morningDoneDay;
@@ -522,6 +855,10 @@ class GameState extends ChangeNotifier {
   /// Wall-clock ms the night routine was closed (drives the wake-up gap).
   int nightDoneAt = 0;
 
+  /// IDs point into [journal]; the writing itself has one source of truth.
+  String? nightDraftNoteId;
+  String? pendingMorningNoteId;
+
   /// Minimum gap before the morning AUTO-shows — long enough that closing the
   /// night at 3am doesn't instantly re-pop, but short enough to greet you when
   /// you wake a few hours later the same calendar day.
@@ -530,7 +867,7 @@ class GameState extends ChangeNotifier {
   /// Closing the night arms tomorrow morning's briefing.
   void closeNight() {
     final now = Clock.now();
-    nightDoneDay = Days.key(now);
+    nightDoneDay = Days.nightKey(now);
     nightDoneAt = now.millisecondsSinceEpoch;
     morningArmed = true;
     // Rest Earned is caused here, not on the quest board. Check immediately
@@ -542,6 +879,7 @@ class GameState extends ChangeNotifier {
   void closeMorning() {
     morningDoneDay = Days.key(Clock.now());
     morningArmed = false;
+    pendingMorningNoteId = null;
     notifyListeners();
   }
 
@@ -1128,6 +1466,19 @@ class GameState extends ChangeNotifier {
       (q) => q.bonus && q.dueDate != null && q.dueDate!.isBefore(startOfToday),
     );
     if (changed) {
+      if (lastActiveDay != null) {
+        previousDayKey = lastActiveDay;
+        previousDayXp = todayXp;
+        previousDayStats
+          ..clear()
+          ..addAll(todayStats);
+        previousDayQuestTitles
+          ..clear()
+          ..addAll(todayQuestTitles);
+        previousDayEnergy = energyWeatherDay == lastActiveDay
+            ? energyWeather
+            : null;
+      }
       todayXp = 0;
       todayStats.clear();
       todayQuestTitles.clear();
@@ -1202,6 +1553,9 @@ class GameState extends ChangeNotifier {
     'notifyEnabled': notifyEnabled,
     'notifyHour': notifyHour,
     'notifyMinute': notifyMinute,
+    'nightReminderEnabled': nightReminderEnabled,
+    'nightReminderHour': nightReminderHour,
+    'nightReminderMinute': nightReminderMinute,
     'lastModified': lastModified,
     'level': level,
     'xp': xp,
@@ -1226,6 +1580,17 @@ class GameState extends ChangeNotifier {
     },
     'lowFlameQuestTitles': lowFlameQuestTitles,
     'memoryPins': memoryPins.toList(),
+    'spaceIntro': spaceIntro,
+    'featuredGoalTitles': featuredGoalTitles,
+    'shareSpaceProfile': shareSpaceProfile,
+    'spaceCardOrder': [for (final kind in spaceCardOrder) kind.name],
+    'hiddenSpaceCards': [
+      for (final kind in SpaceCardKind.values)
+        if (hiddenSpaceCards.contains(kind)) kind.name,
+    ],
+    'spaceSeasonText': spaceSeasonText,
+    if (spaceSeasonPhotoNoteId != null)
+      'spaceSeasonPhotoNoteId': spaceSeasonPhotoNoteId,
     'quietCompanyKind': quietCompanyKind,
     'quietCompanyUntil': quietCompanyUntil,
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
@@ -1266,12 +1631,20 @@ class GameState extends ChangeNotifier {
     'todayXp': todayXp,
     'todayStats': [for (final s in Stat.values) todayStats[s] ?? 0],
     'todayQuestTitles': todayQuestTitles,
+    if (previousDayKey != null) 'previousDayKey': previousDayKey,
+    'previousDayXp': previousDayXp,
+    'previousDayStats': [for (final s in Stat.values) previousDayStats[s] ?? 0],
+    'previousDayQuestTitles': previousDayQuestTitles,
+    if (previousDayEnergy != null) 'previousDayEnergy': previousDayEnergy!.name,
     'todayLootDrops': todayLootDrops,
     'todayTitleCounts': todayTitleCounts,
     'nightDoneDay': nightDoneDay,
     'morningDoneDay': morningDoneDay,
     'morningArmed': morningArmed,
     'nightDoneAt': nightDoneAt,
+    if (nightDraftNoteId != null) 'nightDraftNoteId': nightDraftNoteId,
+    if (pendingMorningNoteId != null)
+      'pendingMorningNoteId': pendingMorningNoteId,
     'sparkSeenDay': sparkSeenDay,
     'weekRecapSeenWeek': weekRecapSeenWeek,
     'emberSeenDay': emberSeenDay,
@@ -1289,6 +1662,12 @@ class GameState extends ChangeNotifier {
     s.notifyEnabled = j['notifyEnabled'] as bool? ?? false;
     s.notifyHour = j['notifyHour'] as int? ?? 9;
     s.notifyMinute = j['notifyMinute'] as int? ?? 0;
+    s.nightReminderEnabled = j['nightReminderEnabled'] as bool? ?? false;
+    s.nightReminderHour = (j['nightReminderHour'] as int? ?? 21).clamp(0, 23);
+    s.nightReminderMinute = (j['nightReminderMinute'] as int? ?? 0).clamp(
+      0,
+      59,
+    );
     s.lastModified = j['lastModified'] as int? ?? 0;
     s.level = j['level'] as int? ?? 1;
     s.xp = j['xp'] as int? ?? 0;
@@ -1378,6 +1757,29 @@ class GameState extends ChangeNotifier {
     s.memoryPins.addAll(
       ((j['memoryPins'] as List?) ?? const []).cast<String>(),
     );
+    s.spaceIntro = _cleanSpaceIntro(j['spaceIntro'] as String? ?? '');
+    final savedFeatured = ((j['featuredGoalTitles'] as List?) ?? const [])
+        .whereType<String>()
+        .map((title) => title.trim())
+        .where((title) => title.isNotEmpty)
+        .toSet()
+        .take(3);
+    s.featuredGoalTitles.addAll(savedFeatured);
+    s.shareSpaceProfile = j['shareSpaceProfile'] as bool? ?? false;
+    s.spaceCardOrder
+      ..clear()
+      ..addAll(
+        _cleanSpaceCardOrder(_spaceCardKindsFromJson(j['spaceCardOrder'])),
+      );
+    s.hiddenSpaceCards.addAll(_spaceCardKindsFromJson(j['hiddenSpaceCards']));
+    s.spaceSeasonText = _cleanSpaceSeasonText(
+      j['spaceSeasonText'] is String ? j['spaceSeasonText'] as String : '',
+    );
+    s.spaceSeasonPhotoNoteId = _cleanSpaceSeasonPhotoNoteId(
+      j['spaceSeasonPhotoNoteId'] is String
+          ? j['spaceSeasonPhotoNoteId'] as String
+          : null,
+    );
     final quietKind = j['quietCompanyKind'] as String? ?? 'none';
     s.quietCompanyKind =
         const {'none', 'study', 'making', 'reset', 'quiet'}.contains(quietKind)
@@ -1459,6 +1861,24 @@ class GameState extends ChangeNotifier {
     s.todayQuestTitles.addAll(
       ((j['todayQuestTitles'] as List?) ?? const []).cast(),
     );
+    s.previousDayKey = Days.validKey(j['previousDayKey']);
+    s.previousDayXp = j['previousDayXp'] as int? ?? 0;
+    final previousStats =
+        (j['previousDayStats'] as List?)?.cast<int>() ?? const [];
+    for (var i = 0; i < Stat.values.length && i < previousStats.length; i++) {
+      if (previousStats[i] > 0) {
+        s.previousDayStats[Stat.values[i]] = previousStats[i];
+      }
+    }
+    s.previousDayQuestTitles.addAll(
+      ((j['previousDayQuestTitles'] as List?) ?? const []).whereType<String>(),
+    );
+    final previousEnergy = j['previousDayEnergy'] as String?;
+    if (previousEnergy != null) {
+      for (final value in EnergyWeather.values) {
+        if (value.name == previousEnergy) s.previousDayEnergy = value;
+      }
+    }
     s.todayLootDrops = j['todayLootDrops'] as int? ?? 0;
     for (final e
         in (((j['todayTitleCounts'] as Map?) ?? const {})
@@ -1469,6 +1889,18 @@ class GameState extends ChangeNotifier {
     s.nightDoneDay = Days.validKey(j['nightDoneDay']);
     s.morningDoneDay = Days.validKey(j['morningDoneDay']);
     s.nightDoneAt = j['nightDoneAt'] as int? ?? 0;
+    final draftId = j['nightDraftNoteId'] as String?;
+    final pendingId = j['pendingMorningNoteId'] as String?;
+    final draft = s._journalNote(draftId);
+    final pending = s._journalNote(pendingId);
+    s.nightDraftNoteId =
+        draft?.night != null && draft?.trace?.day == Days.nightKey(Clock.now())
+        ? draftId
+        : null;
+    final pendingMessage = pending?.night?.tomorrowMessage?.trim();
+    s.pendingMorningNoteId = pendingMessage != null && pendingMessage.isNotEmpty
+        ? pendingId
+        : null;
     // Bridge older saves (no morningArmed key): if a night was closed and you
     // haven't been greeted today, arm the morning so it surfaces after this
     // update (e.g. a 3am wind-down before the field existed) — user report.

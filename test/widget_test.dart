@@ -32,8 +32,8 @@ Future<void> pumpApp(
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 50));
   // fresh saves get the first-run welcome — walk it
-  if (tester.any(find.text('ENTER MORROWLOOM'))) {
-    await tester.tap(find.text('ENTER MORROWLOOM'));
+  if (tester.any(find.text('ENTER ROOM OF DAYS'))) {
+    await tester.tap(find.text('ENTER ROOM OF DAYS'));
     await settle(tester);
     await tester.tap(find.text('skip for now'));
     await settle(tester);
@@ -702,33 +702,33 @@ void main() {
       matching: find.byType(Scrollable),
     );
     await tester.scrollUntilVisible(
-      find.text('keep one line'),
+      find.text('reflect · optional'),
       200,
       scrollable: recapScroll,
     );
-    await tester.tap(find.text('keep one line'));
+    await tester.tap(find.text('reflect · optional'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
     await tester.enterText(
-      find.byType(TextField),
+      find.byKey(const Key('night-reflection-field')),
       'Reading before bed made the evening feel complete.',
     );
     await tester.pump();
-    await tester.ensureVisible(find.text('KEEP IN JOURNAL'));
+    await tester.ensureVisible(find.text('KEEP TONIGHT’S PAGE'));
     await tester.pump();
-    await tester.tap(find.text('KEEP IN JOURNAL'));
+    await tester.tap(find.text('KEEP TONIGHT’S PAGE'));
     await tester.pump(const Duration(milliseconds: 400));
 
     expect(closed, isFalse);
     expect(persisted, 1);
     expect(state.journal, hasLength(1));
     expect(
-      state.journal.single.text,
+      state.journal.single.night?.reflection,
       'Reading before bed made the evening feel complete.',
     );
     expect(state.journal.single.trace?.questTitles, contains('Read ten pages'));
-    expect(find.text('keep another line'), findsOneWidget);
+    expect(find.text('edit tonight’s page'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

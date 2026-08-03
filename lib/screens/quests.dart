@@ -21,10 +21,12 @@ import '../content/sparks.dart';
 import '../content/stat_ranks.dart';
 import '../engine.dart';
 import '../haptics.dart';
+import '../journal_media.dart' as journal_media;
 import '../models.dart';
 import '../storage.dart';
 import '../tokens.dart';
 import '../widgets/workout_flow.dart';
+import 'journal_entry.dart';
 import '../widgets/achievement_toast.dart';
 import '../widgets/day_picker.dart';
 import '../widgets/domain_hint.dart';
@@ -69,6 +71,7 @@ class QuestsPage extends StatefulWidget {
     required this.onSnapshot,
     required this.onRestore,
     this.onBindFlush,
+    this.onNightClosed,
     this.parallax,
     this.lightDirection,
   });
@@ -96,6 +99,10 @@ class QuestsPage extends StatefulWidget {
 
   /// Lets the shell flush a pending deferred commit before pause-path saves.
   final void Function(VoidCallback flush)? onBindFlush;
+
+  /// Lets the shell push an enabled night reminder to tomorrow immediately
+  /// after this evening's ledger closes.
+  final VoidCallback? onNightClosed;
 
   /// The shell's calibrated tilt/pointer source. Directly-constructed pages
   /// retain the local fallback below.
@@ -144,6 +151,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// until every reward receipt has cleared. This keeps the first completion
   /// from stacking "First Step" over the still-arriving XP/stat bubbles.
   final List<Achievement> _pendingAchievementToasts = [];
+  final Set<Timer> _achievementToastTimers = {};
   int _activeReceipts = 0;
 
   /// The reward rail is a protected band above the dock. The board measures the
@@ -186,6 +194,16 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// One guided-workout runner at a time (rapid double-tap can't spawn two
   /// runners → double reward; bug-hunt §8).
   bool _workoutRunnerOpen = false;
+
+  /// A fast double-tap must not push two editors for the same Journal Quest.
+  /// The durable duplicate guard is the Note's [Note.sourceQuestKey]; this
+  /// small route guard closes the few-millisecond gap before Navigator paints.
+  bool _journalRouteOpen = false;
+
+  /// One closing ledger at a time. The flow's own guard prevents a double
+  /// submit inside one overlay; this prevents two overlays from being opened
+  /// by rapid taps on separate entry points.
+  OverlayEntry? _nightOverlay;
 
   /// The most recent completion's undo target. Drives the swipe-left-to-undo on
   /// the just-completed card — a calm, in-place undo (the transient snackbar
@@ -449,6 +467,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     super.didUpdateWidget(old);
     if (!identical(old.state, widget.state)) {
       _pendingAchievementToasts.clear();
+      for (final timer in _achievementToastTimers) {
+        timer.cancel();
+      }
+      _achievementToastTimers.clear();
     }
     if (old.onBindFlush != widget.onBindFlush) {
       widget.onBindFlush?.call(_flushCommit);
@@ -503,6 +525,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _nightOverlay?.remove();
+    _nightOverlay = null;
     _localMotion?.dispose();
     _boardScroll.removeListener(_handleScrollLight);
     _boardScroll.dispose();
@@ -512,6 +536,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // _flushCommit's DATA effects (perfect-day shield + achievement/cosmetic
     // grants), omitting only the UI (setState/toasts/undo) — bug-hunt §11.
     _commitTimer?.cancel();
+    for (final timer in _achievementToastTimers) {
+      timer.cancel();
+    }
+    _achievementToastTimers.clear();
     final ps = _pendingState;
     final pb = _pendingBundle;
     if (ps != null && pb != null && identical(ps, widget.state)) {
@@ -536,9 +564,137 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     return box.localToGlobal(Offset(box.size.width * 0.5, box.size.height));
   }
 
+  Note? _journalDraftFor(Quest quest, DateTime day) {
+    for (final note in _state.journal.reversed) {
+      if (note.sourceQuestKey == quest.title && Days.sameDay(note.at, day)) {
+        return note;
+      }
+    }
+    return null;
+  }
+
+  JournalTrace _journalTraceFor(Quest quest) {
+    final base = _state.todayJournalTrace(widget.quests);
+    final questTitles = [...base.questTitles];
+    if (!questTitles.contains(quest.displayTitle)) {
+      questTitles.add(quest.displayTitle);
+    }
+    final goalTitles = [...base.goalTitles];
+    final goal = quest.goalTitle?.trim();
+    if (goal != null && goal.isNotEmpty && !goalTitles.contains(goal)) {
+      goalTitles.add(goal);
+    }
+    return JournalTrace(
+      day: base.day,
+      level: base.level,
+      totalXp: base.totalXp,
+      todayXp: base.todayXp,
+      streakDays: base.streakDays,
+      questTitles: questTitles,
+      goalTitles: goalTitles,
+      statGains: base.statGains,
+      energy: base.energy,
+    );
+  }
+
+  bool _hasMeaningfulQuestWriting(Note note, JournalQuestPrompt prompt) {
+    final written = note.text.trim();
+    if (written.isEmpty) return false;
+    final starter = prompt.starter.trim();
+    if (written == starter) return false;
+    if (written.startsWith(starter)) {
+      return written.substring(starter.length).trim().isNotEmpty;
+    }
+    // Replacing the prompt with the person's own words still counts.
+    return true;
+  }
+
+  /// Opens (or resumes) the one dedicated page for this Quest today. Merely
+  /// looking at the prompt earns nothing; once meaningful writing has actually
+  /// autosaved, returning to the board uses the ordinary reward pipeline once.
+  Future<void> _openQuestJournal(Quest quest, Offset tapPos) async {
+    final prompt = quest.journalPrompt;
+    if (prompt == null || _journalRouteOpen || quest.doneFor(Clock.now())) {
+      return;
+    }
+    _flushCommit();
+    final state = _state;
+    final openedAt = Clock.now();
+    var current = _journalDraftFor(quest, openedAt);
+    final trace = current?.trace ?? _journalTraceFor(quest);
+    _journalRouteOpen = true;
+    Sfx.instance.play('tick');
+    try {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => JournalEntryScreen(
+            key: ValueKey('quest-journal-${quest.title}'),
+            initial: current,
+            accent: quest.stat.color,
+            themeId: state.canvasTheme,
+            reduceMotion: state.reduceMotion,
+            heading: quest.displayTitle,
+            hint: prompt.hint,
+            starter: current == null ? prompt.starter : null,
+            trace: trace,
+            commit: (payload, existing, markEdited) {
+              final source = existing ?? current;
+              final Note saved;
+              if (source == null) {
+                saved = Note(
+                  at: Clock.now(),
+                  text: payload.text,
+                  context: state.buildTitle,
+                  rich: payload.rich,
+                  images: payload.images,
+                  trace: trace,
+                  sourceQuestKey: quest.title,
+                );
+                state.setJournal([...state.journal, saved]);
+              } else {
+                saved = source.copyWith(
+                  text: payload.text,
+                  rich: payload.rich,
+                  images: payload.images,
+                  editedAt: markEdited ? Clock.now() : null,
+                );
+                state.setJournal(state.journal.replacing(saved));
+              }
+              current = saved;
+              return saved;
+            },
+            onDelete: (note) {
+              for (final image in note.images) {
+                journal_media.delete(image);
+              }
+              state.setJournal(state.journal.without(note));
+              if (current?.id == note.id) current = null;
+            },
+          ),
+        ),
+      );
+    } finally {
+      _journalRouteOpen = false;
+    }
+    if (!mounted || !identical(state, _state)) return;
+    final saved = current;
+    if (saved == null ||
+        !state.journal.any((note) => note.id == saved.id) ||
+        !_hasMeaningfulQuestWriting(saved, prompt) ||
+        !Days.sameDay(openedAt, Clock.now()) ||
+        quest.doneFor(Clock.now())) {
+      return;
+    }
+    _runCompletion(quest, tapPos);
+  }
+
   /// Entry point from a card tap: timer-proof quests run their countdown
   /// first (proof multiplies, never gates — cancel just backs out).
   void _completeQuest(Quest q, Offset tapPos) {
+    if (q.journalPrompt != null) {
+      unawaited(_openQuestJournal(q, tapPos));
+      return;
+    }
     if (q.allDay) {
       // honesty by design: an all-day line is only confirmed at night — but
       // the moment of willpower still deserves a beat, not a cold deferral.
@@ -778,7 +934,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// is suppressed — no claiming a trophy the restored state no longer holds.
   void _toastAchievements(GameState s, List<Achievement> newly) {
     for (var i = 0; i < newly.length; i++) {
-      Future.delayed(Duration(milliseconds: 200 + i * 2800), () {
+      late final Timer timer;
+      timer = Timer(Duration(milliseconds: 200 + i * 2800), () {
+        _achievementToastTimers.remove(timer);
         if (!mounted || !identical(s, _state)) return;
         late final OverlayEntry toast;
         toast = OverlayEntry(
@@ -787,6 +945,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               AchievementToast(
                 achievement: newly[i],
                 flameHue: flameHueFor(s),
+                reduceMotion: s.reduceMotion,
                 onDone: () => toast.remove(),
               ),
             ],
@@ -794,6 +953,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         );
         Overlay.of(context).insert(toast);
       });
+      _achievementToastTimers.add(timer);
     }
   }
 
@@ -1182,6 +1342,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   }
 
   void _openNight() {
+    if (_nightOverlay != null) return;
     Sfx.instance.play('tick');
     final s = _state;
     late final OverlayEntry e;
@@ -1193,6 +1354,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         onPersist: widget.onPersist,
         onClose: () {
           e.remove();
+          if (identical(_nightOverlay, e)) _nightOverlay = null;
           if (mounted && identical(s, _state)) {
             // a night-confirmed all-day line can be the day's last clear
             if (_remainingToday() == 0 && !_anySnoozedToday()) {
@@ -1201,9 +1363,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             setState(() {});
             _toastAchievements(s, s.checkAchievements());
           }
+          if (s.nightDoneDay == Days.nightKey(Clock.now())) {
+            widget.onNightClosed?.call();
+          }
         },
       ),
     );
+    _nightOverlay = e;
     Overlay.of(context).insert(e);
   }
 
@@ -1215,6 +1381,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       builder: (_) => MorningFlow(
         state: s,
         quests: widget.quests,
+        onDismiss: () {
+          e.remove();
+          if (mounted && identical(s, _state)) setState(() {});
+        },
         onClose: () {
           s.closeMorning(); // disarms the briefing
           widget.onPersist();
@@ -2254,12 +2424,19 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final now = Clock.now();
+    final reduceMotion =
+        _state.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    final largePhoneType =
+        MediaQuery.textScalerOf(context).scale(1) >= 1.6 &&
+        MediaQuery.sizeOf(context).width <= 360;
     final next = _state.xpNeeded(_state.level + 1);
     final deskLook = activeQuestDeskLook(_state);
 
     // Visible today: recurring quests on their scheduled days (round-7);
     // events only once due. Due/overdue events lead the list.
     final today = Days.key(now);
+    final nightDay = Days.nightKey(now);
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
     final fullVisible =
         [
@@ -2357,6 +2534,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final boardItemCount = visible.isEmpty
         ? 1
         : visible.length + (remaining == 0 ? 1 : 0);
+    final nightOpen = _state.nightDoneDay != nightDay;
+    final showCloseDayRail =
+        nightOpen && isWindDownTime(now) && (remaining > 0 || visible.isEmpty);
 
     return LayoutBuilder(
       builder: (context, bounds) {
@@ -2369,10 +2549,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 bounds.maxWidth / 1.70,
                 bounds.maxHeight * 0.28,
               ).clamp(168.0, 270.0).toDouble();
-        _localMotion?.setReduceMotion(
-          _state.reduceMotion ||
-              (MediaQuery.maybeDisableAnimationsOf(context) ?? false),
-        );
+        _localMotion?.setReduceMotion(reduceMotion);
         return Listener(
           behavior: HitTestBehavior.translucent,
           onPointerDown: _localMotion == null
@@ -2439,7 +2616,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                     2,
                                   ),
                                   child: SizedBox(
-                                    height: 45,
+                                    height: largePhoneType ? 80 : 45,
                                     child: Stack(
                                       clipBehavior: Clip.none,
                                       children: [
@@ -2527,7 +2704,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                     vertical: 2,
                                   ),
                                   child: SizedBox(
-                                    height: 106,
+                                    height: largePhoneType ? 120 : 106,
                                     child: StatChips(
                                       values: _state.stats,
                                       reduceMotion: _state.reduceMotion,
@@ -2647,35 +2824,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                       label: 'Add a quest',
                                       onTap: _quickAdd,
                                     ),
-                                    // the day's bookends: sun while a morning briefing is
-                                    // reachable (always tappable, not just on auto-show),
-                                    // moon until tonight's close-out is done
+                                    // Morning and night are independent doors:
+                                    // an unviewed morning must not hide tonight.
                                     if (_state.morningAvailable)
                                       _HeaderAction(
                                         icon: Icons.wb_twilight,
                                         color: Palette.streak,
                                         label: 'Morning briefing',
                                         onTap: _openMorning,
-                                      )
-                                    else if (_state.nightDoneDay != today)
+                                      ),
+                                    if (nightOpen && !showCloseDayRail)
                                       _HeaderAction(
-                                        // All four toolbar marks are outlines;
-                                        // the solid moon was the one filled glyph
-                                        // in the row.
                                         icon: Icons.nightlight_outlined,
                                         color: Palette.xpLight,
-                                        label: 'Close out the day',
+                                        label: 'Close the day',
                                         onTap: _openNight,
-                                      )
-                                    else
-                                      const _HeaderAction(
-                                        // All four toolbar marks are outlines;
-                                        // the solid moon was the one filled glyph
-                                        // in the row.
-                                        icon: Icons.nightlight_outlined,
-                                        color: Palette.textLo,
-                                        label:
-                                            'Day closed out — see you tomorrow',
                                       ),
                                     // the momentum spark: cleared something? push further.
                                     Offstage(
@@ -2693,6 +2856,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               ],
                             ),
                           ),
+                          if (showCloseDayRail)
+                            _CloseDayRail(
+                              remaining: remaining,
+                              onTap: _openNight,
+                            ),
                         ],
                       ),
                     ),
@@ -2793,7 +2961,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               return TweenAnimationBuilder<double>(
                                 // a gentle pop-in: the candles flaring up as the day closes
                                 tween: Tween(begin: 0, end: 1),
-                                duration: Motion.takeover,
+                                duration: reduceMotion
+                                    ? Duration.zero
+                                    : Motion.takeover,
                                 curve: Curves.easeOutBack,
                                 builder: (_, t, child) => Opacity(
                                   opacity: t.clamp(0.0, 1.0),
@@ -2803,7 +2973,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                   ),
                                 ),
                                 child: GlassPanel(
-                                  glow: true,
+                                  glow: false,
                                   child: Column(
                                     children: [
                                       const Icon(
@@ -2838,7 +3008,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                       Text(
                                         sheltered
                                             ? '$resting quest${resting == 1 ? '' : 's'} resting safely — none failed, none lost'
-                                            : _state.nightDoneDay == today
+                                            : _state.nightDoneDay == nightDay
                                             ? 'rest well — tomorrow is already taking shape'
                                             : 'nothing left but the goodnight',
                                         style: Type.body.copyWith(
@@ -2847,7 +3017,17 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                           color: Palette.textLo,
                                         ),
                                       ),
-                                      // peak-end: you cleared it — still hot? push further
+                                      if (_state.nightDoneDay != nightDay) ...[
+                                        const SizedBox(height: 14),
+                                        HoneyButton(
+                                          label: 'CLOSE THE DAY',
+                                          icon: Icons.nightlight_outlined,
+                                          onTap: _openNight,
+                                          expand: true,
+                                        ),
+                                      ],
+                                      // Peak-end: closing the day is the handoff;
+                                      // an encore stays available as a quiet extra.
                                       if (!sheltered) ...[
                                         const SizedBox(height: 10),
                                         GestureDetector(
@@ -2869,31 +3049,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                                 ),
                                               ),
                                             ],
-                                          ),
-                                        ),
-                                      ],
-                                      if (_state.nightDoneDay != today) ...[
-                                        const SizedBox(height: 12),
-                                        GestureDetector(
-                                          onTap: _openNight,
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 18,
-                                              vertical: 9,
-                                            ),
-                                            decoration: facetedDecoration(
-                                              cut: 8,
-                                              color: Colors.transparent,
-                                              borderColor: Palette.xpLight
-                                                  .withValues(alpha: 0.6),
-                                            ),
-                                            child: Text(
-                                              'CLOSE OUT THE DAY 🌙',
-                                              style: Type.label.copyWith(
-                                                fontSize: 11,
-                                                color: Palette.xpLight,
-                                              ),
-                                            ),
                                           ),
                                         ),
                                       ],
@@ -3428,6 +3583,110 @@ class _DeskSwatch extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _CloseDayRail extends StatelessWidget {
+  const _CloseDayRail({required this.remaining, required this.onTap});
+
+  final int remaining;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = remaining == 0
+        ? 'Nothing else needs doing.'
+        : '$remaining quest${remaining == 1 ? '' : 's'} still open — close whenever you’re ready.';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 7),
+      child: Semantics(
+        button: true,
+        label: 'Close the day. $detail',
+        onTap: onTap,
+        child: ExcludeSemantics(
+          child: Material(
+            key: const Key('close-day-rail'),
+            color: Colors.transparent,
+            shape: const FacetedBorder(cut: 9),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 52),
+                padding: const EdgeInsets.fromLTRB(13, 8, 11, 8),
+                decoration: facetedDecoration(
+                  cut: 9,
+                  color: const Color(0xE6241B17),
+                  borderColor: Palette.brass.withValues(alpha: 0.58),
+                  shadows: const [
+                    BoxShadow(
+                      color: Color(0x52000000),
+                      blurRadius: 12,
+                      offset: Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Palette.brass.withValues(alpha: 0.10),
+                        border: Border.all(
+                          color: Palette.brass.withValues(alpha: 0.42),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.nightlight_outlined,
+                        size: 18,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'CLOSE THE DAY',
+                            style: Type.label.copyWith(
+                              fontSize: 10.5,
+                              color: Palette.xpLight,
+                              letterSpacing: 1.15,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            detail,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Type.body.copyWith(
+                              fontSize: 11.5,
+                              height: 1.2,
+                              color: Palette.textMid,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: Palette.textLo,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _HeaderAction extends StatelessWidget {

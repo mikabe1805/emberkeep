@@ -33,7 +33,7 @@ abstract final class Days {
 
   static DateTime parse(String value) =>
       tryParse(value) ??
-      (throw FormatException('Invalid Morrowloom day', value));
+      (throw FormatException('Invalid Room of Days day', value));
 
   /// Keeps a valid persisted key and drops a drifted one to null.
   static String? validKey(Object? value) =>
@@ -58,6 +58,21 @@ abstract final class Days {
 
   static bool sameMonth(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month;
+
+  /// The calendar day owned by a night routine. Before 04:00, a person is
+  /// still closing the day they just lived; constructing `day - 1` keeps the
+  /// wall-clock date correct across daylight-saving boundaries.
+  static DateTime nightDate(DateTime now) => now.hour < 4
+      ? DateTime(now.year, now.month, now.day - 1)
+      : DateTime(now.year, now.month, now.day);
+
+  static String nightKey(DateTime now) => key(nightDate(now));
+
+  /// The morning/day being prepared by this night's ledger.
+  static DateTime afterNight(DateTime now) {
+    final night = nightDate(now);
+    return DateTime(night.year, night.month, night.day + 1);
+  }
 }
 
 /// How often a quest recurs. Recurring quests reset when their period rolls
@@ -82,7 +97,7 @@ enum Verification {
 }
 
 /// A deliberately tiny capacity check-in. This is not a mood score or a
-/// medical measure; it only helps Morrowloom choose an honest amount of help.
+/// medical measure; it only helps Room of Days choose an honest amount of help.
 enum EnergyWeather {
   low('GENTLE MODE'),
   steady('STEADY'),
@@ -200,7 +215,7 @@ class Goal {
 /// thesis (Notion-done-right, because the thing it's pinned to has stakes).
 /// Immutable game context captured beside a free journal page.
 ///
-/// Morrowloom can remember what a generic notes app cannot know: which quests
+/// Room of Days can remember what a generic notes app cannot know: which quests
 /// had happened, what they moved, how much XP the day carried, and which goals
 /// those actions served. Reopening an old page therefore returns the day as it
 /// actually was instead of recomputing it from today's state.
@@ -283,6 +298,88 @@ class JournalTrace {
   }
 }
 
+/// The optional pieces a person may keep while closing the day. Keeping the
+/// structure beside the Journal note lets the morning return only the private
+/// message meant for it, while Journal search and previews still use one plain
+/// text entry.
+class NightJournalData {
+  const NightJournalData({
+    this.reflection,
+    this.gratitudes = const [],
+    this.discovery,
+    this.tomorrowMessage,
+  });
+
+  final String? reflection;
+  final List<String> gratitudes;
+  final String? discovery;
+  final String? tomorrowMessage;
+
+  bool get isEmpty =>
+      _clean(reflection) == null &&
+      _clean(discovery) == null &&
+      _clean(tomorrowMessage) == null &&
+      normalizedGratitudes.isEmpty;
+
+  List<String> get normalizedGratitudes => [
+    for (final value in gratitudes.take(3))
+      if (_clean(value) case final String clean) clean,
+  ];
+
+  String get plainText {
+    final sections = <String>[];
+    if (_clean(reflection) case final String value) {
+      sections.add('Reflection\n$value');
+    }
+    final grateful = normalizedGratitudes;
+    if (grateful.isNotEmpty) {
+      sections.add('Grateful for\n${grateful.map((e) => '• $e').join('\n')}');
+    }
+    if (_clean(discovery) case final String value) {
+      sections.add('I discovered\n$value');
+    }
+    if (_clean(tomorrowMessage) case final String value) {
+      sections.add('For tomorrow\n$value');
+    }
+    return sections.join('\n\n');
+  }
+
+  Map<String, dynamic> toJson() => {
+    'v': 1,
+    if (_clean(reflection) case final String value) 'reflection': value,
+    if (normalizedGratitudes.isNotEmpty) 'gratitudes': normalizedGratitudes,
+    if (_clean(discovery) case final String value) 'discovery': value,
+    if (_clean(tomorrowMessage) case final String value)
+      'tomorrowMessage': value,
+  };
+
+  static NightJournalData? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final j = raw.cast<Object?, Object?>();
+    final data = NightJournalData(
+      reflection: j['reflection'] is String
+          ? _clean(j['reflection'] as String)
+          : null,
+      gratitudes: [
+        for (final value in (j['gratitudes'] as List?) ?? const [])
+          if (value is String && _clean(value) != null) _clean(value)!,
+      ].take(3).toList(growable: false),
+      discovery: j['discovery'] is String
+          ? _clean(j['discovery'] as String)
+          : null,
+      tomorrowMessage: j['tomorrowMessage'] is String
+          ? _clean(j['tomorrowMessage'] as String)
+          : null,
+    );
+    return data.isEmpty ? null : data;
+  }
+
+  static String? _clean(String? value) {
+    final clean = value?.trim() ?? '';
+    return clean.isEmpty ? null : clean;
+  }
+}
+
 class Note {
   Note({
     required this.at,
@@ -292,6 +389,8 @@ class Note {
     this.images = const [],
     this.rich,
     this.trace,
+    this.night,
+    this.sourceQuestKey,
     String? id,
   }) : id = id ?? _freshId(at);
 
@@ -337,6 +436,19 @@ class Note {
   /// entries and notes that already live directly on a quest, goal, or domain.
   final JournalTrace? trace;
 
+  /// Structured optional prompts from the closing ledger. [text] remains the
+  /// searchable/displayable flattening, so older Journal surfaces still work.
+  final NightJournalData? night;
+
+  /// Stable identity of the Quest that opened this dedicated Journal page.
+  ///
+  /// This is deliberately separate from [JournalTrace.questTitles]: a normal
+  /// day page can mention several completed quests, while this field means
+  /// "resume this exact draft when this exact quest is tapped again." The
+  /// quest's identity title is stable even when a rising quest's visible rung
+  /// changes.
+  final String? sourceQuestKey;
+
   /// An edited copy that keeps the same identity, original timestamp and
   /// context. NOTE: null args mean "keep the current value" — [editedAt] is
   /// only changed when explicitly passed (an autosave of a brand-new entry
@@ -356,6 +468,20 @@ class Note {
     images: images ?? this.images,
     rich: rich ?? this.rich,
     trace: trace,
+    night: night,
+    sourceQuestKey: sourceQuestKey,
+  );
+
+  Note withNight(NightJournalData data, {JournalTrace? updatedTrace}) => Note(
+    id: id,
+    at: at,
+    context: context,
+    text: data.plainText,
+    editedAt: editedAt,
+    images: const [],
+    trace: updatedTrace ?? trace,
+    night: data,
+    sourceQuestKey: sourceQuestKey,
   );
 
   // microsecond timestamp + a monotonic per-process suffix → unique even for
@@ -373,6 +499,8 @@ class Note {
     if (images.isNotEmpty) 'images': images,
     if (rich != null) 'rich': rich,
     if (trace != null) 'trace': trace!.toJson(),
+    if (night != null) 'night': night!.toJson(),
+    if (sourceQuestKey != null) 'sourceQuestKey': sourceQuestKey,
   };
 
   static Note fromJson(Map<String, dynamic> j) => Note(
@@ -386,6 +514,8 @@ class Note {
     images: [for (final e in (j['images'] as List?) ?? const []) e as String],
     rich: j['rich'] as String?,
     trace: JournalTrace.fromJson(j['trace']),
+    night: NightJournalData.fromJson(j['night']),
+    sourceQuestKey: j['sourceQuestKey'] as String?,
   );
 }
 
@@ -410,6 +540,38 @@ extension NoteList on List<Note> {
 /// customization). Lives here (not content/) so the engine can take it without
 /// a content→engine→content import cycle.
 enum RoomStyleKind { wall, floor }
+
+/// Authored Journal doorway for a Quest.
+///
+/// Runtime routing keys off this metadata rather than guessing from words such
+/// as "write" or "grateful" in a user-editable title. The starter sits on the
+/// page as a prompt but is not saved merely by opening the editor; the Quest
+/// only resolves after the person adds meaningful writing of their own.
+class JournalQuestPrompt {
+  const JournalQuestPrompt({
+    required this.starter,
+    this.hint = 'Write underneath the prompt…',
+  });
+
+  final String starter;
+  final String hint;
+
+  Map<String, dynamic> toJson() => {'starter': starter, 'hint': hint};
+
+  static JournalQuestPrompt? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final json = raw.cast<Object?, Object?>();
+    final starter = json['starter'];
+    if (starter is! String || starter.trim().isEmpty) return null;
+    final hint = json['hint'];
+    return JournalQuestPrompt(
+      starter: starter,
+      hint: hint is String && hint.trim().isNotEmpty
+          ? hint
+          : 'Write underneath the prompt…',
+    );
+  }
+}
 
 /// A quest: curated (goal catalog), custom (user-forged), or a calendar
 /// event / long-term goal ([schedule] == once with a [dueDate]).
@@ -442,6 +604,7 @@ class Quest {
     this.bonus = false,
     this.origin,
     this.workout = false,
+    this.journalPrompt,
     this.createdDay,
     this.log = const [],
   });
@@ -557,6 +720,12 @@ class Quest {
   /// path (RESEARCH-workouts.md). Back-compat: defaults false.
   final bool workout;
 
+  /// A Quest that is completed by writing opens a dedicated, autosaving
+  /// Journal page first. Null keeps the ordinary tap-to-complete behavior.
+  /// Mutable only so the save loader can enrich already-adopted, authored
+  /// Journal quests from schema 19. Product flows do not edit this metadata.
+  JournalQuestPrompt? journalPrompt;
+
   /// For a [bonus] quest: the identity title of the base quest it sprang from
   /// — used to cap same-day encores per base (anti-overexertion, §4).
   final String? origin;
@@ -655,6 +824,7 @@ class Quest {
     'bonus': bonus,
     'origin': origin,
     'workout': workout,
+    if (journalPrompt != null) 'journalPrompt': journalPrompt!.toJson(),
     'createdDay': createdDay,
     if (log.isNotEmpty) 'log': [for (final n in log) n.toJson()],
   };
@@ -699,6 +869,7 @@ class Quest {
     bonus: j['bonus'] as bool? ?? false,
     origin: j['origin'] as String?,
     workout: j['workout'] as bool? ?? false,
+    journalPrompt: JournalQuestPrompt.fromJson(j['journalPrompt']),
     log: [
       for (final e in (j['log'] as List?) ?? const [])
         Note.fromJson((e as Map).cast<String, dynamic>()),

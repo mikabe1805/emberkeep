@@ -346,7 +346,7 @@ class InsightsPage extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     chronicle.total == 0
-                        ? 'a beautiful, private-first page is waiting for your story'
+                        ? 'your patterns will appear here after a few active days'
                         : '${chronicle.litDays} days active · ${chronicle.total} quests · ready to share',
                     style: Type.body.copyWith(
                       fontSize: 12,
@@ -443,15 +443,11 @@ class InsightsPage extends StatelessWidget {
       children: [
         const Icon(Icons.edit_note_rounded, size: 28, color: Palette.xpLight),
         const SizedBox(height: 10),
-        Text(
-          'Your first page is waiting',
-          style: Type.display.copyWith(fontSize: 20),
-        ),
+        Text('Start with today', style: Type.display.copyWith(fontSize: 20)),
         const SizedBox(height: 6),
         Text(
-          'Write one line now. Morrowloom attaches today’s quests, goal '
-          'threads, and your current build automatically; patterns can grow '
-          'from something you actually meant.',
+          'Write a line or add a photo. The date and today’s quest context '
+          'are added automatically.',
           textAlign: TextAlign.center,
           style: Type.body.copyWith(
             fontSize: 13,
@@ -1009,9 +1005,9 @@ class InsightsPage extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             lit.length < 3
-                ? 'One star for every night you showed up. It only ever grows.'
-                : 'Oldest day at the centre, today at the rim. Consecutive '
-                      'days are joined — your streak, drawn.',
+                ? 'Each point is a day with at least one completed quest.'
+                : 'Older days sit near the centre. Connected points mark '
+                      'consecutive active days.',
             style: Type.body.copyWith(fontSize: 12, color: Palette.textLo),
           ),
         ],
@@ -1025,25 +1021,25 @@ class InsightsPage extends StatelessWidget {
     if (state.comebacks > 0) {
       lines.add(
         'You’ve come back after a gap ${state.comebacks} time${state.comebacks == 1 ? '' : 's'} — '
-        'returning is rarer and harder than never stopping.',
+        'you returned and continued.',
       );
     }
     if (state.dreadCompletions > 0) {
       lines.add(
         'You’ve done ${state.dreadCompletions} quest${state.dreadCompletions == 1 ? '' : 's'} you '
-        'dreaded. That’s the muscle most people never train.',
+        'marked as difficult to begin.',
       );
     }
     if (state.perfectDays > 0) {
       lines.add(
         '${state.perfectDays} perfect day${state.perfectDays == 1 ? '' : 's'} — '
-        'whole boards cleared. Those are the ones that compound.',
+        'every planned quest was completed.',
       );
     }
     if (state.verifiedCompletions > 0) {
       lines.add(
         '${state.verifiedCompletions} quest${state.verifiedCompletions == 1 ? '' : 's'} '
-        'proved on the timer — you showed up AND stayed.',
+        'completed with a timer.',
       );
     }
     if (lines.isEmpty) {
@@ -1051,9 +1047,9 @@ class InsightsPage extends StatelessWidget {
       // product's own direction rules out. State the fact; let it land.
       lines.add(
         state.totalCompletions == 0
-            ? 'Nothing recorded yet. The first entry is the hard one.'
-            : '${state.totalCompletions} quests logged. The room keeps the '
-                  'count so you don’t have to.',
+            ? 'No activity recorded yet.'
+            : '${state.totalCompletions} quests logged across '
+                  '${state.history.length} active day${state.history.length == 1 ? '' : 's'}.',
       );
     }
     return lines.first;

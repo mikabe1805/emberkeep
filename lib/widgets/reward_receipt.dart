@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -74,8 +76,11 @@ class _RewardReceiptState extends State<RewardReceipt>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c;
   late final List<_Bubble> _bubbles;
+  final List<Timer> _feedbackTimers = [];
   bool _heldForSheet = false;
   bool _reflectionSaved = false;
+  bool _started = false;
+  bool _still = false;
 
   @override
   void initState() {
@@ -171,19 +176,41 @@ class _RewardReceiptState extends State<RewardReceipt>
         if (s == AnimationStatus.completed && !_heldForSheet) {
           widget.onDone();
         }
-      })
-      ..forward();
+      });
+  }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final still =
+        (widget.state?.reduceMotion ?? false) ||
+        MediaQuery.disableAnimationsOf(context);
+    if (_still != still) {
+      _still = still;
+      if (still) {
+        for (final timer in _feedbackTimers) {
+          timer.cancel();
+        }
+        _feedbackTimers.clear();
+      }
+    }
+    if (_started) return;
+    _started = true;
+    _scheduleFeedback();
+    _c.forward();
+  }
+
+  void _scheduleFeedback() {
     // sound/haptic layers fire on each bubble's entrance beat
     for (var i = 0; i < _bubbles.length; i++) {
       final bubble = _bubbles[i];
       if (bubble.sound == null && !bubble.haptic) continue;
-      Future.delayed(Motion.bubbleStagger * i, () {
+      final timer = Timer(Motion.bubbleStagger * i, () {
         if (!mounted) return;
         if (bubble.sound != null) Sfx.instance.play(bubble.sound!);
         if (bubble.haptic) {
-          if (Haptics.reduceMotion) {
-            HapticFeedback.mediumImpact();
+          if (_still || Haptics.reduceMotion) {
+            HapticFeedback.lightImpact();
           } else {
             HapticFeedback.heavyImpact();
             Future.delayed(const Duration(milliseconds: 90), () {
@@ -192,6 +219,7 @@ class _RewardReceiptState extends State<RewardReceipt>
           }
         }
       });
+      _feedbackTimers.add(timer);
     }
   }
 
@@ -306,6 +334,9 @@ class _RewardReceiptState extends State<RewardReceipt>
 
   @override
   void dispose() {
+    for (final timer in _feedbackTimers) {
+      timer.cancel();
+    }
     _c.dispose();
     super.dispose();
   }
@@ -315,48 +346,62 @@ class _RewardReceiptState extends State<RewardReceipt>
     final screen = MediaQuery.sizeOf(context);
     final totalMs = _c.duration!.inMilliseconds.toDouble();
     final safeBottom = MediaQuery.paddingOf(context).bottom;
+    final still =
+        (widget.state?.reduceMotion ?? false) ||
+        MediaQuery.disableAnimationsOf(context);
     return Positioned(
       left: 12,
       right: 12,
       bottom: 96 + safeBottom,
       child: OverlaySurface(
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (context, _) {
-            final elapsed = _c.value * totalMs;
-            final enter = Curves.easeOutCubic.transform(
-              (elapsed / 320).clamp(0.0, 1.0),
-            );
-            final exit = _heldForSheet
-                ? 0.0
-                : ((elapsed - (totalMs - 430)) / 430).clamp(0.0, 1.0);
-            final opacity = (enter * (1 - exit)).clamp(0.0, 1.0);
-            return IgnorePointer(
-              ignoring: _heldForSheet,
-              child: Opacity(
-                opacity: _heldForSheet ? 0 : opacity,
-                child: Transform.translate(
-                  offset: Offset(0, (1 - enter) * 22 + exit * 14),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: 520,
-                      // Compact phones need a little more vertical room now that
-                      // the optional Journal door is part of the receipt. This
-                      // still leaves the completed quest visible above it.
-                      maxHeight:
-                          screen.height * (screen.height < 700 ? 0.46 : 0.34),
-                    ),
-                    child: GlassPanel(
-                      glow: true,
-                      tint: const Color(0xF21B1511),
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                      child: _receiptBody(elapsed),
-                    ),
-                  ),
+        child: Semantics(
+          liveRegion: true,
+          label:
+              'Quest complete. ${widget.bundle.xp} XP earned. '
+              '${widget.bundle.message}',
+          child: AnimatedBuilder(
+            animation: _c,
+            builder: (context, _) {
+              final elapsed = _c.value * totalMs;
+              final enter = Curves.easeOutCubic.transform(
+                (elapsed / 320).clamp(0.0, 1.0),
+              );
+              final exit = _heldForSheet
+                  ? 0.0
+                  : ((elapsed - (totalMs - 430)) / 430).clamp(0.0, 1.0);
+              final opacity = still
+                  ? (_heldForSheet ? 0.0 : 1.0)
+                  : (enter * (1 - exit)).clamp(0.0, 1.0);
+              final receipt = ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 520,
+                  // Compact phones need a little more vertical room now that
+                  // the optional Journal door is part of the receipt. This
+                  // still leaves the completed quest visible above it.
+                  maxHeight:
+                      screen.height * (screen.height < 700 ? 0.46 : 0.34),
                 ),
-              ),
-            );
-          },
+                child: GlassPanel(
+                  glow: true,
+                  tint: const Color(0xF21B1511),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                  child: _receiptBody(still ? totalMs : elapsed),
+                ),
+              );
+              return IgnorePointer(
+                ignoring: _heldForSheet,
+                child: Opacity(
+                  opacity: opacity,
+                  child: still
+                      ? receipt
+                      : Transform.translate(
+                          offset: Offset(0, (1 - enter) * 22 + exit * 14),
+                          child: receipt,
+                        ),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../tokens.dart';
 
-/// Morrowloom's shared architectural silhouette: a pane with deliberate cut
+/// Room of Days' shared architectural silhouette: a pane with deliberate cut
 /// corners, like the fireplace stone, window light, rugs, and framed art in the
 /// keep. The asymmetry keeps it illustrated rather than feeling like a generic
 /// octagonal UI kit.

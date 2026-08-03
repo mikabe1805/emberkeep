@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// A compact view of the permanent Morrow Tapestry.
+/// A compact view of the permanent in-room record, the Woven Dawn.
 ///
 /// Compact placements keep the approved artwork crisp. The room-sized
 /// tapestry carries the detailed woven-row treatment; shrinking that mask into
@@ -44,7 +44,7 @@ class MorrowTapestryGlyph extends StatelessWidget {
 
     return Semantics(
       image: true,
-      label: 'Morrow Tapestry, ${(woven * 100).round()} percent woven',
+      label: 'The Woven Dawn, ${(woven * 100).round()} percent woven',
       child: TweenAnimationBuilder<double>(
         key: ValueKey(leap),
         tween: Tween(begin: leap == 0 ? 1 : 0.88, end: 1),

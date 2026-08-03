@@ -229,11 +229,11 @@ void main() {
     expect(tester.takeException(), isNull);
 
     expect(
-      tester.getBottomLeft(find.text('ENTER MORROWLOOM')).dy,
+      tester.getBottomLeft(find.text('ENTER ROOM OF DAYS')).dy,
       lessThanOrEqualTo(568),
       reason: 'the first action should be visible without discovering a scroll',
     );
-    await tester.tap(find.text('ENTER MORROWLOOM'));
+    await tester.tap(find.text('ENTER ROOM OF DAYS'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(tester.takeException(), isNull);
     expect(
@@ -269,7 +269,7 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.tap(find.text('ENTER MORROWLOOM'));
+    await tester.tap(find.text('ENTER ROOM OF DAYS'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.textContaining('Good evening.'), findsOneWidget);
   });

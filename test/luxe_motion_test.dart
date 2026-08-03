@@ -8,7 +8,7 @@ void main() {
 
     final first = response.step(target);
 
-    expect(first.light.dx, closeTo(0.46, 0.0001));
+    expect(first.light.dx, closeTo(0.26, 0.0001));
     expect(first.camera.dx, closeTo(0.18, 0.0001));
     expect(
       (target - first.light).distance,
@@ -24,6 +24,17 @@ void main() {
       (target - settled.light).distance,
       lessThan((target - settled.camera).distance),
     );
+  });
+
+  test('motion filter ignores hand tremor and eases intentional tilts', () {
+    expect(calmMotionTarget(const Offset(0.04, -0.06)), Offset.zero);
+
+    final small = calmMotionTarget(const Offset(0.25, 0));
+    final large = calmMotionTarget(const Offset(0.8, 0));
+    expect(small.dx, greaterThan(0));
+    expect(small.dx, lessThan(0.15));
+    expect(large.dx, greaterThan(small.dx));
+    expect(large.dx, lessThanOrEqualTo(1));
   });
 
   test('reduce motion immediately parks both motion planes', () {

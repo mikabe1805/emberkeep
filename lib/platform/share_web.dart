@@ -1,5 +1,6 @@
 import 'dart:js_interop';
 import 'dart:typed_data';
+import 'dart:ui' show Rect;
 
 import 'package:web/web.dart' as web;
 
@@ -17,7 +18,7 @@ Future<bool> sharePng(Uint8List bytes, String filename, String text) async {
     );
     final data = web.ShareData(
       files: <web.File>[file].toJS,
-      title: 'Morrowloom',
+      title: 'Room of Days',
       text: text,
     );
     if (web.window.navigator.canShare(data)) {
@@ -47,6 +48,17 @@ Future<bool> sharePng(Uint8List bytes, String filename, String text) async {
     a.click();
     a.remove();
     web.URL.revokeObjectURL(url);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<bool> shareText(String text, {Rect? origin}) async {
+  try {
+    await web.window.navigator
+        .share(web.ShareData(title: 'Visit my space', text: text))
+        .toDart;
     return true;
   } catch (_) {
     return false;

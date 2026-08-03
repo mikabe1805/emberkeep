@@ -179,7 +179,7 @@ class _CabinetHero extends StatelessWidget {
               Text(
                 memories.length == 0
                     ? 'The shelves are ready'
-                    : '${memories.length} pieces of your story',
+                    : '${memories.length} saved moment${memories.length == 1 ? '' : 's'}',
                 style: Type.display.copyWith(fontSize: 21),
               ),
               const SizedBox(height: 5),

@@ -1,6 +1,6 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../audio.dart';
 import '../cloud.dart';
 import '../haptics.dart';
+import '../journal_media.dart' as journal_media;
 import '../platform/share_stub.dart'
     if (dart.library.js_interop) '../platform/share_web.dart';
 import '../content/achievements.dart';
@@ -40,6 +41,992 @@ import '../social.dart';
 import 'domain_detail.dart';
 import 'hearth_circle.dart';
 import 'shop.dart';
+
+Future<void> _changePlayerName(
+  BuildContext context,
+  GameState state,
+  VoidCallback onPersist,
+) async {
+  final controller = TextEditingController(text: state.playerName ?? '');
+  final next = await showDialog<String>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: Palette.card,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        'What should we call you?',
+        style: Type.display.copyWith(fontSize: 20, color: Palette.textHi),
+      ),
+      content: TextField(
+        controller: controller,
+        autofocus: true,
+        maxLength: 40,
+        textCapitalization: TextCapitalization.words,
+        textInputAction: TextInputAction.done,
+        style: Type.body.copyWith(color: Palette.textHi),
+        decoration: const InputDecoration(
+          labelText: 'Your name',
+          hintText: 'Name or nickname',
+        ),
+        onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+          child: const Text('Save name'),
+        ),
+      ],
+    ),
+  );
+  controller.dispose();
+  if (next == null) return;
+  state.setPlayerName(next);
+  onPersist();
+}
+
+Future<void> _personalizeSpace(
+  BuildContext context,
+  GameState state,
+  VoidCallback onPersist,
+) async {
+  await Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => _SpacePageArranger(state: state, onPersist: onPersist),
+    ),
+  );
+}
+
+String _spaceCardTitle(SpaceCardKind kind) => switch (kind) {
+  SpaceCardKind.about => 'About',
+  SpaceCardKind.rightNow => 'Right now',
+  SpaceCardKind.pinnedMoments => 'Pinned moments',
+  SpaceCardKind.thisSeason => 'This season',
+};
+
+IconData _spaceCardIcon(SpaceCardKind kind) => switch (kind) {
+  SpaceCardKind.about => Icons.auto_stories_outlined,
+  SpaceCardKind.rightNow => Icons.flag_outlined,
+  SpaceCardKind.pinnedMoments => Icons.push_pin_outlined,
+  SpaceCardKind.thisSeason => Icons.filter_vintage_outlined,
+};
+
+Color _spaceCardAccent(SpaceCardKind kind) => switch (kind) {
+  SpaceCardKind.about => Palette.xp,
+  SpaceCardKind.rightNow => Palette.success,
+  SpaceCardKind.pinnedMoments => const Color(0xFFD29B78),
+  SpaceCardKind.thisSeason => Palette.unlock,
+};
+
+bool _spaceCardCanVisit(SpaceCardKind kind) =>
+    kind == SpaceCardKind.about || kind == SpaceCardKind.rightNow;
+
+/// A full-page workbench for My Space. The room itself stays the page hero;
+/// this route only arranges the authored cards that sit beneath it.
+class _SpacePageArranger extends StatefulWidget {
+  const _SpacePageArranger({required this.state, required this.onPersist});
+
+  final GameState state;
+  final VoidCallback onPersist;
+
+  @override
+  State<_SpacePageArranger> createState() => _SpacePageArrangerState();
+}
+
+class _SpacePageArrangerState extends State<_SpacePageArranger> {
+  late final TextEditingController _intro;
+  late final TextEditingController _season;
+  late final List<SpaceCardKind> _order;
+  late final Set<SpaceCardKind> _hidden;
+  late final Set<String> _featuredGoals;
+  late final Set<String> _pinnedMoments;
+  final Set<SpaceCardKind> _expanded = {SpaceCardKind.about};
+  String? _seasonPhotoNoteId;
+  late bool _shared;
+
+  @override
+  void initState() {
+    super.initState();
+    _intro = TextEditingController(text: widget.state.spaceIntro);
+    _season = TextEditingController(text: widget.state.spaceSeasonText);
+    _order = widget.state.spaceCardOrder.toList();
+    for (final kind in defaultSpaceCardOrder) {
+      if (!_order.contains(kind)) _order.add(kind);
+    }
+    _hidden = widget.state.hiddenSpaceCards.toSet();
+    _featuredGoals = widget.state.featuredGoalTitles.toSet();
+    _pinnedMoments = widget.state.memoryPins.toSet();
+    _seasonPhotoNoteId = widget.state.spaceSeasonPhotoNoteId;
+    _shared = widget.state.shareSpaceProfile;
+  }
+
+  @override
+  void dispose() {
+    _intro.dispose();
+    _season.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    for (final note in widget.state.journal) {
+      final pinned = _pinnedMoments.contains(note.id);
+      if (widget.state.memoryPins.contains(note.id) != pinned) {
+        widget.state.setMemoryPinned(note.id, pinned);
+      }
+    }
+    widget.state.setSpacePage(
+      order: _order,
+      hidden: _hidden,
+      intro: _intro.text,
+      featuredGoalTitles: _featuredGoals,
+      seasonText: _season.text,
+      seasonPhotoNoteId: _seasonPhotoNoteId,
+      shareProfile: _shared,
+    );
+    widget.onPersist();
+    Sfx.instance.play('levelup');
+    HapticFeedback.mediumImpact();
+    Navigator.of(context).pop();
+  }
+
+  void _reorder(int oldIndex, int newIndex) {
+    setState(() {
+      final moved = _order.removeAt(oldIndex);
+      _order.insert(newIndex, moved);
+    });
+    HapticFeedback.selectionClick();
+  }
+
+  void _togglePinned(String noteId) {
+    setState(() {
+      if (_pinnedMoments.remove(noteId)) return;
+      if (_pinnedMoments.length >= 4) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Palette.card,
+            content: Text('Choose up to four moments for this card.'),
+          ),
+        );
+        return;
+      }
+      _pinnedMoments.add(noteId);
+    });
+  }
+
+  List<Note> get _momentChoices {
+    final newest = widget.state.journal.reversed.toList();
+    final pinned = [
+      for (final note in newest)
+        if (_pinnedMoments.contains(note.id)) note,
+    ];
+    final recent = [
+      for (final note in newest)
+        if (!_pinnedMoments.contains(note.id)) note,
+    ].take(8);
+    return [...pinned, ...recent];
+  }
+
+  List<Note> get _seasonPhotoChoices => [
+    for (final note in widget.state.journal.reversed)
+      if (note.images.isNotEmpty) note,
+  ].take(12).toList();
+
+  Widget _editorFor(SpaceCardKind kind) => switch (kind) {
+    SpaceCardKind.about => _AboutSpaceEditor(controller: _intro),
+    SpaceCardKind.rightNow => _RightNowSpaceEditor(
+      goals: widget.state.goals,
+      selected: _featuredGoals,
+      onChanged: (title, selected) {
+        setState(() {
+          if (!selected) {
+            _featuredGoals.remove(title);
+          } else if (_featuredGoals.length < 3) {
+            _featuredGoals.add(title);
+          }
+        });
+      },
+    ),
+    SpaceCardKind.pinnedMoments => _PinnedMomentsEditor(
+      notes: _momentChoices,
+      selected: _pinnedMoments,
+      onToggle: _togglePinned,
+    ),
+    SpaceCardKind.thisSeason => _SeasonSpaceEditor(
+      controller: _season,
+      notes: _seasonPhotoChoices,
+      selectedNoteId: _seasonPhotoNoteId,
+      onPhotoChanged: (id) => setState(() => _seasonPhotoNoteId = id),
+    ),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      key: const ValueKey('space-arranger'),
+      backgroundColor: Palette.parchment,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _SpaceArrangerHeading(onClose: () => Navigator.of(context).pop()),
+            Expanded(
+              child: ReorderableListView.builder(
+                buildDefaultDragHandles: false,
+                physics: const BouncingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+                header: _SpaceSharingPanel(
+                  shared: _shared,
+                  onChanged: (value) => setState(() => _shared = value),
+                ),
+                itemCount: _order.length,
+                onReorderItem: _reorder,
+                proxyDecorator: (child, _, animation) => AnimatedBuilder(
+                  animation: animation,
+                  builder: (_, child) => Transform.scale(
+                    scale: 1 + animation.value * 0.018,
+                    child: Material(
+                      color: Colors.transparent,
+                      elevation: animation.value * 12,
+                      shadowColor: Palette.warmShadow,
+                      child: child,
+                    ),
+                  ),
+                  child: child,
+                ),
+                itemBuilder: (context, index) {
+                  final kind = _order[index];
+                  return _SpaceArrangerCard(
+                    key: ValueKey('space-card-${kind.name}'),
+                    kind: kind,
+                    index: index,
+                    hidden: _hidden.contains(kind),
+                    expanded: _expanded.contains(kind),
+                    onExpand: () => setState(() {
+                      if (!_expanded.remove(kind)) _expanded.add(kind);
+                    }),
+                    onVisibilityChanged: () => setState(() {
+                      if (!_hidden.remove(kind)) _hidden.add(kind);
+                    }),
+                    child: _editorFor(kind),
+                  );
+                },
+              ),
+            ),
+            _SpaceArrangerActions(
+              onCancel: () => Navigator.of(context).pop(),
+              onSave: _save,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SpaceArrangerHeading extends StatelessWidget {
+  const _SpaceArrangerHeading({required this.onClose});
+
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 8, 14, 10),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Palette.glassEdge)),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF251A15), Color(0xFF191210)],
+        ),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: 'Close without saving',
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            onPressed: onClose,
+            icon: const Icon(Icons.close_rounded, color: Palette.textMid),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'MY SPACE',
+                  style: Type.label.copyWith(
+                    fontSize: 9.5,
+                    letterSpacing: 1.7,
+                    color: Palette.xpLight,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Personalize your space',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.display.copyWith(
+                    fontSize: 21,
+                    height: 1.05,
+                    color: Palette.textHi,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpaceSharingPanel extends StatelessWidget {
+  const _SpaceSharingPanel({required this.shared, required this.onChanged});
+
+  final bool shared;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            decoration: facetedDecoration(
+              cut: 10,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: shared
+                    ? const [Color(0xFF342B1E), Color(0xFF1E2018)]
+                    : const [Color(0xFF2A211D), Color(0xFF201814)],
+              ),
+              borderColor: shared
+                  ? Palette.xp.withValues(alpha: 0.48)
+                  : Palette.glassEdge,
+            ),
+            child: SwitchListTile.adaptive(
+              key: const ValueKey('space-profile-share-toggle'),
+              contentPadding: const EdgeInsets.fromLTRB(13, 6, 8, 6),
+              minTileHeight: 64,
+              value: shared,
+              activeTrackColor: Palette.xp.withValues(alpha: 0.72),
+              title: Text(
+                'Let visitors see About + Right now',
+                style: Type.body.copyWith(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: Palette.textHi,
+                ),
+              ),
+              subtitle: Text(
+                shared
+                    ? 'Your chosen name plus any visible About and Right now cards appear when someone visits.'
+                    : 'Your name and these two cards stay private.',
+                style: Type.body.copyWith(
+                  fontSize: 11.5,
+                  height: 1.35,
+                  color: Palette.textLo,
+                ),
+              ),
+              onChanged: onChanged,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Writing and photos in Pinned moments, plus everything in This season, stay out of visitor rooms. Drag the brass grips to set your card order.',
+              style: Type.body.copyWith(
+                fontSize: 11.5,
+                height: 1.35,
+                color: Palette.textLo,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpaceArrangerCard extends StatelessWidget {
+  const _SpaceArrangerCard({
+    super.key,
+    required this.kind,
+    required this.index,
+    required this.hidden,
+    required this.expanded,
+    required this.onExpand,
+    required this.onVisibilityChanged,
+    required this.child,
+  });
+
+  final SpaceCardKind kind;
+  final int index;
+  final bool hidden;
+  final bool expanded;
+  final VoidCallback onExpand;
+  final VoidCallback onVisibilityChanged;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _spaceCardAccent(kind);
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 160),
+      opacity: hidden ? 0.58 : 1,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 11),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.lerp(Palette.card, accent, 0.075)!,
+              const Color(0xFF1B1411),
+            ],
+          ),
+          border: Border.all(color: accent.withValues(alpha: 0.34)),
+          boxShadow: const [
+            BoxShadow(
+              color: Palette.warmShadow,
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(15),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(width: 10),
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: accent.withValues(alpha: 0.12),
+                      border: Border.all(color: accent.withValues(alpha: 0.42)),
+                    ),
+                    child: Icon(_spaceCardIcon(kind), size: 19, color: accent),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: InkWell(
+                      onTap: onExpand,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 64),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 8,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _spaceCardTitle(kind),
+                                style: Type.body.copyWith(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: Palette.textHi,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _spaceCardCanVisit(kind)
+                                    ? 'VISITOR-ELIGIBLE'
+                                    : 'PRIVATE TO YOU',
+                                style: Type.label.copyWith(
+                                  fontSize: 8.5,
+                                  letterSpacing: 0.9,
+                                  color: _spaceCardCanVisit(kind)
+                                      ? Palette.xpLight
+                                      : Palette.textMid,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: ValueKey('space-card-toggle-${kind.name}'),
+                    tooltip: hidden ? 'Show this card' : 'Hide this card',
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                    onPressed: onVisibilityChanged,
+                    icon: Icon(
+                      hidden
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: hidden ? Palette.textLo : accent,
+                    ),
+                  ),
+                  ReorderableDragStartListener(
+                    index: index,
+                    child: Semantics(
+                      label: 'Move ${_spaceCardTitle(kind)} card',
+                      button: true,
+                      child: const SizedBox(
+                        width: 48,
+                        height: 56,
+                        child: Icon(
+                          Icons.drag_indicator_rounded,
+                          color: Palette.brassLit,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (expanded)
+                Container(
+                  key: ValueKey('space-card-editor-${kind.name}'),
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(14, 2, 14, 16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: accent.withValues(alpha: 0.20)),
+                    ),
+                  ),
+                  child: child,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AboutSpaceEditor extends StatelessWidget {
+  const _AboutSpaceEditor({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      maxLength: 180,
+      minLines: 3,
+      maxLines: 5,
+      textCapitalization: TextCapitalization.sentences,
+      style: Type.body.copyWith(fontSize: 14, color: Palette.textHi),
+      decoration: InputDecoration(
+        labelText: 'A little about you',
+        hintText: 'What are you making room for right now?',
+        alignLabelWithHint: true,
+        filled: true,
+        fillColor: Palette.glassFill,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(13)),
+      ),
+    );
+  }
+}
+
+class _RightNowSpaceEditor extends StatelessWidget {
+  const _RightNowSpaceEditor({
+    required this.goals,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final List<Goal> goals;
+  final Set<String> selected;
+  final void Function(String title, bool selected) onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    if (goals.isEmpty) {
+      return Text(
+        'Create a goal first, then you can place it here.',
+        style: Type.body.copyWith(fontSize: 12.5, color: Palette.textLo),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Choose up to three goals to keep in view.',
+          style: Type.body.copyWith(fontSize: 12.5, color: Palette.textMid),
+        ),
+        const SizedBox(height: 9),
+        Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          children: [
+            for (final goal in goals)
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: FilterChip(
+                  selected: selected.contains(goal.title),
+                  label: Text(goal.title),
+                  onSelected: (value) => onChanged(goal.title, value),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PinnedMomentsEditor extends StatelessWidget {
+  const _PinnedMomentsEditor({
+    required this.notes,
+    required this.selected,
+    required this.onToggle,
+  });
+
+  final List<Note> notes;
+  final Set<String> selected;
+  final ValueChanged<String> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    if (notes.isEmpty) {
+      return Text(
+        'Your Journal is empty for now. A page you write can become a pinned moment later.',
+        style: Type.body.copyWith(
+          fontSize: 12.5,
+          height: 1.4,
+          color: Palette.textLo,
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Choose up to four Journal entries. Their writing and photos stay out of visitor rooms; only the room\'s memory count can appear.',
+          style: Type.body.copyWith(
+            fontSize: 12.5,
+            height: 1.4,
+            color: Palette.textMid,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final note in notes)
+          _JournalMomentChoice(
+            note: note,
+            selected: selected.contains(note.id),
+            onTap: () => onToggle(note.id),
+          ),
+      ],
+    );
+  }
+}
+
+class _JournalMomentChoice extends StatelessWidget {
+  const _JournalMomentChoice({
+    required this.note,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Note note;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final clean = note.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Material(
+        color: selected
+            ? Palette.xp.withValues(alpha: 0.10)
+            : Palette.glassFill,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 56),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 5, 10, 5),
+              child: Row(
+                children: [
+                  if (note.images.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 46,
+                        height: 46,
+                        child: journal_media.image(
+                          note.images.first,
+                          maxHeight: 46,
+                        ),
+                      ),
+                    )
+                  else
+                    const SizedBox(
+                      width: 46,
+                      height: 46,
+                      child: Icon(Icons.notes_rounded, color: Palette.textLo),
+                    ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          clean.isEmpty ? 'Journal moment' : clean,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.body.copyWith(
+                            fontSize: 12.5,
+                            height: 1.3,
+                            color: Palette.textHi,
+                          ),
+                        ),
+                        Text(
+                          MaterialLocalizations.of(
+                            context,
+                          ).formatMediumDate(note.at),
+                          style: Type.label.copyWith(
+                            fontSize: 8.5,
+                            color: Palette.textLo,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Checkbox(value: selected, onChanged: (_) => onTap()),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SeasonSpaceEditor extends StatelessWidget {
+  const _SeasonSpaceEditor({
+    required this.controller,
+    required this.notes,
+    required this.selectedNoteId,
+    required this.onPhotoChanged,
+  });
+
+  final TextEditingController controller;
+  final List<Note> notes;
+  final String? selectedNoteId;
+  final ValueChanged<String?> onPhotoChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: controller,
+          maxLength: 180,
+          minLines: 2,
+          maxLines: 4,
+          textCapitalization: TextCapitalization.sentences,
+          style: Type.body.copyWith(fontSize: 14, color: Palette.textHi),
+          decoration: InputDecoration(
+            labelText: 'What does this season hold?',
+            hintText: 'Finals, a new routine, the garden coming back...',
+            alignLabelWithHint: true,
+            filled: true,
+            fillColor: Palette.glassFill,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(13)),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'ONE PHOTO FROM YOUR JOURNAL',
+          style: Type.label.copyWith(fontSize: 9, color: Palette.textLo),
+        ),
+        const SizedBox(height: 7),
+        OutlinedButton.icon(
+          onPressed: () => onPhotoChanged(null),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            foregroundColor: selectedNoteId == null
+                ? Palette.xpLight
+                : Palette.textMid,
+          ),
+          icon: Icon(
+            selectedNoteId == null
+                ? Icons.check_circle_outline
+                : Icons.hide_image_outlined,
+          ),
+          label: const Text('No season photo'),
+        ),
+        if (notes.isEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Add a photo to a Journal page and it can live here.',
+            style: Type.body.copyWith(fontSize: 12.5, color: Palette.textLo),
+          ),
+        ] else ...[
+          const SizedBox(height: 9),
+          SizedBox(
+            height: 138,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: notes.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final note = notes[index];
+                final selected = selectedNoteId == note.id;
+                return _SeasonPhotoChoice(
+                  note: note,
+                  selected: selected,
+                  onTap: () => onPhotoChanged(note.id),
+                );
+              },
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SeasonPhotoChoice extends StatelessWidget {
+  const _SeasonPhotoChoice({
+    required this.note,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Note note;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label:
+          'Season photo from ${MaterialLocalizations.of(context).formatMediumDate(note.at)}',
+      child: InkWell(
+        key: ValueKey('space-season-photo-${note.id}'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 116,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: selected
+                ? Palette.unlock.withValues(alpha: 0.14)
+                : Palette.glassFill,
+            border: Border.all(
+              color: selected ? Palette.unlock : Palette.glassEdge,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: journal_media.image(
+                      note.images.first,
+                      maxHeight: 90,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                MaterialLocalizations.of(context).formatMediumDate(note.at),
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: Type.label.copyWith(
+                  fontSize: 8.5,
+                  color: selected ? Palette.textHi : Palette.textLo,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SpaceArrangerActions extends StatelessWidget {
+  const _SpaceArrangerActions({required this.onCancel, required this.onSave});
+
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+      decoration: const BoxDecoration(
+        color: Color(0xF21B1411),
+        border: Border(top: BorderSide(color: Palette.glassEdge)),
+        boxShadow: [
+          BoxShadow(
+            color: Palette.warmShadow,
+            blurRadius: 18,
+            offset: Offset(0, -6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          TextButton(
+            onPressed: onCancel,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(72, 52),
+              foregroundColor: Palette.textMid,
+            ),
+            child: const Text('Cancel'),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: FilledButton.icon(
+              key: const ValueKey('space-arranger-save'),
+              onPressed: onSave,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                backgroundColor: Palette.xp,
+                foregroundColor: Palette.onHoney,
+              ),
+              icon: const Icon(Icons.check_rounded),
+              label: const Text('Save page'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 /// The "Me" page: your space + your build. The stats radar, the attribution
 /// ledger, and the share card (a build this earnest deserves showing off).
@@ -133,6 +1120,32 @@ class MePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compactHeading =
+        MediaQuery.sizeOf(context).width < 360 &&
+        MediaQuery.textScalerOf(context).scale(1) >= 1.6;
+    Widget levelSummary() => Container(
+      key: const ValueKey('me-level-summary'),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: facetedDecoration(
+        cut: 8,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Palette.xp.withValues(alpha: 0.20),
+            Palette.xp.withValues(alpha: 0.06),
+          ],
+        ),
+        borderColor: Palette.xp.withValues(alpha: 0.52),
+      ),
+      child: RollingNumber(
+        state.totalXp,
+        prefix: 'LV ${state.level} · ',
+        suffix: ' XP',
+        maxLines: 1,
+        style: Type.label.copyWith(fontSize: 10, color: Palette.xpLight),
+      ),
+    );
     return ListenableBuilder(
       listenable: state,
       builder: (context, _) => LuxeCustomPageList(
@@ -155,29 +1168,12 @@ class MePage extends StatelessWidget {
         subtitle: 'your space, already yours',
         icon: Icons.emoji_emotions_outlined,
         reduceMotion: state.reduceMotion,
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: facetedDecoration(
-            cut: 8,
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Palette.xp.withValues(alpha: 0.20),
-                Palette.xp.withValues(alpha: 0.06),
-              ],
-            ),
-            borderColor: Palette.xp.withValues(alpha: 0.52),
-          ),
-          child: RollingNumber(
-            state.totalXp,
-            prefix: 'LV ${state.level} · ',
-            suffix: ' XP',
-            maxLines: 1,
-            style: Type.label.copyWith(fontSize: 10, color: Palette.xpLight),
-          ),
-        ),
+        trailing: compactHeading ? null : levelSummary(),
         children: [
+          if (compactHeading) ...[
+            Align(alignment: Alignment.centerLeft, child: levelSummary()),
+            const SizedBox(height: 10),
+          ],
           // ── the room's own rail: what you have to spend, and the way in ──
           // Glimmers/room choice, sharing and the circle used to live *inside* the
           // identity plate, which turned the one page element that should read
@@ -188,15 +1184,20 @@ class MePage extends StatelessWidget {
               Sfx.instance.play('tick');
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      ShopScreen(state: state, onPersist: onPersist),
+                  builder: (_) => ShopScreen(
+                    state: state,
+                    onPersist: onPersist,
+                    parallax: parallax,
+                  ),
                 ),
               );
             },
           ),
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
             children: [
               _SpaceLink(
                 icon: Icons.ios_share,
@@ -205,19 +1206,16 @@ class MePage extends StatelessWidget {
                     : 'Shared · ${state.roomCode}',
                 onTap: () => shareSpace(context, state, onPersist),
               ),
-              Container(
-                width: 1,
-                height: 14,
-                margin: const EdgeInsets.symmetric(horizontal: 14),
-                color: Palette.textLo.withValues(alpha: 0.3),
-              ),
               _SpaceLink(
                 icon: Icons.travel_explore,
                 label: 'Visit a space',
                 onTap: () => visitSpace(
                   context,
+                  state: state,
+                  onPersist: onPersist,
                   themeId: state.canvasTheme,
                   lively: !state.reduceMotion,
+                  parallax: parallax,
                 ),
               ),
             ],
@@ -231,13 +1229,35 @@ class MePage extends StatelessWidget {
               children: [
                 const _PlateOrnament(),
                 const SizedBox(height: 12),
-                Text(
-                  (state.playerName ?? 'You').toUpperCase(),
-                  style: Type.display.copyWith(
-                    fontSize: 29,
-                    color: Palette.textHi,
-                    letterSpacing: 3.2,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        (state.playerName ?? 'You').toUpperCase(),
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.fade,
+                        style: Type.display.copyWith(
+                          fontSize: 29,
+                          color: Palette.textHi,
+                          letterSpacing: 3.2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      tooltip: 'Change your name',
+                      visualDensity: VisualDensity.compact,
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: Palette.textMid,
+                      ),
+                      onPressed: () =>
+                          _changePlayerName(context, state, onPersist),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -327,6 +1347,7 @@ class MePage extends StatelessWidget {
                         builder: (_) => HearthCircleScreen(
                           state: state,
                           onPersist: onPersist,
+                          parallax: parallax,
                         ),
                       ),
                     );
@@ -334,6 +1355,12 @@ class MePage extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 14),
+
+          _PersonalSpacePanel(
+            state: state,
+            onEdit: () => _personalizeSpace(context, state, onPersist),
           ),
           const SizedBox(height: 14),
 
@@ -807,7 +1834,7 @@ class MePage extends StatelessWidget {
           const SizedBox(height: 10),
           if (state.ledger.isEmpty)
             Text(
-              'Complete a quest and your story starts here.',
+              'Completed quests and stat gains will appear here.',
               style: Type.body.copyWith(
                 fontSize: 13,
                 fontStyle: FontStyle.italic,
@@ -1085,6 +2112,121 @@ class MePage extends StatelessWidget {
   }
 
   Widget _remindersPanel(BuildContext context) {
+    Future<bool> permissionIfNeeded(bool turningOn) async {
+      if (!turningOn) return true;
+      final granted = await Notifications.requestPermission();
+      if (!context.mounted) return false;
+      if (!granted) {
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Palette.card,
+              content: Text(
+                'Reminders stayed off — allow notifications in system settings when you’re ready.',
+              ),
+            ),
+          );
+      }
+      return granted;
+    }
+
+    Widget reminderToggle({
+      required String label,
+      required String detail,
+      required bool value,
+      required ValueChanged<bool> onChanged,
+    }) => Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Type.body.copyWith(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: Palette.textHi,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                detail,
+                style: Type.body.copyWith(
+                  fontSize: 11,
+                  height: 1.25,
+                  color: Palette.textLo,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        GlassSwitch(value: value, semanticLabel: label, onChanged: onChanged),
+      ],
+    );
+
+    Widget timeRow({
+      required String label,
+      required int hour,
+      required int minute,
+      required Future<void> Function(TimeOfDay picked) onPicked,
+    }) => Semantics(
+      button: true,
+      label: '$label ${_fmtTime(hour, minute)}',
+      child: InkWell(
+        onTap: () async {
+          final picked = await showTimePicker(
+            context: context,
+            initialTime: TimeOfDay(hour: hour, minute: minute),
+          );
+          if (picked != null) await onPicked(picked);
+        },
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              const Icon(Icons.schedule, size: 16, color: Palette.xpLight),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  label,
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    color: Palette.textMid,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: facetedDecoration(
+                  cut: 7,
+                  color: Colors.transparent,
+                  borderColor: Palette.glassEdge,
+                ),
+                child: Text(
+                  _fmtTime(hour, minute),
+                  style: Type.numerals.copyWith(
+                    fontSize: 14,
+                    color: Palette.xp,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final supported = Notifications.isSupported;
     return GlassPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1093,7 +2235,7 @@ class MePage extends StatelessWidget {
             children: [
               Text('REMINDERS', style: Type.label.copyWith(fontSize: 11)),
               const Spacer(),
-              if (kIsWeb)
+              if (!supported)
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 9,
@@ -1108,96 +2250,73 @@ class MePage extends StatelessWidget {
                     'NATIVE APP',
                     style: Type.label.copyWith(fontSize: 11),
                   ),
-                )
-              else
-                GlassSwitch(
-                  value: state.notifyEnabled,
-                  semanticLabel: 'Reminders',
-                  onChanged: (v) async {
-                    if (v) {
-                      final granted = await Notifications.requestPermission();
-                      if (!context.mounted) return;
-                      if (!granted) {
-                        ScaffoldMessenger.of(context)
-                          ..clearSnackBars()
-                          ..showSnackBar(
-                            const SnackBar(
-                              behavior: SnackBarBehavior.floating,
-                              backgroundColor: Palette.card,
-                              content: Text(
-                                'Reminders stayed off — allow notifications '
-                                'in system settings when you’re ready.',
-                              ),
-                            ),
-                          );
-                        return;
-                      }
-                    }
-                    state.setNotify(enabled: v);
-                    await onNotifyChanged();
-                  },
                 ),
             ],
           ),
+          const SizedBox(height: 2),
           Text(
-            kIsWeb
-                ? 'Daily nudges and plan reminders are available in the iOS and Android apps.'
-                : 'a daily nudge for your first quest, plus reminders for dated plans',
+            supported
+                ? 'Only the reminders you choose. No missed-day warnings.'
+                : 'Quest and night-routine reminders are available in the iOS and Android apps.',
             style: Type.body.copyWith(
               fontSize: 11,
               fontStyle: FontStyle.italic,
               color: Palette.textLo,
             ),
           ),
-          if (state.notifyEnabled) ...[
-            const SizedBox(height: 12),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () async {
-                final picked = await showTimePicker(
-                  context: context,
-                  initialTime: TimeOfDay(
-                    hour: state.notifyHour,
-                    minute: state.notifyMinute,
-                  ),
-                );
-                if (picked == null) return;
-                state.setNotify(hour: picked.hour, minute: picked.minute);
+          if (supported) ...[
+            const SizedBox(height: 16),
+            reminderToggle(
+              label: 'Quest & plan reminders',
+              detail: 'Your first quest and anything due that day.',
+              value: state.notifyEnabled,
+              onChanged: (value) async {
+                if (!await permissionIfNeeded(value)) return;
+                state.setNotify(enabled: value);
                 await onNotifyChanged();
               },
-              child: Row(
-                children: [
-                  const Icon(Icons.schedule, size: 16, color: Palette.xpLight),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Daily nudge at',
-                    style: Type.body.copyWith(
-                      fontSize: 13,
-                      color: Palette.textMid,
-                    ),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: facetedDecoration(
-                      cut: 7,
-                      color: Colors.transparent,
-                      borderColor: Palette.glassEdge,
-                    ),
-                    child: Text(
-                      _fmtTime(state.notifyHour, state.notifyMinute),
-                      style: Type.numerals.copyWith(
-                        fontSize: 14,
-                        color: Palette.xp,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
+            if (state.notifyEnabled) ...[
+              const SizedBox(height: 10),
+              timeRow(
+                label: 'Quest nudge at',
+                hour: state.notifyHour,
+                minute: state.notifyMinute,
+                onPicked: (picked) async {
+                  state.setNotify(hour: picked.hour, minute: picked.minute);
+                  await onNotifyChanged();
+                },
+              ),
+            ],
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 14),
+              child: Divider(height: 1, color: Palette.glassEdge),
+            ),
+            reminderToggle(
+              label: 'Night routine reminder',
+              detail: 'A quiet cue to review today and set up tomorrow.',
+              value: state.nightReminderEnabled,
+              onChanged: (value) async {
+                if (!await permissionIfNeeded(value)) return;
+                state.setNightReminder(enabled: value);
+                await onNotifyChanged();
+              },
+            ),
+            if (state.nightReminderEnabled) ...[
+              const SizedBox(height: 10),
+              timeRow(
+                label: 'Close the day at',
+                hour: state.nightReminderHour,
+                minute: state.nightReminderMinute,
+                onPicked: (picked) async {
+                  state.setNightReminder(
+                    hour: picked.hour,
+                    minute: picked.minute,
+                  );
+                  await onNotifyChanged();
+                },
+              ),
+            ],
           ],
         ],
       ),
@@ -1609,9 +2728,735 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
   );
 }
 
-/// One stat as a row: dot, name, rank title, value, and a thin bar toward
-/// the next tier — makes each attribute feel like its own little ladder.
-/// A small icon+label text link for the Share / Visit space actions.
+class _PersonalSpacePanel extends StatelessWidget {
+  const _PersonalSpacePanel({required this.state, required this.onEdit});
+
+  final GameState state;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final order = state.spaceCardOrder.toList();
+    for (final kind in defaultSpaceCardOrder) {
+      if (!order.contains(kind)) order.add(kind);
+    }
+    final goals = [
+      for (final goal in state.goals)
+        if (state.featuredGoalTitles.contains(goal.title)) goal,
+    ];
+    final moments = [
+      for (final note in state.journal)
+        if (state.memoryPins.contains(note.id)) note,
+    ].reversed.take(4).toList();
+    Note? seasonPhoto;
+    final selectedSeasonPhoto = state.spaceSeasonPhotoNoteId;
+    if (selectedSeasonPhoto != null) {
+      for (final note in state.journal) {
+        if (note.id == selectedSeasonPhoto && note.images.isNotEmpty) {
+          seasonPhoto = note;
+          break;
+        }
+      }
+    }
+    final visibleOrder = [
+      for (final kind in order)
+        if (!state.hiddenSpaceCards.contains(kind) &&
+            (kind != SpaceCardKind.thisSeason ||
+                state.spaceSeasonText.trim().isNotEmpty ||
+                seasonPhoto != null))
+          kind,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SpaceDeckHeading(shared: state.shareSpaceProfile, onEdit: onEdit),
+        const SizedBox(height: 10),
+        if (visibleOrder.isEmpty)
+          _EmptySpaceDeck(onEdit: onEdit)
+        else
+          for (var index = 0; index < visibleOrder.length; index++) ...[
+            if (index > 0) const SizedBox(height: 10),
+            switch (visibleOrder[index]) {
+              SpaceCardKind.about => _AboutSpaceCard(
+                intro: state.spaceIntro,
+                shared: state.shareSpaceProfile,
+              ),
+              SpaceCardKind.rightNow => _RightNowSpaceCard(
+                goals: goals,
+                shared: state.shareSpaceProfile,
+              ),
+              SpaceCardKind.pinnedMoments => _PinnedMomentsSpaceCard(
+                moments: moments,
+              ),
+              SpaceCardKind.thisSeason => _ThisSeasonSpaceCard(
+                text: state.spaceSeasonText,
+                photo: seasonPhoto,
+              ),
+            },
+          ],
+      ],
+    );
+  }
+}
+
+class _SpaceDeckHeading extends StatelessWidget {
+  const _SpaceDeckHeading({required this.shared, required this.onEdit});
+
+  final bool shared;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            MediaQuery.textScalerOf(context).scale(1) > 1.15 ||
+            constraints.maxWidth < 330;
+        final title = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'MY SPACE',
+              style: Type.label.copyWith(
+                fontSize: 11,
+                letterSpacing: 1.7,
+                color: Palette.xpLight,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'a page made from your days',
+              style: Type.body.copyWith(
+                fontSize: 12.5,
+                fontStyle: FontStyle.italic,
+                color: Palette.textLo,
+              ),
+            ),
+          ],
+        );
+        final status = Container(
+          key: const ValueKey('space-profile-visibility-status'),
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: facetedDecoration(
+            cut: 7,
+            color: shared
+                ? Palette.xp.withValues(alpha: 0.11)
+                : Palette.glassFill,
+            borderColor: shared
+                ? Palette.xp.withValues(alpha: 0.40)
+                : Palette.glassEdge,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                shared ? Icons.visibility_outlined : Icons.lock_outline_rounded,
+                size: 14,
+                color: shared ? Palette.xpLight : Palette.textLo,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                shared ? 'PROFILE SHARED' : 'PRIVATE',
+                style: Type.label.copyWith(
+                  fontSize: 8.5,
+                  letterSpacing: 0.8,
+                  color: shared ? Palette.xpLight : Palette.textLo,
+                ),
+              ),
+            ],
+          ),
+        );
+        final edit = TextButton.icon(
+          key: const ValueKey('space-page-open-arranger'),
+          onPressed: onEdit,
+          icon: const Icon(Icons.tune_rounded, size: 17),
+          style: TextButton.styleFrom(
+            foregroundColor: Palette.xpLight,
+            minimumSize: const Size(48, 48),
+          ),
+          label: Text(
+            'EDIT SPACE',
+            style: Type.label.copyWith(
+              fontSize: 9.5,
+              letterSpacing: 1.1,
+              color: Palette.xpLight,
+            ),
+          ),
+        );
+        final actions = Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 4,
+          runSpacing: 2,
+          children: [status, edit],
+        );
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [title, const SizedBox(height: 5), actions],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: title),
+            actions,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _EmptySpaceDeck extends StatelessWidget {
+  const _EmptySpaceDeck({required this.onEdit});
+
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(17),
+      decoration: facetedDecoration(
+        cut: 12,
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2B211A), Color(0xFF1D1612)],
+        ),
+        borderColor: Palette.glassEdge,
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.chair_outlined, color: Palette.xpLight),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'The room can stand on its own. Add a card whenever you want more of yourself here.',
+              style: Type.body.copyWith(
+                fontSize: 13,
+                height: 1.4,
+                color: Palette.textMid,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: 'Choose cards',
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            onPressed: onEdit,
+            icon: const Icon(Icons.add_rounded, color: Palette.xpLight),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpaceCardPrivacyMark extends StatelessWidget {
+  const _SpaceCardPrivacyMark({required this.visitorEligible});
+
+  final bool visitorEligible;
+
+  @override
+  Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.5;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: largeText ? 180 : 160),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            visitorEligible
+                ? Icons.door_front_door_outlined
+                : Icons.lock_outline,
+            size: 12,
+            color: Palette.textMid,
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              visitorEligible
+                  ? (largeText ? 'VISITORS MAY SEE' : 'VISITOR-ELIGIBLE')
+                  : 'ONLY YOU',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Type.label.copyWith(
+                fontSize: 8.5,
+                letterSpacing: 0.8,
+                color: Palette.textMid,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpaceDeckCardHeader extends StatelessWidget {
+  const _SpaceDeckCardHeader({
+    required this.icon,
+    required this.title,
+    required this.accent,
+    required this.visitorEligible,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color accent;
+  final bool visitorEligible;
+
+  @override
+  Widget build(BuildContext context) {
+    final identity = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 17, color: accent),
+        const SizedBox(width: 7),
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Type.label.copyWith(
+              fontSize: 10,
+              letterSpacing: 1.4,
+              color: accent,
+            ),
+          ),
+        ),
+      ],
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact =
+            MediaQuery.textScalerOf(context).scale(1) >= 1.5 ||
+            constraints.maxWidth < 260;
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              identity,
+              const SizedBox(height: 6),
+              _SpaceCardPrivacyMark(visitorEligible: visitorEligible),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: identity),
+            const SizedBox(width: 8),
+            _SpaceCardPrivacyMark(visitorEligible: visitorEligible),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _AboutSpaceCard extends StatelessWidget {
+  const _AboutSpaceCard({required this.intro, required this.shared});
+
+  final String intro;
+  final bool shared;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 17),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF3A2C21), Color(0xFF241A16)],
+        ),
+        border: Border.all(color: const Color(0x668E6134)),
+        boxShadow: const [
+          BoxShadow(
+            color: Palette.warmShadow,
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -2,
+            top: -18,
+            child: IgnorePointer(
+              child: Text(
+                '“',
+                style: Type.display.copyWith(
+                  fontSize: 82,
+                  color: Palette.xp.withValues(alpha: 0.10),
+                ),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _SpaceDeckCardHeader(
+                icon: Icons.auto_stories_outlined,
+                title: 'ABOUT',
+                accent: Palette.xpLight,
+                visitorEligible: true,
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: 42,
+                height: 1,
+                color: Palette.xp.withValues(alpha: 0.66),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                intro.isEmpty
+                    ? 'A few honest lines about you can live here.'
+                    : intro,
+                style: Type.body.copyWith(
+                  fontSize: 14,
+                  height: 1.5,
+                  fontStyle: intro.isEmpty ? FontStyle.italic : null,
+                  color: intro.isEmpty ? Palette.textMid : Palette.textHi,
+                ),
+              ),
+              if (shared) ...[
+                const SizedBox(height: 10),
+                Text(
+                  'shown when this card is visible to visitors',
+                  style: Type.body.copyWith(
+                    fontSize: 10.5,
+                    color: Palette.textMid,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RightNowSpaceCard extends StatelessWidget {
+  const _RightNowSpaceCard({required this.goals, required this.shared});
+
+  final List<Goal> goals;
+  final bool shared;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF273025), Color(0xFF191D17)],
+        ),
+        border: Border.all(color: const Color(0x5C9CBC88)),
+      ),
+      child: Stack(
+        children: [
+          const Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 7,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFFBED2A8), Color(0xFF657653)],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(21, 14, 15, 15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _SpaceDeckCardHeader(
+                  icon: Icons.flag_outlined,
+                  title: 'RIGHT NOW',
+                  accent: Palette.success,
+                  visitorEligible: true,
+                ),
+                const SizedBox(height: 9),
+                if (goals.isEmpty)
+                  Text(
+                    'The goals you choose to keep close will sit here.',
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textMid,
+                    ),
+                  )
+                else
+                  for (var index = 0; index < goals.length; index++) ...[
+                    if (index > 0)
+                      Divider(
+                        height: 13,
+                        color: Palette.success.withValues(alpha: 0.16),
+                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 23,
+                          height: 23,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: goals[index].stat.color.withValues(
+                              alpha: 0.12,
+                            ),
+                            border: Border.all(
+                              color: goals[index].stat.color.withValues(
+                                alpha: 0.42,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            '${index + 1}',
+                            style: Type.numerals.copyWith(
+                              fontSize: 10,
+                              color: goals[index].stat.color,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            goals[index].title,
+                            style: Type.body.copyWith(
+                              fontSize: 13,
+                              height: 1.35,
+                              color: Palette.textHi,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                if (shared) ...[
+                  const SizedBox(height: 9),
+                  Text(
+                    'shown when this card is visible to visitors',
+                    style: Type.body.copyWith(
+                      fontSize: 10.5,
+                      color: Palette.textMid,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PinnedMomentsSpaceCard extends StatelessWidget {
+  const _PinnedMomentsSpaceCard({required this.moments});
+
+  final List<Note> moments;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 13, 14, 15),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF3A241B), Color(0xFF241711)],
+        ),
+        border: Border.all(color: const Color(0x597E4E35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SpaceDeckCardHeader(
+            icon: Icons.push_pin_outlined,
+            title: 'PINNED MOMENTS',
+            accent: Color(0xFFDDB296),
+            visitorEligible: false,
+          ),
+          const SizedBox(height: 10),
+          if (moments.isEmpty)
+            Text(
+              'Keep a few pages from your Journal on this quiet shelf.',
+              style: Type.body.copyWith(
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+                color: Palette.textMid,
+              ),
+            )
+          else
+            SizedBox(
+              height: 112,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: moments.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 9),
+                itemBuilder: (context, index) =>
+                    _PinnedMomentTile(note: moments[index]),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PinnedMomentTile extends StatelessWidget {
+  const _PinnedMomentTile({required this.note});
+
+  final Note note;
+
+  @override
+  Widget build(BuildContext context) {
+    if (note.images.isNotEmpty) {
+      return Container(
+        width: 104,
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFB49472),
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(color: const Color(0xFF4E2F20), width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x72140C06),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: journal_media.image(note.images.first, maxHeight: 100),
+        ),
+      );
+    }
+    final clean = note.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+    return Container(
+      width: 158,
+      padding: const EdgeInsets.fromLTRB(11, 12, 11, 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFF322821),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: const Color(0x557C5A43)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x56140C06),
+            blurRadius: 7,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              clean.isEmpty ? 'Journal moment' : clean,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: Type.body.copyWith(
+                fontSize: 11.5,
+                height: 1.3,
+                color: Palette.textMid,
+              ),
+            ),
+          ),
+          Text(
+            MaterialLocalizations.of(context).formatMediumDate(note.at),
+            style: Type.label.copyWith(fontSize: 8, color: Palette.textLo),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ThisSeasonSpaceCard extends StatelessWidget {
+  const _ThisSeasonSpaceCard({required this.text, required this.photo});
+
+  final String text;
+  final Note? photo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF35283C), Color(0xFF201923)],
+        ),
+        border: Border.all(color: const Color(0x5FC9A3DC)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (photo case final note?)
+            SizedBox(
+              height: 168,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  journal_media.image(note.images.first, maxHeight: 168),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x00000000), Color(0xB0160F17)],
+                        stops: [0.46, 1],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(15, 14, 15, 0),
+            child: _SpaceDeckCardHeader(
+              icon: Icons.filter_vintage_outlined,
+              title: 'THIS SEASON',
+              accent: Palette.unlock,
+              visitorEligible: false,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 13, 16, 17),
+            child: Text(
+              text.trim().isEmpty
+                  ? 'Name the chapter you are in, or leave the space quiet.'
+                  : text.trim(),
+              style: Type.body.copyWith(
+                fontSize: 14,
+                height: 1.45,
+                fontStyle: text.trim().isEmpty ? FontStyle.italic : null,
+                color: text.trim().isEmpty ? Palette.textMid : Palette.textHi,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A clear icon+label button for the Share / Visit space actions.
 class _SpaceLink extends StatelessWidget {
   const _SpaceLink({
     required this.icon,
@@ -1624,22 +3469,40 @@ class _SpaceLink extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Palette.xpLight),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              label,
-              overflow: TextOverflow.ellipsis,
-              style: Type.label.copyWith(fontSize: 11, color: Palette.xpLight),
-            ),
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+          decoration: BoxDecoration(
+            color: Palette.card.withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Palette.glassRim),
           ),
-        ],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: Palette.xpLight),
+              const SizedBox(width: 7),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 150),
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    color: Palette.xpLight,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1838,7 +3701,7 @@ class _ShareButton extends StatelessWidget {
         .join(' · ');
     return '⚔️ ${state.buildTitle} — Level ${state.level}\n'
         '${stats.isEmpty ? "a brand-new adventurer" : stats}\n'
-        '${state.totalXp} XP of real life, and counting. — Morrowloom';
+        '${state.totalXp} XP of real life, and counting. — Room of Days';
   }
 
   @override
@@ -1927,7 +3790,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
           data != null &&
           await sharePng(
             data.buffer.asUint8List(),
-            'morrowloom-build.png',
+            'room-of-days-build.png',
             widget.summary,
           );
       if (!mounted) return;
@@ -2039,7 +3902,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        'MORROWLOOM',
+                        'ROOM OF DAYS',
                         style: Type.label.copyWith(
                           fontSize: 11,
                           color: Palette.textLo,
@@ -2345,55 +4208,70 @@ class _SpaceRail extends StatelessWidget {
   final VoidCallback onChangeSpace;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: 'Open room chooser. $embers Glimmers available.',
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onChangeSpace,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
-        // A pane is darker than the lit art behind it (DESIGN-BIBLE), so this is
-        // opaque warm glass, not a film — a translucent rail let the room's own
-        // light and anything beneath it read straight through.
-        decoration: facetedDecoration(
-          cut: 10,
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xF02A211B), Color(0xF61A130F)],
+  Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.6;
+    final balance = Row(
+      children: [
+        const Icon(Icons.auto_awesome_rounded, color: Palette.xp, size: 17),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text(
+            '$embers GLIMMERS',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Type.label.copyWith(
+              fontSize: 11.5,
+              letterSpacing: 1.5,
+              color: Palette.textMid,
+            ),
           ),
-          borderColor: Palette.brass.withValues(alpha: 0.52),
         ),
-        child: Row(
-          children: [
-            const Icon(Icons.auto_awesome_rounded, color: Palette.xp, size: 17),
-            const SizedBox(width: 9),
-            Expanded(
-              child: Text(
-                '$embers GLIMMERS',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Type.label.copyWith(
-                  fontSize: 11.5,
-                  letterSpacing: 1.5,
-                  color: Palette.textMid,
+      ],
+    );
+    final chooser = HoneyButton(
+      label: 'CHANGE SPACE',
+      icon: Icons.meeting_room_outlined,
+      fontSize: 10.5,
+      glow: false,
+      onTap: onChangeSpace,
+    );
+    return Semantics(
+      button: true,
+      label: 'Open room chooser. $embers Glimmers available.',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onChangeSpace,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+          // A pane is darker than the lit art behind it (DESIGN-BIBLE), so this is
+          // opaque warm glass, not a film — a translucent rail let the room's own
+          // light and anything beneath it read straight through.
+          decoration: facetedDecoration(
+            cut: 10,
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xF02A211B), Color(0xF61A130F)],
+            ),
+            borderColor: Palette.brass.withValues(alpha: 0.52),
+          ),
+          child: largeText
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [balance, const SizedBox(height: 8), chooser],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: balance),
+                    const SizedBox(width: 10),
+                    chooser,
+                  ],
                 ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            HoneyButton(
-              label: 'CHANGE SPACE',
-              icon: Icons.meeting_room_outlined,
-              fontSize: 10.5,
-              glow: false,
-              onTap: onChangeSpace,
-            ),
-          ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// The engraved flourish at the head of the nameplate: a hairline rule out to
@@ -2486,9 +4364,9 @@ class _LockedSlot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tile = Container(
-      height: 30,
+      constraints: const BoxConstraints(minHeight: 42),
       alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
       decoration: facetedDecoration(
         cut: 6,
         color: unlocked ? Palette.xp.withValues(alpha: 0.10) : null,
@@ -2508,18 +4386,16 @@ class _LockedSlot extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                label,
-                maxLines: 1,
-                style: Type.label.copyWith(
-                  fontSize: 11,
-                  letterSpacing: 0.7,
-                  color: unlocked
-                      ? Palette.xpLight
-                      : Palette.textLo.withValues(alpha: 0.8),
-                ),
+            child: Text(
+              label,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              style: Type.label.copyWith(
+                fontSize: 10.5,
+                letterSpacing: 0.5,
+                color: unlocked
+                    ? Palette.xpLight
+                    : Palette.textLo.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -2724,7 +4600,7 @@ class _RestoreDialogState extends State<_RestoreDialog> {
       Sfx.instance.play('boing');
       setState(() {
         _busy = false;
-        _error = 'that doesn’t look like a Morrowloom backup';
+        _error = 'that doesn’t look like a Room of Days backup';
       });
       return;
     }
@@ -2846,7 +4722,7 @@ class _AccountPanel extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
         content: Text(
-          error ?? 'Cloud backup is on — your story has a second home.',
+          error ?? 'Cloud backup is on for this save.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),
       ),
@@ -2992,7 +4868,7 @@ class _AccountPanel extends StatelessWidget {
                     signedIn
                         ? 'YOUR ACCOUNT'
                         : cloudReady
-                        ? 'YOUR STORY, EVERYWHERE'
+                        ? 'BACKUP ON'
                         : 'DEVICE-ONLY BY DEFAULT',
                     style: Type.label.copyWith(fontSize: 11),
                   ),
@@ -3010,7 +4886,7 @@ class _AccountPanel extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Your story follows you to any device you sign in on.',
+                  'Your data is backed up and available when you sign in on another device.',
                   style: Type.body.copyWith(
                     fontSize: 11.5,
                     fontStyle: FontStyle.italic,
@@ -3143,7 +5019,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
       const SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
-        content: Text('Account and Morrowloom data deleted.'),
+        content: Text('Account and Room of Days data deleted.'),
       ),
     );
   }
@@ -3261,7 +5137,7 @@ class _AccountDialogState extends State<_AccountDialog> {
         content: Text(
           widget.signIn
               ? 'Signed in — welcome back.'
-              : 'Account created — your story’s safe now.',
+              : 'Account created. Your save is backed up.',
           style: Type.body.copyWith(color: Palette.textHi),
         ),
       ),

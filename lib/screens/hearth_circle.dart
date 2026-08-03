@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -23,10 +24,14 @@ class HearthCircleScreen extends StatefulWidget {
     super.key,
     required this.state,
     required this.onPersist,
+    this.parallax = const AlwaysStoppedAnimation(Offset.zero),
+    this.roomFetcher,
   });
 
   final GameState state;
   final VoidCallback onPersist;
+  final ValueListenable<Offset> parallax;
+  final RoomFetcher? roomFetcher;
 
   @override
   State<HearthCircleScreen> createState() => _HearthCircleScreenState();
@@ -58,7 +63,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
   }
 
   Future<void> _load() async {
-    if (!CloudSync.instance.ready) {
+    if (!CloudSync.instance.available) {
       if (mounted) setState(() => _loading = false);
       return;
     }
@@ -96,22 +101,12 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
   }
 
   Future<void> _addKeep() async {
-    if (!CloudSync.instance.ready) {
-      _toast('Turn on cloud backup in Me before opening a Circle.');
-      return;
-    }
-    final code = await showDialog<String>(
-      context: context,
-      builder: (_) => const _CircleCodeDialog(),
+    final visit = await promptForSharedRoom(
+      context,
+      fetcher: widget.roomFetcher,
     );
-    if (code == null || code.trim().isEmpty || !mounted) return;
-    final clean = code.trim().toUpperCase();
-    final room = await CloudSync.instance.fetchRoom(clean);
-    if (!mounted) return;
-    if (room == null) {
-      _toast('No shared space found with that code.');
-      return;
-    }
+    if (visit == null || !mounted) return;
+    final clean = visit.code;
     if (!_state.addCircleCode(clean)) {
       _toast(
         _state.hearthCircleCodes.length >= 5
@@ -123,13 +118,13 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
     widget.onPersist();
     Sfx.instance.play('loot');
     HapticFeedback.mediumImpact();
-    setState(() => _rooms[clean] = room);
+    setState(() => _rooms[clean] = visit.room);
   }
 
   Future<bool> _publishNow() async {
     final cloud = CloudSync.instance;
-    if (!cloud.ready) {
-      _toast('Turn on cloud backup in Me before sharing quiet company.');
+    if (!cloud.available || !await cloud.ensureSocialSession()) {
+      _toast('Couldn’t connect quiet company right now.');
       return false;
     }
     final code = await cloud.shareRoom(
@@ -185,6 +180,10 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
 
   Future<void> _sendSpark(String code) async {
     Sfx.instance.play('tick');
+    if (!await CloudSync.instance.ensureSocialSession()) {
+      if (mounted) _toast('Couldn’t connect your note right now.');
+      return;
+    }
     final ok = await CloudSync.instance.sendSpark(code);
     if (!mounted) return;
     if (ok) {
@@ -285,13 +284,24 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                           GestureDetector(
                             behavior: HitTestBehavior.opaque,
                             onTap: _addKeep,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Text(
-                                '+ ADD CODE',
-                                style: Type.label.copyWith(
-                                  fontSize: 10.5,
-                                  color: Palette.xpLight,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                minWidth: 44,
+                                minHeight: 44,
+                              ),
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                  child: Text(
+                                    '+ ADD CODE',
+                                    textAlign: TextAlign.center,
+                                    style: Type.label.copyWith(
+                                      fontSize: 10.5,
+                                      color: Palette.xpLight,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -310,13 +320,18 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                           ),
                         )
                       else if (_state.hearthCircleCodes.isEmpty)
-                        _EmptyCircle(onAdd: _addKeep)
+                        _EmptyCircle(
+                          state: _state,
+                          parallax: widget.parallax,
+                          onAdd: _addKeep,
+                        )
                       else
                         for (final code in _state.hearthCircleCodes) ...[
                           _CircleKeepCard(
                             code: code,
                             room: _rooms[code],
                             nowMs: _now,
+                            parallax: widget.parallax,
                             onVisit: _rooms[code] == null
                                 ? null
                                 : () => Navigator.of(context).push(
@@ -326,6 +341,9 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                                         code: code,
                                         themeId: _state.canvasTheme,
                                         lively: !_state.reduceMotion,
+                                        parallax: widget.parallax,
+                                        localState: _state,
+                                        onPersist: widget.onPersist,
                                       ),
                                     ),
                                   ),
@@ -350,7 +368,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                         ],
                       const SizedBox(height: 8),
                       Text(
-                        'Circle members see only the same preset room appearance, broad energy weather, and whether a quiet-company timer is active. Your tasks and journal remain private.',
+                        'People in your Circle can see your room and whether you’re around. Your quests and Journal stay private.',
                         textAlign: TextAlign.center,
                         style: Type.body.copyWith(
                           fontSize: 11,
@@ -377,57 +395,61 @@ class _CircleLantern extends StatelessWidget {
   final int total;
 
   @override
-  Widget build(BuildContext context) => GlassPanel(
-    glow: lit > 0,
-    child: Row(
+  Widget build(BuildContext context) {
+    final medallion = FacetMedallion(
+      size: 62,
+      accent: Palette.streak,
+      glow: lit > 0,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Palette.specular.withValues(alpha: lit > 0 ? 0.34 : 0.1),
+          Palette.streak.withValues(alpha: lit > 0 ? 0.24 : 0.07),
+        ],
+      ),
+      child: Icon(
+        Icons.light_outlined,
+        size: 29,
+        color: lit > 0 ? Palette.xpLight : Palette.textLo,
+      ),
+    );
+    final details = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FacetMedallion(
-          size: 62,
-          accent: Palette.streak,
-          glow: lit > 0,
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Palette.specular.withValues(alpha: lit > 0 ? 0.34 : 0.1),
-              Palette.streak.withValues(alpha: lit > 0 ? 0.24 : 0.07),
-            ],
-          ),
-          child: Icon(
-            Icons.light_outlined,
-            size: 29,
-            color: lit > 0 ? Palette.xpLight : Palette.textLo,
-          ),
+        Text('The Circle Lantern', style: Type.display.copyWith(fontSize: 21)),
+        const SizedBox(height: 3),
+        Text(
+          '$lit of $total room${total == 1 ? '' : 's'} active today',
+          style: Type.body.copyWith(fontSize: 12.5, color: Palette.textLo),
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'The Circle Lantern',
-                style: Type.display.copyWith(fontSize: 21),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                '$lit of $total spaces checked in today',
-                style: Type.body.copyWith(
-                  fontSize: 12.5,
-                  color: Palette.textLo,
-                ),
-              ),
-              const SizedBox(height: 9),
-              FacetedMeter(
-                value: total == 0 ? 0 : lit / total,
-                color: Palette.streak,
-                glow: lit > 0,
-              ),
-            ],
-          ),
+        const SizedBox(height: 9),
+        FacetedMeter(
+          value: total == 0 ? 0 : lit / total,
+          color: Palette.streak,
+          glow: lit > 0,
         ),
       ],
-    ),
-  );
+    );
+    final large =
+        MediaQuery.textScalerOf(context).scale(1) > 1.15 ||
+        MediaQuery.sizeOf(context).width < 360;
+    return GlassPanel(
+      glow: lit > 0,
+      child: large
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [medallion, const SizedBox(height: 12), details],
+            )
+          : Row(
+              children: [
+                medallion,
+                const SizedBox(width: 14),
+                Expanded(child: details),
+              ],
+            ),
+    );
+  }
 }
 
 class _IncomingSparks extends StatelessWidget {
@@ -480,63 +502,88 @@ class _QuietCompanyCard extends StatelessWidget {
     final seconds = (remainingMs / 1000).ceil();
     final time =
         '${(seconds ~/ 60).toString().padLeft(2, '0')}:${(seconds % 60).toString().padLeft(2, '0')}';
+    final action = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: active ? onEnd : onStart,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 44),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+        decoration: facetedDecoration(
+          cut: 7,
+          color: Palette.unlock.withValues(alpha: 0.1),
+          borderColor: Palette.unlock.withValues(alpha: 0.42),
+        ),
+        child: Text(
+          active ? 'END' : 'BEGIN',
+          style: Type.label.copyWith(fontSize: 9.5, color: Palette.unlock),
+        ),
+      ),
+    );
+    final copy = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          active ? '$time · ${kind.toUpperCase()}' : 'Quiet Company',
+          style: Type.display.copyWith(fontSize: 18),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          active
+              ? 'your presence is visible · your actual task is not'
+              : 'light a private focus timer friends can sit beside',
+          style: Type.body.copyWith(fontSize: 11.5, color: Palette.textLo),
+        ),
+      ],
+    );
+    final large =
+        MediaQuery.textScalerOf(context).scale(1) > 1.15 ||
+        MediaQuery.sizeOf(context).width < 360;
     return GlassPanel(
       glow: active,
-      child: Row(
-        children: [
-          FacetMedallion(
-            size: 44,
-            accent: Palette.unlock,
-            glow: active,
-            child: Icon(
-              active ? Icons.hourglass_top : Icons.people_outline,
-              size: 21,
-              color: Palette.unlock,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
+      child: large
+          ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  active ? '$time · ${kind.toUpperCase()}' : 'Quiet Company',
-                  style: Type.display.copyWith(fontSize: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FacetMedallion(
+                      size: 44,
+                      accent: Palette.unlock,
+                      glow: active,
+                      child: Icon(
+                        active ? Icons.hourglass_top : Icons.people_outline,
+                        size: 21,
+                        color: Palette.unlock,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: copy),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  active
-                      ? 'your presence is visible · your actual task is not'
-                      : 'light a private focus timer friends can sit beside',
-                  style: Type.body.copyWith(
-                    fontSize: 11.5,
-                    color: Palette.textLo,
+                const SizedBox(height: 10),
+                SizedBox(width: double.infinity, child: action),
+              ],
+            )
+          : Row(
+              children: [
+                FacetMedallion(
+                  size: 44,
+                  accent: Palette.unlock,
+                  glow: active,
+                  child: Icon(
+                    active ? Icons.hourglass_top : Icons.people_outline,
+                    size: 21,
+                    color: Palette.unlock,
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(child: copy),
+                const SizedBox(width: 8),
+                action,
               ],
             ),
-          ),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: active ? onEnd : onStart,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-              decoration: facetedDecoration(
-                cut: 7,
-                color: Palette.unlock.withValues(alpha: 0.1),
-                borderColor: Palette.unlock.withValues(alpha: 0.42),
-              ),
-              child: Text(
-                active ? 'END' : 'BEGIN',
-                style: Type.label.copyWith(
-                  fontSize: 9.5,
-                  color: Palette.unlock,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -546,6 +593,7 @@ class _CircleKeepCard extends StatelessWidget {
     required this.code,
     required this.room,
     required this.nowMs,
+    required this.parallax,
     required this.onVisit,
     required this.onSpark,
     required this.onJoin,
@@ -554,6 +602,7 @@ class _CircleKeepCard extends StatelessWidget {
   final String code;
   final Map<String, dynamic>? room;
   final int nowMs;
+  final ValueListenable<Offset> parallax;
   final VoidCallback? onVisit;
   final VoidCallback? onSpark;
   final VoidCallback? onJoin;
@@ -576,10 +625,13 @@ class _CircleKeepCard extends StatelessWidget {
               ),
             ),
             GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onTap: onRemove,
-              child: const Padding(
-                padding: EdgeInsets.all(7),
-                child: Icon(Icons.close, size: 17, color: Palette.textLo),
+              child: const SizedBox.square(
+                dimension: 44,
+                child: Center(
+                  child: Icon(Icons.close, size: 17, color: Palette.textLo),
+                ),
               ),
             ),
           ],
@@ -619,6 +671,7 @@ class _CircleKeepCard extends StatelessWidget {
                 emberGlow: flameHueById(string('skin')),
                 heirloomFlame: string('skin') == 'gilded',
                 memoryArtifacts: memories,
+                parallax: parallax,
               ),
             ),
           ),
@@ -653,10 +706,13 @@ class _CircleKeepCard extends StatelessWidget {
                 ),
               ],
               GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: onRemove,
-                child: const Padding(
-                  padding: EdgeInsets.all(7),
-                  child: Icon(Icons.close, size: 16, color: Palette.textLo),
+                child: const SizedBox.square(
+                  dimension: 44,
+                  child: Center(
+                    child: Icon(Icons.close, size: 16, color: Palette.textLo),
+                  ),
                 ),
               ),
             ],
@@ -704,67 +760,102 @@ class _CircleAction extends StatelessWidget {
   final bool highlight;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    behavior: HitTestBehavior.opaque,
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    enabled: onTap != null,
+    label: label,
     onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: facetedDecoration(
-        cut: 7,
-        color: highlight
-            ? Palette.unlock.withValues(alpha: 0.13)
-            : Colors.transparent,
-        borderColor: highlight
-            ? Palette.unlock.withValues(alpha: 0.5)
-            : Palette.glassEdge,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 12,
-            color: onTap == null
-                ? Palette.textLo
-                : highlight
-                ? Palette.unlock
-                : Palette.xpLight,
-          ),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: Type.label.copyWith(
-              fontSize: 8.5,
+    child: GestureDetector(
+      excludeFromSemantics: true,
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: facetedDecoration(
+          cut: 7,
+          color: highlight
+              ? Palette.unlock.withValues(alpha: 0.13)
+              : Colors.transparent,
+          borderColor: highlight
+              ? Palette.unlock.withValues(alpha: 0.5)
+              : Palette.glassEdge,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 12,
               color: onTap == null
                   ? Palette.textLo
                   : highlight
                   ? Palette.unlock
                   : Palette.xpLight,
             ),
-          ),
-        ],
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                style: Type.label.copyWith(
+                  fontSize: 8.5,
+                  color: onTap == null
+                      ? Palette.textLo
+                      : highlight
+                      ? Palette.unlock
+                      : Palette.xpLight,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     ),
   );
 }
 
 class _EmptyCircle extends StatelessWidget {
-  const _EmptyCircle({required this.onAdd});
+  const _EmptyCircle({
+    required this.state,
+    required this.parallax,
+    required this.onAdd,
+  });
+  final GameState state;
+  final ValueListenable<Offset> parallax;
   final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) => GlassPanel(
     child: Column(
       children: [
-        const Icon(Icons.people_outline, size: 28, color: Palette.xpLight),
-        const SizedBox(height: 9),
+        ClipPath(
+          clipper: const FacetedClipper(cut: 10),
+          child: SizedBox(
+            height: 132,
+            child: HomeRoom(
+              plateId: state.wallStyle,
+              lively: !state.reduceMotion,
+              level: state.level,
+              unlocked: const {},
+              window: state.windowScene,
+              petAwake: state.streakDays > 0,
+              emberGlow: flameHueFor(state),
+              heirloomFlame: state.creatureSkin == 'gilded',
+              memoryArtifacts: state.memoryPins.length,
+              parallax: state.reduceMotion ? null : parallax,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         Text(
-          'A small circle, by design',
+          'Your room is ready for company',
           style: Type.display.copyWith(fontSize: 19),
         ),
         const SizedBox(height: 5),
         Text(
-          'Add the room code of someone you trust. There is no discovery feed and nobody can see your task list.',
+          'Add the room code of someone you trust. You’ll see each other’s rooms and can share quiet encouragement.',
           textAlign: TextAlign.center,
           style: Type.body.copyWith(fontSize: 12.5, color: Palette.textLo),
         ),
@@ -772,54 +863,6 @@ class _EmptyCircle extends StatelessWidget {
         _CircleAction(label: 'ADD A SPACE', icon: Icons.add, onTap: onAdd),
       ],
     ),
-  );
-}
-
-class _CircleCodeDialog extends StatefulWidget {
-  const _CircleCodeDialog();
-  @override
-  State<_CircleCodeDialog> createState() => _CircleCodeDialogState();
-}
-
-class _CircleCodeDialogState extends State<_CircleCodeDialog> {
-  final _controller = TextEditingController();
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    backgroundColor: Palette.card,
-    title: Text(
-      'Add a trusted space',
-      style: Type.display.copyWith(fontSize: 20),
-    ),
-    content: TextField(
-      controller: _controller,
-      autofocus: true,
-      maxLength: 6,
-      textCapitalization: TextCapitalization.characters,
-      textAlign: TextAlign.center,
-      style: Type.display.copyWith(
-        fontSize: 24,
-        color: Palette.xpLight,
-        letterSpacing: 6,
-      ),
-      decoration: const InputDecoration(counterText: '', hintText: 'ABC123'),
-      onSubmitted: (value) => Navigator.of(context).pop(value),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: Text('CANCEL', style: Type.label),
-      ),
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(_controller.text),
-        child: Text('ADD', style: Type.label.copyWith(color: Palette.xpLight)),
-      ),
-    ],
   );
 }
 

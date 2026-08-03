@@ -1,4 +1,4 @@
-# Codemagic CI — cloud-Mac iOS builds for Morrowloom → TestFlight (see ../NATIVE-iOS.md).
+# Codemagic CI — cloud-Mac iOS builds for Room of Days → TestFlight (see ../NATIVE-iOS.md).
 #
 # REPO LAYOUT: this file sits at the ROOT of the app's git repo (the `app/` folder
 # IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
@@ -23,12 +23,14 @@
 #     persisted Apple Distribution certificate.
 #   * App ID `com.mikabe.emberkeep` registered + app record (Apple ID 6781401469).
 #
-# PURE SPM: all plugins resolve as Swift Packages; no Podfile / no `pod install`.
-# The iOS-15 floor is set by the Runner target's IPHONEOS_DEPLOYMENT_TARGET = 15.0.
+# MIXED PLUGIN INTEGRATION: Firebase resolves through Flutter's generated Swift
+# package, while notification/timezone plugins still use CocoaPods. Flutter owns
+# dependency resolution during `flutter build ipa`; the Codemagic image only needs
+# CocoaPods available. The iOS-15 floor is set by the Runner target.
 
 workflows:
   ios-testflight:
-    name: Morrowloom iOS → TestFlight
+    name: Room of Days iOS → TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
@@ -36,6 +38,7 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
+      cocoapods: default
       groups:
         - emberkeep_signing # ← MUST contain the secret var CERTIFICATE_PRIVATE_KEY
       vars:

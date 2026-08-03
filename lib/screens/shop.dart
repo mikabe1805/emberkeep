@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -18,10 +19,16 @@ import '../widgets/honey_button.dart';
 /// finished room; Glimmers unlock large authored transformations that can be
 /// previewed before anything is spent.
 class ShopScreen extends StatefulWidget {
-  const ShopScreen({super.key, required this.state, required this.onPersist});
+  const ShopScreen({
+    super.key,
+    required this.state,
+    required this.onPersist,
+    this.parallax = const AlwaysStoppedAnimation(Offset.zero),
+  });
 
   final GameState state;
   final VoidCallback onPersist;
+  final ValueListenable<Offset> parallax;
 
   @override
   State<ShopScreen> createState() => _ShopScreenState();
@@ -120,128 +127,133 @@ class _ShopScreenState extends State<ShopScreen> {
           backgroundColor: Colors.transparent,
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
-            child: GlassPanel(
-              blur: true,
-              radius: 24,
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'STEP INSIDE',
-                          textAlign: TextAlign.center,
-                          style: Type.label.copyWith(
-                            fontSize: 11,
-                            letterSpacing: 2.4,
-                            color: Palette.textMid,
+            child: SingleChildScrollView(
+              child: GlassPanel(
+                blur: true,
+                radius: 24,
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'STEP INSIDE',
+                            textAlign: TextAlign.center,
+                            style: Type.label.copyWith(
+                              fontSize: 11,
+                              letterSpacing: 2.4,
+                              color: Palette.textMid,
+                            ),
                           ),
                         ),
-                      ),
-                      Semantics(
-                        button: true,
-                        label: 'Close room preview',
-                        child: IconButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          icon: const Icon(Icons.close_rounded),
-                          color: Palette.textMid,
-                          iconSize: 20,
-                          tooltip: 'Close',
+                        Semantics(
+                          button: true,
+                          label: 'Close room preview',
+                          child: IconButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            icon: const Icon(Icons.close_rounded),
+                            color: Palette.textMid,
+                            iconSize: 20,
+                            tooltip: 'Close',
+                          ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    RepaintBoundary(
+                      child: HomeRoom(
+                        key: ValueKey('theme-preview-${theme.id}'),
+                        aspect: 1.5,
+                        lively: !state.reduceMotion,
+                        unlocked: const {},
+                        plateId: theme.id,
+                        petAwake: state.streakDays > 0,
+                        emberGlow: flameHueFor(state),
+                        heirloomFlame: state.creatureSkin == 'gilded',
+                        level: state.level,
+                        parallax: state.reduceMotion ? null : widget.parallax,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  RepaintBoundary(
-                    child: HomeRoom(
-                      key: ValueKey('theme-preview-${theme.id}'),
-                      aspect: 1.5,
-                      lively: !state.reduceMotion,
-                      unlocked: const {},
-                      plateId: theme.id,
-                      petAwake: state.streakDays > 0,
-                      emberGlow: flameHueFor(state),
-                      heirloomFlame: state.creatureSkin == 'gilded',
-                      level: state.level,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    theme.name,
-                    textAlign: TextAlign.center,
-                    style: Type.display.copyWith(fontSize: 25),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    theme.subtitle,
-                    textAlign: TextAlign.center,
-                    style: Type.body.copyWith(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textMid,
+                    const SizedBox(height: 16),
+                    Text(
+                      theme.name,
+                      textAlign: TextAlign.center,
+                      style: Type.display.copyWith(fontSize: 25),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    theme.description,
-                    textAlign: TextAlign.center,
-                    style: Type.body.copyWith(
-                      fontSize: 12.5,
-                      color: Palette.textLo,
-                      height: 1.3,
+                    const SizedBox(height: 4),
+                    Text(
+                      theme.subtitle,
+                      textAlign: TextAlign.center,
+                      style: Type.body.copyWith(
+                        fontSize: 13,
+                        fontStyle: FontStyle.italic,
+                        color: Palette.textMid,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  if (applied)
-                    HoneyButton(
-                      label: 'THIS IS YOUR ROOM',
-                      icon: Icons.check_rounded,
-                      glow: false,
-                      onTap: () => Navigator.of(dialogContext).pop(),
-                    )
-                  else if (owned)
-                    HoneyButton(
-                      label: 'MOVE IN',
-                      icon: Icons.meeting_room_outlined,
-                      onTap: () async {
-                        final ok = await _commitTheme(theme);
-                        if (!dialogContext.mounted || !ok) return;
-                        Navigator.of(dialogContext).pop();
-                        if (mounted) _receipt('You moved into ${theme.name}.');
-                      },
-                    )
-                  else
-                    HoneyButton(
-                      enabled: affordable,
-                      label: affordable
-                          ? 'MAKE IT MINE · ${theme.price} GLIMMERS'
-                          : '$remaining MORE GLIMMERS',
-                      icon: Icons.key_outlined,
-                      onTap: () async {
-                        final ok = await _commitTheme(theme);
-                        if (!dialogContext.mounted || !ok) return;
-                        Navigator.of(dialogContext).pop();
-                        if (mounted) {
-                          _receipt(
-                            '${theme.name} is yours. You can return whenever you like.',
-                          );
-                        }
-                      },
+                    const SizedBox(height: 8),
+                    Text(
+                      theme.description,
+                      textAlign: TextAlign.center,
+                      style: Type.body.copyWith(
+                        fontSize: 12.5,
+                        color: Palette.textLo,
+                        height: 1.3,
+                      ),
                     ),
-                  const SizedBox(height: 8),
-                  Text(
-                    owned
-                        ? 'Switching rooms never costs anything again.'
-                        : '${theme.price} Glimmers · you have ${state.embers}',
-                    textAlign: TextAlign.center,
-                    style: Type.label.copyWith(
-                      fontSize: 10.5,
-                      color: Palette.textLo,
+                    const SizedBox(height: 14),
+                    if (applied)
+                      HoneyButton(
+                        label: 'THIS IS YOUR ROOM',
+                        icon: Icons.check_rounded,
+                        glow: false,
+                        onTap: () => Navigator.of(dialogContext).pop(),
+                      )
+                    else if (owned)
+                      HoneyButton(
+                        label: 'MOVE IN',
+                        icon: Icons.meeting_room_outlined,
+                        onTap: () async {
+                          final ok = await _commitTheme(theme);
+                          if (!dialogContext.mounted || !ok) return;
+                          Navigator.of(dialogContext).pop();
+                          if (mounted) {
+                            _receipt('You moved into ${theme.name}.');
+                          }
+                        },
+                      )
+                    else
+                      HoneyButton(
+                        enabled: affordable,
+                        label: affordable
+                            ? 'MAKE IT MINE · ${theme.price} GLIMMERS'
+                            : '$remaining MORE GLIMMERS',
+                        icon: Icons.key_outlined,
+                        onTap: () async {
+                          final ok = await _commitTheme(theme);
+                          if (!dialogContext.mounted || !ok) return;
+                          Navigator.of(dialogContext).pop();
+                          if (mounted) {
+                            _receipt(
+                              '${theme.name} is yours. You can return whenever you like.',
+                            );
+                          }
+                        },
+                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      owned
+                          ? 'Switching rooms never costs anything again.'
+                          : '${theme.price} Glimmers · you have ${state.embers}',
+                      textAlign: TextAlign.center,
+                      style: Type.label.copyWith(
+                        fontSize: 10.5,
+                        color: Palette.textLo,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -280,6 +292,7 @@ class _ShopScreenState extends State<ShopScreen> {
                           state: state,
                           theme: current,
                           busy: _busyTheme == current.id,
+                          parallax: widget.parallax,
                         ),
                         const SizedBox(height: 20),
                         Text(
@@ -302,10 +315,12 @@ class _ShopScreenState extends State<ShopScreen> {
                         const SizedBox(height: 14),
                         for (final theme in spaceThemes) ...[
                           _ThemeCard(
+                            state: state,
                             theme: theme,
                             owned: _owned(theme),
                             applied: _applied(theme),
                             busy: _busyTheme == theme.id,
+                            parallax: widget.parallax,
                             onOpen: () => _showTheme(theme),
                             onMoveIn: () => _moveIn(theme),
                           ),
@@ -331,11 +346,13 @@ class _CurrentRoom extends StatelessWidget {
     required this.state,
     required this.theme,
     required this.busy,
+    required this.parallax,
   });
 
   final GameState state;
   final SpaceTheme theme;
   final bool busy;
+  final ValueListenable<Offset> parallax;
 
   @override
   Widget build(BuildContext context) {
@@ -361,6 +378,7 @@ class _CurrentRoom extends StatelessWidget {
               emberGlow: flameHueFor(state),
               heirloomFlame: state.creatureSkin == 'gilded',
               level: state.level,
+              parallax: state.reduceMotion ? null : parallax,
             ),
           ),
           const SizedBox(height: 11),
@@ -407,18 +425,22 @@ class _CurrentRoom extends StatelessWidget {
 
 class _ThemeCard extends StatelessWidget {
   const _ThemeCard({
+    required this.state,
     required this.theme,
     required this.owned,
     required this.applied,
     required this.busy,
+    required this.parallax,
     required this.onOpen,
     required this.onMoveIn,
   });
 
+  final GameState state;
   final SpaceTheme theme;
   final bool owned;
   final bool applied;
   final bool busy;
+  final ValueListenable<Offset> parallax;
   final VoidCallback onOpen;
   final VoidCallback onMoveIn;
 
@@ -444,14 +466,22 @@ class _ThemeCard extends StatelessWidget {
             children: [
               Stack(
                 children: [
-                  AspectRatio(
-                    aspectRatio: 1.5,
-                    child: Image.asset(
-                      theme.previewAsset,
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.medium,
-                      semanticLabel: '${theme.name} room preview',
-                    ),
+                  HomeRoom(
+                    key: ValueKey('space-choice-${theme.id}'),
+                    aspect: 1.5,
+                    // All three chooser cards stay mounted in the scroll view.
+                    // Their shared hand-driven camera/light response supplies
+                    // depth without also running three autonomous fire loops.
+                    // The full preview and applied room remain genuinely live.
+                    lively: false,
+                    unlocked: const {},
+                    plateId: theme.id,
+                    lightweightPreview: true,
+                    petAwake: state.streakDays > 0,
+                    emberGlow: flameHueFor(state),
+                    heirloomFlame: state.creatureSkin == 'gilded',
+                    level: state.level,
+                    parallax: state.reduceMotion ? null : parallax,
                   ),
                   Positioned(
                     left: 10,
@@ -502,38 +532,34 @@ class _ThemeCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 13),
-                    Row(
-                      children: [
-                        Expanded(child: _price()),
-                        const SizedBox(width: 12),
-                        if (busy)
-                          const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 1.7,
-                              color: Palette.xp,
-                            ),
-                          )
-                        else if (applied)
-                          _StatusPill(label: 'YOUR ROOM', color: theme.accent)
-                        else if (owned)
-                          HoneyButton(
-                            label: 'MOVE IN',
-                            icon: Icons.meeting_room_outlined,
-                            fontSize: 10.5,
-                            glow: false,
-                            onTap: onMoveIn,
-                          )
-                        else
-                          HoneyButton(
-                            label: 'TRY THE ROOM',
-                            icon: Icons.visibility_outlined,
-                            fontSize: 10.5,
-                            glow: false,
-                            onTap: onOpen,
-                          ),
-                      ],
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final scaledText = MediaQuery.textScalerOf(
+                          context,
+                        ).scale(1);
+                        final stackActions =
+                            constraints.maxWidth < 320 || scaledText > 1.25;
+                        if (stackActions) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _price(),
+                              const SizedBox(height: 10),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: _action(),
+                              ),
+                            ],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(child: _price()),
+                            const SizedBox(width: 12),
+                            _action(),
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -561,6 +587,35 @@ class _ThemeCard extends StatelessWidget {
     return Text(
       '${theme.price} GLIMMERS',
       style: Type.numerals.copyWith(fontSize: 12, color: Palette.xpLight),
+    );
+  }
+
+  Widget _action() {
+    if (busy) {
+      return const SizedBox(
+        width: 22,
+        height: 22,
+        child: CircularProgressIndicator(strokeWidth: 1.7, color: Palette.xp),
+      );
+    }
+    if (applied) {
+      return _StatusPill(label: 'YOUR ROOM', color: theme.accent);
+    }
+    if (owned) {
+      return HoneyButton(
+        label: 'MOVE IN',
+        icon: Icons.meeting_room_outlined,
+        fontSize: 10.5,
+        glow: false,
+        onTap: onMoveIn,
+      );
+    }
+    return HoneyButton(
+      label: 'TRY THE ROOM',
+      icon: Icons.visibility_outlined,
+      fontSize: 10.5,
+      glow: false,
+      onTap: onOpen,
     );
   }
 }

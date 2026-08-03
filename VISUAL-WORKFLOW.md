@@ -1,4 +1,4 @@
-# Morrowloom — Visual Pass Workflow
+# Room of Days — Visual Pass Workflow
 
 Status: mandatory workflow for design, art, motion, and visual-polish work.
 
@@ -95,7 +95,7 @@ completed states as separate product truths. Never infer an empty state by
 labeling a completed painting `0`, and never leave concept HUD or live copy
 baked into a runtime plate.
 
-Morrowloom’s current Me model is not additive furnishing. Each selectable room
+Room of Days’ current Me model is not additive furnishing. Each selectable room
 identity owns one finished 3:2 painting and one lightweight chooser preview.
 Do not manufacture empty or partial variants. Preview the whole room, preload
 it before switching, move it as one overscanned camera, and keep experimental
@@ -219,7 +219,7 @@ For primary navigation, capture both a cold first frame and the first visit to
 each destination. Illustrated tabs should decode lazily, remain alive after
 their first visit, and mute all autonomous tickers while hidden.
 
-Use the Morrowloom motion classes:
+Use the Room of Days motion classes:
 
 - **autonomous:** fire, candle, occasional embers, quiet weather;
 - **reactive:** camera, reflection, progressive blur, embedded vignette;
@@ -360,7 +360,7 @@ Always provide:
 Use absolute paths in Markdown image syntax:
 
 ```markdown
-![Current Morrowloom review](C:/absolute/path/current-system-review-phone.webp)
+![Current Room of Days review](C:/absolute/path/current-system-review-phone.webp)
 ```
 
 Do not send only a file path or say the images were viewed during the work.

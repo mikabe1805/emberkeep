@@ -112,7 +112,7 @@ class LifeRpgApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Morrowloom',
+      title: 'Room of Days',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
@@ -124,18 +124,19 @@ class LifeRpgApp extends StatelessWidget {
         useMaterial3: true,
       ),
       // Accessibility text sizing: honor BOTH the phone's Text Size setting and
-      // the in-app control (Me → Settings), taking the larger of the two so a
-      // user gets big type whichever way they reached for it, then clamping the
-      // total so the dense candlelit cards don't shatter.
+      // the in-app control (Me → Settings). The in-app choice is a minimum; the
+      // original platform scaler stays intact above it, including nonlinear
+      // Android/iOS accessibility behavior.
       builder: (context, child) => ValueListenableBuilder<double>(
         valueListenable: appTextScale,
         builder: (context, inApp, _) {
-          final os = MediaQuery.textScalerOf(context).scale(1.0);
-          final factor = (os > inApp ? os : inApp).clamp(1.0, maxTextScale);
           return MediaQuery(
-            data: MediaQuery.of(
-              context,
-            ).copyWith(textScaler: TextScaler.linear(factor)),
+            data: MediaQuery.of(context).copyWith(
+              textScaler: roomTextScaler(
+                MediaQuery.textScalerOf(context),
+                inApp,
+              ),
+            ),
             child: child ?? const SizedBox.shrink(),
           );
         },

@@ -12,6 +12,7 @@ import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
+import '../widgets/night_reflection_sheet.dart';
 import '../widgets/notes_sheet.dart';
 import 'journal_entry.dart';
 import 'memory_cabinet.dart';
@@ -183,13 +184,24 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
 
   /// Open the full-page editor — for a brand-new entry, or to keep writing an
   /// existing one (notes are editable now, not write-once).
-  void _openEditor({
+  Future<void> _openEditor({
     Note? entry,
     String heading = 'Journal',
     String hint = 'What’s on your mind today?',
     String? starter,
   }) {
     Sfx.instance.play('tick');
+    final night = entry?.night;
+    if (entry != null && night != null) {
+      return showNightReflectionSheet(
+        context,
+        initial: night,
+        reduceMotion: _s.reduceMotion,
+      ).then((data) {
+        if (!mounted || data == null) return;
+        _s.updateNightJournalEntry(entry, data);
+      });
+    }
     final trace = entry == null ? _todayTrace() : entry.trace;
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -208,6 +220,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         ),
       ),
     );
+    return Future<void>.value();
   }
 
   /// Insert-or-replace and hand the saved Note back so the editor keeps
@@ -903,7 +916,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Write one line above. Morrowloom keeps the date, today’s quests, '
+          'Write one line above. Your journal keeps the date, today’s quests, '
           'your goal threads, and the build you had when you wrote it — no '
           'manual tagging required.',
           textAlign: TextAlign.center,

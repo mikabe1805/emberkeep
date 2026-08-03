@@ -3,8 +3,38 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function validBuildTitle(title) {
       return title.matches(
-        '^(STRONG |MIGHTY |TITAN |VITAL |RADIANT |UNDIMMED |ASTUTE |SAGE |LUMINARY |SKILLED |EXPERT |MASTER |BELOVED |MAGNETIC |BEACON |HOMEY |WELCOMING |SANCTUARY )?(BLANK SLATE|LIONHEART|WARRIOR SCHOLAR|SILENT HAMMER|GENTLE GIANT|HOMESTEADER|CLEAR SPRING|STEADY FLAME|SUNSHINE SOUL|EVERGREEN|DEEP CURRENT|STORYTELLER|QUIET MASTER|PRESENT HEART|UNSHAKEABLE|OPEN HEARTH|BRAWLER|WELLSPRING|SCHOLAR|MAKER|FRIEND|KEEPER)$'
+        '^(STRONG |MIGHTY |TITAN |VITAL |RADIANT |UNDIMMED |ASTUTE |SAGE |LUMINARY |SKILLED |EXPERT |MASTER |BELOVED |MAGNETIC |BEACON |HOMEY |WELCOMING |SANCTUARY )?(BLANK SLATE|LIONHEART|WARRIOR SCHOLAR|SILENT HAMMER|GENTLE GIANT|HOMESTEADER|CLEAR SPRING|STEADY HAND|STEADY FLAME|SUNSHINE SOUL|EVERGREEN|DEEP CURRENT|STORYTELLER|QUIET MASTER|PRESENT HEART|UNSHAKEABLE|OPEN HOUSE|OPEN HEARTH|BRAWLER|WELLSPRING|SCHOLAR|MAKER|FRIEND|KEEPER)$'
       );
+    }
+
+    function validPresence(d) {
+      return d.keys().hasAll([
+          'memories', 'weather', 'todayLit', 'focusKind', 'focusUntil'
+        ])
+        && d.memories is int && d.memories >= 0 && d.memories <= 9999
+        && d.weather in ['unknown', 'low', 'steady', 'bright']
+        && d.todayLit is bool
+        && d.focusKind in ['none', 'study', 'making', 'reset', 'quiet']
+        && d.focusUntil is int
+        && d.focusUntil >= 0 && d.focusUntil <= 9999999999999;
+    }
+
+    function validSharedProfile(d) {
+      return d.keys().hasAll([
+          'profileVisible', 'displayName', 'about', 'featuredGoals'
+        ])
+        && d.profileVisible is bool
+        && d.displayName is string && d.displayName.size() <= 40
+        && d.about is string && d.about.size() <= 180
+        && d.featuredGoals is list && d.featuredGoals.size() <= 3
+        && (d.featuredGoals.size() < 1
+          || (d.featuredGoals[0] is string && d.featuredGoals[0].size() <= 100))
+        && (d.featuredGoals.size() < 2
+          || (d.featuredGoals[1] is string && d.featuredGoals[1].size() <= 100))
+        && (d.featuredGoals.size() < 3
+          || (d.featuredGoals[2] is string && d.featuredGoals[2].size() <= 100))
+        && (d.profileVisible
+          || (d.displayName == '' && d.about == '' && d.featuredGoals.size() == 0));
     }
 
     function validRoom(code) {
@@ -13,7 +43,8 @@ service cloud.firestore {
         && d.keys().hasOnly([
           'uid', 'name', 'title', 'level', 'furniture', 'wall', 'floor',
           'skin', 'window', 'awake', 'memories', 'weather', 'todayLit',
-          'focusKind', 'focusUntil', 'v', 'updatedAt'
+          'focusKind', 'focusUntil', 'profileVisible', 'displayName', 'about',
+          'featuredGoals', 'v', 'updatedAt'
         ])
         && d.uid == request.auth.uid
         && d.name == 'Fellow keeper'
@@ -25,6 +56,7 @@ service cloud.firestore {
           'picture', 'chair', 'pet', 'hearth'
         ])
         && d.wall in [
+          'wall_conservatory', 'wall_archive',
           'wall_walnut', 'wall_plum', 'wall_sage', 'wall_clay', 'wall_amber',
           'wall_indigo', 'wall_berry'
         ]
@@ -40,19 +72,20 @@ service cloud.firestore {
         && d.awake is bool
         && (
           (d.v == 1 && !d.keys().hasAny([
-            'memories', 'weather', 'todayLit', 'focusKind', 'focusUntil'
+            'memories', 'weather', 'todayLit', 'focusKind', 'focusUntil',
+            'profileVisible', 'displayName', 'about', 'featuredGoals'
           ]))
           ||
           (d.v == 2
-            && d.keys().hasAll([
-              'memories', 'weather', 'todayLit', 'focusKind', 'focusUntil'
+            && validPresence(d)
+            && !d.keys().hasAny([
+              'profileVisible', 'displayName', 'about', 'featuredGoals'
             ])
-            && d.memories is int && d.memories >= 0 && d.memories <= 9999
-            && d.weather in ['unknown', 'low', 'steady', 'bright']
-            && d.todayLit is bool
-            && d.focusKind in ['none', 'study', 'making', 'reset', 'quiet']
-            && d.focusUntil is int
-            && d.focusUntil >= 0 && d.focusUntil <= 9999999999999
+          )
+          ||
+          (d.v == 3
+            && validPresence(d)
+            && validSharedProfile(d)
           )
         )
         && d.updatedAt == request.time;
@@ -63,12 +96,15 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
     // Shared "spaces" (round-52, social): a public, read-only-to-others room
-    // card keyed by a short share code. Only preset appearance/progression —
-    // never free-form text, quests, notes or email. Signed-in visitors may READ to
-    // visit; you may only create/replace/delete a doc stamped with YOUR uid,
-    // so no one can overwrite someone else's space.
+    // card keyed by a short bearer code. Appearance and presence are bounded;
+    // optional name/about/goals are explicit, length-limited profile choices.
+    // Quests, Journal content/photos, streak history, and account data never
+    // enter this document. Only the owner may create, replace, or delete it.
     match /rooms/{code} {
-      allow read: if request.auth != null;
+      // A code is the bearer key. Single-room reads work without forcing a
+      // visitor to enable cloud backup; enumeration remains impossible.
+      allow get: if true;
+      allow list: if false;
       allow create: if request.auth != null
                     && validRoom(code);
       allow update: if request.auth != null
@@ -79,7 +115,7 @@ service cloud.firestore {
 
       // Text-free encouragement only. A sender has one pending document,
       // keyed by their uid; only the room owner can see or collect it. There
-      // is no chat body, profile field, task data, or public sender list.
+      // is no chat body, task data, profile body, or public sender list.
       match /sparks/{senderId} {
         allow create: if request.auth != null
                       && senderId == request.auth.uid

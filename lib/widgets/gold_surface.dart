@@ -58,7 +58,7 @@ class GoldSurface extends StatelessWidget {
         // One broad reflection. Rest is a little left of centre, which is where
         // the approved target parks it; tilt and scroll slide it across.
         final sweep =
-            (0.32 + tilt.dx * 0.20 - tilt.dy * 0.07 + offset * 0.00048) % 1.0;
+            (0.32 + tilt.dx * 0.10 - tilt.dy * 0.035 + offset * 0.00032) % 1.0;
         return DecoratedBox(
           decoration: facetedDecoration(
             cut: cut,
@@ -98,8 +98,8 @@ class GoldSurface extends StatelessWidget {
                             'assets/quest/luminous-honey-gold-v2.webp',
                             fit: BoxFit.cover,
                             alignment: Alignment(
-                              tilt.dx * 0.12,
-                              tilt.dy * 0.06,
+                              tilt.dx * 0.055,
+                              tilt.dy * 0.028,
                             ),
                             filterQuality: FilterQuality.medium,
                             excludeFromSemantics: true,
@@ -233,8 +233,8 @@ class GoldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = Text(
       text,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+      maxLines: 2,
+      textAlign: TextAlign.center,
       style: Type.label.copyWith(
         fontSize: fontSize,
         letterSpacing: letterSpacing,

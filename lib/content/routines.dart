@@ -521,3 +521,9 @@ Quest workoutLauncherQuest() => Quest(
   ladder: Ladders.byBaseTitle['Guided workout session'],
   ladderHint: 'GUIDED · BEGINNER-FRIENDLY',
 );
+
+/// Presentation window for the evening ledger. It crosses midnight on
+/// purpose: a 3am wind-down is still the end of someone's day, not a failure
+/// to match a conventional schedule. The routine remains manually reachable
+/// outside this window.
+bool isWindDownTime(DateTime now) => now.hour >= 17 || now.hour < 4;

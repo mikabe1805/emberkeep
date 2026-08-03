@@ -1,4 +1,4 @@
-"""Normalized source/build comparison sheets for the Morrowloom design passes.
+"""Normalized source/build comparison sheets for the Room of Days design passes.
 
 Every approved target is a 852x1846-class mobile raster; every production
 capture is 1290x2796 (430x932 logical at DPR 3). Both share the same 0.462
@@ -8,9 +8,12 @@ aspect, so a comparison only needs a common height -- never a crop.
     python tool/visual_compare.py focus      # focused control crops
     python tool/visual_compare.py review     # current product-state contact sheet
     python tool/visual_compare.py review-phone # compact handoff sheet
+    python tool/visual_compare.py brand-review # old/new icon + store graphic
     python tool/visual_compare.py audit-phone # compact first-run/Me/Journal handoff
     python tool/visual_compare.py rooms       # approved Me target vs current build
     python tool/visual_compare.py rooms-phone # compact complete-room flow handoff
+    python tool/visual_compare.py social-phone # Me, Circle, and visitor-profile handoff
+    python tool/visual_compare.py my-space-cards-phone # card deck + arranger handoff
     python tool/visual_compare.py probe A B  # ad-hoc pair
 
 Output lands in design/comparisons/<stamp>/.
@@ -76,7 +79,7 @@ def contact_sheet(pairs: list[tuple[str, Path, Path]], name: str, height: int = 
 
     sheet = Image.new("RGB", (sheet_w, sheet_h), BG)
     ImageDraw.Draw(sheet).text(
-        (gap, 16), f"MORROWLOOM - APPROVED SYSTEM / {name.upper()}", font=_font(22), fill=INK
+        (gap, 16), f"ROOM OF DAYS - APPROVED SYSTEM / {name.upper()}", font=_font(22), fill=INK
     )
     y = 44 + gap
     for row in rows:
@@ -115,7 +118,7 @@ def image_sheet(
     sheet = Image.new("RGB", (sheet_w, sheet_h), BG)
     ImageDraw.Draw(sheet).text(
         (gap, 15),
-        "MORROWLOOM - CURRENT PRODUCTION REVIEW",
+        "ROOM OF DAYS - CURRENT PRODUCTION REVIEW",
         font=_font(22),
         fill=INK,
     )
@@ -351,6 +354,7 @@ SYSTEM = [
 REVIEW = [
     ("QUESTS - READY", GOLDENS / "store_01_quests_1290x2796.png"),
     ("QUESTS - MID SCROLL", GOLDENS / "store_01a_quests_scrolled_1290x2796.png"),
+    ("QUESTS - WIND DOWN", GOLDENS / "store_01d_evening_close_1290x2796.png"),
     ("QUESTS - COMPLETE", GOLDENS / "store_02_reward_1290x2796.png"),
     ("ME", GOLDENS / "store_02_keep_1290x2796.png"),
     ("GOALS", GOLDENS / "store_04_goals_1290x2796.png"),
@@ -368,6 +372,8 @@ REVIEW = [
         GOLDENS / "routine_ledger_night_many_expanded_430x932.png",
     ),
     ("MORNING OPEN", GOLDENS / "routine_ledger_morning_430x932.png"),
+    ("NIGHT REFLECTIONS", GOLDENS / "store_11b_night_reflection_1290x2796.png"),
+    ("FROM LAST NIGHT", GOLDENS / "store_12_morning_open_1290x2796.png"),
 ]
 
 CURRENT_PASS = [
@@ -416,7 +422,39 @@ JOURNAL_PERFORMANCE_PASS = [
     ("KEPT IN JOURNAL", GOLDENS / "store_02e_reflection_kept_1290x2796.png"),
     ("JOURNAL CONTEXT", GOLDENS / "store_07_journal_1290x2796.png"),
     ("NIGHT CLOSE", GOLDENS / "store_11_night_close_1290x2796.png"),
-    ("NIGHT ONE LINE", GOLDENS / "store_11b_night_reflection_1290x2796.png"),
+    ("NIGHT REFLECTIONS", GOLDENS / "store_11b_night_reflection_1290x2796.png"),
+]
+
+SOCIAL_PASS = [
+    ("MY SPACE", GOLDENS / "store_02_keep_1290x2796.png"),
+    ("YOUR CIRCLE", GOLDENS / "store_02b_hearth_circle_1290x2796.png"),
+    (
+        "OPT-IN VISITOR PAGE",
+        GOLDENS / "store_02c_visitor_profile_1290x2796.png",
+    ),
+]
+
+MY_SPACE_CARDS_PASS = [
+    (
+        "COMPOSED CARD DECK",
+        GOLDENS / "store_14_my_space_cards_1290x2796.png",
+    ),
+    (
+        "REORDER / HIDE / EDIT",
+        GOLDENS / "store_14c_my_space_arranger_1290x2796.png",
+    ),
+]
+
+BRAND_PASS = [
+    (
+        "OLD PUBLIC MARK",
+        APP / "assets" / "brand" / "morrowloom-icon-runtime-v2.webp",
+    ),
+    ("ROOM OF DAYS MARK", APP / "web" / "icons" / "Icon-1024.png"),
+    (
+        "GOOGLE PLAY FEATURE GRAPHIC",
+        APP / "store-assets" / "google-play-feature-graphic-1024x500.png",
+    ),
 ]
 
 FOCUS = [
@@ -442,6 +480,14 @@ def main() -> None:
             REVIEW,
             "current-system-review-phone",
             height=520,
+            per_row=2,
+            webp=True,
+        )
+    elif mode == "brand-review":
+        image_sheet(
+            BRAND_PASS,
+            "room-of-days-brand-review",
+            height=500,
             per_row=2,
             webp=True,
         )
@@ -486,6 +532,22 @@ def main() -> None:
             JOURNAL_PERFORMANCE_PASS,
             "journal-and-phone-performance-pass",
             height=520,
+            per_row=2,
+            webp=True,
+        )
+    elif mode == "social-phone":
+        image_sheet(
+            SOCIAL_PASS,
+            "my-space-circle-visitor-pass",
+            height=520,
+            per_row=2,
+            webp=True,
+        )
+    elif mode == "my-space-cards-phone":
+        image_sheet(
+            MY_SPACE_CARDS_PASS,
+            "my-space-cards-phone",
+            height=620,
             per_row=2,
             webp=True,
         )

@@ -88,6 +88,209 @@ class _Block {
   }
 }
 
+/// A restrained reveal of the authored Journal room. The live editor does not
+/// pretend the illustration's handwriting is editable; it sits above it on a
+/// separate page surface, while the room remains the place around the page.
+class _JournalDeskBackdrop extends StatelessWidget {
+  const _JournalDeskBackdrop();
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: RepaintBoundary(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/pages/journal-desk-v2.webp',
+            fit: BoxFit.cover,
+            alignment: const Alignment(0, -0.28),
+            filterQuality: FilterQuality.medium,
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x36120C08),
+                  Color(0x55191210),
+                  Color(0xE8191210),
+                ],
+                stops: [0, 0.48, 1],
+              ),
+            ),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0x4A120C08),
+                  Color(0x00120C08),
+                  Color(0x4A120C08),
+                ],
+                stops: [0, 0.5, 1],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Dark parchment seated inside a book-cloth rim. It keeps the candlelit
+/// material language without returning to the bright beige canvas that hurt
+/// readability in earlier builds.
+class _JournalPageSurface extends StatelessWidget {
+  const _JournalPageSurface({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    container: true,
+    label: 'Journal writing page',
+    child: DecoratedBox(
+      decoration: facetedDecoration(
+        cut: 18,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF4A342A), Color(0xFF2C1E1B), Color(0xFF1D1413)],
+          stops: [0, 0.42, 1],
+        ),
+        borderColor: const Color(0xB88E6134),
+        borderWidth: 1.35,
+        shadows: const [
+          BoxShadow(
+            color: Color(0xA6140C06),
+            blurRadius: 22,
+            offset: Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Color(0x248E6134),
+            blurRadius: 12,
+            offset: Offset(-2, -2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(5),
+        child: ClipPath(
+          clipper: const FacetedClipper(cut: 14),
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF382B24),
+                  Color(0xFF2D221F),
+                  Color(0xFF241A19),
+                ],
+                stops: [0, 0.48, 1],
+              ),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                const IgnorePointer(
+                  child: RepaintBoundary(
+                    child: CustomPaint(painter: _JournalPagePainter()),
+                  ),
+                ),
+                child,
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _JournalPagePainter extends CustomPainter {
+  const _JournalPagePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bounds = Offset.zero & size;
+    canvas.drawRect(
+      bounds,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(-0.72, -0.88),
+          radius: 1.22,
+          colors: [Color(0x24E0A865), Color(0x00191210)],
+        ).createShader(bounds),
+    );
+
+    // Sparse, deterministic fibres: enough to read as paper at rest, never a
+    // noisy filter behind someone's actual words.
+    final fibre = Paint()
+      ..color = const Color(0x16D8BE96)
+      ..strokeWidth = 0.7
+      ..strokeCap = StrokeCap.round;
+    for (var i = 0; i < 24; i++) {
+      final y = 10.0 + i * (size.height - 20) / 24;
+      final start = 9.0 + (i % 5) * 7;
+      final width = 38.0 + (i % 4) * 19;
+      canvas.drawLine(Offset(start, y), Offset(start + width, y + 0.6), fibre);
+      final right = size.width - 14 - (i % 3) * 11;
+      canvas.drawLine(
+        Offset(right - width * 0.52, y + 5),
+        Offset(right, y + 4.4),
+        fibre,
+      );
+    }
+
+    final inset = facetedRectPath(
+      Rect.fromLTWH(3, 3, size.width - 6, size.height - 6),
+      cut: 11,
+    );
+    canvas.drawPath(
+      inset,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8
+        ..color = const Color(0x358E6134),
+    );
+
+    // One quiet botanical watermark belongs to the Journal's page language.
+    // It stays below live ink and never asks for attention.
+    final botanical = Paint()
+      ..color = const Color(0x248E6134)
+      ..strokeWidth = 1.15
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final origin = Offset(size.width - 28, size.height - 24);
+    final stem = Path()
+      ..moveTo(origin.dx, origin.dy)
+      ..quadraticBezierTo(
+        origin.dx - 18,
+        origin.dy - 34,
+        origin.dx - 10,
+        origin.dy - 76,
+      );
+    canvas.drawPath(stem, botanical);
+    for (var i = 0; i < 4; i++) {
+      final y = origin.dy - 18 - i * 14;
+      final x = origin.dx - 8 - i * 1.5;
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(x - 8, y), width: 13, height: 6),
+        botanical,
+      );
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(x + 5, y - 7), width: 12, height: 5.5),
+        botanical,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _JournalPagePainter oldDelegate) => false;
+}
+
 class _JournalEntryScreenState extends State<JournalEntryScreen>
     with WidgetsBindingObserver {
   final List<_Block> _blocks = [];
@@ -299,8 +502,14 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   }
 
   Future<void> _addPhoto(bool fromCamera) async {
-    final name = await media.pick(fromCamera);
-    if (name == null || !mounted) {
+    final List<String> names;
+    if (fromCamera) {
+      final picked = await media.pick(true);
+      names = picked == null ? const [] : [picked];
+    } else {
+      names = await media.pickMany();
+    }
+    if (names.isEmpty || !mounted) {
       // a FAILURE (denied permission, camera error) must not read as "photos
       // are broken" — tell them warmly what to do. A plain cancel stays silent.
       if (mounted && media.lastPickFailed) {
@@ -309,8 +518,8 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
             backgroundColor: Palette.card,
             content: Text(
               fromCamera
-                  ? 'Morrowloom couldn’t reach your camera — you can allow it in Settings.'
-                  : 'Morrowloom couldn’t reach your photos — you can allow it in Settings.',
+                  ? 'Couldn’t reach your camera — you can allow it in Settings.'
+                  : 'Couldn’t reach your photos — you can allow it in Settings.',
               style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
             ),
           ),
@@ -323,8 +532,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     if (idx < 0) idx = _blocks.length - 1;
     final after = _Block.text('')..controller!.addListener(_onChanged);
     setState(() {
-      _blocks.insert(idx + 1, _Block.image(name));
-      _blocks.insert(idx + 2, after);
+      _blocks.insertAll(idx + 1, [
+        for (final name in names) _Block.image(name),
+      ]);
+      _blocks.insert(idx + 1 + names.length, after);
       _active = after;
     });
     _dirty = true;
@@ -442,7 +653,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
               children: [
                 _sourceTile(
                   Icons.photo_library_outlined,
-                  'Choose from library',
+                  'Choose photos',
                   () => Navigator.pop(context, false),
                 ),
                 const SizedBox(height: 6),
@@ -548,48 +759,144 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
           themeId: widget.themeId,
           reduceMotion: widget.reduceMotion,
           tint: widget.accent,
-          child: SafeArea(
-            child: Column(
-              children: [
-                _bar(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 0, 22, 8),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      _whenLine,
-                      style: Type.label.copyWith(
-                        fontSize: 11,
-                        color: Palette.textLo,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // The editor belongs to the same moonlit desk as the Journal
+              // hub. Only the upper scene is exposed; live writing gets a
+              // dedicated physical plane instead of floating over scenery.
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 248,
+                child: _JournalDeskBackdrop(),
+              ),
+              SafeArea(
+                child: Column(
+                  children: [
+                    _bar(),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+                        child: _JournalPageSurface(
+                          key: const ValueKey('journal-writing-page'),
+                          child: LayoutBuilder(
+                            builder: (context, page) {
+                              // At very large text on a short phone, the date,
+                              // photo action, and attached Quest context can be
+                              // taller than the whole paper. Let that metadata
+                              // scroll within the upper half so it never pushes
+                              // the actual writing field out of the page.
+                              final header = Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _pageHeader(),
+                                  if (widget.trace != null)
+                                    _tracePanel(widget.trace!),
+                                  _pageRule(),
+                                ],
+                              );
+                              return Column(
+                                children: [
+                                  ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      maxHeight: page.maxHeight * 0.56,
+                                    ),
+                                    child: SingleChildScrollView(child: header),
+                                  ),
+                                  Expanded(
+                                    // The whole physical page remains tappable,
+                                    // including the space below the last paragraph.
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onTap: _focusTail,
+                                      child: ListView.builder(
+                                        padding: const EdgeInsets.fromLTRB(
+                                          20,
+                                          12,
+                                          20,
+                                          28,
+                                        ),
+                                        keyboardDismissBehavior:
+                                            ScrollViewKeyboardDismissBehavior
+                                                .onDrag,
+                                        itemCount: _blocks.length,
+                                        itemBuilder: (_, i) =>
+                                            _blockView(_blocks[i], i == 0),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-                if (widget.trace != null) _tracePanel(widget.trace!),
-                Expanded(
-                  // the WHOLE page is the writing surface: tapping the empty
-                  // space below the last paragraph puts the cursor at the end
-                  // (the first friction every notes-app writer hits otherwise)
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTap: _focusTail,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                      keyboardDismissBehavior:
-                          ScrollViewKeyboardDismissBehavior.onDrag,
-                      itemCount: _blocks.length,
-                      itemBuilder: (_, i) => _blockView(_blocks[i], i == 0),
-                    ),
-                  ),
-                ),
-                if (!kIsWeb) _photoBar(),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  Widget _pageHeader() {
+    final when = Text(
+      _whenLine,
+      style: Type.label.copyWith(fontSize: 11, color: Palette.textMid),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 13, 14, 9),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (kIsWeb) {
+            return Align(alignment: Alignment.centerLeft, child: when);
+          }
+          final stacked =
+              MediaQuery.textScalerOf(context).scale(1) > 1.15 ||
+              constraints.maxWidth < 350;
+          final action = _photoAction();
+          if (stacked) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [when, const SizedBox(height: 9), action],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: when),
+              const SizedBox(width: 12),
+              action,
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _pageRule() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 18),
+    child: Row(
+      children: [
+        Container(width: 22, height: 1, color: Palette.brass),
+        const SizedBox(width: 5),
+        Expanded(
+          child: Container(
+            height: 1,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0x708E6134), Color(0x148E6134)],
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _tracePanel(JournalTrace trace) {
     final gains = trace.statGains.entries.toList()
@@ -674,26 +981,30 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
             Positioned(
               top: 2,
               right: 2,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () => _removeImage(b),
-                // a generous transparent margin around the dot so the tap
-                // target clears the 44px guideline — a photo's only copy
-                // shouldn't die to a near-miss (and Undo has its back anyway)
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  color: Colors.transparent,
+              child: Semantics(
+                button: true,
+                label: 'Remove photo',
+                excludeSemantics: true,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _removeImage(b),
+                  // A generous transparent margin around the dot keeps the
+                  // destructive target at 48px; Undo remains available.
                   child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: facetedDecoration(
-                      cut: 6,
-                      color: Color(0x99140C06),
-                      borderColor: Palette.glassEdge,
-                    ),
-                    child: const Icon(
-                      Icons.close,
-                      size: 16,
-                      color: Palette.textHi,
+                    padding: const EdgeInsets.all(10),
+                    color: Colors.transparent,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: facetedDecoration(
+                        cut: 6,
+                        color: Color(0x99140C06),
+                        borderColor: Palette.glassEdge,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        size: 16,
+                        color: Palette.textHi,
+                      ),
                     ),
                   ),
                 ),
@@ -712,8 +1023,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       keyboardType: TextInputType.multiline,
       cursorColor: widget.accent,
       style: Type.body.copyWith(
-        fontSize: 17,
-        height: 1.5,
+        fontFamily: 'EBGaramond',
+        fontSize: 19,
+        fontWeight: FontWeight.w500,
+        height: 1.48,
         color: Palette.textHi,
       ),
       decoration: InputDecoration(
@@ -722,135 +1035,221 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
         contentPadding: const EdgeInsets.symmetric(vertical: 4),
         hintText: first ? widget.hint : null,
         hintStyle: Type.body.copyWith(
-          fontSize: 17,
-          height: 1.5,
-          color: Palette.textLo,
+          fontFamily: 'EBGaramond',
+          fontSize: 19,
+          fontWeight: FontWeight.w500,
+          height: 1.48,
+          color: const Color(0xFFB8AA99),
         ),
       ),
     );
   }
 
   Widget _bar() {
-    final saved = _everSaved && !_dirty;
     final writtenWords = (_words - _starterWords).clamp(0, _words);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(6, 6, 12, 2),
+    final statusLabel = _dirty
+        ? 'Saving…'
+        : _everSaved
+        ? 'Saved locally'
+        : 'Saves automatically';
+    final status = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 190),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            // PopScope runs the exiting flush on the way out
-            onTap: () => Navigator.of(context).maybePop(),
-            child: const Padding(
-              padding: EdgeInsets.all(8),
-              child: Icon(Icons.chevron_left, size: 26, color: Palette.textMid),
-            ),
+          Icon(
+            _dirty ? Icons.sync : Icons.check_circle_outline,
+            size: 14,
+            color: Palette.textLo,
           ),
-          Text(
-            widget.heading,
-            style: Type.display.copyWith(fontSize: 20, color: widget.accent),
-          ),
-          const Spacer(),
-          if (writtenWords > 0) ...[
-            Text(
-              '$writtenWords ${writtenWords == 1 ? 'word' : 'words'}',
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              statusLabel,
+              softWrap: true,
               style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
             ),
-            const SizedBox(width: 10),
-          ] else if (widget.starter != null) ...[
-            Text(
-              'PROMPT READY',
-              style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
-            ),
-            const SizedBox(width: 10),
-          ],
-          if (_dirty || _everSaved)
-            Row(
-              children: [
-                // a plain check, not a cloud — this save is proudly local
-                Icon(
-                  saved ? Icons.check_circle_outline : Icons.sync,
-                  size: 14,
-                  color: Palette.textLo,
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  saved ? 'Saved' : 'Saving…',
-                  style: Type.label.copyWith(
-                    fontSize: 10,
-                    color: Palette.textLo,
-                  ),
-                ),
-              ],
-            ),
-          if (_current != null) ...[
-            const SizedBox(width: 6),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _confirmDelete,
-              child: const Padding(
-                padding: EdgeInsets.all(8),
-                child: Icon(
+          ),
+        ],
+      ),
+    );
+    final wordLabel = writtenWords > 0
+        ? '$writtenWords ${writtenWords == 1 ? 'word' : 'words'}'
+        : widget.starter != null
+        ? 'PROMPT READY'
+        : null;
+    final back = Semantics(
+      button: true,
+      label: 'Back',
+      excludeSemantics: true,
+      child: SizedBox.square(
+        dimension: 48,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => Navigator.of(context).maybePop(),
+          child: const Icon(
+            Icons.chevron_left,
+            size: 26,
+            color: Palette.textMid,
+          ),
+        ),
+      ),
+    );
+    final remove = _current == null
+        ? const SizedBox(width: 4)
+        : Semantics(
+            button: true,
+            label: 'Delete entry',
+            excludeSemantics: true,
+            child: SizedBox.square(
+              dimension: 48,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: _confirmDelete,
+                child: const Icon(
                   Icons.delete_outline,
                   size: 20,
                   color: Palette.textLo,
                 ),
               ),
             ),
-          ],
-        ],
+          );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(6, 6, 12, 2),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final large =
+              MediaQuery.textScalerOf(context).scale(1) > 1.15 ||
+              constraints.maxWidth < 370;
+          // A Quest title is often more specific than the ordinary "Journal"
+          // heading. Give longer authored titles the full row instead of
+          // squeezing them beside the save status and fading the final word.
+          final stacked = large || widget.heading.length > 18;
+          final heading = Expanded(
+            child: Text(
+              widget.heading,
+              maxLines: stacked ? 3 : 2,
+              overflow: TextOverflow.fade,
+              style: Type.display.copyWith(fontSize: 20, color: widget.accent),
+            ),
+          );
+          final meta = Wrap(
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 10,
+            runSpacing: 4,
+            children: [
+              if (wordLabel != null)
+                Text(
+                  wordLabel,
+                  style: Type.label.copyWith(
+                    fontSize: 10,
+                    color: Palette.textLo,
+                  ),
+                ),
+              status,
+            ],
+          );
+          if (stacked) {
+            return Column(
+              children: [
+                Row(children: [back, heading, remove]),
+                Align(alignment: Alignment.centerRight, child: meta),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              back,
+              heading,
+              const SizedBox(width: 8),
+              meta,
+              const SizedBox(width: 2),
+              remove,
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _photoBar() {
-    final hasPhotos = _blocks.any((b) => b.isImage);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Palette.glassEdge)),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _pickPhotoSource,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+  Widget _photoAction() {
+    final photoCount = _blocks.where((b) => b.isImage).length;
+    final semantics = photoCount == 0
+        ? 'Add photos to this journal entry. Photos stay on this device.'
+        : 'Add more photos to this journal entry. $photoCount ${photoCount == 1 ? 'photo' : 'photos'} on this page. Photos stay on this device.';
+    return Semantics(
+      key: const ValueKey('journal-photo-action'),
+      button: true,
+      label: semantics,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: 'Add photos',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _pickPhotoSource,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44, maxWidth: 220),
+            child: DecoratedBox(
               decoration: facetedDecoration(
                 cut: 8,
-                color: widget.accent.withValues(alpha: 0.14),
-                borderColor: widget.accent.withValues(alpha: 0.4),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    widget.accent.withValues(alpha: 0.18),
+                    const Color(0x4D160F0C),
+                  ],
+                ),
+                borderColor: widget.accent.withValues(alpha: 0.48),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.add_photo_alternate_outlined,
-                    size: 18,
-                    color: widget.accent,
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    'Photo',
-                    style: Type.label.copyWith(
-                      fontSize: 12,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 7,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 18,
                       color: widget.accent,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            photoCount == 0 ? 'ADD PHOTOS' : 'ADD MORE',
+                            softWrap: true,
+                            style: Type.label.copyWith(
+                              fontSize: 11,
+                              color: widget.accent,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            photoCount == 0
+                                ? 'kept on this device'
+                                : '$photoCount on this page \u00B7 local',
+                            softWrap: true,
+                            style: Type.body.copyWith(
+                              fontSize: 10.5,
+                              color: Palette.textMid,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          if (hasPhotos)
-            Expanded(
-              child: Text(
-                'Photos are kept on this device',
-                style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }

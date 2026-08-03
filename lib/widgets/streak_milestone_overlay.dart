@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../audio.dart';
@@ -56,24 +58,44 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
   );
 
   bool _burst = false;
+  bool _started = false;
+  bool _still = false;
+  Timer? _burstTimer;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final still =
+        widget.reduceMotion || MediaQuery.disableAnimationsOf(context);
+    if (_still != still) {
+      _still = still;
+      if (still) {
+        _burstTimer?.cancel();
+        _burstTimer = null;
+        if (_burst) setState(() => _burst = false);
+      }
+    }
+    if (_started) return;
+    _started = true;
     _c.forward();
     Sfx.instance.play('streak');
-    Haptics.big();
-    Future.delayed(const Duration(milliseconds: 700), () {
-      if (mounted) {
-        setState(() => _burst = true);
-        Sfx.instance.play('loot');
-        Haptics.flourish();
-      }
-    });
+    if (still) {
+      Haptics.light();
+    } else {
+      Haptics.big();
+      _burstTimer = Timer(const Duration(milliseconds: 700), () {
+        if (mounted && !_still) {
+          setState(() => _burst = true);
+          Sfx.instance.play('loot');
+          Haptics.flourish();
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
+    _burstTimer?.cancel();
     _c.dispose();
     super.dispose();
   }
@@ -86,227 +108,242 @@ class _StreakMilestoneOverlayState extends State<StreakMilestoneOverlay>
 
   @override
   Widget build(BuildContext context) {
+    final still =
+        widget.reduceMotion || MediaQuery.disableAnimationsOf(context);
     final intensity = widget.days >= 100
         ? 1.0
         : widget.days >= 30
         ? 0.7
         : 0.4;
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label:
+          '${widget.days} day streak. $_label. '
+          '${widget.embers} Glimmers earned.',
+      hint: 'Tap to continue',
       onTap: widget.onDismiss,
-      child: AnimatedBuilder(
-        animation: _c,
-        builder: (context, _) {
-          return Stack(
-            children: [
-              // dim
-              Positioned.fill(
-                child: Opacity(
-                  opacity: _dim.value * 0.88,
-                  child: const ColoredBox(color: Color(0xF2191210)),
-                ),
-              ),
-              // particle burst (scaled by significance)
-              if (_burst)
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onDismiss,
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (context, _) {
+            final dim = still ? 1.0 : _dim.value;
+            final slam = still ? 1.0 : _slam.value;
+            final chestOpen = still ? 1.0 : _chestOpen.value;
+            final emberRise = still ? 1.0 : _emberRise.value;
+            return Stack(
+              children: [
+                // dim
                 Positioned.fill(
-                  child: ParticleBurst(
-                    origin: Offset(
-                      MediaQuery.sizeOf(context).width / 2,
-                      MediaQuery.sizeOf(context).height / 2,
-                    ),
-                    colors: [Palette.streak, Palette.xp, Palette.xpLight],
-                    count: widget.days >= 100
-                        ? 40
-                        : widget.days >= 30
-                        ? 28
-                        : 18,
-                    vibrancy: intensity * 1.3,
-                    spread: widget.days >= 100 ? 140 : 100,
-                    reduce: widget.reduceMotion,
+                  child: Opacity(
+                    opacity: dim * 0.88,
+                    child: const ColoredBox(color: Color(0xF2191210)),
                   ),
                 ),
-              // content
-              Center(
-                child: GlassPanel(
-                  blur: true,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 28,
+                // particle burst (scaled by significance)
+                if (_burst && !still)
+                  Positioned.fill(
+                    child: ParticleBurst(
+                      origin: Offset(
+                        MediaQuery.sizeOf(context).width / 2,
+                        MediaQuery.sizeOf(context).height / 2,
+                      ),
+                      colors: [Palette.streak, Palette.xp, Palette.xpLight],
+                      count: widget.days >= 100
+                          ? 40
+                          : widget.days >= 30
+                          ? 28
+                          : 18,
+                      vibrancy: intensity * 1.3,
+                      spread: widget.days >= 100 ? 140 : 100,
+                      reduce: false,
+                    ),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // the streak number slams in
-                      Transform.scale(
-                        scale: _slam.value,
-                        child: Text(
-                          '${widget.days}',
-                          style: Type.numerals.copyWith(
-                            fontSize: 72,
-                            color: Palette.streak,
-                            shadows: [
-                              Shadow(
-                                color: Palette.streak.withValues(alpha: 0.5),
-                                blurRadius: 24,
-                              ),
-                            ],
+                // content
+                Center(
+                  child: GlassPanel(
+                    blur: true,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 28,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // the streak number slams in
+                        Transform.scale(
+                          scale: still ? 1 : slam,
+                          child: Text(
+                            '${widget.days}',
+                            style: Type.numerals.copyWith(
+                              fontSize: 72,
+                              color: Palette.streak,
+                              shadows: [
+                                Shadow(
+                                  color: Palette.streak.withValues(alpha: 0.5),
+                                  blurRadius: 24,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'DAY STREAK',
-                        style: Type.label.copyWith(
-                          fontSize: 12,
-                          color: Palette.textLo,
-                          letterSpacing: 3,
+                        const SizedBox(height: 4),
+                        Text(
+                          'DAY STREAK',
+                          style: Type.label.copyWith(
+                            fontSize: 12,
+                            color: Palette.textLo,
+                            letterSpacing: 3,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        _label,
-                        style: Type.display.copyWith(
-                          fontSize: 22,
-                          color: Palette.streak,
+                        const SizedBox(height: 14),
+                        Text(
+                          _label,
+                          style: Type.display.copyWith(
+                            fontSize: 22,
+                            color: Palette.streak,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      // the chest opening
-                      SizedBox(
-                        width: 120,
-                        height: 80,
-                        child: Stack(
-                          alignment: Alignment.bottomCenter,
-                          children: [
-                            // chest body
-                            Transform.scale(
-                              scale: _slam.value,
-                              child: Container(
-                                width: 90,
-                                height: 56,
-                                decoration: facetedDecoration(
-                                  cut: 8,
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Color(0xFF6E451F),
-                                      Color(0xFF3A2410),
-                                    ],
-                                  ),
-                                  borderColor: Palette.streak.withValues(
-                                    alpha: 0.4,
-                                  ),
-                                  borderWidth: 2,
-                                  shadows: [
-                                    BoxShadow(
-                                      color: Palette.streak.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                      blurRadius: 16,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            // lid opens
-                            Transform.translate(
-                              offset: Offset(0, -_chestOpen.value * 30),
-                              child: Transform.rotate(
-                                angle: -_chestOpen.value * 0.3,
-                                alignment: Alignment.bottomCenter,
+                        const SizedBox(height: 20),
+                        // the chest opening
+                        SizedBox(
+                          width: 120,
+                          height: 80,
+                          child: Stack(
+                            alignment: Alignment.bottomCenter,
+                            children: [
+                              // chest body
+                              Transform.scale(
+                                scale: still ? 1 : slam,
                                 child: Container(
                                   width: 90,
-                                  height: 28,
+                                  height: 56,
                                   decoration: facetedDecoration(
-                                    cut: 7,
+                                    cut: 8,
                                     gradient: const LinearGradient(
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
                                       colors: [
-                                        Color(0xFF8A6A1E),
-                                        Color(0xFF4A3210),
+                                        Color(0xFF6E451F),
+                                        Color(0xFF3A2410),
                                       ],
                                     ),
                                     borderColor: Palette.streak.withValues(
                                       alpha: 0.4,
                                     ),
                                     borderWidth: 2,
+                                    shadows: [
+                                      BoxShadow(
+                                        color: Palette.streak.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                        blurRadius: 16,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                            ),
-                            // embers rising from the open chest
-                            if (_chestOpen.value > 0.3)
-                              ...List.generate(8, (i) {
-                                final t = _emberRise.value;
-                                final dx = (i - 3.5) * 12.0;
-                                final dy = -t * (60 + i * 8);
-                                final alpha = (1 - t) * 0.9;
-                                return Transform.translate(
-                                  offset: Offset(dx, dy),
-                                  child: Opacity(
-                                    opacity: alpha,
-                                    child: Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Palette.xp,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Palette.xp.withValues(
-                                              alpha: 0.6,
-                                            ),
-                                            blurRadius: 8,
-                                          ),
+                              // lid opens
+                              Transform.translate(
+                                offset: Offset(0, -chestOpen * 30),
+                                child: Transform.rotate(
+                                  angle: -chestOpen * 0.3,
+                                  alignment: Alignment.bottomCenter,
+                                  child: Container(
+                                    width: 90,
+                                    height: 28,
+                                    decoration: facetedDecoration(
+                                      cut: 7,
+                                      gradient: const LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Color(0xFF8A6A1E),
+                                          Color(0xFF4A3210),
                                         ],
                                       ),
+                                      borderColor: Palette.streak.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      borderWidth: 2,
                                     ),
                                   ),
-                                );
-                              }),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // the payout
-                      Opacity(
-                        opacity: _emberRise.value,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 25,
-                              color: Palette.xp,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '+${widget.embers} Glimmers',
-                              style: Type.display.copyWith(
-                                fontSize: 22,
-                                color: Palette.xpLight,
+                                ),
                               ),
-                            ),
-                          ],
+                              // embers rising from the open chest
+                              if (!still && chestOpen > 0.3)
+                                ...List.generate(8, (i) {
+                                  final t = emberRise;
+                                  final dx = (i - 3.5) * 12.0;
+                                  final dy = -t * (60 + i * 8);
+                                  final alpha = (1 - t) * 0.9;
+                                  return Transform.translate(
+                                    offset: Offset(dx, dy),
+                                    child: Opacity(
+                                      opacity: alpha,
+                                      child: Container(
+                                        width: 6,
+                                        height: 6,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Palette.xp,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Palette.xp.withValues(
+                                                alpha: 0.6,
+                                              ),
+                                              blurRadius: 8,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        'tap to continue',
-                        style: Type.body.copyWith(
-                          fontSize: 11,
-                          color: Palette.textLo,
-                          fontStyle: FontStyle.italic,
+                        const SizedBox(height: 16),
+                        // the payout
+                        Opacity(
+                          opacity: emberRise,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.auto_awesome_rounded,
+                                size: 25,
+                                color: Palette.xp,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '+${widget.embers} Glimmers',
+                                style: Type.display.copyWith(
+                                  fontSize: 22,
+                                  color: Palette.xpLight,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 18),
+                        Text(
+                          'tap to continue',
+                          style: Type.body.copyWith(
+                            fontSize: 11,
+                            color: Palette.textLo,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }

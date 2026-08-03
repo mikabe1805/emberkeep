@@ -187,7 +187,7 @@ class GoalsPage extends StatelessWidget {
           const SizedBox(height: 20),
           _CategoryHeader(
             label: 'YOUR GOALS',
-            blurb: 'the promises already taking shape',
+            blurb: 'the goals you’re actively working on',
             icon: Icons.auto_awesome_outlined,
             accent: Palette.xp,
           ),

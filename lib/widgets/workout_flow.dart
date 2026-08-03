@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -195,43 +196,58 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
     final still =
         widget.state.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    final media = MediaQuery.of(context);
     return OverlaySurface(
-      child: Container(
-        // Fully opaque: the quest board is context, not visual noise behind a
-        // movement instruction. This is especially important at large text.
-        color: const Color(0xFF140E08),
+      child: WarmBackground(
+        themeId: widget.state.canvasTheme,
+        tint: (_routine ?? widget.recommended).stat.color,
+        reduceMotion: still,
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(20),
-            child: AnimatedSwitcher(
-              duration: still
-                  ? Duration.zero
-                  : const Duration(milliseconds: 240),
-              // Never lay out the outgoing full-screen scene. The old default
-              // cross-fade stacked two transparent pages for 420ms, producing
-              // unreadable title/card collisions and stale hit targets.
-              layoutBuilder: (currentChild, previousChildren) =>
-                  currentChild ?? const SizedBox.shrink(),
-              transitionBuilder: (child, animation) => FadeTransition(
-                opacity: CurvedAnimation(
-                  parent: animation,
-                  curve: const Interval(0.18, 1, curve: Curves.easeOutCubic),
-                ),
-                child: SlideTransition(
-                  position:
-                      Tween<Offset>(
-                        begin: const Offset(0.035, 0),
-                        end: Offset.zero,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
-                        ),
+            // WorkoutFigure also reads the platform preference. Mirroring the
+            // in-app switch into MediaQuery parks its breath on the authored
+            // still, while the countdown itself continues to function.
+            child: MediaQuery(
+              data: media.copyWith(disableAnimations: still),
+              child: TickerMode(
+                enabled: !still,
+                child: AnimatedSwitcher(
+                  duration: still
+                      ? Duration.zero
+                      : const Duration(milliseconds: 240),
+                  // Never lay out the outgoing full-screen scene. The old
+                  // default cross-fade stacked two transparent pages for
+                  // 420ms, producing unreadable title/card collisions and
+                  // stale hit targets.
+                  layoutBuilder: (currentChild, previousChildren) =>
+                      currentChild ?? const SizedBox.shrink(),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: CurvedAnimation(
+                      parent: animation,
+                      curve: const Interval(
+                        0.18,
+                        1,
+                        curve: Curves.easeOutCubic,
                       ),
-                  child: child,
+                    ),
+                    child: SlideTransition(
+                      position:
+                          Tween<Offset>(
+                            begin: const Offset(0.035, 0),
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutCubic,
+                            ),
+                          ),
+                      child: child,
+                    ),
+                  ),
+                  child: body,
                 ),
               ),
-              child: body,
             ),
           ),
         ),
@@ -249,9 +265,11 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('MOVE', style: Type.label.copyWith(fontSize: 11)),
-            GestureDetector(
-              onTap: widget.onClose,
-              child: const Icon(Icons.close, size: 20, color: Palette.textLo),
+            IconButton(
+              tooltip: 'Close workouts',
+              onPressed: widget.onClose,
+              constraints: const BoxConstraints.tightFor(width: 48, height: 48),
+              icon: const Icon(Icons.close, size: 22, color: Palette.textLo),
             ),
           ],
         ),
@@ -437,11 +455,14 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                   children: [
                     Icon(Icons.auto_stories, size: 13, color: r.stat.color),
                     const SizedBox(width: 6),
-                    Text(
-                      'WHY THIS WORKS',
-                      style: Type.label.copyWith(
-                        fontSize: 11,
-                        color: Palette.info,
+                    Expanded(
+                      child: Text(
+                        'WHY THIS WORKS',
+                        maxLines: 2,
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: Palette.info,
+                        ),
                       ),
                     ),
                   ],
@@ -462,24 +483,62 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           ),
         const SizedBox(height: 12),
         GlassPanel(
-          child: Row(
-            children: [
-              const Icon(Icons.speed, size: 15, color: Palette.xpLight),
-              const SizedBox(width: 8),
-              Text('PACE', style: Type.label.copyWith(fontSize: 11)),
-              const Spacer(),
-              _paceChip(
+          child: LayoutBuilder(
+            builder: (context, bounds) {
+              final compact =
+                  bounds.maxWidth < 340 ||
+                  MediaQuery.textScalerOf(context).scale(1) > 1.3;
+              final relaxed = _paceChip(
                 'Relaxed',
                 _relaxed,
                 () => setState(() => _relaxed = true),
-              ),
-              const SizedBox(width: 6),
-              _paceChip(
+              );
+              final steady = _paceChip(
                 'Steady',
                 !_relaxed,
                 () => setState(() => _relaxed = false),
-              ),
-            ],
+              );
+              if (compact) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.speed,
+                          size: 15,
+                          color: Palette.xpLight,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'PACE',
+                            style: Type.label.copyWith(fontSize: 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [relaxed, steady],
+                    ),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  const Icon(Icons.speed, size: 15, color: Palette.xpLight),
+                  const SizedBox(width: 8),
+                  Text('PACE', style: Type.label.copyWith(fontSize: 11)),
+                  const Spacer(),
+                  relaxed,
+                  const SizedBox(width: 6),
+                  steady,
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 12),
@@ -508,22 +567,31 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
   }
 
   Widget _paceChip(String label, bool on, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-        decoration: facetedDecoration(
-          cut: 6,
-          color: on ? Palette.xpLight.withValues(alpha: 0.2) : null,
-          borderColor: on
-              ? Palette.xpLight.withValues(alpha: 0.7)
-              : Palette.glassEdge,
-        ),
-        child: Text(
-          label,
-          style: Type.label.copyWith(
-            fontSize: 11,
-            color: on ? Palette.xpLight : Palette.textLo,
+    return Semantics(
+      button: true,
+      selected: on,
+      label: '$label pace',
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+          alignment: Alignment.center,
+          decoration: facetedDecoration(
+            cut: 6,
+            color: on ? Palette.xpLight.withValues(alpha: 0.2) : null,
+            borderColor: on
+                ? Palette.xpLight.withValues(alpha: 0.7)
+                : Palette.glassEdge,
+          ),
+          child: Text(
+            label,
+            style: Type.label.copyWith(
+              fontSize: 11,
+              color: on ? Palette.xpLight : Palette.textLo,
+            ),
           ),
         ),
       ),
@@ -545,36 +613,23 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         : 'MOVE ${_i + 1} OF ${_moves.length}';
     return LayoutBuilder(
       key: ValueKey('move-$_i'),
-      builder: (context, constraints) => SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: IntrinsicHeight(
+      builder: (context, constraints) {
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final baseStageHeight = constraints.maxHeight < 700
+            ? 252.0
+            : (constraints.maxHeight * 0.37).clamp(286.0, 324.0);
+        // Large text is allowed to make the whole page scroll. The movement
+        // plate grows with it instead of shrinking the timer or count label.
+        final stageHeight =
+            baseStageHeight + ((textScale - 1).clamp(0.0, 2.0) * 160);
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: Column(
               children: [
-                const SizedBox(height: 4),
-                // top bar: progress + pause/close
-                Row(
-                  children: [
-                    Expanded(
-                      child: FacetedMeter(
-                        value: (_i + 1) / _moves.length,
-                        height: 4,
-                        color: _routine!.stat.color,
-                        background: Palette.railTrack,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: _togglePause,
-                      child: const Icon(
-                        Icons.pause_circle_outline,
-                        size: 24,
-                        color: Palette.textLo,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 2),
+                _sessionProgressHeader(),
+                const SizedBox(height: 10),
                 Text(
                   kicker,
                   style: Type.label.copyWith(
@@ -582,24 +637,21 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                     color: m.isWork ? _routine!.stat.color : Palette.textLo,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   easier ? '${m.name} · easier' : m.name,
                   textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                   style: Type.display.copyWith(fontSize: 26),
                 ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: Center(
-                    child: m.kind == MoveKind.timed
-                        ? _timedBody(m)
-                        : _repsBody(m),
-                  ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: stageHeight,
+                  child: _movementPlate(m),
                 ),
-                // form cue / easier instruction
+                const SizedBox(height: 12),
                 GlassPanel(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 13),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -610,30 +662,32 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                           color: easier ? Palette.xpLight : Palette.textLo,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 5),
                       Text(
                         easier ? m.easier : m.cue,
                         style: Type.body.copyWith(
-                          fontSize: 13,
+                          fontSize: 15,
+                          height: 1.35,
                           color: Palette.textHi,
                         ),
                       ),
                       if (m.caution != null) ...[
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 7),
                         Text(
                           m.caution!,
                           style: Type.body.copyWith(
-                            fontSize: 11,
+                            fontSize: 13,
+                            height: 1.35,
                             fontStyle: FontStyle.italic,
                             color: Palette.textLo,
                           ),
                         ),
                       ],
                       if (_i + 1 < _moves.length) ...[
-                        const SizedBox(height: 9),
+                        const SizedBox(height: 10),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.only(top: 9),
                           decoration: const BoxDecoration(
                             border: Border(
                               top: BorderSide(color: Color(0x24F2CD93)),
@@ -642,7 +696,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                           child: Text(
                             'NEXT · ${_moves[_i + 1].name}',
                             style: Type.label.copyWith(
-                              fontSize: 10.5,
+                              fontSize: 11,
                               color: Palette.xpLight,
                             ),
                           ),
@@ -651,53 +705,176 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 12),
-                // escape valves
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                const SizedBox(height: 10),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
                     if (!easier)
-                      // Moss is "you finished it". Taking the gentler version
-                      // is not a completion, so it wears aged brass instead.
                       _smallButton('EASIER', Palette.xpLight, () {
                         if (idx != _i) return;
                         Sfx.instance.play('tick');
                         Haptics.tap();
                         setState(() => _easiered.add(idx));
                       }),
-                    if (!easier) const SizedBox(width: 8),
                     _smallButton('SKIP', Palette.textLo, () {
                       if (idx != _i) return;
                       _skip();
                     }),
                   ],
                 ),
-                const SizedBox(height: 10),
-                // primary action
+                const SizedBox(height: 8),
                 if (m.kind == MoveKind.reps)
                   _bigButton('DONE →', () {
                     if (idx != _i) return;
                     _onMoveDone();
                   })
                 else
-                  GestureDetector(
-                    onTap: () {
-                      if (idx != _i) return; // honor path: "I already did it"
+                  _smallButton(
+                    'FINISHED THIS MOVE',
+                    Palette.xpLight,
+                    () {
+                      if (idx != _i) return;
                       _onMoveDone();
                     },
-                    child: Text(
-                      'I already did it →',
-                      style: Type.label.copyWith(
-                        fontSize: 12,
-                        color: Palette.xpLight,
-                      ),
-                    ),
+                    key: const ValueKey('workout-finish-early'),
                   ),
                 const SizedBox(height: 6),
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _sessionProgressHeader() {
+    final accent = _routine!.stat.color;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'SESSION PROGRESS',
+                      maxLines: 2,
+                      style: Type.label.copyWith(fontSize: 11),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${_i + 1} / ${_moves.length}',
+                    style: Type.label.copyWith(fontSize: 11, color: accent),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 7),
+              FacetedMeter(
+                value: (_i + 1) / _moves.length,
+                height: 6,
+                color: accent,
+                background: Palette.railTrack,
+              ),
+            ],
+          ),
         ),
+        const SizedBox(width: 10),
+        Tooltip(
+          message: 'Pause session',
+          child: Semantics(
+            button: true,
+            label: 'Pause session',
+            excludeSemantics: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _togglePause,
+              child: Container(
+                key: const ValueKey('workout-pause'),
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                decoration: facetedDecoration(
+                  cut: 9,
+                  color: Palette.cardGlass,
+                  borderColor: Palette.brass.withValues(alpha: 0.7),
+                ),
+                child: const Icon(
+                  Icons.pause_rounded,
+                  size: 23,
+                  color: Palette.textMid,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _movementPlate(WorkoutMove m) {
+    final accent = _routine!.stat.color;
+    final counterLabel = m.kind == MoveKind.timed
+        ? 'GUIDED TIMER'
+        : 'TAP COUNTER';
+    final totalLabel = m.kind == MoveKind.timed
+        ? '${m.seconds} SEC'
+        : '${m.reps} REPS';
+    return GlassPanel(
+      radius: 22,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 13),
+      tint: Color.alphaBlend(
+        accent.withValues(alpha: 0.055),
+        const Color(0xF21A120E),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              FacetMedallion(
+                size: 32,
+                accent: accent,
+                child: Icon(_routine!.stat.icon, size: 16, color: accent),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  '${_routine!.stat.abbr} · $counterLabel',
+                  style: Type.label.copyWith(fontSize: 11, color: accent),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                totalLabel,
+                style: Type.label.copyWith(
+                  fontSize: 11,
+                  color: Palette.textMid,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.transparent,
+                  Palette.brass.withValues(alpha: 0.6),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: m.kind == MoveKind.timed ? _timedBody(m) : _repsBody(m),
+          ),
+        ],
       ),
     );
   }
@@ -713,84 +890,164 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
     final progress = _total == 0
         ? 1.0
         : (1 - _remaining / _total).clamp(0.0, 1.0);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          width: 220,
-          height: 220,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              SizedBox.expand(
-                child: CircularProgressIndicator(
-                  value: progress,
-                  strokeWidth: 7,
-                  strokeCap: StrokeCap.round,
-                  backgroundColor: const Color(0x1FF2CD93),
-                  color: _routine!.stat.color,
-                ),
-              ),
-              // the move, illustrated, breathing inside the countdown ring
-              WorkoutFigure(
-                pose: poseForMove(m.name),
-                color: _figureTone(_routine!.stat.color),
-                size: 148,
-              ),
-            ],
+    final accent = _routine!.stat.color;
+    return Semantics(
+      container: true,
+      label: '$_remaining seconds remaining',
+      child: Column(
+        children: [
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final ringSize = math
+                    .min(constraints.maxWidth, constraints.maxHeight)
+                    .clamp(112.0, 204.0);
+                return Center(
+                  child: SizedBox.square(
+                    dimension: ringSize,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        SizedBox.expand(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  Color.lerp(
+                                    accent,
+                                    Palette.xp,
+                                    0.42,
+                                  )!.withValues(alpha: 0.16),
+                                  Palette.warmShadow.withValues(alpha: 0.03),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox.expand(
+                          child: CircularProgressIndicator(
+                            value: progress,
+                            strokeWidth: 7,
+                            strokeCap: StrokeCap.round,
+                            backgroundColor: const Color(0x33F2CD93),
+                            color: Color.lerp(accent, Palette.xpLight, 0.30),
+                          ),
+                        ),
+                        WorkoutFigure(
+                          pose: poseForMove(m.name),
+                          color: _figureTone(accent),
+                          size: ringSize * 0.64,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '$_remaining s',
-          style: Type.numerals.copyWith(fontSize: 24, color: Palette.textHi),
-        ),
-      ],
+          const SizedBox(height: 5),
+          _counterPlate(
+            value: '$_remaining',
+            label: 'SECONDS LEFT',
+            color: Color.lerp(accent, Palette.xpLight, 0.32)!,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _repsBody(WorkoutMove m) {
     final target = m.reps;
     final reached = _repCount >= target;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // tap the figure to count — it squashes a little on each rep
-        GestureDetector(
-          onTap: () {
-            if (_repCount >= target) return;
-            Haptics.tap();
-            Sfx.instance.play('tick');
-            setState(() => _repCount++);
-          },
-          child: WorkoutFigure(
-            pose: poseForMove(m.name),
-            color: reached
-                ? Palette.success
-                : _figureTone(_routine!.stat.color),
-            size: 150,
-            bump: _repCount,
-          ),
-        ),
-        const SizedBox(height: 6),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            m.perSide
-                ? '$_repCount / $target each side'
-                : '$_repCount / $target',
-            maxLines: 1,
-            style: Type.numerals.copyWith(
-              fontSize: 28,
-              color: reached ? Palette.success : Palette.textHi,
+    return Semantics(
+      container: true,
+      child: Column(
+        children: [
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final figureSize = math
+                    .min(constraints.maxWidth, constraints.maxHeight)
+                    .clamp(112.0, 180.0);
+                return Center(
+                  child: Semantics(
+                    button: true,
+                    enabled: !reached,
+                    label: reached
+                        ? '$target repetitions counted'
+                        : 'Count one repetition. $_repCount of $target counted',
+                    excludeSemantics: true,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        if (_repCount >= target) return;
+                        Haptics.tap();
+                        Sfx.instance.play('tick');
+                        setState(() => _repCount++);
+                      },
+                      child: SizedBox.square(
+                        dimension: figureSize,
+                        child: WorkoutFigure(
+                          pose: poseForMove(m.name),
+                          color: reached
+                              ? Palette.success
+                              : _figureTone(_routine!.stat.color),
+                          size: figureSize,
+                          bump: _repCount,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
-        ),
-        Text(
-          reached ? 'nice — tap DONE' : 'tap the figure to count',
-          style: Type.label.copyWith(fontSize: 11),
-        ),
-      ],
+          const SizedBox(height: 5),
+          _counterPlate(
+            value: '$_repCount / $target',
+            label: reached
+                ? 'READY FOR DONE'
+                : m.perSide
+                ? 'EACH SIDE · TAP FIGURE'
+                : 'TAP FIGURE TO COUNT',
+            color: reached ? Palette.success : _routine!.stat.color,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _counterPlate({
+    required String value,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 46, minWidth: 132),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: facetedDecoration(
+        cut: 8,
+        color: const Color(0xE629201A),
+        borderColor: color.withValues(alpha: 0.62),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 10,
+        runSpacing: 2,
+        children: [
+          Text(
+            value,
+            style: Type.numerals.copyWith(fontSize: 25, color: Palette.textHi),
+          ),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: Type.label.copyWith(fontSize: 11, color: color),
+          ),
+        ],
+      ),
     );
   }
 
@@ -918,19 +1175,37 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
     return HoneyButton(label: label, onTap: onTap, glow: true);
   }
 
-  Widget _smallButton(String label, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-        decoration: facetedDecoration(
-          cut: 8,
-          color: Colors.transparent,
-          borderColor: color.withValues(alpha: 0.5),
-        ),
-        child: Text(
-          label,
-          style: Type.label.copyWith(fontSize: 11, color: color),
+  Widget _smallButton(
+    String label,
+    Color color,
+    VoidCallback onTap, {
+    Key? key,
+  }) {
+    return Semantics(
+      button: true,
+      label: label.replaceAll('→', '').trim(),
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          key: key,
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: facetedDecoration(
+            cut: 8,
+            color: const Color(0x4D1A120E),
+            borderColor: color.withValues(alpha: 0.55),
+          ),
+          child: Center(
+            widthFactor: 1,
+            heightFactor: 1,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: Type.label.copyWith(fontSize: 11, color: color),
+            ),
+          ),
         ),
       ),
     );

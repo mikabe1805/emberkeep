@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
+
+enum ReminderPermissionStatus { granted, denied, unknown }
 
 /// Native (iOS/Android) local-notification scheduling. Selected by the
 /// conditional export in lib/notifications.dart when dart:io is available;
@@ -10,20 +14,34 @@ import 'package:timezone/timezone.dart' as tz;
 class Notifications {
   Notifications._();
 
+  static bool get isSupported => Platform.isAndroid || Platform.isIOS;
+
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
   static bool _ready = false;
+  static bool _timeZonesLoaded = false;
 
   static const int _dailyId = 1000;
+  static const int _nightId = 1001;
   static const int _eventBase = 2000; // event reminders use 2000..2063
-  static const int _eventSlots = 64;
+  static const int _eventCancelSlots = 64;
+  // iOS retains at most 64 pending local notifications. Reserve two slots for
+  // the morning and night recurring reminders, then use the rest for plans.
+  static const int _eventScheduleSlots = 62;
+
+  static Future<void> _refreshLocalTimeZone() async {
+    if (!_timeZonesLoaded) {
+      tzdata.initializeTimeZones();
+      _timeZonesLoaded = true;
+    }
+    final name = await FlutterTimezone.getLocalTimezone();
+    tz.setLocalLocation(tz.getLocation(name));
+  }
 
   static Future<void> init() async {
     if (_ready) return;
     try {
-      tzdata.initializeTimeZones();
-      final name = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(name));
+      await _refreshLocalTimeZone();
     } catch (e) {
       debugPrint('Notifications tz init (continuing): $e');
     }
@@ -41,6 +59,16 @@ class Notifications {
       _ready = true;
     } catch (e) {
       debugPrint('Notifications init (continuing): $e');
+    }
+  }
+
+  /// Refreshes the wall-clock zone after the app resumes. A phone may travel
+  /// while the process is parked; recurring reminders should follow it.
+  static Future<void> refreshTimeZone() async {
+    try {
+      await _refreshLocalTimeZone();
+    } catch (e) {
+      debugPrint('Notifications tz refresh (continuing): $e');
     }
   }
 
@@ -73,18 +101,60 @@ class Notifications {
     return false;
   }
 
+  /// Reads the current system permission without showing a prompt.
+  ///
+  /// This is deliberately separate from [requestPermission]: launch, restore,
+  /// and resume paths may verify an enabled preference, but only an explicit
+  /// user toggle should be able to open the operating-system permission sheet.
+  static Future<ReminderPermissionStatus> permissionStatus() async {
+    if (!isSupported) return ReminderPermissionStatus.unknown;
+    await init();
+    try {
+      final ios = _plugin
+          .resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin
+          >();
+      if (ios != null) {
+        final permissions = await ios.checkPermissions();
+        if (permissions == null) return ReminderPermissionStatus.unknown;
+        return permissions.isEnabled == true ||
+                permissions.isProvisionalEnabled == true
+            ? ReminderPermissionStatus.granted
+            : ReminderPermissionStatus.denied;
+      }
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      if (android != null) {
+        final enabled = await android.areNotificationsEnabled();
+        if (enabled == null) return ReminderPermissionStatus.unknown;
+        return enabled
+            ? ReminderPermissionStatus.granted
+            : ReminderPermissionStatus.denied;
+      }
+    } catch (e) {
+      debugPrint('Notifications permission check (continuing): $e');
+    }
+    return ReminderPermissionStatus.unknown;
+  }
+
   static NotificationDetails _details() => const NotificationDetails(
     iOS: DarwinNotificationDetails(),
     android: AndroidNotificationDetails(
       'emberkeep_reminders',
       'Reminders',
-      channelDescription: 'Quest reminders and plan nudges',
+      channelDescription: 'Quest, plan, and night routine reminders',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
     ),
   );
 
-  static tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
+  static tz.TZDateTime _nextInstanceOfTime(
+    int hour,
+    int minute, {
+    bool skipNext = false,
+  }) {
     final now = tz.TZDateTime.now(tz.local);
     var scheduled = tz.TZDateTime(
       tz.local,
@@ -95,7 +165,26 @@ class Notifications {
       minute,
     );
     if (!scheduled.isAfter(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
+      // Construct the next calendar day in the local zone. Adding 24 hours
+      // drifts the displayed time across daylight-saving boundaries.
+      scheduled = tz.TZDateTime(
+        tz.local,
+        now.year,
+        now.month,
+        now.day + 1,
+        hour,
+        minute,
+      );
+    }
+    if (skipNext) {
+      scheduled = tz.TZDateTime(
+        tz.local,
+        scheduled.year,
+        scheduled.month,
+        scheduled.day + 1,
+        hour,
+        minute,
+      );
     }
     return scheduled;
   }
@@ -129,18 +218,59 @@ class Notifications {
     }
   }
 
+  static Future<void> scheduleNightRoutine(
+    int hour,
+    int minute, {
+    bool skipNext = false,
+  }) async {
+    await init();
+    try {
+      await _plugin.cancel(_nightId);
+      await _plugin.zonedSchedule(
+        _nightId,
+        'Close the day when you’re ready',
+        'See what you finished, keep anything worth remembering, and set up tomorrow.',
+        _nextInstanceOfTime(hour, minute, skipNext: skipNext),
+        _details(),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: DateTimeComponents.time,
+      );
+    } catch (e) {
+      debugPrint('Notifications night routine (continuing): $e');
+    }
+  }
+
+  static Future<void> cancelNightRoutine() async {
+    await init();
+    try {
+      await _plugin.cancel(_nightId);
+    } catch (_) {
+      /* best effort */
+    }
+  }
+
   /// Clears the event-reminder window and re-schedules the upcoming ones.
   static Future<void> scheduleEvents(List<EventReminder> events) async {
     await init();
     try {
-      for (var i = 0; i < _eventSlots; i++) {
+      for (var i = 0; i < _eventCancelSlots; i++) {
         await _plugin.cancel(_eventBase + i);
       }
       final now = tz.TZDateTime.now(tz.local);
       var slot = 0;
-      for (final e in events) {
-        if (slot >= _eventSlots) break;
-        final when = tz.TZDateTime.from(e.when, tz.local);
+      final ordered = [...events]..sort((a, b) => a.when.compareTo(b.when));
+      for (final e in ordered) {
+        if (slot >= _eventScheduleSlots) break;
+        final when = tz.TZDateTime(
+          tz.local,
+          e.when.year,
+          e.when.month,
+          e.when.day,
+          e.when.hour,
+          e.when.minute,
+        );
         if (!when.isAfter(now)) continue;
         await _plugin.zonedSchedule(
           _eventBase + slot,
@@ -156,6 +286,17 @@ class Notifications {
       }
     } catch (e) {
       debugPrint('Notifications events (continuing): $e');
+    }
+  }
+
+  static Future<void> cancelEvents() async {
+    await init();
+    try {
+      for (var i = 0; i < _eventCancelSlots; i++) {
+        await _plugin.cancel(_eventBase + i);
+      }
+    } catch (_) {
+      /* best effort */
     }
   }
 

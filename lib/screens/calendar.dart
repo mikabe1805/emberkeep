@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../clock.dart';
 import '../engine.dart';
+import '../journal_media.dart' as media;
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/domain_hint.dart';
@@ -12,6 +13,8 @@ import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/gold_surface.dart';
 import '../widgets/luxe_depth.dart';
+import '../widgets/night_reflection_sheet.dart';
+import 'journal_entry.dart';
 
 const _monthNames = [
   'January',
@@ -74,6 +77,27 @@ class _CalendarPageState extends State<CalendarPage> {
     _selected = DateTime(now.year, now.month, now.day);
   }
 
+  void _moveMonth(int delta) {
+    final next = DateTime(_month.year, _month.month + delta);
+    final lastDay = DateTime(next.year, next.month + 1, 0).day;
+    setState(() {
+      _month = next;
+      _selected = DateTime(
+        next.year,
+        next.month,
+        _selected.day.clamp(1, lastDay).toInt(),
+      );
+    });
+  }
+
+  void _goToday() {
+    final now = Clock.now();
+    setState(() {
+      _month = DateTime(now.year, now.month);
+      _selected = DateTime(now.year, now.month, now.day);
+    });
+  }
+
   List<Quest> _eventsOn(DateTime day) => [
     for (final q in widget.quests)
       if (q.dueDate != null && Days.sameDay(q.dueDate!, day)) q,
@@ -125,6 +149,61 @@ class _CalendarPageState extends State<CalendarPage> {
     return count;
   }
 
+  List<Note> _journalOn(DateTime day) {
+    final key = Days.key(day);
+    final entries = [
+      for (final note in widget.state.journal)
+        if ((note.trace?.day ?? Days.key(note.at)) == key) note,
+    ]..sort((a, b) => b.at.compareTo(a.at));
+    return entries;
+  }
+
+  Future<void> _openJournal(Note entry) {
+    Sfx.instance.play('tick');
+    final night = entry.night;
+    if (night != null) {
+      return showNightReflectionSheet(
+        context,
+        initial: night,
+        reduceMotion: widget.state.reduceMotion,
+      ).then((data) {
+        if (!mounted || data == null) return;
+        widget.state.updateNightJournalEntry(entry, data);
+      });
+    }
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => JournalEntryScreen(
+          initial: entry,
+          accent: Palette.xp,
+          themeId: widget.state.canvasTheme,
+          reduceMotion: widget.state.reduceMotion,
+          heading:
+              'Journal · ${_monthNames[entry.at.month - 1]} ${entry.at.day}',
+          trace: entry.trace,
+          commit: (payload, existing, markEdited) {
+            final source = existing ?? entry;
+            final updated = source.copyWith(
+              text: payload.text,
+              rich: payload.rich,
+              images: payload.images,
+              editedAt: markEdited ? Clock.now() : null,
+            );
+            widget.state.setJournal(widget.state.journal.replacing(updated));
+            return updated;
+          },
+          onDelete: (note) {
+            for (final image in note.images) {
+              media.delete(image);
+            }
+            widget.state.setJournal(widget.state.journal.without(note));
+          },
+        ),
+      ),
+    );
+    return Future<void>.value();
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -157,10 +236,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       _Chevron(
                         icon: Icons.chevron_left,
                         label: 'Previous month',
-                        onTap: () => setState(
-                          () =>
-                              _month = DateTime(_month.year, _month.month - 1),
-                        ),
+                        onTap: () => _moveMonth(-1),
                       ),
                       Expanded(
                         child: Center(
@@ -177,13 +253,21 @@ class _CalendarPageState extends State<CalendarPage> {
                       _Chevron(
                         icon: Icons.chevron_right,
                         label: 'Next month',
-                        onTap: () => setState(
-                          () =>
-                              _month = DateTime(_month.year, _month.month + 1),
-                        ),
+                        onTap: () => _moveMonth(1),
                       ),
                     ],
                   ),
+                  if (_month.year != now.year || _month.month != now.month)
+                    TextButton(
+                      onPressed: _goToday,
+                      child: Text(
+                        'BACK TO TODAY',
+                        style: Type.label.copyWith(
+                          fontSize: 9.5,
+                          color: Palette.xpLight,
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 6),
                   const _FolioRule(),
                   const SizedBox(height: 8),
@@ -254,9 +338,11 @@ class _CalendarPageState extends State<CalendarPage> {
               day: _selected,
               completions: widget.state.history[Days.key(_selected)] ?? 0,
               reflections: _reflectionsOn(_selected),
+              journalEntries: _journalOn(_selected),
               quests: _questsOn(_selected),
               now: now,
               onPlan: () => _showAddEvent(context),
+              onOpenJournal: _openJournal,
               lightDirection: widget.lightDirection ?? widget.parallax,
             ),
           ],
@@ -266,12 +352,15 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Widget _dayCell(int day, int daysInMonth, DateTime now) {
-    if (day < 1 || day > daysInMonth) return const SizedBox(height: 55);
+    if (day < 1 || day > daysInMonth) {
+      return ConstrainedBox(constraints: const BoxConstraints(minHeight: 55));
+    }
     final date = DateTime(_month.year, _month.month, day);
     final isToday = Days.sameDay(date, now);
     final isSelected = Days.sameDay(date, _selected);
     final done = widget.state.history[Days.key(date)] ?? 0;
     final events = _eventsOn(date);
+    final journalEntries = _journalOn(date);
 
     final spoken = StringBuffer(
       '${_monthNames[date.month - 1]} ${date.day}, ${date.year}',
@@ -282,6 +371,11 @@ class _CalendarPageState extends State<CalendarPage> {
     }
     if (events.isNotEmpty) {
       spoken.write(', ${events.length} plan${events.length == 1 ? '' : 's'}');
+    }
+    if (journalEntries.isNotEmpty) {
+      spoken.write(
+        ', ${journalEntries.length} journal entr${journalEntries.length == 1 ? 'y' : 'ies'}',
+      );
     }
     return Semantics(
       button: true,
@@ -297,11 +391,19 @@ class _CalendarPageState extends State<CalendarPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _dayPlate(day, date, isToday, isSelected, done, events),
+            _dayPlate(
+              day,
+              date,
+              isToday,
+              isSelected,
+              done,
+              events,
+              journalEntries.length,
+            ),
             // The folio names today under its date, the way the target does —
             // the honey plate alone doesn't say WHICH kind of mark it is.
-            SizedBox(
-              height: 12,
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 12),
               child: isToday
                   ? Center(
                       child: Text(
@@ -328,9 +430,10 @@ class _CalendarPageState extends State<CalendarPage> {
     bool isSelected,
     int done,
     List<Quest> events,
+    int journalEntries,
   ) {
     return Container(
-      height: 43,
+      constraints: const BoxConstraints(minHeight: 43),
       margin: const EdgeInsets.all(1.5),
       decoration: facetedDecoration(
         cut: 7,
@@ -394,6 +497,15 @@ class _CalendarPageState extends State<CalendarPage> {
                       height: 4.5,
                       margin: const EdgeInsets.symmetric(horizontal: 1),
                       color: e.stat.color,
+                    ),
+                  ),
+                if (journalEntries > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 1.5),
+                    child: Icon(
+                      Icons.menu_book_outlined,
+                      size: 8,
+                      color: Palette.xpLight.withValues(alpha: 0.9),
                     ),
                   ),
               ],
@@ -493,18 +605,22 @@ class _DayPanel extends StatelessWidget {
     required this.day,
     required this.completions,
     required this.reflections,
+    required this.journalEntries,
     required this.quests,
     required this.now,
     required this.onPlan,
+    required this.onOpenJournal,
     required this.lightDirection,
   });
 
   final DateTime day;
   final int completions;
   final int reflections;
+  final List<Note> journalEntries;
   final List<Quest> quests;
   final DateTime now;
   final VoidCallback onPlan;
+  final ValueChanged<Note> onOpenJournal;
   final ValueListenable<Offset> lightDirection;
 
   @override
@@ -578,11 +694,13 @@ class _DayPanel extends StatelessWidget {
                     color: Palette.success,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    '$completions quest${completions == 1 ? "" : "s"} completed',
-                    style: Type.body.copyWith(
-                      fontSize: 13,
-                      color: Palette.textMid,
+                  Expanded(
+                    child: Text(
+                      '$completions quest${completions == 1 ? "" : "s"} completed',
+                      style: Type.body.copyWith(
+                        fontSize: 13,
+                        color: Palette.textMid,
+                      ),
                     ),
                   ),
                 ],
@@ -599,21 +717,38 @@ class _DayPanel extends StatelessWidget {
                     color: Palette.xpLight,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    '$reflections reflection${reflections == 1 ? "" : "s"} kept',
-                    style: Type.body.copyWith(
-                      fontSize: 13,
-                      color: Palette.textMid,
+                  Expanded(
+                    child: Text(
+                      '$reflections reflection${reflections == 1 ? "" : "s"} kept',
+                      style: Type.body.copyWith(
+                        fontSize: 13,
+                        color: Palette.textMid,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+          if (journalEntries.isNotEmpty) ...[
+            const Divider(height: 18, color: Color(0x2EE7C47E)),
+            Text(
+              'JOURNAL',
+              style: Type.label.copyWith(
+                fontSize: 10,
+                letterSpacing: 1.7,
+                color: Palette.xpLight,
+              ),
+            ),
+            const SizedBox(height: 7),
+            _JournalDayEntries(
+              key: ValueKey(Days.key(day)),
+              entries: journalEntries,
+              onOpenJournal: onOpenJournal,
+            ),
+          ],
           if (quests.isEmpty && completions == 0 && reflections == 0)
             Text(
-              isPast
-                  ? 'A quiet day.'
-                  : 'Nothing planned yet — every empty day is a side quest waiting.',
+              isPast ? 'A quiet day.' : 'Nothing planned for this day yet.',
               style: Type.body.copyWith(
                 fontSize: 13.5,
                 fontStyle: FontStyle.italic,
@@ -621,7 +756,7 @@ class _DayPanel extends StatelessWidget {
               ),
             ),
           if (quests.isNotEmpty) ...[
-            if (completions > 0 || reflections > 0)
+            if (completions > 0 || reflections > 0 || journalEntries.isNotEmpty)
               const Divider(height: 17, color: Color(0x2EE7C47E)),
             for (final quest in quests.take(4))
               _PlannedQuestRow(quest: quest, day: day),
@@ -638,6 +773,166 @@ class _DayPanel extends StatelessWidget {
               ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _JournalDayEntries extends StatefulWidget {
+  const _JournalDayEntries({
+    super.key,
+    required this.entries,
+    required this.onOpenJournal,
+  });
+
+  final List<Note> entries;
+  final ValueChanged<Note> onOpenJournal;
+
+  @override
+  State<_JournalDayEntries> createState() => _JournalDayEntriesState();
+}
+
+class _JournalDayEntriesState extends State<_JournalDayEntries> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = _expanded ? widget.entries : widget.entries.take(2);
+    final hidden = widget.entries.length - 2;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final entry in shown)
+          _JournalDayEntry(
+            entry: entry,
+            onTap: () => widget.onOpenJournal(entry),
+          ),
+        if (hidden > 0)
+          Semantics(
+            button: true,
+            expanded: _expanded,
+            label: _expanded
+                ? 'Show fewer journal entries'
+                : 'Show $hidden more journal ${hidden == 1 ? "entry" : "entries"} from this day',
+            child: InkWell(
+              onTap: () => setState(() => _expanded = !_expanded),
+              borderRadius: BorderRadius.circular(10),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _expanded
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
+                        size: 18,
+                        color: Palette.xpLight,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        _expanded ? 'SHOW FEWER' : '+ $hidden MORE ON THIS DAY',
+                        style: Type.label.copyWith(
+                          fontSize: 9.5,
+                          color: Palette.xpLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _JournalDayEntry extends StatelessWidget {
+  const _JournalDayEntry({required this.entry, required this.onTap});
+
+  final Note entry;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = entry.text.trim().isEmpty
+        ? '${entry.images.length} photo${entry.images.length == 1 ? '' : 's'}'
+        : entry.text.trim();
+    return Semantics(
+      button: true,
+      label: 'Open journal entry. $preview',
+      child: InkWell(
+        key: ValueKey('calendar-journal-entry-${entry.id}'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 7),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Palette.glassFill,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Palette.glassEdge),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (entry.images.isNotEmpty) ...[
+                SizedBox.square(
+                  dimension: 50,
+                  child: media.image(entry.images.first, maxHeight: 50),
+                ),
+                const SizedBox(width: 10),
+              ] else ...[
+                const SizedBox.square(
+                  dimension: 34,
+                  child: Icon(
+                    Icons.menu_book_outlined,
+                    size: 19,
+                    color: Palette.xpLight,
+                  ),
+                ),
+                const SizedBox(width: 7),
+              ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      preview,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.body.copyWith(
+                        fontSize: 13,
+                        height: 1.3,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                    if (entry.images.length > 1) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        '${entry.images.length} PHOTOS',
+                        style: Type.label.copyWith(
+                          fontSize: 9,
+                          color: Palette.textLo,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 5),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 19,
+                color: Palette.textLo,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -726,12 +1021,6 @@ class _PlannedQuestRow extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            Icons.drag_handle_rounded,
-            size: 19,
-            color: Palette.textLo.withValues(alpha: 0.55),
           ),
         ],
       ),
@@ -853,189 +1142,194 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(20),
-      child: GlassPanel(
-        tint: const Color(0xF22A211D),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'PLAN FOR ${_weekdayNames[widget.day.weekday - 1]} '
-              '${widget.day.day} ${_monthNames[widget.day.month - 1].toUpperCase()}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Type.label.copyWith(fontSize: 11),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'START WITH A DAY SHAPE — OR NAME YOUR OWN',
-              style: Type.label.copyWith(fontSize: 9.5, color: Palette.textLo),
-            ),
-            const SizedBox(height: 7),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final preset in _presets)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 7),
-                      child: GestureDetector(
-                        onTap: () => _usePreset(preset),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 9,
-                            vertical: 7,
-                          ),
-                          decoration: facetedDecoration(
-                            cut: 7,
-                            color: preset.stat.color.withValues(alpha: 0.10),
-                            borderColor: preset.stat.color.withValues(
-                              alpha: 0.34,
+      child: SingleChildScrollView(
+        child: GlassPanel(
+          tint: const Color(0xF22A211D),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'PLAN FOR ${_weekdayNames[widget.day.weekday - 1]} '
+                '${widget.day.day} ${_monthNames[widget.day.month - 1].toUpperCase()}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Type.label.copyWith(fontSize: 11),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'START WITH A DAY SHAPE — OR NAME YOUR OWN',
+                style: Type.label.copyWith(
+                  fontSize: 9.5,
+                  color: Palette.textLo,
+                ),
+              ),
+              const SizedBox(height: 7),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final preset in _presets)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 7),
+                        child: GestureDetector(
+                          onTap: () => _usePreset(preset),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 7,
                             ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                preset.icon,
-                                size: 13,
-                                color: preset.stat.color,
+                            decoration: facetedDecoration(
+                              cut: 7,
+                              color: preset.stat.color.withValues(alpha: 0.10),
+                              borderColor: preset.stat.color.withValues(
+                                alpha: 0.34,
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                preset.label,
-                                style: Type.label.copyWith(
-                                  fontSize: 9.5,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  preset.icon,
+                                  size: 13,
                                   color: preset.stat.color,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 6),
+                                Text(
+                                  preset.label,
+                                  style: Type.label.copyWith(
+                                    fontSize: 9.5,
+                                    color: preset.stat.color,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _title,
+                onChanged: (_) {
+                  if (_error != null) setState(() => _error = null);
+                },
+                style: Type.body.copyWith(fontSize: 15, color: Palette.textHi),
+                decoration: InputDecoration(
+                  hintText: 'e.g. Finish the essay draft',
+                  hintStyle: Type.body.copyWith(
+                    fontSize: 15,
+                    color: Palette.textLo,
+                  ),
+                  errorText: _error,
+                  errorStyle: Type.body.copyWith(
+                    fontSize: 11,
+                    color: const Color(0xFFE89090),
+                  ),
+                  filled: true,
+                  fillColor: Palette.glassFill,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: Palette.glassEdge),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final s in Stat.values)
+                    GestureDetector(
+                      onTap: () => setState(() => _stat = s),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: facetedDecoration(
+                          cut: 6,
+                          color: _stat == s
+                              ? s.color.withValues(alpha: 0.22)
+                              : Colors.transparent,
+                          borderColor: s.color.withValues(
+                            alpha: _stat == s ? 0.8 : 0.3,
+                          ),
+                        ),
+                        child: Text(
+                          s.abbr,
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            color: s.color,
                           ),
                         ),
                       ),
                     ),
                 ],
               ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _title,
-              onChanged: (_) {
-                if (_error != null) setState(() => _error = null);
-              },
-              style: Type.body.copyWith(fontSize: 15, color: Palette.textHi),
-              decoration: InputDecoration(
-                hintText: 'e.g. Finish the essay draft',
-                hintStyle: Type.body.copyWith(
-                  fontSize: 15,
-                  color: Palette.textLo,
-                ),
-                errorText: _error,
-                errorStyle: Type.body.copyWith(
-                  fontSize: 11,
-                  color: const Color(0xFFE89090),
-                ),
-                filled: true,
-                fillColor: Palette.glassFill,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: Palette.glassEdge),
-                ),
+              DomainHint(_stat),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('DIFFICULTY', style: Type.label.copyWith(fontSize: 11)),
+                  Text(
+                    'd${_difficulty.round()}',
+                    style: Type.label.copyWith(fontSize: 11, color: Palette.xp),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final s in Stat.values)
-                  GestureDetector(
-                    onTap: () => setState(() => _stat = s),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: facetedDecoration(
-                        cut: 6,
-                        color: _stat == s
-                            ? s.color.withValues(alpha: 0.22)
-                            : Colors.transparent,
-                        borderColor: s.color.withValues(
-                          alpha: _stat == s ? 0.8 : 0.3,
-                        ),
-                      ),
-                      child: Text(
-                        s.abbr,
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: s.color,
-                        ),
-                      ),
+              Slider(
+                value: _difficulty,
+                min: 1,
+                max: 8,
+                divisions: 7,
+                activeColor: Palette.xp,
+                inactiveColor: const Color(0x1FF2CD93),
+                onChanged: (v) => setState(() => _difficulty = v),
+              ),
+              Center(
+                child: GestureDetector(
+                  onTap: _add,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 26,
+                      vertical: 11,
                     ),
-                  ),
-              ],
-            ),
-            DomainHint(_stat),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('DIFFICULTY', style: Type.label.copyWith(fontSize: 11)),
-                Text(
-                  'd${_difficulty.round()}',
-                  style: Type.label.copyWith(fontSize: 11, color: Palette.xp),
-                ),
-              ],
-            ),
-            Slider(
-              value: _difficulty,
-              min: 1,
-              max: 8,
-              divisions: 7,
-              activeColor: Palette.xp,
-              inactiveColor: const Color(0x1FF2CD93),
-              onChanged: (v) => setState(() => _difficulty = v),
-            ),
-            Center(
-              child: GestureDetector(
-                onTap: _add,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 26,
-                    vertical: 11,
-                  ),
-                  decoration: facetedDecoration(
-                    cut: 9,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFFF6D9A2),
-                        Color(0xFFEFC074),
-                        Color(0xFFC08B4F),
+                    decoration: facetedDecoration(
+                      cut: 9,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0xFFF6D9A2),
+                          Color(0xFFEFC074),
+                          Color(0xFFC08B4F),
+                        ],
+                      ),
+                      shadows: const [
+                        BoxShadow(
+                          color: Palette.honeyGlow,
+                          blurRadius: 16,
+                          offset: Offset(0, 5),
+                        ),
                       ],
                     ),
-                    shadows: const [
-                      BoxShadow(
-                        color: Palette.honeyGlow,
-                        blurRadius: 16,
-                        offset: Offset(0, 5),
+                    child: Text(
+                      'PLAN IT',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: const Color(0xFF3A2510),
                       ),
-                    ],
-                  ),
-                  child: Text(
-                    'PLAN IT',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      color: const Color(0xFF3A2510),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

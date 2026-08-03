@@ -19,7 +19,7 @@ import 'facets.dart';
 import 'glass.dart';
 import 'gold_surface.dart';
 import 'honey_button.dart';
-import 'quick_reflection_sheet.dart';
+import 'night_reflection_sheet.dart';
 import 'routine_ledger.dart';
 
 /// The night routine (round-5): goodnight → animated recap of today's haul
@@ -56,41 +56,28 @@ class _NightFlowState extends State<NightFlow> {
   /// (AVE-safe: a slip is data, not failure).
   final Set<Quest> _slipped = {};
 
-  bool get _hasTodayJournalLine {
-    final now = Clock.now();
-    return widget.state.journal.any((note) {
-      final traceDay = note.trace?.day;
-      return traceDay == Days.key(now) || Days.sameDay(note.at, now);
-    });
-  }
+  bool get _reduceMotion =>
+      widget.state.reduceMotion ||
+      (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+
+  bool get _hasNightPage => widget.state.nightDraftNote?.night != null;
 
   Future<void> _keepNightReflection() async {
     final s = widget.state;
-    final done = s.history[Days.key(Clock.now())] ?? s.todayQuestTitles.length;
-    final recent = s.todayQuestTitles.take(2).join('  ·  ');
-    final text = await showQuickReflectionSheet(
+    final data = await showNightReflectionSheet(
       context,
-      title: done > 0 ? 'What made today work?' : 'What is worth carrying?',
-      prompt: done > 0
-          ? 'Keep the condition you may want again—a trick, person, place, '
-                'or way you made the day easier.'
-          : 'A quiet day can still leave one detail worth returning to.',
-      attached: done > 0
-          ? '$done ${done == 1 ? 'thread' : 'threads'}${recent.isEmpty ? '' : '  ·  $recent'}'
-          : 'today’s quiet page',
+      initial: s.nightDraftNote?.night,
+      reduceMotion: _reduceMotion,
     );
-    if (text == null || !mounted) return;
-    s.setJournal([
-      ...s.journal,
-      Note(
-        at: Clock.now(),
-        text: text,
-        context: s.buildTitle,
-        trace: s.todayJournalTrace(widget.quests),
-      ),
-    ]);
+    if (data == null || !mounted) return;
+    s.saveNightJournal(data, s.nightJournalTrace(widget.quests));
     widget.onPersist();
-    Storage.logEvent('night_reflection');
+    Storage.logEvent('night_reflection', [
+      if (data.reflection?.trim().isNotEmpty ?? false) 0,
+      if (data.normalizedGratitudes.isNotEmpty) 1,
+      if (data.discovery?.trim().isNotEmpty ?? false) 2,
+      if (data.tomorrowMessage?.trim().isNotEmpty ?? false) 3,
+    ]);
     setState(() {});
   }
 
@@ -99,10 +86,13 @@ class _NightFlowState extends State<NightFlow> {
     setState(() => _closing = true);
     Sfx.instance.play('streak');
     HapticFeedback.mediumImpact();
-    if (!widget.state.reduceMotion) {
+    if (!_reduceMotion) {
       await Future<void>.delayed(const Duration(milliseconds: 430));
     }
     if (!mounted) return;
+    widget.state.finalizeNightJournal(
+      widget.state.nightJournalTrace(widget.quests),
+    );
     widget.state.closeNight(); // stamps the night + arms tomorrow's morning
     widget.onPersist();
     widget.onClose();
@@ -111,7 +101,7 @@ class _NightFlowState extends State<NightFlow> {
   /// What tomorrow already holds: recurring quests scheduled on that day
   /// (round-7: weekday/month-day aware) and events due by tomorrow.
   List<Quest> _tomorrowQuests() {
-    final tomorrow = Clock.now().add(const Duration(days: 1));
+    final tomorrow = Days.afterNight(Clock.now());
     return planningQuestsForDay(
       widget.quests,
       tomorrow,
@@ -144,13 +134,13 @@ class _NightFlowState extends State<NightFlow> {
     return RoutineLedgerScaffold(
       time: RoutineTime.night,
       title: title,
-      dateLabel: _routineDateLabel(Clock.now()),
+      dateLabel: _routineDateLabel(Days.nightDate(Clock.now())),
       dismissLabel: 'NOT YET',
       onDismiss: () {
         Sfx.instance.play('tick');
         widget.onClose();
       },
-      reduceMotion: widget.state.reduceMotion,
+      reduceMotion: _reduceMotion,
       scrollKey: const ValueKey('recap'),
       builder: (context, parallax, light, scroll, entrance) {
         return RoutineLedgerPage(
@@ -169,7 +159,7 @@ class _NightFlowState extends State<NightFlow> {
                   setState(() => _step = 0);
                 },
           secondaryLabel: _step == 0
-              ? (_hasTodayJournalLine ? 'keep another line' : 'keep one line')
+              ? (_hasNightPage ? 'edit tonight’s page' : 'reflect · optional')
               : 'back to recap',
           onSecondary: _step == 0
               ? _keepNightReflection
@@ -178,13 +168,13 @@ class _NightFlowState extends State<NightFlow> {
                   setState(() => _step = 0);
                 },
           child: AnimatedSwitcher(
-            duration: widget.state.reduceMotion
+            duration: _reduceMotion
                 ? Duration.zero
                 : const Duration(milliseconds: 460),
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
             transitionBuilder: (child, animation) {
-              if (widget.state.reduceMotion) {
+              if (_reduceMotion) {
                 return FadeTransition(opacity: animation, child: child);
               }
               final turn = Tween<double>(
@@ -215,18 +205,14 @@ class _NightFlowState extends State<NightFlow> {
 
   Widget _ledgerRecap(BuildContext context) {
     final s = widget.state;
-    final today = Clock.now();
-    final done = s.history[Days.key(today)] ?? s.todayQuestTitles.length;
-    final statGains = s.todayStats.entries.toList()
+    final done = s.nightCompletionCount;
+    final statGains = s.nightStatGains.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final shownGains = statGains.take(3).toList();
     final openAllDay = _openAllDay();
     final risers = _readyToRise();
     final tomorrow = _tomorrowQuests();
-    final selected = _orderedPriorities(
-      tomorrow,
-      today.add(const Duration(days: 1)),
-    );
+    final selected = _orderedPriorities(tomorrow, Days.afterNight(Clock.now()));
 
     return LayoutBuilder(
       builder: (context, bounds) {
@@ -258,8 +244,8 @@ class _NightFlowState extends State<NightFlow> {
                     ),
                     SizedBox(height: compact ? 4 : 13),
                     TweenAnimationBuilder<int>(
-                      tween: IntTween(begin: 0, end: s.todayXp),
-                      duration: s.reduceMotion
+                      tween: IntTween(begin: 0, end: s.nightXp),
+                      duration: _reduceMotion
                           ? Duration.zero
                           : const Duration(milliseconds: 1050),
                       curve: Curves.easeOutCubic,
@@ -326,7 +312,7 @@ class _NightFlowState extends State<NightFlow> {
                     ),
                     SizedBox(height: compact ? 3 : 6),
                     _FinishedThreadsLedger(
-                      titles: s.todayQuestTitles,
+                      titles: s.nightQuestTitles,
                       expanded: _showAllFinished,
                       onExpand: () => setState(() => _showAllFinished = true),
                       onCollapse: () =>
@@ -392,7 +378,7 @@ class _NightFlowState extends State<NightFlow> {
   }
 
   Widget _ledgerPlanner(BuildContext context) {
-    final tomorrowDay = Clock.now().add(const Duration(days: 1));
+    final tomorrowDay = Days.afterNight(Clock.now());
     final tomorrowKey = Days.key(tomorrowDay);
     final tomorrow = _tomorrowQuests();
     final ordered = _orderedPriorities(tomorrow, tomorrowDay);
@@ -494,7 +480,10 @@ class _NightFlowState extends State<NightFlow> {
   Future<void> _addTomorrowQuest() async {
     final quest = await showEmberSheet(
       context,
-      const EmberSheetConfig(surface: EmberSurface.tomorrow),
+      EmberSheetConfig(
+        surface: EmberSurface.tomorrow,
+        targetDay: Days.afterNight(Clock.now()),
+      ),
     );
     if (quest == null || !mounted) return;
     if (widget.onAdd(quest)) {
@@ -592,16 +581,20 @@ class _NightFlowState extends State<NightFlow> {
   /// for reward at night.
   List<Quest> _openAllDay() {
     final now = Clock.now();
-    final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
-    final today = Days.key(now);
+    final night = Days.nightDate(now);
+    // Confirming a previous day's all-day line would credit the completion to
+    // the new calendar day. Keep the after-midnight recap honest and read-only.
+    if (!Days.sameDay(now, night)) return const [];
+    final endOfToday = DateTime(night.year, night.month, night.day, 23, 59, 59);
+    final today = Days.key(night);
     return [
       for (final q in widget.quests)
         if (q.allDay &&
             q.snoozedDay != today &&
-            !q.doneFor(now) &&
+            !q.doneFor(night) &&
             (q.isEvent
                 ? !q.dueDate!.isAfter(endOfToday)
-                : q.scheduledOn(now)) &&
+                : q.scheduledOn(night)) &&
             !_slipped.contains(q))
           q,
     ];
@@ -708,8 +701,7 @@ class _NightFlowState extends State<NightFlow> {
   // ignore: unused_element
   Widget _recap(BuildContext context) {
     final s = widget.state;
-    final today = Days.key(Clock.now());
-    final done = s.history[today] ?? 0;
+    final done = s.nightCompletionCount;
     final openAllDay = _openAllDay();
     final risers = _readyToRise();
     return ListView(
@@ -1040,7 +1032,7 @@ class _NightFlowState extends State<NightFlow> {
               ),
               const SizedBox(height: 6),
               TweenAnimationBuilder<int>(
-                tween: IntTween(begin: 0, end: s.todayXp),
+                tween: IntTween(begin: 0, end: s.nightXp),
                 duration: const Duration(milliseconds: 1100),
                 curve: Curves.easeOutCubic,
                 builder: (_, v, _) => Text(
@@ -1062,18 +1054,18 @@ class _NightFlowState extends State<NightFlow> {
               ),
               const SizedBox(height: 12),
               MomentumStrip(history: s.history),
-              if (s.todayStats.isNotEmpty) ...[
+              if (s.nightStatGains.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 6,
                   alignment: WrapAlignment.center,
                   children: [
-                    for (final e in s.todayStats.entries)
+                    for (final e in s.nightStatGains.entries)
                       _PopIn(
                         delayMs:
                             500 +
-                            140 * s.todayStats.keys.toList().indexOf(e.key),
+                            140 * s.nightStatGains.keys.toList().indexOf(e.key),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -1159,7 +1151,7 @@ class _NightFlowState extends State<NightFlow> {
               children: [
                 Text('CLEARED TODAY', style: Type.label.copyWith(fontSize: 11)),
                 const SizedBox(height: 8),
-                for (final t in s.todayQuestTitles.take(8))
+                for (final t in s.nightQuestTitles.take(8))
                   Padding(
                     padding: const EdgeInsets.only(bottom: 5),
                     child: Row(
@@ -1213,7 +1205,7 @@ class _NightFlowState extends State<NightFlow> {
   // ignore: unused_element
   Widget _planner(BuildContext context) {
     final tomorrow = _tomorrowQuests();
-    final tomorrowDay = Clock.now().add(const Duration(days: 1));
+    final tomorrowDay = Days.afterNight(Clock.now());
     final tomorrowKey = Days.key(tomorrowDay);
     final chosenCount = tomorrow.where((q) => q.priorityOn(tomorrowDay)).length;
     return ListView(
@@ -1345,7 +1337,10 @@ class _TomorrowAdderState extends State<_TomorrowAdder> {
   void _add() async {
     final q = await showEmberSheet(
       context,
-      const EmberSheetConfig(surface: EmberSurface.tomorrow),
+      EmberSheetConfig(
+        surface: EmberSurface.tomorrow,
+        targetDay: Days.afterNight(Clock.now()),
+      ),
     );
     if (q == null) return;
     final ok = widget.onAdd(q);
@@ -1427,11 +1422,13 @@ class MorningFlow extends StatefulWidget {
     required this.state,
     required this.quests,
     required this.onClose,
+    this.onDismiss,
   });
 
   final GameState state;
   final List<Quest> quests;
   final VoidCallback onClose;
+  final VoidCallback? onDismiss;
 
   @override
   State<MorningFlow> createState() => _MorningFlowState();
@@ -1440,6 +1437,10 @@ class MorningFlow extends StatefulWidget {
 class _MorningFlowState extends State<MorningFlow> {
   late EnergyWeather _weather;
   bool _closing = false;
+
+  bool get _reduceMotion =>
+      widget.state.reduceMotion ||
+      (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
 
   @override
   void initState() {
@@ -1508,7 +1509,7 @@ class _MorningFlowState extends State<MorningFlow> {
     setState(() => _closing = true);
     Sfx.instance.play('tick_lift');
     HapticFeedback.mediumImpact();
-    if (!widget.state.reduceMotion) {
+    if (!_reduceMotion) {
       await Future<void>.delayed(const Duration(milliseconds: 430));
     }
     if (mounted) widget.onClose();
@@ -1523,6 +1524,7 @@ class _MorningFlowState extends State<MorningFlow> {
     final nearby = open
         .where((quest) => !quest.allDay && !lead.contains(quest))
         .length;
+    final selfMessage = widget.state.morningSelfMessage;
 
     return RoutineLedgerScaffold(
       time: RoutineTime.morning,
@@ -1531,9 +1533,9 @@ class _MorningFlowState extends State<MorningFlow> {
       dismissLabel: 'LATER',
       onDismiss: () {
         Sfx.instance.play('tick');
-        widget.onClose();
+        (widget.onDismiss ?? widget.onClose)();
       },
-      reduceMotion: widget.state.reduceMotion,
+      reduceMotion: _reduceMotion,
       scrollKey: const ValueKey('morning-ledger'),
       builder: (context, parallax, light, scroll, entrance) {
         return RoutineLedgerPage(
@@ -1556,7 +1558,12 @@ class _MorningFlowState extends State<MorningFlow> {
                   morning: true,
                   color: LedgerInk.pageGold,
                 ),
-                const SizedBox(height: 8),
+                if (selfMessage case final message?) ...[
+                  const SizedBox(height: 8),
+                  _TomorrowSelfCard(message: message),
+                  const SizedBox(height: 8),
+                ] else
+                  const SizedBox(height: 8),
                 Expanded(
                   flex: 6,
                   child: lead.isEmpty
@@ -1588,13 +1595,13 @@ class _MorningFlowState extends State<MorningFlow> {
                           ],
                         ),
                 ),
-                const SizedBox(height: 23),
+                SizedBox(height: selfMessage == null ? 23 : 10),
                 const LedgerSectionTitle(
                   label: 'TODAY FEELS',
                   morning: true,
                   color: LedgerInk.pageGold,
                 ),
-                const SizedBox(height: 9),
+                SizedBox(height: selfMessage == null ? 9 : 5),
                 Row(
                   children: [
                     for (final weather in EnergyWeather.values)
@@ -1614,7 +1621,7 @@ class _MorningFlowState extends State<MorningFlow> {
                       ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: selfMessage == null ? 14 : 6),
                 Text(
                   _weather == EnergyWeather.low
                       ? 'A smaller flame is still a flame.'
@@ -1629,7 +1636,7 @@ class _MorningFlowState extends State<MorningFlow> {
                     color: LedgerInk.quiet,
                   ),
                 ),
-                const SizedBox(height: 26),
+                SizedBox(height: selfMessage == null ? 26 : 12),
                 _MorningFootnote(
                   nearby: nearby,
                   allDay: allDay,
@@ -2012,6 +2019,146 @@ class _LegacyMorningFlow extends StatelessWidget {
                   child: _BigButton(label: "LET'S GO ☀️", onTap: onClose),
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TomorrowSelfCard extends StatelessWidget {
+  const _TomorrowSelfCard({required this.message});
+
+  final String message;
+
+  void _openFullMessage(BuildContext context) {
+    Sfx.instance.play('tick');
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: const Color(0xB8120D09),
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 18),
+        child: GlassPanel(
+          tint: const Color(0xF5E6D2A8),
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'FROM LAST NIGHT',
+                  style: LedgerType.smallCaps.copyWith(
+                    fontSize: 10,
+                    letterSpacing: 1.25,
+                    color: LedgerInk.pageGold,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SelectableText(
+                  message,
+                  style: LedgerType.body.copyWith(
+                    fontSize: 18,
+                    height: 1.35,
+                    fontStyle: FontStyle.italic,
+                    color: LedgerInk.dark,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    child: const Text('CLOSE'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      button: true,
+      label: 'Message from last night: $message. Open the full message.',
+      onTap: () => _openFullMessage(context),
+      child: ExcludeSemantics(
+        child: Material(
+          color: Colors.transparent,
+          shape: const FacetedBorder(cut: 7),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => _openFullMessage(context),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(9, 6, 7, 6),
+              decoration: const ShapeDecoration(
+                color: Color(0x147A5735),
+                shape: FacetedBorder(
+                  cut: 7,
+                  side: BorderSide(color: Color(0x5C8D6A3E)),
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.only(top: 1),
+                    child: Icon(
+                      Icons.mail_outline_rounded,
+                      size: 13,
+                      color: LedgerInk.pageGold,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'FROM LAST NIGHT',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: LedgerType.smallCaps.copyWith(
+                            fontSize: 8.5,
+                            letterSpacing: 1.25,
+                            color: LedgerInk.pageGold,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          message,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: LedgerType.body.copyWith(
+                            fontSize: 11.5,
+                            height: 1.08,
+                            fontStyle: FontStyle.italic,
+                            color: LedgerInk.dark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Icon(
+                      Icons.open_in_full_rounded,
+                      size: 10,
+                      color: LedgerInk.pageGold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

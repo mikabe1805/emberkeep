@@ -1,4 +1,4 @@
-# Morrowloom design QA
+# Room of Days design QA
 
 ## Quest completion, reactive light, and motion-cost pass - 2026-07-31
 
@@ -127,6 +127,285 @@ persisted top-three routine order.
   TestFlight build because static/widget evidence cannot measure them.
 
 final result: passed
+
+## 2026-08-03 — Pre-TestFlight family-feedback freeze
+
+- The featured Quest action now calibrates to the phone's resting hold, filters
+  ordinary hand jitter with a radial dead zone, smooths deliberate tilt, and
+  moves one broad satin reflection under a fixed implied room light. It has no
+  autonomous shine loop. Controlled resting, left-tilt, and right-tilt evidence
+  is archived at
+  `design/comparisons/2026-08-03/button-light-controlled-phone.webp`.
+- Reward receipts, achievement toasts, level-ups, streak milestones, and epic
+  clears now combine the in-app and operating-system Reduce Motion settings.
+  Reduced mode presents the complete readable state immediately without
+  particles, travel, scale slams, chest motion, or heavy haptics, while keeping
+  live announcements and teardown/dismissal behavior.
+- Final Flutter verification passed 221/221 tests. `flutter analyze`, the
+  formatting check across 141 Dart files, `git diff --check`, and
+  `flutter build web --release` all passed; the WebAssembly dry run also passed.
+
+current result: ready for a phone build; native sensor feel remains the next
+validation step
+
+## 2026-08-03 — Room of Days public rebrand
+
+### Decision and compatibility
+
+- The owner approved **Room of Days** as the public working name after family
+  testing found Morrowloom unmemorable.
+- Public Flutter copy, onboarding, sharing, exported captions, backup messages,
+  Android/iOS/Windows labels, PWA metadata, legal pages, Codemagic workflow
+  copy, store copy, and current documentation now use Room of Days.
+- The Dart package, bundle/application IDs, Firebase project, storage marker,
+  serialized fields, preference keys, notification channel, cloud identifiers,
+  and historical asset filenames remain unchanged. Existing installs and saves
+  therefore require no identity or data migration.
+- The former public tapestry mark remains the same progression object in the
+  room under the visible name **The Woven Dawn**. Internal widget and asset
+  names remain historical compatibility details.
+
+### Public mark and store art
+
+- The selected launcher mark is an isometric little room holding one rising
+  sun and one controlled path of daybreak. It removes the old brand's loom
+  dependency, belongs specifically to Room of Days, and remains readable at
+  32, 48, 192, and 1024 pixels. The earlier lit-window direction remains
+  archived as provenance but is not the shipped mark.
+- The selected image-generation source is archived at
+  `design/source-assets/runtime-originals/assets/brand/room-of-days-icon-source-v2.png`.
+  Prompt and lineage are recorded in `assets/brand/README.md`.
+- `../tools/gen_icon_mascot.py` deterministically exports the current web,
+  Android, iOS, Windows, favicon, and Apple touch assets. Android adaptive icons
+  keep a 12% inset for mask safety.
+- The Google Play feature graphic now uses **Room of Days**, **Real quests. Real
+  progress.**, and the related arched-window sunrise scene. It remains exactly
+  1024 × 500.
+
+### Rendered evidence
+
+- Old/new mark and feature graphic:
+  `design/comparisons/2026-08-03/room-of-days-brand-review.webp`.
+- Renamed first run:
+  `test/goldens/store_audit_00_welcome_1290x2796.png`.
+- Renamed Chronicle attribution:
+  `test/goldens/store_06b_weekly_chronicle_1290x2796.png`.
+- Updated full production review:
+  `design/comparisons/2026-08-03/current-system-review-phone.webp`.
+
+### Verification
+
+- `flutter analyze`: passed with no issues.
+- Full `flutter test`: 158/158 passed.
+- Store-size screenshot regeneration: 17/17 passed.
+- `flutter build web --release`: passed, including the WebAssembly dry run.
+- A clean rebuild removed a stale generated-only `figma-board` directory; the
+  shipping web root now contains no former public-name copy.
+- Android APK compilation remains environment-blocked because this workstation
+  has no Android SDK configured.
+
+final result: passed
+
+## 2026-08-03 — Night routine, reminders, and tomorrow handoff
+
+### Final production review
+
+- The evening Quest board now carries one labeled `CLOSE THE DAY` rail from
+  17:00 through the 04:00 day boundary. It states how many quests remain and
+  becomes the primary action once the board is clear.
+- Native settings now offer an independent night-routine reminder, including a
+  configurable time and permission-aware scheduling. A denied notification
+  permission disables the saved toggle without repeatedly prompting.
+- The close-day flow offers four optional prompts: reflection, three grateful
+  things, one discovery, and a message to tomorrow. They persist as one
+  structured Journal page that can also be edited or removed from Journal and
+  Calendar.
+- A saved tomorrow message appears in the following morning ledger. `LATER`
+  preserves it, and the compact card opens the complete message without
+  crowding the three daily quests.
+- The 04:00 ownership boundary, stale-draft isolation, idempotent close, and
+  schema-17/18 cloud merge paths were exercised explicitly. A newer legacy
+  cloud save is held rather than overwritten by an upgraded local save.
+
+### Rendered evidence
+
+- Evening entry point: `test/goldens/store_01d_evening_close_1290x2796.png`.
+- Optional reflection sheet: `test/goldens/store_11b_night_reflection_1290x2796.png`.
+- Morning handoff: `test/goldens/store_12_morning_open_1290x2796.png`.
+- Current phone-system review:
+  `design/comparisons/2026-08-03/current-system-review-phone.webp`.
+- Routine target/build and detailed comparisons:
+  `design/comparisons/2026-08-03/routine-ledger-target-vs-build.png` and
+  `design/comparisons/2026-08-03/routine-ledger-detail-target-vs-build.png`.
+
+### Verification
+
+- `flutter analyze`: passed with no issues.
+- Full `flutter test`: 158/158 passed.
+- Store-size and routine golden regeneration: 24/24 passed.
+- Compact 320 x 568 / 1.5x text tests cover the reflection sheet and morning
+  handoff; the evening rail exposes a screen-reader tap action.
+- `flutter build web --release`: passed, including the WebAssembly dry run.
+- `flutter build apk --release`: not run to completion because this workstation
+  has no Android SDK configured (`ANDROID_HOME` is unavailable).
+- `git diff --check`: passed; only line-ending conversion warnings remain.
+
+final result: passed
+
+## 2026-08-03 — Family-feedback completion and social-space pass
+
+### Completed product behavior
+
+- My Space is now a personal page as well as a progress surface. A person can
+  change their name, write a short introduction, feature up to three goals,
+  and pin Journal moments or photos without disturbing the room scene.
+- Visitor sharing is private by default. Opting in publishes only the chosen
+  display name, introduction, and featured goals; Journal entries and photos,
+  quests, streaks, account data, and the rest of the local profile never enter
+  the shared-room payload. Public room codes allow an exact-code read but
+  cannot be listed or searched as a collection.
+- `Share my space` now opens the platform share sheet, so installed targets
+  such as WhatsApp are available naturally, while copy-code remains an explicit
+  fallback. The dialog keeps a stable Done action.
+- `Visit a space` validates the six-character code in place, shows loading and
+  retry states without dismissing itself, and can save the visited room to the
+  Circle. Circle's add-code path uses the same validation and fetch contract.
+- Circle now has a clearer empty-room invitation, trusted-space cards, quiet
+  company, and accessible actions instead of acting like a decorative stub.
+- Journal supports multiple photos in one entry, keeps location context,
+  autosaves edits, and surfaces every entry for the selected day in Calendar.
+- Every room choice now uses the same intact-camera depth treatment as the
+  default room: parallax, moving light, hearth/reflection response, and authored
+  full-room previews. Reduced Motion parks the camera and ambient movement.
+- The night reflection remains an immersive full-screen close to the day.
+  Optional reflection, three gratitudes, one discovery, and a message to
+  tomorrow share one scrollable surface. The morning routine opens
+  automatically on cold start or resume once due, without stacking overlays or
+  covering onboarding.
+- Night reminders remain independent from quest reminders. Only a confirmed
+  permission denial clears a reminder; an unknown native result preserves the
+  person's setting. Suppression compares the next actual wall-clock occurrence,
+  including after-midnight ownership and daylight-saving boundaries.
+- My Space, Personalize, Circle, Visit, Share, and Calendar Journal states now
+  reflow at 320 x 568 with 2.0x text. Primary Circle actions are at least 44
+  logical pixels and expose screen-reader tap actions.
+- The guided workout received a final material and hierarchy pass: clearer
+  session progress and countdown, an attached form/next-move ledger, larger
+  controls, responsive small-phone behavior, and Reduced Motion support.
+
+### Rendered evidence
+
+- My Space, Circle, and the opt-in visitor page:
+  `design/comparisons/2026-08-03/my-space-circle-visitor-pass.webp`.
+- Complete-room chooser and both alternative-room previews:
+  `design/comparisons/2026-08-03/complete-room-system-phone.webp`.
+- Current whole-product phone review:
+  `design/comparisons/2026-08-03/current-system-review-phone.webp`.
+- Individual production captures include
+  `test/goldens/store_02_keep_1290x2796.png`,
+  `test/goldens/store_02c_visitor_profile_1290x2796.png`,
+  `test/goldens/store_03b_conservatory_preview_1290x2796.png`, and
+  `test/goldens/store_10_workout_active_1290x2796.png`.
+- Eight focused layout captures under `test/goldens/large_text_*.png` document
+  the 320 x 568 / 2.0x My Space, Personalize, Circle, Visit, Share, and Calendar
+  states. These use the deterministic test font and are layout evidence rather
+  than store art.
+
+### Final verification
+
+- Combined family-feedback regression set: 77/77 passed.
+- Full Flutter suite: 189/189 passed.
+- `flutter analyze`: passed with no issues.
+- `flutter build web --release`: passed; the WebAssembly dry run also passed.
+- Three fresh 430 x 932 at DPR 3 screenshot stories passed and regenerated the
+  social, room, Journal, workout, and identity evidence above.
+- Fresh source/build comparison sheets were generated and opened at original
+  resolution after the final implementation change. No actionable P0, P1, or
+  P2 layout mismatch remains in this scoped pass.
+
+final result: passed
+
+## 2026-08-03 — Journal Quest handoff and release-candidate hygiene
+
+### Product contract
+
+- Authored Journal Quests open a dedicated autosaving Journal page rather than
+  completing at the first tap.
+- Opening the page and leaving it empty never counts. The first meaningful
+  saved writing completes the linked Quest once when the person returns to
+  Quests; reopening the same Quest on the same day resumes that page instead
+  of creating a duplicate entry or reward.
+- Ordinary check-off Quests keep their existing completion behavior.
+
+### Release hygiene
+
+- The local public privacy page, store disclosure worksheet, iOS privacy
+  manifest, foreground-notification delegate, and Codemagic CocoaPods fallback
+  now describe and provision the behavior in the candidate consistently.
+- The updated Firestore rules compiled in a dry run. They have **not** been
+  deployed, and the updated public privacy page has **not** been hosted. Share,
+  Visit, and Circle should not be judged against production until those two
+  release operations are complete.
+- Final verification is fresh for this candidate: the full Flutter suite passed
+  203/203, including the dedicated Journal Quest migration, immediate-back,
+  bookplate, and 2x-text checks; `flutter analyze` found no issues; and
+  `flutter build web --release` completed successfully.
+- A fresh 430 x 932 at DPR 3 Quest-to-Journal capture was inspected at original
+  resolution. Its first pass exposed a clipped long Quest title; the header now
+  stacks above save status when needed, and the recapture shows the complete
+  title, prompt, attached context, and photo action without overlap.
+- The generic luminous `OPEN JOURNAL` slab was replaced after phone-sheet
+  review with a restrained oxblood bookplate, aged-brass inset rim, book seal,
+  and page-edge cue. The final recapture keeps it unmistakably actionable while
+  preserving the Quest title and reward as the leading hierarchy.
+
+current result: local candidate passed; external release operations remain
+
+## 2026-08-03 — Arrangeable My Space card pass
+
+### Product contract
+
+- My Space is now an authored four-card page: About, Right now, Pinned moments,
+  and This season. Each card keeps its own material language while the room
+  remains the page's visual anchor.
+- A full-screen arranger lets the owner drag the brass grips to reorder cards,
+  hide or reveal individual cards, and edit their contents without committing
+  a partial draft. Cancel discards the draft; Save applies the complete page in
+  one persistence step.
+- This season adds a short seasonal note and an optional photo chosen from the
+  Journal. It stays out of legacy pages until it has content, so existing saves
+  retain their established three-card rhythm.
+- Visitor sharing still requires the existing explicit profile opt-in. The
+  chosen name is eligible when opted in; About and Right now additionally
+  respect their card visibility. Pinned-moment writing, Journal identifiers and
+  photos, This season content, and the private deck arrangement never enter the
+  public room document. They may remain in the person's private save or its
+  optional private cloud backup.
+
+### Rendered evidence
+
+- Composed four-card page and full-screen arranger:
+  `design/comparisons/2026-08-03/my-space-cards-phone.webp`.
+- Individual 430 x 932 at DPR 3 production-widget captures:
+  `test/goldens/store_14_my_space_cards_1290x2796.png`,
+  `test/goldens/store_14b_my_space_season_1290x2796.png`, and
+  `test/goldens/store_14c_my_space_arranger_1290x2796.png`.
+- The arranger and composed page were also exercised at 320 x 568 with 2.0x
+  text. The compact photo fallback was inspected in place so missing Journal
+  media no longer forces full explanatory copy into a thumbnail.
+
+### Verification
+
+- Dedicated My Space state, UI, privacy-payload, large-text, visitor-profile,
+  and cloud-merge set: 34/34 passed.
+- Full Flutter suite: 215/215 passed.
+- `flutter analyze`: passed with no issues.
+- `flutter build web --release`: passed; the WebAssembly dry run also passed.
+- Fresh phone captures were opened at original resolution after the final
+  contrast, privacy-copy, and compact-photo corrections. No remaining P0 or P1
+  issue is known in this scoped pass.
+
+current result: passed
 
 ## Complete-room identity pivot — 2026-07-31
 
