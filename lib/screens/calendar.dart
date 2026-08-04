@@ -158,20 +158,19 @@ class _CalendarPageState extends State<CalendarPage> {
     return entries;
   }
 
+  String? _starterFor(Note entry) {
+    final source = entry.sourceQuestKey;
+    if (source == null || source.isEmpty) return null;
+    for (final quest in widget.quests) {
+      if (quest.title == source) return quest.journalPrompt?.starter;
+    }
+    return null;
+  }
+
   Future<void> _openJournal(Note entry) {
     Sfx.instance.play('tick');
     final night = entry.night;
-    if (night != null) {
-      return showNightReflectionSheet(
-        context,
-        initial: night,
-        reduceMotion: widget.state.reduceMotion,
-      ).then((data) {
-        if (!mounted || data == null) return;
-        widget.state.updateNightJournalEntry(entry, data);
-      });
-    }
-    Navigator.of(context).push(
+    return Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => JournalEntryScreen(
           initial: entry,
@@ -180,7 +179,23 @@ class _CalendarPageState extends State<CalendarPage> {
           reduceMotion: widget.state.reduceMotion,
           heading:
               'Journal · ${_monthNames[entry.at.month - 1]} ${entry.at.day}',
+          starter: _starterFor(entry),
           trace: entry.trace,
+          initiallyEditing: false,
+          onEditRequested: night == null
+              ? null
+              : (readerContext) async {
+                  final data = await showNightReflectionSheet(
+                    readerContext,
+                    initial: night,
+                    reduceMotion: widget.state.reduceMotion,
+                  );
+                  if (!readerContext.mounted || data == null) return;
+                  widget.state.updateNightJournalEntry(entry, data);
+                  if (readerContext.mounted) {
+                    Navigator.of(readerContext).pop();
+                  }
+                },
           commit: (payload, existing, markEdited) {
             final source = existing ?? entry;
             final updated = source.copyWith(
@@ -201,7 +216,6 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
       ),
     );
-    return Future<void>.value();
   }
 
   @override
@@ -573,15 +587,18 @@ class _Chevron extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void activate() {
+      Sfx.instance.play('tick');
+      onTap();
+    }
+
     return Semantics(
       button: true,
       label: label,
+      onTap: activate,
       child: GestureDetector(
         excludeFromSemantics: true,
-        onTap: () {
-          Sfx.instance.play('tick');
-          onTap();
-        },
+        onTap: activate,
         child: SizedBox(
           width: 44,
           height: 44,
@@ -863,7 +880,7 @@ class _JournalDayEntry extends StatelessWidget {
         : entry.text.trim();
     return Semantics(
       button: true,
-      label: 'Open journal entry. $preview',
+      label: 'Read journal entry. $preview',
       child: InkWell(
         key: ValueKey('calendar-journal-entry-${entry.id}'),
         onTap: onTap,

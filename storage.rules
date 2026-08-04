@@ -1,0 +1,49 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function validOwnerUid(ownerUid) {
+      return ownerUid.size() >= 1
+        && ownerUid.size() <= 128
+        && ownerUid.matches('^[A-Za-z0-9._~-]{1,128}$');
+    }
+
+    function validRoomCode(roomCode) {
+      return roomCode.matches('^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$');
+    }
+
+    function validSlot(slot) {
+      return slot == 'profile' || slot == 'season';
+    }
+
+    match /shared_rooms/{ownerUid}/{roomCode}/{slot} {
+      // The object path is a bearer capability carried by an exact room-share
+      // payload. Visitors may fetch that object, but can never enumerate a
+      // person's media or discover adjacent rooms/slots.
+      allow get: if validOwnerUid(ownerUid)
+        && validRoomCode(roomCode)
+        && validSlot(slot);
+      allow list: if false;
+
+      allow create, update: if request.auth != null
+        && request.auth.uid == ownerUid
+        && validOwnerUid(ownerUid)
+        && validRoomCode(roomCode)
+        && validSlot(slot)
+        && request.resource.size > 0
+        && request.resource.size <= 3 * 1024 * 1024
+        && request.resource.contentType.matches('^image/(jpeg|png|webp)$');
+
+      allow delete: if request.auth != null
+        && request.auth.uid == ownerUid
+        && validOwnerUid(ownerUid)
+        && validRoomCode(roomCode)
+        && validSlot(slot);
+    }
+
+    // No other objects, including parent collection listings, are public.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

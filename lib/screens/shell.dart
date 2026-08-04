@@ -21,7 +21,8 @@ import '../social.dart';
 import '../tokens.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart' show WarmBackground;
-import '../widgets/home_room.dart' show preloadSpaceTheme;
+import '../widgets/home_room.dart'
+    show preloadHearthFireFrames, preloadSpaceTheme;
 import '../widgets/luxe_depth.dart';
 import '../widgets/onboarding_flow.dart';
 import '../widgets/pressable.dart';
@@ -29,6 +30,7 @@ import '../widgets/routine_flows.dart';
 import 'calendar.dart';
 import 'goal_wizard.dart';
 import 'goals.dart';
+import 'hearth_circle.dart';
 import 'insights.dart';
 import 'me.dart';
 import 'quests.dart';
@@ -54,12 +56,60 @@ bool shouldSuppressNextNightReminder({
   return Days.nightKey(next) == nightDoneDay;
 }
 
+class FreshSocialInbox {
+  const FreshSocialInbox({required this.sparkKinds, required this.circleAdds});
+
+  final List<String> sparkKinds;
+  final int circleAdds;
+
+  bool get isEmpty => sparkKinds.isEmpty && circleAdds == 0;
+}
+
+/// Keeps launch/resume notices calm: an uncollected receipt stays visible in
+/// Circle, but it is announced only once during this app session.
+class SocialInboxSessionTracker {
+  final Set<String> _sparkIds = {};
+  final Set<String> _circleAddIds = {};
+
+  FreshSocialInbox takeFresh({
+    required Iterable<Map<String, dynamic>> sparks,
+    required Iterable<Map<String, dynamic>> circleAdds,
+  }) {
+    final kinds = <String>[];
+    for (final spark in sparks) {
+      final id = spark['id'];
+      if (id is! String || id.isEmpty || !_sparkIds.add(id)) continue;
+      kinds.add(normalizedSparkKind(spark['kind']));
+    }
+    var freshAdds = 0;
+    for (final add in circleAdds) {
+      final id = add['id'];
+      if (id is String && id.isNotEmpty && _circleAddIds.add(id)) freshAdds++;
+    }
+    return FreshSocialInbox(sparkKinds: kinds, circleAdds: freshAdds);
+  }
+}
+
+String socialInboxNoticeText({
+  required Iterable<String> sparkKinds,
+  required int circleAdds,
+}) {
+  final parts = <String>[
+    if (circleAdds > 0) circleAddNoticeText(circleAdds),
+    if (sparkKinds.isNotEmpty) sparkSupportNoticeText(sparkKinds),
+  ];
+  return parts.join(' ');
+}
+
 /// App shell: warm candlelit desk, five pages (Me · Quests · Goals · Plans ·
 /// Insights), floating glass nav dock. Owns the GameState + quest list,
 /// persists them locally, and runs day-rollover on launch/resume + at an
 /// in-app midnight tick (so a foregrounded PWA rolls over on time).
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  const AppShell({super.key, this.initialRoomCode, this.roomLinks});
+
+  final String? initialRoomCode;
+  final RoomLinkInbox? roomLinks;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -74,8 +124,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   OverlayEntry? _morningOverlay;
   bool _morningCheckScheduled = false;
   bool _startupSettled = false;
+  bool _initialRoomHandled = false;
+  bool _drainingRoomLinks = false;
+  bool _checkingSocialInbox = false;
+  final SocialInboxSessionTracker _socialInboxSession =
+      SocialInboxSessionTracker();
   Timer? _midnight; // fires at the next local midnight to roll the day over
   Future<void> _notificationSchedule = Future<void>.value();
+  Future<String?>? _enableCloudFuture;
 
   /// Bound by QuestsPage so pause-path saves always flush a pending
   /// deferred commit before writing (bug-hunt §1 — observer order alone
@@ -84,7 +140,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   /// Serializes preference writes so a slower old write cannot land after a
   /// newer one. Export and lifecycle flushes await this same tail.
-  Future<void> _saveTail = Future.value();
+  Future<bool> _saveTail = Future.value(true);
 
   @override
   void initState() {
@@ -92,15 +148,30 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _luxeMotion = LuxeMotionController();
     unawaited(_luxeMotion.start());
     WidgetsBinding.instance.addObserver(this);
+    widget.roomLinks?.addListener(_onIncomingRoomLink);
     _load();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.roomLinks?.removeListener(_onIncomingRoomLink);
     _midnight?.cancel();
     _luxeMotion.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.roomLinks == widget.roomLinks) return;
+    oldWidget.roomLinks?.removeListener(_onIncomingRoomLink);
+    widget.roomLinks?.addListener(_onIncomingRoomLink);
+    _onIncomingRoomLink();
+  }
+
+  void _onIncomingRoomLink() {
+    if (_startupSettled) unawaited(_drainPendingRoomLinks());
   }
 
   /// Arm a one-shot timer for the next local midnight so a device left
@@ -136,6 +207,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _armMidnight(); // re-aim at the (possibly new) next midnight
       _maybeMorning();
       unawaited(_rescheduleNotifications(refreshTimeZone: true));
+      unawaited(_notifySocialInbox());
     } else if (lifecycle == AppLifecycleState.paused ||
         lifecycle == AppLifecycleState.inactive) {
       // flush any in-flight quest completion BEFORE saving — otherwise a
@@ -146,12 +218,21 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       // — can't be written with a stale timestamp and lose the cloud LWW race
       s.lastModified = Clock.now().millisecondsSinceEpoch;
       unawaited(
-        _persistNow(push: false).then((_) {
+        _persistNow(push: false).then((saved) {
+          if (!saved) return;
           // flush the pending cloud push NOW — a scheduled debounce timer is
           // killed when the OS suspends the PWA, silently dropping the last
           // completions from the cloud mirror.
           CloudSync.instance.flush();
-          CloudSync.instance.flushRoom(roomDisplay(s), code: s.roomCode);
+          final cloud = CloudSync.instance;
+          cloud.flushRoom(
+            roomDisplay(
+              s,
+              mediaOwnerUid: cloud.socialUid,
+              mediaRoomCode: s.roomCode,
+            ),
+            code: s.roomCode,
+          );
         }),
       );
     }
@@ -171,9 +252,194 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     await _connectCloud();
     if (!mounted) return;
     _startupSettled = true;
+    final openedInitialRoom = await _openInitialRoom();
+    final openedLinkedRoom = await _drainPendingRoomLinks();
+    if (openedInitialRoom || openedLinkedRoom) {
+      unawaited(_refreshPublishedRoom());
+      unawaited(_notifySocialInbox());
+      return;
+    }
+    unawaited(_refreshPublishedRoom());
+    unawaited(_notifySocialInbox());
     _maybeOnboard();
     _maybeMorning();
     _rescheduleNotifications(); // refresh reminders for today (native-only)
+  }
+
+  /// Repair the current public document on launch and rotate a restored code
+  /// that belongs to a lost anonymous identity. Someone who already shared has
+  /// explicitly opted into this room publication; this never turns sharing on.
+  Future<void> _refreshPublishedRoom() async {
+    final state = _state;
+    final cloud = CloudSync.instance;
+    if (state?.roomCode == null || !cloud.available) return;
+    if (!await cloud.ensureSocialSession() || !mounted) return;
+    final result = await publishSpaceRoomState(
+      state!,
+      current: state,
+      code: state.roomCode,
+    );
+    final code = result.code;
+    if (code == null || code == state.roomCode) return;
+    state.setRoomCode(code);
+    await _persistNow();
+    _showSocialNotice(
+      'Your restored share code belonged to another session, so a new one was made: $code',
+    );
+  }
+
+  /// The My Space editor uses this acknowledged path only when its bounded
+  /// public room payload changed. Ordinary local persistence remains
+  /// best-effort, while privacy reductions never claim success before the
+  /// server has accepted them.
+  Future<RoomPublishResult> _publishSpaceRoom(
+    GameState target, {
+    required String code,
+  }) async {
+    final current = _state;
+    if (current == null) {
+      return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
+    }
+    return publishSpaceRoomState(target, current: current, code: code);
+  }
+
+  /// Surface Circle receipts without making the owner manually open Circle to
+  /// discover them. Receipts remain there until collected; each one is toasted
+  /// once per app session and is checked again on resume.
+  Future<void> _notifySocialInbox() async {
+    final state = _state;
+    final cloud = CloudSync.instance;
+    final code = state?.roomCode;
+    if (_checkingSocialInbox || code == null || !cloud.available) return;
+    _checkingSocialInbox = true;
+    try {
+      if (!await cloud.ensureSocialSession() || !mounted) return;
+      final receipts = await Future.wait([
+        cloud.fetchSparks(code),
+        cloud.fetchCircleAdds(code),
+      ]);
+      if (!mounted) return;
+      final fresh = _socialInboxSession.takeFresh(
+        sparks: receipts[0],
+        circleAdds: receipts[1],
+      );
+      if (fresh.isEmpty) return;
+      _showSocialNotice(
+        socialInboxNoticeText(
+          sparkKinds: fresh.sparkKinds,
+          circleAdds: fresh.circleAdds,
+        ),
+      );
+    } finally {
+      _checkingSocialInbox = false;
+    }
+  }
+
+  void _showSocialNotice(String message) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (messenger == null) return;
+      messenger
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            action: SnackBarAction(
+              label: 'OPEN CIRCLE',
+              onPressed: _openCircle,
+            ),
+          ),
+        );
+    });
+  }
+
+  void _openCircle() {
+    final state = _state;
+    if (state == null || !mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => HearthCircleScreen(
+          state: state,
+          onPersist: _persist,
+          parallax: _luxeMotion.parallax,
+        ),
+      ),
+    );
+  }
+
+  /// A web invite carries the room code in its URL. Let startup and cloud auth
+  /// settle first, then validate that code through the same visitor handoff as
+  /// a typed one. Onboarding waits until the visitor returns home.
+  Future<bool> _openInitialRoom() async {
+    final code = widget.initialRoomCode;
+    final state = _state;
+    if (_initialRoomHandled || code == null || state == null) return false;
+    _initialRoomHandled = true;
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) return true;
+    await visitSpace(
+      context,
+      initialCode: code,
+      autoSubmit: true,
+      state: state,
+      onPersist: _persist,
+      themeId: state.canvasTheme,
+      lively: !state.reduceMotion,
+      parallax: _luxeMotion.parallax,
+    );
+    if (mounted) {
+      _maybeOnboard();
+      _maybeMorning();
+      _rescheduleNotifications();
+    }
+    return true;
+  }
+
+  /// Opens queued platform links one at a time through the exact visitor flow
+  /// used by a typed code. The inbox can receive a warm link while startup or
+  /// another visit is in flight, so never drop or overlap those sheets.
+  Future<bool> _drainPendingRoomLinks() async {
+    final inbox = widget.roomLinks;
+    final state = _state;
+    if (!_startupSettled ||
+        inbox == null ||
+        state == null ||
+        _drainingRoomLinks) {
+      return false;
+    }
+    _drainingRoomLinks = true;
+    var opened = false;
+    try {
+      while (mounted) {
+        final link = inbox.takeNext();
+        if (link == null) break;
+        opened = true;
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted) break;
+        await visitSpace(
+          context,
+          initialCode: link.code,
+          autoSubmit: true,
+          state: state,
+          onPersist: _persist,
+          themeId: state.canvasTheme,
+          lively: !state.reduceMotion,
+          parallax: _luxeMotion.parallax,
+        );
+        if (!mounted) break;
+        _maybeOnboard();
+        _maybeMorning();
+        _rescheduleNotifications();
+      }
+    } finally {
+      _drainingRoomLinks = false;
+    }
+    // A link can land just after the final takeNext above but before the
+    // listener is free to begin another drain. Pick it up without asking the
+    // user to tap again.
+    if (mounted && inbox.isNotEmpty) unawaited(_drainPendingRoomLinks());
+    return opened;
   }
 
   /// (Re)build state + quests from the local save. Swaps the persist
@@ -194,6 +460,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // Decode the selected complete room while the Quest home is appearing, so
     // opening Me never flashes the procedural legacy fallback.
     unawaited(preloadSpaceTheme(state.wallStyle));
+    // The room plate can be large; the shared three-frame fire is small enough
+    // to warm in parallel so the very first hearth is already lit when Me
+    // opens, without paying to decode every cosmetic room at launch.
+    unawaited(preloadHearthFireFrames());
     setState(() {
       _state = state;
       _quests = quests;
@@ -235,7 +505,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // Flush it to the blob, then push only when the normal schema/readability
     // gate says doing so cannot destroy a cloud recovery copy.
     if ((_state?.lastModified ?? 0) != localBefore) {
-      await _saveTail;
+      if (!await _saveTail) {
+        cloud.holdSavePushes();
+        return;
+      }
       final liveRaw = await Storage.exportRaw();
       if (Storage.decideCloudMerge(localRaw: liveRaw, remoteRaw: cloudRaw) ==
           CloudMergeDecision.pushLocal) {
@@ -274,7 +547,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             return;
           }
           _saveTail = _saveTail.then((_) => Storage.save(state, quests));
-          await _saveTail;
+          if (!await _saveTail) {
+            cloud.holdSavePushes();
+            return;
+          }
           final migratedRaw = await Storage.exportRaw();
           if (migratedRaw == null ||
               Storage.schemaOf(migratedRaw) != Storage.schema) {
@@ -380,24 +656,41 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   void _persist() => unawaited(_persistNow());
 
-  Future<void> _persistNow({bool push = true}) {
+  Future<bool> _persistNow({bool push = true}) {
     final s = _state;
     final q = _quests;
     if (s != null && q != null) {
       s.lastModified = Clock.now().millisecondsSinceEpoch;
       Haptics.reduceMotion = s.reduceMotion;
       _saveTail = _saveTail.then((_) => Storage.save(s, q));
-      if (push) {
-        _saveTail = _saveTail.then((_) => CloudSync.instance.push());
-        CloudSync.instance.queueRoomUpdate(roomDisplay(s), code: s.roomCode);
-      }
+      final cloud = CloudSync.instance;
+      _saveTail = _saveTail.then((saved) {
+        if (!saved) {
+          // A scheduled cloud push would read the previous blob and make it
+          // look as though the latest local work had been mirrored.
+          cloud.cancelPending();
+          return false;
+        }
+        if (push) {
+          cloud.push();
+          cloud.queueRoomUpdate(
+            roomDisplay(
+              s,
+              mediaOwnerUid: cloud.socialUid,
+              mediaRoomCode: s.roomCode,
+            ),
+            code: s.roomCode,
+          );
+        }
+        return true;
+      });
     }
     return _saveTail;
   }
 
   /// Copies the raw save to the clipboard for a user-held backup.
   Future<bool> _export() async {
-    await _persistNow(); // make sure the blob is current
+    if (!await _persistNow()) return false; // make sure the blob is current
     final raw = await Storage.exportRaw();
     if (raw == null) return false;
     await Clipboard.setData(ClipboardData(text: raw));
@@ -483,9 +776,26 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // Erase the cloud copy and published room too. Guest profiles also delete
     // their anonymous Firebase identity before a fresh one is created, so a
     // reset cannot leave an unreachable backend account behind.
-    CloudSync.instance
-        .resetProfile(roomCode: oldRoomCode)
-        .whenComplete(_persist);
+    unawaited(_finishResetRemoteCleanup(oldRoomCode));
+  }
+
+  Future<void> _finishResetRemoteCleanup(String? oldRoomCode) async {
+    final fullyErased = await CloudSync.instance.resetProfile(
+      roomCode: oldRoomCode,
+    );
+    _persist();
+    if (!mounted || fullyErased) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      messenger?.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your new room is ready, but the old shared room could not be confirmed removed. Keep the app online so it can retry.',
+          ),
+        ),
+      );
+    });
   }
 
   /// Non-destructive refresh of the quest board: re-run the day's rollover
@@ -579,10 +889,28 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Future<String?> _linkAccount(String email, String pw) =>
       CloudSync.instance.linkAccount(email, pw);
 
-  Future<String?> _enableCloud() async {
+  Future<String?> _enableCloud() {
+    final active = _enableCloudFuture;
+    if (active != null) return active;
+    final attempt = _enableCloudGuarded();
+    _enableCloudFuture = attempt;
+    return attempt;
+  }
+
+  Future<String?> _enableCloudGuarded() async {
+    try {
+      return await _enableCloudOnce();
+    } finally {
+      _enableCloudFuture = null;
+    }
+  }
+
+  Future<String?> _enableCloudOnce() async {
     final error = await CloudSync.instance.enable();
     if (error != null) return error;
-    await _persistNow(push: false);
+    if (!await _persistNow(push: false)) {
+      return 'Cloud is on, but your current changes could not be saved on this device. Free some storage, then try again.';
+    }
     CloudSync.instance.flush();
     if (mounted) setState(() {});
     return null;
@@ -628,7 +956,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // doc first; only then do we forget the code locally — the fresh anonymous
     // session doesn't own that room and can't update or take it down. Signing
     // back in re-adopts the account's save (and its code).
-    await CloudSync.instance.signOut();
+    final signedOut = await CloudSync.instance.signOut();
+    if (!signedOut) {
+      _showSocialNotice(
+        'Your shared room is still being removed. Stay online and try '
+        'signing out again.',
+      );
+      return;
+    }
     _state?.setRoomCode(null);
     _persist();
     if (mounted) setState(() {});
@@ -857,6 +1192,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                     state: state,
                                     quests: quests,
                                     onPersist: _persist,
+                                    onPublishRoom: _publishSpaceRoom,
                                     onAddQuest: _addQuest,
                                     onExport: _export,
                                     onImport: _import,

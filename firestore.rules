@@ -37,6 +37,49 @@ service cloud.firestore {
           || (d.displayName == '' && d.about == '' && d.featuredGoals.size() == 0));
     }
 
+    function validPinnedMoment(moment) {
+      return moment is map
+        && moment.keys().hasOnly(['text', 'at'])
+        && moment.text is string && moment.text.size() > 0
+        && moment.text.size() <= 240
+        && moment.at is int && moment.at >= 0 && moment.at <= 9999999999999;
+    }
+
+    function validSharedCards(d) {
+      return d.keys().hasAll(['cardOrder', 'pinnedMoments', 'season'])
+        && d.cardOrder is list && d.cardOrder.size() <= 4
+        && d.cardOrder.hasOnly([
+          'about', 'rightNow', 'pinnedMoments', 'thisSeason'
+        ])
+        && d.pinnedMoments is list && d.pinnedMoments.size() <= 4
+        && (d.pinnedMoments.size() < 1 || validPinnedMoment(d.pinnedMoments[0]))
+        && (d.pinnedMoments.size() < 2 || validPinnedMoment(d.pinnedMoments[1]))
+        && (d.pinnedMoments.size() < 3 || validPinnedMoment(d.pinnedMoments[2]))
+        && (d.pinnedMoments.size() < 4 || validPinnedMoment(d.pinnedMoments[3]))
+        && d.season is string && d.season.size() <= 180
+        && (d.cardOrder.hasAny(['about']) || d.about == '')
+        && (d.cardOrder.hasAny(['rightNow']) || d.featuredGoals.size() == 0)
+        && (d.cardOrder.hasAny(['pinnedMoments']) || d.pinnedMoments.size() == 0)
+        && (d.cardOrder.hasAny(['thisSeason']) || d.season == '')
+        && (d.profileVisible
+          || (d.cardOrder.size() == 0
+            && d.pinnedMoments.size() == 0
+            && d.season == ''));
+    }
+
+    function validSharedPhotos(d, code) {
+      return d.keys().hasAll(['profilePhotoPath', 'seasonPhotoPath'])
+        && d.profilePhotoPath is string && d.profilePhotoPath.size() <= 160
+        && d.seasonPhotoPath is string && d.seasonPhotoPath.size() <= 160
+        && (d.profilePhotoPath == ''
+          || d.profilePhotoPath == 'shared_rooms/' + d.uid + '/' + code + '/profile')
+        && (d.seasonPhotoPath == ''
+          || d.seasonPhotoPath == 'shared_rooms/' + d.uid + '/' + code + '/season')
+        && (d.profileVisible
+          || (d.profilePhotoPath == '' && d.seasonPhotoPath == ''))
+        && (d.cardOrder.hasAny(['thisSeason']) || d.seasonPhotoPath == '');
+    }
+
     function validRoom(code) {
       let d = request.resource.data;
       return code.matches('^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$')
@@ -44,7 +87,9 @@ service cloud.firestore {
           'uid', 'name', 'title', 'level', 'furniture', 'wall', 'floor',
           'skin', 'window', 'awake', 'memories', 'weather', 'todayLit',
           'focusKind', 'focusUntil', 'profileVisible', 'displayName', 'about',
-          'featuredGoals', 'v', 'updatedAt'
+          'featuredGoals', 'cardOrder', 'pinnedMoments', 'season', 'v',
+          'profilePhotoPath', 'seasonPhotoPath',
+          'updatedAt'
         ])
         && d.uid == request.auth.uid
         && d.name == 'Fellow keeper'
@@ -66,26 +111,53 @@ service cloud.firestore {
         ]
         && d.skin in [
           'ember_amber', 'rose_quartz', 'mint_glass', 'periwinkle', 'lilac',
-          'sunstone', 'sea_glass', 'moon_pearl', 'slate', 'gilded'
+          'sunstone', 'sea_glass', 'moon_pearl', 'slate', 'gilded',
+          'found_ember', 'found_moss', 'found_bloom', 'found_honey',
+          'found_candle', 'found_aurora', 'found_midnight',
+          'found_periwinkle', 'found_plum', 'found_storm', 'found_rosewood',
+          'found_founder', 'found_weeklong', 'found_eternal',
+          'found_spotless', 'found_renaissance', 'found_marathoner'
         ]
         && d.window in ['moon', 'city', 'forest', 'mountains', 'rain', 'dawn', 'aurora']
         && d.awake is bool
         && (
           (d.v == 1 && !d.keys().hasAny([
             'memories', 'weather', 'todayLit', 'focusKind', 'focusUntil',
-            'profileVisible', 'displayName', 'about', 'featuredGoals'
+            'profileVisible', 'displayName', 'about', 'featuredGoals',
+            'cardOrder', 'pinnedMoments', 'season',
+            'profilePhotoPath', 'seasonPhotoPath'
           ]))
           ||
           (d.v == 2
             && validPresence(d)
             && !d.keys().hasAny([
-              'profileVisible', 'displayName', 'about', 'featuredGoals'
+              'profileVisible', 'displayName', 'about', 'featuredGoals',
+              'cardOrder', 'pinnedMoments', 'season',
+              'profilePhotoPath', 'seasonPhotoPath'
             ])
           )
           ||
           (d.v == 3
             && validPresence(d)
             && validSharedProfile(d)
+            && !d.keys().hasAny([
+              'cardOrder', 'pinnedMoments', 'season',
+              'profilePhotoPath', 'seasonPhotoPath'
+            ])
+          )
+          ||
+          (d.v == 4
+            && validPresence(d)
+            && validSharedProfile(d)
+            && validSharedCards(d)
+            && !d.keys().hasAny(['profilePhotoPath', 'seasonPhotoPath'])
+          )
+          ||
+          (d.v == 5
+            && validPresence(d)
+            && validSharedProfile(d)
+            && validSharedCards(d)
+            && validSharedPhotos(d, code)
           )
         )
         && d.updatedAt == request.time;
@@ -97,9 +169,11 @@ service cloud.firestore {
     }
     // Shared "spaces" (round-52, social): a public, read-only-to-others room
     // card keyed by a short bearer code. Appearance and presence are bounded;
-    // optional name/about/goals are explicit, length-limited profile choices.
-    // Quests, Journal content/photos, streak history, and account data never
-    // enter this document. Only the owner may create, replace, or delete it.
+    // optional profile cards are explicit, length-limited choices. Selected
+    // pinned/season writing may enter v4. V5 may additionally carry only two
+    // deterministic Storage paths after separate photo consent; local media
+    // names, unselected Journal content, quests, history, and account data do
+    // not. Only the owner may create, replace, or delete this document.
     match /rooms/{code} {
       // A code is the bearer key. Single-room reads work without forcing a
       // visitor to enable cloud backup; enumeration remains impossible.
@@ -109,6 +183,7 @@ service cloud.firestore {
                     && validRoom(code);
       allow update: if request.auth != null
                     && resource.data.uid == request.auth.uid
+                    && request.resource.data.v >= resource.data.v
                     && validRoom(code);
       allow delete: if request.auth != null
                     && resource.data.uid == request.auth.uid;
@@ -127,6 +202,26 @@ service cloud.firestore {
                       && request.resource.data.kind in [
                         'kindle', 'steady', 'cheer'
                       ]
+                      && request.resource.data.sentAt == request.time;
+        allow read, delete: if request.auth != null
+                            && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                               == request.auth.uid;
+        allow update: if false;
+      }
+
+      // A generic, text-free receipt when somebody saves this room to Circle.
+      // It is private to the room owner and deliberately carries no profile.
+      match /circleAdds/{senderId} {
+        allow create: if request.auth != null
+                      && senderId == request.auth.uid
+                      && exists(/databases/$(database)/documents/rooms/$(code))
+                      && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                         != request.auth.uid
+                      && request.resource.data.keys().hasOnly([
+                        'sender', 'kind', 'sentAt'
+                      ])
+                      && request.resource.data.sender == request.auth.uid
+                      && request.resource.data.kind == 'circle_added'
                       && request.resource.data.sentAt == request.time;
         allow read, delete: if request.auth != null
                             && get(/databases/$(database)/documents/rooms/$(code)).data.uid

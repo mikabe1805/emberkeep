@@ -79,6 +79,11 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
 
   static const _dayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+  void _chooseTarget(int target) {
+    Sfx.instance.play('tick');
+    setState(() => _target = target);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -364,13 +369,11 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                             button: true,
                             selected: _target == t,
                             label: '$t times',
+                            onTap: () => _chooseTarget(t),
                             child: GestureDetector(
                               excludeFromSemantics: true,
                               behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                Sfx.instance.play('tick');
-                                setState(() => _target = t);
-                              },
+                              onTap: () => _chooseTarget(t),
                               child: Container(
                                 constraints: const BoxConstraints(
                                   minWidth: 44,

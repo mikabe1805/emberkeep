@@ -335,6 +335,11 @@ class _MemoryCard extends StatelessWidget {
           Semantics(
             button: true,
             label: 'Remove ${memory.title} from Keepsakes',
+            onTap: () {
+              Sfx.instance.play('tick');
+              HapticFeedback.selectionClick();
+              onRemove!();
+            },
             child: GestureDetector(
               excludeFromSemantics: true,
               behavior: HitTestBehavior.opaque,

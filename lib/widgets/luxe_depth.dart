@@ -304,6 +304,9 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
 
   @override
   Widget build(BuildContext context) {
+    final still =
+        widget.reduceMotion ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -318,10 +321,11 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
               animation: _scroll,
               child: widget.hero,
               builder: (context, hero) {
-                final scroll = _scroll.hasClients
+                final scroll = !still && _scroll.hasClients
                     ? _scroll.offset.clamp(0.0, 240.0)
                     : 0.0;
                 return Transform.translate(
+                  key: const ValueKey('luxe-custom-hero-transform'),
                   offset: Offset(0, -scroll * 0.075),
                   child: Stack(
                     fit: StackFit.expand,
@@ -470,11 +474,15 @@ class _LuxeHeroPlate extends StatelessWidget {
         animation: Listenable.merge([parallax, scrollPosition]),
         builder: (context, _) {
           final tilt = still ? Offset.zero : parallax.value;
-          final scroll = scrollPosition.value.clamp(0.0, 260.0);
+          // The title/list still scrolls in Reduce Motion, but the illustrated
+          // room stays physically parked behind it. A counter-sliding plate is
+          // motion even when device tilt and the living fire are stopped.
+          final scroll = still ? 0.0 : scrollPosition.value.clamp(0.0, 260.0);
           return Stack(
             fit: StackFit.expand,
             children: [
               Transform.translate(
+                key: const ValueKey('luxe-hero-plate-transform'),
                 offset: Offset(-tilt.dx * 13.5, -tilt.dy * 8.5 - scroll * 0.09),
                 child: Transform.scale(
                   scale: 1.115,

@@ -375,6 +375,9 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
   Widget _preview() {
     final r = _routine!;
     final card = evidenceByTitle(r.evidenceTitle);
+    final safetyLine = r.restDay
+        ? 'Move slowly, breathe normally, and stay in a comfortable range — no bouncing, no pushing through pain. Sharp or sudden pain, chest pain, dizziness, or feeling unwell? Stop now.'
+        : 'Muscle burn and next-day soreness are normal — that’s your body adapting. Sharp or sudden pain, chest pain, or dizziness? Stop now.';
     return ListView(
       key: const ValueKey('preview'),
       children: [
@@ -544,8 +547,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         const SizedBox(height: 12),
         GlassPanel(
           child: Text(
-            'Muscle burn and next-day soreness are normal — that’s your body '
-            'adapting. Sharp or sudden pain, chest pain, or dizziness? Stop now.',
+            safetyLine,
             style: Type.body.copyWith(
               fontSize: 11.5,
               fontStyle: FontStyle.italic,
@@ -571,6 +573,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
       button: true,
       selected: on,
       label: '$label pace',
+      onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -789,6 +792,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
           child: Semantics(
             button: true,
             label: 'Pause session',
+            onTap: _togglePause,
             excludeSemantics: true,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -960,6 +964,13 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
   Widget _repsBody(WorkoutMove m) {
     final target = m.reps;
     final reached = _repCount >= target;
+    final VoidCallback? countRep = reached
+        ? null
+        : () {
+            Haptics.tap();
+            Sfx.instance.play('tick');
+            setState(() => _repCount++);
+          };
     return Semantics(
       container: true,
       child: Column(
@@ -977,15 +988,11 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                     label: reached
                         ? '$target repetitions counted'
                         : 'Count one repetition. $_repCount of $target counted',
+                    onTap: countRep,
                     excludeSemantics: true,
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        if (_repCount >= target) return;
-                        Haptics.tap();
-                        Sfx.instance.play('tick');
-                        setState(() => _repCount++);
-                      },
+                      onTap: countRep,
                       child: SizedBox.square(
                         dimension: figureSize,
                         child: WorkoutFigure(
@@ -1184,6 +1191,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
     return Semantics(
       button: true,
       label: label.replaceAll('→', '').trim(),
+      onTap: onTap,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,

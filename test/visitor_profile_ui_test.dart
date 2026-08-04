@@ -9,27 +9,51 @@ Map<String, dynamic> _room({
   String displayName = '',
   String about = '',
   List<Object?> featuredGoals = const [],
-}) => {
-  'name': 'Fellow keeper',
-  'title': 'STEADY HAND',
-  'level': 8,
-  'furniture': const ['rug', 'plant'],
-  'wall': 'wall_walnut',
-  'floor': 'floor_oak',
-  'skin': 'ember_amber',
-  'window': 'moon',
-  'awake': true,
-  'memories': 4,
-  'weather': 'steady',
-  'todayLit': true,
-  'focusKind': 'none',
-  'focusUntil': 0,
-  'profileVisible': profileVisible,
-  'displayName': displayName,
-  'about': about,
-  'featuredGoals': featuredGoals,
-  'v': 3,
-};
+  List<Object?>? cardOrder,
+  List<Object?> pinnedMoments = const [],
+  String season = '',
+  String profilePhotoPath = '',
+  String seasonPhotoPath = '',
+}) {
+  final room = <String, dynamic>{
+    'name': 'Fellow keeper',
+    'title': 'STEADY HAND',
+    'level': 8,
+    'furniture': const ['rug', 'plant'],
+    'wall': 'wall_walnut',
+    'floor': 'floor_oak',
+    'skin': 'ember_amber',
+    'window': 'moon',
+    'awake': true,
+    'memories': 4,
+    'weather': 'steady',
+    'todayLit': true,
+    'focusKind': 'none',
+    'focusUntil': 0,
+    'profileVisible': profileVisible,
+    'displayName': displayName,
+    'about': about,
+    'featuredGoals': featuredGoals,
+    'v': profilePhotoPath.isNotEmpty || seasonPhotoPath.isNotEmpty
+        ? 5
+        : cardOrder == null
+        ? 3
+        : 4,
+  };
+  if (cardOrder != null) {
+    room
+      ..['cardOrder'] = cardOrder
+      ..['pinnedMoments'] = pinnedMoments
+      ..['season'] = season;
+  }
+  if (room['v'] == 5) {
+    room
+      ..['uid'] = 'owner_123'
+      ..['profilePhotoPath'] = profilePhotoPath
+      ..['seasonPhotoPath'] = seasonPhotoPath;
+  }
+  return room;
+}
 
 Future<void> _pumpCompact(
   WidgetTester tester,
@@ -115,6 +139,116 @@ void main() {
     expect(find.text('Finish the essay'), findsOneWidget);
     expect(find.text('Call family weekly'), findsOneWidget);
     expect(find.text('A fourth goal that must not render'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'v4 visitor cards follow the owner order and show bounded writing',
+    (tester) async {
+      await _pumpCompact(
+        tester,
+        VisitRoomScreen(
+          room: _room(
+            profileVisible: true,
+            displayName: 'Maya',
+            about: 'About text that is not selected.',
+            featuredGoals: const ['A goal that is not selected'],
+            cardOrder: const ['thisSeason', 'pinnedMoments'],
+            pinnedMoments: [
+              {
+                'text': 'The first brave week.',
+                'at': DateTime(2026, 8, 2).millisecondsSinceEpoch,
+              },
+            ],
+            season: 'Learning to begin without rushing.',
+          ),
+          code: 'ABC234',
+          lively: false,
+        ),
+      );
+
+      final season = find.text('THIS SEASON');
+      final moments = find.text('PINNED MOMENTS');
+      await tester.scrollUntilVisible(
+        moments,
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
+
+      expect(find.text('Maya'), findsOneWidget);
+      expect(find.text('Learning to begin without rushing.'), findsOneWidget);
+      expect(find.text('The first brave week.'), findsOneWidget);
+      expect(find.text('ABOUT'), findsNothing);
+      expect(find.text('RIGHT NOW'), findsNothing);
+      expect(
+        tester.getTopLeft(season).dy,
+        lessThan(tester.getTopLeft(moments).dy),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('v5 renders only validated, separately shared photo slots', (
+    tester,
+  ) async {
+    await _pumpCompact(
+      tester,
+      VisitRoomScreen(
+        room: _room(
+          profileVisible: true,
+          displayName: 'Maya',
+          cardOrder: const ['thisSeason'],
+          season: 'A chapter worth remembering.',
+          profilePhotoPath: 'shared_rooms/owner_123/ABC234/profile',
+          seasonPhotoPath: 'shared_rooms/owner_123/ABC234/season',
+        ),
+        code: 'ABC234',
+        lively: false,
+        photoUrlLoader: (_) async => throw StateError('offline test'),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    final profile = find.byKey(const ValueKey('visitor-profile-photo'));
+    await tester.scrollUntilVisible(
+      profile,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    expect(profile, findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final season = find.byKey(const ValueKey('visitor-season-photo'));
+    await tester.scrollUntilVisible(
+      season,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+    expect(season, findsOneWidget);
+    expect(find.text('Photo unavailable'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('visitor rejects a photo path for another room or owner', (
+    tester,
+  ) async {
+    final room = _room(
+      profileVisible: true,
+      displayName: 'Maya',
+      cardOrder: const ['thisSeason'],
+      profilePhotoPath: 'shared_rooms/another_owner/ABC234/profile',
+      seasonPhotoPath: 'shared_rooms/owner_123/DEF234/season',
+    );
+    await _pumpCompact(
+      tester,
+      VisitRoomScreen(room: room, code: 'ABC234', lively: false),
+    );
+
+    expect(find.byKey(const ValueKey('visitor-profile-photo')), findsNothing);
+    expect(find.byKey(const ValueKey('visitor-season-photo')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -232,6 +366,31 @@ void main() {
     expect(state.hearthCircleCodes, contains('ABC234'));
     expect(persists, 1);
     expect(fetched, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Circle cards lead with the shared person name', (tester) async {
+    final state = GameState()..reduceMotion = true;
+    expect(state.addCircleCode('ABC234'), isTrue);
+
+    await _pumpCompact(
+      tester,
+      HearthCircleScreen(
+        state: state,
+        onPersist: () {},
+        roomFetcher: (_) async => _room(
+          profileVisible: true,
+          displayName: 'Maya',
+          cardOrder: const ['about'],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).first, const Offset(0, -520));
+    await tester.pump();
+
+    expect(find.text('Maya'), findsOneWidget);
+    expect(find.textContaining('STEADY HAND'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

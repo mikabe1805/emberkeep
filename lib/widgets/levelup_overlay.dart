@@ -20,6 +20,7 @@ class LevelUpOverlay extends StatefulWidget {
     this.unlock,
     this.nextUnlock,
     required this.onDismiss,
+    this.onShare,
     this.reduceMotion = false,
   });
 
@@ -27,6 +28,11 @@ class LevelUpOverlay extends StatefulWidget {
   final String? unlock;
   final String? nextUnlock;
   final VoidCallback onDismiss;
+
+  /// Opens the share-a-moment preview. A level-up is the exact moment someone
+  /// wants to show a friend, and this overlay used to dead-end at "onward" —
+  /// the app's best beat, with no door out of it.
+  final VoidCallback? onShare;
   final bool reduceMotion;
 
   @override
@@ -278,6 +284,47 @@ class _LevelUpOverlayState extends State<LevelUpOverlay>
                             ),
                           ],
                           const SizedBox(height: 40),
+                          if (widget.onShare != null) ...[
+                            Opacity(
+                              opacity: unlockIn,
+                              child: Semantics(
+                                button: true,
+                                label: 'Share this moment',
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: widget.onShare,
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      minHeight: 44,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.ios_share,
+                                          size: 15,
+                                          color: Palette.xpLight,
+                                        ),
+                                        const SizedBox(width: 7),
+                                        Text(
+                                          'SHARE THIS MOMENT',
+                                          style: Type.label.copyWith(
+                                            fontSize: 11,
+                                            color: Palette.xpLight,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                          ],
                           Opacity(
                             opacity: unlockIn * 0.6,
                             child: Text(

@@ -129,20 +129,24 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('guided journal starter opens as editable ordinary text', (
+  testWidgets('guided journal starter is styled without changing saved text', (
     tester,
   ) async {
+    JournalPayload? saved;
     await tester.pumpWidget(
       MaterialApp(
         home: JournalEntryScreen(
           accent: Colors.amber,
           starter: 'One small win today:\n',
-          commit: (payload, existing, markEdited) => Note(
-            at: DateTime(2026, 7, 28),
-            text: payload.text,
-            rich: payload.rich,
-            images: payload.images,
-          ),
+          commit: (payload, existing, markEdited) {
+            saved = payload;
+            return Note(
+              at: DateTime(2026, 7, 28),
+              text: payload.text,
+              rich: payload.rich,
+              images: payload.images,
+            );
+          },
           onDelete: (_) {},
         ),
       ),
@@ -151,6 +155,21 @@ void main() {
 
     final editor = tester.widget<EditableText>(find.byType(EditableText).first);
     expect(editor.controller.text, 'One small win today:\n');
+
+    editor.controller.text = 'One small win today:\nI called my sister.';
+    await tester.pump(const Duration(milliseconds: 700));
+
+    final span = editor.controller.buildTextSpan(
+      context: tester.element(find.byType(EditableText).first),
+      style: editor.style,
+      withComposing: false,
+    );
+    final pieces = span.children!.cast<TextSpan>();
+    expect(pieces.first.text, 'One small win today:\n');
+    expect(pieces.first.style?.fontStyle, FontStyle.italic);
+    expect(pieces.first.style?.color, isNot(editor.style.color));
+    expect(pieces.last.text, 'I called my sister.');
+    expect(saved?.text, 'One small win today:\nI called my sister.');
   });
 
   testWidgets('planner day-shape preset fills a useful editable plan', (

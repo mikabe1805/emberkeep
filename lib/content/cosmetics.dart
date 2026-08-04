@@ -13,9 +13,9 @@ Color rarityColor(Rarity r) => switch (r) {
 };
 
 /// What a found/earned cosmetic *does* once equipped — honest cosmetics
-/// (RESEARCH-momentum.md §7). One look at a time; equipping recolors the
-/// portrait aura and the completion sparks, or pins a badge. Keys match the
-/// engine's loot table / achievement grants exactly (and are save-stable).
+/// (RESEARCH-momentum.md §7). One look at a time; equipping recolors the room's
+/// hearth, identity aura, and completion sparks, or pins a badge. Keys match
+/// the engine's loot table / achievement grants exactly (and are save-stable).
 class Cosmetic {
   const Cosmetic({
     required this.name,
@@ -32,7 +32,7 @@ class Cosmetic {
   /// A one-line flavor tag shown in the wardrobe.
   final String? blurb;
 
-  /// Overrides the dominant-stat aura on the portrait when equipped.
+  /// Overrides the dominant-stat aura and becomes the visible hearth hue.
   final Color? aura;
 
   /// Recolors the completion particle burst when equipped.

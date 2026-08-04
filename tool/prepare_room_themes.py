@@ -1,4 +1,4 @@
-"""Prepare Morrowloom's complete-room plates and lightweight shop previews.
+"""Prepare Room of Days complete-room plates and lightweight shop previews.
 
 The production contract is deliberately small: each room identity owns one
 finished 1536 x 1024 painting. The app moves that intact plate as a single
@@ -22,16 +22,19 @@ PREVIEW_SIZE = (720, 480)
 
 THEMES = {
     "wall_walnut": {
-        "source": SOURCE / "wall_walnut-clean-v2.png",
-        "runtime": ROOMS / "wall_walnut-clean-v2.webp",
+        "source": SOURCE / "wall_walnut-fireless-v3.png",
+        "runtime": ROOMS / "wall_walnut-fireless-v3.webp",
+        "preview": PREVIEWS / "wall_walnut-fireless-v3.webp",
     },
     "wall_conservatory": {
-        "source": SOURCE / "themes" / "wall_conservatory-full-v1.png",
-        "runtime": ROOMS / "wall_conservatory-v1.webp",
+        "source": SOURCE / "themes" / "wall_conservatory-fireless-v2.png",
+        "runtime": ROOMS / "wall_conservatory-fireless-v2.webp",
+        "preview": PREVIEWS / "wall_conservatory-fireless-v2.webp",
     },
     "wall_archive": {
-        "source": SOURCE / "themes" / "wall_archive-full-v1.png",
-        "runtime": ROOMS / "wall_archive-v1.webp",
+        "source": SOURCE / "themes" / "wall_archive-fireless-v2.png",
+        "runtime": ROOMS / "wall_archive-fireless-v2.webp",
+        "preview": PREVIEWS / "wall_archive-fireless-v2.webp",
     },
 }
 
@@ -50,13 +53,9 @@ def main() -> None:
     for theme_id, paths in THEMES.items():
         with Image.open(paths["source"]) as source:
             full = _fit(source, FULL_SIZE)
-            # The approved Writer's Hearth runtime predates this script and is
-            # already production-compressed. Preserve it byte-for-byte; only
-            # prepare the two new siblings here.
-            if theme_id != "wall_walnut":
-                full.save(paths["runtime"], "WEBP", quality=92, method=6)
+            full.save(paths["runtime"], "WEBP", quality=92, method=6)
             preview = full.resize(PREVIEW_SIZE, Image.Resampling.LANCZOS)
-            preview_path = PREVIEWS / f"{theme_id}-v1.webp"
+            preview_path = paths["preview"]
             preview.save(preview_path, "WEBP", quality=88, method=6)
             print(
                 f"{theme_id}: {full.size} -> {paths['runtime'].name}; "

@@ -10,7 +10,68 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'platform/test_environment_stub.dart'
     if (dart.library.io) 'platform/test_environment_io.dart';
+import 'shared_room_media.dart';
 import 'storage.dart';
+
+enum RoomPublishFailure {
+  unavailable,
+  permissionDenied,
+  timedOut,
+  network,
+  media,
+  exhaustedCodes,
+  unknown,
+}
+
+enum _OwnedRoomDeleteResult { deleted, absent, notOwned, invalid }
+
+class _PendingRoomCleanup {
+  const _PendingRoomCleanup({required this.owner, required this.code});
+
+  final String owner;
+  final String code;
+
+  String get encoded => '$owner|$code';
+
+  static _PendingRoomCleanup? decode(String raw) {
+    final split = raw.lastIndexOf('|');
+    if (split <= 0 || split == raw.length - 1) return null;
+    return _PendingRoomCleanup(
+      owner: raw.substring(0, split),
+      code: raw.substring(split + 1),
+    );
+  }
+}
+
+class RoomPublishResult {
+  const RoomPublishResult.success(this.code, {this.rotatedStaleCode = false})
+    : failure = null;
+
+  const RoomPublishResult.failed(this.failure)
+    : code = null,
+      rotatedStaleCode = false;
+
+  final String? code;
+  final RoomPublishFailure? failure;
+  final bool rotatedStaleCode;
+
+  bool get ok => code != null;
+}
+
+/// Serializes public-room writes so an older launch refresh cannot land after
+/// a newer privacy edit. The recovered tail is deliberately separate from the
+/// caller's result: a failed action still fails for that caller but never
+/// poisons later room updates.
+@visibleForTesting
+class RoomPublishQueue {
+  Future<void> _tail = Future.value();
+
+  Future<T> run<T>(Future<T> Function() action) {
+    final result = _tail.then((_) => action());
+    _tail = result.then<void>((_) {}, onError: (_, _) {});
+    return result;
+  }
+}
 
 /// Cloud backup (round-9): an anonymous-auth Firestore mirror of the local
 /// save. Local is ALWAYS the source of truth — the cloud exists so a purged
@@ -34,19 +95,29 @@ class CloudSync extends ChangeNotifier {
   /// visiting and sharing from silently opting a device into cloud saves.
   bool get socialReady => _uid != null;
 
+  /// The anonymous owner ID is exposed only for forming the two validated,
+  /// deterministic shared-photo paths. It is never written into local saves.
+  String? get socialUid => _uid;
+
   /// Firebase initialized successfully, even if this device is intentionally
   /// staying local-only. This lets the UI distinguish an opt-out from offline.
   bool available = false;
   bool optedIn = false;
   static const _cloudEnabledKey = 'emberkeep_cloud_enabled';
+  static const _pendingRoomCleanupKey = 'emberkeep_pending_room_cleanup';
 
   /// Human-readable status for the Me page's YOUR DATA panel.
   String status = 'connecting…';
   DateTime? lastSynced;
 
   String? _uid;
+  Future<void>? _initFuture;
+  Future<FirebaseApp>? _firebaseBootstrapFuture;
+  Future<bool>? _socialSessionFuture;
+  Future<void>? _authChangeFuture;
   Timer? _debounce;
   Timer? _roomDebounce;
+  final RoomPublishQueue _roomPublishQueue = RoomPublishQueue();
   bool _savePushHeld = false;
 
   /// A merge conflict keeps local play available but freezes only save
@@ -73,7 +144,27 @@ class CloudSync extends ChangeNotifier {
   /// FirebaseAuth live, so the UI can query it safely before Firebase init.
   String? _accountEmail;
 
-  Future<void> init() async {
+  /// Initialize Firebase once at a time. A timeout leaves the local app fully
+  /// usable, while a later explicit Share/Visit action can safely retry this
+  /// same guarded path instead of requiring a process restart.
+  Future<void> init() {
+    final active = _initFuture;
+    if (active != null) return active;
+    late final Future<void> attempt;
+    attempt = _initOnce().whenComplete(() {
+      if (identical(_initFuture, attempt)) _initFuture = null;
+    });
+    _initFuture = attempt;
+    return attempt;
+  }
+
+  Future<bool> ensureAvailable() async {
+    if (available) return true;
+    await init();
+    return available;
+  }
+
+  Future<void> _initOnce() async {
     // Widget tests must remain deterministic and cannot service Firebase's
     // network timers. Real debug/release apps never receive FLUTTER_TEST=true.
     if (isFlutterTest) {
@@ -84,9 +175,24 @@ class CloudSync extends ChangeNotifier {
       return;
     }
     try {
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      ).timeout(const Duration(seconds: 8));
+      if (Firebase.apps.isEmpty) {
+        final bootstrap = _firebaseBootstrapFuture ??= Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        try {
+          await bootstrap.timeout(const Duration(seconds: 8));
+        } on TimeoutException {
+          // Keep awaiting the same underlying initialization on a later tap;
+          // Future.timeout does not cancel it, so starting another one could
+          // race the default Firebase app into a duplicate initialization.
+          rethrow;
+        } catch (_) {
+          if (identical(_firebaseBootstrapFuture, bootstrap)) {
+            _firebaseBootstrapFuture = null;
+          }
+          rethrow;
+        }
+      }
       // Server-ack-only writes: don't let cached writes masquerade as synced.
       FirebaseFirestore.instance.settings = const Settings(
         persistenceEnabled: false,
@@ -103,10 +209,10 @@ class CloudSync extends ChangeNotifier {
         optedIn = cloudEnabled || !existing.isAnonymous;
         if (optedIn) await prefs.setBool(_cloudEnabledKey, true);
       } else if (cloudEnabled) {
-        final cred = await FirebaseAuth.instance.signInAnonymously().timeout(
-          const Duration(seconds: 8),
-        );
-        _uid = cred.user?.uid;
+        // Use the same in-flight session as Share/Visit. The shell is already
+        // interactive while init runs, so a quick backup tap must not start a
+        // second anonymous sign-in and strand the first uid.
+        await ensureSocialSession();
         optedIn = true;
       } else {
         _uid = null;
@@ -114,6 +220,7 @@ class CloudSync extends ChangeNotifier {
       }
       _refreshAccountEmail();
       ready = _uid != null && optedIn;
+      if (_uid != null) await _retryPendingRoomCleanup(prefs);
       status = ready ? _statusForUser() : 'off · device only';
     } on TimeoutException {
       status = 'off (offline)';
@@ -134,17 +241,15 @@ class CloudSync extends ChangeNotifier {
   /// Fresh installs never create a Firebase identity until this is called (or
   /// the person signs into an existing account).
   Future<String?> enable() async {
-    if (!available) return 'Cloud is out of reach right now.';
+    if (!available && !await ensureAvailable()) {
+      return 'Cloud is out of reach right now.';
+    }
     if (ready) return null;
     try {
-      final existing = FirebaseAuth.instance.currentUser;
-      if (existing != null) {
-        _uid = existing.uid;
-      } else {
-        final cred = await FirebaseAuth.instance.signInAnonymously().timeout(
-          const Duration(seconds: 8),
-        );
-        _uid = cred.user?.uid;
+      // Share, Visit, startup refresh, and this button all converge on one
+      // session Future. Double taps therefore await the same uid assignment.
+      if (!await ensureSocialSession()) {
+        return 'Couldn\u2019t start cloud backup right now.';
       }
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_cloudEnabledKey, true);
@@ -169,12 +274,66 @@ class CloudSync extends ChangeNotifier {
   /// device-only preference.
   Future<bool> ensureSocialSession() async {
     if (!available) return false;
+    while (true) {
+      final authChange = _authChangeFuture;
+      if (authChange != null) {
+        await authChange;
+        continue;
+      }
+      if (socialReady) return true;
+      final active = _socialSessionFuture;
+      if (active != null) return active;
+      final attempt = _startSocialSession();
+      _socialSessionFuture = attempt;
+      try {
+        return await attempt;
+      } finally {
+        if (identical(_socialSessionFuture, attempt)) {
+          _socialSessionFuture = null;
+        }
+      }
+    }
+  }
+
+  /// Serializes every Firebase identity mutation with anonymous social-session
+  /// startup. This keeps FirebaseAuth.currentUser and [_uid] from ever being
+  /// assigned by two competing sign-in completions.
+  Future<T> _runAuthChange<T>(Future<T> Function() action) async {
+    while (true) {
+      final authChange = _authChangeFuture;
+      if (authChange != null) {
+        await authChange;
+        continue;
+      }
+      final socialSession = _socialSessionFuture;
+      if (socialSession != null) {
+        await socialSession;
+        continue;
+      }
+      final completer = Completer<void>();
+      final lock = completer.future;
+      _authChangeFuture = lock;
+      try {
+        return await action();
+      } finally {
+        completer.complete();
+        if (identical(_authChangeFuture, lock)) _authChangeFuture = null;
+      }
+    }
+  }
+
+  Future<bool> _startSocialSession() async {
     if (socialReady) return true;
     try {
-      final cred = await FirebaseAuth.instance.signInAnonymously().timeout(
-        const Duration(seconds: 8),
-      );
-      _uid = cred.user?.uid;
+      final existing = FirebaseAuth.instance.currentUser;
+      if (existing != null) {
+        _uid = existing.uid;
+      } else {
+        final cred = await FirebaseAuth.instance.signInAnonymously().timeout(
+          const Duration(seconds: 8),
+        );
+        _uid = cred.user?.uid;
+      }
       _refreshAccountEmail();
       notifyListeners();
       return socialReady;
@@ -210,7 +369,10 @@ class CloudSync extends ChangeNotifier {
   /// Link an email+password to the CURRENT (anonymous) session — keeps the
   /// same uid, so all existing data stays attached. Returns null on success
   /// or a friendly error string.
-  Future<String?> linkAccount(String email, String password) async {
+  Future<String?> linkAccount(String email, String password) =>
+      _runAuthChange(() => _linkAccount(email, password));
+
+  Future<String?> _linkAccount(String email, String password) async {
     if (!ready) return 'Cloud is offline right now.';
     try {
       final cred = EmailAuthProvider.credential(
@@ -235,8 +397,15 @@ class CloudSync extends ChangeNotifier {
   /// Sign in to an existing account on this device. Swaps the uid to the
   /// account's; the caller then adopts the account's cloud save. Returns
   /// null on success or a friendly error.
-  Future<String?> signIn(String email, String password) async {
+  Future<String?> signIn(String email, String password) =>
+      _runAuthChange(() => _signIn(email, password));
+
+  Future<String?> _signIn(String email, String password) async {
     if (!available) return 'Cloud is offline right now.';
+    if (!await _prepareIdentityChange()) {
+      return 'Your shared room is still being removed. Stay online and try '
+          'signing in again.';
+    }
     // Drop any pending anonymous push — it must NOT land on the account's
     // document after the uid swaps and clobber the real save.
     cancelPending();
@@ -268,7 +437,11 @@ class CloudSync extends ChangeNotifier {
   /// device (now detached from the account until signed in again). Flushes
   /// the final state to the ACCOUNT'S doc first, so a just-completed quest
   /// reaches the account before the uid swaps away.
-  Future<void> signOut({bool saveAccount = true}) async {
+  Future<bool> signOut({bool saveAccount = true}) =>
+      _runAuthChange(() => _signOut(saveAccount: saveAccount));
+
+  Future<bool> _signOut({required bool saveAccount}) async {
+    if (!await _prepareIdentityChange()) return false;
     _debounce?.cancel();
     if (saveAccount && !_savePushHeld) {
       try {
@@ -291,20 +464,29 @@ class CloudSync extends ChangeNotifier {
       _refreshAccountEmail();
       status = _statusForUser();
       notifyListeners();
+      return true;
     } catch (e) {
       debugPrint('signOut failed: $e');
+      return false;
     }
   }
 
   /// Permanently removes the signed-in Firebase account and its cloud data.
   /// The on-device keep is intentionally left intact; the caller detaches its
   /// share code and persists it under the fresh anonymous session.
-  Future<String?> deleteAccount(String password, {String? roomCode}) async {
+  Future<String?> deleteAccount(String password, {String? roomCode}) =>
+      _runAuthChange(() => _deleteAccount(password, roomCode: roomCode));
+
+  Future<String?> _deleteAccount(String password, {String? roomCode}) async {
     if (!ready) return 'Cloud is offline right now.';
     final user = FirebaseAuth.instance.currentUser;
     final email = user?.email;
     if (user == null || user.isAnonymous || email == null) {
       return 'No signed-in account to delete.';
+    }
+    if (!await _prepareIdentityChange()) {
+      return 'Your shared room is still being removed. Stay online and try '
+          'deleting the account again.';
     }
     cancelPending();
     try {
@@ -314,7 +496,12 @@ class CloudSync extends ChangeNotifier {
       );
       await user.reauthenticateWithCredential(credential);
       if (roomCode != null && roomCode.isNotEmpty) {
-        await _rooms.doc(roomCode).delete();
+        final removed = await _deleteOwnedRoom(roomCode);
+        if (removed != _OwnedRoomDeleteResult.deleted &&
+            removed != _OwnedRoomDeleteResult.absent) {
+          return 'Couldnâ€™t confirm that the shared room was removed. Your '
+              'account has not been deleted; stay signed in and try again.';
+        }
       }
       await _doc.delete();
       await user.delete();
@@ -420,7 +607,15 @@ class CloudSync extends ChangeNotifier {
 
   // ── shared spaces (round-52, social) ─────────────────────────────
   static const _codeAlpha = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no I/O/0/1
+  static final _roomCodePattern = RegExp(
+    r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$',
+  );
   final _rng = Random();
+
+  String? _cleanRoomCode(String raw) {
+    final clean = raw.trim().toUpperCase();
+    return _roomCodePattern.hasMatch(clean) ? clean : null;
+  }
 
   String _genCode() => List.generate(
     6,
@@ -435,18 +630,22 @@ class CloudSync extends ChangeNotifier {
   /// five-second debounce for Circle presence and room progress only.
   void queueRoomUpdate(Map<String, dynamic> display, {required String? code}) {
     if (!socialReady || code == null || code.isEmpty) return;
+    final clean = _cleanRoomCode(code);
+    if (clean == null) return;
     _roomDebounce?.cancel();
     final snapshot = Map<String, dynamic>.from(display);
     _roomDebounce = Timer(
       const Duration(seconds: 5),
-      () => shareRoom(snapshot, code: code),
+      () => shareRoom(snapshot, code: clean),
     );
   }
 
   void flushRoom(Map<String, dynamic> display, {required String? code}) {
     if (!socialReady || code == null || code.isEmpty) return;
+    final clean = _cleanRoomCode(code);
+    if (clean == null) return;
     _roomDebounce?.cancel();
-    unawaited(shareRoom(Map<String, dynamic>.from(display), code: code));
+    unawaited(shareRoom(Map<String, dynamic>.from(display), code: clean));
   }
 
   /// Publish (or update) your space's appearance to a public room doc. Pass the
@@ -456,42 +655,132 @@ class CloudSync extends ChangeNotifier {
   Future<String?> shareRoom(
     Map<String, dynamic> display, {
     String? code,
+  }) async => (await publishRoom(display, code: code)).code;
+
+  /// Publishes a room with enough failure detail for the UI to be honest. An
+  /// imported/restored code owned by a different anonymous identity is never
+  /// overwritten: it is detached and a fresh code is reserved instead.
+  Future<RoomPublishResult> publishRoom(
+    Map<String, dynamic> display, {
+    String? code,
+    bool skipCurrentVersion = false,
+  }) {
+    final snapshot = Map<String, dynamic>.from(display);
+    return _roomPublishQueue.run(
+      () => _publishRoomNow(
+        snapshot,
+        code: code,
+        skipCurrentVersion: skipCurrentVersion,
+      ),
+    );
+  }
+
+  Future<RoomPublishResult> _publishRoomNow(
+    Map<String, dynamic> display, {
+    String? code,
+    required bool skipCurrentVersion,
   }) async {
-    if (!socialReady || _uid == null) return null;
+    if (!socialReady || _uid == null) {
+      return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
+    }
     final data = {
       ...display,
       'uid': _uid,
       'updatedAt': FieldValue.serverTimestamp(),
     };
+    var rotatedStaleCode = false;
     try {
       if (code != null && code.isNotEmpty) {
-        await _rooms.doc(code).set(data);
-        return code;
+        final clean = _cleanRoomCode(code);
+        if (clean != null) {
+          final existing = await _rooms
+              .doc(clean)
+              .get()
+              .timeout(const Duration(seconds: 8));
+          final existingData = existing.data();
+          final owner = existingData?['uid'];
+          if (!existing.exists || owner == _uid) {
+            if (existing.exists &&
+                skipCurrentVersion &&
+                existingData?['v'] == display['v']) {
+              return RoomPublishResult.success(clean);
+            }
+            await _rooms
+                .doc(clean)
+                .set(data)
+                .timeout(const Duration(seconds: 8));
+            return RoomPublishResult.success(clean);
+          }
+        }
+        // A malformed restored value or a valid code owned by a lost Firebase
+        // identity is stale. Never form a nested document path from it and
+        // never try to overwrite somebody else's room.
+        rotatedStaleCode = true;
       }
       for (var i = 0; i < 6; i++) {
         final c = _genCode();
-        try {
-          // set() on an ABSENT doc is a create (allowed); on someone else's
-          // it's an update → permission-denied → try another code.
-          await _rooms.doc(c).set(data);
-          return c;
-        } on FirebaseException catch (e) {
-          if (e.code == 'permission-denied') continue;
-          rethrow;
+        final candidate = await _rooms
+            .doc(c)
+            .get()
+            .timeout(const Duration(seconds: 8));
+        if (candidate.exists) continue;
+        // The code was just confirmed absent. A denied create is therefore a
+        // rules/schema deployment failure, not a collision to disguise.
+        final newRoomData = Map<String, dynamic>.from(data);
+        // Deterministic media paths include the room code. A restored code
+        // owned by another anonymous session must not carry its old path into
+        // the freshly reserved document; the media coordinator uploads and
+        // republishes under [c] immediately after this reservation succeeds.
+        if (newRoomData.containsKey('profilePhotoPath')) {
+          newRoomData['profilePhotoPath'] = '';
         }
+        if (newRoomData.containsKey('seasonPhotoPath')) {
+          newRoomData['seasonPhotoPath'] = '';
+        }
+        await _rooms
+            .doc(c)
+            .set(newRoomData)
+            .timeout(const Duration(seconds: 8));
+        return RoomPublishResult.success(c, rotatedStaleCode: rotatedStaleCode);
       }
-      return null;
+      return const RoomPublishResult.failed(RoomPublishFailure.exhaustedCodes);
+    } on TimeoutException {
+      debugPrint(
+        'publishRoom failed: timeout v=${display['v']} existing=${code != null}',
+      );
+      return const RoomPublishResult.failed(RoomPublishFailure.timedOut);
+    } on FirebaseException catch (e) {
+      debugPrint(
+        'publishRoom failed: firebase=${e.code} v=${display['v']} '
+        'existing=${code != null} signedIn=${_uid != null}',
+      );
+      if (e.code == 'permission-denied') {
+        return const RoomPublishResult.failed(
+          RoomPublishFailure.permissionDenied,
+        );
+      }
+      if (const {
+        'unavailable',
+        'network-request-failed',
+        'deadline-exceeded',
+      }.contains(e.code)) {
+        return const RoomPublishResult.failed(RoomPublishFailure.network);
+      }
+      return const RoomPublishResult.failed(RoomPublishFailure.unknown);
     } catch (e) {
-      debugPrint('shareRoom failed: $e');
-      return null;
+      debugPrint(
+        'publishRoom failed: ${e.runtimeType} v=${display['v']} '
+        'existing=${code != null}',
+      );
+      return const RoomPublishResult.failed(RoomPublishFailure.unknown);
     }
   }
 
   /// Read a shared space by code (case-insensitive). Null = not found / error.
   Future<Map<String, dynamic>?> fetchRoom(String code) async {
     if (!available) return null;
-    final c = code.trim().toUpperCase();
-    if (c.isEmpty) return null;
+    final c = _cleanRoomCode(code);
+    if (c == null) return null;
     try {
       final snap = await _rooms
           .doc(c)
@@ -508,12 +797,158 @@ class CloudSync extends ChangeNotifier {
   Future<bool> unshareRoom(String code) async {
     if (!socialReady || code.isEmpty) return false;
     try {
-      await _rooms.doc(code).delete();
-      return true;
+      final removed = await _deleteOwnedRoom(code);
+      return removed == _OwnedRoomDeleteResult.deleted ||
+          removed == _OwnedRoomDeleteResult.absent;
     } catch (e) {
       debugPrint('unshareRoom failed: $e');
       return false;
     }
+  }
+
+  /// Firestore does not cascade-delete subcollections. Clear every private
+  /// sender receipt while the parent room still exists (and its owner rule can
+  /// be evaluated), then remove the public room itself.
+  Future<_OwnedRoomDeleteResult> _deleteOwnedRoom(String code) async {
+    final clean = _cleanRoomCode(code);
+    if (clean == null) return _OwnedRoomDeleteResult.invalid;
+    final room = _rooms.doc(clean);
+    final parent = await room.get().timeout(const Duration(seconds: 8));
+    if (!parent.exists) return _OwnedRoomDeleteResult.absent;
+    if (parent.data()?['uid'] != _uid) {
+      return _OwnedRoomDeleteResult.notOwned;
+    }
+    final parentData = parent.data();
+    final mediaSlots = <SharedRoomMediaSlot>[
+      if (parentData?['profilePhotoPath'] is String &&
+          (parentData!['profilePhotoPath'] as String).isNotEmpty)
+        SharedRoomMediaSlot.profile,
+      if (parentData?['seasonPhotoPath'] is String &&
+          (parentData!['seasonPhotoPath'] as String).isNotEmpty)
+        SharedRoomMediaSlot.season,
+    ];
+    if (mediaSlots.isNotEmpty) {
+      await SharedRoomMediaService.instance.deleteSlots(
+        ownerUid: _uid!,
+        roomCode: clean,
+        slots: mediaSlots,
+      );
+    }
+    for (final collectionName in const ['sparks', 'circleAdds']) {
+      while (true) {
+        final page = await room
+            .collection(collectionName)
+            .limit(400)
+            .get()
+            .timeout(const Duration(seconds: 8));
+        if (page.docs.isEmpty) break;
+        final batch = FirebaseFirestore.instance.batch();
+        for (final doc in page.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit().timeout(const Duration(seconds: 8));
+        if (page.docs.length < 400) break;
+      }
+    }
+    await room.delete().timeout(const Duration(seconds: 8));
+    return _OwnedRoomDeleteResult.deleted;
+  }
+
+  /// A reset may lose connectivity after it has already cleared local state.
+  /// Keep the old owner uid and opaque code long enough to retry, rather than
+  /// deleting the only identity that can ever remove the public room.
+  List<_PendingRoomCleanup> _pendingRoomCleanups(SharedPreferences prefs) {
+    final raw = prefs.get(_pendingRoomCleanupKey);
+    if (raw is String) {
+      final owner = _uid;
+      final clean = _cleanRoomCode(raw);
+      return owner == null || clean == null
+          ? const []
+          : [_PendingRoomCleanup(owner: owner, code: clean)];
+    }
+    if (raw is! List<String>) return const [];
+    final records = <_PendingRoomCleanup>[];
+    for (final value in raw) {
+      final record = _PendingRoomCleanup.decode(value);
+      if (record != null) records.add(record);
+    }
+    return records;
+  }
+
+  Future<void> _writePendingRoomCleanups(
+    SharedPreferences prefs,
+    List<_PendingRoomCleanup> records,
+  ) async {
+    if (records.isEmpty) {
+      await prefs.remove(_pendingRoomCleanupKey);
+      return;
+    }
+    await prefs.setStringList(_pendingRoomCleanupKey, [
+      for (final record in records) record.encoded,
+    ]);
+  }
+
+  Future<void> _rememberPendingRoomCleanup(
+    SharedPreferences prefs,
+    String code,
+  ) async {
+    final owner = _uid;
+    if (owner == null) return;
+    final records = _pendingRoomCleanups(prefs);
+    if (!records.any(
+      (record) => record.owner == owner && record.code == code,
+    )) {
+      records.add(_PendingRoomCleanup(owner: owner, code: code));
+      await _writePendingRoomCleanups(prefs, records);
+    }
+  }
+
+  Future<void> _forgetPendingRoomCleanup(
+    SharedPreferences prefs,
+    String code,
+  ) async {
+    final owner = _uid;
+    final records = _pendingRoomCleanups(
+      prefs,
+    ).where((record) => record.owner != owner || record.code != code).toList();
+    await _writePendingRoomCleanups(prefs, records);
+  }
+
+  /// Returns whether every pending room owned by the current identity is now
+  /// gone. Records for other identities remain owner-tagged and untouched.
+  Future<bool> _retryPendingRoomCleanup(SharedPreferences prefs) async {
+    final owner = _uid;
+    if (owner == null) return true;
+    final records = _pendingRoomCleanups(prefs);
+    if (records.isEmpty) return true;
+    final remaining = <_PendingRoomCleanup>[];
+    for (final record in records) {
+      if (record.owner != owner) {
+        remaining.add(record);
+        continue;
+      }
+      try {
+        final result = await _deleteOwnedRoom(record.code);
+        if (result == _OwnedRoomDeleteResult.notOwned) {
+          // Never discard the only evidence of a room that could still be
+          // public. This identity cannot remove it, so a later auth change
+          // must stop rather than falsely calling cleanup complete.
+          remaining.add(record);
+          debugPrint('CloudSync pending room cleanup is owned by another uid');
+        }
+      } catch (e) {
+        remaining.add(record);
+        debugPrint('CloudSync pending room cleanup will retry: $e');
+      }
+    }
+    await _writePendingRoomCleanups(prefs, remaining);
+    return !remaining.any((record) => record.owner == owner);
+  }
+
+  Future<bool> _prepareIdentityChange() async {
+    if (_uid == null) return true;
+    final prefs = await SharedPreferences.getInstance();
+    return _retryPendingRoomCleanup(prefs);
   }
 
   /// Send one fixed, text-free encouragement. The security rules key the
@@ -521,18 +956,16 @@ class CloudSync extends ChangeNotifier {
   /// must collect it before that sender can kindle them again.
   Future<bool> sendSpark(String code, {String kind = 'kindle'}) async {
     if (!socialReady || _uid == null) return false;
+    final clean = _cleanRoomCode(code);
+    if (clean == null) return false;
     const allowed = {'kindle', 'steady', 'cheer'};
     final safeKind = allowed.contains(kind) ? kind : 'kindle';
     try {
-      await _rooms
-          .doc(code.trim().toUpperCase())
-          .collection('sparks')
-          .doc(_uid)
-          .set({
-            'sender': _uid,
-            'kind': safeKind,
-            'sentAt': FieldValue.serverTimestamp(),
-          });
+      await _rooms.doc(clean).collection('sparks').doc(_uid).set({
+        'sender': _uid,
+        'kind': safeKind,
+        'sentAt': FieldValue.serverTimestamp(),
+      });
       return true;
     } catch (e) {
       debugPrint('sendSpark failed: $e');
@@ -540,12 +973,34 @@ class CloudSync extends ChangeNotifier {
     }
   }
 
+  /// Leave a fixed, text-free receipt when a visitor keeps this room in their
+  /// Circle. Delivery is best-effort; the local bookmark remains useful while
+  /// offline, and only the room owner can read or clear the receipt.
+  Future<bool> sendCircleAdd(String code) async {
+    if (!socialReady || _uid == null) return false;
+    final clean = _cleanRoomCode(code);
+    if (clean == null) return false;
+    try {
+      await _rooms.doc(clean).collection('circleAdds').doc(_uid).set({
+        'sender': _uid,
+        'kind': 'circle_added',
+        'sentAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      debugPrint('sendCircleAdd failed: $e');
+      return false;
+    }
+  }
+
   /// Only the owner of [code] may read these under firestore.rules.
   Future<List<Map<String, dynamic>>> fetchSparks(String code) async {
     if (!socialReady || _uid == null || code.isEmpty) return const [];
+    final clean = _cleanRoomCode(code);
+    if (clean == null) return const [];
     try {
       final snap = await _rooms
-          .doc(code.trim().toUpperCase())
+          .doc(clean)
           .collection('sparks')
           .limit(20)
           .get()
@@ -559,19 +1014,56 @@ class CloudSync extends ChangeNotifier {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchCircleAdds(String code) async {
+    if (!socialReady || _uid == null || code.isEmpty) return const [];
+    final clean = _cleanRoomCode(code);
+    if (clean == null) return const [];
+    try {
+      final snap = await _rooms
+          .doc(clean)
+          .collection('circleAdds')
+          .limit(20)
+          .get()
+          .timeout(const Duration(seconds: 8));
+      return [
+        for (final doc in snap.docs) {...doc.data(), 'id': doc.id},
+      ];
+    } catch (e) {
+      debugPrint('fetchCircleAdds failed: $e');
+      return const [];
+    }
+  }
+
   Future<bool> collectSparks(String code, Iterable<String> ids) async {
     if (!socialReady || _uid == null || code.isEmpty) return false;
+    final clean = _cleanRoomCode(code);
+    if (clean == null) return false;
     try {
       final batch = FirebaseFirestore.instance.batch();
       for (final id in ids.take(20)) {
-        batch.delete(
-          _rooms.doc(code.trim().toUpperCase()).collection('sparks').doc(id),
-        );
+        batch.delete(_rooms.doc(clean).collection('sparks').doc(id));
       }
       await batch.commit();
       return true;
     } catch (e) {
       debugPrint('collectSparks failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> collectCircleAdds(String code, Iterable<String> ids) async {
+    if (!socialReady || _uid == null || code.isEmpty) return false;
+    final clean = _cleanRoomCode(code);
+    if (clean == null) return false;
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final id in ids.take(20)) {
+        batch.delete(_rooms.doc(clean).collection('circleAdds').doc(id));
+      }
+      await batch.commit();
+      return true;
+    } catch (e) {
+      debugPrint('collectCircleAdds failed: $e');
       return false;
     }
   }
@@ -587,15 +1079,46 @@ class CloudSync extends ChangeNotifier {
   /// Returns whether every requested remote deletion succeeded. The caller
   /// still completes the local reset when offline; the fresh local save will
   /// replace the cloud copy when connectivity returns.
-  Future<bool> resetProfile({String? roomCode}) async {
+  Future<bool> resetProfile({String? roomCode}) =>
+      _runAuthChange(() => _resetProfile(roomCode: roomCode));
+
+  Future<bool> _resetProfile({String? roomCode}) async {
     if (!ready) return false;
     _debounce?.cancel();
     _roomDebounce?.cancel();
     var fullyErased = true;
+    SharedPreferences? cleanupPrefs;
 
-    if (roomCode != null && roomCode.isNotEmpty) {
+    try {
+      cleanupPrefs = await SharedPreferences.getInstance();
+      if (!await _retryPendingRoomCleanup(cleanupPrefs)) fullyErased = false;
+    } catch (e) {
+      fullyErased = false;
+      debugPrint('CloudSync cleanup queue unavailable: $e');
+    }
+
+    final cleanRoomCode = _cleanRoomCode(roomCode ?? '');
+    if (cleanRoomCode != null) {
       try {
-        await _rooms.doc(roomCode).delete();
+        // Write the retry record first. It is removed only after the server
+        // confirms the room and its private receipt collections are gone.
+        if (cleanupPrefs != null) {
+          await _rememberPendingRoomCleanup(cleanupPrefs, cleanRoomCode);
+        }
+        final removed = await _deleteOwnedRoom(cleanRoomCode);
+        if (removed == _OwnedRoomDeleteResult.deleted ||
+            removed == _OwnedRoomDeleteResult.absent) {
+          if (cleanupPrefs != null) {
+            await _forgetPendingRoomCleanup(cleanupPrefs, cleanRoomCode);
+          } else {
+            // The room is gone, but without durable local preferences this
+            // session must keep its identity rather than claim a complete reset.
+            fullyErased = false;
+          }
+        } else {
+          fullyErased = false;
+          debugPrint('CloudSync room reset not confirmed: $removed');
+        }
       } catch (e) {
         fullyErased = false;
         debugPrint('CloudSync room reset failed: $e');
@@ -613,7 +1136,10 @@ class CloudSync extends ChangeNotifier {
     }
 
     final user = FirebaseAuth.instance.currentUser;
-    if (user?.isAnonymous == true) {
+    // Never destroy the only credential capable of retrying a failed room or
+    // save cleanup. The fresh local reset still completes; the guest identity
+    // rotates only after every requested remote deletion is acknowledged.
+    if (user?.isAnonymous == true && fullyErased) {
       try {
         await user!.delete();
         _uid = null;

@@ -166,6 +166,64 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
+
+  testWidgets('Reduce Motion parks supporting page rooms while lists scroll', (
+    tester,
+  ) async {
+    final parallax = ValueNotifier(const Offset(0.6, -0.4));
+    addTearDown(parallax.dispose);
+    final children = List<Widget>.generate(
+      12,
+      (index) => SizedBox(height: 100, child: Text('Entry $index')),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LuxePageList(
+          assetPath: 'assets/pages/goals-desk-v2.webp',
+          title: 'Goals',
+          subtitle: 'what you’re building toward',
+          icon: Icons.explore_outlined,
+          parallax: parallax,
+          reduceMotion: true,
+          children: children,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -340));
+    await tester.pump();
+
+    final pagePlate = tester.widget<Transform>(
+      find.byKey(const ValueKey('luxe-hero-plate-transform')),
+    );
+    final pageTranslation = pagePlate.transform.getTranslation();
+    expect(pageTranslation.x, 0);
+    expect(pageTranslation.y, 0);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: LuxeCustomPageList(
+          hero: const ColoredBox(color: Color(0xFF20130C)),
+          title: 'Me',
+          subtitle: 'your space, already yours',
+          icon: Icons.emoji_emotions_outlined,
+          reduceMotion: true,
+          children: children,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -340));
+    await tester.pump();
+
+    final customPlate = tester.widget<Transform>(
+      find.byKey(const ValueKey('luxe-custom-hero-transform')),
+    );
+    final customTranslation = customPlate.transform.getTranslation();
+    expect(customTranslation.x, 0);
+    expect(customTranslation.y, 0);
+  });
 }
 
 Future<void> _useCompactLargeTextViewport(WidgetTester tester) async {

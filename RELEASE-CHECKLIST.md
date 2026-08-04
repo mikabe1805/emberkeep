@@ -11,15 +11,17 @@ not replace a signed device build or store-console review.
 - [x] Core experience works without account or network.
 - [x] Cloud backup is explicit opt-in and account deletion exists in-app.
 - [x] Privacy and deletion pages are live and linked from Me.
-- [x] Visitor profiles are private by default and publish only an explicitly
-  chosen display name, introduction, and up to three featured goals.
-- [x] Shared spaces never publish Journal text/photos, quest details, streak
-  history, email, or account data.
+- [x] Visitor profiles are private by default and publish only the display name
+  and profile cards independently marked for visitors.
+- [x] Shared Pinned moments publish only bounded, deliberately selected writing.
+  Profile and This season each have a separate, off-by-default photo consent;
+  every other photo/page, quest detail, streak, email, and account datum stays private.
 - [x] Firestore rules bound every shared appearance, presence, and opt-in
   profile field; exact room-code reads work while collection listing is denied.
 - [x] Android notification permission is declared and requested in context.
 - [x] Exact-alarm permission is unnecessary; reminders use inexact scheduling.
-- [x] Journal photos are local-only and erased by full reset.
+- [x] Journal photos remain local by default; the two selected visitor copies
+  are erased when withdrawn, unshared, reset, or account-deleted.
 - [x] Cold-start backgrounds match the dark Room of Days canvas.
 - [x] Native/PWA icons use the approved lit-window Room of Days mark.
 - [x] Google Play 1024×500 feature graphic is ready in `store-assets/`.
@@ -30,6 +32,9 @@ not replace a signed device build or store-console review.
 - [x] Store copy no longer mentions the retired character/avatar concept.
 
 ## Verify before every candidate
+
+- [ ] Firebase project is on Blaze, the Storage bucket exists, and
+  `storage.rules` is deployed before testing visitor photos.
 
 - [x] `dart format --output=none --set-exit-if-changed lib test`
 - [x] `flutter analyze`
@@ -51,15 +56,21 @@ not replace a signed device build or store-console review.
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.
 - [ ] Confirm the submitted version/build number exceeds every prior upload.
-- [ ] Deploy the checked-in Firestore rules before testing Share, Visit, or
-  Circle; the iOS workflow does not deploy Firebase infrastructure.
+- [x] Deploy the checked-in Firestore rules before testing Share, Visit, or
+  Circle; released to `emberkeep-5b33b` on August 3, 2026.
+- [x] Run an authenticated two-identity production rules smoke: v4 publish,
+  exact-code read, name hydration, anti-enumeration, anti-downgrade, Circle
+  receipt delivery/owner read, and cleanup all passed on August 3, 2026.
+- [x] Reject malformed room codes before Firestore access, safely detach stale
+  missing/non-owned codes, serialize all Firebase identity changes with guest
+  startup, and preserve an owner-aware cleanup queue across offline resets.
 
 ## Owner gates before submission
 
 - [ ] Generate and safely back up the Android upload keystore.
 - [ ] Create ignored `android/key.properties`; enroll in Play App Signing.
 - [ ] Confirm Codemagic App Store Connect integration/signing secrets are valid.
-- [ ] Publish a support URL with a real monitored email or contact method.
+- [x] Route `support@roomofdays.com` to a monitored inbox (owner confirmed).
 - [ ] Complete Apple App Privacy and Google Play Data safety questionnaires from
   `../STORE-LISTING.md`.
 - [ ] Complete Apple’s current age-rating questionnaire.
@@ -68,7 +79,10 @@ not replace a signed device build or store-console review.
 - [ ] Upload final production screenshots.
 - [ ] Supply review-only credentials if a reviewer asks to test an existing
   cross-device account.
-- [ ] Verify hosted privacy/deletion/support pages immediately before submit.
+- [x] Verify hosted privacy and deletion pages immediately before submit; both
+  returned HTTP 200 on August 3, 2026.
+- [x] Verify `https://roomofdays.com/support` immediately before submit; it
+  returned HTTP 200 over the public HTTPS domain.
 - [ ] Submit manually and monitor processing, pre-launch reports, and review
   messages.
 

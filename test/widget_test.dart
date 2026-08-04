@@ -562,6 +562,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('GOALS'), findsWidgets);
 
+    // The first visit keeps the full catalog out of the way until the person
+    // explicitly chooses the ready-made route mentioned by the empty state.
+    expect(find.text('Keep your space'), findsNothing);
+    await tester.tap(find.text('Browse ready-made paths'));
+    await tester.pump(const Duration(milliseconds: 150));
+
     // expand the first catalog goal (HOME & HEARTH → "Keep your space", near
     // the top) and adopt its first quest. The new cinematic goal header makes
     // the catalog genuinely lazy at this viewport, so reveal it by scrolling.
@@ -652,17 +658,16 @@ void main() {
 
     // The quiet exit sits below the physical ledger on short test phones.
     // Scroll the routine stage until the link can receive the tap.
-    final recapScroll = find.descendant(
-      of: find.byKey(const ValueKey('recap')),
-      matching: find.byType(Scrollable),
-    );
-    await tester.scrollUntilVisible(
-      find.text('CLOSE THE DAY'),
-      200,
-      scrollable: recapScroll,
-    );
+    final recapScroll = find.byKey(const ValueKey('recap')).hitTestable();
+    var closeDay = find.text('CLOSE THE DAY').hitTestable();
+    for (var i = 0; i < 5 && closeDay.evaluate().isEmpty; i++) {
+      await tester.drag(recapScroll, const Offset(0, -200));
+      await tester.pump();
+      closeDay = find.text('CLOSE THE DAY').hitTestable();
+    }
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('CLOSE THE DAY'));
+    expect(closeDay, findsOneWidget);
+    await tester.tap(closeDay);
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.text('Close the ledger'), findsNothing);
 
@@ -759,6 +764,33 @@ void main() {
     expect(loaded.$1.level, 4);
     expect(loaded.$2.first.title, 'Read');
   });
+
+  test(
+    'importRaw keeps the current save when a backup needs a newer build',
+    () async {
+      final current = GameState()
+        ..playerName = 'Mika'
+        ..level = 4;
+      expect(await Storage.save(current, const []), isTrue);
+      final before = await Storage.exportRaw();
+      expect(before, isNotNull);
+
+      final futureBackup = jsonEncode({
+        'app': 'emberkeep',
+        'schema': Storage.schema + 1,
+        'state':
+            (GameState()
+                  ..playerName = 'From the future'
+                  ..level = 99)
+                .toJson(),
+        'quests': const <Object>[],
+      });
+
+      expect(await Storage.importRaw(futureBackup), isFalse);
+      expect(await Storage.exportRaw(), before);
+      expect((await Storage.load())!.$1.playerName, 'Mika');
+    },
+  );
 
   test('isValidSave gates what may be mirrored to the cloud', () async {
     SharedPreferences.setMockInitialValues({});
@@ -1265,8 +1297,8 @@ void main() {
     expect(d['wall'], 'wall_plum');
     expect(d['window'], 'aurora');
     expect((d['furniture'] as List), containsAll(['rug', 'lamp']));
-    // Crucial: never leak free-form names, quests, notes, or account data into
-    // a public room doc. Shared text is fixed/app-generated only.
+    // Crucial: never leak names or unselected writing into a public room doc.
+    // Profile-card writing is included only behind its explicit audience bit.
     expect(d.toString().contains('Mika'), isFalse);
     expect(d.containsKey('journal'), isFalse);
     expect(d.toString().contains('private thought'), isFalse);

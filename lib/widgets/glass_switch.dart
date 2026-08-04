@@ -27,48 +27,73 @@ class GlassSwitch extends StatelessWidget {
       onChanged(!value);
     }
 
-    return Semantics(
-      container: true,
-      label: semanticLabel,
-      toggled: value,
-      onTap: toggle,
-      child: GestureDetector(
-        excludeFromSemantics: true,
-        behavior: HitTestBehavior.opaque,
+    return FocusableActionDetector(
+      mouseCursor: SystemMouseCursors.click,
+      actions: {
+        ActivateIntent: CallbackAction<ActivateIntent>(
+          onInvoke: (_) {
+            toggle();
+            return null;
+          },
+        ),
+      },
+      child: Semantics(
+        container: true,
+        button: true,
+        label: semanticLabel,
+        toggled: value,
         onTap: toggle,
-        child: AnimatedContainer(
-          duration: Motion.quick,
-          curve: Motion.respond,
+        child: SizedBox(
           width: 48,
-          height: 28,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            color: value
-                ? Palette.xp.withValues(alpha: 0.26)
-                : Palette.glassFill,
-            border: Border.all(
-              color: value
-                  ? Palette.xp.withValues(alpha: 0.7)
-                  : Palette.glassEdge,
-            ),
-          ),
-          child: AnimatedAlign(
-            duration: Motion.quick,
-            curve: Motion.respond,
-            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: value ? Palette.honeyGradient : null,
-                color: value ? null : Palette.textLo.withValues(alpha: 0.55),
-                boxShadow: value
-                    ? const [
-                        BoxShadow(color: Palette.honeyGlow, blurRadius: 10),
-                      ]
-                    : null,
+          height: 48,
+          child: GestureDetector(
+            excludeFromSemantics: true,
+            behavior: HitTestBehavior.opaque,
+            onTap: toggle,
+            child: Center(
+              child: AnimatedContainer(
+                duration: Motion.quick,
+                curve: Motion.respond,
+                width: 48,
+                height: 28,
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: value
+                      ? Palette.xp.withValues(alpha: 0.26)
+                      : Palette.glassFill,
+                  border: Border.all(
+                    color: value
+                        ? Palette.xp.withValues(alpha: 0.7)
+                        : Palette.glassEdge,
+                  ),
+                ),
+                child: AnimatedAlign(
+                  duration: Motion.quick,
+                  curve: Motion.respond,
+                  alignment: value
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: value ? Palette.honeyGradient : null,
+                      color: value
+                          ? null
+                          : Palette.textLo.withValues(alpha: 0.55),
+                      boxShadow: value
+                          ? const [
+                              BoxShadow(
+                                color: Palette.honeyGlow,
+                                blurRadius: 10,
+                              ),
+                            ]
+                          : null,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

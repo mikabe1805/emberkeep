@@ -350,6 +350,7 @@ class _ChoiceTile extends StatelessWidget {
       button: true,
       selected: selected,
       label: '${quest.displayTitle}${selected ? ', chosen' : ''}',
+      onTap: onTap,
       child: GestureDetector(
         excludeFromSemantics: true,
         behavior: HitTestBehavior.opaque,

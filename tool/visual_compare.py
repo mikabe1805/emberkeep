@@ -14,6 +14,7 @@ aspect, so a comparison only needs a common height -- never a crop.
     python tool/visual_compare.py rooms-phone # compact complete-room flow handoff
     python tool/visual_compare.py social-phone # Me, Circle, and visitor-profile handoff
     python tool/visual_compare.py my-space-cards-phone # card deck + arranger handoff
+    python tool/visual_compare.py sharing-journal-phone # sharing/privacy/journal handoff
     python tool/visual_compare.py probe A B  # ad-hoc pair
 
 Output lands in design/comparisons/<stamp>/.
@@ -445,6 +446,33 @@ MY_SPACE_CARDS_PASS = [
     ),
 ]
 
+SHARING_JOURNAL_PASS = [
+    (
+        "VISITOR PROFILE",
+        GOLDENS / "store_02c_visitor_profile_1290x2796.png",
+    ),
+    (
+        "VISITOR CARDS + CIRCLE",
+        GOLDENS / "store_02d_visitor_cards_1290x2796.png",
+    ),
+    (
+        "PROMPT VS WRITING",
+        GOLDENS / "store_13b_journal_quest_entry_1290x2796.png",
+    ),
+    (
+        "LOOKING BACK - READ MODE",
+        GOLDENS / "store_13c_journal_read_mode_1290x2796.png",
+    ),
+    (
+        "PER-CARD VISIBILITY",
+        GOLDENS / "store_14c_my_space_arranger_1290x2796.png",
+    ),
+    (
+        "MOTION-REACTIVE METAL",
+        GOLDENS / "store_15_button_light_angles_1290x2100.png",
+    ),
+]
+
 BRAND_PASS = [
     (
         "OLD PUBLIC MARK",
@@ -548,6 +576,14 @@ def main() -> None:
             MY_SPACE_CARDS_PASS,
             "my-space-cards-phone",
             height=620,
+            per_row=2,
+            webp=True,
+        )
+    elif mode == "sharing-journal-phone":
+        image_sheet(
+            SHARING_JOURNAL_PASS,
+            "sharing-journal-privacy-pass",
+            height=520,
             per_row=2,
             webp=True,
         )

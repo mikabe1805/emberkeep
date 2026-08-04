@@ -19,6 +19,89 @@ import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
 import 'visit_room.dart';
 
+const List<String> sparkSupportKinds = ['kindle', 'steady', 'cheer'];
+
+typedef SparkSender = Future<bool> Function(String code, String kind);
+typedef SocialInboxFetcher =
+    Future<
+      ({
+        List<Map<String, dynamic>> sparks,
+        List<Map<String, dynamic>> circleAdds,
+      })
+    >
+    Function(String code);
+
+String normalizedSparkKind(Object? raw) =>
+    raw is String && sparkSupportKinds.contains(raw)
+    ? raw
+    : sparkSupportKinds.first;
+
+String sparkSupportTitle(String kind) => switch (normalizedSparkKind(kind)) {
+  'steady' => 'Keep steady',
+  'cheer' => 'Cheering you on',
+  _ => 'A little warmth',
+};
+
+String sparkSupportDetail(String kind) => switch (normalizedSparkKind(kind)) {
+  'steady' => 'Quiet support for whatever today is holding.',
+  'cheer' => 'A small celebration from someone in your Circle.',
+  _ => 'A warm note with no message or profile attached.',
+};
+
+String sparkSupportReceiptLabel(String kind) =>
+    switch (normalizedSparkKind(kind)) {
+      'steady' => 'A steady note',
+      'cheer' => 'A cheer',
+      _ => 'A little warmth',
+    };
+
+String sparkSupportReceiptPlural(String kind) =>
+    switch (normalizedSparkKind(kind)) {
+      'steady' => 'steady notes',
+      'cheer' => 'cheers',
+      _ => 'warm notes',
+    };
+
+IconData _sparkIcon(String kind) => switch (normalizedSparkKind(kind)) {
+  'steady' => Icons.anchor_outlined,
+  'cheer' => Icons.campaign_outlined,
+  _ => Icons.local_fire_department_outlined,
+};
+
+Color _sparkColor(String kind) => switch (normalizedSparkKind(kind)) {
+  'steady' => Palette.unlock,
+  'cheer' => Palette.streak,
+  _ => Palette.xpLight,
+};
+
+String sparkSupportNoticeText(Iterable<String> kinds) {
+  final counts = <String, int>{};
+  for (final raw in kinds) {
+    final kind = normalizedSparkKind(raw);
+    counts[kind] = (counts[kind] ?? 0) + 1;
+  }
+  final phrases = <String>[
+    for (final kind in sparkSupportKinds)
+      if ((counts[kind] ?? 0) > 0)
+        switch ((kind, counts[kind]!)) {
+          ('kindle', 1) => 'a little warmth',
+          ('kindle', final count) => '$count warm notes',
+          ('steady', 1) => 'a steady note',
+          ('steady', final count) => '$count steady notes',
+          ('cheer', 1) => 'a cheer',
+          ('cheer', final count) => '$count cheers',
+          _ => 'a little warmth',
+        },
+  ];
+  if (phrases.isEmpty) return '';
+  final joined = switch (phrases) {
+    [final only] => only,
+    [final first, final second] => '$first and $second',
+    _ => '${phrases.take(phrases.length - 1).join(', ')}, and ${phrases.last}',
+  };
+  return 'Circle has $joined waiting for you.';
+}
+
 class HearthCircleScreen extends StatefulWidget {
   const HearthCircleScreen({
     super.key,
@@ -26,12 +109,16 @@ class HearthCircleScreen extends StatefulWidget {
     required this.onPersist,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
     this.roomFetcher,
+    this.sparkSender,
+    this.socialInboxFetcher,
   });
 
   final GameState state;
   final VoidCallback onPersist;
   final ValueListenable<Offset> parallax;
   final RoomFetcher? roomFetcher;
+  final SparkSender? sparkSender;
+  final SocialInboxFetcher? socialInboxFetcher;
 
   @override
   State<HearthCircleScreen> createState() => _HearthCircleScreenState();
@@ -40,6 +127,7 @@ class HearthCircleScreen extends StatefulWidget {
 class _HearthCircleScreenState extends State<HearthCircleScreen> {
   final Map<String, Map<String, dynamic>> _rooms = {};
   List<Map<String, dynamic>> _sparks = const [];
+  List<Map<String, dynamic>> _circleAdds = const [];
   bool _loading = true;
   Timer? _ticker;
   int _now = Clock.now().millisecondsSinceEpoch;
@@ -63,24 +151,36 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
   }
 
   Future<void> _load() async {
-    if (!CloudSync.instance.available) {
+    final fetcher = widget.roomFetcher ?? CloudSync.instance.fetchRoom;
+    if (widget.roomFetcher == null && !CloudSync.instance.available) {
       if (mounted) setState(() => _loading = false);
       return;
     }
     final pairs = await Future.wait([
       for (final code in _state.hearthCircleCodes)
-        CloudSync.instance.fetchRoom(code).then((room) => (code, room)),
+        fetcher(code).then((room) => (code, room)),
     ]);
-    final sparks = _state.roomCode == null
-        ? const <Map<String, dynamic>>[]
-        : await CloudSync.instance.fetchSparks(_state.roomCode!);
+    final code = _state.roomCode;
+    ({List<Map<String, dynamic>> sparks, List<Map<String, dynamic>> circleAdds})
+    inbox = (sparks: const [], circleAdds: const []);
+    if (code != null && widget.socialInboxFetcher != null) {
+      inbox = await widget.socialInboxFetcher!(code);
+    } else if (code != null && CloudSync.instance.available) {
+      await CloudSync.instance.ensureSocialSession();
+      final receipts = await Future.wait([
+        CloudSync.instance.fetchSparks(code),
+        CloudSync.instance.fetchCircleAdds(code),
+      ]);
+      inbox = (sparks: receipts[0], circleAdds: receipts[1]);
+    }
     if (!mounted) return;
     setState(() {
       _rooms.clear();
       for (final pair in pairs) {
         if (pair.$2 != null) _rooms[pair.$1] = pair.$2!;
       }
-      _sparks = sparks;
+      _sparks = inbox.sparks;
+      _circleAdds = inbox.circleAdds;
       _loading = false;
     });
   }
@@ -100,6 +200,14 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
       );
   }
 
+  Future<void> _notifyOwnerOfCircleAdd(String code) async {
+    final cloud = CloudSync.instance;
+    if (!await cloud.ensureAvailable() || !await cloud.ensureSocialSession()) {
+      return;
+    }
+    await cloud.sendCircleAdd(code);
+  }
+
   Future<void> _addKeep() async {
     final visit = await promptForSharedRoom(
       context,
@@ -116,6 +224,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
       return;
     }
     widget.onPersist();
+    unawaited(_notifyOwnerOfCircleAdd(clean));
     Sfx.instance.play('loot');
     HapticFeedback.mediumImpact();
     setState(() => _rooms[clean] = visit.room);
@@ -123,14 +232,16 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
 
   Future<bool> _publishNow() async {
     final cloud = CloudSync.instance;
-    if (!cloud.available || !await cloud.ensureSocialSession()) {
+    if (!await cloud.ensureAvailable() || !await cloud.ensureSocialSession()) {
       _toast('Couldn’t connect quiet company right now.');
       return false;
     }
-    final code = await cloud.shareRoom(
-      roomDisplay(_state),
+    final result = await publishSpaceRoomState(
+      _state,
+      current: _state,
       code: _state.roomCode,
     );
+    final code = result.code;
     if (!mounted || code == null) {
       if (mounted) _toast('Couldn’t update your shared space right now.');
       return false;
@@ -178,30 +289,62 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
     if (mounted) setState(() {});
   }
 
-  Future<void> _sendSpark(String code) async {
+  Future<void> _chooseSpark(String code) async {
     Sfx.instance.play('tick');
-    if (!await CloudSync.instance.ensureSocialSession()) {
+    final kind = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Palette.dialogBarrier,
+      builder: (_) => const _SparkPickerSheet(),
+    );
+    if (kind == null || !mounted) return;
+    await _sendSpark(code, kind);
+  }
+
+  Future<void> _sendSpark(String code, String kind) async {
+    Sfx.instance.play('tick');
+    final sender = widget.sparkSender;
+    if (sender == null && !await CloudSync.instance.ensureSocialSession()) {
       if (mounted) _toast('Couldn’t connect your note right now.');
       return;
     }
-    final ok = await CloudSync.instance.sendSpark(code);
+    final safeKind = normalizedSparkKind(kind);
+    final ok = sender == null
+        ? await CloudSync.instance.sendSpark(code, kind: safeKind)
+        : await sender(code, safeKind);
     if (!mounted) return;
     if (ok) {
       Sfx.instance.play('streak');
       HapticFeedback.mediumImpact();
-      _toast('A warm note is waiting in $code.');
+      _toast('${sparkSupportReceiptLabel(safeKind)} is waiting in $code.');
     } else {
       _toast('A note from you may already be waiting there.');
     }
   }
 
-  Future<void> _collectSparks() async {
+  Future<void> _collectInbox() async {
     final code = _state.roomCode;
-    if (code == null || _sparks.isEmpty) return;
-    final ids = _sparks.map((e) => e['id']).whereType<String>();
-    final ok = await CloudSync.instance.collectSparks(code, ids);
-    if (!mounted || !ok) return;
-    setState(() => _sparks = const []);
+    if (code == null || (_sparks.isEmpty && _circleAdds.isEmpty)) return;
+    final results = await Future.wait([
+      _sparks.isEmpty
+          ? Future.value(true)
+          : CloudSync.instance.collectSparks(
+              code,
+              _sparks.map((e) => e['id']).whereType<String>(),
+            ),
+      _circleAdds.isEmpty
+          ? Future.value(true)
+          : CloudSync.instance.collectCircleAdds(
+              code,
+              _circleAdds.map((e) => e['id']).whereType<String>(),
+            ),
+    ]);
+    if (!mounted || results.any((ok) => !ok)) return;
+    setState(() {
+      _sparks = const [];
+      _circleAdds = const [];
+    });
     Sfx.instance.play('loot');
     HapticFeedback.mediumImpact();
   }
@@ -252,10 +395,11 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                     children: [
                       _CircleLantern(lit: _circleLit, total: total),
                       const SizedBox(height: 12),
-                      if (_sparks.isNotEmpty) ...[
+                      if (_sparks.isNotEmpty || _circleAdds.isNotEmpty) ...[
                         _IncomingSparks(
-                          count: _sparks.length,
-                          onCollect: _collectSparks,
+                          sparks: _sparks,
+                          circleCount: _circleAdds.length,
+                          onCollect: _collectInbox,
                         ),
                         const SizedBox(height: 12),
                       ],
@@ -349,7 +493,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                                   ),
                             onSpark: _rooms[code] == null
                                 ? null
-                                : () => _sendSpark(code),
+                                : () => _chooseSpark(code),
                             onJoin:
                                 _rooms[code] != null &&
                                     ((_rooms[code]!['focusUntil'] as num?)
@@ -452,35 +596,283 @@ class _CircleLantern extends StatelessWidget {
   }
 }
 
+class _SparkPickerSheet extends StatelessWidget {
+  const _SparkPickerSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          child: GlassPanel(
+            tint: Palette.dialogSurface,
+            radius: 24,
+            padding: EdgeInsets.zero,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 46,
+                      height: 3,
+                      color: Palette.textLo.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Send support',
+                    style: Type.display.copyWith(fontSize: 22),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    'Choose one fixed note. No custom text, profile details, or task information is attached.',
+                    style: Type.body.copyWith(
+                      fontSize: 12.5,
+                      height: 1.4,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  for (
+                    var index = 0;
+                    index < sparkSupportKinds.length;
+                    index++
+                  ) ...[
+                    _SparkChoice(kind: sparkSupportKinds[index]),
+                    if (index != sparkSupportKinds.length - 1)
+                      const SizedBox(height: 8),
+                  ],
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      'ONE NOTE PER PERSON UNTIL IT IS COLLECTED',
+                      textAlign: TextAlign.center,
+                      style: Type.label.copyWith(
+                        fontSize: 8.5,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SparkChoice extends StatelessWidget {
+  const _SparkChoice({required this.kind});
+
+  final String kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = sparkSupportTitle(kind);
+    final detail = sparkSupportDetail(kind);
+    final color = _sparkColor(kind);
+    return Semantics(
+      button: true,
+      label: '$title. $detail',
+      onTap: () => Navigator.of(context).pop(kind),
+      child: GestureDetector(
+        key: ValueKey('spark-kind-$kind'),
+        excludeFromSemantics: true,
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          Sfx.instance.play('tick');
+          HapticFeedback.selectionClick();
+          Navigator.of(context).pop(kind);
+        },
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 64),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+          decoration: facetedDecoration(
+            cut: 8,
+            color: color.withValues(alpha: 0.1),
+            borderColor: color.withValues(alpha: 0.42),
+          ),
+          child: Row(
+            children: [
+              FacetMedallion(
+                size: 42,
+                accent: color,
+                child: Icon(_sparkIcon(kind), size: 20, color: color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Type.body.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      detail,
+                      style: Type.body.copyWith(
+                        fontSize: 11.5,
+                        height: 1.35,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.send_outlined, size: 18, color: color),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _IncomingSparks extends StatelessWidget {
-  const _IncomingSparks({required this.count, required this.onCollect});
-  final int count;
+  const _IncomingSparks({
+    required this.sparks,
+    required this.circleCount,
+    required this.onCollect,
+  });
+  final List<Map<String, dynamic>> sparks;
+  final int circleCount;
   final VoidCallback onCollect;
+
+  String get message {
+    if (circleCount > 0 && sparks.isNotEmpty) {
+      return '${circleCount == 1 ? 'Someone added your space' : '$circleCount people added your space'} to their Circle · support is waiting too';
+    }
+    if (circleCount > 0) {
+      return circleCount == 1
+          ? 'Someone added your space to their Circle'
+          : '$circleCount people added your space to their Circle';
+    }
+    return 'Support is waiting by your door';
+  }
+
+  Map<String, int> get counts {
+    final result = <String, int>{};
+    for (final spark in sparks) {
+      final kind = normalizedSparkKind(spark['kind']);
+      result[kind] = (result[kind] ?? 0) + 1;
+    }
+    return result;
+  }
 
   @override
   Widget build(BuildContext context) => GlassPanel(
     glow: true,
     padding: const EdgeInsets.all(13),
-    child: Row(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.auto_awesome, size: 20, color: Palette.xpLight),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            '$count warm ${count == 1 ? 'note is' : 'notes are'} waiting by your door',
-            style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
-          ),
+        Row(
+          children: [
+            const Icon(Icons.auto_awesome, size: 20, color: Palette.xpLight),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
+              ),
+            ),
+            Semantics(
+              button: true,
+              label: 'Collect Circle support',
+              onTap: onCollect,
+              child: GestureDetector(
+                excludeFromSemantics: true,
+                behavior: HitTestBehavior.opaque,
+                onTap: onCollect,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: 48,
+                    minHeight: 48,
+                  ),
+                  child: Center(
+                    child: Text(
+                      'COLLECT',
+                      style: Type.label.copyWith(
+                        fontSize: 10,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        GestureDetector(
-          onTap: onCollect,
-          child: Text(
-            'COLLECT',
-            style: Type.label.copyWith(fontSize: 10, color: Palette.xpLight),
+        if (sparks.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              for (final kind in sparkSupportKinds)
+                if ((counts[kind] ?? 0) > 0)
+                  _SparkReceiptChip(kind: kind, count: counts[kind]!),
+            ],
           ),
-        ),
+        ],
       ],
     ),
   );
+}
+
+class _SparkReceiptChip extends StatelessWidget {
+  const _SparkReceiptChip({required this.kind, required this.count});
+
+  final String kind;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = sparkSupportTitle(kind);
+    return Semantics(
+      label: count == 1
+          ? sparkSupportReceiptLabel(kind)
+          : '$count ${sparkSupportReceiptPlural(kind)}',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        decoration: facetedDecoration(
+          cut: 6,
+          color: _sparkColor(kind).withValues(alpha: 0.1),
+          borderColor: _sparkColor(kind).withValues(alpha: 0.38),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_sparkIcon(kind), size: 13, color: _sparkColor(kind)),
+            const SizedBox(width: 5),
+            Text(
+              '${count > 1 ? '$count× ' : ''}${title.toUpperCase()}',
+              style: Type.label.copyWith(
+                fontSize: 8.5,
+                color: _sparkColor(kind),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _QuietCompanyCard extends StatelessWidget {
@@ -638,8 +1030,19 @@ class _CircleKeepCard extends StatelessWidget {
         ),
       );
     }
-    String string(String key, [String fallback = '']) =>
-        data[key] is String ? data[key] as String : fallback;
+    String string(String key, [String fallback = '', int max = 80]) {
+      final value = data[key];
+      if (value is! String) return fallback;
+      return String.fromCharCodes(value.trim().runes.take(max));
+    }
+
+    final sharedName = data['profileVisible'] == true
+        ? string('displayName', '', 40)
+        : '';
+    final keeperName = sharedName.isNotEmpty
+        ? sharedName
+        : string('name', 'Fellow keeper', 40);
+    final buildTitle = string('title', 'KEEPER', 64);
     final level = data['level'] is num ? (data['level'] as num).toInt() : 1;
     final furniture = data['furniture'] is List
         ? (data['furniture'] as List).whereType<String>().toSet()
@@ -669,7 +1072,7 @@ class _CircleKeepCard extends StatelessWidget {
                 window: string('window', 'moon'),
                 petAwake: data['awake'] == true,
                 emberGlow: flameHueById(string('skin')),
-                heirloomFlame: string('skin') == 'gilded',
+                heirloomFlame: heirloomFlameById(string('skin')),
                 memoryArtifacts: memories,
                 parallax: parallax,
               ),
@@ -683,13 +1086,15 @@ class _CircleKeepCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      string('title', 'FELLOW KEEPER'),
+                      keeperName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Type.display.copyWith(fontSize: 17),
                     ),
                     Text(
-                      '$code · LEVEL $level · $memories MEMORIES',
+                      '$code · $buildTitle · LEVEL $level · $memories MEMORIES',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: Type.label.copyWith(fontSize: 8.5),
                     ),
                   ],
@@ -842,7 +1247,7 @@ class _EmptyCircle extends StatelessWidget {
               window: state.windowScene,
               petAwake: state.streakDays > 0,
               emberGlow: flameHueFor(state),
-              heirloomFlame: state.creatureSkin == 'gilded',
+              heirloomFlame: heirloomFlameFor(state),
               memoryArtifacts: state.memoryPins.length,
               parallax: state.reduceMotion ? null : parallax,
             ),

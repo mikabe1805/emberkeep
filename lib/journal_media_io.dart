@@ -4,11 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'journal_media_upload.dart';
+
 const _dir = 'journal_images';
 String? _docs; // cached app documents dir
+Future<String?>? _docsLookup;
 
-Future<String?> _docsPath() async {
-  if (_docs != null) return _docs;
+Future<String?> _docsPath() {
+  if (_docs != null) return Future.value(_docs);
+  return _docsLookup ??= _resolveDocsPath();
+}
+
+Future<String?> _resolveDocsPath() async {
   try {
     final d = await getApplicationDocumentsDirectory();
     return _docs = d.path;
@@ -81,6 +88,55 @@ Future<List<String>> pickMany() async {
   } catch (_) {
     lastPickFailed = true;
     return const [];
+  }
+}
+
+bool _isSafeStoredName(String name) =>
+    RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$').hasMatch(name) &&
+    name != '.' &&
+    name != '..';
+
+/// Reads one app-owned journal image for an explicit remote upload.
+///
+/// Only filenames produced by this module are accepted; path fragments are
+/// rejected before touching disk so a shared-room action cannot read an
+/// arbitrary file from the device.
+Future<JournalMediaUploadData> readForUpload(String name) async {
+  if (!_isSafeStoredName(name)) {
+    throw const JournalMediaReadException(
+      JournalMediaReadFailure.invalidName,
+      'That local photo name is not valid.',
+    );
+  }
+
+  final base = await _docsPath();
+  if (base == null) {
+    throw const JournalMediaReadException(
+      JournalMediaReadFailure.unavailable,
+      'Local photo storage is unavailable on this device.',
+    );
+  }
+
+  final file = File('$base/$_dir/$name');
+  try {
+    if (!await file.exists()) {
+      throw JournalMediaReadException(
+        JournalMediaReadFailure.missing,
+        'The selected photo is no longer on this device.',
+      );
+    }
+    return JournalMediaUploadData(
+      filename: name,
+      bytes: await file.readAsBytes(),
+    );
+  } on JournalMediaReadException {
+    rethrow;
+  } catch (error) {
+    throw JournalMediaReadException(
+      JournalMediaReadFailure.unreadable,
+      'The selected photo could not be read.',
+      cause: error,
+    );
   }
 }
 
@@ -182,22 +238,30 @@ class _JournalImage extends StatelessWidget {
     );
   }
 
+  Widget _loading() => Container(
+    height: maxHeight < 104 ? maxHeight : 128,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF34281F), Color(0xFF281E17)],
+      ),
+      borderRadius: BorderRadius.circular(maxHeight < 104 ? 8 : 14),
+      border: Border.all(color: const Color(0x22FFFFFF)),
+    ),
+    child: const Icon(Icons.photo_outlined, size: 22, color: Color(0xFFB9A488)),
+  );
+
   @override
   Widget build(BuildContext context) {
     if (_docs != null) return _framed('$_docs/$_dir/$name');
     return FutureBuilder<String?>(
       future: _docsPath(),
-      builder: (_, snap) => snap.data == null
-          ? const SizedBox(
-              height: 110,
-              child: Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            )
+      builder: (_, snap) => snap.connectionState != ConnectionState.done
+          ? _loading()
+          : snap.data == null
+          ? _missing()
           : _framed('${snap.data}/$_dir/$name'),
     );
   }

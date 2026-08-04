@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'journal_media_upload.dart';
+
 /// Web stub — photos are native-only (no dart:io / path_provider on web), so
 /// picking is a no-op. A restored image reference gets a quiet placeholder
 /// instead of a blank card. Text journaling still works everywhere.
@@ -7,6 +9,13 @@ bool lastPickFailed = false;
 
 Future<String?> pick(bool fromCamera) async => null;
 Future<List<String>> pickMany() async => const [];
+
+Future<JournalMediaUploadData> readForUpload(String name) async {
+  throw const JournalMediaReadException(
+    JournalMediaReadFailure.unavailable,
+    'Local journal photos are unavailable on this platform.',
+  );
+}
 
 Future<void> delete(String name) async {}
 

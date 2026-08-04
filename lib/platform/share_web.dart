@@ -4,6 +4,8 @@ import 'dart:ui' show Rect;
 
 import 'package:web/web.dart' as web;
 
+enum ShareTextResult { shared, dismissed, unavailable }
+
 /// Share a PNG via the browser. Tries the Web Share API with files first
 /// (the native share sheet on iOS/Android — exactly what an installed PWA
 /// wants), and falls back to a plain download when that isn't available.
@@ -54,13 +56,16 @@ Future<bool> sharePng(Uint8List bytes, String filename, String text) async {
   }
 }
 
-Future<bool> shareText(String text, {Rect? origin}) async {
+Future<ShareTextResult> shareText(String text, {Rect? origin}) async {
   try {
     await web.window.navigator
         .share(web.ShareData(title: 'Visit my space', text: text))
         .toDart;
-    return true;
-  } catch (_) {
-    return false;
+    return ShareTextResult.shared;
+  } catch (error) {
+    if (error.toString().contains('AbortError')) {
+      return ShareTextResult.dismissed;
+    }
+    return ShareTextResult.unavailable;
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/calendar.dart';
@@ -128,6 +129,8 @@ void main() {
           state: state,
           quests: const [],
           onPersist: () {},
+          onPublishRoom: (_, {required code}) async =>
+              RoomPublishResult.success(code),
           onAddQuest: (_) => true,
           onExport: () async => true,
           onImport: (_) async => true,
@@ -319,8 +322,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
-    final invite = _ancestorOfType(find.text('Invite people'), FilledButton);
-    final copy = _ancestorOfType(find.text('Copy code'), TextButton);
+    final invite = find.byKey(const Key('share-space-invite'));
+    final copy = find.byKey(const Key('share-space-copy-code'));
     final done = find.byKey(const Key('share-space-done'));
     _expectComfortableTarget(tester, invite);
     _expectComfortableTarget(tester, copy);
@@ -371,7 +374,7 @@ void main() {
         (widget) =>
             widget is Semantics &&
             widget.properties.button == true &&
-            widget.properties.label == 'Open journal entry. $entryText',
+            widget.properties.label == 'Read journal entry. $entryText',
       ),
       findsOneWidget,
     );

@@ -4,6 +4,8 @@ import 'dart:math' show pi, sin;
 import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 
+import 'living_hearth_fire.dart';
+
 /// The Quest board's authored room, rebuilt as a true multi-plane painting.
 ///
 /// Every raster was generated against one registered camera. Nothing here
@@ -26,11 +28,7 @@ class QuestDepthRoom extends StatefulWidget {
   static const furnitureAsset = 'assets/rooms/quest-depth-furniture-v1.png';
   static const foregroundAsset = 'assets/rooms/quest-depth-foreground-v1.png';
   static const scrollSoftAsset = 'assets/rooms/quest-depth-scroll-soft-v1.webp';
-  static const fireAssets = <String>[
-    'assets/rooms/quest-fire-a-v3.png',
-    'assets/rooms/quest-fire-b-v3.png',
-    'assets/rooms/quest-fire-c-v3.png',
-  ];
+  static const fireAssets = hearthFireAssets;
   static const assets = <String>[
     baseAsset,
     wallAsset,
@@ -71,22 +69,27 @@ class _QuestDepthRoomState extends State<QuestDepthRoom> {
           child: _QuestLivingFire(hue: widget.flameHue, lively: widget.lively),
           builder: (context, fire) {
             final tilt = widget.lively ? widget.parallax.value : Offset.zero;
-            final scroll =
-                widget.scrollPosition.value.clamp(0.0, 240.0).toDouble() /
-                240.0;
+            // Reduce Motion means the room is a parked illustration. Scrolling
+            // content remains usable, but it must not counter-slide the room
+            // behind it: that is still motion from the person's point of view.
+            final scroll = widget.lively
+                ? widget.scrollPosition.value.clamp(0.0, 240.0).toDouble() /
+                      240.0
+                : 0.0;
 
-            // The room never travels more than a handful of pixels. Near
-            // silhouettes move most; architecture and the firebox barely move.
-            // Scroll adds a quieter vertical counter-motion beneath the board.
-            final far = Offset(-tilt.dx * 1.6, -tilt.dy * 1.1 - scroll * 1.0);
-            final wall = Offset(-tilt.dx * 3.2, -tilt.dy * 2.1 - scroll * 2.0);
+            // The planes separate enough that an ordinary one-handed tilt
+            // reads immediately as depth. Architecture and the registered
+            // fire stay weighty; furniture and the near chair travel farther.
+            // Scroll keeps its quieter counter-motion beneath the board.
+            final far = Offset(-tilt.dx * 3.0, -tilt.dy * 2.0 - scroll * 1.0);
+            final wall = Offset(-tilt.dx * 7.2, -tilt.dy * 4.6 - scroll * 2.0);
             final furniture = Offset(
-              -tilt.dx * 5.7,
-              -tilt.dy * 3.6 - scroll * 3.8,
+              -tilt.dx * 14.0,
+              -tilt.dy * 8.3 - scroll * 3.8,
             );
             final foreground = Offset(
-              -tilt.dx * 8.6,
-              -tilt.dy * 5.3 - scroll * 6.2,
+              -tilt.dx * 24.0,
+              -tilt.dy * 13.5 - scroll * 6.2,
             );
 
             return Stack(
@@ -145,7 +148,7 @@ class _DepthPlane extends StatelessWidget {
       child: Transform.translate(
         key: motionKey,
         offset: offset,
-        child: Transform.scale(scale: 1.055, child: child),
+        child: Transform.scale(scale: 1.08, child: child),
       ),
     );
   }
@@ -242,12 +245,7 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
           animation: _paintPhase,
           builder: (context, _) {
             final t = widget.lively ? _paintPhase.value : 0.0;
-            final framePhase = t * 18;
-            final currentFrame =
-                framePhase.floor() % QuestDepthRoom.fireAssets.length;
-            final nextFrame =
-                (currentFrame + 1) % QuestDepthRoom.fireAssets.length;
-            final blend = Curves.easeInOutSine.transform(framePhase % 1);
+            final frame = hearthFireFrameAt(t);
             final sway = sin(t * pi * 8) * 1.7 + sin(t * pi * 14 + 0.8) * 0.7;
             final lift = sin(t * pi * 12 + 0.35) * 0.9;
             final breathe = 0.994 + sin(t * pi * 6 + 0.2) * 0.006;
@@ -279,14 +277,16 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
                             child: Stack(
                               fit: StackFit.expand,
                               children: [
-                                _FireFrame(
+                                RecoloredHearthFireFrame(
                                   asset:
-                                      QuestDepthRoom.fireAssets[currentFrame],
-                                  opacity: 1 - blend,
+                                      QuestDepthRoom.fireAssets[frame.current],
+                                  hue: widget.hue,
+                                  opacity: 1 - frame.blend,
                                 ),
-                                _FireFrame(
-                                  asset: QuestDepthRoom.fireAssets[nextFrame],
-                                  opacity: blend,
+                                RecoloredHearthFireFrame(
+                                  asset: QuestDepthRoom.fireAssets[frame.next],
+                                  hue: widget.hue,
+                                  opacity: frame.blend,
                                 ),
                               ],
                             ),
@@ -300,28 +300,6 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
             );
           },
         ),
-      ),
-    );
-  }
-}
-
-class _FireFrame extends StatelessWidget {
-  const _FireFrame({required this.asset, required this.opacity});
-
-  final String asset;
-  final double opacity;
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: opacity,
-      child: Image(
-        image: AssetImage(asset),
-        fit: BoxFit.fill,
-        filterQuality: FilterQuality.medium,
-        gaplessPlayback: true,
-        excludeFromSemantics: true,
-        isAntiAlias: true,
       ),
     );
   }

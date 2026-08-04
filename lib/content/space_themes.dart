@@ -32,8 +32,8 @@ const spaceThemes = <SpaceTheme>[
     subtitle: 'walnut, books, and a working fire',
     description: 'The original room—warm, practical, and already lived in.',
     price: 0,
-    plateAsset: 'assets/rooms/wall_walnut-clean-v2.webp',
-    previewAsset: 'assets/rooms/previews/wall_walnut-v1.webp',
+    plateAsset: 'assets/rooms/wall_walnut-fireless-v3.webp',
+    previewAsset: 'assets/rooms/previews/wall_walnut-fireless-v3.webp',
     accent: Color(0xFFD79A50),
   ),
   SpaceTheme(
@@ -42,8 +42,8 @@ const spaceThemes = <SpaceTheme>[
     subtitle: 'green things, oak, and rainy moonlight',
     description: 'A softer study shaped around things that keep growing.',
     price: 280,
-    plateAsset: 'assets/rooms/wall_conservatory-v1.webp',
-    previewAsset: 'assets/rooms/previews/wall_conservatory-v1.webp',
+    plateAsset: 'assets/rooms/wall_conservatory-fireless-v2.webp',
+    previewAsset: 'assets/rooms/previews/wall_conservatory-fireless-v2.webp',
     accent: Color(0xFF84966B),
   ),
   SpaceTheme(
@@ -52,8 +52,8 @@ const spaceThemes = <SpaceTheme>[
     subtitle: 'ink-blue shelves and long, quiet hours',
     description: 'A darker room for books, maps, and thinking past midnight.',
     price: 420,
-    plateAsset: 'assets/rooms/wall_archive-v1.webp',
-    previewAsset: 'assets/rooms/previews/wall_archive-v1.webp',
+    plateAsset: 'assets/rooms/wall_archive-fireless-v2.webp',
+    previewAsset: 'assets/rooms/previews/wall_archive-fireless-v2.webp',
     accent: Color(0xFF7E91AA),
   ),
 ];

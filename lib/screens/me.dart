@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
@@ -15,6 +16,7 @@ import '../platform/share_stub.dart'
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
 import '../content/creature_skins.dart';
+import '../content/links.dart';
 import '../content/memories.dart';
 import '../content/room_styles.dart';
 import '../content/stat_ranks.dart';
@@ -42,12 +44,19 @@ import 'domain_detail.dart';
 import 'hearth_circle.dart';
 import 'shop.dart';
 
+typedef SpaceRoomPublisher =
+    Future<RoomPublishResult> Function(
+      GameState target, {
+      required String code,
+    });
+
 Future<void> _changePlayerName(
   BuildContext context,
   GameState state,
   VoidCallback onPersist,
+  SpaceRoomPublisher onPublishRoom,
 ) async {
-  final controller = TextEditingController(text: state.playerName ?? '');
+  var editedName = state.playerName ?? '';
   final next = await showDialog<String>(
     context: context,
     builder: (dialogContext) => AlertDialog(
@@ -57,8 +66,9 @@ Future<void> _changePlayerName(
         'What should we call you?',
         style: Type.display.copyWith(fontSize: 20, color: Palette.textHi),
       ),
-      content: TextField(
-        controller: controller,
+      content: TextFormField(
+        key: const ValueKey('space-name-field'),
+        initialValue: editedName,
         autofocus: true,
         maxLength: 40,
         textCapitalization: TextCapitalization.words,
@@ -68,7 +78,8 @@ Future<void> _changePlayerName(
           labelText: 'Your name',
           hintText: 'Name or nickname',
         ),
-        onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+        onChanged: (value) => editedName = value,
+        onFieldSubmitted: (value) => Navigator.of(dialogContext).pop(value),
       ),
       actions: [
         TextButton(
@@ -76,15 +87,79 @@ Future<void> _changePlayerName(
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(controller.text),
+          onPressed: () => Navigator.of(dialogContext).pop(editedName),
           child: const Text('Save name'),
         ),
       ],
     ),
   );
-  controller.dispose();
-  if (next == null) return;
+  if (next == null || !context.mounted) return;
+
+  final draft = GameState.fromJson(state.toJson())..setPlayerName(next);
+  final code = state.roomCode;
+  RoomPublishResult? published;
+  if (code != null &&
+      jsonEncode(roomDisplay(state)) != jsonEncode(roomDisplay(draft))) {
+    final progress = showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          backgroundColor: Palette.card,
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: 14),
+              Flexible(
+                child: Text(
+                  'Updating visitor page\u2026',
+                  key: const ValueKey('space-name-publish-busy'),
+                  style: Type.body.copyWith(color: Palette.textHi),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    try {
+      published = await onPublishRoom(draft, code: code);
+    } catch (_) {
+      published = const RoomPublishResult.failed(RoomPublishFailure.unknown);
+    }
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+    await progress;
+    if (!context.mounted) return;
+    if (!published.ok) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Palette.card,
+            content: Text(
+              'Couldn\u2019t update the live visitor page. Its previous version '
+              'may still show your old name. Reconnect and try again.',
+              key: const ValueKey('space-name-publish-error'),
+              style: Type.body.copyWith(color: Palette.textHi),
+            ),
+          ),
+        );
+      return;
+    }
+  }
+
   state.setPlayerName(next);
+  final publishedCode = published?.code;
+  if (publishedCode != null && publishedCode != state.roomCode) {
+    state.setRoomCode(publishedCode);
+  }
   onPersist();
 }
 
@@ -92,11 +167,16 @@ Future<void> _personalizeSpace(
   BuildContext context,
   GameState state,
   VoidCallback onPersist,
+  SpaceRoomPublisher onPublishRoom,
 ) async {
   await Navigator.of(context).push<void>(
     MaterialPageRoute(
       fullscreenDialog: true,
-      builder: (_) => _SpacePageArranger(state: state, onPersist: onPersist),
+      builder: (_) => _SpacePageArranger(
+        state: state,
+        onPersist: onPersist,
+        onPublishRoom: onPublishRoom,
+      ),
     ),
   );
 }
@@ -122,16 +202,18 @@ Color _spaceCardAccent(SpaceCardKind kind) => switch (kind) {
   SpaceCardKind.thisSeason => Palette.unlock,
 };
 
-bool _spaceCardCanVisit(SpaceCardKind kind) =>
-    kind == SpaceCardKind.about || kind == SpaceCardKind.rightNow;
-
 /// A full-page workbench for My Space. The room itself stays the page hero;
 /// this route only arranges the authored cards that sit beneath it.
 class _SpacePageArranger extends StatefulWidget {
-  const _SpacePageArranger({required this.state, required this.onPersist});
+  const _SpacePageArranger({
+    required this.state,
+    required this.onPersist,
+    required this.onPublishRoom,
+  });
 
   final GameState state;
   final VoidCallback onPersist;
+  final SpaceRoomPublisher onPublishRoom;
 
   @override
   State<_SpacePageArranger> createState() => _SpacePageArrangerState();
@@ -142,11 +224,17 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
   late final TextEditingController _season;
   late final List<SpaceCardKind> _order;
   late final Set<SpaceCardKind> _hidden;
+  late final Set<SpaceCardKind> _visitorVisible;
   late final Set<String> _featuredGoals;
   late final Set<String> _pinnedMoments;
   final Set<SpaceCardKind> _expanded = {SpaceCardKind.about};
+  String? _profilePhotoNoteId;
   String? _seasonPhotoNoteId;
+  late bool _shareProfilePhoto;
+  late bool _shareSeasonPhoto;
   late bool _shared;
+  bool _saving = false;
+  String? _saveError;
 
   @override
   void initState() {
@@ -158,9 +246,13 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       if (!_order.contains(kind)) _order.add(kind);
     }
     _hidden = widget.state.hiddenSpaceCards.toSet();
+    _visitorVisible = widget.state.visitorSpaceCards.toSet();
     _featuredGoals = widget.state.featuredGoalTitles.toSet();
     _pinnedMoments = widget.state.memoryPins.toSet();
+    _profilePhotoNoteId = widget.state.spaceProfilePhotoNoteId;
     _seasonPhotoNoteId = widget.state.spaceSeasonPhotoNoteId;
+    _shareProfilePhoto = widget.state.shareSpaceProfilePhoto;
+    _shareSeasonPhoto = widget.state.shareSpaceSeasonPhoto;
     _shared = widget.state.shareSpaceProfile;
   }
 
@@ -171,26 +263,103 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
     super.dispose();
   }
 
-  void _save() {
-    for (final note in widget.state.journal) {
+  void _applyDraft(GameState target) {
+    for (final note in target.journal) {
       final pinned = _pinnedMoments.contains(note.id);
+      if (target.memoryPins.contains(note.id) != pinned) {
+        target.setMemoryPinned(note.id, pinned);
+      }
+    }
+    target.setSpacePage(
+      order: _order,
+      hidden: _hidden,
+      visitorVisible: _visitorVisible,
+      intro: _intro.text,
+      featuredGoalTitles: _featuredGoals,
+      seasonText: _season.text,
+      profilePhotoNoteId: _profilePhotoNoteId,
+      seasonPhotoNoteId: _seasonPhotoNoteId,
+      shareProfilePhoto: _shareProfilePhoto,
+      shareSeasonPhoto: _shareSeasonPhoto,
+      shareProfile: _shared,
+    );
+  }
+
+  void _commitDraft(GameState draft) {
+    for (final note in widget.state.journal) {
+      final pinned = draft.memoryPins.contains(note.id);
       if (widget.state.memoryPins.contains(note.id) != pinned) {
         widget.state.setMemoryPinned(note.id, pinned);
       }
     }
     widget.state.setSpacePage(
-      order: _order,
-      hidden: _hidden,
-      intro: _intro.text,
-      featuredGoalTitles: _featuredGoals,
-      seasonText: _season.text,
-      seasonPhotoNoteId: _seasonPhotoNoteId,
-      shareProfile: _shared,
+      order: draft.spaceCardOrder,
+      hidden: draft.hiddenSpaceCards,
+      visitorVisible: draft.visitorSpaceCards,
+      intro: draft.spaceIntro,
+      featuredGoalTitles: draft.featuredGoalTitles,
+      seasonText: draft.spaceSeasonText,
+      profilePhotoNoteId: draft.spaceProfilePhotoNoteId,
+      seasonPhotoNoteId: draft.spaceSeasonPhotoNoteId,
+      shareProfilePhoto: draft.shareSpaceProfilePhoto,
+      shareSeasonPhoto: draft.shareSpaceSeasonPhoto,
+      shareProfile: draft.shareSpaceProfile,
     );
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+
+    // Build the candidate on a listener-free clone. Mutating the live state
+    // would immediately trigger AppShell's ordinary persistence listener and
+    // its best-effort room debounce before the server acknowledged a privacy
+    // reduction.
+    final draft = GameState.fromJson(widget.state.toJson());
+    _applyDraft(draft);
+    final currentDisplay = roomDisplay(widget.state);
+    final nextDisplay = roomDisplay(draft);
+    String photoIntent(GameState state) => jsonEncode({
+      for (final entry in selectedSharedRoomPhotoFiles(state).entries)
+        entry.key.name: entry.value,
+    });
+    final code = widget.state.roomCode;
+    RoomPublishResult? published;
+
+    if (code != null &&
+        (jsonEncode(currentDisplay) != jsonEncode(nextDisplay) ||
+            photoIntent(widget.state) != photoIntent(draft))) {
+      setState(() {
+        _saving = true;
+        _saveError = null;
+      });
+      try {
+        published = await widget.onPublishRoom(draft, code: code);
+      } catch (_) {
+        published = const RoomPublishResult.failed(RoomPublishFailure.unknown);
+      }
+      if (!mounted) return;
+      if (!published.ok) {
+        setState(() {
+          _saving = false;
+          _saveError = published?.failure == RoomPublishFailure.media
+              ? 'Couldn\u2019t share that photo. Choose another JPEG, PNG, or '
+                    'WebP under 3 MB, then try again.'
+              : 'Couldn\u2019t update the live visitor page. Its previous version '
+                    'may still be visible. Reconnect and try again.';
+        });
+        return;
+      }
+    }
+
+    _commitDraft(draft);
+    final publishedCode = published?.code;
+    if (publishedCode != null && publishedCode != widget.state.roomCode) {
+      widget.state.setRoomCode(publishedCode);
+    }
     widget.onPersist();
     Sfx.instance.play('levelup');
     HapticFeedback.mediumImpact();
-    Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop();
   }
 
   void _reorder(int oldIndex, int newIndex) {
@@ -237,7 +406,19 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
   ].take(12).toList();
 
   Widget _editorFor(SpaceCardKind kind) => switch (kind) {
-    SpaceCardKind.about => _AboutSpaceEditor(controller: _intro),
+    SpaceCardKind.about => _AboutSpaceEditor(
+      controller: _intro,
+      notes: _seasonPhotoChoices,
+      selectedNoteId: _profilePhotoNoteId,
+      sharePhoto: _shareProfilePhoto,
+      visitorPageEnabled: _shared,
+      onPhotoChanged: (id) => setState(() {
+        _profilePhotoNoteId = id;
+        _shareProfilePhoto = false;
+      }),
+      onSharePhotoChanged: (value) =>
+          setState(() => _shareProfilePhoto = value),
+    ),
     SpaceCardKind.rightNow => _RightNowSpaceEditor(
       goals: widget.state.goals,
       selected: _featuredGoals,
@@ -260,69 +441,93 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       controller: _season,
       notes: _seasonPhotoChoices,
       selectedNoteId: _seasonPhotoNoteId,
-      onPhotoChanged: (id) => setState(() => _seasonPhotoNoteId = id),
+      sharePhoto: _shareSeasonPhoto,
+      visitorPageEnabled: _shared,
+      visitorCardSelected: _visitorVisible.contains(SpaceCardKind.thisSeason),
+      onPhotoChanged: (id) => setState(() {
+        _seasonPhotoNoteId = id;
+        _shareSeasonPhoto = false;
+      }),
+      onSharePhotoChanged: (value) => setState(() => _shareSeasonPhoto = value),
     ),
   };
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: const ValueKey('space-arranger'),
-      backgroundColor: Palette.parchment,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _SpaceArrangerHeading(onClose: () => Navigator.of(context).pop()),
-            Expanded(
-              child: ReorderableListView.builder(
-                buildDefaultDragHandles: false,
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
-                ),
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
-                header: _SpaceSharingPanel(
-                  shared: _shared,
-                  onChanged: (value) => setState(() => _shared = value),
-                ),
-                itemCount: _order.length,
-                onReorderItem: _reorder,
-                proxyDecorator: (child, _, animation) => AnimatedBuilder(
-                  animation: animation,
-                  builder: (_, child) => Transform.scale(
-                    scale: 1 + animation.value * 0.018,
-                    child: Material(
-                      color: Colors.transparent,
-                      elevation: animation.value * 12,
-                      shadowColor: Palette.warmShadow,
+    return PopScope(
+      canPop: !_saving,
+      child: Scaffold(
+        key: const ValueKey('space-arranger'),
+        backgroundColor: Palette.parchment,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _SpaceArrangerHeading(
+                onClose: _saving ? null : () => Navigator.of(context).pop(),
+              ),
+              Expanded(
+                child: AbsorbPointer(
+                  absorbing: _saving,
+                  child: ReorderableListView.builder(
+                    buildDefaultDragHandles: false,
+                    physics: const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+                    header: _SpaceSharingPanel(
+                      shared: _shared,
+                      onChanged: (value) => setState(() => _shared = value),
+                    ),
+                    itemCount: _order.length,
+                    onReorderItem: _reorder,
+                    proxyDecorator: (child, _, animation) => AnimatedBuilder(
+                      animation: animation,
+                      builder: (_, child) => Transform.scale(
+                        scale: 1 + animation.value * 0.018,
+                        child: Material(
+                          color: Colors.transparent,
+                          elevation: animation.value * 12,
+                          shadowColor: Palette.warmShadow,
+                          child: child,
+                        ),
+                      ),
                       child: child,
                     ),
+                    itemBuilder: (context, index) {
+                      final kind = _order[index];
+                      return _SpaceArrangerCard(
+                        key: ValueKey('space-card-${kind.name}'),
+                        kind: kind,
+                        index: index,
+                        hidden: _hidden.contains(kind),
+                        visitorVisible: _visitorVisible.contains(kind),
+                        visitorPageEnabled: _shared,
+                        expanded: _expanded.contains(kind),
+                        onExpand: () => setState(() {
+                          if (!_expanded.remove(kind)) _expanded.add(kind);
+                        }),
+                        onVisibilityChanged: () => setState(() {
+                          if (!_hidden.remove(kind)) _hidden.add(kind);
+                        }),
+                        onVisitorVisibilityChanged: () => setState(() {
+                          if (!_visitorVisible.remove(kind)) {
+                            _visitorVisible.add(kind);
+                          }
+                        }),
+                        child: _editorFor(kind),
+                      );
+                    },
                   ),
-                  child: child,
                 ),
-                itemBuilder: (context, index) {
-                  final kind = _order[index];
-                  return _SpaceArrangerCard(
-                    key: ValueKey('space-card-${kind.name}'),
-                    kind: kind,
-                    index: index,
-                    hidden: _hidden.contains(kind),
-                    expanded: _expanded.contains(kind),
-                    onExpand: () => setState(() {
-                      if (!_expanded.remove(kind)) _expanded.add(kind);
-                    }),
-                    onVisibilityChanged: () => setState(() {
-                      if (!_hidden.remove(kind)) _hidden.add(kind);
-                    }),
-                    child: _editorFor(kind),
-                  );
-                },
               ),
-            ),
-            _SpaceArrangerActions(
-              onCancel: () => Navigator.of(context).pop(),
-              onSave: _save,
-            ),
-          ],
+              _SpaceArrangerActions(
+                busy: _saving,
+                error: _saveError,
+                onCancel: _saving ? null : () => Navigator.of(context).pop(),
+                onSave: _saving ? null : _save,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -332,7 +537,7 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
 class _SpaceArrangerHeading extends StatelessWidget {
   const _SpaceArrangerHeading({required this.onClose});
 
-  final VoidCallback onClose;
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -421,7 +626,7 @@ class _SpaceSharingPanel extends StatelessWidget {
               value: shared,
               activeTrackColor: Palette.xp.withValues(alpha: 0.72),
               title: Text(
-                'Let visitors see About + Right now',
+                'Open my visitor page',
                 style: Type.body.copyWith(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
@@ -430,8 +635,8 @@ class _SpaceSharingPanel extends StatelessWidget {
               ),
               subtitle: Text(
                 shared
-                    ? 'Your chosen name plus any visible About and Right now cards appear when someone visits.'
-                    : 'Your name and these two cards stay private.',
+                    ? 'Your name and only the cards marked for visitors appear when someone opens your room.'
+                    : 'Your room can still be shared; every profile card stays private.',
                 style: Type.body.copyWith(
                   fontSize: 11.5,
                   height: 1.35,
@@ -445,7 +650,7 @@ class _SpaceSharingPanel extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
-              'Writing and photos in Pinned moments, plus everything in This season, stay out of visitor rooms. Drag the brass grips to set your card order.',
+              'Choose each card’s audience below. A profile or This season photo is separate: select it, then explicitly let visitors see it. Drag the brass grips to set the order.',
               style: Type.body.copyWith(
                 fontSize: 11.5,
                 height: 1.35,
@@ -465,18 +670,24 @@ class _SpaceArrangerCard extends StatelessWidget {
     required this.kind,
     required this.index,
     required this.hidden,
+    required this.visitorVisible,
+    required this.visitorPageEnabled,
     required this.expanded,
     required this.onExpand,
     required this.onVisibilityChanged,
+    required this.onVisitorVisibilityChanged,
     required this.child,
   });
 
   final SpaceCardKind kind;
   final int index;
   final bool hidden;
+  final bool visitorVisible;
+  final bool visitorPageEnabled;
   final bool expanded;
   final VoidCallback onExpand;
   final VoidCallback onVisibilityChanged;
+  final VoidCallback onVisitorVisibilityChanged;
   final Widget child;
 
   @override
@@ -549,15 +760,13 @@ class _SpaceArrangerCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                _spaceCardCanVisit(kind)
-                                    ? 'VISITOR-ELIGIBLE'
-                                    : 'PRIVATE TO YOU',
+                                hidden
+                                    ? 'HIDDEN FROM YOUR PAGE'
+                                    : 'ON YOUR PAGE',
                                 style: Type.label.copyWith(
                                   fontSize: 8.5,
                                   letterSpacing: 0.9,
-                                  color: _spaceCardCanVisit(kind)
-                                      ? Palette.xpLight
-                                      : Palette.textMid,
+                                  color: hidden ? Palette.textLo : accent,
                                 ),
                               ),
                             ],
@@ -598,6 +807,13 @@ class _SpaceArrangerCard extends StatelessWidget {
                   ),
                 ],
               ),
+              _VisitorScopeControl(
+                kind: kind,
+                selected: visitorVisible,
+                visitorPageEnabled: visitorPageEnabled,
+                accent: accent,
+                onChanged: onVisitorVisibilityChanged,
+              ),
               if (expanded)
                 Container(
                   key: ValueKey('space-card-editor-${kind.name}'),
@@ -618,28 +834,138 @@ class _SpaceArrangerCard extends StatelessWidget {
   }
 }
 
-class _AboutSpaceEditor extends StatelessWidget {
-  const _AboutSpaceEditor({required this.controller});
+class _VisitorScopeControl extends StatelessWidget {
+  const _VisitorScopeControl({
+    required this.kind,
+    required this.selected,
+    required this.visitorPageEnabled,
+    required this.accent,
+    required this.onChanged,
+  });
 
-  final TextEditingController controller;
+  final SpaceCardKind kind;
+  final bool selected;
+  final bool visitorPageEnabled;
+  final Color accent;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      maxLength: 180,
-      minLines: 3,
-      maxLines: 5,
-      textCapitalization: TextCapitalization.sentences,
-      style: Type.body.copyWith(fontSize: 14, color: Palette.textHi),
-      decoration: InputDecoration(
-        labelText: 'A little about you',
-        hintText: 'What are you making room for right now?',
-        alignLabelWithHint: true,
-        filled: true,
-        fillColor: Palette.glassFill,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(13)),
+    final active = selected && visitorPageEnabled;
+    final status = active
+        ? 'VISITORS CAN SEE THIS CARD'
+        : selected
+        ? 'SELECTED · VISITOR PAGE CLOSED'
+        : 'ONLY YOU CAN SEE THIS CARD';
+    return InkWell(
+      key: ValueKey('space-card-share-${kind.name}'),
+      onTap: onChanged,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.fromLTRB(14, 7, 8, 7),
+        decoration: BoxDecoration(
+          color: selected
+              ? accent.withValues(alpha: visitorPageEnabled ? 0.09 : 0.04)
+              : Palette.glassFill,
+          border: Border(
+            top: BorderSide(color: accent.withValues(alpha: 0.16)),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              active
+                  ? Icons.door_front_door_outlined
+                  : Icons.lock_outline_rounded,
+              size: 16,
+              color: active ? accent : Palette.textLo,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                status,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Type.label.copyWith(
+                  fontSize: 8.5,
+                  letterSpacing: 0.75,
+                  color: active ? accent : Palette.textLo,
+                ),
+              ),
+            ),
+            Switch.adaptive(
+              value: selected,
+              activeTrackColor: accent.withValues(alpha: 0.72),
+              onChanged: (_) => onChanged(),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+}
+
+class _AboutSpaceEditor extends StatelessWidget {
+  const _AboutSpaceEditor({
+    required this.controller,
+    required this.notes,
+    required this.selectedNoteId,
+    required this.sharePhoto,
+    required this.visitorPageEnabled,
+    required this.onPhotoChanged,
+    required this.onSharePhotoChanged,
+  });
+
+  final TextEditingController controller;
+  final List<Note> notes;
+  final String? selectedNoteId;
+  final bool sharePhoto;
+  final bool visitorPageEnabled;
+  final ValueChanged<String?> onPhotoChanged;
+  final ValueChanged<bool> onSharePhotoChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: controller,
+          maxLength: 180,
+          minLines: 3,
+          maxLines: 5,
+          textCapitalization: TextCapitalization.sentences,
+          style: Type.body.copyWith(fontSize: 14, color: Palette.textHi),
+          decoration: InputDecoration(
+            labelText: 'A little about you',
+            hintText: 'What are you making room for right now?',
+            alignLabelWithHint: true,
+            filled: true,
+            fillColor: Palette.glassFill,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(13)),
+          ),
+        ),
+        const SizedBox(height: 4),
+        _SpacePhotoPicker(
+          slot: 'profile',
+          heading: 'PROFILE PHOTO FROM YOUR JOURNAL',
+          emptyLabel: 'No profile photo',
+          emptyCopy: 'Add a photo to a Journal page and it can live here.',
+          notes: notes,
+          selectedNoteId: selectedNoteId,
+          onChanged: onPhotoChanged,
+        ),
+        const SizedBox(height: 9),
+        _SharedPhotoAudienceControl(
+          slot: 'profile',
+          selected: sharePhoto,
+          hasPhoto: selectedNoteId != null,
+          visitorPageEnabled: visitorPageEnabled,
+          visitorCardSelected: true,
+          activeCopy: 'Visible in your visitor-page header.',
+          onChanged: onSharePhotoChanged,
+        ),
+      ],
     );
   }
 }
@@ -718,7 +1044,7 @@ class _PinnedMomentsEditor extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Choose up to four Journal entries. Their writing and photos stay out of visitor rooms; only the room\'s memory count can appear.',
+          'Choose up to four Journal entries. Visitors receive only the writing in this card; its attached photos stay private.',
           style: Type.body.copyWith(
             fontSize: 12.5,
             height: 1.4,
@@ -828,13 +1154,21 @@ class _SeasonSpaceEditor extends StatelessWidget {
     required this.controller,
     required this.notes,
     required this.selectedNoteId,
+    required this.sharePhoto,
+    required this.visitorPageEnabled,
+    required this.visitorCardSelected,
     required this.onPhotoChanged,
+    required this.onSharePhotoChanged,
   });
 
   final TextEditingController controller;
   final List<Note> notes;
   final String? selectedNoteId;
+  final bool sharePhoto;
+  final bool visitorPageEnabled;
+  final bool visitorCardSelected;
   final ValueChanged<String?> onPhotoChanged;
+  final ValueChanged<bool> onSharePhotoChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -858,13 +1192,62 @@ class _SeasonSpaceEditor extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 2),
+        _SpacePhotoPicker(
+          slot: 'season',
+          heading: 'ONE PHOTO FROM YOUR JOURNAL',
+          emptyLabel: 'No season photo',
+          emptyCopy: 'Add a photo to a Journal page and it can live here.',
+          notes: notes,
+          selectedNoteId: selectedNoteId,
+          onChanged: onPhotoChanged,
+        ),
+        const SizedBox(height: 9),
+        _SharedPhotoAudienceControl(
+          slot: 'season',
+          selected: sharePhoto,
+          hasPhoto: selectedNoteId != null,
+          visitorPageEnabled: visitorPageEnabled,
+          visitorCardSelected: visitorCardSelected,
+          activeCopy: 'Visible inside your shared This season card.',
+          onChanged: onSharePhotoChanged,
+        ),
+      ],
+    );
+  }
+}
+
+class _SpacePhotoPicker extends StatelessWidget {
+  const _SpacePhotoPicker({
+    required this.slot,
+    required this.heading,
+    required this.emptyLabel,
+    required this.emptyCopy,
+    required this.notes,
+    required this.selectedNoteId,
+    required this.onChanged,
+  });
+
+  final String slot;
+  final String heading;
+  final String emptyLabel;
+  final String emptyCopy;
+  final List<Note> notes;
+  final String? selectedNoteId;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
-          'ONE PHOTO FROM YOUR JOURNAL',
+          heading,
           style: Type.label.copyWith(fontSize: 9, color: Palette.textLo),
         ),
         const SizedBox(height: 7),
         OutlinedButton.icon(
-          onPressed: () => onPhotoChanged(null),
+          key: ValueKey('space-$slot-photo-none'),
+          onPressed: () => onChanged(null),
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(48, 48),
             foregroundColor: selectedNoteId == null
@@ -876,12 +1259,12 @@ class _SeasonSpaceEditor extends StatelessWidget {
                 ? Icons.check_circle_outline
                 : Icons.hide_image_outlined,
           ),
-          label: const Text('No season photo'),
+          label: Text(emptyLabel),
         ),
         if (notes.isEmpty) ...[
           const SizedBox(height: 8),
           Text(
-            'Add a photo to a Journal page and it can live here.',
+            emptyCopy,
             style: Type.body.copyWith(fontSize: 12.5, color: Palette.textLo),
           ),
         ] else ...[
@@ -894,11 +1277,11 @@ class _SeasonSpaceEditor extends StatelessWidget {
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
                 final note = notes[index];
-                final selected = selectedNoteId == note.id;
                 return _SeasonPhotoChoice(
+                  slot: slot,
                   note: note,
-                  selected: selected,
-                  onTap: () => onPhotoChanged(note.id),
+                  selected: selectedNoteId == note.id,
+                  onTap: () => onChanged(note.id),
                 );
               },
             ),
@@ -909,13 +1292,86 @@ class _SeasonSpaceEditor extends StatelessWidget {
   }
 }
 
+class _SharedPhotoAudienceControl extends StatelessWidget {
+  const _SharedPhotoAudienceControl({
+    required this.slot,
+    required this.selected,
+    required this.hasPhoto,
+    required this.visitorPageEnabled,
+    required this.visitorCardSelected,
+    required this.activeCopy,
+    required this.onChanged,
+  });
+
+  final String slot;
+  final bool selected;
+  final bool hasPhoto;
+  final bool visitorPageEnabled;
+  final bool visitorCardSelected;
+  final String activeCopy;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final active =
+        selected && hasPhoto && visitorPageEnabled && visitorCardSelected;
+    final subtitle = !hasPhoto
+        ? 'Choose a Journal photo first.'
+        : !selected
+        ? 'Only you can see this photo.'
+        : !visitorPageEnabled
+        ? 'Selected · your visitor page is closed.'
+        : !visitorCardSelected
+        ? 'Selected · share the This season card too.'
+        : activeCopy;
+    return Container(
+      decoration: facetedDecoration(
+        cut: 8,
+        color: active ? Palette.xp.withValues(alpha: 0.09) : Palette.glassFill,
+        borderColor: active
+            ? Palette.xp.withValues(alpha: 0.38)
+            : Palette.glassEdge,
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: SwitchListTile.adaptive(
+          key: ValueKey('space-$slot-photo-share-toggle'),
+          contentPadding: const EdgeInsets.fromLTRB(12, 3, 7, 3),
+          minTileHeight: 60,
+          value: selected && hasPhoto,
+          activeTrackColor: Palette.xp.withValues(alpha: 0.72),
+          onChanged: hasPhoto ? onChanged : null,
+          title: Text(
+            'Let visitors see this photo',
+            style: Type.body.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: hasPhoto ? Palette.textHi : Palette.textLo,
+            ),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: Type.body.copyWith(
+              fontSize: 11.2,
+              height: 1.3,
+              color: active ? Palette.textMid : Palette.textLo,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SeasonPhotoChoice extends StatelessWidget {
   const _SeasonPhotoChoice({
+    required this.slot,
     required this.note,
     required this.selected,
     required this.onTap,
   });
 
+  final String slot;
   final Note note;
   final bool selected;
   final VoidCallback onTap;
@@ -926,9 +1382,9 @@ class _SeasonPhotoChoice extends StatelessWidget {
       button: true,
       selected: selected,
       label:
-          'Season photo from ${MaterialLocalizations.of(context).formatMediumDate(note.at)}',
+          '${slot == 'profile' ? 'Profile' : 'Season'} photo from ${MaterialLocalizations.of(context).formatMediumDate(note.at)}',
       child: InkWell(
-        key: ValueKey('space-season-photo-${note.id}'),
+        key: ValueKey('space-$slot-photo-${note.id}'),
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
@@ -978,10 +1434,17 @@ class _SeasonPhotoChoice extends StatelessWidget {
 }
 
 class _SpaceArrangerActions extends StatelessWidget {
-  const _SpaceArrangerActions({required this.onCancel, required this.onSave});
+  const _SpaceArrangerActions({
+    required this.busy,
+    required this.error,
+    required this.onCancel,
+    required this.onSave,
+  });
 
-  final VoidCallback onCancel;
-  final VoidCallback onSave;
+  final bool busy;
+  final String? error;
+  final VoidCallback? onCancel;
+  final VoidCallback? onSave;
 
   @override
   Widget build(BuildContext context) {
@@ -998,29 +1461,61 @@ class _SpaceArrangerActions extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          TextButton(
-            onPressed: onCancel,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(72, 52),
-              foregroundColor: Palette.textMid,
-            ),
-            child: const Text('Cancel'),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: FilledButton.icon(
-              key: const ValueKey('space-arranger-save'),
-              onPressed: onSave,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                backgroundColor: Palette.xp,
-                foregroundColor: Palette.onHoney,
+          if (error != null) ...[
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                error!,
+                key: const ValueKey('space-arranger-save-error'),
+                textAlign: TextAlign.center,
+                style: Type.body.copyWith(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: Palette.danger,
+                ),
               ),
-              icon: const Icon(Icons.check_rounded),
-              label: const Text('Save page'),
             ),
+            const SizedBox(height: 7),
+          ],
+          Row(
+            children: [
+              TextButton(
+                onPressed: onCancel,
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(72, 52),
+                  foregroundColor: Palette.textMid,
+                ),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  key: const ValueKey('space-arranger-save'),
+                  onPressed: onSave,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(52),
+                    backgroundColor: Palette.xp,
+                    foregroundColor: Palette.onHoney,
+                  ),
+                  icon: busy
+                      ? const SizedBox.square(
+                          dimension: 17,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Palette.onHoney,
+                          ),
+                        )
+                      : const Icon(Icons.check_rounded),
+                  label: Text(
+                    busy ? 'Updating visitor page\u2026' : 'Save page',
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1036,6 +1531,7 @@ class MePage extends StatelessWidget {
     required this.state,
     required this.quests,
     required this.onPersist,
+    required this.onPublishRoom,
     required this.onAddQuest,
     required this.onExport,
     required this.onImport,
@@ -1056,6 +1552,10 @@ class MePage extends StatelessWidget {
 
   /// Persists the save after a domain journal edit.
   final VoidCallback onPersist;
+
+  /// Publishes a changed live visitor page and resolves only after the server
+  /// has acknowledged it. Private/layout-only changes never call this.
+  final SpaceRoomPublisher onPublishRoom;
 
   /// Adds a quest — used by a domain journal's "make this a quest".
   final bool Function(Quest quest) onAddQuest;
@@ -1091,12 +1591,8 @@ class MePage extends StatelessWidget {
   /// authored plate and light respond beneath them.
   final ValueListenable<Offset> parallax;
 
-  static final _privacyUrl = Uri.parse(
-    'https://emberkeep-5b33b.web.app/privacy.html',
-  );
-  static final _deletionUrl = Uri.parse(
-    'https://emberkeep-5b33b.web.app/delete-account.html',
-  );
+  static final _privacyUrl = Uri.parse(PublicLinks.privacy);
+  static final _deletionUrl = Uri.parse(PublicLinks.deleteAccount);
 
   static Future<void> _openPolicyPage(BuildContext context, Uri page) async {
     var opened = false;
@@ -1159,7 +1655,7 @@ class MePage extends StatelessWidget {
           window: state.windowScene,
           petAwake: state.streakDays > 0,
           emberGlow: flameHueFor(state),
-          heirloomFlame: state.creatureSkin == 'gilded',
+          heirloomFlame: heirloomFlameFor(state),
           level: state.level,
           memoryArtifacts: memoryArtifactCount(state, quests),
           parallax: state.reduceMotion ? null : parallax,
@@ -1180,6 +1676,7 @@ class MePage extends StatelessWidget {
           // as a nameplate into a grab bag of unrelated controls.
           _SpaceRail(
             embers: state.embers,
+            light: state.reduceMotion ? null : parallax,
             onChangeSpace: () {
               Sfx.instance.play('tick');
               Navigator.of(context).push(
@@ -1254,8 +1751,12 @@ class MePage extends StatelessWidget {
                         size: 18,
                         color: Palette.textMid,
                       ),
-                      onPressed: () =>
-                          _changePlayerName(context, state, onPersist),
+                      onPressed: () => _changePlayerName(
+                        context,
+                        state,
+                        onPersist,
+                        onPublishRoom,
+                      ),
                     ),
                   ],
                 ),
@@ -1360,7 +1861,8 @@ class MePage extends StatelessWidget {
 
           _PersonalSpacePanel(
             state: state,
-            onEdit: () => _personalizeSpace(context, state, onPersist),
+            onEdit: () =>
+                _personalizeSpace(context, state, onPersist, onPublishRoom),
           ),
           const SizedBox(height: 14),
 
@@ -1514,6 +2016,7 @@ class MePage extends StatelessWidget {
                           final rarity = cos?.rarity ?? Rarity.common;
                           final legendary = rarity == Rarity.legendary;
                           return GestureDetector(
+                            key: ValueKey('wardrobe-skin-$loot'),
                             onTap: () => _showSkinPreview(context, state, loot),
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 300),
@@ -2350,7 +2853,7 @@ class MePage extends StatelessWidget {
               Text(
                 'Level ${state.level}, ${state.totalXp} XP, every goal and '
                 'trophy — gone for good. Your cloud save and shared space go '
-                'too. Guest profiles are deleted; a linked sign-in stays '
+                'too when Room of Days can confirm the server. Guest profiles are deleted; a linked sign-in stays '
                 'until you use Delete account. Copy a backup first if unsure.',
                 textAlign: TextAlign.center,
                 style: Type.body.copyWith(
@@ -2605,8 +3108,8 @@ void _showAchievementInfo(
   );
 }
 
-/// Try-on a skin before wearing it: a big portrait shows the aura live, with
-/// the rarity + flavor and a wear/take-off toggle (customization you can see).
+/// Try on a found skin before wearing it: the room shows its actual hearth hue,
+/// with the rarity + flavor and a wear/take-off toggle.
 void _showSkinPreview(BuildContext context, GameState state, String loot) {
   final cos = cosmeticFor(loot);
   final tint = cos?.aura ?? Palette.unlock;
@@ -2633,6 +3136,7 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
                 SizedBox(
                   height: 150,
                   child: HomeRoom(
+                    key: ValueKey('skin-preview-room-$loot'),
                     lively: !state.reduceMotion,
                     unlocked: state.ownedFurniture,
                     wall: wallColorsFor(state),
@@ -2640,7 +3144,10 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
                     floor: floorColorsFor(state),
                     window: state.windowScene,
                     petAwake: true,
-                    emberGlow: tint,
+                    // Preview the same effective fire colour that WEAR THIS
+                    // applies everywhere else, not only the button/aura tint.
+                    emberGlow: flameHueById(loot),
+                    heirloomFlame: heirloomFlameById(loot),
                     level: state.level,
                   ),
                 ),
@@ -2748,6 +3255,7 @@ class _PersonalSpacePanel extends StatelessWidget {
       for (final note in state.journal)
         if (state.memoryPins.contains(note.id)) note,
     ].reversed.take(4).toList();
+    final profilePhoto = state.spaceProfilePhotoNote;
     Note? seasonPhoto;
     final selectedSeasonPhoto = state.spaceSeasonPhotoNoteId;
     if (selectedSeasonPhoto != null) {
@@ -2766,10 +3274,19 @@ class _PersonalSpacePanel extends StatelessWidget {
                 seasonPhoto != null))
           kind,
     ];
+    bool shared(SpaceCardKind kind) =>
+        state.shareSpaceProfile && state.visitorSpaceCards.contains(kind);
+    final sharedCount = state.shareSpaceProfile
+        ? state.visitorSpaceCards.length
+        : 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SpaceDeckHeading(shared: state.shareSpaceProfile, onEdit: onEdit),
+        _SpaceDeckHeading(
+          sharedCount: sharedCount,
+          visitorPageOpen: state.shareSpaceProfile,
+          onEdit: onEdit,
+        ),
         const SizedBox(height: 10),
         if (visibleOrder.isEmpty)
           _EmptySpaceDeck(onEdit: onEdit)
@@ -2779,18 +3296,26 @@ class _PersonalSpacePanel extends StatelessWidget {
             switch (visibleOrder[index]) {
               SpaceCardKind.about => _AboutSpaceCard(
                 intro: state.spaceIntro,
-                shared: state.shareSpaceProfile,
+                shared: shared(SpaceCardKind.about),
+                photo: profilePhoto,
+                photoShared:
+                    state.shareSpaceProfile && state.shareSpaceProfilePhoto,
               ),
               SpaceCardKind.rightNow => _RightNowSpaceCard(
                 goals: goals,
-                shared: state.shareSpaceProfile,
+                shared: shared(SpaceCardKind.rightNow),
               ),
               SpaceCardKind.pinnedMoments => _PinnedMomentsSpaceCard(
                 moments: moments,
+                shared: shared(SpaceCardKind.pinnedMoments),
               ),
               SpaceCardKind.thisSeason => _ThisSeasonSpaceCard(
                 text: state.spaceSeasonText,
                 photo: seasonPhoto,
+                shared: shared(SpaceCardKind.thisSeason),
+                photoShared:
+                    shared(SpaceCardKind.thisSeason) &&
+                    state.shareSpaceSeasonPhoto,
               ),
             },
           ],
@@ -2800,9 +3325,14 @@ class _PersonalSpacePanel extends StatelessWidget {
 }
 
 class _SpaceDeckHeading extends StatelessWidget {
-  const _SpaceDeckHeading({required this.shared, required this.onEdit});
+  const _SpaceDeckHeading({
+    required this.sharedCount,
+    required this.visitorPageOpen,
+    required this.onEdit,
+  });
 
-  final bool shared;
+  final int sharedCount;
+  final bool visitorPageOpen;
   final VoidCallback onEdit;
 
   @override
@@ -2836,14 +3366,17 @@ class _SpaceDeckHeading extends StatelessWidget {
         );
         final status = Container(
           key: const ValueKey('space-profile-visibility-status'),
-          constraints: const BoxConstraints(minHeight: 48),
+          constraints: BoxConstraints(
+            minHeight: 48,
+            maxWidth: compact ? constraints.maxWidth : 220,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: facetedDecoration(
             cut: 7,
-            color: shared
+            color: visitorPageOpen
                 ? Palette.xp.withValues(alpha: 0.11)
                 : Palette.glassFill,
-            borderColor: shared
+            borderColor: visitorPageOpen
                 ? Palette.xp.withValues(alpha: 0.40)
                 : Palette.glassEdge,
           ),
@@ -2851,17 +3384,23 @@ class _SpaceDeckHeading extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                shared ? Icons.visibility_outlined : Icons.lock_outline_rounded,
+                visitorPageOpen
+                    ? Icons.visibility_outlined
+                    : Icons.lock_outline_rounded,
                 size: 14,
-                color: shared ? Palette.xpLight : Palette.textLo,
+                color: visitorPageOpen ? Palette.xpLight : Palette.textLo,
               ),
               const SizedBox(width: 5),
-              Text(
-                shared ? 'PROFILE SHARED' : 'PRIVATE',
-                style: Type.label.copyWith(
-                  fontSize: 8.5,
-                  letterSpacing: 0.8,
-                  color: shared ? Palette.xpLight : Palette.textLo,
+              Flexible(
+                child: Text(
+                  visitorPageOpen ? '$sharedCount SHARED' : 'PRIVATE PAGE',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: 8.5,
+                    letterSpacing: 0.8,
+                    color: visitorPageOpen ? Palette.xpLight : Palette.textLo,
+                  ),
                 ),
               ),
             ],
@@ -2974,7 +3513,7 @@ class _SpaceCardPrivacyMark extends StatelessWidget {
           Flexible(
             child: Text(
               visitorEligible
-                  ? (largeText ? 'VISITORS MAY SEE' : 'VISITOR-ELIGIBLE')
+                  ? (largeText ? 'VISITORS CAN SEE' : 'SHARED WITH VISITORS')
                   : 'ONLY YOU',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -3053,10 +3592,17 @@ class _SpaceDeckCardHeader extends StatelessWidget {
 }
 
 class _AboutSpaceCard extends StatelessWidget {
-  const _AboutSpaceCard({required this.intro, required this.shared});
+  const _AboutSpaceCard({
+    required this.intro,
+    required this.shared,
+    required this.photo,
+    required this.photoShared,
+  });
 
   final String intro;
   final bool shared;
+  final Note? photo;
+  final bool photoShared;
 
   @override
   Widget build(BuildContext context) {
@@ -3096,11 +3642,11 @@ class _AboutSpaceCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _SpaceDeckCardHeader(
+              _SpaceDeckCardHeader(
                 icon: Icons.auto_stories_outlined,
                 title: 'ABOUT',
                 accent: Palette.xpLight,
-                visitorEligible: true,
+                visitorEligible: shared,
               ),
               const SizedBox(height: 12),
               Container(
@@ -3109,17 +3655,41 @@ class _AboutSpaceCard extends StatelessWidget {
                 color: Palette.xp.withValues(alpha: 0.66),
               ),
               const SizedBox(height: 10),
-              Text(
-                intro.isEmpty
-                    ? 'A few honest lines about you can live here.'
-                    : intro,
-                style: Type.body.copyWith(
-                  fontSize: 14,
-                  height: 1.5,
-                  fontStyle: intro.isEmpty ? FontStyle.italic : null,
-                  color: intro.isEmpty ? Palette.textMid : Palette.textHi,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (photo case final note?) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox.square(
+                        dimension: 82,
+                        child: journal_media.image(
+                          note.images.first,
+                          maxHeight: 82,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  Expanded(
+                    child: Text(
+                      intro.isEmpty
+                          ? 'A few honest lines about you can live here.'
+                          : intro,
+                      style: Type.body.copyWith(
+                        fontSize: 14,
+                        height: 1.5,
+                        fontStyle: intro.isEmpty ? FontStyle.italic : null,
+                        color: intro.isEmpty ? Palette.textMid : Palette.textHi,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+              if (photo != null) ...[
+                const SizedBox(height: 9),
+                _SpacePhotoVisibilityMark(shared: photoShared),
+              ],
               if (shared) ...[
                 const SizedBox(height: 10),
                 Text(
@@ -3179,11 +3749,11 @@ class _RightNowSpaceCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _SpaceDeckCardHeader(
+                _SpaceDeckCardHeader(
                   icon: Icons.flag_outlined,
                   title: 'RIGHT NOW',
                   accent: Palette.success,
-                  visitorEligible: true,
+                  visitorEligible: shared,
                 ),
                 const SizedBox(height: 9),
                 if (goals.isEmpty)
@@ -3262,9 +3832,10 @@ class _RightNowSpaceCard extends StatelessWidget {
 }
 
 class _PinnedMomentsSpaceCard extends StatelessWidget {
-  const _PinnedMomentsSpaceCard({required this.moments});
+  const _PinnedMomentsSpaceCard({required this.moments, required this.shared});
 
   final List<Note> moments;
+  final bool shared;
 
   @override
   Widget build(BuildContext context) {
@@ -3282,11 +3853,11 @@ class _PinnedMomentsSpaceCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SpaceDeckCardHeader(
+          _SpaceDeckCardHeader(
             icon: Icons.push_pin_outlined,
             title: 'PINNED MOMENTS',
             accent: Color(0xFFDDB296),
-            visitorEligible: false,
+            visitorEligible: shared,
           ),
           const SizedBox(height: 10),
           if (moments.isEmpty)
@@ -3386,10 +3957,17 @@ class _PinnedMomentTile extends StatelessWidget {
 }
 
 class _ThisSeasonSpaceCard extends StatelessWidget {
-  const _ThisSeasonSpaceCard({required this.text, required this.photo});
+  const _ThisSeasonSpaceCard({
+    required this.text,
+    required this.photo,
+    required this.shared,
+    required this.photoShared,
+  });
 
   final String text;
   final Note? photo;
+  final bool shared;
+  final bool photoShared;
 
   @override
   Widget build(BuildContext context) {
@@ -3424,16 +4002,21 @@ class _ThisSeasonSpaceCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                  Positioned(
+                    right: 10,
+                    bottom: 9,
+                    child: _SpacePhotoVisibilityMark(shared: photoShared),
+                  ),
                 ],
               ),
             ),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(15, 14, 15, 0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 14, 15, 0),
             child: _SpaceDeckCardHeader(
               icon: Icons.filter_vintage_outlined,
               title: 'THIS SEASON',
               accent: Palette.unlock,
-              visitorEligible: false,
+              visitorEligible: shared,
             ),
           ),
           Padding(
@@ -3454,6 +4037,43 @@ class _ThisSeasonSpaceCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SpacePhotoVisibilityMark extends StatelessWidget {
+  const _SpacePhotoVisibilityMark({required this.shared});
+
+  final bool shared;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+    decoration: facetedDecoration(
+      cut: 5,
+      color: const Color(0xD9261C17),
+      borderColor: shared
+          ? Palette.xp.withValues(alpha: 0.48)
+          : Palette.glassEdge,
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          shared ? Icons.public_rounded : Icons.lock_outline_rounded,
+          size: 12,
+          color: shared ? Palette.xpLight : Palette.textLo,
+        ),
+        const SizedBox(width: 5),
+        Text(
+          shared ? 'PHOTO · VISITORS' : 'PHOTO · ONLY YOU',
+          style: Type.label.copyWith(
+            fontSize: 7.5,
+            letterSpacing: 0.65,
+            color: shared ? Palette.xpLight : Palette.textLo,
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 /// A clear icon+label button for the Share / Visit space actions.
@@ -3859,7 +4479,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                         window: state.windowScene,
                         petAwake: true,
                         emberGlow: flameHueFor(state),
-                        heirloomFlame: state.creatureSkin == 'gilded',
+                        heirloomFlame: heirloomFlameFor(state),
                         level: state.level,
                         memoryArtifacts: widget.memoryArtifacts,
                       ),
@@ -4203,9 +4823,14 @@ class _ThemeSwatch extends StatelessWidget {
 /// Glimmers and the way into the complete-room chooser, on their own brass rail above the
 /// nameplate — the arrangement the approved Me target uses.
 class _SpaceRail extends StatelessWidget {
-  const _SpaceRail({required this.embers, required this.onChangeSpace});
+  const _SpaceRail({
+    required this.embers,
+    required this.onChangeSpace,
+    this.light,
+  });
   final int embers;
   final VoidCallback onChangeSpace;
+  final ValueListenable<Offset>? light;
 
   @override
   Widget build(BuildContext context) {
@@ -4233,6 +4858,7 @@ class _SpaceRail extends StatelessWidget {
       icon: Icons.meeting_room_outlined,
       fontSize: 10.5,
       glow: false,
+      light: light,
       onTap: onChangeSpace,
     );
     return Semantics(

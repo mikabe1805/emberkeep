@@ -3,6 +3,8 @@ import 'dart:ui' show Rect;
 
 import 'package:share_plus/share_plus.dart';
 
+enum ShareTextResult { shared, dismissed, unavailable }
+
 /// Native share (iOS/Android/desktop): hands the PNG to the OS share sheet
 /// via share_plus. The web build uses share_web.dart instead. Returns true on
 /// success; false (e.g. user dismissed) lets the caller fall back to text.
@@ -22,13 +24,17 @@ Future<bool> sharePng(Uint8List bytes, String filename, String text) async {
 
 /// Hand plain invitation copy to the system share sheet. WhatsApp and any
 /// other installed messaging apps appear naturally without hard-coding one.
-Future<bool> shareText(String text, {Rect? origin}) async {
+Future<ShareTextResult> shareText(String text, {Rect? origin}) async {
   try {
     final result = await SharePlus.instance.share(
       ShareParams(text: text, sharePositionOrigin: origin),
     );
-    return result.status != ShareResultStatus.dismissed;
+    return switch (result.status) {
+      ShareResultStatus.success => ShareTextResult.shared,
+      ShareResultStatus.dismissed => ShareTextResult.dismissed,
+      ShareResultStatus.unavailable => ShareTextResult.unavailable,
+    };
   } catch (_) {
-    return false;
+    return ShareTextResult.unavailable;
   }
 }

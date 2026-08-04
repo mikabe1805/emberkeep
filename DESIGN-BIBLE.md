@@ -455,24 +455,30 @@ Rules:
   Pinned moments, and This season may be reordered or hidden in a full-screen
   arranger without turning the Me page into a generic dashboard.
 - The cards use distinct physical roles: book-cloth introduction, recessed goal
-  plate, Journal shelf, and private seasonal postcard. An empty This season is
+  plate, Journal shelf, and seasonal postcard. An empty This season is
   omitted so an existing save keeps the original three-card rhythm.
 - About holds a short introduction, Right now holds up to three chosen goals,
   Pinned moments holds up to four Journal pages, and This season holds a short
   reflection with an optional photo selected from the Journal.
-- A visitor profile is private by default. Publishing it requires an explicit
-  choice; opting in exposes only the chosen name plus any visible About and
-  Right now content. Hiding either eligible card publishes its value empty
-  without erasing the private draft or silently changing consent.
-- Card order, hidden-card state, pinned writing and photo references, and This
-  season never enter the public room document. They remain part of the private
-  save and may follow the save only when optional cloud backup is enabled.
-- Journal writing and photos, Quest details, streak history, and account data
-  never enter a room payload. A six-character room code is a bearer invitation,
-  collection listing stays forbidden, and every visit explains the boundary.
+- A visitor page is private by default and has its own master door. Every card
+  has an independent visitor audience choice, separate from whether the owner
+  hides that card on their own page.
+- Publishing the visitor page exposes the chosen name, selected card order, and
+  only bounded content from those selected cards. About may share an intro,
+  Right now up to three goals, Pinned moments up to four pinned excerpts, and
+  This season its short reflection.
+- Journal photos stay on the keeper's device by default. A keeper may separately
+  allow one profile photo and one This season photo; only those selected images
+  enter the bounded visitor-media path and each can be withdrawn independently.
+  Unselected photos and writing, Journal identifiers, Quest details, streak
+  history, and account data never enter a room payload.
+- A six-character room code and its HTTPS invite link are bearer invitations.
+  Collection listing stays forbidden, and every visit explains the boundary.
 - A visited room can be kept in the trusted Circle only by an explicit action.
   Validation, loading, not-found, and retry states remain inside the room-code
   dialog so the person never waits on a blank screen.
+- Keeping a room leaves one private, text-free receipt for its owner. One-way
+  support remains fixed-copy and text-free; Circle is not an open chat surface.
 
 ### Goals
 
@@ -498,6 +504,12 @@ Rules:
   dashboard.
 - `ENTRIES · PATTERNS · CHRONICLE` remains stable.
 - The Then & Now beat returns a former self to the user.
+- Looking-back entries open as finished pages, not live text fields. A clear
+  Edit action deliberately crosses from reading into writing; structured night
+  entries return to their own structured editor.
+- A guided prompt and the keeper's response must remain visibly distinct even
+  when they share one persisted text block. Prompt styling never changes the
+  stored words or silently rewrites the keeper's answer.
 - Parchment and botanical detail are restrained physical context, not filler.
 - Evidence and analytics remain useful beneath the personal entry hierarchy.
 - Journal earns its place beside Notes by attaching the day's completed

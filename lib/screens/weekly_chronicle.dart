@@ -247,7 +247,7 @@ class _ChronicleCard extends StatelessWidget {
                         window: state.windowScene,
                         petAwake: data.litDays > 0,
                         emberGlow: flameHueFor(state),
-                        heirloomFlame: state.creatureSkin == 'gilded',
+                        heirloomFlame: heirloomFlameFor(state),
                       ),
                     ),
                   ),

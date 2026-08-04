@@ -189,10 +189,11 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     String heading = 'Journal',
     String hint = 'What’s on your mind today?',
     String? starter,
+    bool initiallyEditing = true,
   }) {
     Sfx.instance.play('tick');
     final night = entry?.night;
-    if (entry != null && night != null) {
+    if (entry != null && night != null && initiallyEditing) {
       return showNightReflectionSheet(
         context,
         initial: night,
@@ -203,7 +204,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       });
     }
     final trace = entry == null ? _todayTrace() : entry.trace;
-    Navigator.of(context).push(
+    return Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => JournalEntryScreen(
           initial: entry,
@@ -212,15 +213,38 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
           reduceMotion: _s.reduceMotion,
           heading: heading,
           hint: hint,
-          starter: starter,
+          starter: starter ?? _starterFor(entry),
           trace: trace,
+          initiallyEditing: initiallyEditing,
+          onEditRequested: entry != null && night != null
+              ? (readerContext) async {
+                  final data = await showNightReflectionSheet(
+                    readerContext,
+                    initial: night,
+                    reduceMotion: _s.reduceMotion,
+                  );
+                  if (!readerContext.mounted || data == null) return;
+                  _s.updateNightJournalEntry(entry, data);
+                  if (readerContext.mounted) {
+                    Navigator.of(readerContext).pop();
+                  }
+                }
+              : null,
           commit: (payload, existing, markEdited) =>
               _commit(payload, existing, markEdited, trace),
           onDelete: _deleteJournal,
         ),
       ),
     );
-    return Future<void>.value();
+  }
+
+  String? _starterFor(Note? entry) {
+    final source = entry?.sourceQuestKey;
+    if (source == null || source.isEmpty) return null;
+    for (final quest in widget.quests) {
+      if (quest.title == source) return quest.journalPrompt?.starter;
+    }
+    return null;
   }
 
   /// Insert-or-replace and hand the saved Note back so the editor keeps
@@ -930,8 +954,8 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     ),
   );
 
-  /// One entry as its own glass card slice — journal rows reopen the editor,
-  /// the rest open a read-only peek (they live on their quest/goal/domain).
+  /// One entry as its own glass card slice — journal rows open as a page to
+  /// read first; the rest use a peek (they live on their quest/goal/domain).
   Widget _card(_Entry e) {
     final photoOnly = e.note.text.isEmpty && e.note.images.isNotEmpty;
     final body = Padding(
@@ -965,6 +989,12 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                 label: _s.memoryPins.contains(e.note.id)
                     ? 'Remove from Keepsakes'
                     : 'Keep in Keepsakes',
+                onTap: () {
+                  final pinned = !_s.memoryPins.contains(e.note.id);
+                  _s.setMemoryPinned(e.note.id, pinned);
+                  Sfx.instance.play(pinned ? 'streak' : 'tick');
+                  HapticFeedback.selectionClick();
+                },
                 child: GestureDetector(
                   excludeFromSemantics: true,
                   behavior: HitTestBehavior.opaque,
@@ -1037,12 +1067,19 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         ],
       ),
     );
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => e.journal ? _openEditor(entry: e.note) : _peek(e),
-      child: GlassPanel(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
-        child: body,
+    return Semantics(
+      button: true,
+      label: e.journal ? 'Read journal entry' : 'Read ${e.source} note',
+      child: GestureDetector(
+        key: ValueKey('journal-card-${e.note.id}'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => e.journal
+            ? _openEditor(entry: e.note, initiallyEditing: false)
+            : _peek(e),
+        child: GlassPanel(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+          child: body,
+        ),
       ),
     );
   }

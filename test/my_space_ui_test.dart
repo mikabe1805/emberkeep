@@ -1,19 +1,33 @@
+import 'dart:async';
+
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/me.dart';
+import 'package:emberkeep/social.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _phoneSize = Size(430, 932);
 
-Widget _mePage(GameState state, VoidCallback onPersist) => Scaffold(
+Future<RoomPublishResult> _publishRoomSuccessfully(
+  GameState _, {
+  required String code,
+}) async => RoomPublishResult.success(code);
+
+Widget _mePage(
+  GameState state,
+  VoidCallback onPersist, {
+  SpaceRoomPublisher onPublishRoom = _publishRoomSuccessfully,
+}) => Scaffold(
   body: MePage(
     state: state,
     quests: const [],
     onPersist: onPersist,
+    onPublishRoom: onPublishRoom,
     onAddQuest: (_) => true,
     onExport: () async => true,
     onImport: (_) async => true,
@@ -30,15 +44,18 @@ Widget _mePage(GameState state, VoidCallback onPersist) => Scaffold(
 Future<void> _pumpMe(
   WidgetTester tester,
   GameState state,
-  VoidCallback onPersist,
-) async {
+  VoidCallback onPersist, {
+  SpaceRoomPublisher onPublishRoom = _publishRoomSuccessfully,
+}) async {
   tester.view.physicalSize = _phoneSize;
   tester.view.devicePixelRatio = 1;
   addTearDown(() {
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
   });
-  await tester.pumpWidget(MaterialApp(home: _mePage(state, onPersist)));
+  await tester.pumpWidget(
+    MaterialApp(home: _mePage(state, onPersist, onPublishRoom: onPublishRoom)),
+  );
   await tester.pump();
 }
 
@@ -134,7 +151,10 @@ void main() {
       intro: 'I am making room for slower mornings.',
       featuredGoalTitles: const ['Finish the essay'],
       seasonText: 'Learning how I want this semester to feel.',
+      profilePhotoNoteId: null,
       seasonPhotoNoteId: null,
+      shareProfilePhoto: false,
+      shareSeasonPhoto: false,
       shareProfile: false,
     );
 
@@ -164,6 +184,7 @@ void main() {
     final state = GameState()..reduceMotion = true;
     final originalOrder = state.spaceCardOrder.toList();
     final originalHidden = state.hiddenSpaceCards.toSet();
+    final originalVisitorCards = state.visitorSpaceCards.toSet();
     var persists = 0;
     var notifications = 0;
     state.addListener(() => notifications++);
@@ -174,6 +195,12 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('space-card-toggle-rightNow')));
     await tester.pump();
+    final sharePinned = find.byKey(
+      const ValueKey('space-card-share-pinnedMoments'),
+    );
+    await tester.ensureVisible(sharePinned);
+    await tester.tap(sharePinned);
+    await tester.pump();
     await _moveRightNowBeforeAbout(tester);
 
     await tester.tap(find.text('Cancel'));
@@ -182,6 +209,7 @@ void main() {
     expect(find.byKey(const ValueKey('space-arranger')), findsNothing);
     expect(state.spaceCardOrder, originalOrder);
     expect(state.hiddenSpaceCards, originalHidden);
+    expect(state.visitorSpaceCards, originalVisitorCards);
     expect(state.spaceIntro, isEmpty);
     expect(notifications, 0);
     expect(persists, 0);
@@ -209,6 +237,12 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('space-card-toggle-rightNow')));
     await tester.pump();
+    final sharePinned = find.byKey(
+      const ValueKey('space-card-share-pinnedMoments'),
+    );
+    await tester.ensureVisible(sharePinned);
+    await tester.tap(sharePinned);
+    await tester.pump();
     await _moveRightNowBeforeAbout(tester);
 
     await tester.tap(find.byKey(const ValueKey('space-arranger-save')));
@@ -222,8 +256,248 @@ void main() {
       SpaceCardKind.thisSeason,
     ]);
     expect(state.hiddenSpaceCards, {SpaceCardKind.rightNow});
+    expect(state.visitorSpaceCards, {
+      SpaceCardKind.about,
+      SpaceCardKind.rightNow,
+      SpaceCardKind.pinnedMoments,
+    });
     expect(state.spaceIntro, 'I am building a kinder semester.');
     expect(notifications, 1);
     expect(persists, 1);
+  });
+
+  testWidgets('profile photo needs an explicit visitor-photo switch', (
+    tester,
+  ) async {
+    final photo = Note(
+      id: 'profile-photo-source',
+      at: DateTime(2026, 8, 3),
+      text: 'A photo I chose.',
+      images: const ['journal/profile.jpg'],
+    );
+    final state = GameState()
+      ..reduceMotion = true
+      ..journal = [photo];
+    var persists = 0;
+
+    await _pumpMe(tester, state, () => persists++);
+    await _openArranger(tester);
+
+    final choice = find.byKey(
+      const ValueKey('space-profile-photo-profile-photo-source'),
+    );
+    await tester.ensureVisible(choice);
+    await tester.pumpAndSettle();
+    await tester.tap(choice);
+    await tester.pump();
+
+    expect(state.spaceProfilePhotoNoteId, isNull);
+    expect(state.shareSpaceProfilePhoto, isFalse);
+    final consent = find.byKey(
+      const ValueKey('space-profile-photo-share-toggle'),
+    );
+    await tester.ensureVisible(consent);
+    await tester.tap(consent);
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('space-arranger-save')));
+    await tester.pumpAndSettle();
+
+    expect(state.spaceProfilePhotoNoteId, photo.id);
+    expect(state.shareSpaceProfilePhoto, isTrue);
+    expect(persists, 1);
+  });
+
+  testWidgets(
+    'failed live privacy save keeps editor open and live state untouched',
+    (tester) async {
+      final state = GameState()
+        ..reduceMotion = true
+        ..roomCode = 'ABC234'
+        ..shareSpaceProfile = true
+        ..spaceIntro = 'This is currently public.';
+      var persists = 0;
+      var notifications = 0;
+      var publishes = 0;
+      Map<String, dynamic>? attempted;
+      state.addListener(() => notifications++);
+
+      await _pumpMe(
+        tester,
+        state,
+        () => persists++,
+        onPublishRoom: (target, {required code}) async {
+          publishes++;
+          attempted = roomDisplay(target);
+          expect(code, 'ABC234');
+          return const RoomPublishResult.failed(RoomPublishFailure.network);
+        },
+      );
+      await _openArranger(tester);
+
+      final audience = find.byKey(const ValueKey('space-card-share-about'));
+      await tester.ensureVisible(audience);
+      await tester.tap(audience);
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('space-arranger-save')));
+      await tester.pumpAndSettle();
+
+      expect(publishes, 1);
+      expect(attempted?['about'], isEmpty);
+      expect(attempted?['cardOrder'], isNot(contains('about')));
+      expect(find.byKey(const ValueKey('space-arranger')), findsOneWidget);
+      expect(
+        find.textContaining('previous version may still be visible'),
+        findsOneWidget,
+      );
+      expect(state.shareSpaceProfile, isTrue);
+      expect(state.visitorSpaceCards, contains(SpaceCardKind.about));
+      expect(state.spaceIntro, 'This is currently public.');
+      expect(notifications, 0);
+      expect(persists, 0);
+    },
+  );
+
+  testWidgets(
+    'live privacy save blocks duplicates and commits only after server ack',
+    (tester) async {
+      final state = GameState()
+        ..reduceMotion = true
+        ..roomCode = 'ABC234'
+        ..shareSpaceProfile = true
+        ..spaceIntro = 'This is currently public.';
+      final response = Completer<RoomPublishResult>();
+      var publishes = 0;
+      var persists = 0;
+      var notifications = 0;
+      state.addListener(() => notifications++);
+
+      await _pumpMe(
+        tester,
+        state,
+        () => persists++,
+        onPublishRoom: (target, {required code}) {
+          publishes++;
+          expect(code, 'ABC234');
+          final display = roomDisplay(target);
+          expect(display['about'], isEmpty);
+          return response.future;
+        },
+      );
+      await _openArranger(tester);
+
+      final audience = find.byKey(const ValueKey('space-card-share-about'));
+      await tester.ensureVisible(audience);
+      await tester.tap(audience);
+      await tester.pump();
+      final save = find.byKey(const ValueKey('space-arranger-save'));
+      await tester.tap(save);
+      await tester.pump();
+
+      expect(find.text('Updating visitor page\u2026'), findsOneWidget);
+      expect(publishes, 1);
+      expect(notifications, 0);
+      expect(persists, 0);
+      expect(state.visitorSpaceCards, contains(SpaceCardKind.about));
+
+      await tester.tap(save);
+      await tester.pump();
+      expect(publishes, 1);
+
+      response.complete(const RoomPublishResult.success('DEF234'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('space-arranger')), findsNothing);
+      expect(state.visitorSpaceCards, isNot(contains(SpaceCardKind.about)));
+      expect(state.roomCode, 'DEF234');
+      expect(persists, 1);
+    },
+  );
+
+  testWidgets('owner-only layout changes do not wait for room publication', (
+    tester,
+  ) async {
+    final state = GameState()
+      ..reduceMotion = true
+      ..roomCode = 'ABC234'
+      ..shareSpaceProfile = true;
+    var publishes = 0;
+    var persists = 0;
+
+    await _pumpMe(
+      tester,
+      state,
+      () => persists++,
+      onPublishRoom: (_, {required code}) async {
+        publishes++;
+        return RoomPublishResult.success(code);
+      },
+    );
+    await _openArranger(tester);
+
+    await tester.tap(find.byKey(const ValueKey('space-card-toggle-rightNow')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('space-arranger-save')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('space-arranger')), findsNothing);
+    expect(state.hiddenSpaceCards, contains(SpaceCardKind.rightNow));
+    expect(publishes, 0);
+    expect(persists, 1);
+  });
+
+  testWidgets('failed shared-name publish leaves the old public name intact', (
+    tester,
+  ) async {
+    final state = GameState()
+      ..reduceMotion = true
+      ..playerName = 'Old name'
+      ..roomCode = 'ABC234'
+      ..shareSpaceProfile = true;
+    final response = Completer<RoomPublishResult>();
+    var publishes = 0;
+    var persists = 0;
+
+    await _pumpMe(
+      tester,
+      state,
+      () => persists++,
+      onPublishRoom: (target, {required code}) {
+        publishes++;
+        expect(code, 'ABC234');
+        final display = roomDisplay(target);
+        expect(display['displayName'], 'New name');
+        return response.future;
+      },
+    );
+
+    await tester.tap(find.byTooltip('Change your name'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('space-name-field')),
+      'New name',
+    );
+    await tester.tap(find.text('Save name'));
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('space-name-publish-busy')),
+      findsOneWidget,
+    );
+    expect(state.playerName, 'Old name');
+    expect(publishes, 1);
+
+    response.complete(
+      const RoomPublishResult.failed(RoomPublishFailure.timedOut),
+    );
+    await tester.pumpAndSettle();
+
+    expect(state.playerName, 'Old name');
+    expect(persists, 0);
+    expect(
+      find.byKey(const ValueKey('space-name-publish-error')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('previous version'), findsOneWidget);
   });
 }

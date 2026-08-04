@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#191210">
   <title>Room of Days Privacy</title>
+  <link rel="canonical" href="https://roomofdays.com/privacy">
   <style>
     :root { color-scheme: dark; font-family: Inter, system-ui, sans-serif; }
     body { margin: 0; background: #191210; color: #f4eadb; line-height: 1.65; }
@@ -27,8 +28,9 @@
 
   <h2>Data on your device</h2>
   <p>Your quests, goals, progress, journal text, preferences, and space are stored
-    locally. Journal photos stay on your device and are not included in cloud
-    backup or shared spaces.</p>
+    locally. Journal photos are not included in cloud backup. They stay on your
+    device unless you separately choose one as a shared profile or This season
+    photo.</p>
 
   <h2>Cloud backup and optional account</h2>
   <p>Cloud backup is off by default. If you turn it on, Room of Days creates an
@@ -42,26 +44,48 @@
   <h2>Shared spaces</h2>
   <p>Sharing is optional. A shared space contains your level, an app-generated
     build title, preset room appearance, and a broad recent-activity state. Your
-    visitor profile is private by default. If you explicitly choose
-    <em>Show this page to visitors</em>, the shared space also contains the display
-    name, short introduction, and up to three goals you selected for that page.
-    Shared spaces never include quest details, journal entries or photos, streak
-    history, email, or account details. You can hide the visitor profile or stop
-    sharing from the same controls that show your code.</p>
+    visitor page is private by default. If you explicitly choose
+    <em>Open my visitor page</em>, the shared space also contains your display name
+    and only the profile cards you mark for visitors. About and Right now can
+    contain a short introduction and up to three selected goals. Pinned moments
+    and This season can contain bounded writing from those cards. You may also
+    separately allow one profile photo and one This season photo. Only those
+    selected images are uploaded to Firebase Cloud Storage; changing the photo,
+    turning its visitor access off, stopping sharing, resetting, or deleting the
+    account removes the corresponding shared object. Shared spaces never include
+    other journal photos or pages, quest details, streak history, email,
+    sign-in credentials, or account-profile details. The backend room record
+    carries an anonymous Firebase owner ID so security rules can restrict
+    changes to its owner; the same ID forms the private owner segment of a
+    selected photo's Storage path. Room of Days does not display that ID as
+    profile identity. Anyone with the room link can view the selected visitor
+    cards and selected photos until you turn them off or stop sharing. You can
+    close the visitor page, change any card or photo audience, or stop sharing
+    from the same controls that show your code.</p>
+
+  <p>If you keep someone else’s room in your Circle or send a preset support
+    signal, Firestore stores a fixed, text-free receipt with a timestamp and your
+    anonymous Firebase user ID. Only that room’s owner can read or clear it. No
+    custom message, profile text, or contact information is attached.</p>
 
   <h2>Deletion and control</h2>
   <p>You can export or reset your data from <em>Me → Your save is yours</em>.
     A reset removes on-device data, the cloud save, any shared space, and the
     anonymous Firebase identity used for guest backup; Room of Days then starts a
-    fresh blank guest profile. Signed-in users keep their login after a normal
+    fresh blank guest profile. If the network interrupts that cleanup, the app
+    keeps the old guest credential and opaque room code only long enough to
+    retry, rather than leaving shared data behind with no owner able to remove
+    it. Signed-in users keep their login after a normal
     reset and can permanently delete that account from
     <em>Me → Your account → Delete account</em>. See the
-    <a href="delete-account.html">account deletion guide</a>.</p>
+    <a href="/delete-account">account deletion guide</a>.</p>
 
   <h2>Permissions</h2>
   <p>Photo and camera access is used only when you choose to attach media to a
     journal entry. Notification permission is used only when you enable local
     reminders. Room of Days does not track you across apps or websites.</p>
+
+  <p><a href="/support">Get support</a>.</p>
 </main>
 </body>
 </html>

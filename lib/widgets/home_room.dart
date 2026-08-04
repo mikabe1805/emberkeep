@@ -10,6 +10,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../content/space_themes.dart';
 import '../tokens.dart';
 import 'facets.dart';
+import 'living_hearth_fire.dart';
 
 /// Room of Days' shared flame language: a graphic outer tongue in the purchased
 /// hue rising from a pale, white-hot base. Room hearth, HUD, candles, and shop
@@ -299,13 +300,50 @@ class _RoomGrain {
   }
 }
 
+/// Decoded copies of the registered painted fire frames for the canvas-based
+/// Me room. Quests renders the same assets as widgets; HomeRoom paints them
+/// directly so its one quantized room controller remains the sole ticker.
+class _RoomFireFrames {
+  static final frames = List<ui.Image?>.filled(hearthFireAssets.length, null);
+  static Future<void>? _loading;
+  static final ValueNotifier<int> version = ValueNotifier(0);
+
+  static void ensure() {
+    _loading ??= _loadAll();
+  }
+
+  static Future<void> preload() {
+    ensure();
+    return _loading!;
+  }
+
+  static Future<void> _loadAll() =>
+      Future.wait([for (var i = 0; i < hearthFireAssets.length; i++) _load(i)]);
+
+  static Future<void> _load(int index) async {
+    ui.Codec? codec;
+    try {
+      final bytes = await rootBundle.load(hearthFireAssets[index]);
+      codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List());
+      frames[index] = (await codec.getNextFrame()).image;
+      version.value++;
+    } catch (_) {
+      // A missing frame leaves the authored firebox safely unlit rather than
+      // substituting a mismatched procedural flame.
+    } finally {
+      codec?.dispose();
+    }
+  }
+}
+
 /// Painted room plates — one image per wall style in `assets/rooms/<id>.png`.
 ///
 /// The procedural room below is a flat elevation: a wall rect and a floor rect
 /// with decals on top. It has no perspective and no single light source, which
 /// is why it reads as an illustration of a room rather than a lit space. A
-/// plate is a painted interior with the geometry, the furniture, the fire AND
-/// its light baked in — see ROOM-PLATES.md for how they're generated.
+/// plate is a painted interior with the geometry, furniture, and ambient light
+/// baked in. Its firebox stays unlit so the shared live flame can carry the
+/// equipped wardrobe colour — see ROOM-PLATES.md for how plates are generated.
 ///
 /// Plates are optional and per-style. A wall style with no plate falls straight
 /// through to the painter, so the set can land one file at a time.
@@ -390,19 +428,27 @@ class _RoomPlate {
 /// painting contains, and this is the single place it assumes it. Measured off
 /// the approved board art; move it if a generated room puts the hearth
 /// somewhere else.
-const _plateHearth = Offset(0.83, 0.63);
+const _plateHearth = Offset(0.855, 0.64);
 
 /// Decodes the room's reusable raster textures before a deterministic capture.
 /// Live rooms still load lazily through [HomeRoom]; screenshot and share-card
 /// surfaces can await this to avoid recording the one-frame loading fallback.
 Future<void> preloadHomeRoomAssets() async {
-  await _RoomGrain.preload();
+  await Future.wait([_RoomGrain.preload(), _RoomFireFrames.preload()]);
   final ids = spaceThemes.map((theme) => theme.id);
   await Future.wait([
     _RoomPlate.preloadAll(ids),
     _RoomPlate.preloadAllPreviews(ids),
   ]);
 }
+
+/// Warms only the three small, shared fire frames after launch.
+///
+/// Unlike [preloadHomeRoomAssets], this does not decode every room theme. It
+/// lets the first visit to Me show the actual painted fire immediately instead
+/// of briefly showing an empty firebox while the rest of the app stays
+/// interactive.
+Future<void> preloadHearthFireFrames() => _RoomFireFrames.preload();
 
 /// Prepares one full room before a user moves into it, preventing a procedural
 /// fallback frame from flashing between two authored identities.
@@ -530,6 +576,7 @@ class _HomeRoomState extends State<HomeRoom>
   @override
   Widget build(BuildContext context) {
     _RoomGrain.ensure();
+    _RoomFireFrames.ensure();
     _RoomPlate.ensure(widget.plateId, preview: widget.lightweightPreview);
     final lively =
         widget.lively &&
@@ -557,6 +604,7 @@ class _HomeRoomState extends State<HomeRoom>
                 child: AnimatedBuilder(
                   animation: Listenable.merge([
                     _RoomGrain.version,
+                    _RoomFireFrames.version,
                     _RoomPlate.version,
                     ?life,
                     ?widget.parallax,
@@ -582,6 +630,7 @@ class _HomeRoomState extends State<HomeRoom>
                         _RoomGrain.wall,
                         _RoomGrain.floor,
                         _RoomGrain.tapestry,
+                        _RoomFireFrames.frames,
                         t,
                         _RoomPlate.displayOf(
                           widget.plateId,
@@ -625,6 +674,7 @@ class _RoomPainter extends CustomPainter {
     this.wallGrain,
     this.floorGrain,
     this.tapestryImage,
+    List<ui.Image?> fireFrames,
     this.t,
     this.plate,
     this.parallax,
@@ -634,7 +684,8 @@ class _RoomPainter extends CustomPainter {
     // painter and the new one would hold the SAME instance, so an identity
     // compare in shouldRepaint went blind to purchases. A copy here plus
     // setEquals below compares what actually matters: the contents.
-    : unlocked = Set.of(unlocked);
+    : unlocked = Set.of(unlocked),
+      fireFrames = List.of(fireFrames);
   final Set<String> unlocked;
   final List<Color> wall;
   final List<Color> floor;
@@ -663,6 +714,7 @@ class _RoomPainter extends CustomPainter {
   final ui.Image? wallGrain;
   final ui.Image? floorGrain;
   final ui.Image? tapestryImage;
+  final List<ui.Image?> fireFrames;
   bool has(String id) => unlocked.contains(id);
 
   /// softLight-tile [img] over [rect] — the grain pass. The texture is
@@ -985,8 +1037,8 @@ class _RoomPainter extends CustomPainter {
     );
     final px = parallax.dx.clamp(-1.0, 1.0).toDouble();
     final py = parallax.dy.clamp(-1.0, 1.0).toDouble();
-    // Enough real image beyond the crop for a visible, weighty camera drift.
-    // The entire plate still moves intact, so stronger motion does not
+    // Enough real image beyond the crop for a clearly legible, weighty camera
+    // drift. The entire plate still moves intact, so stronger motion does not
     // reintroduce the cut-window/chair seam from the old sampled approach.
     final overscan = w * 0.045;
     final plateRect = Rect.fromLTWH(
@@ -995,7 +1047,7 @@ class _RoomPainter extends CustomPainter {
       w + overscan * 2,
       h + overscan * 2,
     );
-    final roomShift = Offset(-px * w * 0.0145, -py * h * 0.022);
+    final roomShift = Offset(-px * w * 0.030, -py * h * 0.038);
     final samplePaint = Paint()..filterQuality = FilterQuality.medium;
 
     canvas.drawImageRect(img, src, plateRect.shift(roomShift), samplePaint);
@@ -1003,7 +1055,7 @@ class _RoomPainter extends CustomPainter {
     // A cool window reflection and a warmer room key move at different rates
     // across the intact painting. That material response supplies the depth
     // cue without turning any object into a visible paper cut-out.
-    final windowAt = Offset(w * (0.14 + px * 0.022), h * (0.23 + py * 0.014));
+    final windowAt = Offset(w * (0.14 + px * 0.038), h * (0.23 + py * 0.028));
     canvas.drawCircle(
       windowAt,
       w * 0.34,
@@ -1017,7 +1069,7 @@ class _RoomPainter extends CustomPainter {
 
     // A moving key-light veil unifies the depth samples. It is too faint to
     // recolour the art; it only makes the authored planes catch light together.
-    final lightAt = Offset(w * (0.48 + px * 0.055), h * (0.30 + py * 0.035));
+    final lightAt = Offset(w * (0.48 + px * 0.085), h * (0.30 + py * 0.060));
     canvas.drawRect(
       Rect.fromLTWH(0, 0, w, h),
       Paint()
@@ -1032,18 +1084,19 @@ class _RoomPainter extends CustomPainter {
         ).createShader(Rect.fromCircle(center: lightAt, radius: w * 0.62)),
     );
 
-    // The plate owns every fixture and its cast light. Keeping those pixels
-    // intact avoids guessed glows floating over differently furnished themes.
-    // Every complete room includes a working hearth; it never has to be bought
-    // before the room is allowed to feel warm.
+    // The plate owns every fixture and the room's ambient light. The firebox is
+    // deliberately unlit; the shared live flame and its subtle colored bounce
+    // below complete the hearth for every room identity.
 
     // the hearth breathing. Two offset sines so the loop never reads as a
     // metronome, and a floor of 0.55 so it glows rather than blinks.
     final breath =
         0.55 + 0.30 * sin(t * 2 * pi * 2) + 0.15 * sin(t * 2 * pi * 3 + 1.1);
-    final at =
-        Offset(w * _plateHearth.dx, h * _plateHearth.dy) + roomShift * 0.72;
+    // The live flame tracks the plate camera exactly so the stronger travel
+    // never lets it slide loose from the authored firebox.
+    final at = Offset(w * _plateHearth.dx, h * _plateHearth.dy) + roomShift;
     final glow = emberGlow ?? const Color(0xFFE8915A);
+
     final radius = w * 0.30;
     canvas.drawCircle(
       at,
@@ -1073,59 +1126,42 @@ class _RoomPainter extends CustomPainter {
         ).createShader(Rect.fromCircle(center: at, radius: w * 0.075)),
     );
 
-    // The plate contains the beautifully painted fire, but a baked flame alone
-    // cannot feel alive. Three very low-opacity tongues from Room of Days'
-    // established flame painter move inside that existing firebox. Screen
-    // compositing preserves the authored texture underneath instead of
-    // replacing it with a new graphic.
-    final flameSway =
-        sin(t * pi * 4.0) * w * 0.004 + sin(t * pi * 6.0 + 0.8) * w * 0.002;
-    final flameBounds = Rect.fromCenter(
-      center: at.translate(0, h * 0.020),
-      width: w * 0.105,
-      height: h * (0.15 + 0.012 * breath),
-    );
-    canvas.saveLayer(
-      flameBounds.inflate(w * 0.03),
-      Paint()..blendMode = BlendMode.screen,
-    );
-    paintEmberFlame(
-      canvas,
-      Rect.fromLTWH(
-        flameBounds.left,
-        flameBounds.top + flameBounds.height * 0.12,
-        flameBounds.width * 0.48,
-        flameBounds.height * 0.88,
-      ),
-      glow,
-      lean: flameSway,
-      intensity: 0.18 * breath,
-    );
-    paintEmberFlame(
-      canvas,
-      Rect.fromLTWH(
-        flameBounds.left + flameBounds.width * 0.28,
-        flameBounds.top,
-        flameBounds.width * 0.50,
-        flameBounds.height,
-      ),
-      glow,
-      lean: -flameSway * 0.75,
-      intensity: 0.22 * breath,
-    );
-    paintEmberFlame(
-      canvas,
-      Rect.fromLTWH(
-        flameBounds.left + flameBounds.width * 0.56,
-        flameBounds.top + flameBounds.height * 0.18,
-        flameBounds.width * 0.40,
-        flameBounds.height * 0.82,
-      ),
-      glow,
-      lean: flameSway * 0.55,
-      intensity: 0.16 * breath,
-    );
-    canvas.restore();
+    // Replace the detached procedural tongues with the same registered,
+    // painterly three-frame fire used on Quests. Crossfading keeps the logs
+    // anchored while the flame silhouette changes; the shared hue filter
+    // preserves the cream-hot base and the original brush texture.
+    final frame = hearthFireFrameAt(t);
+    final current = fireFrames[frame.current];
+    final next = fireFrames[frame.next];
+    if (current != null && next != null) {
+      final sway =
+          sin(t * pi * 4.0) * w * 0.0024 + sin(t * pi * 6.0 + 0.8) * w * 0.0012;
+      final flameBreath = 0.994 + sin(t * pi * 6 + 0.2) * 0.006;
+      final flameBounds = Rect.fromCenter(
+        center: at.translate(sway + w * 0.004, -h * 0.010),
+        width: w * 0.125 / flameBreath,
+        height: h * 0.165 * flameBreath,
+      );
+      final colorFilter = hearthFireColorFilter(glow);
+      paintImage(
+        canvas: canvas,
+        rect: flameBounds,
+        image: current,
+        fit: BoxFit.fill,
+        opacity: 1 - frame.blend,
+        colorFilter: colorFilter,
+        filterQuality: FilterQuality.medium,
+      );
+      paintImage(
+        canvas: canvas,
+        rect: flameBounds,
+        image: next,
+        fit: BoxFit.fill,
+        opacity: frame.blend,
+        colorFilter: colorFilter,
+        filterQuality: FilterQuality.medium,
+      );
+    }
 
     // Warm light skates over the nearest floor plane instead of ending as a
     // circular glow. The thin angular reflection is what makes the fireplace
@@ -3275,6 +3311,7 @@ class _RoomPainter extends CustomPainter {
       old.level != level ||
       old.memoryArtifacts != memoryArtifacts ||
       old.tapestryImage != tapestryImage ||
+      !listEquals(old.fireFrames, fireFrames) ||
       old.wallGrain != wallGrain ||
       old.floorGrain != floorGrain ||
       old.plate != plate ||

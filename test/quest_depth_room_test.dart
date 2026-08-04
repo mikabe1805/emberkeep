@@ -67,6 +67,13 @@ void main() {
       xTravel('quest-depth-furniture-plane'),
       lessThan(xTravel('quest-depth-foreground-plane')),
     );
+    expect(
+      xTravel('quest-depth-foreground-plane') -
+          xTravel('quest-depth-far-plane'),
+      greaterThan(10),
+      reason:
+          'a normal tilt should create immediately legible plane separation',
+    );
 
     final fire = find.byKey(const ValueKey('quest-depth-fire'));
     final firstPainter = tester.widget<CustomPaint>(fire).painter;
@@ -79,6 +86,22 @@ void main() {
     await tester.pumpWidget(room(lively: false));
     await tester.pump();
     final parkedPainter = tester.widget<CustomPaint>(fire).painter;
+
+    // Scrolling must not make a room counter-slide for someone who explicitly
+    // chose Reduce Motion. The board itself may still scroll normally.
+    scroll.value = 180;
+    await tester.pump();
+    for (final key in const [
+      'quest-depth-far-plane',
+      'quest-depth-wall-plane',
+      'quest-depth-furniture-plane',
+      'quest-depth-foreground-plane',
+    ]) {
+      final transform = tester.widget<Transform>(find.byKey(ValueKey(key)));
+      final translation = transform.transform.getTranslation();
+      expect(translation.x, 0);
+      expect(translation.y, 0);
+    }
 
     await tester.pump(const Duration(milliseconds: 700));
 

@@ -29,8 +29,9 @@ class JournalPayload {
 /// The full-page journal editor (round-53) — a whole page you really write on,
 /// with photos you can drop between paragraphs the way a notes app does. It
 /// AUTOSAVES as you go (debounced + on the way out), so you can leave and come
-/// back to keep writing. Photos are kept on-device (a free app can't sync images
-/// for free) — said plainly in the composer, never implied to follow the cloud.
+/// back to keep writing. Photos are kept on-device by default and never join a
+/// cloud backup. A separately selected profile/season photo may be uploaded by
+/// the explicit visitor-page flow; the composer never implies automatic sync.
 ///
 /// Persistence stays at the call site: [commit] inserts-or-replaces and returns
 /// the saved [Note]; an emptied entry is removed via [onDelete].
@@ -47,6 +48,8 @@ class JournalEntryScreen extends StatefulWidget {
     this.hint = 'Start writing…',
     this.starter,
     this.trace,
+    this.initiallyEditing = true,
+    this.onEditRequested,
   });
 
   final Note? initial;
@@ -60,8 +63,18 @@ class JournalEntryScreen extends StatefulWidget {
   final String hint;
   final JournalTrace? trace;
 
+  /// Existing entries can open as a page to read before any editing controls
+  /// appear. Brand-new entries always open ready to write.
+  final bool initiallyEditing;
+
+  /// Structured journal pages (currently the closing reflection) keep their
+  /// own editor. When supplied, the read page's Edit action opens that flow
+  /// instead of turning this block document editable.
+  final Future<void> Function(BuildContext context)? onEditRequested;
+
   /// Optional first line for a guided entry. It is not saved by merely opening
-  /// the page; once the user writes, it becomes an ordinary journal paragraph.
+  /// the page; once the user writes, it remains ordinary stored text while the
+  /// exact starter prefix is painted distinctly from their answer.
   final String? starter;
 
   @override
@@ -71,9 +84,13 @@ class JournalEntryScreen extends StatefulWidget {
 /// One editable block: a text paragraph (its own controller + focus) or an
 /// inline image (a stored relative filename).
 class _Block {
-  _Block.text(String t)
+  _Block.text(String t, {String? promptPrefix, Color? promptColor})
     : image = null,
-      controller = TextEditingController(text: t),
+      controller = _JournalTextController(
+        text: t,
+        promptPrefix: promptPrefix,
+        promptColor: promptColor,
+      ),
       focus = FocusNode();
   _Block.image(this.image) : controller = null, focus = null;
 
@@ -85,6 +102,81 @@ class _Block {
   void dispose() {
     controller?.dispose();
     focus?.dispose();
+  }
+}
+
+/// Paints a guided starter differently while leaving the controller text —
+/// and therefore the serialized Journal document — completely unchanged.
+class _JournalTextController extends TextEditingController {
+  _JournalTextController({
+    required String text,
+    this.promptPrefix,
+    this.promptColor,
+  }) : super(text: text);
+
+  final String? promptPrefix;
+  final Color? promptColor;
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    final prompt = promptPrefix;
+    if (prompt == null || prompt.isEmpty || !text.startsWith(prompt)) {
+      return super.buildTextSpan(
+        context: context,
+        style: style,
+        withComposing: withComposing,
+      );
+    }
+
+    final composing = withComposing && value.isComposingRangeValid
+        ? value.composing
+        : TextRange.empty;
+    final boundaries = <int>{0, prompt.length, text.length};
+    if (!composing.isCollapsed) {
+      boundaries
+        ..add(composing.start)
+        ..add(composing.end);
+    }
+    final ordered = boundaries.toList()..sort();
+    final promptStyle =
+        style?.copyWith(
+          color: promptColor,
+          fontStyle: FontStyle.italic,
+          fontWeight: FontWeight.w600,
+        ) ??
+        TextStyle(
+          color: promptColor,
+          fontStyle: FontStyle.italic,
+          fontWeight: FontWeight.w600,
+        );
+
+    return TextSpan(
+      style: style,
+      children: [
+        for (var index = 0; index < ordered.length - 1; index++)
+          if (ordered[index] < ordered[index + 1])
+            TextSpan(
+              text: text.substring(ordered[index], ordered[index + 1]),
+              style:
+                  (ordered[index] < prompt.length
+                          ? promptStyle
+                          : const TextStyle())
+                      .merge(
+                        !composing.isCollapsed &&
+                                ordered[index] >= composing.start &&
+                                ordered[index] < composing.end
+                            ? const TextStyle(
+                                decoration: TextDecoration.underline,
+                              )
+                            : null,
+                      ),
+            ),
+      ],
+    );
   }
 }
 
@@ -298,6 +390,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   Note? _current;
   bool _dirty = false;
   bool _everSaved = false;
+  late bool _editing;
   int _words = 0;
   _Block? _active; // where the cursor last was (photo inserts after it)
 
@@ -319,12 +412,13 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     WidgetsBinding.instance.addObserver(this);
     _current = widget.initial;
     _everSaved = widget.initial != null;
+    _editing = widget.initial == null || widget.initiallyEditing;
     _initBlocks();
     // remember exactly what we loaded, so re-saving identical content is a
     // no-op and never stamps "edited"
     _committedRich = JournalDoc.encode(_toDoc(trim: true));
     _words = _countWords();
-    if (widget.initial == null) {
+    if (_editing && widget.initial == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _blocks.isNotEmpty) _blocks.first.focus?.requestFocus();
       });
@@ -358,10 +452,25 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
         (widget.starter?.trim().isNotEmpty ?? false)) {
       doc = [JournalBlock.text(widget.starter!)];
     }
+    var textIndex = 0;
     for (final b in doc) {
+      final isPrompt =
+          !b.isImage &&
+          textIndex == 0 &&
+          (widget.starter?.isNotEmpty ?? false) &&
+          (b.text?.startsWith(widget.starter!) ?? false);
       _blocks.add(
-        b.isImage ? _Block.image(b.image!) : _Block.text(b.text ?? ''),
+        b.isImage
+            ? _Block.image(b.image!)
+            : _Block.text(
+                b.text ?? '',
+                promptPrefix: isPrompt ? widget.starter : null,
+                promptColor: isPrompt
+                    ? widget.accent.withValues(alpha: 0.92)
+                    : null,
+              ),
       );
+      if (!b.isImage) textIndex++;
     }
     // always end on a text block so there's somewhere to keep writing
     if (_blocks.isEmpty || _blocks.last.isImage) _blocks.add(_Block.text(''));
@@ -416,7 +525,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   }
 
   int get _starterWords {
-    if (widget.initial != null || widget.starter == null) return 0;
+    if (widget.starter == null) return 0;
     if (_blocks.isEmpty ||
         _blocks.first.isImage ||
         !_blocks.first.controller!.text.startsWith(widget.starter!)) {
@@ -490,6 +599,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
 
   /// Puts the cursor at the end of the last paragraph (tap-anywhere-to-write).
   void _focusTail() {
+    if (!_editing) return;
     final tail = _blocks.lastWhere(
       (b) => !b.isImage,
       orElse: () => _blocks.last,
@@ -499,6 +609,20 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     _active = tail;
     tail.focus?.requestFocus();
     c.selection = TextSelection.collapsed(offset: c.text.length);
+  }
+
+  Future<void> _beginEditing() async {
+    Sfx.instance.play('tick');
+    final externalEditor = widget.onEditRequested;
+    if (externalEditor != null) {
+      await externalEditor(context);
+      return;
+    }
+    if (!mounted || _editing) return;
+    setState(() => _editing = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focusTail();
+    });
   }
 
   Future<void> _addPhoto(bool fromCamera) async {
@@ -619,10 +743,25 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
         b.dispose();
       }
       _blocks.clear();
+      var textIndex = 0;
       for (final jb in doc) {
+        final isPrompt =
+            !jb.isImage &&
+            textIndex == 0 &&
+            (widget.starter?.isNotEmpty ?? false) &&
+            (jb.text?.startsWith(widget.starter!) ?? false);
         _blocks.add(
-          jb.isImage ? _Block.image(jb.image!) : _Block.text(jb.text ?? ''),
+          jb.isImage
+              ? _Block.image(jb.image!)
+              : _Block.text(
+                  jb.text ?? '',
+                  promptPrefix: isPrompt ? widget.starter : null,
+                  promptColor: isPrompt
+                      ? widget.accent.withValues(alpha: 0.92)
+                      : null,
+                ),
         );
+        if (!jb.isImage) textIndex++;
       }
       if (_blocks.isEmpty || _blocks.last.isImage) {
         _blocks.add(_Block.text(''));
@@ -810,7 +949,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                                     // including the space below the last paragraph.
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.translucent,
-                                      onTap: _focusTail,
+                                      onTap: _editing ? _focusTail : null,
                                       child: ListView.builder(
                                         padding: const EdgeInsets.fromLTRB(
                                           20,
@@ -853,7 +992,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       padding: const EdgeInsets.fromLTRB(18, 13, 14, 9),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          if (kIsWeb) {
+          if (kIsWeb || !_editing) {
             return Align(alignment: Alignment.centerLeft, child: when);
           }
           final stacked =
@@ -978,46 +1117,51 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
               clipper: const FacetedClipper(cut: 12),
               child: media.image(b.image!),
             ),
-            Positioned(
-              top: 2,
-              right: 2,
-              child: Semantics(
-                button: true,
-                label: 'Remove photo',
-                excludeSemantics: true,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
+            if (_editing)
+              Positioned(
+                top: 2,
+                right: 2,
+                child: Semantics(
+                  button: true,
+                  label: 'Remove photo',
                   onTap: () => _removeImage(b),
-                  // A generous transparent margin around the dot keeps the
-                  // destructive target at 48px; Undo remains available.
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    color: Colors.transparent,
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _removeImage(b),
+                    // A generous transparent margin around the dot keeps the
+                    // destructive target at 48px; Undo remains available.
                     child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: facetedDecoration(
-                        cut: 6,
-                        color: Color(0x99140C06),
-                        borderColor: Palette.glassEdge,
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        size: 16,
-                        color: Palette.textHi,
+                      padding: const EdgeInsets.all(10),
+                      color: Colors.transparent,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: facetedDecoration(
+                          cut: 6,
+                          color: Color(0x99140C06),
+                          borderColor: Palette.glassEdge,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          size: 16,
+                          color: Palette.textHi,
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       );
     }
     return TextField(
+      key: first ? const ValueKey('journal-entry-body') : null,
       controller: b.controller,
       focusNode: b.focus,
-      onTap: () => _active = b,
+      readOnly: !_editing,
+      showCursor: _editing,
+      onTap: _editing ? () => _active = b : null,
       maxLines: null,
       textCapitalization: TextCapitalization.sentences,
       keyboardType: TextInputType.multiline,
@@ -1081,6 +1225,9 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     final back = Semantics(
       button: true,
       label: 'Back',
+      onTap: () {
+        Navigator.of(context).maybePop();
+      },
       excludeSemantics: true,
       child: SizedBox.square(
         dimension: 48,
@@ -1100,6 +1247,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
         : Semantics(
             button: true,
             label: 'Delete entry',
+            onTap: _confirmDelete,
             excludeSemantics: true,
             child: SizedBox.square(
               dimension: 48,
@@ -1114,6 +1262,36 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
               ),
             ),
           );
+    final edit = Semantics(
+      key: const ValueKey('journal-entry-edit'),
+      button: true,
+      label: 'Edit journal entry',
+      onTap: _beginEditing,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _beginEditing,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 72),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.edit_outlined, size: 17, color: widget.accent),
+              const SizedBox(width: 6),
+              Text(
+                'EDIT',
+                style: Type.label.copyWith(
+                  fontSize: 11,
+                  letterSpacing: 1.1,
+                  color: widget.accent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 6, 12, 2),
       child: LayoutBuilder(
@@ -1153,10 +1331,14 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
           if (stacked) {
             return Column(
               children: [
-                Row(children: [back, heading, remove]),
-                Align(alignment: Alignment.centerRight, child: meta),
+                Row(children: [back, heading, _editing ? remove : edit]),
+                if (_editing)
+                  Align(alignment: Alignment.centerRight, child: meta),
               ],
             );
+          }
+          if (!_editing) {
+            return Row(children: [back, heading, edit]);
           }
           return Row(
             children: [
@@ -1176,12 +1358,13 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   Widget _photoAction() {
     final photoCount = _blocks.where((b) => b.isImage).length;
     final semantics = photoCount == 0
-        ? 'Add photos to this journal entry. Photos stay on this device.'
-        : 'Add more photos to this journal entry. $photoCount ${photoCount == 1 ? 'photo' : 'photos'} on this page. Photos stay on this device.';
+        ? 'Add photos to this journal entry. Photos stay on this device unless you separately share one on your visitor page.'
+        : 'Add more photos to this journal entry. $photoCount ${photoCount == 1 ? 'photo' : 'photos'} on this page. Photos stay on this device unless you separately share one on your visitor page.';
     return Semantics(
       key: const ValueKey('journal-photo-action'),
       button: true,
       label: semantics,
+      onTap: _pickPhotoSource,
       excludeSemantics: true,
       child: Tooltip(
         message: 'Add photos',

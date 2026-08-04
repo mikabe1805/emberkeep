@@ -382,6 +382,7 @@ class _KitCard extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     button: true,
     label: '${kit.title}. ${kit.promise}',
+    onTap: onTap,
     child: GestureDetector(
       excludeFromSemantics: true,
       behavior: HitTestBehavior.opaque,
@@ -943,6 +944,11 @@ class _ChoiceRow<T> extends StatelessWidget {
         Semantics(
           button: true,
           selected: option == selected,
+          onTap: () {
+            Sfx.instance.play('tick');
+            HapticFeedback.selectionClick();
+            onChanged(option);
+          },
           child: GestureDetector(
             excludeFromSemantics: true,
             onTap: () {
@@ -998,6 +1004,11 @@ class _CapacityPicker extends StatelessWidget {
             button: true,
             selected: i == value,
             label: '$i ${i == 1 ? 'step' : 'steps'}',
+            onTap: () {
+              Sfx.instance.play('tick');
+              HapticFeedback.selectionClick();
+              onChanged(i);
+            },
             child: GestureDetector(
               excludeFromSemantics: true,
               onTap: () {
@@ -1051,6 +1062,7 @@ class _LaunchButton extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     button: true,
     label: label,
+    onTap: onTap,
     child: GestureDetector(
       excludeFromSemantics: true,
       behavior: HitTestBehavior.opaque,

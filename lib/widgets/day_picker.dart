@@ -64,6 +64,11 @@ class _WeekdaySheet extends StatefulWidget {
 class _WeekdaySheetState extends State<_WeekdaySheet> {
   late int _sel = widget.initial;
 
+  void _chooseDay(int day) {
+    Sfx.instance.play('tick');
+    setState(() => _sel = day);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -96,13 +101,11 @@ class _WeekdaySheetState extends State<_WeekdaySheet> {
                       button: true,
                       selected: _sel == d,
                       label: _dayNames[d - 1],
+                      onTap: () => _chooseDay(d),
                       child: GestureDetector(
                         excludeFromSemantics: true,
                         behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          Sfx.instance.play('tick');
-                          setState(() => _sel = d);
-                        },
+                        onTap: () => _chooseDay(d),
                         child: Container(
                           width: 44,
                           height: 44,

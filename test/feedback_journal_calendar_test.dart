@@ -102,17 +102,33 @@ void main() {
         tester.view.resetDevicePixelRatio();
         tester.platformDispatcher.clearTextScaleFactorTestValue();
       });
-      const entryText = 'Mom and I walked by the river after dinner.';
+      const starter = 'One small win today:\n';
+      const entryText = '${starter}Mom and I walked by the river.';
+      final quest = Quest(
+        title: 'Notice a win',
+        stat: Stat.intl,
+        difficulty: 1,
+        journalPrompt: const JournalQuestPrompt(
+          starter: starter,
+          hint: 'What went a little better?',
+        ),
+      );
       final state = GameState()
         ..reduceMotion = true
-        ..journal = [Note(at: DateTime(2026, 8, 2, 8, 30), text: entryText)];
+        ..journal = [
+          Note(
+            at: DateTime(2026, 8, 2, 8, 30),
+            text: entryText,
+            sourceQuestKey: quest.title,
+          ),
+        ];
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: CalendarPage(
               state: state,
-              quests: const [],
+              quests: [quest],
               onAdd: (_) => true,
             ),
           ),
@@ -135,7 +151,7 @@ void main() {
           (widget) =>
               widget is Semantics &&
               widget.properties.button == true &&
-              widget.properties.label == 'Open journal entry. $entryText',
+              widget.properties.label == 'Read journal entry. $entryText',
         ),
         findsOneWidget,
       );
@@ -146,16 +162,89 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.byType(JournalEntryScreen), findsOneWidget);
-      final editor = tester.widget<EditableText>(
-        find.byType(EditableText).first,
+      final field = tester.widget<TextField>(
+        find.byKey(const ValueKey('journal-entry-body')),
       );
-      expect(editor.controller.text, entryText);
+      expect(field.controller!.text, entryText);
+      expect(field.readOnly, isTrue);
+      expect(field.showCursor, isFalse);
+      expect(find.byKey(const ValueKey('journal-entry-edit')), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline), findsNothing);
+      final span = field.controller!.buildTextSpan(
+        context: tester.element(
+          find.byKey(const ValueKey('journal-entry-body')),
+        ),
+        style: field.style,
+        withComposing: false,
+      );
+      final pieces = span.children!.cast<TextSpan>();
+      expect(pieces.first.text, starter);
+      expect(pieces.first.style?.fontStyle, FontStyle.italic);
+      expect(pieces.last.text, 'Mom and I walked by the river.');
       expect(tester.takeException(), isNull);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     },
   );
+
+  testWidgets('calendar night entry reads first and Edit opens night prompts', (
+    tester,
+  ) async {
+    Clock.freeze(DateTime(2026, 8, 2, 10));
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const night = NightJournalData(reflection: 'The walk home felt quiet.');
+    final note = Note(
+      at: DateTime(2026, 8, 2, 22),
+      text: night.plainText,
+      night: night,
+    );
+    final state = GameState()
+      ..reduceMotion = true
+      ..journal = [note];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CalendarPage(
+            state: state,
+            quests: const [],
+            onAdd: (_) => true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final card = find.byKey(ValueKey('calendar-journal-entry-${note.id}'));
+    await tester.scrollUntilVisible(
+      card,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(card);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(JournalEntryScreen), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('journal-entry-body')))
+          .readOnly,
+      isTrue,
+    );
+    expect(find.byKey(const Key('night-reflection-field')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('journal-entry-edit')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const Key('night-reflection-field')), findsOneWidget);
+    expect(find.text('Optional reflection'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  });
 
   testWidgets('calendar reveals every journal entry from the selected day', (
     tester,

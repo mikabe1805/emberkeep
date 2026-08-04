@@ -173,3 +173,35 @@ The plate appears only as quests scroll over the live room. It replaces a
 full-room animated BackdropFilter while preserving the approved perceptual
 depth transition. At rest the live registered layers remain untouched; the
 soft plate never contains live text or UI.
+
+## Runtime-colored fireplace pass
+
+On 2026-08-03 the three complete Me room identities were precisely edited to
+remove their baked orange blazes. The resulting fireboxes are intact, dark,
+and unlit, allowing the registered `quest-fire-*-v3.png` animation to be the
+single visible fire on both Me and Quests. The shared runtime hue rotation
+preserves transparency, the cream-hot core, the dark logs, and the painted
+frame texture while carrying the equipped wardrobe flame colour.
+
+| Identity | Runtime plate | Durable source | Generated original |
+| --- | --- | --- | --- |
+| The Writer's Hearth | `wall_walnut-fireless-v3.webp` | `design/source-assets/rooms/wall_walnut-fireless-v3.png` | `C:/Users/mikus/.codex/generated_images/019fca4d-b45e-70e2-ba92-49fd9dbe74b8/exec-fedb6af5-6b7c-4be1-bd2b-5c26ee813518.png` |
+| The Living Conservatory | `wall_conservatory-fireless-v2.webp` | `design/source-assets/rooms/themes/wall_conservatory-fireless-v2.png` | `C:/Users/mikus/.codex/generated_images/019fca4d-b45e-70e2-ba92-49fd9dbe74b8/exec-b0243aae-7408-4a32-b910-c7fc9f1dc479.png` |
+| The Moonlit Archive | `wall_archive-fireless-v2.webp` | `design/source-assets/rooms/themes/wall_archive-fireless-v2.png` | `C:/Users/mikus/.codex/generated_images/019fca4d-b45e-70e2-ba92-49fd9dbe74b8/exec-a421db60-044a-4ab7-8572-e8309b87180a.png` |
+
+All three masters are opaque 1536 x 1024 RGB precise-object edits. Production
+prompt, applied separately to each matching source plate:
+
+> Remove only the burning blaze and central burning logs from the fireplace.
+> Reconstruct the now-unlit firebox as dark brick behind the existing iron
+> andirons and grate, matching the exact masonry perspective, surface texture,
+> shadows, and painterly faceted finish of the source. Remove only the direct
+> orange fire glow caused by the blaze while preserving the room's authored
+> lamps, moonlight, camera, crop, architecture, furniture, objects, materials,
+> and composition exactly. No new objects, people, text, logos, UI, smoke, or
+> fire. The result must look like the same complete room with its hearth
+> momentarily unlit, not a redesigned room.
+
+`tool/prepare_room_themes.py` produces all three full-size runtime WebPs and
+their 720 x 480 chooser previews. At runtime Me quantizes the shared fire loop
+to about 11 fps; Quests uses its existing lively/reduced-motion cadence.

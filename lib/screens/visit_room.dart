@@ -1,20 +1,27 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../clock.dart';
+import '../cloud.dart';
 import '../content/creature_skins.dart';
 import '../content/room_styles.dart';
 import '../content/space_themes.dart';
 import '../engine.dart';
+import '../shared_room_media.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
+import '../widgets/visitor_shared_room_photo.dart';
 
 /// A read-only look at someone else's "Your Space" (round-52, social). Built
-/// purely from the appearance fields in their shared room doc — no quests,
-/// notes or account data ever travel.
+/// only from its bounded public room document: preset appearance plus profile
+/// cards the owner selected. Only the two separately consented Storage paths
+/// may accompany them; quests, unselected Journal pages, local filenames, and
+/// account data never travel.
 class VisitRoomScreen extends StatelessWidget {
   const VisitRoomScreen({
     super.key,
@@ -25,6 +32,7 @@ class VisitRoomScreen extends StatelessWidget {
     this.parallax,
     this.localState,
     this.onPersist,
+    this.photoUrlLoader,
   });
 
   final Map<String, dynamic> room;
@@ -43,6 +51,7 @@ class VisitRoomScreen extends StatelessWidget {
   /// trusted Circle. Circle-originated visits simply show it as already saved.
   final GameState? localState;
   final VoidCallback? onPersist;
+  final VisitorPhotoUrlLoader? photoUrlLoader;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +77,65 @@ class VisitRoomScreen extends StatelessWidget {
         if (featuredGoals.length == 3) break;
       }
     }
+    final cardOrder = <SpaceCardKind>[];
+    if (profileVisible && room['cardOrder'] is List) {
+      for (final raw in room['cardOrder'] as List) {
+        if (raw is! String) continue;
+        final matches = SpaceCardKind.values.where((kind) => kind.name == raw);
+        if (matches.isEmpty || cardOrder.contains(matches.first)) continue;
+        cardOrder.add(matches.first);
+        if (cardOrder.length == 4) break;
+      }
+    } else if (profileVisible) {
+      // v3 rooms had two fixed profile fields rather than a card deck.
+      if (about.isNotEmpty) cardOrder.add(SpaceCardKind.about);
+      if (featuredGoals.isNotEmpty) cardOrder.add(SpaceCardKind.rightNow);
+    }
+    String safePhotoPath(String key, SharedRoomMediaSlot expectedSlot) {
+      if (!profileVisible) return '';
+      final path = safeString(key, '', 160);
+      final ownerUid = safeString('uid', '', 128);
+      if (path.isEmpty || ownerUid.isEmpty) return '';
+      try {
+        final location = SharedRoomMediaLocation.fromObjectPath(path);
+        if (location.ownerUid != ownerUid ||
+            location.roomCode != code.trim().toUpperCase() ||
+            location.slot != expectedSlot) {
+          return '';
+        }
+        return location.objectPath;
+      } on SharedRoomMediaException {
+        return '';
+      }
+    }
+
+    final profilePhotoPath = safePhotoPath(
+      'profilePhotoPath',
+      SharedRoomMediaSlot.profile,
+    );
+    final seasonPhotoPath = cardOrder.contains(SpaceCardKind.thisSeason)
+        ? safePhotoPath('seasonPhotoPath', SharedRoomMediaSlot.season)
+        : '';
+    final pinnedMoments = <({String text, DateTime at})>[];
+    if (profileVisible && room['pinnedMoments'] is List) {
+      for (final raw in room['pinnedMoments'] as List) {
+        if (raw is! Map) continue;
+        final map = raw.cast<dynamic, dynamic>();
+        final text = map['text'] is String
+            ? String.fromCharCodes(
+                (map['text'] as String).trim().runes.take(240),
+              )
+            : '';
+        final at = map['at'] is num ? (map['at'] as num).toInt() : 0;
+        if (text.isEmpty || at < 0) continue;
+        pinnedMoments.add((
+          text: text,
+          at: DateTime.fromMillisecondsSinceEpoch(at),
+        ));
+        if (pinnedMoments.length == 4) break;
+      }
+    }
+    final season = profileVisible ? safeString('season', '', 180) : '';
     final rawLevel = room['level'];
     final level = rawLevel is num ? rawLevel.toInt().clamp(1, 9999) : 1;
     final rawFurniture = room['furniture'];
@@ -126,7 +194,7 @@ class VisitRoomScreen extends StatelessWidget {
                         petAwake: room['awake'] == true,
                         // their chosen hearth-flame colour
                         emberGlow: flameHueById(safeString('skin')),
-                        heirloomFlame: safeString('skin') == 'gilded',
+                        heirloomFlame: heirloomFlameById(safeString('skin')),
                         memoryArtifacts: memories,
                         parallax: lively ? parallax : null,
                       ),
@@ -203,10 +271,16 @@ class VisitRoomScreen extends StatelessWidget {
                 const SizedBox(height: 14),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _VisitorProfileCard(
+                  child: _VisitorProfileDeck(
                     displayName: displayName,
+                    cardOrder: cardOrder,
                     about: about,
                     featuredGoals: featuredGoals,
+                    pinnedMoments: pinnedMoments,
+                    season: season,
+                    profilePhotoPath: profilePhotoPath,
+                    seasonPhotoPath: seasonPhotoPath,
+                    photoUrlLoader: photoUrlLoader,
                   ),
                 ),
               ],
@@ -225,7 +299,7 @@ class VisitRoomScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Text(
-                  'Shared room · Journal entries and photos, quests, and account details stay private',
+                  'Only the cards and photos they chose are here. Every other Journal page, photo, quest, and account detail stays private.',
                   textAlign: TextAlign.center,
                   style: Type.body.copyWith(
                     fontSize: 12,
@@ -242,54 +316,68 @@ class VisitRoomScreen extends StatelessWidget {
   }
 }
 
-class _VisitorProfileCard extends StatelessWidget {
-  const _VisitorProfileCard({
+class _VisitorProfileDeck extends StatelessWidget {
+  const _VisitorProfileDeck({
     required this.displayName,
+    required this.cardOrder,
     required this.about,
     required this.featuredGoals,
+    required this.pinnedMoments,
+    required this.season,
+    required this.profilePhotoPath,
+    required this.seasonPhotoPath,
+    required this.photoUrlLoader,
   });
 
   final String displayName;
+  final List<SpaceCardKind> cardOrder;
   final String about;
   final List<String> featuredGoals;
+  final List<({String text, DateTime at})> pinnedMoments;
+  final String season;
+  final String profilePhotoPath;
+  final String seasonPhotoPath;
+  final VisitorPhotoUrlLoader? photoUrlLoader;
 
   @override
   Widget build(BuildContext context) {
-    final hasDetails = about.isNotEmpty || featuredGoals.isNotEmpty;
-    return GlassPanel(
+    return Column(
       key: const ValueKey('visitor-profile-card'),
-      blur: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          LayoutBuilder(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GlassPanel(
+          padding: const EdgeInsets.fromLTRB(15, 13, 15, 14),
+          child: LayoutBuilder(
             builder: (context, constraints) {
-              final heading = Row(
+              final identity = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.person_outline_rounded,
-                    size: 17,
-                    color: Palette.xpLight,
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      'ABOUT THIS SPACE',
-                      style: Type.label.copyWith(
-                        fontSize: 10,
-                        letterSpacing: 1.5,
-                        color: Palette.xpLight,
-                      ),
+                  Text(
+                    'THEIR PAGE',
+                    style: Type.label.copyWith(
+                      fontSize: 10,
+                      letterSpacing: 1.5,
+                      color: Palette.xpLight,
                     ),
                   ),
+                  if (displayName.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      displayName,
+                      style: Type.display.copyWith(
+                        fontSize: 20,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                  ],
                 ],
               );
               final badge = Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                 decoration: facetedDecoration(
                   cut: 5,
-                  color: Palette.glassFill,
-                  borderColor: Palette.glassEdge,
+                  color: Palette.xp.withValues(alpha: 0.08),
+                  borderColor: Palette.xp.withValues(alpha: 0.30),
                 ),
                 child: Text(
                   'SHARED BY CHOICE',
@@ -306,84 +394,274 @@ class _VisitorProfileCard extends StatelessWidget {
               if (compact) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [heading, const SizedBox(height: 5), badge],
+                  children: [
+                    if (profilePhotoPath.isNotEmpty) ...[
+                      SizedBox(
+                        width: 76,
+                        child: VisitorSharedRoomPhoto(
+                          key: const ValueKey('visitor-profile-photo'),
+                          objectPath: profilePhotoPath,
+                          semanticLabel: 'Shared profile photo',
+                          height: 76,
+                          borderRadius: 17,
+                          urlLoader: photoUrlLoader,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    identity,
+                    const SizedBox(height: 8),
+                    badge,
+                  ],
                 );
               }
               return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Expanded(child: heading),
+                  if (profilePhotoPath.isNotEmpty) ...[
+                    SizedBox(
+                      width: 76,
+                      child: VisitorSharedRoomPhoto(
+                        key: const ValueKey('visitor-profile-photo'),
+                        objectPath: profilePhotoPath,
+                        semanticLabel: 'Shared profile photo',
+                        height: 76,
+                        borderRadius: 17,
+                        urlLoader: photoUrlLoader,
+                      ),
+                    ),
+                    const SizedBox(width: 11),
+                  ],
+                  Expanded(child: identity),
                   const SizedBox(width: 10),
                   badge,
                 ],
               );
             },
           ),
-          if (displayName.isNotEmpty) ...[
-            const SizedBox(height: 11),
-            Text(
-              displayName,
-              style: Type.display.copyWith(fontSize: 20, color: Palette.textHi),
-            ),
-          ],
-          if (about.isNotEmpty) ...[
-            const SizedBox(height: 7),
-            Text(
-              about,
-              style: Type.body.copyWith(
-                fontSize: 14,
-                height: 1.45,
-                color: Palette.textHi,
-              ),
-            ),
-          ],
-          if (featuredGoals.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Text(
-              'MAKING ROOM FOR',
-              style: Type.label.copyWith(fontSize: 9, color: Palette.textLo),
-            ),
-            const SizedBox(height: 7),
-            Wrap(
-              spacing: 7,
-              runSpacing: 7,
-              children: [
-                for (final goal in featuredGoals)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 7,
-                    ),
-                    decoration: facetedDecoration(
-                      cut: 7,
-                      color: Palette.xp.withValues(alpha: 0.1),
-                      borderColor: Palette.xp.withValues(alpha: 0.34),
-                    ),
-                    child: Text(
-                      goal,
-                      style: Type.body.copyWith(
-                        fontSize: 11.5,
-                        color: Palette.xpLight,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ],
-          if (!hasDetails && displayName.isEmpty) ...[
-            const SizedBox(height: 9),
-            Text(
-              'This keeper chose to leave their door open.',
+        ),
+        if (cardOrder.isEmpty) ...[
+          const SizedBox(height: 10),
+          GlassPanel(
+            child: Text(
+              'This keeper opened the door without putting any profile cards on display.',
               style: Type.body.copyWith(
                 fontSize: 13,
                 fontStyle: FontStyle.italic,
                 color: Palette.textLo,
               ),
             ),
+          ),
+        ] else
+          for (final kind in cardOrder) ...[
+            const SizedBox(height: 10),
+            switch (kind) {
+              SpaceCardKind.about => _VisitorSharedCard(
+                icon: Icons.auto_stories_outlined,
+                title: 'ABOUT',
+                accent: Palette.xpLight,
+                child: Text(
+                  about.isEmpty ? 'They left this card quiet.' : about,
+                  style: Type.body.copyWith(
+                    fontSize: 14,
+                    height: 1.45,
+                    fontStyle: about.isEmpty ? FontStyle.italic : null,
+                    color: about.isEmpty ? Palette.textLo : Palette.textHi,
+                  ),
+                ),
+              ),
+              SpaceCardKind.rightNow => _VisitorSharedCard(
+                icon: Icons.flag_outlined,
+                title: 'RIGHT NOW',
+                accent: Palette.success,
+                child: featuredGoals.isEmpty
+                    ? _QuietVisitorCardCopy('No goals shared in this card.')
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (var i = 0; i < featuredGoals.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 8),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.arrow_right_rounded,
+                                  size: 18,
+                                  color: Palette.success,
+                                ),
+                                const SizedBox(width: 5),
+                                Expanded(
+                                  child: Text(
+                                    featuredGoals[i],
+                                    style: Type.body.copyWith(
+                                      fontSize: 13,
+                                      color: Palette.textHi,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+              ),
+              SpaceCardKind.pinnedMoments => _VisitorSharedCard(
+                icon: Icons.push_pin_outlined,
+                title: 'PINNED MOMENTS',
+                accent: const Color(0xFFDDB296),
+                child: pinnedMoments.isEmpty
+                    ? _QuietVisitorCardCopy('No written moments were shared.')
+                    : Column(
+                        children: [
+                          for (var i = 0; i < pinnedMoments.length; i++) ...[
+                            if (i > 0)
+                              const Divider(
+                                height: 17,
+                                color: Palette.glassEdge,
+                              ),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                pinnedMoments[i].text,
+                                maxLines: 5,
+                                overflow: TextOverflow.ellipsis,
+                                style: Type.body.copyWith(
+                                  fontSize: 13,
+                                  height: 1.4,
+                                  color: Palette.textHi,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                MaterialLocalizations.of(
+                                  context,
+                                ).formatMediumDate(pinnedMoments[i].at),
+                                style: Type.label.copyWith(
+                                  fontSize: 8.5,
+                                  color: Palette.textLo,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+              ),
+              SpaceCardKind.thisSeason => _VisitorSharedCard(
+                icon: Icons.filter_vintage_outlined,
+                title: 'THIS SEASON',
+                accent: Palette.unlock,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (seasonPhotoPath.isNotEmpty) ...[
+                      VisitorSharedRoomPhoto(
+                        key: const ValueKey('visitor-season-photo'),
+                        objectPath: seasonPhotoPath,
+                        semanticLabel: 'Shared This season photo',
+                        height: 190,
+                        borderRadius: 13,
+                        urlLoader: photoUrlLoader,
+                      ),
+                      const SizedBox(height: 11),
+                    ],
+                    if (season.isEmpty)
+                      const _QuietVisitorCardCopy(
+                        'No writing shared in this card.',
+                      )
+                    else
+                      Text(
+                        season,
+                        style: Type.body.copyWith(
+                          fontSize: 14,
+                          height: 1.45,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            },
           ],
-        ],
-      ),
+      ],
     );
   }
+}
+
+class _VisitorSharedCard extends StatelessWidget {
+  const _VisitorSharedCard({
+    required this.icon,
+    required this.title,
+    required this.accent,
+    required this.child,
+  });
+
+  final IconData icon;
+  final String title;
+  final Color accent;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.fromLTRB(15, 13, 15, 15),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(16),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color.lerp(Palette.card, accent, 0.07)!,
+          const Color(0xFF1B1411),
+        ],
+      ),
+      border: Border.all(color: accent.withValues(alpha: 0.34)),
+      boxShadow: const [
+        BoxShadow(
+          color: Palette.warmShadow,
+          blurRadius: 16,
+          offset: Offset(0, 7),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 17, color: accent),
+            const SizedBox(width: 7),
+            Text(
+              title,
+              style: Type.label.copyWith(
+                fontSize: 10,
+                letterSpacing: 1.35,
+                color: accent,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        child,
+      ],
+    ),
+  );
+}
+
+class _QuietVisitorCardCopy extends StatelessWidget {
+  const _QuietVisitorCardCopy(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: Type.body.copyWith(
+      fontSize: 13,
+      fontStyle: FontStyle.italic,
+      color: Palette.textLo,
+    ),
+  );
 }
 
 class _KeepInCircleAction extends StatelessWidget {
@@ -396,6 +674,14 @@ class _KeepInCircleAction extends StatelessWidget {
   final String code;
   final GameState state;
   final VoidCallback onPersist;
+
+  Future<void> _notifyOwner(String normalized) async {
+    final cloud = CloudSync.instance;
+    if (!await cloud.ensureAvailable() || !await cloud.ensureSocialSession()) {
+      return;
+    }
+    await cloud.sendCircleAdd(normalized);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -433,6 +719,7 @@ class _KeepInCircleAction extends StatelessWidget {
         void add() {
           if (!enabled || !state.addCircleCode(normalized)) return;
           onPersist();
+          unawaited(_notifyOwner(normalized));
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
             ..showSnackBar(

@@ -8,6 +8,7 @@ import '../clock.dart';
 import '../content/creature_skins.dart';
 import '../content/weekly_chronicle.dart';
 import '../engine.dart';
+import '../journal_media.dart' as media;
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/constellation.dart';
@@ -15,6 +16,8 @@ import '../widgets/detail_header.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/luxe_depth.dart';
+import '../widgets/night_reflection_sheet.dart';
+import 'journal_entry.dart';
 import 'journal_hub.dart';
 import 'weekly_chronicle.dart';
 
@@ -83,7 +86,7 @@ class InsightsPage extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           if (state.journal.isNotEmpty) ...[
-            _thenAndNow(),
+            _thenAndNow(context),
             const SizedBox(height: 14),
           ],
           _journalCard(context),
@@ -123,6 +126,74 @@ class InsightsPage extends StatelessWidget {
           quests: quests,
           onPersist: onPersist,
           compose: compose,
+        ),
+      ),
+    );
+  }
+
+  String? _starterFor(Note note) {
+    final source = note.sourceQuestKey;
+    if (source == null || source.isEmpty) return null;
+    for (final quest in quests) {
+      if (quest.title == source) return quest.journalPrompt?.starter;
+    }
+    return null;
+  }
+
+  Note _commitLookingBack(
+    JournalPayload payload,
+    Note? existing,
+    bool markEdited,
+  ) {
+    final original = existing!;
+    final updated = original.copyWith(
+      text: payload.text,
+      rich: payload.rich,
+      images: payload.images,
+      editedAt: markEdited ? Clock.now() : null,
+    );
+    state.setJournal(state.journal.replacing(updated));
+    return updated;
+  }
+
+  void _deleteLookingBack(Note note) {
+    for (final filename in note.images) {
+      media.delete(filename);
+    }
+    state.setJournal(state.journal.without(note));
+  }
+
+  Future<void> _openLookingBack(BuildContext context, Note note) {
+    Sfx.instance.play('tick');
+    final night = note.night;
+    return Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => JournalEntryScreen(
+          initial: note,
+          accent: Palette.xp,
+          themeId: state.canvasTheme,
+          reduceMotion: state.reduceMotion,
+          heading: 'Looking back',
+          hint: 'A page from your journal',
+          starter: _starterFor(note),
+          trace: note.trace,
+          initiallyEditing: false,
+          onEditRequested: night == null
+              ? null
+              : (readerContext) async {
+                  final data = await showNightReflectionSheet(
+                    readerContext,
+                    initial: night,
+                    reduceMotion: state.reduceMotion,
+                  );
+                  if (!readerContext.mounted || data == null) return;
+                  state.updateNightJournalEntry(note, data);
+                  if (readerContext.mounted) {
+                    Navigator.of(readerContext).pop();
+                  }
+                },
+          commit: _commitLookingBack,
+          onDelete: _deleteLookingBack,
         ),
       ),
     );
@@ -186,7 +257,7 @@ class InsightsPage extends StatelessWidget {
     );
   }
 
-  Widget _thenAndNow() {
+  Widget _thenAndNow(BuildContext context) {
     final entries = [...state.journal]..sort((a, b) => b.at.compareTo(a.at));
     final note = entries.last;
     const months = [
@@ -212,100 +283,132 @@ class InsightsPage extends StatelessWidget {
         (then != null && then != nowStanding) ||
         (note.trace != null && note.trace!.level != state.level);
 
-    return GlassPanel(
-      glow: true,
-      tint: const Color(0xF0332518),
-      child: Stack(
-        children: [
-          // A soft page of the authored MIND still life instead of the outsized
-          // Material flower glyph that used to sit here — at 118 px and 5%
-          // alpha that read as a smudge, not a botanical.
-          Positioned(
-            right: -14,
-            bottom: -18,
-            width: 168,
-            height: 112,
-            child: IgnorePointer(
-              child: ShaderMask(
-                blendMode: BlendMode.dstIn,
-                shaderCallback: (bounds) => const LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [Colors.transparent, Color(0xB3000000)],
-                ).createShader(bounds),
-                child: Opacity(
-                  opacity: 0.20,
-                  child: Image.asset(
-                    'assets/quest/category-mind-v2.webp',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.centerRight,
-                    filterQuality: FilterQuality.medium,
-                    excludeFromSemantics: true,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Semantics(
+      button: true,
+      label:
+          'Read journal entry from ${months[note.at.month - 1]} ${note.at.day}',
+      child: GestureDetector(
+        key: const ValueKey('then-and-now-read-entry'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _openLookingBack(context, note),
+        child: GlassPanel(
+          glow: true,
+          tint: const Color(0xF0332518),
+          child: Stack(
             children: [
-              Text(
-                'THEN & NOW',
-                style: Type.label.copyWith(
-                  fontSize: 11,
-                  color: Palette.xp,
-                  letterSpacing: 1.7,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                '“${note.text.isEmpty ? "A moment worth keeping." : note.text}”',
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: Type.display.copyWith(
-                  fontSize: 18,
-                  height: 1.25,
-                  color: Palette.textHi,
-                ),
-              ),
-              const SizedBox(height: 9),
-              Text(
-                'WRITTEN ${months[note.at.month - 1]} ${note.at.day}'
-                '${note.trace == null ? '' : '  ·  LV ${note.trace!.level}'}'
-                '${note.trace?.questTitles.isNotEmpty == true ? '  ·  ${note.trace!.questTitles.length} QUESTS' : ''}'
-                '${then == null ? '' : '  ·  $then'}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Type.label.copyWith(
-                  fontSize: 10.5,
-                  color: Palette.textLo,
-                ),
-              ),
-              if (moved) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'NOW  ·  LV ${state.level}  ·  $nowStanding',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Type.label.copyWith(fontSize: 10.5, color: Palette.xp),
-                ),
-              ],
-              if (note.context != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  moved
-                      ? 'the same thought, read by someone else'
-                      : 'the same thought, seen from here',
-                  style: Type.body.copyWith(
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo,
+              // A soft page of the authored MIND still life instead of the outsized
+              // Material flower glyph that used to sit here — at 118 px and 5%
+              // alpha that read as a smudge, not a botanical.
+              Positioned(
+                right: -14,
+                bottom: -18,
+                width: 168,
+                height: 112,
+                child: IgnorePointer(
+                  child: ShaderMask(
+                    blendMode: BlendMode.dstIn,
+                    shaderCallback: (bounds) => const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.transparent, Color(0xB3000000)],
+                    ).createShader(bounds),
+                    child: Opacity(
+                      opacity: 0.20,
+                      child: Image.asset(
+                        'assets/quest/category-mind-v2.webp',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.centerRight,
+                        filterQuality: FilterQuality.medium,
+                        excludeFromSemantics: true,
+                      ),
+                    ),
                   ),
                 ),
-              ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'THEN & NOW',
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            color: Palette.xp,
+                            letterSpacing: 1.7,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'READ ENTRY',
+                        style: Type.label.copyWith(
+                          fontSize: 9.5,
+                          color: Palette.textLo,
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      const Icon(
+                        Icons.chevron_right,
+                        size: 17,
+                        color: Palette.textLo,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '“${note.text.isEmpty ? "A moment worth keeping." : note.text}”',
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.display.copyWith(
+                      fontSize: 18,
+                      height: 1.25,
+                      color: Palette.textHi,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  Text(
+                    'WRITTEN ${months[note.at.month - 1]} ${note.at.day}'
+                    '${note.trace == null ? '' : '  ·  LV ${note.trace!.level}'}'
+                    '${note.trace?.questTitles.isNotEmpty == true ? '  ·  ${note.trace!.questTitles.length} QUESTS' : ''}'
+                    '${then == null ? '' : '  ·  $then'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.label.copyWith(
+                      fontSize: 10.5,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                  if (moved) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'NOW  ·  LV ${state.level}  ·  $nowStanding',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Type.label.copyWith(
+                        fontSize: 10.5,
+                        color: Palette.xp,
+                      ),
+                    ),
+                  ],
+                  if (note.context != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      moved
+                          ? 'the same thought, read by someone else'
+                          : 'the same thought, seen from here',
+                      style: Type.body.copyWith(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

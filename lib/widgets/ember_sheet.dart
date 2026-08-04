@@ -616,6 +616,10 @@ class _EmberSheetState extends State<_EmberSheet> {
             button: true,
             selected: selected(d),
             label: _dayNames[d - 1],
+            onTap: () {
+              Sfx.instance.play('tick');
+              onTap(d);
+            },
             child: GestureDetector(
               excludeFromSemantics: true,
               behavior: HitTestBehavior.opaque,

@@ -38,6 +38,14 @@ const evidenceCards = <EvidenceCard>[
   ),
   EvidenceCard(
     stat: Stat.vit,
+    title: 'Start slow, stay comfortable',
+    text:
+        'For a gentle mobility break, begin with easy movement, keep breathing, '
+        'and stay in a comfortable range. Do not bounce or push through pain.',
+    source: 'NHS & CDC gentle-movement guidance',
+  ),
+  EvidenceCard(
+    stat: Stat.vit,
     title: 'Caffeine has a 6-hour shadow',
     text:
         'That afternoon coffee can still be in your system at bedtime — '

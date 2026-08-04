@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import 'a11y.dart';
 import 'audio.dart';
+import 'social.dart';
 import 'storage.dart';
 import 'platform/persist_stub.dart'
     if (dart.library.js_interop) 'platform/persist_web.dart';
@@ -106,14 +107,70 @@ class _FriendlyError extends StatelessWidget {
   }
 }
 
-class LifeRpgApp extends StatelessWidget {
-  const LifeRpgApp({super.key});
+class LifeRpgApp extends StatefulWidget {
+  const LifeRpgApp({super.key, this.initialRoomCode});
+
+  final String? initialRoomCode;
+
+  @override
+  State<LifeRpgApp> createState() => _LifeRpgAppState();
+}
+
+class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
+  late final RoomLinkInbox _roomLinks;
+
+  @override
+  void initState() {
+    super.initState();
+    // This observer registers before the MaterialApp it builds. Flutter walks
+    // observers in registration order, so a warm native link reaches our inbox
+    // instead of becoming an unknown Navigator route.
+    WidgetsBinding.instance.addObserver(this);
+    _roomLinks = RoomLinkInbox();
+    String? seededCode;
+
+    void seed(Uri uri) {
+      final code = roomCodeFromUri(uri);
+      if (code == null || code == seededCode) return;
+      if (_roomLinks.enqueueCode(code)) seededCode = code;
+    }
+
+    // Web supplies the whole address as Uri.base. Android cold starts supply
+    // the route name; iOS normally sends its link as a route event just after
+    // startup. Accept all three without making any one platform special.
+    if (widget.initialRoomCode != null) {
+      if (_roomLinks.enqueueCode(widget.initialRoomCode!)) {
+        seededCode = widget.initialRoomCode!.trim().toUpperCase();
+      }
+    } else {
+      seed(Uri.base);
+    }
+    final initialRoute = PlatformDispatcher.instance.defaultRouteName;
+    final routeUri = Uri.tryParse(initialRoute);
+    if (routeUri != null) seed(routeUri);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _roomLinks.dispose();
+    super.dispose();
+  }
+
+  @override
+  Future<bool> didPushRouteInformation(RouteInformation routeInformation) {
+    return Future.value(_roomLinks.enqueueUri(routeInformation.uri));
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Room of Days',
       debugShowCheckedModeBanner: false,
+      // Always mount the app at its real root. Android's cold-start route may
+      // be /space/CODE; that code lives in [_roomLinks], not in the legacy
+      // Navigator's named-route table.
+      initialRoute: Navigator.defaultRouteName,
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Palette.parchment,
@@ -141,7 +198,7 @@ class LifeRpgApp extends StatelessWidget {
           );
         },
       ),
-      home: const AppShell(),
+      home: AppShell(roomLinks: _roomLinks),
     );
   }
 }

@@ -169,78 +169,82 @@ class GoalsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: state,
-      builder: (context, _) => LuxePageList(
-        assetPath: 'assets/pages/goals-desk-v2.webp',
-        title: 'Goals',
-        subtitle: 'what you’re building toward',
-        icon: Icons.explore_outlined,
-        parallax: parallax,
-        reduceMotion: state.reduceMotion,
-        fireFocal: const Offset(0.93, 0.58),
-        children: [
-          LuxeGoldButton(
-            label: 'Begin a new goal',
-            icon: Icons.add_rounded,
-            onTap: () => _openWizard(context),
-            parallax: lightDirection ?? parallax,
-          ),
-          const SizedBox(height: 20),
-          _CategoryHeader(
-            label: 'YOUR GOALS',
-            blurb: 'the goals you’re actively working on',
-            icon: Icons.auto_awesome_outlined,
-            accent: Palette.xp,
-          ),
-          const SizedBox(height: 10),
-          if (state.goals.isNotEmpty) ...[
-            _YourGoals(
-              state: state,
-              onRemoveGoal: onRemoveGoal,
-              onPersist: onPersist,
-              onAddQuest: onAdd,
-              quests: quests,
-              parallax: parallax,
+      builder: (context, _) {
+        final catalog = _catalogSections(context);
+        return LuxePageList(
+          assetPath: 'assets/pages/goals-desk-v2.webp',
+          title: 'Goals',
+          subtitle: 'what you’re building toward',
+          icon: Icons.explore_outlined,
+          parallax: parallax,
+          reduceMotion: state.reduceMotion,
+          children: [
+            LuxeGoldButton(
+              label: 'Begin a new goal',
+              icon: Icons.add_rounded,
+              onTap: () => _openWizard(context),
+              parallax: lightDirection ?? parallax,
             ),
-            const SizedBox(height: 18),
-          ] else ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                'no oaths sworn yet — forge one above, or adopt a ready-made path below',
-                style: Type.body.copyWith(
-                  fontSize: 13,
-                  fontStyle: FontStyle.italic,
-                  color: Palette.textLo,
+            const SizedBox(height: 20),
+            _CategoryHeader(
+              label: 'YOUR GOALS',
+              blurb: 'the goals you’re actively working on',
+              icon: Icons.auto_awesome_outlined,
+              accent: Palette.xp,
+            ),
+            const SizedBox(height: 10),
+            if (state.goals.isNotEmpty) ...[
+              _YourGoals(
+                state: state,
+                onRemoveGoal: onRemoveGoal,
+                onPersist: onPersist,
+                onAddQuest: onAdd,
+                quests: quests,
+                parallax: parallax,
+              ),
+              const SizedBox(height: 18),
+            ] else ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  'no oaths sworn yet — forge one above, or adopt a ready-made path below',
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    color: Palette.textLo,
+                  ),
                 ),
               ),
+              const SizedBox(height: 12),
+              _ReadyMadePathsDisclosure(catalog: catalog),
+              const SizedBox(height: 18),
+            ],
+            _CategoryHeader(
+              label: 'HELP FOR TODAY',
+              blurb: 'choose the kind of support this day needs',
+              icon: Icons.auto_awesome_outlined,
+              accent: Palette.streak,
+            ),
+            const SizedBox(height: 10),
+            _MomentumKitsCard(
+              state: state,
+              onAdd: onAdd,
+              onPersist: onPersist,
+              onOpenQuests: onOpenQuests,
             ),
             const SizedBox(height: 18),
+            _CategoryHeader(
+              label: 'GUIDED WORKOUTS',
+              blurb: 'gentle sessions that meet you where you are',
+              icon: Icons.fitness_center,
+              accent: Stat.str.color,
+            ),
+            const SizedBox(height: 10),
+            _GuidedWorkoutsCard(onAdd: onAdd),
+            if (state.goals.isNotEmpty) ...catalog,
           ],
-          _CategoryHeader(
-            label: 'HELP FOR TODAY',
-            blurb: 'choose the kind of support this day needs',
-            icon: Icons.auto_awesome_outlined,
-            accent: Palette.streak,
-          ),
-          const SizedBox(height: 10),
-          _MomentumKitsCard(
-            state: state,
-            onAdd: onAdd,
-            onPersist: onPersist,
-            onOpenQuests: onOpenQuests,
-          ),
-          const SizedBox(height: 18),
-          _CategoryHeader(
-            label: 'GUIDED WORKOUTS',
-            blurb: 'gentle sessions that meet you where you are',
-            icon: Icons.fitness_center,
-            accent: Stat.str.color,
-          ),
-          const SizedBox(height: 10),
-          _GuidedWorkoutsCard(onAdd: onAdd),
-          ..._catalogSections(context),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -294,6 +298,108 @@ class GoalsPage extends StatelessWidget {
   }
 }
 
+/// The catalog is useful, but on a first visit it should be a deliberate
+/// alternate way in rather than a long obstacle between the empty state and
+/// the next useful choice. Once opened, it stays open while the person browses.
+class _ReadyMadePathsDisclosure extends StatefulWidget {
+  const _ReadyMadePathsDisclosure({required this.catalog});
+
+  final List<Widget> catalog;
+
+  @override
+  State<_ReadyMadePathsDisclosure> createState() =>
+      _ReadyMadePathsDisclosureState();
+}
+
+class _ReadyMadePathsDisclosureState extends State<_ReadyMadePathsDisclosure> {
+  var _expanded = false;
+
+  void _toggle() {
+    Sfx.instance.play('tick');
+    HapticFeedback.selectionClick();
+    setState(() => _expanded = !_expanded);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final semanticLabel = _expanded
+        ? 'Hide ready-made paths'
+        : 'Browse ready-made paths. Start with a path that already has its first quests.';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FocusableActionDetector(
+          mouseCursor: SystemMouseCursors.click,
+          actions: {
+            ActivateIntent: CallbackAction<ActivateIntent>(
+              onInvoke: (_) {
+                _toggle();
+                return null;
+              },
+            ),
+          },
+          child: Semantics(
+            button: true,
+            label: semanticLabel,
+            onTap: _toggle,
+            child: GestureDetector(
+              excludeFromSemantics: true,
+              behavior: HitTestBehavior.opaque,
+              onTap: _toggle,
+              child: GlassPanel(
+                padding: const EdgeInsets.fromLTRB(15, 13, 13, 13),
+                child: Row(
+                  children: [
+                    FacetMedallion(
+                      size: 38,
+                      accent: Palette.xpLight,
+                      child: const Icon(
+                        Icons.auto_stories_outlined,
+                        size: 19,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _expanded
+                                ? 'Ready-made paths'
+                                : 'Browse ready-made paths',
+                            style: Type.display.copyWith(fontSize: 17),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _expanded
+                                ? 'choose the shape that fits'
+                                : 'start with a path that already has its first quests',
+                            style: Type.body.copyWith(
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                              color: Palette.textLo,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      _expanded ? Icons.expand_less : Icons.expand_more,
+                      color: Palette.textLo,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (_expanded) ...widget.catalog,
+      ],
+    );
+  }
+}
+
 /// One coherent doorway for situation-shaped help: no new tab, checklist, or
 /// currency. The six kits all resolve back into ordinary quests and the Keep.
 class _MomentumKitsCard extends StatelessWidget {
@@ -310,77 +416,82 @@ class _MomentumKitsCard extends StatelessWidget {
   final VoidCallback onOpenQuests;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label:
-        'Help for Today. A few useful quests for the kind of day you are having.',
-    child: GestureDetector(
-      excludeFromSemantics: true,
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        Sfx.instance.play('tick');
-        HapticFeedback.selectionClick();
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => MomentumKitsPage(
-              state: state,
-              onAdd: onAdd,
-              onPersist: onPersist,
-              onOpenQuests: onOpenQuests,
-            ),
+  Widget build(BuildContext context) {
+    void open() {
+      Sfx.instance.play('tick');
+      HapticFeedback.selectionClick();
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => MomentumKitsPage(
+            state: state,
+            onAdd: onAdd,
+            onPersist: onPersist,
+            onOpenQuests: onOpenQuests,
           ),
-        );
-      },
-      child: GlassPanel(
-        glow: true,
-        padding: const EdgeInsets.fromLTRB(16, 15, 13, 15),
-        child: Row(
-          children: [
-            const FacetMedallion(
-              size: 48,
-              accent: Palette.streak,
-              glow: true,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0x55FFF4D9), Color(0x33E8915A)],
+        ),
+      );
+    }
+
+    return Semantics(
+      button: true,
+      label:
+          'Help for Today. A few useful quests for the kind of day you are having.',
+      onTap: open,
+      child: GestureDetector(
+        excludeFromSemantics: true,
+        behavior: HitTestBehavior.opaque,
+        onTap: open,
+        child: GlassPanel(
+          glow: true,
+          padding: const EdgeInsets.fromLTRB(16, 15, 13, 15),
+          child: Row(
+            children: [
+              const FacetMedallion(
+                size: 48,
+                accent: Palette.streak,
+                glow: true,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0x55FFF4D9), Color(0x33E8915A)],
+                ),
+                child: Icon(
+                  Icons.auto_awesome_outlined,
+                  size: 23,
+                  color: Palette.xpLight,
+                ),
               ),
-              child: Icon(
-                Icons.auto_awesome_outlined,
-                size: 23,
-                color: Palette.xpLight,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // The section rule directly above already says HELP FOR
-                  // TODAY; repeating it as this card's eyebrow said the same
-                  // words twice in 40 px and left the card without a subject.
-                  Text(
-                    'Help for this kind of day',
-                    style: Type.display.copyWith(fontSize: 19),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'get unstuck · choose a gentle day · focus · make · reset',
-                    style: Type.body.copyWith(
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                      color: Palette.textLo,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // The section rule directly above already says HELP FOR
+                    // TODAY; repeating it as this card's eyebrow said the same
+                    // words twice in 40 px and left the card without a subject.
+                    Text(
+                      'Help for this kind of day',
+                      style: Type.display.copyWith(fontSize: 19),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 3),
+                    Text(
+                      'get unstuck · choose a gentle day · focus · make · reset',
+                      style: Type.body.copyWith(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
-          ],
+              const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// A light, hand-made section rule for the catalog (round-16): a small

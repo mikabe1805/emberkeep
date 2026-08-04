@@ -9,5 +9,7 @@
 //
 // Exposes: pick(bool fromCamera) -> relative filename, delete(name),
 // clearAll() (wipe every journal photo, for "Start over"),
-// image(name, {maxHeight}) -> a Widget rendering the stored photo.
+// image(name, {maxHeight}) -> a Widget rendering the stored photo, and
+// readForUpload(name) -> transient bytes for an explicit publish action.
+export 'journal_media_upload.dart';
 export 'journal_media_stub.dart' if (dart.library.io) 'journal_media_io.dart';

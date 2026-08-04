@@ -163,6 +163,71 @@ const routines = <Routine>[
     ],
   ),
 
+  // ── A wake-up option, not a strength-rung replacement ────────────
+  Routine(
+    id: 'morning-stretches',
+    title: 'Morning Stretches',
+    blurb:
+        'Four quiet minutes beside the bed. No floor, no sweat, no forcing it.',
+    minutes: 4,
+    difficulty: 1,
+    stat: Stat.vit,
+    evidenceTitle: 'Start slow, stay comfortable',
+    restDay: true,
+    moves: [
+      WorkoutMove(
+        name: 'Easy march',
+        kind: MoveKind.timed,
+        seconds: 45,
+        cue: 'Easy steps, soft arms. Let the body wake up first.',
+        easier: 'Seated march, or just sway.',
+        isWarmup: true,
+      ),
+      WorkoutMove(
+        name: 'Shoulder rolls',
+        kind: MoveKind.reps,
+        reps: 10,
+        cue: 'Five forward, five back. Keep the circles small.',
+        easier: 'Make the circles tiny.',
+        isWarmup: true,
+      ),
+      WorkoutMove(
+        name: 'Hip circles',
+        kind: MoveKind.reps,
+        reps: 8,
+        cue: 'Hands on hips, four slow circles each way.',
+        easier: 'Hold a chair, smaller circles.',
+        caution: _stretchCaution,
+      ),
+      WorkoutMove(
+        name: 'Heel-to-toe rocks',
+        kind: MoveKind.reps,
+        reps: 10,
+        cue: 'Lift the heels, then the toes, with both feet under you.',
+        easier: 'Seated ankle pumps.',
+        caution: _stretchCaution,
+      ),
+      WorkoutMove(
+        name: 'Supported calf reach',
+        kind: MoveKind.timed,
+        seconds: 40,
+        cue: 'One foot gently back, heel down. Switch sides halfway.',
+        easier: 'Use a wall or chair, shorter step.',
+        isCooldown: true,
+        caution: _stretchCaution,
+      ),
+      WorkoutMove(
+        name: 'Low chest opener',
+        kind: MoveKind.timed,
+        seconds: 20,
+        cue: 'Stand or sit tall, arms low and easy behind you. No forcing.',
+        easier: 'Keep the arms lower, or sit tall.',
+        isCooldown: true,
+        caution: _stretchCaution,
+      ),
+    ],
+  ),
+
   // ── R2 · the flagship ────────────────────────────────────────────
   Routine(
     id: 'full-body',
@@ -520,6 +585,17 @@ Quest workoutLauncherQuest() => Quest(
   workout: true,
   ladder: Ladders.byBaseTitle['Guided workout session'],
   ladderHint: 'GUIDED · BEGINNER-FRIENDLY',
+);
+
+/// Builds the temporary Quest used to pay an honestly completed session.
+/// Mobility sessions keep their Vitality reward but never claim progress on
+/// the strength goal just because they share the same launcher.
+Quest workoutRewardQuest(Routine routine, {required int difficulty}) => Quest(
+  title: routine.title,
+  stat: routine.stat,
+  difficulty: difficulty,
+  schedule: QuestSchedule.once,
+  goalTitle: routine.stat == Stat.str ? 'The strength path' : null,
 );
 
 /// Presentation window for the evening ledger. It crosses midnight on

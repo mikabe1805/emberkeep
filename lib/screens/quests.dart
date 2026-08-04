@@ -39,6 +39,7 @@ import '../widgets/gold_surface.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/install_hint.dart';
 import '../widgets/levelup_overlay.dart';
+import '../widgets/share_moment_card.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/particles.dart';
 import '../widgets/quest_depth_room.dart';
@@ -635,7 +636,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             reduceMotion: state.reduceMotion,
             heading: quest.displayTitle,
             hint: prompt.hint,
-            starter: current == null ? prompt.starter : null,
+            // Existing drafts already contain the starter; passing it again
+            // only restores the prompt treatment and never inserts a duplicate.
+            starter: prompt.starter,
             trace: trace,
             commit: (payload, existing, markEdited) {
               final source = existing ?? current;
@@ -1437,9 +1440,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// Pay for a finished session through the EXISTING reward engine: synthesize
   /// one throwaway Quest (routine stat/difficulty, ×1.2 if a timed move was
-  /// proved, ticks the strength goal) and run the normal completion. Difficulty
-  /// scales down fairly for an early exit. The launcher is marked done AFTER
-  /// the snapshot is captured, so Undo reverts both the reward and the tick.
+  /// proved, and strength sessions alone tick the strength goal) and run the
+  /// normal completion. Difficulty scales down fairly for an early exit. The
+  /// launcher is marked done AFTER the snapshot is captured, so Undo reverts
+  /// both the reward and the tick.
   void _finishWorkout(
     Quest launcher,
     Routine routine,
@@ -1455,13 +1459,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final diff = endedEarly
         ? (routine.difficulty * frac).round().clamp(1, 10)
         : routine.difficulty;
-    final reward = Quest(
-      title: routine.title,
-      stat: routine.stat,
-      difficulty: diff,
-      schedule: QuestSchedule.once,
-      goalTitle: 'The strength path',
-    );
+    final reward = workoutRewardQuest(routine, difficulty: diff);
     // _runCompletion captures the undo snapshot (launcher still un-done) and
     // ARMS the deferred reward commit. Mark the launcher done in-memory for the
     // visual, but do NOT persist here — persistence happens atomically when the
@@ -1502,6 +1500,23 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             // streak milestone (if any), then rank-ups, then achievements
             _resolveStreakMilestone(s);
           }
+        },
+        // Sharing replaces the takeover with the preview sheet, then rejoins
+        // the exact same celebration chain onDismiss runs — a shared level-up
+        // must not swallow the streak/rank/achievement beats behind it.
+        onShare: () {
+          takeover.remove();
+          if (!mounted) return;
+          unawaited(
+            showShareMoment(context, s, level: result.leveledTo!).whenComplete(
+              () {
+                if (mounted && identical(s, _state)) {
+                  setState(() {});
+                  _resolveStreakMilestone(s);
+                }
+              },
+            ),
+          );
         },
       ),
     );
@@ -1638,6 +1653,24 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     return _sparkPanel();
   }
 
+  void _selectEnergyWeather(EnergyWeather weather) {
+    setState(() {
+      _state.setEnergyWeather(weather);
+      if (weather == EnergyWeather.low) {
+        _focusLens = _FocusLens.quickWin;
+        _state.setFocusMode(false);
+        final candidates = _lowFlameCandidates(Clock.now());
+        _state.setLowFlameQuests(
+          suggestedLowFlameQuests(candidates, Clock.now()).map((q) => q.title),
+        );
+        _showFullLowFlame = false;
+      }
+    });
+    widget.onPersist();
+    Sfx.instance.play('streak');
+    HapticFeedback.selectionClick();
+  }
+
   Widget _energyWeatherPanel() {
     final options = <(EnergyWeather, IconData, Color)>[
       (EnergyWeather.low, Icons.nightlight_outlined, Stat.vit.color),
@@ -1682,31 +1715,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     child: Semantics(
                       button: true,
                       label: option.$1.label,
+                      onTap: () => _selectEnergyWeather(option.$1),
                       child: GestureDetector(
                         excludeFromSemantics: true,
                         behavior: HitTestBehavior.opaque,
-                        onTap: () {
-                          setState(() {
-                            _state.setEnergyWeather(option.$1);
-                            if (option.$1 == EnergyWeather.low) {
-                              _focusLens = _FocusLens.quickWin;
-                              _state.setFocusMode(false);
-                              final candidates = _lowFlameCandidates(
-                                Clock.now(),
-                              );
-                              _state.setLowFlameQuests(
-                                suggestedLowFlameQuests(
-                                  candidates,
-                                  Clock.now(),
-                                ).map((q) => q.title),
-                              );
-                              _showFullLowFlame = false;
-                            }
-                          });
-                          widget.onPersist();
-                          Sfx.instance.play('streak');
-                          HapticFeedback.selectionClick();
-                        },
+                        onTap: () => _selectEnergyWeather(option.$1),
                         child: Container(
                           constraints: const BoxConstraints(minHeight: 44),
                           padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -3431,12 +3444,13 @@ class _ShelterAction extends StatelessWidget {
     return Semantics(
       button: true,
       label: label,
+      onTap: onTap,
       child: GestureDetector(
         excludeFromSemantics: true,
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: Container(
-          constraints: const BoxConstraints(minHeight: 36),
+          constraints: const BoxConstraints(minHeight: 44),
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: facetedDecoration(

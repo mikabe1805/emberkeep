@@ -337,8 +337,19 @@ void main() {
     await _pumpBoard(tester, state: state, quests: [quest]);
     await _openJournalQuest(tester, quest);
 
-    final editor = tester.widget<EditableText>(find.byType(EditableText).first);
-    expect(editor.controller.text, draft.text);
+    final field = tester.widget<TextField>(
+      find.byKey(const ValueKey('journal-entry-body')),
+    );
+    expect(field.controller!.text, draft.text);
+    final span = field.controller!.buildTextSpan(
+      context: tester.element(find.byKey(const ValueKey('journal-entry-body'))),
+      style: field.style,
+      withComposing: false,
+    );
+    final pieces = span.children!.cast<TextSpan>();
+    expect(pieces.first.text, _prompt.starter);
+    expect(pieces.first.style?.fontStyle, FontStyle.italic);
+    expect(pieces.last.text, 'Mom.');
     await tester.enterText(
       find.byType(TextField).first,
       '${draft.text} The garden after rain.',

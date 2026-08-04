@@ -21,7 +21,8 @@ abstract final class Storage {
   /// Save-format version. BUMP whenever new persisted fields are added so the
   /// cloud-merge can refuse to adopt an OLDER build's save that would have
   /// silently stripped fields it doesn't know about (bug-hunt §5).
-  static const schema = 21; // arrangeable private My Space cards
+  static const schema =
+      23; // explicit visitor consent for profile/season photos
 
   /// Where an unparseable save is quarantined before a fresh start, so a
   /// corrupt blob is never silently destroyed (it may be hand-recoverable).
@@ -31,7 +32,9 @@ abstract final class Storage {
   /// happens to parse — a bad paste must never silently replace a real save.
   static const _marker = 'emberkeep';
 
-  static Future<void> save(GameState state, List<Quest> quests) async {
+  /// Returns false when the platform declined the write. Callers must not
+  /// publish or export an older blob as though this state had been saved.
+  static Future<bool> save(GameState state, List<Quest> quests) async {
     try {
       // Capture synchronously. The live state may mutate while the preferences
       // plugin resolves, and a save request must represent one coherent frame.
@@ -42,9 +45,10 @@ abstract final class Storage {
         'quests': [for (final q in quests) q.toJson()],
       });
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_key, raw);
+      return await prefs.setString(_key, raw);
     } catch (e) {
       debugPrint('Storage.save failed: $e');
+      return false;
     }
   }
 
@@ -214,6 +218,19 @@ abstract final class Storage {
       // gate 1: our marker — rejects {} / {state:{},quests:[]} / foreign JSON
       if (j['app'] != _marker) {
         debugPrint('Storage.importRaw rejected: not a Room of Days backup');
+        return false;
+      }
+      final encodedSchema = j['schema'];
+      if (encodedSchema != null &&
+          (encodedSchema is! int || encodedSchema < 0)) {
+        debugPrint('Storage.importRaw rejected: invalid schema');
+        return false;
+      }
+      // Never accept data a newer app understands better than this one. The
+      // next ordinary save would otherwise rewrite the backup and lose its
+      // unknown fields.
+      if (encodedSchema is int && encodedSchema > schema) {
+        debugPrint('Storage.importRaw rejected: backup needs a newer build');
         return false;
       }
       // gate 2: the state must actually carry a save (a real character has

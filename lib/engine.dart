@@ -104,9 +104,10 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Trusted keeps remembered locally. Codes expose only the same fixed,
-  /// appearance-only public room payload as a one-off visit; no names, tasks,
-  /// notes, account details, or free-text profile fields are introduced.
+  /// Trusted keeps remembered locally. A code exposes the same bounded room
+  /// payload as a one-off visit: preset appearance plus only the display name
+  /// and profile-card writing its owner explicitly selected. Photos, tasks,
+  /// account details, and every unselected Journal page remain private.
   final List<String> hearthCircleCodes = [];
 
   bool addCircleCode(String raw) {
@@ -165,8 +166,9 @@ class GameState extends ChangeNotifier {
   }
 
   /// Journal-note ids the keeper deliberately placed in their Memory Cabinet.
-  /// The note text remains private and local/cloud-save-only; public rooms
-  /// receive only a total artifact count.
+  /// They contribute to the public artifact count. Up to four bounded texts may
+  /// also be published only when the keeper explicitly shares Pinned moments;
+  /// note ids, rich data, and every photo remain private.
   final Set<String> memoryPins = {};
 
   /// A small, authored profile for the owner's room. It stays private unless
@@ -176,19 +178,40 @@ class GameState extends ChangeNotifier {
   final List<String> featuredGoalTitles = [];
   bool shareSpaceProfile = false;
 
+  /// Cards the keeper has deliberately selected for their visitor page.
+  ///
+  /// This is separate from [hiddenSpaceCards]: a card can be tucked away on
+  /// the owner's page while remaining part of the page they made for friends,
+  /// or kept locally visible while private to them. The legacy default
+  /// preserves the two cards older builds could share; the visitor-page master
+  /// switch still defaults off.
+  final Set<SpaceCardKind> visitorSpaceCards = {
+    SpaceCardKind.about,
+    SpaceCardKind.rightNow,
+  };
+
   /// The private arrangement of the My Space deck. The first three entries
   /// reproduce the page that existed before cards became arrangeable; the
   /// empty This season card is omitted by the UI until the owner writes it.
   final List<SpaceCardKind> spaceCardOrder = [...defaultSpaceCardOrder];
   final Set<SpaceCardKind> hiddenSpaceCards = {};
   String spaceSeasonText = '';
+  String? spaceProfilePhotoNoteId;
   String? spaceSeasonPhotoNoteId;
+  bool shareSpaceProfilePhoto = false;
+  bool shareSpaceSeasonPhoto = false;
+
+  /// The Journal pages supplying the two deliberately selectable visitor
+  /// photos. Selecting a local source and sharing it are separate choices;
+  /// neither photo is public unless its own consent bit is also on.
+  Note? get spaceProfilePhotoNote => _spacePhotoNote(spaceProfilePhotoNoteId);
 
   /// The Journal page supplying This season's optional photo. A cloud-restored
   /// note can legitimately have no local media, and a selected note can later
   /// be deleted, so both cases quietly fall back to the text-only card.
-  Note? get spaceSeasonPhotoNote {
-    final id = spaceSeasonPhotoNoteId;
+  Note? get spaceSeasonPhotoNote => _spacePhotoNote(spaceSeasonPhotoNoteId);
+
+  Note? _spacePhotoNote(String? id) {
     if (id == null) return null;
     for (final note in journal) {
       if (note.id == id) return note.images.isEmpty ? null : note;
@@ -251,14 +274,21 @@ class GameState extends ChangeNotifier {
   void setSpacePage({
     required Iterable<SpaceCardKind> order,
     required Iterable<SpaceCardKind> hidden,
+    Iterable<SpaceCardKind>? visitorVisible,
     required String intro,
     required Iterable<String> featuredGoalTitles,
     required String seasonText,
+    required String? profilePhotoNoteId,
     required String? seasonPhotoNoteId,
+    required bool shareProfilePhoto,
+    required bool shareSeasonPhoto,
     required bool shareProfile,
   }) {
     final cleanOrder = _cleanSpaceCardOrder(order);
     final cleanHidden = hidden.toSet();
+    final cleanVisitor = visitorVisible
+        ?.where(SpaceCardKind.values.contains)
+        .toSet();
     final cleanFeatured = featuredGoalTitles.toList(growable: false);
     spaceCardOrder
       ..clear()
@@ -266,9 +296,17 @@ class GameState extends ChangeNotifier {
     hiddenSpaceCards
       ..clear()
       ..addAll(cleanHidden);
+    if (cleanVisitor != null) {
+      visitorSpaceCards
+        ..clear()
+        ..addAll(cleanVisitor);
+    }
     spaceIntro = _cleanSpaceIntro(intro);
     spaceSeasonText = _cleanSpaceSeasonText(seasonText);
+    spaceProfilePhotoNoteId = _cleanSpaceSeasonPhotoNoteId(profilePhotoNoteId);
     spaceSeasonPhotoNoteId = _cleanSpaceSeasonPhotoNoteId(seasonPhotoNoteId);
+    shareSpaceProfilePhoto = shareProfilePhoto;
+    shareSpaceSeasonPhoto = shareSeasonPhoto;
     shareSpaceProfile = shareProfile;
 
     final valid = goals.map((goal) => goal.title).toSet();
@@ -292,10 +330,14 @@ class GameState extends ChangeNotifier {
     setSpacePage(
       order: spaceCardOrder,
       hidden: hiddenSpaceCards,
+      visitorVisible: visitorSpaceCards,
       intro: intro,
       featuredGoalTitles: goals,
       seasonText: spaceSeasonText,
+      profilePhotoNoteId: spaceProfilePhotoNoteId,
       seasonPhotoNoteId: spaceSeasonPhotoNoteId,
+      shareProfilePhoto: shareSpaceProfilePhoto,
+      shareSeasonPhoto: shareSpaceSeasonPhoto,
       shareProfile: shared ?? shareSpaceProfile,
     );
   }
@@ -432,7 +474,7 @@ class GameState extends ChangeNotifier {
   /// Creature skins (round-47) — the colour of the ember itself, chosen in the
   /// shop. Exclusive like room styles (own many, wear one). The free default
   /// 'ember_amber' is implicitly owned. Distinct from [equippedSkin], which is
-  /// an earned cosmetic that only tints the aura/badge.
+  /// an earned override: taking it off reveals this underlying shop choice.
   final Set<String> ownedSkins = {};
   String creatureSkin = 'ember_amber';
 
@@ -740,8 +782,9 @@ class GameState extends ChangeNotifier {
   final Set<String> collectedLoot = {};
 
   /// The currently-worn cosmetic (a name from [collectedLoot]); null = the
-  /// default dominant-stat look. Recolors the portrait aura + completion
-  /// sparks (see content/cosmetics.dart). Toggle with [equipSkin].
+  /// default dominant-stat look. Recolors the hearth flame, portrait aura,
+  /// and completion sparks (see content/cosmetics.dart). Toggle with
+  /// [equipSkin].
   String? equippedSkin;
 
   /// Equip a found cosmetic, or unequip it if it's already worn. notify
@@ -1588,9 +1631,17 @@ class GameState extends ChangeNotifier {
       for (final kind in SpaceCardKind.values)
         if (hiddenSpaceCards.contains(kind)) kind.name,
     ],
+    'visitorSpaceCards': [
+      for (final kind in SpaceCardKind.values)
+        if (visitorSpaceCards.contains(kind)) kind.name,
+    ],
     'spaceSeasonText': spaceSeasonText,
+    if (spaceProfilePhotoNoteId != null)
+      'spaceProfilePhotoNoteId': spaceProfilePhotoNoteId,
     if (spaceSeasonPhotoNoteId != null)
       'spaceSeasonPhotoNoteId': spaceSeasonPhotoNoteId,
+    'shareSpaceProfilePhoto': shareSpaceProfilePhoto,
+    'shareSpaceSeasonPhoto': shareSpaceSeasonPhoto,
     'quietCompanyKind': quietCompanyKind,
     'quietCompanyUntil': quietCompanyUntil,
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
@@ -1772,14 +1823,26 @@ class GameState extends ChangeNotifier {
         _cleanSpaceCardOrder(_spaceCardKindsFromJson(j['spaceCardOrder'])),
       );
     s.hiddenSpaceCards.addAll(_spaceCardKindsFromJson(j['hiddenSpaceCards']));
+    if (j.containsKey('visitorSpaceCards')) {
+      s.visitorSpaceCards
+        ..clear()
+        ..addAll(_spaceCardKindsFromJson(j['visitorSpaceCards']));
+    }
     s.spaceSeasonText = _cleanSpaceSeasonText(
       j['spaceSeasonText'] is String ? j['spaceSeasonText'] as String : '',
+    );
+    s.spaceProfilePhotoNoteId = _cleanSpaceSeasonPhotoNoteId(
+      j['spaceProfilePhotoNoteId'] is String
+          ? j['spaceProfilePhotoNoteId'] as String
+          : null,
     );
     s.spaceSeasonPhotoNoteId = _cleanSpaceSeasonPhotoNoteId(
       j['spaceSeasonPhotoNoteId'] is String
           ? j['spaceSeasonPhotoNoteId'] as String
           : null,
     );
+    s.shareSpaceProfilePhoto = j['shareSpaceProfilePhoto'] as bool? ?? false;
+    s.shareSpaceSeasonPhoto = j['shareSpaceSeasonPhoto'] as bool? ?? false;
     final quietKind = j['quietCompanyKind'] as String? ?? 'none';
     s.quietCompanyKind =
         const {'none', 'study', 'making', 'reset', 'quiet'}.contains(quietKind)

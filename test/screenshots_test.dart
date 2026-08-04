@@ -12,12 +12,14 @@ import 'dart:convert';
 
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/day_planning.dart';
 import 'package:emberkeep/content/furniture.dart';
 import 'package:emberkeep/content/routines.dart';
 import 'package:emberkeep/content/space_themes.dart';
 import 'package:emberkeep/widgets/routine_flows.dart';
+import 'package:emberkeep/widgets/share_moment_card.dart';
 import 'package:emberkeep/content/room_styles.dart';
 import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/engine.dart';
@@ -900,6 +902,40 @@ void main() {
     expect(find.text('Three things I’m thankful for:\n'), findsOneWidget);
     await _storeShot(tester, '13b_journal_quest_entry_1290x2796');
 
+    final lookingBack = Note(
+      at: DateTime(2026, 7, 18, 21, 10),
+      text:
+          'Three things I’m thankful for:\nMy sister calling. The rain. Starting again.',
+    );
+    // Reset the Navigator before swapping one JournalEntryScreen for another;
+    // MaterialApp otherwise keeps the prior home route alive in this test.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: JournalEntryScreen(
+          key: const ValueKey('looking-back-read-mode-shot'),
+          initial: lookingBack,
+          accent: Palette.xp,
+          themeId: state.canvasTheme,
+          reduceMotion: true,
+          heading: 'Looking back',
+          hint: 'A page from your journal',
+          starter: 'Three things I’m thankful for:\n',
+          initiallyEditing: false,
+          commit: (payload, existing, markEdited) => existing!.copyWith(
+            text: payload.text,
+            rich: payload.rich,
+            images: payload.images,
+          ),
+          onDelete: (_) {},
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    await _storeShot(tester, '13c_journal_read_mode_1290x2796');
+
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
@@ -1339,6 +1375,33 @@ void main() {
     );
     await _storeShot(tester, '02b_hearth_circle_1290x2796');
 
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => Center(
+              child: FilledButton(
+                onPressed: () => showShareSpaceDialog(
+                  context,
+                  code: 'DAY234',
+                  ownerName: 'Alex',
+                  onPreview: () {},
+                  onStop: () async => true,
+                ),
+                child: const Text('Share my space'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Share my space'));
+    await tester.pumpAndSettle();
+    await _storeShot(tester, '02e_share_dialog_1290x2796');
+    Navigator.of(tester.element(find.text('DONE'))).pop();
+    await tester.pumpAndSettle();
+
     final friend = GameState()
       ..playerName = 'Mara'
       ..level = 21
@@ -1373,15 +1436,62 @@ void main() {
     ]);
     friend.stats[Stat.soc] = 61;
     friend.stats[Stat.dis] = 55;
-    friend.setSpaceProfile(
+    final sharedMoment = Note(
+      at: DateTime(2026, 7, 26),
+      text: 'The first tomato finally turned red. I almost missed it.',
+    );
+    friend.journal = [sharedMoment];
+    friend.memoryPins.add(sharedMoment.id);
+    friend.setSpacePage(
+      order: const [
+        SpaceCardKind.about,
+        SpaceCardKind.rightNow,
+        SpaceCardKind.pinnedMoments,
+        SpaceCardKind.thisSeason,
+      ],
+      hidden: const [],
+      visitorVisible: SpaceCardKind.values,
       intro:
           'I’m making a calmer home, growing things slowly, and leaving room '
           'for people I love.',
-      goals: {'Make mornings feel unhurried', 'Grow a small kitchen garden'},
-      shared: true,
+      featuredGoalTitles: const {
+        'Make mornings feel unhurried',
+        'Grow a small kitchen garden',
+      },
+      seasonText: 'A season for growing slowly and inviting people in.',
+      profilePhotoNoteId: null,
+      seasonPhotoNoteId: null,
+      shareProfilePhoto: false,
+      shareSeasonPhoto: false,
+      shareProfile: true,
     );
     friend.history[Days.key(Clock.now())] = 2;
     friend.setEnergyWeather(EnergyWeather.steady);
+
+    final circleState = GameState()
+      ..reduceMotion = true
+      ..addCircleCode('DAY234');
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: HearthCircleScreen(
+          state: circleState,
+          onPersist: () {},
+          roomFetcher: (_) async => roomDisplay(friend),
+          sparkSender: (_, _) async => true,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 160));
+    await tester.scrollUntilVisible(
+      find.text('SEND A NOTE'),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('SEND A NOTE'));
+    await tester.pump(const Duration(milliseconds: 450));
+    await _storeShot(tester, '02f_support_picker_1290x2796');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -1397,6 +1507,13 @@ void main() {
       ),
     );
     await _storeShot(tester, '02c_visitor_profile_1290x2796');
+    await tester.scrollUntilVisible(
+      find.text('PINNED MOMENTS'),
+      320,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 250));
+    await _storeShot(tester, '02d_visitor_cards_1290x2796');
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -1707,7 +1824,10 @@ void main() {
       featuredGoalTitles: state.goals.map((goal) => goal.title),
       seasonText:
           'Finishing one chapter slowly, keeping the windows open, and letting August be August.',
+      profilePhotoNoteId: null,
       seasonPhotoNoteId: null,
+      shareProfilePhoto: false,
+      shareSeasonPhoto: false,
       shareProfile: false,
     );
 
@@ -1729,6 +1849,8 @@ void main() {
             state: state,
             quests: const [],
             onPersist: () {},
+            onPublishRoom: (_, {required code}) async =>
+                RoomPublishResult.success(code),
             onAddQuest: (_) => true,
             onExport: () async => true,
             onImport: (_) async => true,
@@ -1934,5 +2056,45 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
+  });
+
+  testWidgets('store screenshot story: share a moment', (tester) async {
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+
+    final state = GameState()
+      ..onboarded = true
+      ..setPlayerName('Alex')
+      ..level = 18
+      ..streakDays = 12
+      ..totalCompletions = 158
+      ..wallStyle = 'wall_walnut'
+      ..roomCode = 'ABC234';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: const Color(0xFF14100D),
+          body: ShareMomentSheet(state: state, level: 18),
+        ),
+      ),
+    );
+    // decode the room plate for real before capturing (same reason as the
+    // routine art: the fake-async clock never finishes Image.asset on its own)
+    final context = tester.element(find.byType(MaterialApp));
+    await tester.runAsync(() async {
+      await precacheImage(
+        const AssetImage('assets/rooms/wall_walnut-clean-v2.webp'),
+        context,
+      );
+    });
+    await _storeShot(tester, '13_share_moment_1290x2796');
   });
 }

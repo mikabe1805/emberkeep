@@ -43,13 +43,18 @@ class DetailHeader extends StatelessWidget {
         ),
       ),
     );
+    void goBack() {
+      Navigator.of(context).maybePop();
+    }
+
     final back = Semantics(
       button: true,
       label: 'Back',
+      onTap: goBack,
       child: GestureDetector(
         excludeFromSemantics: true,
         behavior: HitTestBehavior.opaque,
-        onTap: () => Navigator.of(context).maybePop(),
+        onTap: goBack,
         child: const Padding(
           padding: EdgeInsets.all(8),
           child: Icon(Icons.chevron_left, size: 26, color: Palette.textMid),

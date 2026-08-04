@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../engine.dart';
 import 'achievements.dart';
+import 'cosmetics.dart';
 
 /// Hearth-flame colours (round-47 creature skins, repurposed round-62 for the
 /// keep) — the colour of the fire in your space's hearth, the most personal
@@ -177,7 +178,37 @@ String? skinGateLabel(CreatureSkin sk) {
 List<Color> creatureColorsFor(GameState s) =>
     (creatureSkinById(s.creatureSkin) ?? _amber).colors;
 
-/// THE FLAME'S OWN HUE for the keep's hearth.
+/// ASCII-only public ids for found flames. Cosmetic display names remain
+/// save-stable local copy, while shared-room rules never have to parse spaces,
+/// punctuation, or the typographic apostrophe in Marathoner's Mantle.
+const _foundFlameIds = <String, String>{
+  'Ember Flame Skin': 'found_ember',
+  'Moss Hearth': 'found_moss',
+  'Bloomlight': 'found_bloom',
+  'Honeyed Halo': 'found_honey',
+  'Candle Gold': 'found_candle',
+  'Aurora Particle Style': 'found_aurora',
+  'Midnight Theme Shard': 'found_midnight',
+  'Periwinkle Frost': 'found_periwinkle',
+  'Plum Nebula': 'found_plum',
+  'Storm Steel': 'found_storm',
+  'Rosewood Glow': 'found_rosewood',
+  'Founder Badge Fragment': 'found_founder',
+  'Weeklong Ember': 'found_weeklong',
+  'Eternal Flame': 'found_eternal',
+  'Spotless Glow': 'found_spotless',
+  'Renaissance Aura': 'found_renaissance',
+  'Marathoner’s Mantle': 'found_marathoner',
+};
+
+String? _foundFlameNameById(String? id) {
+  for (final entry in _foundFlameIds.entries) {
+    if (entry.value == id) return entry.key;
+  }
+  return null;
+}
+
+/// THE FLAME'S OWN HUE for the room's hearth.
 ///
 /// These palettes are still shaped as the old creature's shading ramp:
 /// index 0 is a near-white highlight, 1 is a pale tint, 2 is the SATURATED
@@ -185,13 +216,39 @@ List<Color> creatureColorsFor(GameState s) =>
 /// rendered as a near-white candle no matter which colour you had bought —
 /// the seven paid flame colours were nearly indistinguishable in the room.
 ///
-/// Flame gradients rise from a white-hot fuel-contact base into this hue, so
-/// the selected colour stays vivid without putting a pale egg in the middle.
-Color flameHueFor(GameState s) => asFlameHue(creatureColorsFor(s)[2]);
+/// The effective flame identity published to visitor rooms.
+///
+/// Found wardrobe skins pre-date the creature-to-hearth pivot and are stored
+/// separately from shop-bought flame colours. Wearing one now deliberately
+/// overrides the shop colour without destroying that underlying choice; taking
+/// it off reveals the flame the keeper had selected before.
+String flameSkinIdFor(GameState s) {
+  final found = cosmeticFor(s.equippedSkin);
+  return found?.aura == null
+      ? s.creatureSkin
+      : _foundFlameIds[found!.name] ?? s.creatureSkin;
+}
 
-/// By-id flame hue, for a VISITED space (no local GameState). See
-/// [flameHueFor].
-Color flameHueById(String? id) => asFlameHue(creatureColorsById(id)[2]);
+/// Resolves both shop flame ids and save-stable wardrobe cosmetic names.
+/// Unknown ids remain compatible with old/public room documents by falling
+/// back to Ember rather than accepting an arbitrary colour from the network.
+Color flameHueById(String? id) {
+  final found = cosmeticFor(id) ?? cosmeticFor(_foundFlameNameById(id));
+  if (found?.aura case final hue?) return asFlameHue(hue);
+  return asFlameHue(creatureColorsById(id)[2]);
+}
+
+Color flameHueFor(GameState s) => flameHueById(flameSkinIdFor(s));
+
+/// Achievement flames retain their restrained spark crown in both owner and
+/// visitor renderers. This is derived from the same public identity as hue so
+/// the two views cannot silently disagree.
+bool heirloomFlameById(String? id) =>
+    id == 'gilded' ||
+    (cosmeticFor(id) ?? cosmeticFor(_foundFlameNameById(id)))?.rarity ==
+        Rarity.legendary;
+
+bool heirloomFlameFor(GameState s) => heirloomFlameById(flameSkinIdFor(s));
 
 /// Pushes a palette's saturated mid into flame territory.
 ///
