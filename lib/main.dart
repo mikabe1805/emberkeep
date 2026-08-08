@@ -36,8 +36,11 @@ void main() {
   // Uncaught async/platform errors: surface loudly in debug (so bugs aren't
   // hidden from the developer), swallow in release (so the app stays alive).
   PlatformDispatcher.instance.onError = (error, stack) {
-    debugPrint('Uncaught: $error\n$stack');
-    return !kDebugMode;
+    if (kDebugMode) {
+      debugPrint('Uncaught: $error\n$stack');
+      return false;
+    }
+    return true;
   };
 
   // Phone-first: this is a vertical, candlelit experience — keep it upright.

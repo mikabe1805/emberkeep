@@ -1448,7 +1448,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     final photoCount = _blocks.where((b) => b.isImage).length;
     final privacy = kVisitorPhotoSharingEnabled
         ? 'Photos stay on this device unless you separately share one on your visitor page.'
-        : 'Photos stay on this device.';
+        : 'Room of Days keeps photos local.';
     final semantics = photoCount == 0
         ? 'Add photos to this journal entry. $privacy'
         : 'Add more photos to this journal entry. $photoCount ${photoCount == 1 ? 'photo' : 'photos'} on this page. $privacy';

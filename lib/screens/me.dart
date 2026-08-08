@@ -1405,7 +1405,7 @@ class _LocalPhotoOnlyNote extends StatelessWidget {
       const SizedBox(width: 7),
       Expanded(
         child: Text(
-          'This photo stays on this device.',
+          'Room of Days keeps this photo local.',
           key: const ValueKey('space-photo-local-only'),
           style: Type.body.copyWith(fontSize: 11.5, color: Palette.textLo),
         ),

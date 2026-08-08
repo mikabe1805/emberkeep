@@ -41,7 +41,8 @@ Status, August 8 2026:
    is intentionally not claimed because association files must live on the
    exact host native links claim.
 2. **Done and live** — `web/.well-known/apple-app-site-association` scopes
-   `/space/*` and `/room/*` to `D63Z4RBRT8.com.mikabe.emberkeep`; verified to
+   `/space`, `/space/*`, `/room`, and `/room/*` to
+   `D63Z4RBRT8.com.mikabe.emberkeep`; verified to
    ride `flutter build web` into `build/web`. On August 8, 2026, the live URL
    returned HTTP 200 with the JSON content type.
 3. **Done in repo** — AndroidManifest has the `autoVerify` intent filter for

@@ -64,8 +64,9 @@ void main() {
     expect(compact, contains('short introduction'));
     expect(compact, contains('up to three selected goals'));
     expect(compact, contains('bounded writing'));
-    expect(compact, contains('Journal photos are not included'));
-    expect(compact, contains('stay on your device'));
+    expect(compact, contains('does not upload journal photos'));
+    expect(compact, contains('operating system may include local app data'));
+    expect(compact, contains('device backups you choose to enable'));
     expect(compact, contains('never include journal photos'));
     expect(compact, isNot(contains('Firebase Cloud Storage')));
     expect(compact, contains('Anyone with the room link'));
@@ -107,6 +108,9 @@ void main() {
     final shell = _source('lib/screens/shell.dart');
     final manifest = _source('android/app/src/main/AndroidManifest.xml');
     final entitlements = _source('ios/Runner/Runner.entitlements');
+    final association = _source(
+      'web/.well-known/apple-app-site-association',
+    ).replaceAll(RegExp(r'\s+'), ' ');
 
     expect(social, contains("'space',\n          clean"));
     expect(social, contains('class RoomLinkInbox extends ChangeNotifier'));
@@ -117,6 +121,10 @@ void main() {
     expect(entitlements, contains('applinks:roomofdays.com'));
     expect(manifest, isNot(contains('www.roomofdays.com')));
     expect(entitlements, isNot(contains('www.roomofdays.com')));
+    expect(association, contains('{ "/": "/space",'));
+    expect(association, contains('{ "/": "/space/*",'));
+    expect(association, contains('{ "/": "/room",'));
+    expect(association, contains('{ "/": "/room/*",'));
   });
 
   test(

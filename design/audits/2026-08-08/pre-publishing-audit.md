@@ -114,16 +114,20 @@ reason to add more features.
 - Screenshot suite: all 21 captures passed, were visually reviewed, and passed
   again without updating baselines.
 - Focused About/privacy tests after the final copy changes: 10 passed.
-- Local AASA content exactly matches the live HTTPS response.
+- Local AASA content exactly matches the live HTTPS response, including exact
+  and wildcard forms for both `/space` and legacy `/room` links.
 - Current Firestore rules compiled and deployed to production on August 8.
 - The repeatable two-identity production smoke passed v5 publication, exact
   reads, anti-enumeration, versioned path validation, anti-downgrade,
   owner-only Circle/Spark receipts, duplicate rejection, self-interaction
   rejection, and complete temporary-data cleanup.
-- Signed Android AAB and APK candidates for `1.0.0+5` passed release builds.
+- Signed Android AAB and APK candidates for `1.0.0+6` passed clean release
+  builds. Newer native audio/share plugin releases were rejected after their
+  AGP 9 Built-in Kotlin paths failed real release compilation; the candidate
+  pins the last proven versions instead of carrying a build-system workaround.
   Their SHA-256 checksums are
-  `6B52EA8753AD0965540643016F8A0290645770487EAC898C4D1EF82AA63EE2D1`
-  and `CDB70BAC794111BC0B52D806424B30D1EFF2B1D3A05BB300A9D1C4EC10D0A8E0`;
+  `34535C390D020B58A27A25D5D884EF2C5D4A66B0B737A05BBB6E3575E76C29AD`
+  and `A24EEBD34189FC3837053FBD7FB37CA6F2049E0E0B176612529AB051433714E7`;
   both carry the expected upload certificate.
 - The matching web build was deployed to Firebase Hosting. Live
   `main.dart.js`, the local-only privacy page, and the AASA file each matched

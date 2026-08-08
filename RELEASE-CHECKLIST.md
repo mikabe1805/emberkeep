@@ -46,11 +46,11 @@ not replace a signed device build or store-console review.
 - [x] `flutter build web --release`
 - [x] Render and inspect the screenshot-golden suite; all 21 captures pass a
   second run without updating baselines, confirming deterministic output.
-- [x] Build signed Android App Bundle and APK candidates for `1.0.0+5` on
+- [x] Build signed Android App Bundle and APK candidates for `1.0.0+6` on
   August 8, 2026. The AAB SHA-256 is
-  `6B52EA8753AD0965540643016F8A0290645770487EAC898C4D1EF82AA63EE2D1`;
+  `34535C390D020B58A27A25D5D884EF2C5D4A66B0B737A05BBB6E3575E76C29AD`;
   the APK SHA-256 is
-  `CDB70BAC794111BC0B52D806424B30D1EFF2B1D3A05BB300A9D1C4EC10D0A8E0`.
+  `A24EEBD34189FC3837053FBD7FB37CA6F2049E0E0B176612529AB051433714E7`.
   Both match upload certificate SHA-256
   `4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14`.
   Stable copies and install guidance are in `../release-artifacts/`.
@@ -68,7 +68,7 @@ not replace a signed device build or store-console review.
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.
 - [ ] Confirm the submitted version/build number exceeds every prior upload.
-- [x] Repository candidate version is `1.0.0+5`; Codemagic still derives the
+- [x] Repository candidate version is `1.0.0+6`; Codemagic still derives the
   next iOS build number from App Store Connect.
 - [x] Deploy the checked-in Firestore rules before testing Share, Visit, or
   Circle; current rules compiled and were released to `emberkeep-5b33b` on

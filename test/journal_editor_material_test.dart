@@ -65,7 +65,7 @@ void main() {
       expect(actionRect.height, greaterThanOrEqualTo(44));
       expect(
         tester.getSemantics(photoAction).label,
-        contains('Photos stay on this device'),
+        contains('Room of Days keeps photos local'),
       );
 
       final field = tester.widget<TextField>(find.byType(TextField).first);

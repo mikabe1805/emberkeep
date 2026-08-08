@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+5
+version: 1.0.0+6
 
 environment:
   sdk: ^3.12.2
@@ -34,15 +34,19 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  audioplayers: ^6.7.1
-  google_fonts: ^8.1.0
+  # 6.8.1's Built-in Kotlin path does not expose AudioplayersPlugin to the
+  # generated Android registrant under this AGP 9 release setup.
+  audioplayers: 6.7.1
+  google_fonts: ^8.2.1
   shared_preferences: ^2.5.5
   firebase_core: ^4.10.0
   firebase_auth: ^6.5.2
   cloud_firestore: ^6.5.0
   firebase_storage: ^13.4.5
   web: ^1.1.1
-  share_plus: ^13.1.0
+  # 13.3.0's Built-in Kotlin path does not compile with this AGP 9 release
+  # setup (SharePlusPendingIntent is unresolved). Keep the last verified build.
+  share_plus: 13.1.0
   url_launcher: ^6.3.2
   # Local notifications are NATIVE-only (no web support); all calls are behind
   # a conditional import (platform/notifications_stub.dart on web) so the web
