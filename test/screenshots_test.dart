@@ -7,6 +7,9 @@
 // BOTH flags are needed: CAPTURE_GOLDENS gates the widget dumps, CAPTURE_STORE
 // gates the full-screen store_* shots. With only the first, the tests still
 // report "All tests passed" while every store_*.png silently stays stale.
+// Add CAPTURE_PLAY=true to render the five submission frames again at a native
+// 1080×1920 Play Store viewport. Google Play rejects the taller 1290×2796
+// iPhone class because its long edge is more than twice its short edge.
 // (round-62 pivot: the creature is gone; the keep + its hearth are the star.)
 import 'dart:convert';
 import 'dart:math';
@@ -106,6 +109,7 @@ class _FlamePalettePainter extends CustomPainter {
 
 const _capture = bool.fromEnvironment('CAPTURE_GOLDENS');
 const _captureStore = bool.fromEnvironment('CAPTURE_STORE');
+const _capturePlay = bool.fromEnvironment('CAPTURE_PLAY');
 
 Future<void> _shoot(WidgetTester tester, Widget w, String name) async {
   await tester.pumpWidget(w);
@@ -235,6 +239,26 @@ Future<void> _storeShotNow(WidgetTester tester, String name) async {
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/store_$name.png'),
     );
+  }
+}
+
+/// Reflows the same production state into Google's recommended 9:16 phone
+/// class instead of cropping or stretching the accepted Apple capture.
+Future<void> _playStoreShot(WidgetTester tester, String name) async {
+  if (!_capturePlay) return;
+  tester.view.devicePixelRatio = 2.5;
+  await tester.binding.setSurfaceSize(const Size(432, 768));
+  for (var frame = 0; frame < 4; frame++) {
+    await tester.pump(const Duration(milliseconds: 120));
+  }
+  await expectLater(
+    find.byType(MaterialApp),
+    matchesGoldenFile('goldens/play_$name.png'),
+  );
+  tester.view.devicePixelRatio = 3;
+  await tester.binding.setSurfaceSize(const Size(430, 932));
+  for (var frame = 0; frame < 4; frame++) {
+    await tester.pump(const Duration(milliseconds: 120));
   }
 }
 
@@ -1168,6 +1192,7 @@ void main() {
     );
     await tester.pump();
     await _storeShot(tester, '01_quests_1290x2796');
+    await _playStoreShot(tester, '01_quests_1080x1920');
 
     // The Quest board is one continuous surface over a fixed room. Capture
     // the real scrolled state so the progressive blur and crisp foreground
@@ -1195,6 +1220,7 @@ void main() {
     await _storeShotNow(tester, '02a_stitch_1290x2796');
     await tester.pump(const Duration(milliseconds: 730));
     await _storeShot(tester, '02_reward_1290x2796');
+    await _playStoreShot(tester, '02_reward_1080x1920');
 
     // The optional ten-second Journal door is part of the production reward
     // path, not a disconnected mock. Keep one real line so the later Journal
@@ -1220,6 +1246,7 @@ void main() {
     _activateDock(tester, Icons.emoji_emotions_outlined);
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '02_keep_1290x2796');
+    await _playStoreShot(tester, '03_my_space_1080x1920');
 
     await tester.tap(find.text('CHANGE SPACE'));
     await tester.pump(const Duration(milliseconds: 450));
@@ -1240,6 +1267,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 550));
     await _storeShot(tester, '03b_conservatory_preview_1290x2796');
+    await _playStoreShot(tester, '04_change_space_1080x1920');
     await tester.tap(find.byTooltip('Close'));
     await tester.pump(const Duration(milliseconds: 250));
     await tester.tap(find.byIcon(Icons.chevron_left));
@@ -1274,6 +1302,7 @@ void main() {
     _activateDock(tester, Icons.menu_book_outlined);
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '06_insights_1290x2796');
+    await _playStoreShot(tester, '05_journal_1080x1920');
 
     await tester.tap(find.text('Your Journal'));
     await tester.pump(const Duration(milliseconds: 450));

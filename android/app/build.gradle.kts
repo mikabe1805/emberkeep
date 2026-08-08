@@ -77,7 +77,9 @@ android {
 }
 
 dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
+    // compileSdk 35+ requires the 2.x runtime. Older 1.x releases can compile
+    // successfully but crash when a desugared Java API is exercised.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
 
 kotlin {

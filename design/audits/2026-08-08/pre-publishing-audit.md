@@ -13,6 +13,8 @@ reason to add more features.
 
 - Fresh 430 × 932 captures for onboarding, all five main destinations, the
   Quest board, Journal, daily bookends, Circle, workout flows, and sharing.
+- Fresh store exports from that same production story: five App Store frames
+  at 1290×2796 and five independently reflowed Play frames at 1080×1920.
 - Same-input target/build comparisons in `design/comparisons/2026-08-08/`.
 - The current store-sized share-moment render in
   `test/goldens/store_13_share_moment_1290x2796.png`.
@@ -83,6 +85,13 @@ reason to add more features.
     privacy explanation around generated rooms and small signs of presence.
     Visitor and capacity screenshot stories now preload their actual materials
     and run independently, so the visual gate no longer depends on test order.
+17. Replaced the stale illustrated store screenshots with the current authored
+    rooms and Journal navigation. Added a separate native 9:16 Play render and
+    a verified RGB exporter so neither store receives an invalid alpha channel,
+    stretched UI, or the wrong aspect ratio.
+18. Closed Android release-lint findings that could outlive a successful build:
+    upgraded the desugaring runtime required by API 36, removed a duplicate old
+    splash resource, and added a dedicated Android themed-icon mask.
 
 ## Release gates, in order
 
@@ -130,16 +139,23 @@ reason to add more features.
   publication, exact reads, anti-enumeration, visitor-writing and photo-path
   rejection, anti-downgrade, owner-only Circle/Spark receipts, duplicate
   rejection, self-interaction rejection, and complete temporary-data cleanup.
-- Signed Android AAB and APK candidates for `1.0.0+7` passed clean release
+- Signed Android AAB and APK candidates for `1.0.0+8` passed clean release
   builds. Newer native audio/share plugin releases were rejected after their
   AGP 9 Built-in Kotlin paths failed real release compilation; the candidate
   pins the last proven versions instead of carrying a build-system workaround.
   The AAB SHA-256 is
-  `7CDFBFE02DB89886AE5188FE8468C63730EC5F77E57B060F8A98A3DE68C25BE9`;
+  `09DBC26EA3C33543F50C7AC3CCC1665B15AF1C1F6D6069EDCB820F11407E7DFA`;
   the APK SHA-256 is
-  `D078CB39C4068FB7A208B8EB7998D3DB38EB634F920FCFF60C58549A517FD94F`.
+  `0A13E58BEEF8E75631C3B8BA8CCC02BE25E89224BE44AE811E1BA174C740A0CE`.
   Both carry the expected upload certificate, and the packaged APK reports
-  version code 7, version name 1.0.0, minimum API 24, and target API 36.
+  version code 8, version name 1.0.0, minimum API 24, and target API 36.
+  Android release lint passes; bundletool validates the AAB and reports
+  `PAGE_ALIGNMENT_16K`; the APK passes 16 KiB zip alignment; and all twelve
+  packaged native libraries meet the 16 KiB LOAD-alignment requirement.
+- The final submission screenshot sets contain only current production UI.
+  All ten exports are 24-bit RGB PNGs without alpha, were inspected after
+  export, and match the five-state Quests → reward → My Space → room preview →
+  Journal story documented in `store-assets/screenshots/README.md`.
 - The matching web build was deployed to Firebase Hosting. Live
   `main.dart.js`, the local-only privacy page, and the AASA file each matched
   their verified local build artifact byte-for-byte by SHA-256; privacy,

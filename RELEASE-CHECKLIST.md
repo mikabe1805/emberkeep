@@ -27,8 +27,10 @@ not replace a signed device build or store-console review.
 - [x] The Apple association file is live at the apex domain with a JSON content
   type; verified August 8, 2026.
 - [x] Google Play 1024×500 feature graphic is ready in `store-assets/`.
-- [x] Five opaque 1290×2796 production screenshots are ready in
-  `store-assets/screenshots/`.
+- [x] Five opaque 24-bit RGB App Store screenshots at 1290×2796 and five
+  independently rendered Google Play screenshots at 1080×1920 are ready in
+  `store-assets/screenshots/`; every frame was opened and visually accepted.
+- [x] Android 13+ themed icons use a dedicated monochrome Room of Days mark.
 - [x] Release Gradle tasks cannot fall back to debug signing.
 - [x] No ads, analytics, subscriptions, in-app purchases, or paywalls.
 - [x] Store copy no longer mentions the retired character/avatar concept.
@@ -49,14 +51,19 @@ not replace a signed device build or store-console review.
 - [x] `flutter build web --release`
 - [x] Render and inspect the screenshot-golden suite; all 21 captures pass a
   second run without updating baselines, confirming deterministic output.
-- [x] Build signed Android App Bundle and APK candidates for `1.0.0+7` on
+- [x] Build signed Android App Bundle and APK candidates for `1.0.0+8` on
   August 8, 2026. The AAB SHA-256 is
-  `7CDFBFE02DB89886AE5188FE8468C63730EC5F77E57B060F8A98A3DE68C25BE9`;
+  `09DBC26EA3C33543F50C7AC3CCC1665B15AF1C1F6D6069EDCB820F11407E7DFA`;
   the APK SHA-256 is
-  `D078CB39C4068FB7A208B8EB7998D3DB38EB634F920FCFF60C58549A517FD94F`.
+  `0A13E58BEEF8E75631C3B8BA8CCC02BE25E89224BE44AE811E1BA174C740A0CE`.
   Both match upload certificate SHA-256
   `4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14`.
   Stable copies and install guidance are in `../release-artifacts/`.
+- [x] Android release lint passes after upgrading the core-library desugaring
+  runtime to the API-36-safe 2.1.5 release.
+- [x] Bundletool 1.18.3 validates the AAB and reports
+  `PAGE_ALIGNMENT_16K`; the APK passes `zipalign -c -P 16`, and all packaged
+  native libraries have LOAD alignment of at least 16 KiB.
 - [ ] Build/upload iOS with Xcode 26+ and the iOS 26 SDK.
 - [ ] Install release builds on physical Android and iPhone devices.
 - [ ] On a physical iPhone, continuously scroll the Quest board, tilt while
@@ -71,7 +78,7 @@ not replace a signed device build or store-console review.
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.
 - [ ] Confirm the submitted version/build number exceeds every prior upload.
-- [x] Repository candidate version is `1.0.0+7`; Codemagic still derives the
+- [x] Repository candidate version is `1.0.0+8`; Codemagic still derives the
   next iOS build number from App Store Connect.
 - [x] Deploy the checked-in Firestore rules before testing Share, Visit, or
   Circle; current rules compiled and were released to `emberkeep-5b33b` on
@@ -109,7 +116,8 @@ not replace a signed device build or store-console review.
   `../STORE-LISTING.md`.
 - [ ] Complete Apple’s current age-rating questionnaire.
 - [x] Create the 1024×500 Google Play feature graphic.
-- [x] Capture final production screenshots.
+- [x] Capture and inspect final production screenshots for both store-specific
+  aspect ratios; the old illustrated interface set has been removed.
 - [ ] Upload final production screenshots.
 - [ ] Supply review-only credentials if a reviewer asks to test an existing
   cross-device account.
