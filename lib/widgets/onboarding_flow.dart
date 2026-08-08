@@ -120,7 +120,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         child: Text(
           '${_step + 1}/4',
           textAlign: TextAlign.right,
-          style: Type.label.copyWith(fontSize: 9.5, color: Palette.textLo),
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            color: Palette.textLo,
+          ),
         ),
       ),
     ],
@@ -141,7 +144,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: Type.label.copyWith(fontSize: 10.5)),
+              Text(title, style: Type.label.copyWith(fontSize: Type.minLabel)),
               const SizedBox(height: 2),
               Text(
                 copy,

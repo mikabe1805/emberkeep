@@ -200,8 +200,10 @@ void main() {
           displayName: 'Maya',
           cardOrder: const ['thisSeason'],
           season: 'A chapter worth remembering.',
-          profilePhotoPath: 'shared_rooms/owner_123/ABC234/profile',
-          seasonPhotoPath: 'shared_rooms/owner_123/ABC234/season',
+          profilePhotoPath:
+              'shared_rooms/owner_123/ABC234/profile/ABCDEFGHIJKLMNOPQRSTUV',
+          seasonPhotoPath:
+              'shared_rooms/owner_123/ABC234/season/ABCDEFGHIJKLMNOPQRSTUV',
         ),
         code: 'ABC234',
         lively: false,

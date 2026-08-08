@@ -630,8 +630,9 @@ class Quest {
   final QuestSchedule schedule;
   final Verification verification;
 
-  /// Countdown length for timer-verified quests.
-  final int timerMinutes;
+  /// Countdown length for timer-verified quests. Mutable so Tune can resize
+  /// a session without forging a new quest.
+  int timerMinutes;
 
   /// User-forged quests pay ×0.85 — honesty keeps the magic.
   final bool custom;
@@ -756,6 +757,30 @@ class Quest {
     if (l != null && l.isNotEmpty) return l[rung.clamp(0, l.length - 1)];
     return title;
   }
+
+  static final _rungMinutes = RegExp(
+    r'(\d+)\s*(?:minutes?|min)\b',
+    caseSensitive: false,
+  );
+
+  /// Minutes named by the current rung's prescription, if this quest climbs a
+  /// ladder whose rungs carry their own session length ('Read 20 minutes').
+  int? get _ladderMinutes {
+    if (ladder == null) return null;
+    final named = _rungMinutes.firstMatch(displayTitle);
+    return named == null ? null : int.parse(named.group(1)!);
+  }
+
+  /// Countdown length the timer actually runs. When a laddered prescription
+  /// names its minutes, the rung owns the length — the visible promise and
+  /// the running timer can never disagree. Otherwise the stored
+  /// [timerMinutes].
+  int get effectiveTimerMinutes => _ladderMinutes ?? timerMinutes;
+
+  /// Whether the ladder, not the stored value, decides the timer length —
+  /// Tune hides its minutes control when the rung picker already owns it.
+  bool get ladderOwnsTimer =>
+      verification == Verification.timer && _ladderMinutes != null;
 
   /// Is this quest on the board on [d]? (Round-7: quests only appear on
   /// their scheduled days.)

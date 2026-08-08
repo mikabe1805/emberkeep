@@ -66,6 +66,10 @@ Future<void> _openArranger(WidgetTester tester) async {
     320,
     scrollable: find.byType(Scrollable).first,
   );
+  // scrollUntilVisible stops at partial visibility; the button's centre can
+  // still sit below the fold, so bring it fully on-screen before tapping.
+  await tester.ensureVisible(open);
+  await tester.pump();
   await tester.tap(open);
   await tester.pumpAndSettle();
   expect(find.byKey(const ValueKey('space-arranger')), findsOneWidget);
@@ -435,7 +439,12 @@ void main() {
     );
     await _openArranger(tester);
 
-    await tester.tap(find.byKey(const ValueKey('space-card-toggle-rightNow')));
+    final rightNowToggle = find.byKey(
+      const ValueKey('space-card-toggle-rightNow'),
+    );
+    await tester.ensureVisible(rightNowToggle);
+    await tester.pump();
+    await tester.tap(rightNowToggle);
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('space-arranger-save')));
     await tester.pumpAndSettle();

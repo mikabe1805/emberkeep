@@ -423,6 +423,27 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
         if (mounted && _blocks.isNotEmpty) _blocks.first.focus?.requestFocus();
       });
     }
+    // Android can reclaim the app while its photo picker is open; the picked
+    // files come back on the next launch. Land them in the page the person
+    // reopened — almost always the one they were writing — and say so.
+    unawaited(_recoverLostPhotos());
+  }
+
+  Future<void> _recoverLostPhotos() async {
+    final names = await media.recoverLost();
+    if (names.isEmpty || !mounted) return;
+    _insertImages(names);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Palette.card,
+        content: Text(
+          names.length == 1
+              ? 'The photo you picked before the app closed is here now.'
+              : 'The photos you picked before the app closed are here now.',
+          style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
+        ),
+      ),
+    );
   }
 
   @override
@@ -625,6 +646,20 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
     });
   }
 
+  /// DONE: commit, close the keyboard, and show the kept page. A page that
+  /// was never anything (nothing typed, no photo) just leaves instead of
+  /// presenting an empty read view.
+  void _finishEditing() {
+    Sfx.instance.play('tick');
+    FocusScope.of(context).unfocus();
+    _flush();
+    if (_current == null) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+    setState(() => _editing = false);
+  }
+
   Future<void> _addPhoto(bool fromCamera) async {
     final List<String> names;
     if (fromCamera) {
@@ -652,6 +687,12 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       return;
     }
     Sfx.instance.play('tick');
+    _insertImages(names);
+  }
+
+  /// Inserts stored photos after the active block and commits immediately —
+  /// shared by a fresh pick and by lost-pick recovery on relaunch.
+  void _insertImages(List<String> names) {
     var idx = _active == null ? -1 : _blocks.indexOf(_active!);
     if (idx < 0) idx = _blocks.length - 1;
     final after = _Block.text('')..controller!.addListener(_onChanged);
@@ -1068,7 +1109,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                   Text(
                     'ATTACHED TO THIS PAGE',
                     style: Type.label.copyWith(
-                      fontSize: 9,
+                      fontSize: Type.minLabel,
                       color: Palette.xpLight,
                       letterSpacing: 1.2,
                     ),
@@ -1211,7 +1252,10 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
             child: Text(
               statusLabel,
               softWrap: true,
-              style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: Palette.textLo,
+              ),
             ),
           ),
         ],
@@ -1292,6 +1336,36 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
         ),
       ),
     );
+    // Autosave is real, but an editor with no way to say "I'm finished" reads
+    // as one that might lose the page. DONE commits, closes the keyboard, and
+    // shows the kept entry — the reassurance is seeing it saved.
+    final done = Semantics(
+      key: const ValueKey('journal-entry-done'),
+      button: true,
+      label: 'Done writing — entry is saved',
+      onTap: _finishEditing,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: _finishEditing,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+          decoration: facetedDecoration(
+            cut: 7,
+            gradient: Palette.honeyGradient,
+          ),
+          child: Text(
+            'DONE',
+            style: Type.label.copyWith(
+              fontSize: 11,
+              letterSpacing: 1.1,
+              color: Palette.onHoney,
+            ),
+          ),
+        ),
+      ),
+    );
     return Padding(
       padding: const EdgeInsets.fromLTRB(6, 6, 12, 2),
       child: LayoutBuilder(
@@ -1302,7 +1376,12 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
           // A Quest title is often more specific than the ordinary "Journal"
           // heading. Give longer authored titles the full row instead of
           // squeezing them beside the save status and fading the final word.
-          final stacked = large || widget.heading.length > 18;
+          // While editing, the bar also carries DONE — below ~430dp that row
+          // needs the stacked layout to keep every control on screen.
+          final stacked =
+              large ||
+              widget.heading.length > 18 ||
+              (_editing && constraints.maxWidth < 430);
           final heading = Expanded(
             child: Text(
               widget.heading,
@@ -1321,7 +1400,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
                 Text(
                   wordLabel,
                   style: Type.label.copyWith(
-                    fontSize: 10,
+                    fontSize: Type.minLabel,
                     color: Palette.textLo,
                   ),
                 ),
@@ -1331,7 +1410,14 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
           if (stacked) {
             return Column(
               children: [
-                Row(children: [back, heading, _editing ? remove : edit]),
+                Row(
+                  children: [
+                    back,
+                    heading,
+                    if (_editing) ...[done, const SizedBox(width: 2)],
+                    _editing ? remove : edit,
+                  ],
+                ),
                 if (_editing)
                   Align(alignment: Alignment.centerRight, child: meta),
               ],
@@ -1346,6 +1432,8 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
               heading,
               const SizedBox(width: 8),
               meta,
+              const SizedBox(width: 8),
+              done,
               const SizedBox(width: 2),
               remove,
             ],

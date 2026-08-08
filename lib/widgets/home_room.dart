@@ -423,12 +423,16 @@ class _RoomPlate {
   // Complete themes deliberately have no furniture-composition branch.
 }
 
-/// Where the fire sits inside a plate, as a fraction of the room. The flicker
-/// overlay is the only thing in the code that assumes anything about what the
-/// painting contains, and this is the single place it assumes it. Measured off
-/// the approved board art; move it if a generated room puts the hearth
-/// somewhere else.
-const _plateHearth = Offset(0.855, 0.64);
+/// Where the fire bed sits inside the plate ART, as a fraction of the source
+/// image — every plate is 1536×1024 with the hearth registered at the same
+/// spot (ROOM-PLATES.md), measured off the painted log rest between the
+/// andirons. The flicker overlay is the only thing in the code that assumes
+/// anything about what the painting contains, and this is the single place it
+/// assumes it. The point rides the same cover-crop + overscan mapping as the
+/// painting, so the flame stays seated in the firebox at every surface aspect
+/// (Me hero 1.5, Circle and Chronicle 1.7); move it if a generated room puts
+/// the hearth somewhere else.
+const _plateHearthImage = Offset(0.866, 0.662);
 
 /// Decodes the room's reusable raster textures before a deterministic capture.
 /// Live rooms still load lazily through [HomeRoom]; screenshot and share-card
@@ -1092,10 +1096,27 @@ class _RoomPainter extends CustomPainter {
     // metronome, and a floor of 0.55 so it glows rather than blinks.
     final breath =
         0.55 + 0.30 * sin(t * 2 * pi * 2) + 0.15 * sin(t * 2 * pi * 3 + 1.1);
-    // The live flame tracks the plate camera exactly so the stronger travel
-    // never lets it slide loose from the authored firebox.
-    final at = Offset(w * _plateHearth.dx, h * _plateHearth.dy) + roomShift;
-    final glow = emberGlow ?? const Color(0xFFE8915A);
+    // The hearth anchor lives in plate-image fractions and rides the exact
+    // src→plateRect mapping (cover-crop, overscan, camera drift), so the
+    // flame never slides loose from the authored firebox — at any aspect.
+    final fireBase =
+        Offset(
+          plateRect.left +
+              (_plateHearthImage.dx * img.width - src.left) /
+                  src.width *
+                  plateRect.width,
+          plateRect.top +
+              (_plateHearthImage.dy * img.height - src.top) /
+                  src.height *
+                  plateRect.height,
+        ) +
+        roomShift;
+    // Glow, embers and the floor reflection anchor on the flame's visual
+    // middle, exactly the relationship the old canvas-fraction anchor had.
+    final at = fireBase.translate(0, -w * 0.048);
+    // Same fallback hue as the procedural hearth, candles and the branded
+    // flame mark — one default fire, not two.
+    final glow = emberGlow ?? const Color(0xFFEC6007);
 
     final radius = w * 0.30;
     canvas.drawCircle(
@@ -1137,10 +1158,15 @@ class _RoomPainter extends CustomPainter {
       final sway =
           sin(t * pi * 4.0) * w * 0.0024 + sin(t * pi * 6.0 + 0.8) * w * 0.0012;
       final flameBreath = 0.994 + sin(t * pi * 6 + 0.2) * 0.006;
+      // Sized against width — the axis the plate itself scales on — so the
+      // fire keeps its proportion to the painted firebox at any aspect, and
+      // bottom-pinned on the fire bed so the logs stay seated on the grate
+      // while only the tip breathes.
+      final flameH = w * 0.11 * flameBreath;
       final flameBounds = Rect.fromCenter(
-        center: at.translate(sway + w * 0.004, -h * 0.010),
+        center: Offset(fireBase.dx + sway, fireBase.dy - flameH / 2),
         width: w * 0.125 / flameBreath,
-        height: h * 0.165 * flameBreath,
+        height: flameH,
       );
       final colorFilter = hearthFireColorFilter(glow);
       paintImage(

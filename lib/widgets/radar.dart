@@ -103,7 +103,7 @@ class _RadarPainter extends CustomPainter {
         text: TextSpan(
           text: s.abbr,
           style: Type.label.copyWith(
-            fontSize: 10.5,
+            fontSize: Type.minLabel,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.0,
             color: s.color,

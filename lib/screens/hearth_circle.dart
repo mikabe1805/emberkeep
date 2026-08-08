@@ -14,93 +14,14 @@ import '../models.dart';
 import '../social.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
+import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
+import '../widgets/spark_picker.dart';
 import 'visit_room.dart';
 
-const List<String> sparkSupportKinds = ['kindle', 'steady', 'cheer'];
-
-typedef SparkSender = Future<bool> Function(String code, String kind);
-typedef SocialInboxFetcher =
-    Future<
-      ({
-        List<Map<String, dynamic>> sparks,
-        List<Map<String, dynamic>> circleAdds,
-      })
-    >
-    Function(String code);
-
-String normalizedSparkKind(Object? raw) =>
-    raw is String && sparkSupportKinds.contains(raw)
-    ? raw
-    : sparkSupportKinds.first;
-
-String sparkSupportTitle(String kind) => switch (normalizedSparkKind(kind)) {
-  'steady' => 'Keep steady',
-  'cheer' => 'Cheering you on',
-  _ => 'A little warmth',
-};
-
-String sparkSupportDetail(String kind) => switch (normalizedSparkKind(kind)) {
-  'steady' => 'Quiet support for whatever today is holding.',
-  'cheer' => 'A small celebration from someone in your Circle.',
-  _ => 'A warm note with no message or profile attached.',
-};
-
-String sparkSupportReceiptLabel(String kind) =>
-    switch (normalizedSparkKind(kind)) {
-      'steady' => 'A steady note',
-      'cheer' => 'A cheer',
-      _ => 'A little warmth',
-    };
-
-String sparkSupportReceiptPlural(String kind) =>
-    switch (normalizedSparkKind(kind)) {
-      'steady' => 'steady notes',
-      'cheer' => 'cheers',
-      _ => 'warm notes',
-    };
-
-IconData _sparkIcon(String kind) => switch (normalizedSparkKind(kind)) {
-  'steady' => Icons.anchor_outlined,
-  'cheer' => Icons.campaign_outlined,
-  _ => Icons.local_fire_department_outlined,
-};
-
-Color _sparkColor(String kind) => switch (normalizedSparkKind(kind)) {
-  'steady' => Palette.unlock,
-  'cheer' => Palette.streak,
-  _ => Palette.xpLight,
-};
-
-String sparkSupportNoticeText(Iterable<String> kinds) {
-  final counts = <String, int>{};
-  for (final raw in kinds) {
-    final kind = normalizedSparkKind(raw);
-    counts[kind] = (counts[kind] ?? 0) + 1;
-  }
-  final phrases = <String>[
-    for (final kind in sparkSupportKinds)
-      if ((counts[kind] ?? 0) > 0)
-        switch ((kind, counts[kind]!)) {
-          ('kindle', 1) => 'a little warmth',
-          ('kindle', final count) => '$count warm notes',
-          ('steady', 1) => 'a steady note',
-          ('steady', final count) => '$count steady notes',
-          ('cheer', 1) => 'a cheer',
-          ('cheer', final count) => '$count cheers',
-          _ => 'a little warmth',
-        },
-  ];
-  if (phrases.isEmpty) return '';
-  final joined = switch (phrases) {
-    [final only] => only,
-    [final first, final second] => '$first and $second',
-    _ => '${phrases.take(phrases.length - 1).join(', ')}, and ${phrases.last}',
-  };
-  return 'Circle has $joined waiting for you.';
-}
+export '../widgets/spark_picker.dart';
 
 class HearthCircleScreen extends StatefulWidget {
   const HearthCircleScreen({
@@ -124,30 +45,51 @@ class HearthCircleScreen extends StatefulWidget {
   State<HearthCircleScreen> createState() => _HearthCircleScreenState();
 }
 
-class _HearthCircleScreenState extends State<HearthCircleScreen> {
+class _HearthCircleScreenState extends State<HearthCircleScreen>
+    with WidgetsBindingObserver {
   final Map<String, Map<String, dynamic>> _rooms = {};
   List<Map<String, dynamic>> _sparks = const [];
   List<Map<String, dynamic>> _circleAdds = const [];
   bool _loading = true;
   Timer? _ticker;
   int _now = Clock.now().millisecondsSinceEpoch;
+  bool _wasCounting = false;
 
   GameState get _state => widget.state;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+    // The clock keeps time every second, but the screen only rebuilds while a
+    // company countdown is actually running (plus one frame past its end so
+    // the expired state lands) — a quiet Circle costs no frames.
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() => _now = Clock.now().millisecondsSinceEpoch);
+      _now = Clock.now().millisecondsSinceEpoch;
+      final counting =
+          _state.quietCompanyActive ||
+          _rooms.values.any(
+            (room) => ((room['focusUntil'] as num?)?.toInt() ?? 0) > _now,
+          );
+      if (counting || _wasCounting) setState(() {});
+      _wasCounting = counting;
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Coming back to the app with the Circle open should show the circle as
+    // it is now, not as it was when the screen first loaded.
+    if (state == AppLifecycleState.resumed) _load();
   }
 
   Future<void> _load() async {
@@ -228,6 +170,38 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
     Sfx.instance.play('loot');
     HapticFeedback.mediumImpact();
     setState(() => _rooms[clean] = visit.room);
+    // The other half of a mutual circle: they can only see you back if they
+    // hold your code. One dismissible offer, right when it's most natural.
+    // The whole snackbar is the tap target — a separate action slot cannot
+    // survive 2x accessibility text on a 320dp phone.
+    final messenger = ScaffoldMessenger.of(context);
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Palette.card,
+          content: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              messenger.hideCurrentSnackBar();
+              shareSpace(context, _state, widget.onPersist);
+            },
+            child: Text.rich(
+              TextSpan(
+                text: 'Kept. ',
+                children: [
+                  TextSpan(
+                    text: 'Tap to send your code back.',
+                    style: TextStyle(color: Palette.xpLight),
+                  ),
+                ],
+              ),
+              style: Type.body.copyWith(color: Palette.textHi),
+            ),
+          ),
+        ),
+      );
   }
 
   Future<bool> _publishNow() async {
@@ -264,7 +238,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
     HapticFeedback.mediumImpact();
   }
 
-  Future<void> _joinCompany(Map<String, dynamic> room) async {
+  Future<void> _joinCompany(String code, Map<String, dynamic> room) async {
     final until = room['focusUntil'] is num
         ? (room['focusUntil'] as num).toInt()
         : 0;
@@ -276,9 +250,17 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
     final kind = room['focusKind'] is String
         ? room['focusKind'] as String
         : 'quiet';
+    if (!await _confirmFirstShare()) return;
     _state.startQuietCompany(kind, Duration(milliseconds: left));
     final ok = await _publishNow();
-    if (!ok) _state.stopQuietCompany();
+    if (!ok) {
+      _state.stopQuietCompany();
+    } else {
+      // Sitting down should be felt on the other side of the fire. A steady
+      // note is the app's quietest receipt; the one-pending-per-sender rule
+      // keeps it from ever stacking.
+      unawaited(CloudSync.instance.sendSpark(code, kind: 'steady'));
+    }
     if (mounted) setState(() {});
   }
 
@@ -296,7 +278,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Palette.dialogBarrier,
-      builder: (_) => const _SparkPickerSheet(),
+      builder: (_) => const SparkPickerSheet(),
     );
     if (kind == null || !mounted) return;
     await _sendSpark(code, kind);
@@ -310,16 +292,21 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
       return;
     }
     final safeKind = normalizedSparkKind(kind);
-    final ok = sender == null
+    final result = sender == null
         ? await CloudSync.instance.sendSpark(code, kind: safeKind)
-        : await sender(code, safeKind);
+        : (await sender(code, safeKind)
+              ? SparkSendResult.sent
+              : SparkSendResult.failed);
     if (!mounted) return;
-    if (ok) {
-      Sfx.instance.play('streak');
-      HapticFeedback.mediumImpact();
-      _toast('${sparkSupportReceiptLabel(safeKind)} is waiting in $code.');
-    } else {
-      _toast('A note from you may already be waiting there.');
+    switch (result) {
+      case SparkSendResult.sent:
+        Sfx.instance.play('streak');
+        HapticFeedback.mediumImpact();
+        _toast('${sparkSupportReceiptLabel(safeKind)} is waiting in $code.');
+      case SparkSendResult.alreadyWaiting:
+        _toast('A note from you is already waiting by their fire.');
+      case SparkSendResult.failed:
+        _toast('The connection went quiet — try again in a bit.');
     }
   }
 
@@ -356,8 +343,104 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: Palette.dialogBarrier,
-      builder: (_) => _QuietCompanySheet(onStart: _startCompany),
+      // Quiet company lives on the shared-room record. An unshared space gets
+      // the honest version of the sheet: the line that says lighting the
+      // timer shares the room, and a button that owns it.
+      builder: (_) => _QuietCompanySheet(
+        onStart: _startCompany,
+        firstShare: _state.roomCode == null,
+      ),
     );
+  }
+
+  /// Joining company also publishes your room. Someone who has never shared
+  /// gets asked once, in plain words, before a code is minted on their behalf
+  /// — sharing must never switch itself on (see shell.dart's invariant).
+  Future<bool> _confirmFirstShare() async {
+    if (_state.roomCode != null) return true;
+    final agreed = await showDialog<bool>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GlassPanel(
+          tint: const Color(0xF22A211D),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const EmberFlameIcon(size: 26, color: Palette.xpLight),
+              const SizedBox(height: 10),
+              Text(
+                'Share your space to sit together?',
+                textAlign: TextAlign.center,
+                style: Type.display.copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Your space isn’t shared yet. Sitting in company shares it '
+                'with a room code — that’s how friends see you beside their '
+                'fire. You can stop sharing any time from Me.',
+                textAlign: TextAlign.center,
+                style: Type.body.copyWith(
+                  fontSize: 13.5,
+                  color: Palette.textMid,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(ctx).pop(false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 9,
+                      ),
+                      decoration: facetedDecoration(
+                        cut: 8,
+                        borderColor: Palette.glassEdge,
+                      ),
+                      child: Text(
+                        'NOT NOW',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: Palette.textMid,
+                        ),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(ctx).pop(true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 9,
+                      ),
+                      decoration: facetedDecoration(
+                        cut: 8,
+                        gradient: Palette.honeyGradient,
+                      ),
+                      child: Text(
+                        'SHARE + SIT DOWN',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: Palette.onHoney,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    return agreed == true && mounted;
   }
 
   int get _circleLit {
@@ -442,7 +525,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                                     '+ ADD CODE',
                                     textAlign: TextAlign.center,
                                     style: Type.label.copyWith(
-                                      fontSize: 10.5,
+                                      fontSize: Type.minLabel,
                                       color: Palette.xpLight,
                                     ),
                                   ),
@@ -468,6 +551,8 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                           state: _state,
                           parallax: widget.parallax,
                           onAdd: _addKeep,
+                          onShare: () =>
+                              shareSpace(context, _state, widget.onPersist),
                         )
                       else
                         for (final code in _state.hearthCircleCodes) ...[
@@ -478,19 +563,26 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                             parallax: widget.parallax,
                             onVisit: _rooms[code] == null
                                 ? null
-                                : () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => VisitRoomScreen(
-                                        room: _rooms[code]!,
-                                        code: code,
-                                        themeId: _state.canvasTheme,
-                                        lively: !_state.reduceMotion,
-                                        parallax: widget.parallax,
-                                        localState: _state,
-                                        onPersist: widget.onPersist,
-                                      ),
-                                    ),
-                                  ),
+                                : () => Navigator.of(context)
+                                      .push(
+                                        MaterialPageRoute(
+                                          builder: (_) => VisitRoomScreen(
+                                            room: _rooms[code]!,
+                                            code: code,
+                                            themeId: _state.canvasTheme,
+                                            lively: !_state.reduceMotion,
+                                            parallax: widget.parallax,
+                                            localState: _state,
+                                            onPersist: widget.onPersist,
+                                          ),
+                                        ),
+                                      )
+                                      // Fresh presence on the way back — the
+                                      // room may have lit or sat down while
+                                      // you were inside it.
+                                      .then((_) {
+                                        if (mounted) _load();
+                                      }),
                             onSpark: _rooms[code] == null
                                 ? null
                                 : () => _chooseSpark(code),
@@ -500,7 +592,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                                                 ?.toInt() ??
                                             0) >
                                         _now
-                                ? () => _joinCompany(_rooms[code]!)
+                                ? () => _joinCompany(code, _rooms[code]!)
                                 : null,
                             onRemove: () {
                               _state.removeCircleCode(code);
@@ -512,7 +604,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen> {
                         ],
                       const SizedBox(height: 8),
                       Text(
-                        'People in your Circle can see your room and whether you’re around. Your quests and Journal stay private.',
+                        'You see the spaces you keep here. They see yours only if they hold your code too. Your quests and Journal stay private.',
                         textAlign: TextAlign.center,
                         style: Type.body.copyWith(
                           fontSize: 11,
@@ -596,154 +688,6 @@ class _CircleLantern extends StatelessWidget {
   }
 }
 
-class _SparkPickerSheet extends StatelessWidget {
-  const _SparkPickerSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.88;
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: bottomInset),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: maxHeight),
-          child: GlassPanel(
-            tint: Palette.dialogSurface,
-            radius: 24,
-            padding: EdgeInsets.zero,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 46,
-                      height: 3,
-                      color: Palette.textLo.withValues(alpha: 0.45),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Send support',
-                    style: Type.display.copyWith(fontSize: 22),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    'Choose one fixed note. No custom text, profile details, or task information is attached.',
-                    style: Type.body.copyWith(
-                      fontSize: 12.5,
-                      height: 1.4,
-                      color: Palette.textLo,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  for (
-                    var index = 0;
-                    index < sparkSupportKinds.length;
-                    index++
-                  ) ...[
-                    _SparkChoice(kind: sparkSupportKinds[index]),
-                    if (index != sparkSupportKinds.length - 1)
-                      const SizedBox(height: 8),
-                  ],
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Text(
-                      'ONE NOTE PER PERSON UNTIL IT IS COLLECTED',
-                      textAlign: TextAlign.center,
-                      style: Type.label.copyWith(
-                        fontSize: 8.5,
-                        color: Palette.textLo,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SparkChoice extends StatelessWidget {
-  const _SparkChoice({required this.kind});
-
-  final String kind;
-
-  @override
-  Widget build(BuildContext context) {
-    final title = sparkSupportTitle(kind);
-    final detail = sparkSupportDetail(kind);
-    final color = _sparkColor(kind);
-    return Semantics(
-      button: true,
-      label: '$title. $detail',
-      onTap: () => Navigator.of(context).pop(kind),
-      child: GestureDetector(
-        key: ValueKey('spark-kind-$kind'),
-        excludeFromSemantics: true,
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          Sfx.instance.play('tick');
-          HapticFeedback.selectionClick();
-          Navigator.of(context).pop(kind);
-        },
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 64),
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-          decoration: facetedDecoration(
-            cut: 8,
-            color: color.withValues(alpha: 0.1),
-            borderColor: color.withValues(alpha: 0.42),
-          ),
-          child: Row(
-            children: [
-              FacetMedallion(
-                size: 42,
-                accent: color,
-                child: Icon(_sparkIcon(kind), size: 20, color: color),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Type.body.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Palette.textHi,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      detail,
-                      style: Type.body.copyWith(
-                        fontSize: 11.5,
-                        height: 1.35,
-                        color: Palette.textLo,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.send_outlined, size: 18, color: color),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _IncomingSparks extends StatelessWidget {
   const _IncomingSparks({
     required this.sparks,
@@ -809,7 +753,7 @@ class _IncomingSparks extends StatelessWidget {
                     child: Text(
                       'COLLECT',
                       style: Type.label.copyWith(
-                        fontSize: 10,
+                        fontSize: Type.minLabel,
                         color: Palette.xpLight,
                       ),
                     ),
@@ -853,19 +797,23 @@ class _SparkReceiptChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
         decoration: facetedDecoration(
           cut: 6,
-          color: _sparkColor(kind).withValues(alpha: 0.1),
-          borderColor: _sparkColor(kind).withValues(alpha: 0.38),
+          color: sparkSupportColor(kind).withValues(alpha: 0.1),
+          borderColor: sparkSupportColor(kind).withValues(alpha: 0.38),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(_sparkIcon(kind), size: 13, color: _sparkColor(kind)),
+            Icon(
+              sparkSupportIcon(kind),
+              size: 13,
+              color: sparkSupportColor(kind),
+            ),
             const SizedBox(width: 5),
             Text(
               '${count > 1 ? '$count× ' : ''}${title.toUpperCase()}',
               style: Type.label.copyWith(
-                fontSize: 8.5,
-                color: _sparkColor(kind),
+                fontSize: Type.minLabel,
+                color: sparkSupportColor(kind),
               ),
             ),
           ],
@@ -908,7 +856,10 @@ class _QuietCompanyCard extends StatelessWidget {
         ),
         child: Text(
           active ? 'END' : 'BEGIN',
-          style: Type.label.copyWith(fontSize: 9.5, color: Palette.unlock),
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            color: Palette.unlock,
+          ),
         ),
       ),
     );
@@ -1095,7 +1046,7 @@ class _CircleKeepCard extends StatelessWidget {
                       '$code · $buildTitle · LEVEL $level · $memories MEMORIES',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: Type.label.copyWith(fontSize: 8.5),
+                      style: Type.label.copyWith(fontSize: Type.minLabel),
                     ),
                   ],
                 ),
@@ -1205,7 +1156,7 @@ class _CircleAction extends StatelessWidget {
                 maxLines: 2,
                 textAlign: TextAlign.center,
                 style: Type.label.copyWith(
-                  fontSize: 8.5,
+                  fontSize: Type.minLabel,
                   color: onTap == null
                       ? Palette.textLo
                       : highlight
@@ -1226,10 +1177,12 @@ class _EmptyCircle extends StatelessWidget {
     required this.state,
     required this.parallax,
     required this.onAdd,
+    required this.onShare,
   });
   final GameState state;
   final ValueListenable<Offset> parallax;
   final VoidCallback onAdd;
+  final VoidCallback onShare;
 
   @override
   Widget build(BuildContext context) => GlassPanel(
@@ -1260,19 +1213,38 @@ class _EmptyCircle extends StatelessWidget {
         ),
         const SizedBox(height: 5),
         Text(
-          'Add the room code of someone you trust. You’ll see each other’s rooms and can share quiet encouragement.',
+          'A Circle has two halves: keep the code of someone you trust, and '
+          'send them yours. Each code shows its holder one room.',
           textAlign: TextAlign.center,
           style: Type.body.copyWith(fontSize: 12.5, color: Palette.textLo),
         ),
         const SizedBox(height: 12),
-        _CircleAction(label: 'ADD A SPACE', icon: Icons.add, onTap: onAdd),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _CircleAction(label: 'ADD A SPACE', icon: Icons.add, onTap: onAdd),
+            _CircleAction(
+              label: state.roomCode == null
+                  ? 'SHARE MY CODE'
+                  : 'SEND MY CODE · ${state.roomCode}',
+              icon: Icons.ios_share,
+              onTap: onShare,
+            ),
+          ],
+        ),
       ],
     ),
   );
 }
 
 class _QuietCompanySheet extends StatefulWidget {
-  const _QuietCompanySheet({required this.onStart});
+  const _QuietCompanySheet({required this.onStart, required this.firstShare});
+
+  /// True when the room has never been shared — starting the timer will mint
+  /// a share code, and the sheet says so before the button is pressed.
+  final bool firstShare;
   final Future<void> Function(String kind, int minutes) onStart;
 
   @override
@@ -1315,10 +1287,22 @@ class _QuietCompanySheetState extends State<_QuietCompanySheet> {
               color: Palette.textLo,
             ),
           ),
+          if (widget.firstShare) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Your space isn’t shared yet — lighting the timer shares it '
+              'with a room code, so friends who hold it can sit with you.',
+              style: Type.body.copyWith(
+                fontSize: 12.5,
+                height: 1.4,
+                color: Palette.textMid,
+              ),
+            ),
+          ],
           const SizedBox(height: 18),
           Text(
             'WHAT KIND OF COMPANY?',
-            style: Type.label.copyWith(fontSize: 10),
+            style: Type.label.copyWith(fontSize: Type.minLabel),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -1340,7 +1324,10 @@ class _QuietCompanySheetState extends State<_QuietCompanySheet> {
             ],
           ),
           const SizedBox(height: 16),
-          Text('HOW LONG?', style: Type.label.copyWith(fontSize: 10)),
+          Text(
+            'HOW LONG?',
+            style: Type.label.copyWith(fontSize: Type.minLabel),
+          ),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -1377,7 +1364,9 @@ class _QuietCompanySheetState extends State<_QuietCompanySheet> {
                 borderColor: Palette.xpLight.withValues(alpha: 0.8),
               ),
               child: Text(
-                'LIGHT THE TIMER',
+                widget.firstShare
+                    ? 'SHARE + LIGHT THE TIMER'
+                    : 'LIGHT THE TIMER',
                 style: Type.label.copyWith(
                   fontSize: 11,
                   color: Palette.onHoney,
@@ -1434,7 +1423,7 @@ class _SheetChoice extends StatelessWidget {
           Text(
             label,
             style: Type.label.copyWith(
-              fontSize: 8.5,
+              fontSize: Type.minLabel,
               color: selected ? Palette.unlock : Palette.textMid,
             ),
           ),

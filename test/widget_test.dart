@@ -42,7 +42,10 @@ Future<void> pumpApp(
       await tester.tap(find.text(timeShape));
       await settle(tester);
     }
-    await tester.tap(find.text('CONTINUE'));
+    final cont = find.text('CONTINUE');
+    await tester.ensureVisible(cont);
+    await tester.pump();
+    await tester.tap(cont);
     await settle(tester);
     await tester.tap(find.text('OPEN TODAY’S QUESTS'));
     await tester.pump(const Duration(milliseconds: 300));
@@ -617,7 +620,13 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 100));
 
-    // add a path-quest through the shared Ember Sheet
+    // add a path-quest through the shared Ember Sheet. The milestone chip row
+    // made the wizard taller, so build the lazy list down to the button first.
+    await tester.scrollUntilVisible(
+      find.text('Add a quest'),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.ensureVisible(find.text('Add a quest'));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('Add a quest'));

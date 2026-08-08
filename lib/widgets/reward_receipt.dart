@@ -269,7 +269,7 @@ class _RewardReceiptState extends State<RewardReceipt>
                 Text(
                   card.source,
                   style: Type.label.copyWith(
-                    fontSize: 10,
+                    fontSize: Type.minLabel,
                     color: Palette.textLo,
                   ),
                 ),
@@ -455,7 +455,7 @@ class _RewardReceiptState extends State<RewardReceipt>
                   Text(
                     'QUEST COMPLETE',
                     style: Type.label.copyWith(
-                      fontSize: 10.5,
+                      fontSize: Type.minLabel,
                       color: Palette.xpLight,
                       letterSpacing: 1.7,
                     ),
@@ -477,7 +477,10 @@ class _RewardReceiptState extends State<RewardReceipt>
             // the app, sitting beside its brightest numeral.
             Text(
               'SWIPE TO UNDO',
-              style: Type.label.copyWith(fontSize: 10, color: Palette.textMid),
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: Palette.textMid,
+              ),
             ),
           ],
         ),
@@ -552,7 +555,7 @@ class _RewardReceiptState extends State<RewardReceipt>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Type.label.copyWith(
-                          fontSize: 9.8,
+                          fontSize: Type.minLabel,
                           color: _reflectionSaved
                               ? Palette.success
                               : Palette.xpLight,
@@ -606,7 +609,7 @@ class _RewardReceiptState extends State<RewardReceipt>
           Text(
             bubble.text,
             style: Type.label.copyWith(
-              fontSize: 10.5,
+              fontSize: Type.minLabel,
               color: bubble.color,
               letterSpacing: 0.6,
             ),

@@ -12,6 +12,7 @@ import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/day_picker.dart';
+import '../widgets/rung_picker.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/luxe_depth.dart';
@@ -734,15 +735,7 @@ class _YourGoals extends StatelessWidget {
                           ),
                           decoration: facetedDecoration(
                             cut: 8,
-                            gradient: const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Color(0xFFF6D9A2),
-                                Color(0xFFEFC074),
-                                Color(0xFFC08B4F),
-                              ],
-                            ),
+                            gradient: Palette.honeyGradient,
                           ),
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
@@ -751,7 +744,7 @@ class _YourGoals extends StatelessWidget {
                               maxLines: 1,
                               style: Type.label.copyWith(
                                 fontSize: 11,
-                                color: const Color(0xFF3A2510),
+                                color: Palette.onHoney,
                               ),
                             ),
                           ),
@@ -911,7 +904,7 @@ class _YourGoals extends StatelessWidget {
                                         ? 'ACHIEVED'
                                         : '${g.progress} / ${g.target} QUESTS',
                                     style: Type.label.copyWith(
-                                      fontSize: 10.5,
+                                      fontSize: Type.minLabel,
                                       color: g.complete
                                           ? Palette.xpLight
                                           : g.stat.color,
@@ -1071,15 +1064,7 @@ class _GoalCardState extends State<_GoalCard> {
                           cut: 8,
                           gradient: widget.adopted
                               ? null
-                              : const LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Color(0xFFF6D9A2),
-                                    Color(0xFFEFC074),
-                                    Color(0xFFC08B4F),
-                                  ],
-                                ),
+                              : Palette.honeyGradient,
                           borderColor: widget.adopted
                               ? Palette.success.withValues(alpha: 0.5)
                               : Colors.transparent,
@@ -1092,7 +1077,7 @@ class _GoalCardState extends State<_GoalCard> {
                             fontSize: 11,
                             color: widget.adopted
                                 ? Palette.success
-                                : const Color(0xFF3A2510),
+                                : Palette.onHoney,
                           ),
                         ),
                       ),
@@ -1271,6 +1256,25 @@ class _TemplateRow extends StatelessWidget {
                     } else {
                       quest = t.build();
                     }
+                    // A laddered quest asks where you're starting, the same
+                    // one-question posture as the weekly day. Payout moves
+                    // with the chosen rung (the night-rise coupling), so a
+                    // higher start earns like a risen quest.
+                    final ladder = quest.ladder;
+                    if (ladder != null && ladder.length > 1) {
+                      if (!context.mounted) return;
+                      final rung = await pickRung(
+                        context,
+                        accent: t.stat.color,
+                        questTitle: t.title,
+                        ladder: ladder,
+                        initial: quest.rung,
+                      );
+                      if (rung == null) return; // dismissed → don't adopt
+                      quest.difficulty =
+                          (quest.difficulty + (rung - quest.rung)).clamp(1, 10);
+                      quest.rung = rung;
+                    }
                     if (!context.mounted) return;
                     final ok = onAdd(quest);
                     if (ok) {
@@ -1296,17 +1300,7 @@ class _TemplateRow extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: facetedDecoration(
                 cut: 7,
-                gradient: taken
-                    ? null
-                    : const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFFF6D9A2),
-                          Color(0xFFEFC074),
-                          Color(0xFFC08B4F),
-                        ],
-                      ),
+                gradient: taken ? null : Palette.honeyGradient,
                 borderColor: taken
                     ? Palette.success.withValues(alpha: 0.5)
                     : Colors.transparent,
@@ -1315,7 +1309,7 @@ class _TemplateRow extends StatelessWidget {
                 taken ? 'TAKEN ✓' : 'TAKE ON',
                 style: Type.label.copyWith(
                   fontSize: 11,
-                  color: taken ? Palette.success : const Color(0xFF3A2510),
+                  color: taken ? Palette.success : Palette.onHoney,
                 ),
               ),
             ),

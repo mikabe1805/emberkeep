@@ -10,6 +10,9 @@ bool lastPickFailed = false;
 Future<String?> pick(bool fromCamera) async => null;
 Future<List<String>> pickMany() async => const [];
 
+/// No picker process to lose on web — nothing to recover.
+Future<List<String>> recoverLost() async => const [];
+
 Future<JournalMediaUploadData> readForUpload(String name) async {
   throw const JournalMediaReadException(
     JournalMediaReadFailure.unavailable,

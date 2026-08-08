@@ -219,7 +219,7 @@ class _KitsHero extends StatelessWidget {
                       maxLines: 1,
                       textAlign: TextAlign.right,
                       style: Type.label.copyWith(
-                        fontSize: 10.5,
+                        fontSize: Type.minLabel,
                         letterSpacing: 0.75,
                         color: Palette.xpLight,
                       ),
@@ -409,7 +409,7 @@ class _KitCard extends StatelessWidget {
                         child: Text(
                           kit.eyebrow,
                           style: Type.label.copyWith(
-                            fontSize: 9.5,
+                            fontSize: Type.minLabel,
                             color: kit.stat.color,
                           ),
                         ),
@@ -427,7 +427,7 @@ class _KitCard extends StatelessWidget {
                         child: Text(
                           _badgeFor(kit.kind),
                           style: Type.label.copyWith(
-                            fontSize: 8.5,
+                            fontSize: Type.minLabel,
                             letterSpacing: 0.7,
                             color: Palette.textMid,
                           ),
@@ -682,7 +682,7 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
                             Text(
                               kit.eyebrow,
                               style: Type.label.copyWith(
-                                fontSize: 9.5,
+                                fontSize: Type.minLabel,
                                 color: kit.stat.color,
                               ),
                             ),
@@ -914,7 +914,7 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
-    style: Type.label.copyWith(fontSize: 10.5, color: Palette.textMid),
+    style: Type.label.copyWith(fontSize: Type.minLabel, color: Palette.textMid),
   );
 }
 
@@ -971,7 +971,7 @@ class _ChoiceRow<T> extends StatelessWidget {
               child: Text(
                 label(option),
                 style: Type.label.copyWith(
-                  fontSize: 10.5,
+                  fontSize: Type.minLabel,
                   color: option == selected
                       ? (color?.call(option) ?? accent)
                       : Palette.textMid,

@@ -42,6 +42,7 @@ import '../widgets/stat_chips.dart';
 import '../social.dart';
 import 'domain_detail.dart';
 import 'hearth_circle.dart';
+import 'about.dart';
 import 'shop.dart';
 
 typedef SpaceRoomPublisher =
@@ -305,6 +306,10 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       shareSeasonPhoto: draft.shareSpaceSeasonPhoto,
       shareProfile: draft.shareSpaceProfile,
     );
+    widget.state.setSharedRoomPhotoPaths(
+      profilePath: draft.spaceProfilePhotoPath,
+      seasonPath: draft.spaceSeasonPhotoPath,
+    );
   }
 
   Future<void> _save() async {
@@ -567,7 +572,7 @@ class _SpaceArrangerHeading extends StatelessWidget {
                 Text(
                   'MY SPACE',
                   style: Type.label.copyWith(
-                    fontSize: 9.5,
+                    fontSize: Type.minLabel,
                     letterSpacing: 1.7,
                     color: Palette.xpLight,
                   ),
@@ -764,7 +769,7 @@ class _SpaceArrangerCard extends StatelessWidget {
                                     ? 'HIDDEN FROM YOUR PAGE'
                                     : 'ON YOUR PAGE',
                                 style: Type.label.copyWith(
-                                  fontSize: 8.5,
+                                  fontSize: Type.minLabel,
                                   letterSpacing: 0.9,
                                   color: hidden ? Palette.textLo : accent,
                                 ),
@@ -887,7 +892,7 @@ class _VisitorScopeControl extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Type.label.copyWith(
-                  fontSize: 8.5,
+                  fontSize: Type.minLabel,
                   letterSpacing: 0.75,
                   color: active ? accent : Palette.textLo,
                 ),
@@ -1131,7 +1136,7 @@ class _JournalMomentChoice extends StatelessWidget {
                             context,
                           ).formatMediumDate(note.at),
                           style: Type.label.copyWith(
-                            fontSize: 8.5,
+                            fontSize: Type.minLabel,
                             color: Palette.textLo,
                           ),
                         ),
@@ -1242,7 +1247,10 @@ class _SpacePhotoPicker extends StatelessWidget {
       children: [
         Text(
           heading,
-          style: Type.label.copyWith(fontSize: 9, color: Palette.textLo),
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            color: Palette.textLo,
+          ),
         ),
         const SizedBox(height: 7),
         OutlinedButton.icon(
@@ -1421,7 +1429,7 @@ class _SeasonPhotoChoice extends StatelessWidget {
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
                 style: Type.label.copyWith(
-                  fontSize: 8.5,
+                  fontSize: Type.minLabel,
                   color: selected ? Palette.textHi : Palette.textLo,
                 ),
               ),
@@ -1639,12 +1647,16 @@ class MePage extends StatelessWidget {
         prefix: 'LV ${state.level} · ',
         suffix: ' XP',
         maxLines: 1,
-        style: Type.label.copyWith(fontSize: 10, color: Palette.xpLight),
+        style: Type.label.copyWith(
+          fontSize: Type.minLabel,
+          color: Palette.xpLight,
+        ),
       ),
     );
     return ListenableBuilder(
       listenable: state,
       builder: (context, _) => LuxeCustomPageList(
+        heroAspect: 1.5,
         hero: HomeRoom(
           aspect: 1.5,
           lively: !state.reduceMotion,
@@ -1773,7 +1785,7 @@ class MePage extends StatelessWidget {
                 Text(
                   '${state.totalCompletions} QUESTS DONE  ·  ${state.streakDays} DAY STREAK',
                   style: Type.label.copyWith(
-                    fontSize: 10.5,
+                    fontSize: Type.minLabel,
                     color: Palette.textLo,
                   ),
                 ),
@@ -2132,7 +2144,7 @@ class MePage extends StatelessWidget {
                                       ? 'LEGEND'
                                       : 'RARE',
                                   style: Type.label.copyWith(
-                                    fontSize: 9,
+                                    fontSize: Type.minLabel,
                                     color: rarityColor(
                                       entry.value.rarity,
                                     ).withValues(alpha: 0.5),
@@ -2269,6 +2281,21 @@ class MePage extends StatelessWidget {
                       label: 'DELETE HELP',
                       icon: Icons.person_remove_outlined,
                       onTap: () => _openPolicyPage(context, _deletionUrl),
+                    ),
+                    _DataButton(
+                      label: 'ABOUT + FEEDBACK',
+                      icon: Icons.info_outline,
+                      onTap: () {
+                        Sfx.instance.play('tick');
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => AboutScreen(
+                              themeId: state.canvasTheme,
+                              reduceMotion: state.reduceMotion,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -2568,7 +2595,7 @@ class MePage extends StatelessWidget {
             Text(
               label,
               style: Type.label.copyWith(
-                fontSize: 9,
+                fontSize: Type.minLabel,
                 color: selected ? Palette.xp : Palette.textLo,
               ),
             ),
@@ -2876,21 +2903,13 @@ class MePage extends StatelessWidget {
                       ),
                       decoration: facetedDecoration(
                         cut: 8,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0xFFF6D9A2),
-                            Color(0xFFEFC074),
-                            Color(0xFFC08B4F),
-                          ],
-                        ),
+                        gradient: Palette.honeyGradient,
                       ),
                       child: Text(
                         'KEEP MY PROGRESS',
                         style: Type.label.copyWith(
                           fontSize: 11,
-                          color: const Color(0xFF3A2510),
+                          color: Palette.onHoney,
                         ),
                       ),
                     ),
@@ -3397,7 +3416,7 @@ class _SpaceDeckHeading extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Type.label.copyWith(
-                    fontSize: 8.5,
+                    fontSize: Type.minLabel,
                     letterSpacing: 0.8,
                     color: visitorPageOpen ? Palette.xpLight : Palette.textLo,
                   ),
@@ -3417,7 +3436,7 @@ class _SpaceDeckHeading extends StatelessWidget {
           label: Text(
             'EDIT SPACE',
             style: Type.label.copyWith(
-              fontSize: 9.5,
+              fontSize: Type.minLabel,
               letterSpacing: 1.1,
               color: Palette.xpLight,
             ),
@@ -3518,7 +3537,7 @@ class _SpaceCardPrivacyMark extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Type.label.copyWith(
-                fontSize: 8.5,
+                fontSize: Type.minLabel,
                 letterSpacing: 0.8,
                 color: Palette.textMid,
               ),
@@ -3556,7 +3575,7 @@ class _SpaceDeckCardHeader extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: Type.label.copyWith(
-              fontSize: 10,
+              fontSize: Type.minLabel,
               letterSpacing: 1.4,
               color: accent,
             ),
@@ -3948,7 +3967,10 @@ class _PinnedMomentTile extends StatelessWidget {
           ),
           Text(
             MaterialLocalizations.of(context).formatMediumDate(note.at),
-            style: Type.label.copyWith(fontSize: 8, color: Palette.textLo),
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              color: Palette.textLo,
+            ),
           ),
         ],
       ),
@@ -4065,9 +4087,9 @@ class _SpacePhotoVisibilityMark extends StatelessWidget {
         const SizedBox(width: 5),
         Text(
           shared ? 'PHOTO · VISITORS' : 'PHOTO · ONLY YOU',
+          // A privacy state has to clear the readable floor (Type.minLabel).
           style: Type.label.copyWith(
-            fontSize: 7.5,
-            letterSpacing: 0.65,
+            fontSize: Type.minLabel,
             color: shared ? Palette.xpLight : Palette.textLo,
           ),
         ),
@@ -4170,7 +4192,7 @@ class _HearthCircleLink extends StatelessWidget {
                   ? 'BEGIN A CIRCLE'
                   : 'CIRCLE · $count ${count == 1 ? 'SPACE' : 'SPACES'}',
               style: Type.label.copyWith(
-                fontSize: 10,
+                fontSize: Type.minLabel,
                 color: active ? Palette.unlock : Palette.xpLight,
               ),
             ),
@@ -4344,11 +4366,7 @@ class _ShareButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
         decoration: facetedDecoration(
           cut: 9,
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF6D9A2), Color(0xFFEFC074), Color(0xFFC08B4F)],
-          ),
+          gradient: Palette.honeyGradient,
           shadows: const [
             BoxShadow(
               color: Palette.honeyGlow,
@@ -4360,14 +4378,11 @@ class _ShareButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.ios_share, size: 15, color: Color(0xFF3A2510)),
+            const Icon(Icons.ios_share, size: 15, color: Palette.onHoney),
             const SizedBox(width: 7),
             Text(
               'SHARE MY BUILD',
-              style: Type.label.copyWith(
-                fontSize: 11,
-                color: const Color(0xFF3A2510),
-              ),
+              style: Type.label.copyWith(fontSize: 11, color: Palette.onHoney),
             ),
           ],
         ),
@@ -4547,15 +4562,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                   ),
                   decoration: facetedDecoration(
                     cut: 9,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFFF6D9A2),
-                        Color(0xFFEFC074),
-                        Color(0xFFC08B4F),
-                      ],
-                    ),
+                    gradient: Palette.honeyGradient,
                     shadows: const [
                       BoxShadow(
                         color: Palette.honeyGlow,
@@ -4570,14 +4577,14 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
                       const Icon(
                         Icons.ios_share,
                         size: 13,
-                        color: Color(0xFF3A2510),
+                        color: Palette.onHoney,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         _busy ? 'SAVING…' : 'SHARE IMAGE',
                         style: Type.label.copyWith(
                           fontSize: 11,
-                          color: const Color(0xFF3A2510),
+                          color: Palette.onHoney,
                         ),
                       ),
                     ],
@@ -4971,7 +4978,10 @@ class _InsetSection extends StatelessWidget {
         if (label != null) ...[
           Text(
             label!,
-            style: Type.label.copyWith(fontSize: 10.5, color: Palette.textLo),
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              color: Palette.textLo,
+            ),
           ),
           const SizedBox(height: 9),
         ],
@@ -5017,7 +5027,7 @@ class _LockedSlot extends StatelessWidget {
               maxLines: 2,
               textAlign: TextAlign.center,
               style: Type.label.copyWith(
-                fontSize: 10.5,
+                fontSize: Type.minLabel,
                 letterSpacing: 0.5,
                 color: unlocked
                     ? Palette.xpLight
@@ -5294,21 +5304,13 @@ class _RestoreDialogState extends State<_RestoreDialog> {
                   ),
                   decoration: facetedDecoration(
                     cut: 8,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFFF6D9A2),
-                        Color(0xFFEFC074),
-                        Color(0xFFC08B4F),
-                      ],
-                    ),
+                    gradient: Palette.honeyGradient,
                   ),
                   child: Text(
                     _busy ? 'RESTORING…' : 'RESTORE',
                     style: Type.label.copyWith(
                       fontSize: 11,
-                      color: const Color(0xFF3A2510),
+                      color: Palette.onHoney,
                     ),
                   ),
                 ),
@@ -5405,21 +5407,13 @@ class _AccountPanel extends StatelessWidget {
                       ),
                       decoration: facetedDecoration(
                         cut: 8,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0xFFF6D9A2),
-                            Color(0xFFEFC074),
-                            Color(0xFFC08B4F),
-                          ],
-                        ),
+                        gradient: Palette.honeyGradient,
                       ),
                       child: Text(
                         'KEEP MY PROGRESS',
                         style: Type.label.copyWith(
                           fontSize: 11,
-                          color: const Color(0xFF3A2510),
+                          color: Palette.onHoney,
                         ),
                       ),
                     ),
@@ -5832,15 +5826,7 @@ class _AccountDialogState extends State<_AccountDialog> {
                   ),
                   decoration: facetedDecoration(
                     cut: 9,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFFF6D9A2),
-                        Color(0xFFEFC074),
-                        Color(0xFFC08B4F),
-                      ],
-                    ),
+                    gradient: Palette.honeyGradient,
                     shadows: const [
                       BoxShadow(
                         color: Palette.honeyGlow,
@@ -5857,7 +5843,7 @@ class _AccountDialogState extends State<_AccountDialog> {
                         : 'CREATE ACCOUNT',
                     style: Type.label.copyWith(
                       fontSize: 11,
-                      color: const Color(0xFF3A2510),
+                      color: Palette.onHoney,
                     ),
                   ),
                 ),

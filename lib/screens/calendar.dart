@@ -277,7 +277,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       child: Text(
                         'BACK TO TODAY',
                         style: Type.label.copyWith(
-                          fontSize: 9.5,
+                          fontSize: Type.minLabel,
                           color: Palette.xpLight,
                         ),
                       ),
@@ -423,7 +423,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       child: Text(
                         'TODAY',
                         style: Type.label.copyWith(
-                          fontSize: 8,
+                          fontSize: Type.minLabel,
                           letterSpacing: 0.9,
                           color: Palette.xp.withValues(alpha: 0.85),
                         ),
@@ -751,7 +751,7 @@ class _DayPanel extends StatelessWidget {
             Text(
               'JOURNAL',
               style: Type.label.copyWith(
-                fontSize: 10,
+                fontSize: Type.minLabel,
                 letterSpacing: 1.7,
                 color: Palette.xpLight,
               ),
@@ -783,7 +783,7 @@ class _DayPanel extends StatelessWidget {
                 child: Text(
                   '+ ${quests.length - 4} MORE ON THE QUEST BOARD',
                   style: Type.label.copyWith(
-                    fontSize: 9.5,
+                    fontSize: Type.minLabel,
                     color: Palette.textLo,
                   ),
                 ),
@@ -852,7 +852,7 @@ class _JournalDayEntriesState extends State<_JournalDayEntries> {
                       Text(
                         _expanded ? 'SHOW FEWER' : '+ $hidden MORE ON THIS DAY',
                         style: Type.label.copyWith(
-                          fontSize: 9.5,
+                          fontSize: Type.minLabel,
                           color: Palette.xpLight,
                         ),
                       ),
@@ -933,7 +933,7 @@ class _JournalDayEntry extends StatelessWidget {
                       Text(
                         '${entry.images.length} PHOTOS',
                         style: Type.label.copyWith(
-                          fontSize: 9,
+                          fontSize: Type.minLabel,
                           color: Palette.textLo,
                         ),
                       ),
@@ -1032,7 +1032,7 @@ class _PlannedQuestRow extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Type.label.copyWith(
-                    fontSize: 9,
+                    fontSize: Type.minLabel,
                     color: quest.stat.color.withValues(alpha: 0.82),
                   ),
                 ),
@@ -1178,7 +1178,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
               Text(
                 'START WITH A DAY SHAPE — OR NAME YOUR OWN',
                 style: Type.label.copyWith(
-                  fontSize: 9.5,
+                  fontSize: Type.minLabel,
                   color: Palette.textLo,
                 ),
               ),
@@ -1216,7 +1216,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                                 Text(
                                   preset.label,
                                   style: Type.label.copyWith(
-                                    fontSize: 9.5,
+                                    fontSize: Type.minLabel,
                                     color: preset.stat.color,
                                   ),
                                 ),
@@ -1318,15 +1318,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                     ),
                     decoration: facetedDecoration(
                       cut: 9,
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFFF6D9A2),
-                          Color(0xFFEFC074),
-                          Color(0xFFC08B4F),
-                        ],
-                      ),
+                      gradient: Palette.honeyGradient,
                       shadows: const [
                         BoxShadow(
                           color: Palette.honeyGlow,
@@ -1339,7 +1331,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                       'PLAN IT',
                       style: Type.label.copyWith(
                         fontSize: 11,
-                        color: const Color(0xFF3A2510),
+                        color: Palette.onHoney,
                       ),
                     ),
                   ),

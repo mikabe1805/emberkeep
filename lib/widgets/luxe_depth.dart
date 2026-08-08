@@ -278,6 +278,7 @@ class LuxeCustomPageList extends StatefulWidget {
     required this.children,
     this.trailing,
     this.heroHeight = 275,
+    this.heroAspect,
   });
 
   final Widget hero;
@@ -288,6 +289,11 @@ class LuxeCustomPageList extends StatefulWidget {
   final List<Widget> children;
   final Widget? trailing;
   final double heroHeight;
+
+  /// The hero's own aspect ratio. When given, the hero cover-fills its band —
+  /// cropping a sliver instead of letterboxing — so the room meets the band
+  /// edge-to-edge at every phone width, not only the 430dp capture width.
+  final double? heroAspect;
 
   @override
   State<LuxeCustomPageList> createState() => _LuxeCustomPageListState();
@@ -324,13 +330,26 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
                 final scroll = !still && _scroll.hasClients
                     ? _scroll.offset.clamp(0.0, 240.0)
                     : 0.0;
+                final aspect = widget.heroAspect;
+                final bandW = MediaQuery.sizeOf(context).width + 24;
                 return Transform.translate(
                   key: const ValueKey('luxe-custom-hero-transform'),
                   offset: Offset(0, -scroll * 0.075),
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Center(child: hero),
+                      if (aspect == null)
+                        Center(child: hero)
+                      else
+                        FittedBox(
+                          fit: BoxFit.cover,
+                          clipBehavior: Clip.hardEdge,
+                          child: SizedBox(
+                            width: bandW,
+                            height: bandW / aspect,
+                            child: hero,
+                          ),
+                        ),
                       const DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(

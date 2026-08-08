@@ -186,13 +186,11 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
       Sfx.instance.play('boing');
       return;
     }
+    // A BECOME target other than 25 is safe: the pre-round-20 back-fill in
+    // Goal.fromJson only assumes 25 for saves that predate the `milestones`
+    // key, and every goal created here writes that key.
     final created = widget.state.addGoal(
-      Goal(
-        title: name,
-        stat: _stat,
-        kind: _kind,
-        target: _kind == GoalKind.achieve ? _target : 25,
-      ),
+      Goal(title: name, stat: _stat, kind: _kind, target: _target),
     );
     if (!created) {
       Sfx.instance.play('boing');
@@ -350,7 +348,9 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                       ),
                     ],
                   ),
-                  if (_kind == GoalKind.achieve) ...[
+                  // Both kinds get a number they own: ACHIEVE its finish line,
+                  // BECOME its first milestone (it used to be a silent 25).
+                  ...[
                     const SizedBox(height: 12),
                     Wrap(
                       crossAxisAlignment: WrapCrossAlignment.center,
@@ -358,7 +358,9 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                       runSpacing: 8,
                       children: [
                         Text(
-                          'done after',
+                          _kind == GoalKind.achieve
+                              ? 'done after'
+                              : 'first milestone at',
                           style: Type.body.copyWith(
                             fontSize: 13,
                             color: Palette.textMid,
@@ -403,7 +405,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                             ),
                           ),
                         Text(
-                          'times',
+                          _kind == GoalKind.achieve ? 'times' : 'quests kept',
                           style: Type.body.copyWith(
                             fontSize: 13,
                             color: Palette.textMid,

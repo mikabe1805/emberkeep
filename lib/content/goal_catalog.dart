@@ -1,5 +1,6 @@
 import '../models.dart';
 import '../tokens.dart';
+import 'ladders.dart';
 
 /// The goal catalog — "Take on quests!" (DESIGN.md round-3). Curated goal
 /// ideas by life area, each with concrete adoptable quest templates. The
@@ -30,6 +31,8 @@ class QuestTemplate {
     this.timerMinutes = 0,
     this.allDay = false,
     this.rising = false,
+    this.ladder,
+    this.rung = 0,
     this.journalPrompt,
     this.weekdays = const [],
     this.monthDay,
@@ -44,6 +47,13 @@ class QuestTemplate {
   final int timerMinutes;
   final bool allDay;
   final bool rising;
+
+  /// The concrete progression this template climbs. A rising template without
+  /// a ladder only raises its invisible difficulty — the visible prescription
+  /// never changes, which reads as a fake control. Give every rising template
+  /// a ladder (and a [rung] whose prescription matches [title]).
+  final List<String>? ladder;
+  final int rung;
   final JournalQuestPrompt? journalPrompt;
 
   /// Default schedule anchors; usually empty (the adopt-time day picker fills
@@ -65,6 +75,8 @@ class QuestTemplate {
     goalTitle: goalTitle,
     allDay: allDay,
     rising: rising,
+    ladder: ladder,
+    rung: rung,
     journalPrompt: journalPrompt,
     weekdays: weekdays ?? this.weekdays,
     monthDay: monthDay ?? this.monthDay,
@@ -92,6 +104,9 @@ const goalCatalog = <GoalIdea>[
         difficulty: 3,
         timerMinutes: 10,
         rising: true,
+        // Every rung names its minutes, so the countdown follows the visible
+        // prescription (Quest.effectiveTimerMinutes) as it climbs.
+        ladder: Ladders.readingTimed,
         ladderHint: 'RISES AS YOU GROW 📈',
       ),
       QuestTemplate(
@@ -174,6 +189,11 @@ const goalCatalog = <GoalIdea>[
         stat: Stat.str,
         difficulty: 2,
         rising: true,
+        // rung 1's prescription IS this template's title, so the identity
+        // stays stable while the visible amount can now actually climb —
+        // and Tune's rung picker lets anyone start where they honestly are.
+        ladder: Ladders.pushUps,
+        rung: 1,
         ladderHint: 'RISES AS YOU GROW 📈',
       ),
       QuestTemplate(
@@ -181,6 +201,7 @@ const goalCatalog = <GoalIdea>[
         stat: Stat.str,
         difficulty: 6,
         rising: true,
+        ladder: Ladders.workoutSession,
         ladderHint: 'STARTS HONEST · RISES 📈',
       ),
       QuestTemplate(

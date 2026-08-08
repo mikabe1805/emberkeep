@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/journal_media.dart' as journal_media;
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
@@ -20,6 +21,8 @@ Uint8List _jpeg([int length = 3]) {
 
 Uint8List _png() =>
     Uint8List.fromList(const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+
+const _revision = 'ABCDEFGHIJKLMNOPQRSTUV';
 
 SharedRoomMediaService _service({
   SharedRoomMediaLocalReader? readLocal,
@@ -61,8 +64,9 @@ void main() {
           ownerUid: 'owner_123',
           roomCode: 'ABC234',
           slot: 'season',
+          generation: _revision,
         ),
-        'shared_rooms/owner_123/ABC234/season',
+        'shared_rooms/owner_123/ABC234/season/$_revision',
       );
     });
 
@@ -95,11 +99,12 @@ void main() {
 
     test('visitor paths must be exact and canonical', () {
       final location = SharedRoomMediaLocation.fromObjectPath(
-        'shared_rooms/owner_123/ABC234/season',
+        'shared_rooms/owner_123/ABC234/season/$_revision',
       );
       expect(location.ownerUid, 'owner_123');
       expect(location.roomCode, 'ABC234');
       expect(location.slot, SharedRoomMediaSlot.season);
+      expect(location.generation, _revision);
 
       for (final path in [
         'shared_rooms/owner_123/abc234/season',
@@ -117,7 +122,7 @@ void main() {
 
   group('shared room media sync', () {
     test(
-      'uploads both deterministic slots with explicit safe metadata',
+      'uploads both immutable revisions with explicit safe metadata',
       () async {
         final writes = <SharedRoomMediaUploadRequest>[];
         final service = _service(
@@ -137,10 +142,7 @@ void main() {
           },
         );
 
-        expect(paths, {
-          SharedRoomMediaSlot.profile: 'shared_rooms/owner_123/ABC234/profile',
-          SharedRoomMediaSlot.season: 'shared_rooms/owner_123/ABC234/season',
-        });
+        expect(paths.keys, SharedRoomMediaSlot.values);
         expect(writes.map((write) => write.slot), SharedRoomMediaSlot.values);
         expect(writes.map((write) => write.contentType), [
           'image/jpeg',
@@ -152,13 +154,53 @@ void main() {
             'ownerUid': 'owner_123',
             'roomCode': 'ABC234',
             'slot': write.slot.wireName,
+            'generation': write.objectPath.split('/').last,
           });
           expect(write.objectPath, paths[write.slot]);
+          final location = SharedRoomMediaLocation.fromObjectPath(
+            write.objectPath,
+          );
+          expect(
+            location.generation,
+            hasLength(sharedRoomMediaGenerationLength),
+          );
         }
         expect(paths.values, everyElement(startsWith('shared_rooms/')));
         expect(paths.values, everyElement(isNot(startsWith('http'))));
       },
     );
+
+    test('cleans every new revision when a later upload fails', () async {
+      final writes = <String>[];
+      final deletes = <String>[];
+      final service = _service(
+        readLocal: (filename) async => journal_media.JournalMediaUploadData(
+          filename: filename,
+          bytes: _jpeg(),
+        ),
+        upload: (request) async {
+          writes.add(request.objectPath);
+          if (request.slot == SharedRoomMediaSlot.season) {
+            throw StateError('connection dropped after write');
+          }
+        },
+        deleteObject: (path) async => deletes.add(path),
+      );
+
+      await expectLater(
+        service.syncSelected(
+          ownerUid: 'owner',
+          roomCode: 'ABC234',
+          selectedLocalFilenames: const {
+            SharedRoomMediaSlot.profile: 'profile.jpg',
+            SharedRoomMediaSlot.season: 'season.jpg',
+          },
+        ),
+        throwsA(_failure(SharedRoomMediaFailure.uploadFailed)),
+      );
+      expect(writes, hasLength(2));
+      expect(deletes.toSet(), writes.toSet());
+    });
 
     test('accepts exactly 3 MB and rejects anything larger', () async {
       var uploads = 0;
@@ -270,6 +312,141 @@ void main() {
     );
   });
 
+  group('acknowledged visitor-photo replacement', () {
+    (GameState, GameState) states() {
+      final oldPhoto = Note(
+        at: DateTime(2026, 8, 1),
+        text: 'old',
+        images: const ['old.jpg'],
+      );
+      final newPhoto = Note(
+        at: DateTime(2026, 8, 2),
+        text: 'new',
+        images: const ['new.jpg'],
+      );
+      final current = GameState()
+        ..roomCode = 'ABC234'
+        ..journal = [oldPhoto, newPhoto]
+        ..shareSpaceProfile = true
+        ..shareSpaceProfilePhoto = true
+        ..spaceProfilePhotoNoteId = oldPhoto.id
+        ..spaceProfilePhotoPath =
+            'shared_rooms/owner/ABC234/profile/$_revision';
+      final target = GameState.fromJson(current.toJson())
+        ..spaceProfilePhotoNoteId = newPhoto.id;
+      return (current, target);
+    }
+
+    RoomPublicationClient client({
+      required List<Map<String, dynamic>> publishes,
+      required bool failFinal,
+    }) {
+      var calls = 0;
+      return RoomPublicationClient(
+        ensureAvailable: () async => true,
+        ensureSocialSession: () async => true,
+        ownerUid: () => 'owner',
+        fetchRoom: (code) async => {
+          'uid': 'owner',
+          'profilePhotoPath': 'shared_rooms/owner/ABC234/profile/$_revision',
+          'seasonPhotoPath': '',
+        },
+        publishRoom: (display, {code}) async {
+          publishes.add(Map<String, dynamic>.from(display));
+          calls++;
+          if (failFinal && calls == 2) {
+            return const RoomPublishResult.failed(RoomPublishFailure.network);
+          }
+          return RoomPublishResult.success(code ?? 'ABC234');
+        },
+        unshareRoom: (code) async => true,
+      );
+    }
+
+    test(
+      'failed final publish never leaves replacement bytes public',
+      () async {
+        final (current, target) = states();
+        final publishes = <Map<String, dynamic>>[];
+        final uploaded = <String>[];
+        final deleted = <String>[];
+        final service = _service(
+          upload: (request) async => uploaded.add(request.objectPath),
+          deleteObject: (path) async => deleted.add(path),
+        );
+
+        final result = await publishSpaceRoomState(
+          target,
+          current: current,
+          code: 'ABC234',
+          mediaService: service,
+          publicationClient: client(publishes: publishes, failFinal: true),
+        );
+
+        expect(result.ok, isFalse);
+        expect(uploaded, hasLength(1));
+        final replacement = uploaded.single;
+        expect(
+          SharedRoomMediaLocation.fromObjectPath(replacement).generation,
+          isNotNull,
+        );
+        expect(publishes, hasLength(2));
+        expect(
+          publishes.first['profilePhotoPath'],
+          'shared_rooms/owner/ABC234/profile/$_revision',
+        );
+        expect(publishes.last['profilePhotoPath'], replacement);
+        expect(deleted, [
+          'shared_rooms/owner/ABC234/profile/$_revision',
+          replacement,
+        ]);
+        expect(
+          target.spaceProfilePhotoPath,
+          'shared_rooms/owner/ABC234/profile/$_revision',
+        );
+      },
+    );
+
+    test(
+      'successful final publish records only the new immutable path',
+      () async {
+        final (current, target) = states();
+        final publishes = <Map<String, dynamic>>[];
+        final uploaded = <String>[];
+        final deleted = <String>[];
+        final service = _service(
+          upload: (request) async => uploaded.add(request.objectPath),
+          deleteObject: (path) async => deleted.add(path),
+        );
+
+        final result = await publishSpaceRoomState(
+          target,
+          current: current,
+          code: 'ABC234',
+          mediaService: service,
+          publicationClient: client(publishes: publishes, failFinal: false),
+        );
+
+        expect(result.ok, isTrue);
+        expect(target.spaceProfilePhotoPath, uploaded.single);
+        expect(publishes.last['profilePhotoPath'], uploaded.single);
+        expect(deleted, ['shared_rooms/owner/ABC234/profile/$_revision']);
+      },
+    );
+
+    test('clearing the room code also clears persisted public handles', () {
+      final state = GameState()
+        ..roomCode = 'ABC234'
+        ..spaceProfilePhotoPath = 'shared_rooms/owner/ABC234/profile/$_revision'
+        ..spaceSeasonPhotoPath = 'shared_rooms/owner/ABC234/season/$_revision';
+
+      state.setRoomCode(null);
+
+      expect(state.spaceProfilePhotoPath, isEmpty);
+      expect(state.spaceSeasonPhotoPath, isEmpty);
+    });
+  });
+
   group('delete and visitor resolution', () {
     test('deduplicates slots and treats object-not-found as success', () async {
       final deletes = <String>[];
@@ -315,7 +492,9 @@ void main() {
       );
       expect(calls, 0);
       expect(
-        await service.downloadUrl('shared_rooms/owner/ABC234/profile'),
+        await service.downloadUrl(
+          'shared_rooms/owner/ABC234/profile/$_revision',
+        ),
         'https://example.test/photo',
       );
       expect(calls, 1);
@@ -329,7 +508,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: VisitorSharedRoomPhoto(
-              objectPath: 'shared_rooms/owner/ABC234/profile',
+              objectPath: 'shared_rooms/owner/ABC234/profile/$_revision',
               semanticLabel: 'Mika progress photo',
               urlLoader: (path) async => throw StateError('offline'),
             ),
@@ -355,6 +534,10 @@ void main() {
 
     final rules = File('storage.rules').readAsStringSync();
     expect(rules, contains('match /shared_rooms/{ownerUid}/{roomCode}/{slot}'));
+    expect(
+      rules,
+      contains('match /shared_rooms/{ownerUid}/{roomCode}/{slot}/{generation}'),
+    );
     expect(rules, contains('allow get:'));
     expect(rules, contains('allow list: if false;'));
     expect(rules, contains('request.auth.uid == ownerUid'));

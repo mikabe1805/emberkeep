@@ -84,7 +84,7 @@ class QuestTapestryPanel extends StatelessWidget {
                         Text(
                           'THE WOVEN DAWN',
                           style: Type.label.copyWith(
-                            fontSize: 8.5,
+                            fontSize: Type.minLabel,
                             color: Palette.textHi,
                           ),
                         ),
@@ -98,7 +98,7 @@ class QuestTapestryPanel extends StatelessWidget {
                               'PERMANENT · ${(woven * 100).round()}% WOVEN',
                               maxLines: 1,
                               style: Type.label.copyWith(
-                                fontSize: 8.5,
+                                fontSize: Type.minLabel,
                                 color: look.brass,
                               ),
                             ),
@@ -726,7 +726,7 @@ class QuestDeskStyleButton extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Type.label.copyWith(
-                      fontSize: 10,
+                      fontSize: Type.minLabel,
                       color: Palette.textHi,
                     ),
                   ),

@@ -72,6 +72,14 @@ class _EmberFlameIconPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Material glyphs keep ~15-25% internal padding with an optical baseline
+    // near 0.85 of the box; this mark used to paint edge-to-edge, so it read
+    // oversized and low beside stock icons at the same nominal size. Painting
+    // into a centered 80% sub-rect (fuel line landing at ~0.85) makes one
+    // nominal size one optical size across a mixed icon row.
+    canvas.save();
+    canvas.translate(size.width * 0.10, size.height * 0.12);
+    canvas.scale(0.80);
     final w = size.width;
     final h = size.height;
     final baseY = h * 0.91;
@@ -107,6 +115,7 @@ class _EmberFlameIconPainter extends CustomPainter {
       Rect.fromLTWH(w * 0.25, h * 0.05, w * 0.50, h * 0.86),
       color,
     );
+    canvas.restore();
   }
 
   @override

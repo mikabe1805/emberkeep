@@ -91,6 +91,27 @@ Future<List<String>> pickMany() async {
   }
 }
 
+/// Android may reclaim the app while its photo picker is open in a separate
+/// process; the pick then completes into the void and the person's photo
+/// silently never lands ("photos sometimes don't save"). The platform hands
+/// those files back on the next launch through retrieveLostData — store them
+/// like any pick so the editor can put them where they were headed.
+Future<List<String>> recoverLost() async {
+  try {
+    final lost = await ImagePicker().retrieveLostData();
+    if (lost.isEmpty) return const [];
+    final files = lost.files ?? [if (lost.file != null) lost.file!];
+    final stored = <String>[];
+    for (var i = 0; i < files.length && i < 12; i++) {
+      final name = await _storePicked(files[i], suffix: i);
+      if (name != null) stored.add(name);
+    }
+    return stored;
+  } catch (_) {
+    return const [];
+  }
+}
+
 bool _isSafeStoredName(String name) =>
     RegExp(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$').hasMatch(name) &&
     name != '.' &&

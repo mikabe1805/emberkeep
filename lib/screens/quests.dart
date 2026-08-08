@@ -722,12 +722,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       _openWorkout(q, tapPos);
       return;
     }
-    if (q.verification == Verification.timer && q.timerMinutes > 0) {
+    if (q.verification == Verification.timer && q.effectiveTimerMinutes > 0) {
       late final OverlayEntry timer;
       timer = OverlayEntry(
         builder: (_) => TimerOverlay(
           questTitle: q.title,
-          minutes: q.timerMinutes,
+          minutes: q.effectiveTimerMinutes,
           onFinished: () {
             timer.remove();
             if (mounted) _runCompletion(q, tapPos, verified: true);
@@ -1696,7 +1696,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 Text(
                   'ENERGY WEATHER',
                   style: Type.label.copyWith(
-                    fontSize: 10.5,
+                    fontSize: Type.minLabel,
                     color: Palette.xpLight,
                   ),
                 ),
@@ -1737,7 +1737,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 option.$1.label,
                                 maxLines: 1,
                                 style: Type.label.copyWith(
-                                  fontSize: 8.5,
+                                  fontSize: Type.minLabel,
                                   letterSpacing: 0.7,
                                   color: option.$3,
                                 ),
@@ -1984,7 +1984,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                         Text(
                           e.stat.abbr,
                           style: Type.label.copyWith(
-                            fontSize: 10,
+                            fontSize: Type.minLabel,
                             color: Palette.textLo,
                           ),
                         ),
@@ -2274,6 +2274,100 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Focus mode's body: one suggested quest, a calm queued-count, the all-day
   /// footer, and a way back to the full board. Completing runs the normal
   /// reward path; the next quest surfaces on the rebuild.
+  /// The closed board. The ledger is written, the fire is banked, and the
+  /// page says so instead of offering more work — closure the person can see.
+  /// One quiet way back in for the genuinely-not-done, kept deliberately
+  /// smaller than the rest it interrupts.
+  Widget _restingBody(DateTime now) {
+    final keptDay = _state.nightDoneDay ?? Days.key(now);
+    final kept = _state.history[keptDay] ?? 0;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 130),
+      children: [
+        GlassPanel(
+          key: const ValueKey('day-resting-panel'),
+          padding: const EdgeInsets.fromLTRB(20, 26, 20, 22),
+          child: Column(
+            children: [
+              FacetMedallion(
+                size: 52,
+                accent: Palette.unlock,
+                child: const Icon(
+                  Icons.nightlight_round,
+                  size: 24,
+                  color: Color(0xFFD6C38C),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'The day is kept.',
+                textAlign: TextAlign.center,
+                style: Type.display.copyWith(fontSize: 22),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                kept > 0
+                    ? '$kept quest${kept == 1 ? '' : 's'} went into the ledger '
+                          'tonight. The rest can wait.'
+                    : 'Tonight is closed and written. The rest can wait.',
+                textAlign: TextAlign.center,
+                style: Type.body.copyWith(
+                  fontSize: 13.5,
+                  height: 1.5,
+                  color: Palette.textMid,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'The board opens with the morning.',
+                textAlign: TextAlign.center,
+                style: Type.body.copyWith(
+                  fontSize: 12.5,
+                  fontStyle: FontStyle.italic,
+                  color: Palette.textLo,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        Center(
+          child: Semantics(
+            button: true,
+            label: 'Reopen tonight’s board',
+            onTap: _liftRest,
+            excludeSemantics: true,
+            child: GestureDetector(
+              key: const ValueKey('day-resting-reopen'),
+              behavior: HitTestBehavior.opaque,
+              onTap: _liftRest,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 12,
+                ),
+                child: Text(
+                  'I’M NOT DONE YET',
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    color: Palette.textLo,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _liftRest() {
+    Sfx.instance.play('tick');
+    HapticFeedback.selectionClick();
+    setState(() => _state.liftRest());
+    widget.onPersist();
+  }
+
   Widget _focusBody(List<Quest> pool, int allDayLeft, DateTime now) {
     final q = pool.first;
     return ListView(
@@ -2392,7 +2486,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     showingAll
                         ? 'GENTLE MODE · FULL BOARD'
                         : 'GENTLE MODE SHELTER',
-                    style: Type.label.copyWith(fontSize: 10.5, color: accent),
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      color: accent,
+                    ),
                   ),
                 ),
                 // Both shelter actions read as one control group in aged
@@ -2550,6 +2647,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final nightOpen = _state.nightDoneDay != nightDay;
     final showCloseDayRail =
         nightOpen && isWindDownTime(now) && (remaining > 0 || visible.isEmpty);
+    // Closing the day actually closes it: once tonight's ledger is written the
+    // board rests until morning (or an explicit "I'm not done yet").
+    final dayResting = _state.dayRestingNow;
 
     return LayoutBuilder(
       builder: (context, bounds) {
@@ -2801,7 +2901,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    showFocus
+                                    dayResting
+                                        ? 'THE DAY IS KEPT'
+                                        : showFocus
                                         ? 'FOCUS MODE'
                                         : lowFlame
                                         ? (_showFullLowFlame
@@ -2816,56 +2918,57 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                     ),
                                   ),
                                 ),
-                                Row(
-                                  children: [
-                                    // one-quest-at-a-time toggle (round-21): tames the overwhelm
-                                    _HeaderAction(
-                                      icon: _state.focusMode
-                                          ? Icons.center_focus_strong
-                                          : Icons.center_focus_weak,
-                                      color: _state.focusMode
-                                          ? Palette.streak
-                                          : Palette.xpLight,
-                                      label: _state.focusMode
-                                          ? 'Leave focus mode'
-                                          : 'Focus mode — one quest at a time',
-                                      onTap: _toggleFocus,
-                                    ),
-                                    _HeaderAction(
-                                      icon: Icons.add_circle_outline,
-                                      color: Palette.xpLight,
-                                      label: 'Add a quest',
-                                      onTap: _quickAdd,
-                                    ),
-                                    // Morning and night are independent doors:
-                                    // an unviewed morning must not hide tonight.
-                                    if (_state.morningAvailable)
+                                if (!dayResting)
+                                  Row(
+                                    children: [
+                                      // one-quest-at-a-time toggle (round-21): tames the overwhelm
                                       _HeaderAction(
-                                        icon: Icons.wb_twilight,
-                                        color: Palette.streak,
-                                        label: 'Morning briefing',
-                                        onTap: _openMorning,
+                                        icon: _state.focusMode
+                                            ? Icons.center_focus_strong
+                                            : Icons.center_focus_weak,
+                                        color: _state.focusMode
+                                            ? Palette.streak
+                                            : Palette.xpLight,
+                                        label: _state.focusMode
+                                            ? 'Leave focus mode'
+                                            : 'Focus mode — one quest at a time',
+                                        onTap: _toggleFocus,
                                       ),
-                                    if (nightOpen && !showCloseDayRail)
                                       _HeaderAction(
-                                        icon: Icons.nightlight_outlined,
+                                        icon: Icons.add_circle_outline,
                                         color: Palette.xpLight,
-                                        label: 'Close the day',
-                                        onTap: _openNight,
+                                        label: 'Add a quest',
+                                        onTap: _quickAdd,
                                       ),
-                                    // the momentum spark: cleared something? push further.
-                                    Offstage(
-                                      offstage: true,
-                                      child: _HeaderAction(
-                                        icon: Icons.bolt,
-                                        color: Palette.xpLight,
-                                        label:
-                                            'Take one more step — encores & variety',
-                                        onTap: _openMomentum,
+                                      // Morning and night are independent doors:
+                                      // an unviewed morning must not hide tonight.
+                                      if (_state.morningAvailable)
+                                        _HeaderAction(
+                                          icon: Icons.wb_twilight,
+                                          color: Palette.streak,
+                                          label: 'Morning briefing',
+                                          onTap: _openMorning,
+                                        ),
+                                      if (nightOpen && !showCloseDayRail)
+                                        _HeaderAction(
+                                          icon: Icons.nightlight_outlined,
+                                          color: Palette.xpLight,
+                                          label: 'Close the day',
+                                          onTap: _openNight,
+                                        ),
+                                      // the momentum spark: cleared something? push further.
+                                      Offstage(
+                                        offstage: true,
+                                        child: _HeaderAction(
+                                          icon: Icons.bolt,
+                                          color: Palette.xpLight,
+                                          label:
+                                              'Take one more step — encores & variety',
+                                          onTap: _openMomentum,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
                               ],
                             ),
                           ),
@@ -2878,7 +2981,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                       ),
                     ),
                   ],
-                  body: showFocus
+                  body: dayResting
+                      ? _restingBody(now)
+                      : showFocus
                       ? _focusBody(actionable, allDayLeft, now)
                       : ListView.separated(
                           // 130 is the shared dock inset (widgets/luxe_depth.dart);
@@ -3461,7 +3566,7 @@ class _ShelterAction extends StatelessWidget {
           child: Text(
             label,
             style: Type.label.copyWith(
-              fontSize: 8.5,
+              fontSize: Type.minLabel,
               letterSpacing: 0.6,
               color: color,
             ),
@@ -3536,7 +3641,7 @@ class _QuestDeskLookRow extends StatelessWidget {
                   Text(
                     'ROOM',
                     style: Type.label.copyWith(
-                      fontSize: 9,
+                      fontSize: Type.minLabel,
                       color: Palette.textLo,
                     ),
                   )
@@ -3546,7 +3651,7 @@ class _QuestDeskLookRow extends StatelessWidget {
                   Text(
                     '$price',
                     style: Type.label.copyWith(
-                      fontSize: 9,
+                      fontSize: Type.minLabel,
                       color: Palette.textLo,
                     ),
                   ),
@@ -3667,7 +3772,7 @@ class _CloseDayRail extends StatelessWidget {
                           Text(
                             'CLOSE THE DAY',
                             style: Type.label.copyWith(
-                              fontSize: 10.5,
+                              fontSize: Type.minLabel,
                               color: Palette.xpLight,
                               letterSpacing: 1.15,
                             ),
@@ -3776,7 +3881,7 @@ class _FocusLensToggle extends StatelessWidget {
           child: Text(
             label,
             style: Type.label.copyWith(
-              fontSize: 10,
+              fontSize: Type.minLabel,
               color: on ? Palette.xpLight : Palette.textLo,
             ),
           ),
@@ -4313,15 +4418,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                       ),
                       decoration: facetedDecoration(
                         cut: 9,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0xFFF6D9A2),
-                            Color(0xFFEFC074),
-                            Color(0xFFC08B4F),
-                          ],
-                        ),
+                        gradient: Palette.honeyGradient,
                         shadows: const [
                           BoxShadow(
                             color: Palette.honeyGlow,
@@ -4334,7 +4431,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
                         _spawned.isEmpty ? 'NOT NOW' : 'LET’S GO',
                         style: Type.label.copyWith(
                           fontSize: 11,
-                          color: const Color(0xFF3A2510),
+                          color: Palette.onHoney,
                         ),
                       ),
                     ),
@@ -4447,7 +4544,7 @@ class _MomentumChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = highlight ? const Color(0xFF3A2510) : Palette.xpLight;
+    final fg = highlight ? Palette.onHoney : Palette.xpLight;
     return GestureDetector(
       onTap: onTap,
       child: ConstrainedBox(
@@ -4456,17 +4553,7 @@ class _MomentumChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
           decoration: facetedDecoration(
             cut: 8,
-            gradient: highlight
-                ? const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFFF6D9A2),
-                      Color(0xFFEFC074),
-                      Color(0xFFC08B4F),
-                    ],
-                  )
-                : null,
+            gradient: highlight ? Palette.honeyGradient : null,
             borderColor: highlight
                 ? Colors.transparent
                 : Palette.xpLight.withValues(alpha: 0.5),
@@ -4485,9 +4572,7 @@ class _MomentumChip extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Type.body.copyWith(
                       fontSize: 11,
-                      color: highlight
-                          ? const Color(0xFF3A2510)
-                          : Palette.textMid,
+                      color: highlight ? Palette.onHoney : Palette.textMid,
                     ),
                   ),
                 ),
@@ -4514,10 +4599,20 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
   late double _difficulty = widget.quest.difficulty.toDouble();
   late Stat _stat = widget.quest.stat;
   late List<int> _weekdays = List.of(widget.quest.weekdays);
+  late int _rung = widget.quest.rung;
+  late int _timerMinutes = widget.quest.timerMinutes;
 
   @override
   Widget build(BuildContext context) {
     final maxD = widget.quest.custom ? 8 : 10;
+    final ladder = widget.quest.ladder;
+    // When a rung names its own minutes the rung picker owns the timer;
+    // otherwise the session length is the person's to set.
+    final tunableTimer =
+        widget.quest.verification == Verification.timer &&
+        !widget.quest.ladderOwnsTimer;
+    final minuteChoices = <int>{5, 10, 15, 20, 25, 45, _timerMinutes}.toList()
+      ..sort();
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.all(24),
@@ -4572,6 +4667,99 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
               ],
             ),
             DomainHint(_stat),
+            if (ladder != null && ladder.length > 1) ...[
+              const SizedBox(height: 10),
+              Text(
+                'WHERE ARE YOU NOW?',
+                style: Type.label.copyWith(fontSize: 11),
+              ),
+              const SizedBox(height: 6),
+              // The ladder is the amount control: pick the rung that matches
+              // today's honest floor and the prescription follows. Payout
+              // moves with it on save, mirroring the night rise, so a higher
+              // start earns like a risen quest instead of inflating XP.
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (var i = 0; i < ladder.length; i++)
+                    GestureDetector(
+                      key: ValueKey('tune-rung-$i'),
+                      onTap: () => setState(() {
+                        _difficulty = (_difficulty + (i - _rung)).clamp(
+                          1,
+                          maxD.toDouble(),
+                        );
+                        _rung = i;
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 5,
+                        ),
+                        decoration: facetedDecoration(
+                          cut: 6,
+                          color: _rung == i
+                              ? Palette.xp.withValues(alpha: 0.20)
+                              : Colors.transparent,
+                          borderColor: Palette.xp.withValues(
+                            alpha: _rung == i ? 0.8 : 0.3,
+                          ),
+                        ),
+                        child: Text(
+                          ladder[i],
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            color: _rung == i
+                                ? Palette.xpLight
+                                : Palette.textMid,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+            if (tunableTimer) ...[
+              const SizedBox(height: 10),
+              Text('SESSION LENGTH', style: Type.label.copyWith(fontSize: 11)),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final minutes in minuteChoices)
+                    GestureDetector(
+                      key: ValueKey('tune-minutes-$minutes'),
+                      onTap: () => setState(() => _timerMinutes = minutes),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 5,
+                        ),
+                        decoration: facetedDecoration(
+                          cut: 6,
+                          color: _timerMinutes == minutes
+                              ? Palette.verify.withValues(alpha: 0.20)
+                              : Colors.transparent,
+                          borderColor: Palette.verify.withValues(
+                            alpha: _timerMinutes == minutes ? 0.8 : 0.3,
+                          ),
+                        ),
+                        child: Text(
+                          '$minutes MIN',
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            color: _timerMinutes == minutes
+                                ? Palette.verify
+                                : Palette.textMid,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 10),
             Row(
               children: [
@@ -4641,6 +4829,15 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                   widget.quest.difficulty = _difficulty.round();
                   widget.quest.stat = _stat;
                   widget.quest.weekdays = _weekdays;
+                  if (tunableTimer) {
+                    widget.quest.timerMinutes = _timerMinutes;
+                  }
+                  if (_rung != widget.quest.rung) {
+                    // A hand-picked rung restarts the climb from here; the
+                    // held-completions count belongs to the old prescription.
+                    widget.quest.rung = _rung;
+                    widget.quest.risingStreak = 0;
+                  }
                   widget.onSaved();
                   Navigator.of(context).pop();
                 },
@@ -4651,15 +4848,7 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                   ),
                   decoration: facetedDecoration(
                     cut: 9,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Color(0xFFF6D9A2),
-                        Color(0xFFEFC074),
-                        Color(0xFFC08B4F),
-                      ],
-                    ),
+                    gradient: Palette.honeyGradient,
                     shadows: const [
                       BoxShadow(
                         color: Palette.honeyGlow,
@@ -4672,7 +4861,7 @@ class _EditQuestDialogState extends State<_EditQuestDialog> {
                     'SAVE',
                     style: Type.label.copyWith(
                       fontSize: 11,
-                      color: const Color(0xFF3A2510),
+                      color: Palette.onHoney,
                     ),
                   ),
                 ),

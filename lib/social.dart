@@ -49,6 +49,15 @@ String? roomCodeFromUri(Uri uri) {
   return null;
 }
 
+/// Whether a URI names the shared-space surface at all — with or without a
+/// valid code. Once native app links claim /space/*, this is what decides
+/// that a malformed invite still opens the visit prompt rather than nothing.
+bool uriNamesSharedSpace(Uri uri) =>
+    uri.queryParameters.containsKey('space') ||
+    uri.queryParameters.containsKey('room') ||
+    (uri.pathSegments.isNotEmpty &&
+        const {'space', 'room'}.contains(uri.pathSegments.first.toLowerCase()));
+
 /// One accepted room-link delivery.
 ///
 /// The sequence makes two taps on the same link distinct events. A friend can
@@ -82,6 +91,16 @@ class RoomLinkInbox extends ChangeNotifier {
     final code = raw.trim().toUpperCase();
     if (!_roomCodePattern.hasMatch(code)) return false;
     _pending.add(RoomLinkEvent(code: code, sequence: ++_sequence));
+    notifyListeners();
+    return true;
+  }
+
+  /// Claims a link that names the space path but carries no usable code — a
+  /// bare /space, or a typo'd one. The tap still deserves a destination (the
+  /// visit prompt, where the code field explains itself) instead of falling
+  /// through to the Navigator as an unknown named route and doing nothing.
+  bool enqueuePrompt() {
+    _pending.add(RoomLinkEvent(code: '', sequence: ++_sequence));
     notifyListeners();
     return true;
   }
@@ -181,32 +200,45 @@ Map<SharedRoomMediaSlot, String> selectedSharedRoomPhotoFiles(GameState s) {
 
 String _sharedPhotoPath({
   required Map<SharedRoomMediaSlot, String> selected,
+  required Map<SharedRoomMediaSlot, String> objectPaths,
   required SharedRoomMediaSlot slot,
   required String? ownerUid,
   required String? roomCode,
 }) {
-  if (!selected.containsKey(slot) || ownerUid == null || roomCode == null) {
-    return '';
-  }
+  if (!selected.containsKey(slot)) return '';
+  final objectPath = objectPaths[slot];
+  if (objectPath == null || objectPath.isEmpty) return '';
   try {
-    return sharedRoomMediaObjectPath(
-      ownerUid: ownerUid,
-      roomCode: roomCode,
-      slot: slot.wireName,
-    );
+    final location = SharedRoomMediaLocation.fromObjectPath(objectPath);
+    if (location.slot != slot ||
+        (ownerUid != null && location.ownerUid != ownerUid) ||
+        (roomCode != null &&
+            location.roomCode != roomCode.trim().toUpperCase())) {
+      return '';
+    }
+    return location.objectPath;
   } on SharedRoomMediaException {
     return '';
   }
 }
 
+Map<SharedRoomMediaSlot, String> _stateSharedRoomPhotoPaths(GameState state) =>
+    {
+      if (state.spaceProfilePhotoPath.isNotEmpty)
+        SharedRoomMediaSlot.profile: state.spaceProfilePhotoPath,
+      if (state.spaceSeasonPhotoPath.isNotEmpty)
+        SharedRoomMediaSlot.season: state.spaceSeasonPhotoPath,
+    };
+
 /// The bounded payload published for a shared space. Account data, quest
 /// history, and unselected Journal pages stay out. A photo contributes only a
-/// deterministic Storage object path after separate consent; local filenames,
-/// download URLs, and bytes never enter this map.
+/// exact, versioned Storage object path after separate consent; local
+/// filenames, download URLs, and bytes never enter this map.
 Map<String, dynamic> roomDisplay(
   GameState s, {
   String? mediaOwnerUid,
   String? mediaRoomCode,
+  Map<SharedRoomMediaSlot, String>? mediaObjectPaths,
 }) {
   final milestoneGoals = s.goals
       .where((g) => g.complete || g.progress >= 25)
@@ -223,10 +255,14 @@ Map<String, dynamic> roomDisplay(
       s.unlockedAchievements.length +
       milestoneGoals +
       hearthMemories;
-  final weather = s.energyWeatherDay == Days.key(Clock.now())
+  final profileVisible = s.shareSpaceProfile;
+  // Energy weather is a private daily capacity lens (engine.dart). It leaves
+  // the device only through the same door as the rest of the person: the
+  // explicit visitor-profile opt-in. Code bearers without that opt-in see
+  // 'unknown', same as an unset day.
+  final weather = profileVisible && s.energyWeatherDay == Days.key(Clock.now())
       ? s.energyWeather.name
       : 'unknown';
-  final profileVisible = s.shareSpaceProfile;
   final sharedCards = profileVisible
       ? <SpaceCardKind>[
           for (final kind in s.spaceCardOrder)
@@ -264,6 +300,7 @@ Map<String, dynamic> roomDisplay(
       ? _sharedProfileText(s.spaceSeasonText, 180)
       : '';
   final selectedPhotos = selectedSharedRoomPhotoFiles(s);
+  final publishedPhotoPaths = mediaObjectPaths ?? _stateSharedRoomPhotoPaths(s);
   return {
     // The legacy fixed field remains for older clients; bounded, deliberately
     // selected profile writing lives only in the explicit v4 fields below.
@@ -290,18 +327,81 @@ Map<String, dynamic> roomDisplay(
     'season': season,
     'profilePhotoPath': _sharedPhotoPath(
       selected: selectedPhotos,
+      objectPaths: publishedPhotoPaths,
       slot: SharedRoomMediaSlot.profile,
       ownerUid: mediaOwnerUid,
       roomCode: mediaRoomCode,
     ),
     'seasonPhotoPath': _sharedPhotoPath(
       selected: selectedPhotos,
+      objectPaths: publishedPhotoPaths,
       slot: SharedRoomMediaSlot.season,
       ownerUid: mediaOwnerUid,
       roomCode: mediaRoomCode,
     ),
     'v': 5,
   };
+}
+
+/// Narrow, injectable boundary for the acknowledged visitor-page transaction.
+/// Production delegates to [CloudSync]; tests can prove ordering without a
+/// Firebase app or a second private CloudSync constructor.
+class RoomPublicationClient {
+  const RoomPublicationClient({
+    required this.ensureAvailable,
+    required this.ensureSocialSession,
+    required this.ownerUid,
+    required this.fetchRoom,
+    required this.publishRoom,
+    required this.unshareRoom,
+  });
+
+  factory RoomPublicationClient.cloud(CloudSync cloud) => RoomPublicationClient(
+    ensureAvailable: cloud.ensureAvailable,
+    ensureSocialSession: cloud.ensureSocialSession,
+    ownerUid: () => cloud.socialUid,
+    fetchRoom: cloud.fetchRoom,
+    publishRoom: (display, {code}) => cloud.publishRoom(display, code: code),
+    unshareRoom: cloud.unshareRoom,
+  );
+
+  final Future<bool> Function() ensureAvailable;
+  final Future<bool> Function() ensureSocialSession;
+  final String? Function() ownerUid;
+  final Future<Map<String, dynamic>?> Function(String code) fetchRoom;
+  final Future<RoomPublishResult> Function(
+    Map<String, dynamic> display, {
+    String? code,
+  })
+  publishRoom;
+  final Future<bool> Function(String code) unshareRoom;
+}
+
+Map<SharedRoomMediaSlot, String> _publishedRoomPhotoPaths(
+  Map<String, dynamic>? room, {
+  required String ownerUid,
+  required String roomCode,
+}) {
+  if (room?['uid'] != ownerUid) return const {};
+  final paths = <SharedRoomMediaSlot, String>{};
+  for (final entry in const {
+    SharedRoomMediaSlot.profile: 'profilePhotoPath',
+    SharedRoomMediaSlot.season: 'seasonPhotoPath',
+  }.entries) {
+    final raw = room?[entry.value];
+    if (raw is! String || raw.isEmpty) continue;
+    try {
+      final location = SharedRoomMediaLocation.fromObjectPath(raw);
+      if (location.ownerUid == ownerUid &&
+          location.roomCode == roomCode &&
+          location.slot == entry.key) {
+        paths[entry.key] = location.objectPath;
+      }
+    } on SharedRoomMediaException {
+      // A malformed restored/public value is never copied into a new write.
+    }
+  }
+  return Map.unmodifiable(paths);
 }
 
 /// Publishes one exact visitor-page state while coordinating its two optional
@@ -313,106 +413,126 @@ Future<RoomPublishResult> publishSpaceRoomState(
   required String? code,
   CloudSync? cloudSync,
   SharedRoomMediaService? mediaService,
+  RoomPublicationClient? publicationClient,
 }) async {
   final cloud = cloudSync ?? CloudSync.instance;
-  if (!await cloud.ensureAvailable() || !await cloud.ensureSocialSession()) {
+  final publication = publicationClient ?? RoomPublicationClient.cloud(cloud);
+  if (!await publication.ensureAvailable() ||
+      !await publication.ensureSocialSession()) {
     return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
   }
-  final ownerUid = cloud.socialUid;
+  final ownerUid = publication.ownerUid();
   if (ownerUid == null) {
     return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
   }
 
   final normalizedInputCode = code?.trim().toUpperCase();
+  final existingRoom =
+      normalizedInputCode != null &&
+          _roomCodePattern.hasMatch(normalizedInputCode)
+      ? await publication.fetchRoom(normalizedInputCode)
+      : null;
+  final pathSource =
+      existingRoom ??
+      {
+        'uid': ownerUid,
+        'profilePhotoPath': current.spaceProfilePhotoPath,
+        'seasonPhotoPath': current.spaceSeasonPhotoPath,
+      };
+  var previousPaths = normalizedInputCode == null
+      ? const <SharedRoomMediaSlot, String>{}
+      : _publishedRoomPhotoPaths(
+          pathSource,
+          ownerUid: ownerUid,
+          roomCode: normalizedInputCode,
+        );
   final currentDisplay = roomDisplay(
     current,
     mediaOwnerUid: ownerUid,
     mediaRoomCode: normalizedInputCode,
+    mediaObjectPaths: previousPaths,
   );
-  final reserved = await cloud.publishRoom(currentDisplay, code: code);
+  final reserved = await publication.publishRoom(currentDisplay, code: code);
   final finalCode = reserved.code;
   if (finalCode == null) return reserved;
 
   final createdNew =
       normalizedInputCode == null || normalizedInputCode != finalCode;
-  final previous = createdNew
+  if (createdNew) previousPaths = const {};
+  final previousFiles = createdNew
       ? const <SharedRoomMediaSlot, String>{}
       : selectedSharedRoomPhotoFiles(current);
   final selected = selectedSharedRoomPhotoFiles(target);
-  final removed = previous.keys
-      .where((slot) => !selected.containsKey(slot))
-      .toSet();
   final changed = <SharedRoomMediaSlot, String>{
     for (final entry in selected.entries)
-      if (createdNew || previous[entry.key] != entry.value)
+      if (createdNew ||
+          previousFiles[entry.key] != entry.value ||
+          !previousPaths.containsKey(entry.key))
         entry.key: entry.value,
   };
   final media = mediaService ?? SharedRoomMediaService.instance;
+  var uploaded = const <SharedRoomMediaSlot, String>{};
 
   Future<void> abandonNewRoom() async {
-    if (createdNew) await cloud.unshareRoom(finalCode);
+    if (createdNew) await publication.unshareRoom(finalCode);
+  }
+
+  Future<void> removeUploaded() async {
+    if (uploaded.isEmpty) return;
+    try {
+      await media.deleteObjectPaths(uploaded.values);
+    } on SharedRoomMediaException {
+      // The paths are unreferenced and unguessable. Preserve the primary
+      // failure; a future owner cleanup can remove any rare orphan.
+    }
   }
 
   try {
-    if (removed.isNotEmpty) {
-      await media.deleteSlots(
-        ownerUid: ownerUid,
-        roomCode: finalCode,
-        slots: removed,
-      );
-    }
     if (changed.isNotEmpty) {
-      await media.syncSelected(
+      uploaded = await media.syncSelected(
         ownerUid: ownerUid,
         roomCode: finalCode,
         selectedLocalFilenames: changed,
       );
     }
-  } on SharedRoomMediaException {
-    final safeToRemove = changed.keys
-        .where((slot) => createdNew || !previous.containsKey(slot))
-        .toSet();
-    if (safeToRemove.isNotEmpty) {
-      try {
-        await media.deleteSlots(
-          ownerUid: ownerUid,
-          roomCode: finalCode,
-          slots: safeToRemove,
-        );
-      } on SharedRoomMediaException {
-        // The room remains uncommitted and the action reports failure. Stop
-        // Sharing/reset will retry any bounded object that did make it up.
-      }
+    // Remove replaced/revoked public bytes before the room document changes.
+    // If the final publish fails, the previous card can show a missing image,
+    // but it can never expose the uncommitted replacement.
+    final supersededPaths = <String>{
+      for (final entry in previousPaths.entries)
+        if (!selected.containsKey(entry.key) || changed.containsKey(entry.key))
+          entry.value,
+    };
+    if (supersededPaths.isNotEmpty) {
+      await media.deleteObjectPaths(supersededPaths);
     }
+  } on SharedRoomMediaException {
+    await removeUploaded();
     await abandonNewRoom();
     return const RoomPublishResult.failed(RoomPublishFailure.media);
   }
 
+  final finalPaths = <SharedRoomMediaSlot, String>{};
+  for (final slot in selected.keys) {
+    final path = uploaded[slot] ?? previousPaths[slot];
+    if (path != null) finalPaths[slot] = path;
+  }
   final display = roomDisplay(
     target,
     mediaOwnerUid: ownerUid,
     mediaRoomCode: finalCode,
+    mediaObjectPaths: finalPaths,
   );
-  final published = await cloud.publishRoom(display, code: finalCode);
+  final published = await publication.publishRoom(display, code: finalCode);
   if (!published.ok) {
-    final newlyPublic = selected.keys
-        .where((slot) => createdNew || !previous.containsKey(slot))
-        .toSet();
-    if (newlyPublic.isNotEmpty) {
-      try {
-        await media.deleteSlots(
-          ownerUid: ownerUid,
-          roomCode: finalCode,
-          slots: newlyPublic,
-        );
-      } on SharedRoomMediaException {
-        // The publish failure remains the primary result. A later Stop
-        // Sharing/reset attempts the same bounded cleanup again.
-      }
-    }
+    await removeUploaded();
     await abandonNewRoom();
     return published;
   }
+  target.setSharedRoomPhotoPaths(
+    profilePath: finalPaths[SharedRoomMediaSlot.profile] ?? '',
+    seasonPath: finalPaths[SharedRoomMediaSlot.season] ?? '',
+  );
   return RoomPublishResult.success(
     published.code!,
     rotatedStaleCode: reserved.rotatedStaleCode || published.rotatedStaleCode,
@@ -676,7 +796,7 @@ class _ShareDialogState extends State<_ShareDialog> {
                 Text(
                   'SHARE YOUR SPACE',
                   style: Type.label.copyWith(
-                    fontSize: 10,
+                    fontSize: Type.minLabel,
                     letterSpacing: 2.1,
                     color: Palette.textLo,
                   ),
@@ -834,7 +954,7 @@ class _ShareDialogState extends State<_ShareDialog> {
                       const SizedBox(width: 9),
                       Expanded(
                         child: Text(
-                          'Anyone with this link can visit until you stop sharing. They see only the cards and photos you chose. A profile or This season photo appears only when you separately allow it; every other photo, Journal page, quest, and account detail stays private.',
+                          'Anyone with this link can visit until you stop sharing. They see your room, whether its fire is lit today, and any quiet-company timer — plus only the cards and photos you chose. A profile or This season photo appears only when you separately allow it; every other photo, Journal page, quest, and account detail stays private.',
                           style: Type.body.copyWith(
                             fontSize: 11,
                             height: 1.42,
@@ -864,7 +984,7 @@ class _ShareDialogState extends State<_ShareDialog> {
                         child: Text(
                           _stopping ? 'STOPPING…' : 'STOP SHARING',
                           style: Type.label.copyWith(
-                            fontSize: 10.5,
+                            fontSize: Type.minLabel,
                             color: Palette.textLo,
                           ),
                         ),
@@ -921,7 +1041,7 @@ class _ShareDialogState extends State<_ShareDialog> {
             onPressed: () => Navigator.of(dialogContext).pop(false),
             child: Text(
               'KEEP SHARING',
-              style: Type.label.copyWith(fontSize: 10.5),
+              style: Type.label.copyWith(fontSize: Type.minLabel),
             ),
           ),
           TextButton(
@@ -929,7 +1049,10 @@ class _ShareDialogState extends State<_ShareDialog> {
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(
               'STOP SHARING',
-              style: Type.label.copyWith(fontSize: 10.5, color: Palette.danger),
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: Palette.danger,
+              ),
             ),
           ),
         ],
@@ -995,7 +1118,7 @@ class _ShareUtilityAction extends StatelessWidget {
                     maxLines: 2,
                     textAlign: TextAlign.center,
                     style: Type.label.copyWith(
-                      fontSize: 9.5,
+                      fontSize: Type.minLabel,
                       color: Palette.xpLight,
                     ),
                   ),

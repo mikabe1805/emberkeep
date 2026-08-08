@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:firebase_storage/firebase_storage.dart';
@@ -6,9 +8,10 @@ import 'journal_media.dart' as journal_media;
 
 const int maxSharedRoomPhotoBytes = 3 * 1024 * 1024;
 
-/// Slot objects are overwritten, so they deliberately use a short,
-/// revalidating cache policy instead of an immutable asset policy.
-const String sharedRoomPhotoCacheControl = 'public,max-age=300,must-revalidate';
+/// Every published revision receives a new unguessable object path, so old and
+/// new bytes never alias in caches while a room edit is being acknowledged.
+const String sharedRoomPhotoCacheControl = 'public,max-age=31536000,immutable';
+const int sharedRoomMediaGenerationLength = 22;
 
 enum SharedRoomMediaSlot {
   profile,
@@ -59,6 +62,10 @@ final RegExp _ownerUidPattern = RegExp(r'^[A-Za-z0-9._~-]{1,128}$');
 final RegExp _roomCodePattern = RegExp(
   r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$',
 );
+final RegExp _generationPattern = RegExp(
+  '^[A-Za-z0-9_-]{$sharedRoomMediaGenerationLength}\$',
+);
+final Random _secureRandom = Random.secure();
 
 String _validatedOwnerUid(String ownerUid) {
   if (!_ownerUidPattern.hasMatch(ownerUid)) {
@@ -92,6 +99,21 @@ SharedRoomMediaSlot _validatedSlot(String slot) {
   return parsed;
 }
 
+String _validatedGeneration(String generation) {
+  if (!_generationPattern.hasMatch(generation)) {
+    throw const SharedRoomMediaException(
+      SharedRoomMediaFailure.invalidObjectPath,
+      'The shared-room photo revision is not valid.',
+    );
+  }
+  return generation;
+}
+
+String _newGeneration() {
+  final bytes = List<int>.generate(16, (_) => _secureRandom.nextInt(256));
+  return base64UrlEncode(bytes).replaceAll('=', '');
+}
+
 /// Forms the only object path this feature is allowed to use.
 ///
 /// Every segment is validated before interpolation; callers cannot smuggle a
@@ -100,11 +122,15 @@ String sharedRoomMediaObjectPath({
   required String ownerUid,
   required String roomCode,
   required String slot,
+  String? generation,
 }) {
   final safeOwnerUid = _validatedOwnerUid(ownerUid);
   final safeRoomCode = _normalizedRoomCode(roomCode);
   final safeSlot = _validatedSlot(slot);
-  return 'shared_rooms/$safeOwnerUid/$safeRoomCode/${safeSlot.wireName}';
+  final base = 'shared_rooms/$safeOwnerUid/$safeRoomCode/${safeSlot.wireName}';
+  return generation == null
+      ? base
+      : '$base/${_validatedGeneration(generation)}';
 }
 
 final class SharedRoomMediaLocation {
@@ -112,18 +138,21 @@ final class SharedRoomMediaLocation {
     required this.ownerUid,
     required this.roomCode,
     required this.slot,
+    required this.generation,
     required this.objectPath,
   });
 
   final String ownerUid;
   final String roomCode;
   final SharedRoomMediaSlot slot;
+  final String? generation;
   final String objectPath;
 
   /// Validates a visitor-supplied object path and requires canonical casing.
   factory SharedRoomMediaLocation.fromObjectPath(String objectPath) {
     final parts = objectPath.split('/');
-    if (parts.length != 4 || parts.first != 'shared_rooms') {
+    if ((parts.length != 4 && parts.length != 5) ||
+        parts.first != 'shared_rooms') {
       throw const SharedRoomMediaException(
         SharedRoomMediaFailure.invalidObjectPath,
         'The shared-room photo path is not valid.',
@@ -135,6 +164,7 @@ final class SharedRoomMediaLocation {
         ownerUid: parts[1],
         roomCode: parts[2],
         slot: parts[3],
+        generation: parts.length == 5 ? parts[4] : null,
       );
       if (canonical != objectPath) {
         throw const SharedRoomMediaException(
@@ -146,6 +176,7 @@ final class SharedRoomMediaLocation {
         ownerUid: parts[1],
         roomCode: parts[2],
         slot: _validatedSlot(parts[3]),
+        generation: parts.length == 5 ? parts[4] : null,
         objectPath: canonical,
       );
     } on SharedRoomMediaException catch (error) {
@@ -294,6 +325,7 @@ final class SharedRoomMediaService {
         ownerUid: safeOwnerUid,
         roomCode: safeRoomCode,
         slot: slot.wireName,
+        generation: _newGeneration(),
       );
 
       late final journal_media.JournalMediaUploadData local;
@@ -353,6 +385,7 @@ final class SharedRoomMediaService {
             'ownerUid': safeOwnerUid,
             'roomCode': safeRoomCode,
             'slot': slot.wireName,
+            'generation': objectPath.split('/').last,
           }),
         ),
       );
@@ -363,6 +396,17 @@ final class SharedRoomMediaService {
       try {
         await _upload(request);
       } catch (error) {
+        // A transport error can arrive after Storage accepted the bytes. New
+        // revisions are still unreferenced, so delete every path this attempt
+        // may have created before reporting failure.
+        for (final objectPath in {...uploaded.values, request.objectPath}) {
+          try {
+            await _deleteObject(objectPath);
+          } catch (_) {
+            // The caller still reports failure. Stop Sharing/reset retain a
+            // bounded cleanup path if a remote object did survive.
+          }
+        }
         throw SharedRoomMediaException(
           SharedRoomMediaFailure.uploadFailed,
           'The ${request.slot.wireName} photo could not be uploaded.',
@@ -375,8 +419,38 @@ final class SharedRoomMediaService {
     return Map.unmodifiable(uploaded);
   }
 
-  /// Deletes only explicit deterministic slots. A missing object already
-  /// satisfies deletion and is therefore treated as success.
+  /// Deletes validated exact object paths. Both legacy deterministic paths and
+  /// new revisioned paths remain accepted so pre-release rooms migrate cleanly.
+  Future<void> deleteObjectPaths(Iterable<String> objectPaths) async {
+    final locations = <String, SharedRoomMediaLocation>{};
+    for (final objectPath in objectPaths) {
+      final location = SharedRoomMediaLocation.fromObjectPath(objectPath);
+      locations[location.objectPath] = location;
+    }
+
+    for (final entry in locations.entries) {
+      try {
+        await _deleteObject(entry.key);
+      } on FirebaseException catch (error) {
+        if (error.code == 'object-not-found') continue;
+        throw SharedRoomMediaException(
+          SharedRoomMediaFailure.deleteFailed,
+          'The ${entry.value.slot.wireName} photo could not be removed.',
+          slot: entry.value.slot,
+          cause: error,
+        );
+      } catch (error) {
+        throw SharedRoomMediaException(
+          SharedRoomMediaFailure.deleteFailed,
+          'The ${entry.value.slot.wireName} photo could not be removed.',
+          slot: entry.value.slot,
+          cause: error,
+        );
+      }
+    }
+  }
+
+  /// Legacy helper for deterministic pre-revision objects.
   Future<void> deleteSlots({
     required String ownerUid,
     required String roomCode,
@@ -393,26 +467,7 @@ final class SharedRoomMediaService {
       );
     }
 
-    for (final entry in paths.entries) {
-      try {
-        await _deleteObject(entry.value);
-      } on FirebaseException catch (error) {
-        if (error.code == 'object-not-found') continue;
-        throw SharedRoomMediaException(
-          SharedRoomMediaFailure.deleteFailed,
-          'The ${entry.key.wireName} photo could not be removed.',
-          slot: entry.key,
-          cause: error,
-        );
-      } catch (error) {
-        throw SharedRoomMediaException(
-          SharedRoomMediaFailure.deleteFailed,
-          'The ${entry.key.wireName} photo could not be removed.',
-          slot: entry.key,
-          cause: error,
-        );
-      }
-    }
+    await deleteObjectPaths(paths.values);
   }
 
   /// Resolves a validated exact object path only when a visitor renders it.

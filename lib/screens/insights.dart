@@ -69,7 +69,10 @@ class InsightsPage extends StatelessWidget {
         reduceMotion: state.reduceMotion,
         trailing: Text(
           '${_noteCount()} ENTRIES',
-          style: Type.label.copyWith(fontSize: 10, color: Palette.textLo),
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            color: Palette.textLo,
+          ),
         ),
         children: [
           LuxeGoldButton(
@@ -343,7 +346,7 @@ class InsightsPage extends StatelessWidget {
                       Text(
                         'READ ENTRY',
                         style: Type.label.copyWith(
-                          fontSize: 9.5,
+                          fontSize: Type.minLabel,
                           color: Palette.textLo,
                         ),
                       ),
@@ -375,7 +378,7 @@ class InsightsPage extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Type.label.copyWith(
-                      fontSize: 10.5,
+                      fontSize: Type.minLabel,
                       color: Palette.textLo,
                     ),
                   ),
@@ -386,7 +389,7 @@ class InsightsPage extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Type.label.copyWith(
-                        fontSize: 10.5,
+                        fontSize: Type.minLabel,
                         color: Palette.xp,
                       ),
                     ),
@@ -675,7 +678,7 @@ class InsightsPage extends StatelessWidget {
                     Text(
                       _weekdayShort[days[i].weekday - 1],
                       style: Type.label.copyWith(
-                        fontSize: 9,
+                        fontSize: Type.minLabel,
                         color: Palette.textLo,
                       ),
                     ),
@@ -1238,7 +1241,7 @@ class _JournalLensBar extends StatelessWidget {
                   Text(
                     label,
                     style: Type.label.copyWith(
-                      fontSize: 10,
+                      fontSize: Type.minLabel,
                       color: selected ? Palette.xpLight : Palette.textLo,
                     ),
                   ),

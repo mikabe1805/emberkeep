@@ -159,7 +159,16 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
 
   @override
   Future<bool> didPushRouteInformation(RouteInformation routeInformation) {
-    return Future.value(_roomLinks.enqueueUri(routeInformation.uri));
+    final uri = routeInformation.uri;
+    if (_roomLinks.enqueueUri(uri)) return Future.value(true);
+    // A /space link with a missing or malformed code is still ours: claim it
+    // and open the visit prompt, whose code field explains what belongs
+    // there. Left unclaimed it would fall through to the Navigator as an
+    // unknown named route — a tapped invite that visibly does nothing.
+    if (uriNamesSharedSpace(uri)) {
+      return Future.value(_roomLinks.enqueuePrompt());
+    }
+    return Future.value(false);
   }
 
   @override

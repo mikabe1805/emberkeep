@@ -417,10 +417,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         opened = true;
         await WidgetsBinding.instance.endOfFrame;
         if (!mounted) break;
+        // An empty code is a claimed-but-codeless link (bare or typo'd
+        // /space): open the prompt unfilled so the person can finish the
+        // code themselves instead of the tap doing nothing.
         await visitSpace(
           context,
-          initialCode: link.code,
-          autoSubmit: true,
+          initialCode: link.code.isEmpty ? null : link.code,
+          autoSubmit: link.code.isNotEmpty,
           state: state,
           onPersist: _persist,
           themeId: state.canvasTheme,
@@ -742,11 +745,16 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     ),
     // a hand-held option for the user who wants to move but isn't a gym rat
     workoutLauncherQuest(),
+    // Starts at its Fogg-floor rung (20 minutes) and climbs to the full hour
+    // — the hint used to advertise a ladder that was never attached, and d8
+    // for a 20-minute session paid like a full one.
     Quest(
       title: 'Workout — full session',
       stat: Stat.str,
-      difficulty: 8,
-      ladderHint: 'LADDER · 20 MIN → 40 MIN',
+      difficulty: 4,
+      rising: true,
+      ladder: Ladders.byBaseTitle['Workout — full session'],
+      ladderHint: 'CLIMBS AS YOU GROW 📈',
     ),
     Quest(
       title: 'No caffeine after 2pm',
@@ -1455,21 +1463,22 @@ class _DockItem extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // The lit tab is cut stone like everything else in the keep — a
+              // circular bubble here was the one rounded shape in the faceted
+              // system, and its near-white ring outshone the hearth. The ring
+              // now stays inside the accent's own value range.
               Container(
                 width: 31,
                 height: 31,
                 alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+                decoration: facetedDecoration(
+                  cut: 7,
                   color: selected
                       ? selectedAccent.withValues(alpha: 0.90)
                       : Colors.transparent,
-                  border: Border.all(
-                    color: selected
-                        ? const Color(0xFFFFD98E)
-                        : Colors.transparent,
-                    width: 1,
-                  ),
+                  borderColor: selected
+                      ? selectedAccent.withValues(alpha: 0.75)
+                      : Colors.transparent,
                 ),
                 child: Icon(
                   icon,
@@ -1483,8 +1492,11 @@ class _DockItem extends StatelessWidget {
                 child: Text(
                   label,
                   maxLines: 1,
+                  // Floor-size labels (Type.minLabel); the FittedBox above is
+                  // the escape valve for 320dp-class screens, not a licence to
+                  // author below the floor.
                   style: Type.label.copyWith(
-                    fontSize: 9.5,
+                    fontSize: Type.minLabel,
                     letterSpacing: 0.8,
                     color: selected ? Palette.xpLight : Palette.textLo,
                   ),

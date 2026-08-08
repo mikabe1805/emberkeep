@@ -511,7 +511,7 @@ class _QuestTitleBlock extends StatelessWidget {
       if (quest.verification == Verification.timer)
         _MetaChip(
           Icons.timer_outlined,
-          '${quest.timerMinutes}M PROOF',
+          '${quest.effectiveTimerMinutes}M PROOF',
           Palette.verify,
         ),
     ];
@@ -556,7 +556,7 @@ class _QuestTitleBlock extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Type.label.copyWith(
-                    fontSize: 9.5,
+                    fontSize: Type.minLabel,
                     letterSpacing: 0.15,
                     color: Palette.textLo,
                   ),
@@ -571,7 +571,7 @@ class _QuestTitleBlock extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Type.label.copyWith(
-              fontSize: 9.5,
+              fontSize: Type.minLabel,
               letterSpacing: 0.2,
               color: Palette.textLo,
             ),
@@ -1511,7 +1511,7 @@ class _MetaChip extends StatelessWidget {
         Text(
           text,
           style: Type.label.copyWith(
-            fontSize: 10,
+            fontSize: Type.minLabel,
             letterSpacing: 0.72,
             color: color,
           ),

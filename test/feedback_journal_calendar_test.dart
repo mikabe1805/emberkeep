@@ -222,6 +222,10 @@ void main() {
       220,
       scrollable: find.byType(Scrollable).first,
     );
+    // scrollUntilVisible stops at partial visibility; bring the card fully
+    // on-screen so the tap lands on it.
+    await tester.ensureVisible(card);
+    await tester.pump();
     await tester.tap(card);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));

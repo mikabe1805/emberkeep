@@ -357,7 +357,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                         ? 'QUICK START · NO EQUIPMENT'
                         : 'GUIDED · NO EQUIPMENT',
                     style: Type.label.copyWith(
-                      fontSize: 9.5,
+                      fontSize: Type.minLabel,
                       color: recommended ? Palette.xpLight : Palette.textLo,
                     ),
                   ),

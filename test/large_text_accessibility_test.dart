@@ -232,6 +232,11 @@ void main() {
       expect(state.hearthCircleCodes, contains('ABC234'));
       expect(tester.takeException(), isNull);
 
+      // Let the send-your-code-back snackbar retire before dragging — its
+      // tap target sits over the list's centre while visible.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+
       await tester.drag(find.byType(ListView), const Offset(0, 900));
       await tester.pump();
       await tester.scrollUntilVisible(

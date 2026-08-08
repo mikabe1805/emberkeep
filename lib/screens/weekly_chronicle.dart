@@ -209,14 +209,14 @@ class _ChronicleCard extends StatelessWidget {
                             Text(
                               'YOUR WEEK',
                               style: Type.label.copyWith(
-                                fontSize: 9,
+                                fontSize: Type.minLabel,
                                 color: Palette.xpLight,
                               ),
                             ),
                             Text(
                               data.rangeLabel,
                               style: Type.label.copyWith(
-                                fontSize: 8.5,
+                                fontSize: Type.minLabel,
                                 color: Palette.textLo,
                               ),
                             ),
@@ -226,7 +226,7 @@ class _ChronicleCard extends StatelessWidget {
                       Text(
                         'LV ${state.level}',
                         style: Type.label.copyWith(
-                          fontSize: 9.5,
+                          fontSize: Type.minLabel,
                           color: accent,
                         ),
                       ),
@@ -269,7 +269,7 @@ class _ChronicleCard extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 2,
                     style: Type.label.copyWith(
-                      fontSize: 8.5,
+                      fontSize: Type.minLabel,
                       height: 1.35,
                       color: Palette.textLo,
                     ),
@@ -292,7 +292,7 @@ class _ChronicleCard extends StatelessWidget {
                             Text(
                               'A LINE I KEPT',
                               style: Type.label.copyWith(
-                                fontSize: 8.5,
+                                fontSize: Type.minLabel,
                                 color: accent,
                               ),
                             ),
@@ -342,14 +342,17 @@ class _ChronicleCard extends StatelessWidget {
                   Text(
                     state.buildTitle,
                     textAlign: TextAlign.center,
-                    style: Type.label.copyWith(fontSize: 9.5, color: accent),
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      color: accent,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '${state.totalXp} XP OF REAL LIFE · ROOM OF DAYS',
                     textAlign: TextAlign.center,
                     style: Type.label.copyWith(
-                      fontSize: 7.8,
+                      fontSize: Type.minLabel,
                       color: Palette.textLo,
                     ),
                   ),
@@ -411,7 +414,10 @@ class _WeekRunes extends StatelessWidget {
           children: [
             Text(
               const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i],
-              style: Type.label.copyWith(fontSize: 8, color: Palette.textLo),
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: Palette.textLo,
+              ),
             ),
             const SizedBox(height: 5),
             Transform.rotate(
@@ -463,7 +469,7 @@ class _DomainSeal extends StatelessWidget {
       children: [
         Text(
           stat == null ? 'FIRST PAGE' : '${stat!.abbr} BURNED BRIGHTEST',
-          style: Type.label.copyWith(fontSize: 8.5, color: accent),
+          style: Type.label.copyWith(fontSize: Type.minLabel, color: accent),
         ),
         const SizedBox(height: 3),
         Text(

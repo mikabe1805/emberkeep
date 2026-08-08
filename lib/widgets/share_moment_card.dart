@@ -12,7 +12,7 @@ import '../platform/share_stub.dart'
 import '../social.dart' show roomInviteUrl;
 import '../tokens.dart';
 import 'facets.dart';
-import 'home_room.dart' show paintEmberFlame;
+import 'living_hearth_fire.dart';
 import 'pressable.dart';
 
 /// The words that travel with the card. The room link rides along only while a
@@ -159,7 +159,7 @@ class _ShareMomentSheetState extends State<ShareMomentSheet> {
                     ? 'Just the image — no link, no code.'
                     : 'The image travels with your room link.',
                 style: Type.label.copyWith(
-                  fontSize: 9.5,
+                  fontSize: Type.minLabel,
                   color: Palette.textLo,
                 ),
               ),
@@ -171,54 +171,73 @@ class _ShareMomentSheetState extends State<ShareMomentSheet> {
   }
 }
 
-/// Lights the plate's firebox. Every room plate is 1536x1024 with the hearth
-/// at the same registered spot (home_room's plate contract), so the flame's
-/// position under this card's cover-crop is pure arithmetic: cover-fit the
-/// 1.5 plate into the 0.8 card at the card's own alignment, then map the
-/// hearth fraction through it.
-class _CardHearthPainter extends CustomPainter {
-  const _CardHearthPainter({required this.hue});
+/// Lights the plate's firebox with the same authored parked fire used by Me
+/// and Quests. Every room plate is 1536x1024 with the hearth at the same
+/// registered spot, so the position under this card's cover-crop is pure
+/// arithmetic: cover-fit the 1.5 plate into the 0.8 card at the card's own
+/// alignment, then map the hearth fraction through it.
+class _CardHearth extends StatelessWidget {
+  const _CardHearth({required this.hue});
 
   final Color hue;
 
-  // Mirrors MomentCard's Image.asset alignment and home_room's _plateHearth.
+  // Mirrors MomentCard's Image.asset alignment and home_room's
+  // _plateHearthImage — the fire bed as a fraction of the plate art.
   static const _alignX = 0.72;
   static const _plateAspect = 1536 / 1024;
-  static const _hearth = Offset(0.855, 0.64);
+  static const _hearth = Offset(0.866, 0.662);
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final scaledW = size.height * _plateAspect;
-    final leftCrop = (scaledW - size.width) * (1 + _alignX) / 2;
-    final cx = _hearth.dx * scaledW - leftCrop;
-    final baseY = _hearth.dy * size.height;
-    if (cx < -size.width * 0.1 || cx > size.width * 1.1) return;
-    final w = size.width * 0.15;
-    final h = size.height * 0.115;
-    // a soft pool of light under the flame so it sits IN the box, not on it
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(cx, baseY),
-        width: w * 2.6,
-        height: h * 0.9,
-      ),
-      Paint()
-        ..shader =
-            RadialGradient(
-              colors: [hue.withValues(alpha: 0.5), hue.withValues(alpha: 0)],
-            ).createShader(
-              Rect.fromCenter(
-                center: Offset(cx, baseY),
-                width: w * 2.6,
-                height: h * 0.9,
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final size = constraints.biggest;
+          final scaledW = size.height * _plateAspect;
+          final leftCrop = (scaledW - size.width) * (1 + _alignX) / 2;
+          final cx = _hearth.dx * scaledW - leftCrop;
+          final baseY = _hearth.dy * size.height;
+          if (cx < -size.width * 0.1 || cx > size.width * 1.1) {
+            return const SizedBox.shrink();
+          }
+          final flameW = size.width * 0.15;
+          final flameH = size.height * 0.115;
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                left: cx - flameW * 1.3,
+                top: baseY - flameH * 0.45,
+                width: flameW * 2.6,
+                height: flameH * 0.9,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      colors: [
+                        hue.withValues(alpha: 0.34),
+                        hue.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
+              Positioned(
+                left: cx - flameW / 2,
+                top: baseY - flameH,
+                width: flameW,
+                height: flameH,
+                child: RecoloredHearthFireFrame(
+                  asset: hearthFireAssets.first,
+                  hue: hue,
+                  opacity: 1,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
-    paintEmberFlame(canvas, Rect.fromLTWH(cx - w / 2, baseY - h, w, h), hue);
   }
-
-  @override
-  bool shouldRepaint(_CardHearthPainter old) => old.hue != hue;
 }
 
 /// The image itself: the keeper's real room as the hero, the level carried on
@@ -271,14 +290,10 @@ class MomentCard extends StatelessWidget {
                   ),
                 ),
               // The plates ship with an unlit firebox — the app draws the
-              // living fire itself. A dead hearth on the one image people
-              // send their friends would read as an abandoned room, so the
-              // card lights it with the same shared flame painter, in the
-              // keeper's own purchased hue.
-              if (theme != null)
-                CustomPaint(
-                  painter: _CardHearthPainter(hue: flameHueFor(state)),
-                ),
+              // living fire itself. The card uses the authored parked frame,
+              // not the old procedural flame, so the exported still keeps the
+              // same brush texture as Me and Quests.
+              if (theme != null) _CardHearth(hue: flameHueFor(state)),
               // the room stays the hero; the words sit in its shadow
               const DecoratedBox(
                 decoration: BoxDecoration(
@@ -326,7 +341,7 @@ class MomentCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Type.label.copyWith(
-                          fontSize: 10.5,
+                          fontSize: Type.minLabel,
                           color: Palette.textMid,
                         ),
                       ),
@@ -347,7 +362,7 @@ class MomentCard extends StatelessWidget {
                     Text(
                       'ROOM OF DAYS',
                       style: Type.label.copyWith(
-                        fontSize: 9.5,
+                        fontSize: Type.minLabel,
                         letterSpacing: 2.6,
                         color: Palette.textLo,
                       ),

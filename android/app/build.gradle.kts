@@ -65,6 +65,13 @@ android {
             } else {
                 null
             }
+            // R8 keep rules — without them the notifications plugin's Gson
+            // schedule store loses its generic signatures and the app crashes
+            // on every release launch (see proguard-rules.pro).
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

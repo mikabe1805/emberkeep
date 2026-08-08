@@ -105,6 +105,21 @@ void main() {
     },
   );
 
+  test('Stop Sharing cannot race a queued room refresh', () {
+    final source = File('lib/cloud.dart').readAsStringSync();
+    final unshare = source.substring(
+      source.indexOf('Future<bool> unshareRoom'),
+      source.indexOf('Future<_OwnedRoomDeleteResult> _deleteOwnedRoom'),
+    );
+    final cancel = unshare.indexOf('_roomDebounce?.cancel()');
+    final queue = unshare.indexOf('_roomPublishQueue.run');
+    final remove = unshare.indexOf('_deleteOwnedRoom(code)');
+
+    expect(cancel, greaterThanOrEqualTo(0));
+    expect(queue, greaterThan(cancel));
+    expect(remove, greaterThan(queue));
+  });
+
   group('shared-space payload contract', () {
     test('every current room identity is emitted without schema drift', () {
       final rules = _firestoreRules();
@@ -207,7 +222,11 @@ void main() {
         ..spaceProfilePhotoNoteId = profile.id
         ..spaceSeasonPhotoNoteId = season.id
         ..shareSpaceProfilePhoto = true
-        ..shareSpaceSeasonPhoto = true;
+        ..shareSpaceSeasonPhoto = true
+        ..spaceProfilePhotoPath =
+            'shared_rooms/owner_123/ABC234/profile/ABCDEFGHIJKLMNOPQRSTUV'
+        ..spaceSeasonPhotoPath =
+            'shared_rooms/owner_123/ABC234/season/ABCDEFGHIJKLMNOPQRSTUV';
 
       var payload = roomDisplay(
         state,
@@ -216,7 +235,7 @@ void main() {
       );
       expect(
         payload['profilePhotoPath'],
-        'shared_rooms/owner_123/ABC234/profile',
+        'shared_rooms/owner_123/ABC234/profile/ABCDEFGHIJKLMNOPQRSTUV',
       );
       expect(payload['seasonPhotoPath'], isEmpty);
 
@@ -228,7 +247,7 @@ void main() {
       );
       expect(
         payload['seasonPhotoPath'],
-        'shared_rooms/owner_123/ABC234/season',
+        'shared_rooms/owner_123/ABC234/season/ABCDEFGHIJKLMNOPQRSTUV',
       );
       expect(jsonEncode(payload), isNot(contains(profileLocal)));
       expect(jsonEncode(payload), isNot(contains(seasonLocal)));
@@ -458,8 +477,19 @@ void main() {
       expect(rules, contains('d.pinnedMoments.size() <= 4'));
       expect(rules, contains('d.season.size() <= 180'));
       expect(rules, contains('validSharedPhotos(d, code)'));
-      expect(rules, contains("'/profile'"));
-      expect(rules, contains("'/season'"));
+      expect(
+        rules,
+        contains(
+          "validSharedPhotoPath(d.profilePhotoPath, d.uid, code, 'profile')",
+        ),
+      );
+      expect(
+        rules,
+        contains(
+          "validSharedPhotoPath(d.seasonPhotoPath, d.uid, code, 'season')",
+        ),
+      );
+      expect(rules, contains("parts[4].matches('^[A-Za-z0-9_-]{22}\$')"));
       expect(rules, contains('request.resource.data.v >= resource.data.v'));
     });
   });

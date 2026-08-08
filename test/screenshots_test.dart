@@ -9,6 +9,7 @@
 // report "All tests passed" while every store_*.png silently stays stale.
 // (round-62 pivot: the creature is gone; the keep + its hearth are the star.)
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
@@ -223,6 +224,7 @@ void main() {
   // does. (Same lesson as the emberGlow fallback: a golden has to render what
   // ships, not an artefact of the harness.)
   setUpAll(() async {
+    GameState.debugRandomFactory = () => Random(20260808);
     TestWidgetsFlutterBinding.ensureInitialized();
     final loader = FontLoader('MaterialIcons')
       ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
@@ -266,6 +268,7 @@ void main() {
     await preloadHomeRoomAssets();
     GoogleFonts.config.allowRuntimeFetching = false; // no network in tests
   });
+  tearDownAll(() => GameState.debugRandomFactory = null);
 
   // A type specimen. Every Type style rendered with letters AND digits, so a
   // font that silently fails to resolve shows up as a row of filled boxes here
@@ -1191,6 +1194,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '03_shop_1290x2796');
     final conservatory = find.text('The Living Conservatory');
+    // The shop list builds lazily, so the card may not exist yet —
+    // scrollUntilVisible builds it; ensureVisible alone throws No element.
+    await tester.scrollUntilVisible(
+      conservatory,
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.ensureVisible(conservatory);
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(conservatory);
@@ -2091,7 +2101,7 @@ void main() {
     final context = tester.element(find.byType(MaterialApp));
     await tester.runAsync(() async {
       await precacheImage(
-        const AssetImage('assets/rooms/wall_walnut-clean-v2.webp'),
+        AssetImage(spaceThemeById(state.wallStyle)!.plateAsset),
         context,
       );
     });

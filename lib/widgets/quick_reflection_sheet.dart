@@ -123,7 +123,7 @@ class _QuickReflectionSheetState extends State<_QuickReflectionSheet> {
                             Text(
                               'ONE LINE, IF YOU WANT',
                               style: Type.label.copyWith(
-                                fontSize: 10,
+                                fontSize: Type.minLabel,
                                 color: Palette.xpLight,
                                 letterSpacing: 1.4,
                               ),
@@ -231,7 +231,7 @@ class _QuickReflectionSheetState extends State<_QuickReflectionSheet> {
                           color: Palette.textLo,
                         ),
                         counterStyle: Type.label.copyWith(
-                          fontSize: 9,
+                          fontSize: Type.minLabel,
                           color: Palette.textLo,
                         ),
                         border: InputBorder.none,

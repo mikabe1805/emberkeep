@@ -49,6 +49,10 @@ workflows:
       - name: Flutter packages
         script: |
           flutter pub get
+      - name: Analyze and test (a broken commit must not ride into TestFlight)
+        script: |
+          flutter analyze
+          flutter test
       - name: Set up code signing (fetch + create App Store profile, key-safe)
         script: |
           keychain initialize

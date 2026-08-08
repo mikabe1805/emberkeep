@@ -23,6 +23,11 @@ enum RoomPublishFailure {
   unknown,
 }
 
+/// How a spark send landed. [alreadyWaiting] is the rules refusing a second
+/// pending note from the same sender — a fact worth telling honestly, and
+/// distinct from a connection that simply failed.
+enum SparkSendResult { sent, alreadyWaiting, failed }
+
 enum _OwnedRoomDeleteResult { deleted, absent, notOwned, invalid }
 
 class _PendingRoomCleanup {
@@ -95,8 +100,8 @@ class CloudSync extends ChangeNotifier {
   /// visiting and sharing from silently opting a device into cloud saves.
   bool get socialReady => _uid != null;
 
-  /// The anonymous owner ID is exposed only for forming the two validated,
-  /// deterministic shared-photo paths. It is never written into local saves.
+  /// The anonymous owner ID is exposed only at the validated sharing boundary.
+  /// It is never displayed as profile identity or included in invite copy.
   String? get socialUid => _uid;
 
   /// Firebase initialized successfully, even if this device is intentionally
@@ -794,16 +799,23 @@ class CloudSync extends ChangeNotifier {
   }
 
   /// Take your space down (only your own — the rules enforce it).
-  Future<bool> unshareRoom(String code) async {
-    if (!socialReady || code.isEmpty) return false;
-    try {
-      final removed = await _deleteOwnedRoom(code);
-      return removed == _OwnedRoomDeleteResult.deleted ||
-          removed == _OwnedRoomDeleteResult.absent;
-    } catch (e) {
-      debugPrint('unshareRoom failed: $e');
-      return false;
-    }
+  Future<bool> unshareRoom(String code) {
+    if (!socialReady || code.isEmpty) return Future.value(false);
+    // A five-second appearance refresh must never outlive Stop Sharing. Queue
+    // the delete behind any refresh whose timer already fired; otherwise that
+    // stale write could recreate the room after the UI cleared its code.
+    _roomDebounce?.cancel();
+    _roomDebounce = null;
+    return _roomPublishQueue.run(() async {
+      try {
+        final removed = await _deleteOwnedRoom(code);
+        return removed == _OwnedRoomDeleteResult.deleted ||
+            removed == _OwnedRoomDeleteResult.absent;
+      } catch (e) {
+        debugPrint('unshareRoom failed: $e');
+        return false;
+      }
+    });
   }
 
   /// Firestore does not cascade-delete subcollections. Clear every private
@@ -819,20 +831,14 @@ class CloudSync extends ChangeNotifier {
       return _OwnedRoomDeleteResult.notOwned;
     }
     final parentData = parent.data();
-    final mediaSlots = <SharedRoomMediaSlot>[
-      if (parentData?['profilePhotoPath'] is String &&
-          (parentData!['profilePhotoPath'] as String).isNotEmpty)
-        SharedRoomMediaSlot.profile,
-      if (parentData?['seasonPhotoPath'] is String &&
-          (parentData!['seasonPhotoPath'] as String).isNotEmpty)
-        SharedRoomMediaSlot.season,
+    final mediaPaths = <String>[
+      for (final key in const ['profilePhotoPath', 'seasonPhotoPath'])
+        if (parentData?[key] is String &&
+            (parentData![key] as String).isNotEmpty)
+          parentData[key] as String,
     ];
-    if (mediaSlots.isNotEmpty) {
-      await SharedRoomMediaService.instance.deleteSlots(
-        ownerUid: _uid!,
-        roomCode: clean,
-        slots: mediaSlots,
-      );
+    if (mediaPaths.isNotEmpty) {
+      await SharedRoomMediaService.instance.deleteObjectPaths(mediaPaths);
     }
     for (final collectionName in const ['sparks', 'circleAdds']) {
       while (true) {
@@ -954,10 +960,18 @@ class CloudSync extends ChangeNotifier {
   /// Send one fixed, text-free encouragement. The security rules key the
   /// pending spark by sender uid, so one person cannot stack spam; the keeper
   /// must collect it before that sender can kindle them again.
-  Future<bool> sendSpark(String code, {String kind = 'kindle'}) async {
-    if (!socialReady || _uid == null) return false;
+  ///
+  /// The outcome distinguishes the rules rejecting a second pending note
+  /// (permission-denied — the honest "already waiting" case) from a network
+  /// or auth failure, so the UI never blames a person's earlier note for a
+  /// dead connection.
+  Future<SparkSendResult> sendSpark(
+    String code, {
+    String kind = 'kindle',
+  }) async {
+    if (!socialReady || _uid == null) return SparkSendResult.failed;
     final clean = _cleanRoomCode(code);
-    if (clean == null) return false;
+    if (clean == null) return SparkSendResult.failed;
     const allowed = {'kindle', 'steady', 'cheer'};
     final safeKind = allowed.contains(kind) ? kind : 'kindle';
     try {
@@ -966,10 +980,15 @@ class CloudSync extends ChangeNotifier {
         'kind': safeKind,
         'sentAt': FieldValue.serverTimestamp(),
       });
-      return true;
+      return SparkSendResult.sent;
+    } on FirebaseException catch (e) {
+      debugPrint('sendSpark failed: $e');
+      return e.code == 'permission-denied'
+          ? SparkSendResult.alreadyWaiting
+          : SparkSendResult.failed;
     } catch (e) {
       debugPrint('sendSpark failed: $e');
-      return false;
+      return SparkSendResult.failed;
     }
   }
 

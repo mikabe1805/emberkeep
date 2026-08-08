@@ -248,7 +248,7 @@ class _ShopScreenState extends State<ShopScreen> {
                           : '${theme.price} Glimmers · you have ${state.embers}',
                       textAlign: TextAlign.center,
                       style: Type.label.copyWith(
-                        fontSize: 10.5,
+                        fontSize: Type.minLabel,
                         color: Palette.textLo,
                       ),
                     ),
@@ -391,7 +391,7 @@ class _CurrentRoom extends StatelessWidget {
                     Text(
                       'YOUR ROOM NOW',
                       style: Type.label.copyWith(
-                        fontSize: 10,
+                        fontSize: Type.minLabel,
                         color: theme.accent,
                         letterSpacing: 1.7,
                       ),
@@ -575,13 +575,19 @@ class _ThemeCard extends StatelessWidget {
     if (applied) {
       return Text(
         'finished from the start',
-        style: Type.label.copyWith(fontSize: 10.5, color: Palette.textLo),
+        style: Type.label.copyWith(
+          fontSize: Type.minLabel,
+          color: Palette.textLo,
+        ),
       );
     }
     if (owned) {
       return Text(
         'YOURS · SWITCH ANY TIME',
-        style: Type.label.copyWith(fontSize: 10.5, color: Palette.success),
+        style: Type.label.copyWith(
+          fontSize: Type.minLabel,
+          color: Palette.success,
+        ),
       );
     }
     return Text(
@@ -645,7 +651,7 @@ class _ImagePlate extends StatelessWidget {
         Text(
           label,
           style: Type.label.copyWith(
-            fontSize: 9,
+            fontSize: Type.minLabel,
             letterSpacing: 1.2,
             color: color,
           ),
@@ -669,7 +675,10 @@ class _StatusPill extends StatelessWidget {
       color: color.withValues(alpha: 0.12),
       borderColor: color.withValues(alpha: 0.5),
     ),
-    child: Text(label, style: Type.label.copyWith(fontSize: 10, color: color)),
+    child: Text(
+      label,
+      style: Type.label.copyWith(fontSize: Type.minLabel, color: color),
+    ),
   );
 }
 

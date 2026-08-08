@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["D63Z4RBRT8.com.mikabe.emberkeep"],
+        "components": [
+          { "/": "/space/*", "comment": "Room invite links open in the app" },
+          { "/": "/room/*", "comment": "Legacy path form, same visitor flow" }
+        ]
+      }
+    ]
+  }
+}

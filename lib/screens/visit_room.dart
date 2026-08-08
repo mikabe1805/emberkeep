@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../audio.dart';
 import '../clock.dart';
 import '../cloud.dart';
 import '../content/creature_skins.dart';
@@ -12,9 +14,11 @@ import '../engine.dart';
 import '../shared_room_media.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
+import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
+import '../widgets/spark_picker.dart';
 import '../widgets/visitor_shared_room_photo.dart';
 
 /// A read-only look at someone else's "Your Space" (round-52, social). Built
@@ -33,6 +37,7 @@ class VisitRoomScreen extends StatelessWidget {
     this.localState,
     this.onPersist,
     this.photoUrlLoader,
+    this.sparkSender,
   });
 
   final Map<String, dynamic> room;
@@ -52,6 +57,10 @@ class VisitRoomScreen extends StatelessWidget {
   final GameState? localState;
   final VoidCallback? onPersist;
   final VisitorPhotoUrlLoader? photoUrlLoader;
+
+  /// Test seam for the leave-a-note action; the real path acquires the
+  /// anonymous social session only on the explicit send.
+  final SparkSender? sparkSender;
 
   @override
   Widget build(BuildContext context) {
@@ -284,6 +293,15 @@ class VisitRoomScreen extends StatelessWidget {
                   ),
                 ),
               ],
+              // The visit ends with something to give, not just something to
+              // keep — the same fixed, text-free note the Circle sends.
+              if (localState?.roomCode != code.trim().toUpperCase()) ...[
+                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _LeaveNoteAction(code: code, sparkSender: sparkSender),
+                ),
+              ],
               if (localState != null && onPersist != null) ...[
                 const SizedBox(height: 12),
                 Padding(
@@ -355,7 +373,7 @@ class _VisitorProfileDeck extends StatelessWidget {
                   Text(
                     'THEIR PAGE',
                     style: Type.label.copyWith(
-                      fontSize: 10,
+                      fontSize: Type.minLabel,
                       letterSpacing: 1.5,
                       color: Palette.xpLight,
                     ),
@@ -382,7 +400,7 @@ class _VisitorProfileDeck extends StatelessWidget {
                 child: Text(
                   'SHARED BY CHOICE',
                   style: Type.label.copyWith(
-                    fontSize: 8,
+                    fontSize: Type.minLabel,
                     letterSpacing: 0.8,
                     color: Palette.textLo,
                   ),
@@ -540,7 +558,7 @@ class _VisitorProfileDeck extends StatelessWidget {
                                   context,
                                 ).formatMediumDate(pinnedMoments[i].at),
                                 style: Type.label.copyWith(
-                                  fontSize: 8.5,
+                                  fontSize: Type.minLabel,
                                   color: Palette.textLo,
                                 ),
                               ),
@@ -632,12 +650,16 @@ class _VisitorSharedCard extends StatelessWidget {
           children: [
             Icon(icon, size: 17, color: accent),
             const SizedBox(width: 7),
-            Text(
-              title,
-              style: Type.label.copyWith(
-                fontSize: 10,
-                letterSpacing: 1.35,
-                color: accent,
+            // Flexible so floor-size card titles wrap at accessibility text
+            // scales on narrow phones instead of running out of the card.
+            Flexible(
+              child: Text(
+                title,
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  letterSpacing: 1.35,
+                  color: accent,
+                ),
               ),
             ),
           ],
@@ -660,6 +682,142 @@ class _QuietVisitorCardCopy extends StatelessWidget {
       fontSize: 13,
       fontStyle: FontStyle.italic,
       color: Palette.textLo,
+    ),
+  );
+}
+
+/// "Leave a note by their fire" — the reciprocity half of a visit. Reuses the
+/// Circle's fixed spark vocabulary; the anonymous session is acquired only on
+/// the explicit send, and the rules keep it to one pending note per sender.
+class _LeaveNoteAction extends StatefulWidget {
+  const _LeaveNoteAction({required this.code, this.sparkSender});
+
+  final String code;
+  final SparkSender? sparkSender;
+
+  @override
+  State<_LeaveNoteAction> createState() => _LeaveNoteActionState();
+}
+
+class _LeaveNoteActionState extends State<_LeaveNoteAction> {
+  bool _busy = false;
+
+  void _toast(String message) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Palette.card,
+          content: Text(
+            message,
+            style: Type.body.copyWith(color: Palette.textHi),
+          ),
+        ),
+      );
+  }
+
+  Future<void> _leaveNote() async {
+    Sfx.instance.play('tick');
+    final kind = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: Palette.dialogBarrier,
+      builder: (_) => const SparkPickerSheet(),
+    );
+    if (kind == null || !mounted) return;
+    setState(() => _busy = true);
+    final sender = widget.sparkSender;
+    final safeKind = normalizedSparkKind(kind);
+    SparkSendResult result;
+    if (sender != null) {
+      result = await sender(widget.code, safeKind)
+          ? SparkSendResult.sent
+          : SparkSendResult.failed;
+    } else if (!await CloudSync.instance.ensureSocialSession()) {
+      result = SparkSendResult.failed;
+    } else {
+      result = await CloudSync.instance.sendSpark(widget.code, kind: safeKind);
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    switch (result) {
+      case SparkSendResult.sent:
+        Sfx.instance.play('streak');
+        HapticFeedback.mediumImpact();
+        _toast(
+          '${sparkSupportReceiptLabel(safeKind)} is waiting by their fire.',
+        );
+      case SparkSendResult.alreadyWaiting:
+        _toast('A note from you is already waiting by their fire.');
+      case SparkSendResult.failed:
+        _toast('The connection went quiet — try again in a bit.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => GlassPanel(
+    padding: const EdgeInsets.all(12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Semantics(
+          button: true,
+          enabled: !_busy,
+          label: 'Leave a note by their fire',
+          child: GestureDetector(
+            key: const ValueKey('visit-room-note-action'),
+            behavior: HitTestBehavior.opaque,
+            onTap: _busy ? null : _leaveNote,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: facetedDecoration(
+                  cut: 9,
+                  color: Palette.streak.withValues(alpha: 0.10),
+                  borderColor: Palette.streak.withValues(alpha: 0.40),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    EmberFlameIcon(
+                      size: 18,
+                      color: _busy ? Palette.textLo : Palette.streak,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        _busy ? 'LEAVING IT…' : 'LEAVE A NOTE BY THEIR FIRE',
+                        textAlign: TextAlign.center,
+                        style: Type.label.copyWith(
+                          fontSize: Type.minLabel,
+                          letterSpacing: 1.1,
+                          color: _busy ? Palette.textLo : Palette.streak,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          'One fixed note, no message attached. They collect it at their own hearth.',
+          style: Type.body.copyWith(
+            fontSize: 11.5,
+            height: 1.35,
+            color: Palette.textLo,
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -774,7 +932,7 @@ class _KeepInCircleAction extends StatelessWidget {
                               label,
                               textAlign: TextAlign.center,
                               style: Type.label.copyWith(
-                                fontSize: 10.5,
+                                fontSize: Type.minLabel,
                                 letterSpacing: 1.1,
                                 color: accent,
                               ),
@@ -825,7 +983,14 @@ class _StatusChip extends StatelessWidget {
       children: [
         Icon(icon, size: 12, color: color),
         const SizedBox(width: 5),
-        Text(label, style: Type.label.copyWith(fontSize: 8.5, color: color)),
+        // Flexible so a floor-size label at accessibility text scales wraps
+        // inside the chip instead of pushing past the Wrap's width.
+        Flexible(
+          child: Text(
+            label,
+            style: Type.label.copyWith(fontSize: Type.minLabel, color: color),
+          ),
+        ),
       ],
     ),
   );

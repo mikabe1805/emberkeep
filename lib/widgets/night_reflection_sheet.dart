@@ -233,7 +233,7 @@ class _NightReflectionSheetState extends State<_NightReflectionSheet> {
                                     Text(
                                       'TONIGHT, IF YOU WANT',
                                       style: Type.label.copyWith(
-                                        fontSize: 10,
+                                        fontSize: Type.minLabel,
                                         color: Palette.xpLight,
                                         letterSpacing: 1.35,
                                       ),
@@ -491,7 +491,10 @@ class _PromptTab extends StatelessWidget {
                         maxLines: 2,
                         textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
-                        style: Type.label.copyWith(fontSize: 9, color: color),
+                        style: Type.label.copyWith(
+                          fontSize: Type.minLabel,
+                          color: color,
+                        ),
                       ),
                     ],
                   )
@@ -509,7 +512,7 @@ class _PromptTab extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: Type.label.copyWith(
-                            fontSize: 9.5,
+                            fontSize: Type.minLabel,
                             color: color,
                           ),
                         ),
@@ -596,7 +599,10 @@ class _NightField extends StatelessWidget {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: Type.body.copyWith(fontSize: 14, color: Palette.textLo),
-        counterStyle: Type.label.copyWith(fontSize: 9, color: Palette.textLo),
+        counterStyle: Type.label.copyWith(
+          fontSize: Type.minLabel,
+          color: Palette.textLo,
+        ),
         border: InputBorder.none,
         contentPadding: const EdgeInsets.fromLTRB(12, 11, 12, 7),
       ),

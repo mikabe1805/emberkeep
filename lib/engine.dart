@@ -30,7 +30,13 @@ const defaultSpaceCardOrder = <SpaceCardKind>[
 /// (RESEARCH.md §5). Persisted via toJson/fromJson; period resets happen in
 /// [rollover].
 class GameState extends ChangeNotifier {
-  GameState({Random? rng}) : _rng = rng ?? Random();
+  GameState({Random? rng})
+    : _rng = rng ?? debugRandomFactory?.call() ?? Random();
+
+  /// Golden harnesses can supply a repeatable source without changing any
+  /// production reward odds or persisting test-only seed state.
+  @visibleForTesting
+  static Random Function()? debugRandomFactory;
 
   final Random _rng;
 
@@ -99,8 +105,16 @@ class GameState extends ChangeNotifier {
   /// The shared-space code, if this keep is published. Set through here (not
   /// the field) so the Me-page "Shared · CODE" label repaints when it changes.
   void setRoomCode(String? code) {
-    if (roomCode == code) return;
+    if (roomCode == code &&
+        (code != null ||
+            (spaceProfilePhotoPath.isEmpty && spaceSeasonPhotoPath.isEmpty))) {
+      return;
+    }
     roomCode = code;
+    if (code == null) {
+      spaceProfilePhotoPath = '';
+      spaceSeasonPhotoPath = '';
+    }
     notifyListeners();
   }
 
@@ -200,6 +214,11 @@ class GameState extends ChangeNotifier {
   String? spaceSeasonPhotoNoteId;
   bool shareSpaceProfilePhoto = false;
   bool shareSpaceSeasonPhoto = false;
+
+  /// Exact public Storage revisions acknowledged by the current room document.
+  /// These are opaque object handles, never local filenames or download URLs.
+  String spaceProfilePhotoPath = '';
+  String spaceSeasonPhotoPath = '';
 
   /// The Journal pages supplying the two deliberately selectable visitor
   /// photos. Selecting a local source and sharing it are separate choices;
@@ -340,6 +359,27 @@ class GameState extends ChangeNotifier {
       shareSeasonPhoto: shareSpaceSeasonPhoto,
       shareProfile: shared ?? shareSpaceProfile,
     );
+  }
+
+  void setSharedRoomPhotoPaths({
+    required String profilePath,
+    required String seasonPath,
+  }) {
+    final cleanProfile = _cleanSharedRoomPhotoPath(profilePath);
+    final cleanSeason = _cleanSharedRoomPhotoPath(seasonPath);
+    if (spaceProfilePhotoPath == cleanProfile &&
+        spaceSeasonPhotoPath == cleanSeason) {
+      return;
+    }
+    spaceProfilePhotoPath = cleanProfile;
+    spaceSeasonPhotoPath = cleanSeason;
+    notifyListeners();
+  }
+
+  static String _cleanSharedRoomPhotoPath(Object? value) {
+    if (value is! String) return '';
+    final clean = value.trim();
+    return clean.length <= 192 ? clean : '';
   }
 
   void setMemoryPinned(String noteId, bool pinned) {
@@ -907,12 +947,19 @@ class GameState extends ChangeNotifier {
   /// you wake a few hours later the same calendar day.
   static const _morningGapMs = 4 * 60 * 60 * 1000;
 
+  /// Night-key the person chose to reopen after closing the day — "I'm not
+  /// done yet". Null, or a different night, means a closed night rests.
+  String? restLiftedNight;
+
   /// Closing the night arms tomorrow morning's briefing.
   void closeNight() {
     final now = Clock.now();
     nightDoneDay = Days.nightKey(now);
     nightDoneAt = now.millisecondsSinceEpoch;
     morningArmed = true;
+    // Closing the day again (after an "I'm not done yet" reopen) rests the
+    // board again — the ritual owns the state, not the exception.
+    restLiftedNight = null;
     // Rest Earned is caused here, not on the quest board. Check immediately
     // so the trophy and any gated reward do not wait for another completion.
     if (checkAchievements().isEmpty) notifyListeners();
@@ -923,6 +970,22 @@ class GameState extends ChangeNotifier {
     morningDoneDay = Days.key(Clock.now());
     morningArmed = false;
     pendingMorningNoteId = null;
+    notifyListeners();
+  }
+
+  /// The board rests once tonight's ledger is written: the night you closed
+  /// is the night you're still inside, the morning hasn't opened a new day,
+  /// and you haven't chosen to reopen. Crossing 4am ends the night, so the
+  /// rest lifts on its own even before the morning greeting.
+  bool get dayRestingNow =>
+      morningArmed &&
+      nightDoneDay == Days.nightKey(Clock.now()) &&
+      restLiftedNight != nightDoneDay;
+
+  /// "I'm not done yet" — reopen tonight's board without disturbing the
+  /// armed morning briefing. Closing the night again rests it again.
+  void liftRest() {
+    restLiftedNight = nightDoneDay;
     notifyListeners();
   }
 
@@ -1642,6 +1705,10 @@ class GameState extends ChangeNotifier {
       'spaceSeasonPhotoNoteId': spaceSeasonPhotoNoteId,
     'shareSpaceProfilePhoto': shareSpaceProfilePhoto,
     'shareSpaceSeasonPhoto': shareSpaceSeasonPhoto,
+    if (spaceProfilePhotoPath.isNotEmpty)
+      'spaceProfilePhotoPath': spaceProfilePhotoPath,
+    if (spaceSeasonPhotoPath.isNotEmpty)
+      'spaceSeasonPhotoPath': spaceSeasonPhotoPath,
     'quietCompanyKind': quietCompanyKind,
     'quietCompanyUntil': quietCompanyUntil,
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
@@ -1693,6 +1760,7 @@ class GameState extends ChangeNotifier {
     'morningDoneDay': morningDoneDay,
     'morningArmed': morningArmed,
     'nightDoneAt': nightDoneAt,
+    if (restLiftedNight != null) 'restLiftedNight': restLiftedNight,
     if (nightDraftNoteId != null) 'nightDraftNoteId': nightDraftNoteId,
     if (pendingMorningNoteId != null)
       'pendingMorningNoteId': pendingMorningNoteId,
@@ -1843,6 +1911,12 @@ class GameState extends ChangeNotifier {
     );
     s.shareSpaceProfilePhoto = j['shareSpaceProfilePhoto'] as bool? ?? false;
     s.shareSpaceSeasonPhoto = j['shareSpaceSeasonPhoto'] as bool? ?? false;
+    s.spaceProfilePhotoPath = _cleanSharedRoomPhotoPath(
+      j['spaceProfilePhotoPath'],
+    );
+    s.spaceSeasonPhotoPath = _cleanSharedRoomPhotoPath(
+      j['spaceSeasonPhotoPath'],
+    );
     final quietKind = j['quietCompanyKind'] as String? ?? 'none';
     s.quietCompanyKind =
         const {'none', 'study', 'making', 'reset', 'quiet'}.contains(quietKind)
@@ -1971,6 +2045,7 @@ class GameState extends ChangeNotifier {
         j['morningArmed'] as bool? ??
         (j['nightDoneDay'] != null &&
             j['morningDoneDay'] != Days.key(Clock.now()));
+    s.restLiftedNight = Days.validKey(j['restLiftedNight']);
     s.sparkSeenDay = Days.validKey(j['sparkSeenDay']);
     s.weekRecapSeenWeek = Days.validKey(j['weekRecapSeenWeek']);
     s.emberSeenDay = Days.validKey(j['emberSeenDay']);

@@ -6,38 +6,88 @@ import '../tokens.dart';
 /// credit the same stat). The Quests-page "keep the fire going" encore reads
 /// from both — STOKE climbs a quest's [Quest.ladder]; SWITCH pulls a sibling
 /// from [kinByStat] (or a quest's own [Quest.kin]).
+/// Builds a gentle ~×1.5 progression from any prescription that carries a
+/// number: 'Do 15 push-ups' → 15 / 23 / 35 / 50 / 75. The first number in
+/// the title is the one that climbs; everything around it is preserved
+/// verbatim, so a timer quest whose title names minutes keeps its countdown
+/// in lockstep through Quest.effectiveTimerMinutes. Returns null when the
+/// title has no number to climb.
+List<String>? generatedLadder(String title, {int rungs = 5}) {
+  final match = RegExp(r'\d+').firstMatch(title);
+  if (match == null) return null;
+  final start = int.parse(match.group(0)!);
+  if (start <= 0) return null;
+  final out = <String>[];
+  var value = start.toDouble();
+  for (var i = 0; i < rungs; i++) {
+    final text = title.replaceRange(
+      match.start,
+      match.end,
+      '${_niceRound(value)}',
+    );
+    if (out.isEmpty || out.last != text) out.add(text);
+    value *= 1.5;
+  }
+  return out.length > 1 ? out : null;
+}
+
+/// Rounds a raw curve value onto numbers a person would actually write down.
+int _niceRound(double v) {
+  final n = v.round();
+  if (n >= 100) return (n / 10).round() * 10;
+  if (n >= 30) return (n / 5).round() * 5;
+  return n;
+}
+
 abstract final class Ladders {
+  /// Named const ladders so const content (the goal catalog) can attach them
+  /// directly — a map lookup is not a const expression.
+  static const pushUps = [
+    'Do 2 push-ups',
+    'Do 5 push-ups',
+    'Do 8 push-ups',
+    'Do 12 push-ups',
+    'Do 20 push-ups',
+  ];
+  static const reading = [
+    'Read one page',
+    'Read 3 pages',
+    'Read 10 minutes',
+    'Read 20 minutes',
+    'Finish a chapter',
+  ];
+
+  /// Minutes-only variant for the timer-verified catalog quest: every rung
+  /// names its session length, so Quest.effectiveTimerMinutes keeps the
+  /// countdown in lockstep with the visible prescription.
+  static const readingTimed = [
+    'Read 10 minutes',
+    'Read 20 minutes',
+    'Read 30 minutes',
+    'Read 45 minutes',
+  ];
+  static const walking = [
+    'Walk 10 minutes',
+    'Walk 20 minutes',
+    'Walk 30 minutes',
+    'Walk 45 minutes',
+    'Walk an hour',
+  ];
+  static const workoutSession = [
+    'Workout — 20 minutes',
+    'Workout — 30 minutes',
+    'Workout — 45 minutes',
+    'Workout — full hour',
+  ];
+
   /// Ready-made ladders keyed by a quest's rung-0 prescription. Rungs follow
   /// the one-variable-at-a-time, small-step rule so each next rung sits just
   /// above current skill (the flow channel / ZPD).
   static const byBaseTitle = <String, List<String>>{
-    'Do 2 push-ups': [
-      'Do 2 push-ups',
-      'Do 5 push-ups',
-      'Do 8 push-ups',
-      'Do 12 push-ups',
-      'Do 20 push-ups',
-    ],
-    'Read one page': [
-      'Read one page',
-      'Read 3 pages',
-      'Read 10 minutes',
-      'Read 20 minutes',
-      'Finish a chapter',
-    ],
-    'Walk 10 minutes': [
-      'Walk 10 minutes',
-      'Walk 20 minutes',
-      'Walk 30 minutes',
-      'Walk 45 minutes',
-      'Walk an hour',
-    ],
-    'Workout — full session': [
-      'Workout — 20 minutes',
-      'Workout — 30 minutes',
-      'Workout — 45 minutes',
-      'Workout — full hour',
-    ],
+    'Do 2 push-ups': pushUps,
+    'Read one page': reading,
+    'Walk 10 minutes': walking,
+    'Workout — full session': workoutSession,
     // the guided-workout launcher climbs through its recommended routines
     // (RESEARCH-workouts.md); the rung maps to recommendedForRung().
     'Guided workout session': [

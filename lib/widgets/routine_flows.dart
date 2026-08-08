@@ -333,7 +333,7 @@ class _NightFlowState extends State<NightFlow> {
                           label: Text(
                             '${risers.length} ready to rise',
                             style: Type.label.copyWith(
-                              fontSize: 10.5,
+                              fontSize: Type.minLabel,
                               color: Palette.streak,
                             ),
                           ),
@@ -467,7 +467,7 @@ class _NightFlowState extends State<NightFlow> {
             label: Text(
               'ADD A THREAD FOR TOMORROW',
               style: Type.label.copyWith(
-                fontSize: 10.5,
+                fontSize: Type.minLabel,
                 color: Palette.xpLight,
               ),
             ),
@@ -971,21 +971,13 @@ class _NightFlowState extends State<NightFlow> {
                                 ),
                                 decoration: facetedDecoration(
                                   cut: 7,
-                                  gradient: const LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Color(0xFFF6D9A2),
-                                      Color(0xFFEFC074),
-                                      Color(0xFFC08B4F),
-                                    ],
-                                  ),
+                                  gradient: Palette.honeyGradient,
                                 ),
                                 child: Text(
                                   'RISE',
                                   style: Type.label.copyWith(
                                     fontSize: 11,
-                                    color: const Color(0xFF3A2510),
+                                    color: Palette.onHoney,
                                   ),
                                 ),
                               ),
@@ -1641,6 +1633,10 @@ class _MorningFlowState extends State<MorningFlow> {
                   nearby: nearby,
                   allDay: allDay,
                   weather: _weather,
+                  // The chevron beside "N side quests waiting" promises a
+                  // destination — honour it: close the brief onto the board
+                  // where they actually wait.
+                  onOpen: nearby > 0 ? _finish : null,
                 ),
               ],
             ),
@@ -2245,7 +2241,7 @@ class _LedgerStatGain extends StatelessWidget {
                 Text(
                   stat.abbr,
                   style: Type.label.copyWith(
-                    fontSize: compact ? 9 : 10,
+                    fontSize: Type.minLabel,
                     letterSpacing: 1.25,
                     color: ink,
                   ),
@@ -2480,7 +2476,7 @@ class _AllDayLedgerLine extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Type.label.copyWith(
-                        fontSize: compact ? 8 : 9,
+                        fontSize: Type.minLabel,
                         letterSpacing: 1.0,
                         color: Palette.textLo,
                       ),
@@ -2502,7 +2498,7 @@ class _AllDayLedgerLine extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Type.label.copyWith(
-                          fontSize: 8.5,
+                          fontSize: Type.minLabel,
                           color: Palette.textLo,
                         ),
                       ),
@@ -2511,13 +2507,19 @@ class _AllDayLedgerLine extends StatelessWidget {
               ),
             ],
           );
-          final actions = Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _LedgerMiniAction(label: 'HELD', onTap: onHeld, warm: true),
-              const SizedBox(width: 3),
-              _LedgerMiniAction(label: 'NOT TODAY', onTap: onNotToday),
-            ],
+          // FittedBox is the escape valve for floor-size action labels on a
+          // narrow large-text phone — the pair scales down together instead
+          // of running out of the ledger line.
+          final actions = FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _LedgerMiniAction(label: 'HELD', onTap: onHeld, warm: true),
+                const SizedBox(width: 3),
+                _LedgerMiniAction(label: 'NOT TODAY', onTap: onNotToday),
+              ],
+            ),
           );
           if (bounds.maxWidth < 235) {
             return Column(
@@ -2533,7 +2535,7 @@ class _AllDayLedgerLine extends StatelessWidget {
             children: [
               Expanded(child: questCopy),
               const SizedBox(width: 5),
-              actions,
+              Flexible(child: actions),
             ],
           );
         },
@@ -2582,7 +2584,7 @@ class _LedgerMiniAction extends StatelessWidget {
           child: Text(
             label,
             style: Type.label.copyWith(
-              fontSize: 9,
+              fontSize: Type.minLabel,
               letterSpacing: 0.4,
               color: warm ? const Color(0xFFB9C08A) : Palette.textLo,
             ),
@@ -2646,7 +2648,7 @@ class _LedgerTomorrowTray extends StatelessWidget {
                         child: Text(
                           'MARK TOMORROW',
                           style: LedgerType.smallCaps.copyWith(
-                            fontSize: compact ? 9 : 10.5,
+                            fontSize: Type.minLabel,
                             letterSpacing: 1.55,
                             color: Palette.xpLight,
                             shadows: const [
@@ -2891,7 +2893,7 @@ class _LedgerChoiceRow extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Type.label.copyWith(
-                          fontSize: 9.5,
+                          fontSize: Type.minLabel,
                           color: quest.stat.color,
                         ),
                       ),
@@ -3067,7 +3069,7 @@ class _MorningLeadQuest extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: Type.label.copyWith(
-                                    fontSize: compact ? 8.5 : 10,
+                                    fontSize: Type.minLabel,
                                     color: quest.stat.color,
                                   ),
                                 ),
@@ -3159,7 +3161,7 @@ class _MorningQuestLine extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Type.label.copyWith(
-                            fontSize: compact ? 8.5 : 10,
+                            fontSize: Type.minLabel,
                             color: quest!.stat.color,
                           ),
                         ),
@@ -3287,11 +3289,17 @@ class _MorningFootnote extends StatelessWidget {
     required this.nearby,
     required this.allDay,
     required this.weather,
+    this.onOpen,
   });
 
   final int nearby;
   final int allDay;
   final EnergyWeather weather;
+
+  /// Tapping the line (and its chevron) goes to the waiting quests. The
+  /// chevron only appears when there is somewhere to go — an arrow that
+  /// leads nowhere reads as a broken control.
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -3302,7 +3310,7 @@ class _MorningFootnote extends StatelessWidget {
         '$allDay all-day line${allDay == 1 ? '' : 's'}',
     ];
     final copy = parts.isEmpty ? 'The page is yours.' : parts.join(' · ');
-    return Row(
+    final row = Row(
       children: [
         const Icon(Icons.group_outlined, size: 18, color: LedgerInk.pageGold),
         const SizedBox(width: 8),
@@ -3318,13 +3326,25 @@ class _MorningFootnote extends StatelessWidget {
             ),
           ),
         ),
-        if (nearby > 0)
+        if (onOpen != null)
           const Icon(
             Icons.chevron_right_rounded,
             size: 18,
             color: LedgerInk.pageGold,
           ),
       ],
+    );
+    if (onOpen == null) return row;
+    return Semantics(
+      button: true,
+      label: '$copy. Open the quest board.',
+      onTap: onOpen,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onOpen,
+        child: row,
+      ),
     );
   }
 }

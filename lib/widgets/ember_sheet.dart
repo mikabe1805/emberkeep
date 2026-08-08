@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../clock.dart';
+import '../content/ladders.dart';
 import '../models.dart';
 import '../tokens.dart';
 import 'domain_hint.dart';
@@ -328,6 +329,10 @@ class _EmberSheetState extends State<_EmberSheet> {
     }
 
     final timed = _timed && !_allDay;
+    // A rising quest whose title carries a number gets a real, visible
+    // progression generated from it — without one, "grows with you" only
+    // raised an invisible difficulty, which reads as a fake control.
+    final ladder = _rising ? generatedLadder(title) : null;
     return Quest(
       title: title,
       stat: _effectiveStat,
@@ -342,6 +347,7 @@ class _EmberSheetState extends State<_EmberSheet> {
       timerMinutes: timed ? _minutes : 0,
       dread: _dread,
       rising: _rising,
+      ladder: ladder,
       goalTitle: widget.config.goalTitle,
       priority: false,
       priorityDay: _isTomorrow
@@ -716,7 +722,7 @@ class _EmberSheetState extends State<_EmberSheet> {
                       step.$1,
                       textAlign: TextAlign.center,
                       style: Type.label.copyWith(
-                        fontSize: 10,
+                        fontSize: Type.minLabel,
                         color: _difficulty == step.$2
                             ? Palette.xpLight
                             : Palette.textLo,
@@ -783,7 +789,7 @@ class _EmberSheetState extends State<_EmberSheet> {
                       child: Text(
                         s.abbr,
                         style: Type.label.copyWith(
-                          fontSize: 10,
+                          fontSize: Type.minLabel,
                           color: s.color,
                         ),
                       ),
@@ -808,6 +814,34 @@ class _EmberSheetState extends State<_EmberSheet> {
             color: Palette.streak,
             onChanged: (v) => setState(() => _rising = v),
           ),
+          // The climb, spelled out. A number in the title becomes a real
+          // ladder; without one only the payout grows, and the sheet says
+          // which of the two the person is getting.
+          if (_rising)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 2, 14, 6),
+              child: ListenableBuilder(
+                listenable: _title,
+                builder: (context, _) {
+                  final ladder = generatedLadder(_title.text.trim());
+                  final numbers = ladder
+                      ?.map((rung) => RegExp(r'\d+').firstMatch(rung)?.group(0))
+                      .whereType<String>()
+                      .join(' → ');
+                  return Text(
+                    ladder == null || numbers == null || numbers.isEmpty
+                        ? 'no number in the title yet — the reward grows, the words stay'
+                        : 'climbs $numbers as you hold it',
+                    key: const ValueKey('ember-rising-preview'),
+                    style: Type.body.copyWith(
+                      fontSize: 11.5,
+                      fontStyle: FontStyle.italic,
+                      color: Palette.textLo,
+                    ),
+                  );
+                },
+              ),
+            ),
           _Toggle(
             label: 'Prove it with a timer',
             sub: 'a countdown confirms you did it',

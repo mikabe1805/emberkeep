@@ -145,7 +145,7 @@ class _StatChipState extends State<_StatChip>
                     widget.stat.abbr,
                     maxLines: 1,
                     style: Type.label.copyWith(
-                      fontSize: 10,
+                      fontSize: Type.minLabel,
                       letterSpacing: 0.7,
                       color: c.withValues(alpha: 0.82),
                     ),

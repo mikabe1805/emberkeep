@@ -152,11 +152,17 @@ void main() {
       expect(room['pinnedMoments'], isEmpty);
       expect(room['season'], isEmpty);
       expect(room['todayLit'], isTrue);
-      expect(room['weather'], 'steady');
+      // Energy weather is a private daily capacity lens (engine.dart); it
+      // travels only behind the explicit visitor-profile opt-in, unlike the
+      // fixed presence facts above.
+      expect(room['weather'], 'unknown');
       expect(room['focusKind'], 'study');
       expect(room['memories'], greaterThan(0));
       expect(room.containsKey('journal'), isFalse);
       expect(room.values.join(' '), isNot(contains('never publish this')));
+
+      state.shareSpaceProfile = true;
+      expect(roomDisplay(state)['weather'], 'steady');
     },
   );
 

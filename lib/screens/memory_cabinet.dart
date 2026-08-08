@@ -240,7 +240,7 @@ class _SectionHeading extends StatelessWidget {
             Text(
               title,
               style: Type.label.copyWith(
-                fontSize: 10.5,
+                fontSize: Type.minLabel,
                 letterSpacing: 1.45,
                 color: Palette.textHi,
               ),
@@ -305,7 +305,10 @@ class _MemoryCard extends StatelessWidget {
             children: [
               Text(
                 memory.subtitle,
-                style: Type.label.copyWith(fontSize: 9, color: memory.accent),
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: memory.accent,
+                ),
               ),
               const SizedBox(height: 3),
               Text(

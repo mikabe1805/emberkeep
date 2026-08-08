@@ -1,7 +1,12 @@
 {
   "hosting": {
     "public": "build/web",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/node_modules/**",
+      "**/.git/**",
+      "**/.DS_Store"
+    ],
     "cleanUrls": true,
     "rewrites": [{"source": "**", "destination": "/index.html"}],
     "headers": [
@@ -10,6 +15,10 @@
         "headers": [
           {"key": "Cache-Control", "value": "public, max-age=31536000, immutable"}
         ]
+      },
+      {
+        "source": "/.well-known/apple-app-site-association",
+        "headers": [{"key": "Content-Type", "value": "application/json"}]
       }
     ]
   },

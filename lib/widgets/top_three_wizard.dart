@@ -128,7 +128,7 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
                   const Spacer(),
                   Text(
                     '${_step + 1} / 2',
-                    style: Type.label.copyWith(fontSize: 10),
+                    style: Type.label.copyWith(fontSize: Type.minLabel),
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
@@ -233,7 +233,7 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
                   child: Text(
                     _adding ? 'ADDING…' : '+ ADD ONE',
                     style: Type.label.copyWith(
-                      fontSize: 10.5,
+                      fontSize: Type.minLabel,
                       color: Palette.xpLight,
                     ),
                   ),
@@ -401,7 +401,7 @@ class _ChoiceTile extends StatelessWidget {
                           : quest.difficulty <= 6
                           ? 'STEADY'
                           : 'HEAVY'}',
-                      style: Type.label.copyWith(fontSize: 10.5),
+                      style: Type.label.copyWith(fontSize: Type.minLabel),
                     ),
                   ],
                 ),

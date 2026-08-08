@@ -316,7 +316,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                     Text(
                       relativeWhen(e.note.at),
                       style: Type.label.copyWith(
-                        fontSize: 10.5,
+                        fontSize: Type.minLabel,
                         color: Palette.textLo,
                       ),
                     ),
@@ -324,7 +324,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                       Text(
                         '  ·  edited',
                         style: Type.label.copyWith(
-                          fontSize: 10.5,
+                          fontSize: Type.minLabel,
                           color: Palette.textLo,
                         ),
                       ),
@@ -348,7 +348,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                   Text(
                     _contextLine(e),
                     style: Type.label.copyWith(
-                      fontSize: 10,
+                      fontSize: Type.minLabel,
                       color: e.color.withValues(alpha: 0.8),
                     ),
                   ),
@@ -774,7 +774,10 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Text(
           'A WAY IN, IF YOU WANT ONE',
-          style: Type.label.copyWith(fontSize: 9.5, color: Palette.textLo),
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            color: Palette.textLo,
+          ),
         ),
       ),
       const SizedBox(height: 7),
@@ -852,7 +855,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                 Text(
                   'TODAY’S THREAD',
                   style: Type.label.copyWith(
-                    fontSize: 10,
+                    fontSize: Type.minLabel,
                     color: Palette.xpLight,
                     letterSpacing: 1.35,
                   ),
@@ -918,7 +921,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
               Text(
                 label,
                 style: Type.label.copyWith(
-                  fontSize: 10,
+                  fontSize: Type.minLabel,
                   color: Palette.xpLight,
                 ),
               ),
@@ -970,7 +973,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
               Text(
                 relativeWhen(e.note.at),
                 style: Type.label.copyWith(
-                  fontSize: 10.5,
+                  fontSize: Type.minLabel,
                   color: Palette.textLo,
                 ),
               ),
@@ -978,7 +981,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
                 Text(
                   '  ·  edited',
                   style: Type.label.copyWith(
-                    fontSize: 10.5,
+                    fontSize: Type.minLabel,
                     color: Palette.textLo,
                   ),
                 ),
@@ -1049,7 +1052,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
             Text(
               _contextLine(e),
               style: Type.label.copyWith(
-                fontSize: 9.5,
+                fontSize: Type.minLabel,
                 color: e.color.withValues(alpha: 0.8),
               ),
             ),
@@ -1059,7 +1062,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
             Text(
               _traceLine(e.note.trace!),
               style: Type.label.copyWith(
-                fontSize: 9.5,
+                fontSize: Type.minLabel,
                 color: Palette.xpLight.withValues(alpha: 0.78),
               ),
             ),
@@ -1136,7 +1139,11 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       label,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: Type.label.copyWith(fontSize: 9.5, color: c, letterSpacing: 0.8),
+      style: Type.label.copyWith(
+        fontSize: Type.minLabel,
+        color: c,
+        letterSpacing: 0.8,
+      ),
     ),
   );
 }

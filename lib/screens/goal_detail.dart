@@ -454,8 +454,8 @@ class GoalDetailScreen extends StatelessWidget {
                     runSpacing: 5,
                     children: [
                       _chip(q.schedule.label),
-                      if (q.timerMinutes > 0)
-                        _chip('⏱ ${q.timerMinutes}M', Palette.verify),
+                      if (q.effectiveTimerMinutes > 0)
+                        _chip('⏱ ${q.effectiveTimerMinutes}M', Palette.verify),
                       if (q.allDay) _chip('CHECKS AT NIGHT', Palette.unlock),
                       if (q.dread) _chip('COUNTS EXTRA', Palette.dread),
                     ],
@@ -556,21 +556,13 @@ class GoalDetailScreen extends StatelessWidget {
                         ),
                         decoration: facetedDecoration(
                           cut: 8,
-                          gradient: const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Color(0xFFF6D9A2),
-                              Color(0xFFEFC074),
-                              Color(0xFFC08B4F),
-                            ],
-                          ),
+                          gradient: Palette.honeyGradient,
                         ),
                         child: Text(
                           'KEEP IT',
                           style: Type.label.copyWith(
                             fontSize: 11,
-                            color: const Color(0xFF3A2510),
+                            color: Palette.onHoney,
                           ),
                         ),
                       ),

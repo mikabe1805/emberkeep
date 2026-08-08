@@ -565,15 +565,7 @@ class _NotesSheetState extends State<_NotesSheet> {
                         size: 46,
                         accent: Palette.xp,
                         glow: true,
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0xFFF6D9A2),
-                            Color(0xFFEFC074),
-                            Color(0xFFC08B4F),
-                          ],
-                        ),
+                        gradient: Palette.honeyGradient,
                         child: Icon(
                           _editing != null ? Icons.check : Icons.add,
                           size: 22,

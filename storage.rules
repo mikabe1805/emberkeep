@@ -16,6 +16,21 @@ service firebase.storage {
       return slot == 'profile' || slot == 'season';
     }
 
+    function validGeneration(generation) {
+      return generation.matches('^[A-Za-z0-9_-]{22}$');
+    }
+
+    function validWrite(ownerUid, roomCode, slot) {
+      return request.auth != null
+        && request.auth.uid == ownerUid
+        && validOwnerUid(ownerUid)
+        && validRoomCode(roomCode)
+        && validSlot(slot)
+        && request.resource.size > 0
+        && request.resource.size <= 3 * 1024 * 1024
+        && request.resource.contentType.matches('^image/(jpeg|png|webp)$');
+    }
+
     match /shared_rooms/{ownerUid}/{roomCode}/{slot} {
       // The object path is a bearer capability carried by an exact room-share
       // payload. Visitors may fetch that object, but can never enumerate a
@@ -25,20 +40,35 @@ service firebase.storage {
         && validSlot(slot);
       allow list: if false;
 
-      allow create, update: if request.auth != null
-        && request.auth.uid == ownerUid
-        && validOwnerUid(ownerUid)
-        && validRoomCode(roomCode)
-        && validSlot(slot)
-        && request.resource.size > 0
-        && request.resource.size <= 3 * 1024 * 1024
-        && request.resource.contentType.matches('^image/(jpeg|png|webp)$');
+      allow create, update: if validWrite(ownerUid, roomCode, slot);
 
       allow delete: if request.auth != null
         && request.auth.uid == ownerUid
         && validOwnerUid(ownerUid)
         && validRoomCode(roomCode)
         && validSlot(slot);
+    }
+
+    match /shared_rooms/{ownerUid}/{roomCode}/{slot}/{generation} {
+      // New revisions are immutable, unguessable paths. A replacement is
+      // uploaded here before Firestore points at it, so a failed room edit can
+      // delete the new object without touching the currently public photo.
+      allow get: if validOwnerUid(ownerUid)
+        && validRoomCode(roomCode)
+        && validSlot(slot)
+        && validGeneration(generation);
+      allow list: if false;
+
+      allow create: if validGeneration(generation)
+        && validWrite(ownerUid, roomCode, slot);
+      allow update: if false;
+
+      allow delete: if request.auth != null
+        && request.auth.uid == ownerUid
+        && validOwnerUid(ownerUid)
+        && validRoomCode(roomCode)
+        && validSlot(slot)
+        && validGeneration(generation);
     }
 
     // No other objects, including parent collection listings, are public.

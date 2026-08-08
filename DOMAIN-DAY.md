@@ -33,18 +33,28 @@ Everything user-facing routes through `lib/content/links.dart`; the old
 
 ## Universal links (before store submission)
 
-The remaining work needs identifiers that are intentionally not stored in the
-repository:
+Status, August 8 2026:
 
-1. Apple Developer portal -> Identifiers -> `com.mikabe.emberkeep`: enable
-   **Associated Domains**, then provide the Apple Team ID. This renews the
-   provisioning profile on the next Codemagic build.
-2. Add the iOS associated-domains entitlement and serve
-   `/.well-known/apple-app-site-association` using that Team ID plus the
-   bundle ID.
-3. Enroll in Play App Signing and provide its signing certificate SHA-256.
-   Then add Android's `assetlinks.json` and an intent filter scoped to
-   `/space/*`.
+1. **Done in repo** — `ios/Runner/Runner.entitlements` carries
+   `applinks:roomofdays.com` + `www`, wired via `CODE_SIGN_ENTITLEMENTS` in
+   all three Runner configurations (Team ID `D63Z4RBRT8`).
+2. **Done and live** — `web/.well-known/apple-app-site-association` scopes
+   `/space/*` and `/room/*` to `D63Z4RBRT8.com.mikabe.emberkeep`; verified to
+   ride `flutter build web` into `build/web`. On August 8, 2026, the live URL
+   returned HTTP 200 with the JSON content type.
+3. **Done in repo** — AndroidManifest has the `autoVerify` intent filter for
+   `/space` + `/room` on both hosts (inert until assetlinks verifies).
+4. **Owner, once** — Apple Developer portal -> Identifiers ->
+   `com.mikabe.emberkeep`: enable **Associated Domains**. The next Codemagic
+   build's `fetch-signing-files --create` renews the profile with it.
+5. **Owner, after first Play upload** — Play Console -> App integrity ->
+   App signing key certificate: copy the SHA-256, then add
+   `web/.well-known/assetlinks.json` for `com.mikabe.emberkeep` with it and
+   redeploy hosting. The live endpoint intentionally returns an empty `[]`
+   placeholder until that certificate is available.
+6. After Android's file goes live: verify both well-known URLs return JSON
+   (not the SPA index), then run the on-device link checks in
+   RELEASE-CHECKLIST.
 
 ## What deliberately does not change
 

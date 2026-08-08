@@ -67,14 +67,25 @@ service cloud.firestore {
             && d.season == ''));
     }
 
+    function validSharedPhotoPath(path, uid, code, slot) {
+      let parts = path.split('/');
+      return path == ''
+        // Legacy pre-release objects remain valid until their next edit.
+        || path == 'shared_rooms/' + uid + '/' + code + '/' + slot
+        || (parts.size() == 5
+          && parts[0] == 'shared_rooms'
+          && parts[1] == uid
+          && parts[2] == code
+          && parts[3] == slot
+          && parts[4].matches('^[A-Za-z0-9_-]{22}$'));
+    }
+
     function validSharedPhotos(d, code) {
       return d.keys().hasAll(['profilePhotoPath', 'seasonPhotoPath'])
-        && d.profilePhotoPath is string && d.profilePhotoPath.size() <= 160
-        && d.seasonPhotoPath is string && d.seasonPhotoPath.size() <= 160
-        && (d.profilePhotoPath == ''
-          || d.profilePhotoPath == 'shared_rooms/' + d.uid + '/' + code + '/profile')
-        && (d.seasonPhotoPath == ''
-          || d.seasonPhotoPath == 'shared_rooms/' + d.uid + '/' + code + '/season')
+        && d.profilePhotoPath is string && d.profilePhotoPath.size() <= 192
+        && d.seasonPhotoPath is string && d.seasonPhotoPath.size() <= 192
+        && validSharedPhotoPath(d.profilePhotoPath, d.uid, code, 'profile')
+        && validSharedPhotoPath(d.seasonPhotoPath, d.uid, code, 'season')
         && (d.profileVisible
           || (d.profilePhotoPath == '' && d.seasonPhotoPath == ''))
         && (d.cardOrder.hasAny(['thisSeason']) || d.seasonPhotoPath == '');
@@ -171,7 +182,7 @@ service cloud.firestore {
     // card keyed by a short bearer code. Appearance and presence are bounded;
     // optional profile cards are explicit, length-limited choices. Selected
     // pinned/season writing may enter v4. V5 may additionally carry only two
-    // deterministic Storage paths after separate photo consent; local media
+    // validated Storage object paths after separate photo consent; local media
     // names, unselected Journal content, quests, history, and account data do
     // not. Only the owner may create, replace, or delete this document.
     match /rooms/{code} {
@@ -192,9 +203,13 @@ service cloud.firestore {
       // keyed by their uid; only the room owner can see or collect it. There
       // is no chat body, task data, profile body, or public sender list.
       match /sparks/{senderId} {
+        // Mirrors circleAdds: you cannot spark your own room, so the support
+        // inbox can never be self-inflated through the raw API.
         allow create: if request.auth != null
                       && senderId == request.auth.uid
                       && exists(/databases/$(database)/documents/rooms/$(code))
+                      && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                         != request.auth.uid
                       && request.resource.data.keys().hasOnly([
                         'sender', 'kind', 'sentAt'
                       ])
