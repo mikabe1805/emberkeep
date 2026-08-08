@@ -176,15 +176,19 @@ Future<void> delete(String name) async {
 /// Wipe EVERY journal photo — called from "Start over" so a reset really
 /// erases the person's images too (they'd otherwise sit orphaned on disk
 /// forever, a storage leak and a quiet privacy breach of "reset means erase
-/// me"). Best-effort; a missing dir is already the goal.
-Future<void> clearAll() async {
+/// me"). Returns false when the app cannot confirm the directory is gone, so a
+/// destructive reset never claims that local photos were erased when they may
+/// still remain on disk. A missing directory is already success.
+Future<bool> clearAll() async {
   try {
     final base = await _docsPath();
-    if (base == null) return;
+    if (base == null) return false;
     final dir = Directory('$base/$_dir');
     if (await dir.exists()) await dir.delete(recursive: true);
-  } catch (_) {
-    /* best effort */
+    return !await dir.exists();
+  } catch (error) {
+    debugPrint('Journal media clear failed: $error');
+    return false;
   }
 }
 

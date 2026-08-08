@@ -25,8 +25,10 @@ if (releaseTaskRequested && !keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.mikabe.emberkeep"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Pin the exact API/NDK combination verified for the store candidate.
+    // Updating Flutter must not silently change the published native contract.
+    compileSdk = 36
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -38,8 +40,8 @@ android {
         applicationId = "com.mikabe.emberkeep"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 24
+        targetSdk = 36
         multiDexEnabled = true
         versionCode = flutter.versionCode
         versionName = flutter.versionName

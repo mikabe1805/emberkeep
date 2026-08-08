@@ -1709,8 +1709,9 @@ class MePage extends StatelessWidget {
   /// Restores a pasted backup; returns false on invalid data.
   final Future<bool> Function(String raw) onImport;
 
-  /// Erases everything and starts a fresh keep (guarded by a dialog).
-  final VoidCallback onReset;
+  /// Erases everything and starts a fresh keep (guarded by a dialog). Returns
+  /// a user-facing error when local erasure could not be confirmed.
+  final Future<String?> Function() onReset;
 
   /// Re-applies local reminders after a settings change (native-only).
   final Future<void> Function() onNotifyChanged;
@@ -3001,95 +3002,194 @@ class MePage extends StatelessWidget {
 
   void _confirmReset(BuildContext context) {
     Sfx.instance.play('tick');
-    showDialog(
+    showDialog<void>(
       context: context,
+      barrierDismissible: false,
       barrierColor: const Color(0xCC140C06),
-      builder: (ctx) => Dialog(
+      builder: (_) => _ResetDialog(
+        level: state.level,
+        totalXp: state.totalXp,
+        action: onReset,
+      ),
+    );
+  }
+}
+
+class _ResetDialog extends StatefulWidget {
+  const _ResetDialog({
+    required this.level,
+    required this.totalXp,
+    required this.action,
+  });
+
+  final int level;
+  final int totalXp;
+  final Future<String?> Function() action;
+
+  @override
+  State<_ResetDialog> createState() => _ResetDialogState();
+}
+
+class _ResetDialogState extends State<_ResetDialog> {
+  bool _busy = false;
+  String? _error;
+
+  Future<void> _erase() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    Sfx.instance.play('boing');
+    final error = await widget.action();
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _busy = false;
+        _error = error;
+      });
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    messenger.showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        content: Text(
+          'Everything on this device was erased. Your blank room is ready.',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_busy,
+      child: Dialog(
         backgroundColor: Colors.transparent,
-        child: GlassPanel(
-          tint: const Color(0xF22A211D),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.warning_amber_rounded,
-                size: 26,
-                color: Palette.streak,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Start completely over?',
-                style: Type.display.copyWith(fontSize: 18),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Level ${state.level}, ${state.totalXp} XP, every goal and '
-                'trophy — gone for good. Your cloud save and shared space go '
-                'too when Room of Days can confirm the server. Guest profiles are deleted; a linked sign-in stays '
-                'until you use Delete account. Copy a backup first if unsure.',
-                textAlign: TextAlign.center,
-                style: Type.body.copyWith(
-                  fontSize: 13.5,
-                  color: Palette.textMid,
+        insetPadding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          child: GlassPanel(
+            tint: const Color(0xF22A211D),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  size: 26,
+                  color: Palette.streak,
                 ),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.of(ctx).pop(),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 9,
-                      ),
-                      decoration: facetedDecoration(
-                        cut: 8,
-                        gradient: Palette.honeyGradient,
-                      ),
-                      child: Text(
-                        'KEEP MY PROGRESS',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: Palette.onHoney,
-                        ),
-                      ),
-                    ),
+                const SizedBox(height: 10),
+                Text(
+                  'Start completely over?',
+                  textAlign: TextAlign.center,
+                  style: Type.display.copyWith(fontSize: 18),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Level ${widget.level}, ${widget.totalXp} XP, every goal and '
+                  'trophy — gone for good. Journal photos and the local usage '
+                  'log go too. The old cloud save and shared space are removed '
+                  'once Room of Days can confirm the server. A linked sign-in '
+                  'stays and begins again with a blank cloud save; use Delete '
+                  'account to remove the sign-in too. Copy a backup first if '
+                  'unsure.',
+                  textAlign: TextAlign.center,
+                  style: Type.body.copyWith(
+                    fontSize: 13.5,
+                    color: Palette.textMid,
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(ctx).pop();
-                      Sfx.instance.play('boing');
-                      onReset();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 9,
-                      ),
-                      decoration: facetedDecoration(
-                        cut: 8,
-                        color: Colors.transparent,
-                        borderColor: const Color(
-                          0xFFE89090,
-                        ).withValues(alpha: 0.6),
-                      ),
-                      child: Text(
-                        'ERASE EVERYTHING',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          color: const Color(0xFFE89090),
-                        ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: Type.body.copyWith(
+                        fontSize: 12.5,
+                        color: Palette.danger,
                       ),
                     ),
                   ),
                 ],
-              ),
-            ],
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    Semantics(
+                      button: true,
+                      enabled: !_busy,
+                      label: 'Keep my progress',
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _busy ? null : () => Navigator.of(context).pop(),
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 48),
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          decoration: facetedDecoration(
+                            cut: 8,
+                            gradient: Palette.honeyGradient,
+                          ),
+                          child: Text(
+                            'KEEP MY PROGRESS',
+                            style: Type.label.copyWith(
+                              fontSize: 11,
+                              color: Palette.onHoney,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Semantics(
+                      button: true,
+                      enabled: !_busy,
+                      label: 'Erase everything',
+                      excludeSemantics: true,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _busy ? null : _erase,
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 48),
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          decoration: facetedDecoration(
+                            cut: 8,
+                            color: Colors.transparent,
+                            borderColor: const Color(
+                              0xFFE89090,
+                            ).withValues(alpha: 0.6),
+                          ),
+                          child: _busy
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFFE89090),
+                                  ),
+                                )
+                              : Text(
+                                  'ERASE EVERYTHING',
+                                  style: Type.label.copyWith(
+                                    fontSize: 11,
+                                    color: const Color(0xFFE89090),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -5800,7 +5900,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
       const SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: Palette.card,
-        content: Text('Account and Room of Days data deleted.'),
+        content: Text('Account deleted. Room of Days is now device-only.'),
       ),
     );
   }

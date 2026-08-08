@@ -66,15 +66,18 @@
 
   <h2>Deletion and control</h2>
   <p>You can export or reset your data from <em>Me → Your save is yours</em>.
-    A reset removes on-device data, the cloud save, any shared space, and the
-    anonymous Firebase identity used for guest backup; Room of Days then starts a
-    fresh blank guest profile. If the network interrupts that cleanup, the app
-    keeps the old guest credential and opaque room code only long enough to
-    retry, rather than leaving shared data behind with no owner able to remove
-    it. Signed-in users keep their login after a normal
-    reset and can permanently delete that account from
-    <em>Me → Your account → Delete account</em>. See the
-    <a href="/delete-account">account deletion guide</a>.</p>
+    A reset removes prior on-device data, journal photos, the local usage log,
+    any shared space, and the old cloud save. A signed-in account stays signed
+    in and receives a fresh blank cloud save; a guest backup deletes its old
+    anonymous Firebase identity before starting a fresh blank guest. If the
+    network interrupts cleanup, the app keeps the old guest credential and
+    opaque room code only long enough to retry, rather than leaving shared data
+    behind with no owner able to remove it. Signed-in users can permanently
+    delete their account from <em>Me → Your account → Delete account</em>.
+    Account deletion turns cloud backup off and leaves the app device-only. If
+    you cannot access the app, the
+    <a href="/delete-account">account deletion guide</a> provides a direct
+    email request path.</p>
 
   <h2>Permissions</h2>
   <p>Photo and camera access is used only when you choose to attach media to a

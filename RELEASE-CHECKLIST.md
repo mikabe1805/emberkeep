@@ -10,7 +10,9 @@ not replace a signed device build or store-console review.
 - [x] Android, iOS, and web Firebase apps are registered and configured.
 - [x] Core experience works without account or network.
 - [x] Cloud backup is explicit opt-in and account deletion exists in-app.
-- [x] Privacy and deletion pages are live and linked from Me.
+- [x] Privacy and deletion pages are live and linked from Me. The deletion page
+  also accepts a direct verified request without requiring the app, and the
+  owner cleanup procedure is recorded in `ACCOUNT-DELETION-RUNBOOK.md`.
 - [x] The v1 shared-room surface publishes generated appearance and broad
   presence fields only. Display names, goals, My Space and Journal writing, and
   photos stay out of the visitor payload.
@@ -32,6 +34,9 @@ not replace a signed device build or store-console review.
   `store-assets/screenshots/`; every frame was opened and visually accepted.
 - [x] Android 13+ themed icons use a dedicated monochrome Room of Days mark.
 - [x] Release Gradle tasks cannot fall back to debug signing.
+- [x] Android API/NDK versions and Codemagic's Flutter, Xcode, and CocoaPods
+  versions are pinned; CI verifies the signed IPA's identity, version, privacy
+  manifest, signature, and associated-domain entitlement.
 - [x] No ads, analytics, subscriptions, in-app purchases, or paywalls.
 - [x] Store copy no longer mentions the retired character/avatar concept.
 
@@ -47,15 +52,15 @@ not replace a signed device build or store-console review.
 
 - [x] `dart format --output=none --set-exit-if-changed lib test tool`
 - [x] `flutter analyze`
-- [x] `flutter test`
+- [x] `flutter test` (326 tests)
 - [x] `flutter build web --release`
 - [x] Render and inspect the screenshot-golden suite; all 21 captures pass a
   second run without updating baselines, confirming deterministic output.
-- [x] Build signed Android App Bundle and APK candidates for `1.0.0+8` on
+- [x] Build signed Android App Bundle and APK candidates for `1.0.0+9` on
   August 8, 2026. The AAB SHA-256 is
-  `09DBC26EA3C33543F50C7AC3CCC1665B15AF1C1F6D6069EDCB820F11407E7DFA`;
+  `3FF121450EAF4F39645935292047DE6D7407EA598F6A1E91403D4481F7002A32`;
   the APK SHA-256 is
-  `0A13E58BEEF8E75631C3B8BA8CCC02BE25E89224BE44AE811E1BA174C740A0CE`.
+  `C1F61283E171383688B9FD618453CCAAF7E7DA6D37ED149B8558881B89C6D018`.
   Both match upload certificate SHA-256
   `4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14`.
   Stable copies and install guidance are in `../release-artifacts/`.
@@ -78,7 +83,7 @@ not replace a signed device build or store-console review.
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.
 - [ ] Confirm the submitted version/build number exceeds every prior upload.
-- [x] Repository candidate version is `1.0.0+8`; Codemagic still derives the
+- [x] Repository candidate version is `1.0.0+9`; Codemagic still derives the
   next iOS build number from App Store Connect.
 - [x] Deploy the checked-in Firestore rules before testing Share, Visit, or
   Circle; current rules compiled and were released to `emberkeep-5b33b` on
@@ -87,7 +92,9 @@ not replace a signed device build or store-console review.
   generated-only read, anti-enumeration, visitor-writing and photo-path
   rejection, anti-downgrade, Circle/Spark delivery and owner-only reads,
   duplicate support rejection, self-Spark/self-Circle rejection, and cleanup
-  all passed on August 8, 2026. Storage was intentionally excluded because it
+  all passed again on Build 9 on August 8, 2026. Cleanup now attempts every
+  temporary resource and identity even if an earlier deletion fails; this run
+  reported `Cleanup complete`. Storage was intentionally excluded because it
   is not a v1 runtime dependency.
   Re-run with
   `dart run tool/production_social_smoke.dart --confirm-production --firestore-only`;
@@ -114,6 +121,8 @@ not replace a signed device build or store-console review.
 - [x] Route `support@roomofdays.com` to a monitored inbox (owner confirmed).
 - [ ] Complete Apple App Privacy and Google Play Data safety questionnaires from
   `../STORE-LISTING.md`.
+- [ ] Enter `https://roomofdays.com/delete-account` as Google Play's account
+  deletion URL and verify the public request workflow from the console.
 - [ ] Complete Apple’s current age-rating questionnaire.
 - [x] Create the 1024×500 Google Play feature graphic.
 - [x] Capture and inspect final production screenshots for both store-specific
@@ -122,8 +131,8 @@ not replace a signed device build or store-console review.
 - [ ] Supply review-only credentials if a reviewer asks to test an existing
   cross-device account.
 - [x] Verify hosted privacy and deletion pages immediately before submit; both
-  returned HTTP 200 on August 8, 2026. The deployed privacy page exactly matches
-  the local v1 local-photo policy by SHA-256.
+  returned HTTP 200 on August 8, 2026. The deployed privacy and deletion pages
+  exactly match the checked-in files by SHA-256.
 - [x] Verify `https://roomofdays.com/support` immediately before submit; it
   returned HTTP 200 over the public HTTPS domain on August 8, 2026.
 - [ ] Submit manually and monitor processing, pre-launch reports, and review

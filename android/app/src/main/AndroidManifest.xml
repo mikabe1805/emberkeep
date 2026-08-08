@@ -37,10 +37,22 @@
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https"/>
-                <data android:host="roomofdays.com"/>
-                <data android:pathPrefix="/space"/>
-                <data android:pathPrefix="/room"/>
+                <data
+                    android:scheme="https"
+                    android:host="roomofdays.com"
+                    android:path="/space"/>
+                <data
+                    android:scheme="https"
+                    android:host="roomofdays.com"
+                    android:pathPrefix="/space/"/>
+                <data
+                    android:scheme="https"
+                    android:host="roomofdays.com"
+                    android:path="/room"/>
+                <data
+                    android:scheme="https"
+                    android:host="roomofdays.com"
+                    android:pathPrefix="/room/"/>
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

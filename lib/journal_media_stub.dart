@@ -23,7 +23,7 @@ Future<JournalMediaUploadData> readForUpload(String name) async {
 Future<void> delete(String name) async {}
 
 /// No photos on web, so nothing to wipe (mirrors the native clearAll).
-Future<void> clearAll() async {}
+Future<bool> clearAll() async => true;
 
 Widget image(String name, {double maxHeight = 340}) {
   final compact = maxHeight < 104;

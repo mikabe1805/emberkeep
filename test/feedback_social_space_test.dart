@@ -538,6 +538,22 @@ void main() {
       roomCodeFromUri(Uri.parse('https://example.com/?space=BAD10I')),
       isNull,
     );
+    expect(
+      uriNamesSharedSpace(Uri.parse('https://roomofdays.com/spacesomething')),
+      isFalse,
+    );
+    expect(
+      uriNamesSharedSpace(Uri.parse('https://roomofdays.com/roommate')),
+      isFalse,
+    );
+    expect(
+      uriNamesSharedSpace(Uri.parse('https://roomofdays.com/space')),
+      isTrue,
+    );
+    expect(
+      uriNamesSharedSpace(Uri.parse('https://roomofdays.com/space/ABC234')),
+      isTrue,
+    );
   });
 
   test('room-link inbox preserves canonical and legacy links in order', () {

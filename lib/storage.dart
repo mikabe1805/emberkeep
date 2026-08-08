@@ -98,12 +98,13 @@ abstract final class Storage {
     }
   }
 
-  static Future<void> clear() async {
+  static Future<bool> clear() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_key);
+      return await prefs.remove(_key);
     } catch (e) {
       debugPrint('Storage.clear failed: $e');
+      return false;
     }
   }
 
@@ -165,12 +166,13 @@ abstract final class Storage {
   }
 
   /// Clears a quarantined corrupt save once the user has dealt with it.
-  static Future<void> clearCorruptBackup() async {
+  static Future<bool> clearCorruptBackup() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_corruptKey);
-    } catch (_) {
-      /* best effort */
+      return await prefs.remove(_corruptKey);
+    } catch (e) {
+      debugPrint('Storage.clearCorruptBackup failed: $e');
+      return false;
     }
   }
 
@@ -341,13 +343,14 @@ abstract final class Storage {
   }
 
   /// Wipes the usage log (called on "start over" — reset means erase me).
-  static Future<void> clearUsage() async {
+  static Future<bool> clearUsage() async {
     _usage = null;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_usageKey);
-    } catch (_) {
-      /* best effort */
+      return await prefs.remove(_usageKey);
+    } catch (e) {
+      debugPrint('Storage.clearUsage failed: $e');
+      return false;
     }
   }
 }

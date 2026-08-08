@@ -92,12 +92,32 @@ reason to add more features.
 18. Closed Android release-lint findings that could outlive a successful build:
     upgraded the desugaring runtime required by API 36, removed a duplicate old
     splash resource, and added a dedicated Android themed-icon mask.
+19. Made account deletion actually leave Room of Days device-only instead of
+    silently creating a fresh cloud identity. The durable cloud preference is
+    cleared before the credential is deleted, and a failed credential deletion
+    restores that preference.
+20. Made Start over wait for journal-photo, usage-log, corrupt-backup, and blank
+    local-save confirmation. Its dialog now stays open while erasure runs,
+    reports a failure without claiming success, remains usable at large text,
+    and describes the signed-in blank-cloud-save behavior accurately.
+21. Added a direct off-app account-deletion request to the public deletion page
+    and an owner runbook that covers identity verification, Firestore
+    subcollections, dormant Storage data, Auth deletion, and final verification.
+22. Narrowed Android App Links to exact `/space` and `/room` routes plus their
+    slash-delimited children, so unrelated paths such as `/roommate` are no
+    longer claimed.
+23. Pinned the verified Android APIs/NDK and Codemagic Flutter/Xcode/CocoaPods
+    toolchain. CI now inspects the signed IPA itself for the bundle ID, version,
+    privacy manifest, signature, and associated-domain entitlement.
+24. Made production-smoke cleanup attempt every temporary receipt, room, and
+    Firebase identity even after an earlier cleanup error, with a regression
+    test proving later cleanup actions still run.
 
 ## Release gates, in order
 
-1. **Use the clean candidate snapshot.** Track the release-critical untracked
-   files (`Runner.entitlements`, the AASA file, and Android ProGuard rules) and
-   exclude the unrelated `student_notebook/` and August 4 notebook probes.
+1. **Use the clean candidate snapshot.** The release-critical native and link
+   files are tracked. Keep excluding the unrelated `student_notebook/` and
+   August 4 notebook probes from release commits.
 2. **Build and hold the real artifacts.** Upload/build iOS with Xcode 26 and the
    iOS 26 SDK, then confirm the release version/build numbers are new. The
    Android bundle is already release-signed, but Play App Signing still has to
@@ -127,11 +147,11 @@ reason to add more features.
 
 - Formatting check: passed.
 - Flutter analysis: passed.
-- Full Flutter test suite: 323 tests passed.
+- Full Flutter test suite: 326 tests passed.
 - Release web build: passed, including the WebAssembly dry run.
 - Screenshot suite: all 21 captures passed, were visually reviewed, and passed
   again without updating baselines.
-- Focused About/privacy tests after the final copy changes: 10 passed.
+- Focused release, privacy, account, reset, and cleanup tests: 47 passed.
 - Local AASA content exactly matches the live HTTPS response, including exact
   and wildcard forms for both `/space` and legacy `/room` links.
 - Current Firestore rules compiled and deployed to production on August 8.
@@ -139,16 +159,16 @@ reason to add more features.
   publication, exact reads, anti-enumeration, visitor-writing and photo-path
   rejection, anti-downgrade, owner-only Circle/Spark receipts, duplicate
   rejection, self-interaction rejection, and complete temporary-data cleanup.
-- Signed Android AAB and APK candidates for `1.0.0+8` passed clean release
+- Signed Android AAB and APK candidates for `1.0.0+9` passed clean release
   builds. Newer native audio/share plugin releases were rejected after their
   AGP 9 Built-in Kotlin paths failed real release compilation; the candidate
   pins the last proven versions instead of carrying a build-system workaround.
   The AAB SHA-256 is
-  `09DBC26EA3C33543F50C7AC3CCC1665B15AF1C1F6D6069EDCB820F11407E7DFA`;
+  `3FF121450EAF4F39645935292047DE6D7407EA598F6A1E91403D4481F7002A32`;
   the APK SHA-256 is
-  `0A13E58BEEF8E75631C3B8BA8CCC02BE25E89224BE44AE811E1BA174C740A0CE`.
+  `C1F61283E171383688B9FD618453CCAAF7E7DA6D37ED149B8558881B89C6D018`.
   Both carry the expected upload certificate, and the packaged APK reports
-  version code 8, version name 1.0.0, minimum API 24, and target API 36.
+  version code 9, version name 1.0.0, minimum API 24, and target API 36.
   Android release lint passes; bundletool validates the AAB and reports
   `PAGE_ALIGNMENT_16K`; the APK passes 16 KiB zip alignment; and all twelve
   packaged native libraries meet the 16 KiB LOAD-alignment requirement.
@@ -157,11 +177,16 @@ reason to add more features.
   export, and match the five-state Quests → reward → My Space → room preview →
   Journal story documented in `store-assets/screenshots/README.md`.
 - The matching web build was deployed to Firebase Hosting. Live
-  `main.dart.js`, the local-only privacy page, and the AASA file each matched
-  their verified local build artifact byte-for-byte by SHA-256; privacy,
-  deletion, support, and AASA all returned HTTP 200. The deployed
-  `main.dart.js` SHA-256 is
-  `334DE66EE3D7D41090FE54E191C6A4BF3DC1E6166E45B29766F6708C7540078E`.
+  `main.dart.js`, privacy, deletion, support, and AASA responses each matched
+  their checked-in or built counterpart byte-for-byte by SHA-256 and returned
+  HTTP 200. The deployed `main.dart.js` SHA-256 is
+  `DDB566D16C0BFF50FCA56ED65EA12804E05D0C88B0B05722AE08292343FA5528`;
+  privacy is
+  `32905025D4C673CDCEBD37CFDAF62BE01798BC2F5A4FE1C90ED724193834372A`;
+  deletion is
+  `250AA4DD60F627A200408A070854B8FF6BFE224678D9CFB148A6625A2628B29D`;
+  and AASA is
+  `9810E971FB67DB38FCFAD46669F7652C3727BDEE86C6C1E2EBC805B2F9183142`.
 
 ## Evidence limits
 

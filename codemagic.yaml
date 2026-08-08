@@ -36,9 +36,10 @@ workflows:
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name
     environment:
-      flutter: stable
-      xcode: latest
-      cocoapods: default
+      # Release builds are reproducible instead of moving with channel aliases.
+      flutter: 3.44.2
+      xcode: 26.4
+      cocoapods: 1.16.2
       groups:
         - emberkeep_signing # ← MUST contain the secret var CERTIFICATE_PRIVATE_KEY
       vars:
@@ -48,7 +49,10 @@ workflows:
     scripts:
       - name: Flutter packages
         script: |
+          flutter config --enable-swift-package-manager
           flutter pub get
+          jq -e '.swift_package_manager_enabled.ios == true' \
+            .flutter-plugins-dependencies
       - name: Analyze and test (a broken commit must not ride into TestFlight)
         script: |
           flutter analyze
@@ -79,6 +83,31 @@ workflows:
           flutter build ipa --release \
             --build-number=$((LATEST + 1)) \
             --export-options-plist="$HOME/export_options.plist"
+      - name: Verify signed IPA contents
+        script: |
+          set -euo pipefail
+          IPA=$(find build/ios/ipa -maxdepth 1 -name '*.ipa' -type f -print -quit)
+          test -n "$IPA"
+          VERIFY_DIR=$(mktemp -d)
+          trap 'rm -rf "$VERIFY_DIR"' EXIT
+          ditto -x -k "$IPA" "$VERIFY_DIR"
+          APP=$(find "$VERIFY_DIR/Payload" -maxdepth 1 -name '*.app' -type d -print -quit)
+          test -n "$APP"
+
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = "$BUNDLE_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")" = "1.0.0"
+          BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")
+          test "$BUILD_NUMBER" -gt 0
+
+          test -f "$APP/PrivacyInfo.xcprivacy"
+          plutil -lint "$APP/PrivacyInfo.xcprivacy"
+          grep -q 'NSPrivacyCollectedDataTypeOtherUserContent' "$APP/PrivacyInfo.xcprivacy"
+          grep -q 'NSPrivacyCollectedDataTypeFitness' "$APP/PrivacyInfo.xcprivacy"
+
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          codesign -d --entitlements :- "$APP" > "$VERIFY_DIR/entitlements.plist" 2>/dev/null
+          plutil -lint "$VERIFY_DIR/entitlements.plist"
+          grep -q 'applinks:roomofdays.com' "$VERIFY_DIR/entitlements.plist"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log

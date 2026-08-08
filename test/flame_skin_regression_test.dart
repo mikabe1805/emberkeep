@@ -27,7 +27,7 @@ Widget _mePage(GameState state) => MaterialApp(
       onAddQuest: (_) => true,
       onExport: () async => true,
       onImport: (_) async => true,
-      onReset: () {},
+      onReset: () async => null,
       onNotifyChanged: () async {},
       onEnableCloud: () async => null,
       onLinkAccount: (_, _) async => null,

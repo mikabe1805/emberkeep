@@ -8,7 +8,7 @@
 // photos do not follow a cloud restore — surfaced honestly in the editor.
 //
 // Exposes: pick(bool fromCamera) -> relative filename, delete(name),
-// clearAll() (wipe every journal photo, for "Start over"),
+// clearAll() -> bool (wipe every journal photo, for "Start over"),
 // image(name, {maxHeight}) -> a Widget rendering the stored photo, and
 // readForUpload(name) -> transient bytes for an explicit publish action.
 export 'journal_media_upload.dart';

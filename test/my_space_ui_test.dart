@@ -18,10 +18,13 @@ Future<RoomPublishResult> _publishRoomSuccessfully(
   required String code,
 }) async => RoomPublishResult.success(code);
 
+Future<String?> _resetSuccessfully() async => null;
+
 Widget _mePage(
   GameState state,
   VoidCallback onPersist, {
   SpaceRoomPublisher onPublishRoom = _publishRoomSuccessfully,
+  Future<String?> Function() onReset = _resetSuccessfully,
   bool visitorPhotoSharingEnabled = false,
   bool visitorProfileSharingEnabled = true,
 }) => Scaffold(
@@ -33,7 +36,7 @@ Widget _mePage(
     onAddQuest: (_) => true,
     onExport: () async => true,
     onImport: (_) async => true,
-    onReset: () {},
+    onReset: onReset,
     onNotifyChanged: () async {},
     onEnableCloud: () async => null,
     onLinkAccount: (_, _) async => null,
@@ -50,6 +53,7 @@ Future<void> _pumpMe(
   GameState state,
   VoidCallback onPersist, {
   SpaceRoomPublisher onPublishRoom = _publishRoomSuccessfully,
+  Future<String?> Function() onReset = _resetSuccessfully,
   bool visitorPhotoSharingEnabled = false,
   bool visitorProfileSharingEnabled = true,
 }) async {
@@ -65,6 +69,7 @@ Future<void> _pumpMe(
         state,
         onPersist,
         onPublishRoom: onPublishRoom,
+        onReset: onReset,
         visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
         visitorProfileSharingEnabled: visitorProfileSharingEnabled,
       ),
@@ -624,4 +629,62 @@ void main() {
     );
     expect(find.textContaining('previous version'), findsOneWidget);
   });
+
+  testWidgets(
+    'start over waits for confirmed erasure and keeps failures open',
+    (tester) async {
+      final state = GameState()..reduceMotion = true;
+      final firstAttempt = Completer<String?>();
+      var attempts = 0;
+
+      await _pumpMe(
+        tester,
+        state,
+        () {},
+        onReset: () {
+          attempts++;
+          return attempts == 1 ? firstAttempt.future : Future.value(null);
+        },
+      );
+
+      final startOver = find.text('start over');
+      await tester.scrollUntilVisible(
+        startOver,
+        420,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(startOver);
+      await tester.pumpAndSettle();
+      await tester.tap(startOver);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('ERASE EVERYTHING'));
+      await tester.pump();
+
+      expect(find.text('Start completely over?'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(attempts, 1);
+
+      firstAttempt.complete('Local photo erasure could not be confirmed.');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Start completely over?'), findsOneWidget);
+      expect(
+        find.text('Local photo erasure could not be confirmed.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('ERASE EVERYTHING'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Start completely over?'), findsNothing);
+      expect(
+        find.text(
+          'Everything on this device was erased. Your blank room is ready.',
+        ),
+        findsOneWidget,
+      );
+      expect(attempts, 2);
+    },
+  );
 }

@@ -478,8 +478,11 @@ class CloudSync extends ChangeNotifier {
   }
 
   /// Permanently removes the signed-in Firebase account and its cloud data.
-  /// The on-device keep is intentionally left intact; the caller detaches its
-  /// share code and persists it under the fresh anonymous session.
+  ///
+  /// Success deliberately leaves Firebase signed out and cloud backup off. The
+  /// caller replaces the on-device keep with a fresh local one. A later Share,
+  /// Spark, or explicit backup action can create a new anonymous session, but
+  /// account deletion itself must not silently opt the person back into cloud.
   Future<String?> deleteAccount(String password, {String? roomCode}) =>
       _runAuthChange(() => _deleteAccount(password, roomCode: roomCode));
 
@@ -495,6 +498,8 @@ class CloudSync extends ChangeNotifier {
           'deleting the account again.';
     }
     cancelPending();
+    SharedPreferences? prefs;
+    var backupPreferenceDisabled = false;
     try {
       final credential = EmailAuthProvider.credential(
         email: email,
@@ -510,18 +515,35 @@ class CloudSync extends ChangeNotifier {
         }
       }
       await _doc.delete();
+      // Clear the durable opt-in before deleting the only credential. If the
+      // preference store cannot acknowledge this write, stop while the account
+      // still exists so a later launch cannot silently create a new backed-up
+      // anonymous identity after an apparently successful deletion.
+      prefs = await SharedPreferences.getInstance();
+      backupPreferenceDisabled = await prefs.setBool(_cloudEnabledKey, false);
+      if (!backupPreferenceDisabled) {
+        return 'Couldn\u2019t turn off cloud backup on this device. Your account '
+            'has not been deleted; try again.';
+      }
       await user.delete();
-      final fresh = await FirebaseAuth.instance.signInAnonymously();
-      _uid = fresh.user?.uid;
+      _uid = null;
       _savePushHeld = false;
+      optedIn = false;
       _refreshAccountEmail();
-      ready = _uid != null;
-      status = ready ? _statusForUser() : 'off';
+      ready = false;
+      status = 'off \u00b7 device only';
       notifyListeners();
       return null;
     } on FirebaseAuthException catch (e) {
+      if (backupPreferenceDisabled) {
+        await prefs?.setBool(_cloudEnabledKey, true);
+      }
       return _friendlyAuth(e);
     } catch (e) {
+      if (backupPreferenceDisabled &&
+          FirebaseAuth.instance.currentUser != null) {
+        await prefs?.setBool(_cloudEnabledKey, true);
+      }
       debugPrint('deleteAccount failed: $e');
       return 'Couldn’t finish deleting the account. Some cloud data may '
           'already be gone — retry, or open Delete help in Me.';

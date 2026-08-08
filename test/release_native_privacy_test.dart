@@ -93,6 +93,7 @@ void main() {
     final hosting = _source('firebase.json');
     final links = _source('lib/content/links.dart');
     final support = _source('web/support.html');
+    final deletion = _source('web/delete-account.html');
 
     expect(hosting, contains('"cleanUrls": true'));
     expect(links, contains("defaultValue: 'https://roomofdays.com'"));
@@ -101,6 +102,14 @@ void main() {
     expect(links, contains("'\$_base/support'"));
     expect(support, contains('support@roomofdays.com'));
     expect(support, contains('https://roomofdays.com/support'));
+    expect(
+      deletion,
+      contains(
+        'mailto:support@roomofdays.com?subject=Room%20of%20Days%20account%20deletion%20request',
+      ),
+    );
+    expect(deletion, contains('Request deletion without the app'));
+    expect(deletion, contains('within seven days of verification'));
   });
 
   test('native app-link runtime keeps room URLs scoped and queue-backed', () {
@@ -119,6 +128,12 @@ void main() {
     expect(app, contains('initialRoute: Navigator.defaultRouteName'));
     expect(shell, contains('_drainPendingRoomLinks'));
     expect(manifest, contains('android:host="roomofdays.com"'));
+    expect(manifest, contains('android:path="/space"'));
+    expect(manifest, contains('android:pathPrefix="/space/"'));
+    expect(manifest, contains('android:path="/room"'));
+    expect(manifest, contains('android:pathPrefix="/room/"'));
+    expect(manifest, isNot(contains('android:pathPrefix="/space"')));
+    expect(manifest, isNot(contains('android:pathPrefix="/room"')));
     expect(entitlements, contains('applinks:roomofdays.com'));
     expect(manifest, isNot(contains('www.roomofdays.com')));
     expect(entitlements, isNot(contains('www.roomofdays.com')));
@@ -135,8 +150,13 @@ void main() {
       final appDelegate = _source('ios/Runner/AppDelegate.swift');
       final privacyManifest = _source('ios/Runner/PrivacyInfo.xcprivacy');
 
-      expect(workflow, contains('cocoapods: default'));
+      expect(workflow, contains('flutter: 3.44.2'));
+      expect(workflow, contains('xcode: 26.4'));
+      expect(workflow, contains('cocoapods: 1.16.2'));
       expect(workflow, isNot(contains('PURE SPM')));
+      expect(workflow, contains('Verify signed IPA contents'));
+      expect(workflow, contains('codesign --verify --deep --strict'));
+      expect(workflow, contains('PrivacyInfo.xcprivacy'));
       expect(appDelegate, contains('import UserNotifications'));
       expect(
         appDelegate,
@@ -150,10 +170,60 @@ void main() {
     },
   );
 
+  test(
+    'account deletion exits cloud and reset durably orders local erasure',
+    () {
+      final cloud = _source('lib/cloud.dart');
+      final shell = _source('lib/screens/shell.dart');
+
+      final deleteStart = cloud.indexOf(
+        'Future<String?> _deleteAccount(String password',
+      );
+      final deleteEnd = cloud.indexOf(
+        'static String _friendlyAuth',
+        deleteStart,
+      );
+      expect(deleteStart, greaterThanOrEqualTo(0));
+      expect(deleteEnd, greaterThan(deleteStart));
+      final deletion = cloud.substring(deleteStart, deleteEnd);
+      expect(deletion, contains('setBool(_cloudEnabledKey, false)'));
+      expect(deletion, contains('_uid = null'));
+      expect(deletion, contains('optedIn = false'));
+      expect(deletion, contains('ready = false'));
+      expect(deletion, isNot(contains('signInAnonymously')));
+
+      final resetStart = shell.indexOf('Future<String?> _reset() async');
+      final resetEnd = shell.indexOf(
+        'Future<void> _finishResetRemoteCleanup',
+        resetStart,
+      );
+      expect(resetStart, greaterThanOrEqualTo(0));
+      expect(resetEnd, greaterThan(resetStart));
+      final reset = shell.substring(resetStart, resetEnd);
+      expect(reset, contains('if (!await media.clearAll())'));
+      expect(reset, contains('Storage.clearUsage()'));
+      expect(reset, contains('Storage.clearCorruptBackup()'));
+      expect(reset, contains('_saveTail = _saveTail.then'));
+      expect(reset, contains('if (!await _saveTail)'));
+      expect(
+        reset.indexOf('if (!await _saveTail)'),
+        lessThan(reset.indexOf('_finishResetRemoteCleanup(oldRoomCode)')),
+      );
+    },
+  );
+
   test('Android release manifest permits the shipped cloud experience', () {
     final manifest = _source('android/app/src/main/AndroidManifest.xml');
+    final gradle = _source('android/app/build.gradle.kts');
+    final pubspec = _source('pubspec.yaml');
 
     expect(manifest, contains('android.permission.INTERNET'));
     expect(manifest, contains('android.permission.POST_NOTIFICATIONS'));
+    expect(gradle, contains('compileSdk = 36'));
+    expect(gradle, contains('minSdk = 24'));
+    expect(gradle, contains('targetSdk = 36'));
+    expect(gradle, contains('ndkVersion = "28.2.13676358"'));
+    expect(pubspec, contains('version: 1.0.0+9'));
+    expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 }

@@ -3,6 +3,22 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+typedef CleanupAction = ({String label, Future<void> Function() action});
+
+/// Runs every cleanup action even if an earlier one fails. Production smoke
+/// failures must not strand later receipts or temporary Firebase identities.
+Future<List<String>> runCleanupActions(Iterable<CleanupAction> actions) async {
+  final failures = <String>[];
+  for (final step in actions) {
+    try {
+      await step.action();
+    } catch (error) {
+      failures.add('${step.label}: $error');
+    }
+  }
+  return failures;
+}
+
 /// A deliberately explicit production smoke for Room of Days sharing rules.
 ///
 /// This creates two temporary anonymous Firebase identities, exercises the
@@ -276,32 +292,69 @@ class _ProductionSmoke {
     final code = roomCode;
     final ownerIdentity = owner;
     final visitorIdentity = visitor;
-    if (profileImageUploaded && code != null && ownerIdentity != null) {
-      await _deleteStorageObject(
-        'shared_rooms/${ownerIdentity.uid}/$code/profile/'
-        'releaseSmokePhoto00001',
-        ownerIdentity.idToken,
-      );
-      profileImageUploaded = false;
-    }
-    if (roomCreated && code != null && ownerIdentity != null) {
-      if (visitorIdentity != null) {
-        await _deleteDocument(
-          'rooms/$code/sparks/${visitorIdentity.uid}',
-          ownerIdentity.idToken,
-        );
-        await _deleteDocument(
-          'rooms/$code/circleAdds/${visitorIdentity.uid}',
-          ownerIdentity.idToken,
+    final actions = <CleanupAction>[
+      if (profileImageUploaded && code != null && ownerIdentity != null)
+        (
+          label: 'profile image',
+          action: () async {
+            await _deleteStorageObject(
+              'shared_rooms/${ownerIdentity.uid}/$code/profile/'
+              'releaseSmokePhoto00001',
+              ownerIdentity.idToken,
+            );
+            profileImageUploaded = false;
+          },
+        ),
+      if (roomCreated &&
+          code != null &&
+          ownerIdentity != null &&
+          visitorIdentity != null)
+        (
+          label: 'Spark receipt',
+          action: () => _deleteDocument(
+            'rooms/$code/sparks/${visitorIdentity.uid}',
+            ownerIdentity.idToken,
+          ),
+        ),
+      if (roomCreated &&
+          code != null &&
+          ownerIdentity != null &&
+          visitorIdentity != null)
+        (
+          label: 'Circle receipt',
+          action: () => _deleteDocument(
+            'rooms/$code/circleAdds/${visitorIdentity.uid}',
+            ownerIdentity.idToken,
+          ),
+        ),
+      if (roomCreated && code != null && ownerIdentity != null)
+        (
+          label: 'room',
+          action: () async {
+            await _deleteDocument('rooms/$code', ownerIdentity.idToken);
+            roomCreated = false;
+          },
+        ),
+      if (visitorIdentity != null)
+        (
+          label: 'visitor identity',
+          action: () => _deleteIdentity(visitorIdentity),
+        ),
+      if (ownerIdentity != null)
+        (label: 'owner identity', action: () => _deleteIdentity(ownerIdentity)),
+    ];
+
+    try {
+      final failures = await runCleanupActions(actions);
+      if (failures.isNotEmpty) {
+        throw StateError(
+          'Production smoke cleanup incomplete: ${failures.join('; ')}',
         );
       }
-      await _deleteDocument('rooms/$code', ownerIdentity.idToken);
-      roomCreated = false;
+      stdout.writeln('Cleanup complete.');
+    } finally {
+      http.close();
     }
-    if (visitorIdentity != null) await _deleteIdentity(visitorIdentity);
-    if (ownerIdentity != null) await _deleteIdentity(ownerIdentity);
-    http.close();
-    stdout.writeln('Cleanup complete.');
   }
 
   Future<_Identity> _createAnonymousIdentity() async {

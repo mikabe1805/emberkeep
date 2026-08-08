@@ -12,6 +12,11 @@
     main { max-width: 680px; margin: auto; padding: 48px 22px 72px; }
     h1 { font-family: Georgia, serif; color: #f2cd93; }
     p, li { color: #cfc2b0; } a { color: #e0a865; }
+    .card { padding: 18px 20px; border: 1px solid #55453b;
+      border-radius: 18px; background: linear-gradient(#3b2e2766, #241a2066); }
+    .button { display: inline-block; margin-top: 4px; padding: 12px 16px;
+      border-radius: 12px; background: #d99a52; color: #191210;
+      font-weight: 700; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -23,15 +28,28 @@
     profile.</p>
   <p>In Room of Days, open <strong>Me</strong>, scroll to <strong>Your account</strong>,
     choose <strong>Delete account</strong>, and confirm with your password.</p>
-  <p>Deletion is immediate and permanent. It removes:</p>
+  <p>In-app deletion is immediate and permanent. It removes:</p>
   <ul>
     <li>your Firebase sign-in and email association;</li>
     <li>your cloud save backup; and</li>
     <li>your published shared space, if any.</li>
   </ul>
   <p>The in-app deletion also removes local progress, preferences, usage logs,
-    and journal photos from that device. Export a backup first if you want to
-    keep a personal copy.</p>
+    and journal photos from that device, turns cloud backup off, and leaves a
+    fresh device-only room. Export a backup first if you want to keep a personal
+    copy.</p>
+
+  <h2>Request deletion without the app</h2>
+  <div class="card">
+    <p>If you uninstalled Room of Days or cannot sign in, email us from the
+      address attached to your Room of Days account. We will reply to verify the
+      request and normally complete deletion within seven days of verification.</p>
+    <a class="button"
+      href="mailto:support@roomofdays.com?subject=Room%20of%20Days%20account%20deletion%20request">REQUEST ACCOUNT DELETION</a>
+  </div>
+  <p>Never send your password or a journal export. The request removes the same
+    Firebase sign-in, cloud save, and published shared space listed above. Room
+    of Days does not retain the deleted Firebase account or app data.</p>
   <p><a href="/privacy">Read the privacy notice</a> or
     <a href="/support">contact support</a>.</p>
 </main>

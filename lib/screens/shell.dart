@@ -773,26 +773,55 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     ),
   ];
 
-  void _reset() {
+  Future<String?> _reset() async {
     final old = _state;
-    final oldRoomCode = old?.roomCode;
-    old?.removeListener(_persist);
+    if (old == null) return 'Your room is still loading — try again.';
+    final oldRoomCode = old.roomCode;
     CloudSync.instance.cancelPending(); // drop any stale pre-reset push
-    unawaited(Notifications.cancelAll());
-    Storage.clearUsage(); // reset means erase me — wipe the usage log too
-    media
-        .clearAll(); // …and every journal photo on disk (else orphaned forever)
+
+    // Confirm local privacy cleanup before presenting a fresh room. In
+    // particular, do not fire-and-forget journal deletion: a process kill just
+    // after the tap must not leave old photos behind while the UI says reset.
+    if (!await media.clearAll()) {
+      return 'Couldn’t confirm that journal photos were erased. Your progress '
+          'was left in place; try again.';
+    }
+    final localMetadataCleared = await Future.wait([
+      Storage.clearUsage(),
+      Storage.clearCorruptBackup(),
+    ]);
+    if (localMetadataCleared.any((cleared) => !cleared)) {
+      return 'Couldn’t finish erasing local Room of Days data. Your progress '
+          'was left in place; try again.';
+    }
+
     final fresh = GameState()..rollover([]);
+    final freshQuests = _buildQuests();
+    fresh.lastModified = Clock.now().millisecondsSinceEpoch;
+    // Serialize behind every older write so a slow pre-reset save can never
+    // land after this blank one and resurrect the erased room on relaunch.
+    _saveTail = _saveTail.then((_) => Storage.save(fresh, freshQuests));
+    if (!await _saveTail) {
+      return 'Couldn’t save the blank room on this device. Try again before '
+          'closing the app.';
+    }
+    // A pre-reset save tail may have scheduled a cloud write after the first
+    // cancellation. Stop it again now that the blank local save is authoritative.
+    CloudSync.instance.cancelPending();
+
+    await Notifications.cancelAll();
+    old.removeListener(_persist);
     fresh.addListener(_persist);
     setState(() {
       _state = fresh;
-      _quests = _buildQuests();
+      _quests = freshQuests;
     });
     _maybeOnboard();
     // Erase the cloud copy and published room too. Guest profiles also delete
     // their anonymous Firebase identity before a fresh one is created, so a
     // reset cannot leave an unreachable backend account behind.
     unawaited(_finishResetRemoteCleanup(oldRoomCode));
+    return null;
   }
 
   Future<void> _finishResetRemoteCleanup(String? oldRoomCode) async {
@@ -996,10 +1025,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     s.removeListener(_persist);
     CloudSync.instance.cancelPending();
     await Notifications.cancelAll();
-    await Storage.clear();
-    await Storage.clearCorruptBackup();
-    await Storage.clearUsage();
-    await media.clearAll();
+    final localCleanup = await Future.wait([
+      Storage.clear(),
+      Storage.clearCorruptBackup(),
+      Storage.clearUsage(),
+      media.clearAll(),
+    ]);
     final fresh = GameState()..rollover([]);
     fresh.addListener(_persist);
     if (!mounted) return null;
@@ -1007,8 +1038,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _state = fresh;
       _quests = _buildQuests();
     });
-    await _persistNow(push: false);
+    final blankSaved = await _persistNow(push: false);
     _maybeOnboard();
+    if (localCleanup.any((cleared) => !cleared) || !blankSaved) {
+      _showSocialNotice(
+        'Your account is gone and backup is off, but this device could not '
+        'confirm every local file was erased. Keep the app installed and try '
+        'Start over once more.',
+      );
+    }
     return null;
   }
 
