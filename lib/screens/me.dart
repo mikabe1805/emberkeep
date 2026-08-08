@@ -2837,7 +2837,7 @@ class MePage extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             supported
-                ? 'Only the reminders you choose. No missed-day warnings.'
+                ? 'Only the reminders you choose. Quiet days stay quiet.'
                 : 'Quest and night-routine reminders are available in the iOS and Android apps.',
             style: Type.body.copyWith(
               fontSize: 11,

@@ -2518,7 +2518,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   ? 'Nothing needs carrying right now. A clear day is allowed.'
                   : showingAll
                   ? 'All quests are visible for a moment. Your chosen $chosen still define enough.'
-                  : '$chosen chosen · $resting resting — not failed, not lost.',
+                  : '$chosen chosen · $resting resting safely for later.',
               style: Type.body.copyWith(
                 fontSize: 12.5,
                 fontStyle: FontStyle.italic,
@@ -3125,7 +3125,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                       const SizedBox(height: 4),
                                       Text(
                                         sheltered
-                                            ? '$resting quest${resting == 1 ? '' : 's'} resting safely — none failed, none lost'
+                                            ? '$resting quest${resting == 1 ? '' : 's'} resting safely · all still kept'
                                             : _state.nightDoneDay == nightDay
                                             ? 'rest well — tomorrow is already taking shape'
                                             : 'nothing left but the goodnight',

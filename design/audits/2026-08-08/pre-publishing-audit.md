@@ -67,6 +67,9 @@ reason to add more features.
    finished visitor-photo work. The default candidate has no visitor-photo
    switch and cannot upload, publish, or render those paths; a later build must
    deliberately opt in and pass its own Storage review.
+13. Removed the last user-facing failure-language holdovers. Resting quests are
+   now described as safely kept, quiet days stay quiet, and store copy speaks
+   about days away and returning instead of invoking loss.
 
 ## Release gates, in order
 
@@ -113,10 +116,10 @@ reason to add more features.
   reads, anti-enumeration, versioned path validation, anti-downgrade,
   owner-only Circle/Spark receipts, duplicate rejection, self-interaction
   rejection, and complete temporary-data cleanup.
-- Signed Android AAB and APK candidates for `1.0.0+3` passed release builds.
+- Signed Android AAB and APK candidates for `1.0.0+4` passed release builds.
   Their SHA-256 checksums are
-  `837FB7D42AC06BCD4AE2BBEC09D020C31A12515B3EEDFF0E222BC1ED878AC926`
-  and `513E2600A8332E0D2CDE9CE744347BD5E20510920E8587C9E4292DF88C0D770C`;
+  `F3D7EF0A51D7B8108D5BDFC8B755E7EE28E8C8E0C907710C7CD1DAEBF88320B0`
+  and `EC073C127FC16BED306B089FE20C60DEA51139D1AC9315F08843571477834DAD`;
   both carry the expected upload certificate.
 - The matching web build was deployed to Firebase Hosting. Live
   `main.dart.js`, the local-only privacy page, and the AASA file each matched

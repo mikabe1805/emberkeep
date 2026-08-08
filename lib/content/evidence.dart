@@ -111,8 +111,7 @@ const evidenceCards = <EvidenceCard>[
     title: 'Rest is when you build',
     text:
         'Muscles don’t grow during the workout — they grow in the recovery '
-        'after it. A gentle or skipped day isn’t lost progress; it’s the '
-        'other half of getting stronger.',
+        'after it. A gentler day is the other half of getting stronger.',
     source: 'Recovery & adaptation, ACSM',
   ),
   // Why the app is built the way it is — mechanisms that especially help

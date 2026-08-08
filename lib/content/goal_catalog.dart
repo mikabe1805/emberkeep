@@ -754,8 +754,8 @@ const questWhy = <String, ({String claim, String source})>{
   'Everyone’s fed before you sleep': (
     claim:
         'Reliable daily care — every creature fed and watered before lights-out '
-        '— is the backbone of pet welfare, and keeps a missed meal from slipping '
-        'by in a busy home.',
+        '— is the backbone of pet welfare, and helps every meal and water check '
+        'stay visible in a busy home.',
     source: 'American Animal Hospital Association, enrichment guidance',
   ),
   'Book the vet checkup': (
