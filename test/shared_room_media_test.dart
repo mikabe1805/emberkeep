@@ -364,6 +364,45 @@ void main() {
     }
 
     test(
+      'v1 publication clears photo intent without touching Storage',
+      () async {
+        final (current, target) = states();
+        final publishes = <Map<String, dynamic>>[];
+        var mediaCalls = 0;
+        final service = _service(
+          readLocal: (_) async {
+            mediaCalls++;
+            throw StateError('Storage must stay dormant');
+          },
+          upload: (_) async {
+            mediaCalls++;
+          },
+          deleteObject: (_) async {
+            mediaCalls++;
+          },
+        );
+
+        final result = await publishSpaceRoomState(
+          target,
+          current: current,
+          code: 'ABC234',
+          mediaService: service,
+          publicationClient: client(publishes: publishes, failFinal: false),
+        );
+
+        expect(result.ok, isTrue);
+        expect(mediaCalls, 0);
+        expect(publishes, hasLength(1));
+        expect(publishes.single['profilePhotoPath'], isEmpty);
+        expect(publishes.single['seasonPhotoPath'], isEmpty);
+        expect(target.shareSpaceProfilePhoto, isFalse);
+        expect(target.shareSpaceSeasonPhoto, isFalse);
+        expect(target.spaceProfilePhotoPath, isEmpty);
+        expect(target.spaceSeasonPhotoPath, isEmpty);
+      },
+    );
+
+    test(
       'failed final publish never leaves replacement bytes public',
       () async {
         final (current, target) = states();
@@ -381,6 +420,7 @@ void main() {
           code: 'ABC234',
           mediaService: service,
           publicationClient: client(publishes: publishes, failFinal: true),
+          visitorPhotoSharingEnabled: true,
         );
 
         expect(result.ok, isFalse);
@@ -425,6 +465,7 @@ void main() {
           code: 'ABC234',
           mediaService: service,
           publicationClient: client(publishes: publishes, failFinal: false),
+          visitorPhotoSharingEnabled: true,
         );
 
         expect(result.ok, isTrue);
@@ -595,7 +636,10 @@ void main() {
 
     test('both photos publish while every consent bit is on', () {
       expect(
-        selectedSharedRoomPhotoFiles(withBothPhotos()).keys,
+        selectedSharedRoomPhotoFiles(
+          withBothPhotos(),
+          visitorPhotoSharingEnabled: true,
+        ).keys,
         containsAll(<SharedRoomMediaSlot>[
           SharedRoomMediaSlot.profile,
           SharedRoomMediaSlot.season,
@@ -605,20 +649,29 @@ void main() {
 
     test('turning off one photo consent drops only that slot', () {
       final s = withBothPhotos()..shareSpaceProfilePhoto = false;
-      final selected = selectedSharedRoomPhotoFiles(s);
+      final selected = selectedSharedRoomPhotoFiles(
+        s,
+        visitorPhotoSharingEnabled: true,
+      );
       expect(selected, isNot(contains(SharedRoomMediaSlot.profile)));
       expect(selected, contains(SharedRoomMediaSlot.season));
     });
 
     test('closing the visitor page drops every photo', () {
       final s = withBothPhotos()..shareSpaceProfile = false;
-      expect(selectedSharedRoomPhotoFiles(s), isEmpty);
+      expect(
+        selectedSharedRoomPhotoFiles(s, visitorPhotoSharingEnabled: true),
+        isEmpty,
+      );
     });
 
     test('hiding This season from visitors drops its photo', () {
       final s = withBothPhotos()
         ..visitorSpaceCards.remove(SpaceCardKind.thisSeason);
-      final selected = selectedSharedRoomPhotoFiles(s);
+      final selected = selectedSharedRoomPhotoFiles(
+        s,
+        visitorPhotoSharingEnabled: true,
+      );
       expect(selected, isNot(contains(SharedRoomMediaSlot.season)));
       expect(selected, contains(SharedRoomMediaSlot.profile));
     });
@@ -626,7 +679,7 @@ void main() {
     test('deselecting the source note drops its photo', () {
       final s = withBothPhotos()..spaceSeasonPhotoNoteId = null;
       expect(
-        selectedSharedRoomPhotoFiles(s),
+        selectedSharedRoomPhotoFiles(s, visitorPhotoSharingEnabled: true),
         isNot(contains(SharedRoomMediaSlot.season)),
       );
     });

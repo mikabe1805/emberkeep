@@ -22,15 +22,14 @@
 <body>
 <main>
   <h1>Privacy at Room of Days</h1>
-  <p>Last updated August 3, 2026</p>
+  <p>Last updated August 8, 2026</p>
   <div class="card"><strong>Your device is the source of truth.</strong>
     Room of Days works without an account, advertising, or analytics.</div>
 
   <h2>Data on your device</h2>
   <p>Your quests, goals, progress, journal text, preferences, and space are stored
-    locally. Journal photos are not included in cloud backup. They stay on your
-    device unless you separately choose one as a shared profile or This season
-    photo.</p>
+    locally. Journal photos are not included in cloud backup or shared spaces;
+    they stay on your device.</p>
 
   <h2>Cloud backup and optional account</h2>
   <p>Cloud backup is off by default. If you turn it on, Room of Days creates an
@@ -48,20 +47,15 @@
     <em>Open my visitor page</em>, the shared space also contains your display name
     and only the profile cards you mark for visitors. About and Right now can
     contain a short introduction and up to three selected goals. Pinned moments
-    and This season can contain bounded writing from those cards. You may also
-    separately allow one profile photo and one This season photo. Only those
-    selected images are uploaded to Firebase Cloud Storage; changing the photo,
-    turning its visitor access off, stopping sharing, resetting, or deleting the
-    account removes the corresponding shared object. Shared spaces never include
-    other journal photos or pages, quest details, streak history, email,
+    and This season can contain bounded writing from those cards. Shared spaces
+    never include journal photos or pages, quest details, streak history, email,
     sign-in credentials, or account-profile details. The backend room record
     carries an anonymous Firebase owner ID so security rules can restrict
-    changes to its owner; the same ID forms the private owner segment of a
-    selected photo's Storage path. Room of Days does not display that ID as
-    profile identity. Anyone with the room link can view the selected visitor
-    cards and selected photos until you turn them off or stop sharing. You can
-    close the visitor page, change any card or photo audience, or stop sharing
-    from the same controls that show your code.</p>
+    changes to its owner. Room of Days does not display that ID as profile
+    identity. Anyone with the room link can view the selected visitor cards
+    until you turn them off or stop sharing. You can close the visitor page,
+    change any card audience, or stop sharing from the same controls that show
+    your code.</p>
 
   <p>If you keep someone else’s room in your Circle or send a preset support
     signal, Firestore stores a fixed, text-free receipt with a timestamp and your

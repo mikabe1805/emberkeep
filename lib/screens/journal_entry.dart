@@ -7,6 +7,7 @@ import '../audio.dart';
 import '../journal_doc.dart';
 import '../journal_media.dart' as media;
 import '../models.dart';
+import '../release_features.dart';
 import '../tokens.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
@@ -29,9 +30,9 @@ class JournalPayload {
 /// The full-page journal editor (round-53) — a whole page you really write on,
 /// with photos you can drop between paragraphs the way a notes app does. It
 /// AUTOSAVES as you go (debounced + on the way out), so you can leave and come
-/// back to keep writing. Photos are kept on-device by default and never join a
-/// cloud backup. A separately selected profile/season photo may be uploaded by
-/// the explicit visitor-page flow; the composer never implies automatic sync.
+/// back to keep writing. Photos stay on-device and never join cloud backup or
+/// the v1 visitor page. A later explicitly enabled visitor-photo build keeps
+/// that separate from this composer.
 ///
 /// Persistence stays at the call site: [commit] inserts-or-replaces and returns
 /// the saved [Note]; an emptied entry is removed via [onDelete].
@@ -1445,9 +1446,12 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
 
   Widget _photoAction() {
     final photoCount = _blocks.where((b) => b.isImage).length;
+    final privacy = kVisitorPhotoSharingEnabled
+        ? 'Photos stay on this device unless you separately share one on your visitor page.'
+        : 'Photos stay on this device.';
     final semantics = photoCount == 0
-        ? 'Add photos to this journal entry. Photos stay on this device unless you separately share one on your visitor page.'
-        : 'Add more photos to this journal entry. $photoCount ${photoCount == 1 ? 'photo' : 'photos'} on this page. Photos stay on this device unless you separately share one on your visitor page.';
+        ? 'Add photos to this journal entry. $privacy'
+        : 'Add more photos to this journal entry. $photoCount ${photoCount == 1 ? 'photo' : 'photos'} on this page. $privacy';
     return Semantics(
       key: const ValueKey('journal-photo-action'),
       button: true,

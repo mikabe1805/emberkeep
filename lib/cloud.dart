@@ -11,6 +11,7 @@ import 'firebase_options.dart';
 import 'platform/test_environment_stub.dart'
     if (dart.library.io) 'platform/test_environment_io.dart';
 import 'shared_room_media.dart';
+import 'release_features.dart';
 import 'storage.dart';
 
 enum RoomPublishFailure {
@@ -837,7 +838,7 @@ class CloudSync extends ChangeNotifier {
             (parentData![key] as String).isNotEmpty)
           parentData[key] as String,
     ];
-    if (mediaPaths.isNotEmpty) {
+    if (kVisitorPhotoSharingEnabled && mediaPaths.isNotEmpty) {
       await SharedRoomMediaService.instance.deleteObjectPaths(mediaPaths);
     }
     for (final collectionName in const ['sparks', 'circleAdds']) {

@@ -22,6 +22,7 @@ Widget _mePage(
   GameState state,
   VoidCallback onPersist, {
   SpaceRoomPublisher onPublishRoom = _publishRoomSuccessfully,
+  bool visitorPhotoSharingEnabled = false,
 }) => Scaffold(
   body: MePage(
     state: state,
@@ -38,6 +39,7 @@ Widget _mePage(
     onSignIn: (_, _) async => null,
     onSignOut: () async {},
     onDeleteAccount: (_) async => null,
+    visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
   ),
 );
 
@@ -46,6 +48,7 @@ Future<void> _pumpMe(
   GameState state,
   VoidCallback onPersist, {
   SpaceRoomPublisher onPublishRoom = _publishRoomSuccessfully,
+  bool visitorPhotoSharingEnabled = false,
 }) async {
   tester.view.physicalSize = _phoneSize;
   tester.view.devicePixelRatio = 1;
@@ -54,7 +57,14 @@ Future<void> _pumpMe(
     tester.view.resetDevicePixelRatio();
   });
   await tester.pumpWidget(
-    MaterialApp(home: _mePage(state, onPersist, onPublishRoom: onPublishRoom)),
+    MaterialApp(
+      home: _mePage(
+        state,
+        onPersist,
+        onPublishRoom: onPublishRoom,
+        visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+      ),
+    ),
   );
   await tester.pump();
 }
@@ -270,7 +280,46 @@ void main() {
     expect(persists, 1);
   });
 
-  testWidgets('profile photo needs an explicit visitor-photo switch', (
+  testWidgets('v1 profile photo stays local and offers no visitor switch', (
+    tester,
+  ) async {
+    final photo = Note(
+      id: 'local-profile-photo',
+      at: DateTime(2026, 8, 3),
+      text: 'A local photo.',
+      images: const ['journal/local-profile.jpg'],
+    );
+    final state = GameState()
+      ..reduceMotion = true
+      ..journal = [photo];
+    var persists = 0;
+
+    await _pumpMe(tester, state, () => persists++);
+    await _openArranger(tester);
+
+    expect(
+      find.byKey(const ValueKey('space-profile-photo-share-toggle')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('space-photo-local-only')),
+      findsOneWidget,
+    );
+    final choice = find.byKey(
+      const ValueKey('space-profile-photo-local-profile-photo'),
+    );
+    await tester.ensureVisible(choice);
+    await tester.tap(choice);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('space-arranger-save')));
+    await tester.pumpAndSettle();
+
+    expect(state.spaceProfilePhotoNoteId, photo.id);
+    expect(state.shareSpaceProfilePhoto, isFalse);
+    expect(persists, 1);
+  });
+
+  testWidgets('enabled profile photo needs an explicit visitor-photo switch', (
     tester,
   ) async {
     final photo = Note(
@@ -284,7 +333,12 @@ void main() {
       ..journal = [photo];
     var persists = 0;
 
-    await _pumpMe(tester, state, () => persists++);
+    await _pumpMe(
+      tester,
+      state,
+      () => persists++,
+      visitorPhotoSharingEnabled: true,
+    );
     await _openArranger(tester);
 
     final choice = find.byKey(

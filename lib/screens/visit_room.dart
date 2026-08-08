@@ -11,6 +11,7 @@ import '../content/creature_skins.dart';
 import '../content/room_styles.dart';
 import '../content/space_themes.dart';
 import '../engine.dart';
+import '../release_features.dart';
 import '../shared_room_media.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
@@ -23,9 +24,10 @@ import '../widgets/visitor_shared_room_photo.dart';
 
 /// A read-only look at someone else's "Your Space" (round-52, social). Built
 /// only from its bounded public room document: preset appearance plus profile
-/// cards the owner selected. Only the two separately consented Storage paths
-/// may accompany them; quests, unselected Journal pages, local filenames, and
-/// account data never travel.
+/// cards the owner selected. Journal photos remain local in the v1 candidate;
+/// a later explicitly enabled build may accept the two validated Storage paths.
+/// Quests, unselected Journal pages, local filenames, and account data never
+/// travel.
 class VisitRoomScreen extends StatelessWidget {
   const VisitRoomScreen({
     super.key,
@@ -38,6 +40,7 @@ class VisitRoomScreen extends StatelessWidget {
     this.onPersist,
     this.photoUrlLoader,
     this.sparkSender,
+    this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
   });
 
   final Map<String, dynamic> room;
@@ -57,6 +60,7 @@ class VisitRoomScreen extends StatelessWidget {
   final GameState? localState;
   final VoidCallback? onPersist;
   final VisitorPhotoUrlLoader? photoUrlLoader;
+  final bool visitorPhotoSharingEnabled;
 
   /// Test seam for the leave-a-note action; the real path acquires the
   /// anonymous social session only on the explicit send.
@@ -101,7 +105,7 @@ class VisitRoomScreen extends StatelessWidget {
       if (featuredGoals.isNotEmpty) cardOrder.add(SpaceCardKind.rightNow);
     }
     String safePhotoPath(String key, SharedRoomMediaSlot expectedSlot) {
-      if (!profileVisible) return '';
+      if (!visitorPhotoSharingEnabled || !profileVisible) return '';
       final path = safeString(key, '', 160);
       final ownerUid = safeString('uid', '', 128);
       if (path.isEmpty || ownerUid.isEmpty) return '';

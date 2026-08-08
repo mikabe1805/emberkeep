@@ -189,7 +189,36 @@ void main() {
     },
   );
 
-  testWidgets('v5 renders only validated, separately shared photo slots', (
+  testWidgets('v1 ignores otherwise valid visitor-photo paths', (tester) async {
+    var loaderCalls = 0;
+    await _pumpCompact(
+      tester,
+      VisitRoomScreen(
+        room: _room(
+          profileVisible: true,
+          displayName: 'Maya',
+          cardOrder: const ['thisSeason'],
+          profilePhotoPath:
+              'shared_rooms/owner_123/ABC234/profile/ABCDEFGHIJKLMNOPQRSTUV',
+          seasonPhotoPath:
+              'shared_rooms/owner_123/ABC234/season/ABCDEFGHIJKLMNOPQRSTUV',
+        ),
+        code: 'ABC234',
+        lively: false,
+        photoUrlLoader: (_) async {
+          loaderCalls++;
+          return 'https://example.test/photo';
+        },
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('visitor-profile-photo')), findsNothing);
+    expect(find.byKey(const ValueKey('visitor-season-photo')), findsNothing);
+    expect(loaderCalls, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('enabled v5 renders validated, separately shared photo slots', (
     tester,
   ) async {
     await _pumpCompact(
@@ -207,6 +236,7 @@ void main() {
         ),
         code: 'ABC234',
         lively: false,
+        visitorPhotoSharingEnabled: true,
         photoUrlLoader: (_) async => throw StateError('offline test'),
       ),
     );

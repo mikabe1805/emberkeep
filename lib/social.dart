@@ -11,6 +11,7 @@ import 'content/creature_skins.dart';
 import 'content/links.dart';
 import 'engine.dart';
 import 'models.dart';
+import 'release_features.dart';
 import 'platform/share_stub.dart'
     if (dart.library.js_interop) 'platform/share_web.dart';
 import 'screens/visit_room.dart';
@@ -178,12 +179,14 @@ String _sharedProfileText(String? value, int maxCharacters) {
   return String.fromCharCodes(collapsed.runes.take(maxCharacters));
 }
 
-/// The bounded payload published for a shared space. Account data, quest
 /// Returns the two device-local files the keeper separately chose to place on
 /// their visitor page. These names are used only at the upload boundary and
 /// never enter the public room document.
-Map<SharedRoomMediaSlot, String> selectedSharedRoomPhotoFiles(GameState s) {
-  if (!s.shareSpaceProfile) return const {};
+Map<SharedRoomMediaSlot, String> selectedSharedRoomPhotoFiles(
+  GameState s, {
+  bool visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
+}) {
+  if (!visitorPhotoSharingEnabled || !s.shareSpaceProfile) return const {};
   final selected = <SharedRoomMediaSlot, String>{};
   final profile = s.spaceProfilePhotoNote;
   if (s.shareSpaceProfilePhoto && profile != null) {
@@ -239,6 +242,7 @@ Map<String, dynamic> roomDisplay(
   String? mediaOwnerUid,
   String? mediaRoomCode,
   Map<SharedRoomMediaSlot, String>? mediaObjectPaths,
+  bool visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
 }) {
   final milestoneGoals = s.goals
       .where((g) => g.complete || g.progress >= 25)
@@ -299,7 +303,10 @@ Map<String, dynamic> roomDisplay(
   final season = seasonVisible
       ? _sharedProfileText(s.spaceSeasonText, 180)
       : '';
-  final selectedPhotos = selectedSharedRoomPhotoFiles(s);
+  final selectedPhotos = selectedSharedRoomPhotoFiles(
+    s,
+    visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+  );
   final publishedPhotoPaths = mediaObjectPaths ?? _stateSharedRoomPhotoPaths(s);
   return {
     // The legacy fixed field remains for older clients; bounded, deliberately
@@ -414,6 +421,7 @@ Future<RoomPublishResult> publishSpaceRoomState(
   CloudSync? cloudSync,
   SharedRoomMediaService? mediaService,
   RoomPublicationClient? publicationClient,
+  bool visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
 }) async {
   final cloud = cloudSync ?? CloudSync.instance;
   final publication = publicationClient ?? RoomPublicationClient.cloud(cloud);
@@ -424,6 +432,22 @@ Future<RoomPublishResult> publishSpaceRoomState(
   final ownerUid = publication.ownerUid();
   if (ownerUid == null) {
     return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
+  }
+
+  // The v1 store candidate takes this route. It writes a complete v5 room with
+  // empty photo handles in one acknowledged Firestore operation and never
+  // constructs a Firebase Storage client. A successful write also forgets any
+  // stale pre-release consent so a later opt-in build cannot revive it.
+  if (!visitorPhotoSharingEnabled) {
+    final display = roomDisplay(
+      target,
+      mediaOwnerUid: ownerUid,
+      mediaRoomCode: code,
+      visitorPhotoSharingEnabled: false,
+    );
+    final published = await publication.publishRoom(display, code: code);
+    if (published.ok) target.disableVisitorPhotoSharing();
+    return published;
   }
 
   final normalizedInputCode = code?.trim().toUpperCase();
@@ -451,6 +475,7 @@ Future<RoomPublishResult> publishSpaceRoomState(
     mediaOwnerUid: ownerUid,
     mediaRoomCode: normalizedInputCode,
     mediaObjectPaths: previousPaths,
+    visitorPhotoSharingEnabled: true,
   );
   final reserved = await publication.publishRoom(currentDisplay, code: code);
   final finalCode = reserved.code;
@@ -461,8 +486,11 @@ Future<RoomPublishResult> publishSpaceRoomState(
   if (createdNew) previousPaths = const {};
   final previousFiles = createdNew
       ? const <SharedRoomMediaSlot, String>{}
-      : selectedSharedRoomPhotoFiles(current);
-  final selected = selectedSharedRoomPhotoFiles(target);
+      : selectedSharedRoomPhotoFiles(current, visitorPhotoSharingEnabled: true);
+  final selected = selectedSharedRoomPhotoFiles(
+    target,
+    visitorPhotoSharingEnabled: true,
+  );
   final changed = <SharedRoomMediaSlot, String>{
     for (final entry in selected.entries)
       if (createdNew ||
@@ -522,6 +550,7 @@ Future<RoomPublishResult> publishSpaceRoomState(
     mediaOwnerUid: ownerUid,
     mediaRoomCode: finalCode,
     mediaObjectPaths: finalPaths,
+    visitorPhotoSharingEnabled: true,
   );
   final published = await publication.publishRoom(display, code: finalCode);
   if (!published.ok) {

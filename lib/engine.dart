@@ -376,6 +376,23 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// For a candidate that does not offer remote visitor photos, forget any
+  /// older consent bits and acknowledged public handles while preserving the
+  /// locally selected My Space photos themselves.
+  void disableVisitorPhotoSharing() {
+    if (!shareSpaceProfilePhoto &&
+        !shareSpaceSeasonPhoto &&
+        spaceProfilePhotoPath.isEmpty &&
+        spaceSeasonPhotoPath.isEmpty) {
+      return;
+    }
+    shareSpaceProfilePhoto = false;
+    shareSpaceSeasonPhoto = false;
+    spaceProfilePhotoPath = '';
+    spaceSeasonPhotoPath = '';
+    notifyListeners();
+  }
+
   static String _cleanSharedRoomPhotoPath(Object? value) {
     if (value is! String) return '';
     final clean = value.trim();

@@ -23,6 +23,7 @@ import '../content/stat_ranks.dart';
 import '../content/themes.dart';
 import '../engine.dart';
 import '../notifications.dart';
+import '../release_features.dart';
 import '../storage.dart';
 import '../tokens.dart';
 import '../a11y.dart';
@@ -169,6 +170,7 @@ Future<void> _personalizeSpace(
   GameState state,
   VoidCallback onPersist,
   SpaceRoomPublisher onPublishRoom,
+  bool visitorPhotoSharingEnabled,
 ) async {
   await Navigator.of(context).push<void>(
     MaterialPageRoute(
@@ -177,6 +179,7 @@ Future<void> _personalizeSpace(
         state: state,
         onPersist: onPersist,
         onPublishRoom: onPublishRoom,
+        visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
       ),
     ),
   );
@@ -210,11 +213,13 @@ class _SpacePageArranger extends StatefulWidget {
     required this.state,
     required this.onPersist,
     required this.onPublishRoom,
+    required this.visitorPhotoSharingEnabled,
   });
 
   final GameState state;
   final VoidCallback onPersist;
   final SpaceRoomPublisher onPublishRoom;
+  final bool visitorPhotoSharingEnabled;
 
   @override
   State<_SpacePageArranger> createState() => _SpacePageArrangerState();
@@ -252,8 +257,11 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
     _pinnedMoments = widget.state.memoryPins.toSet();
     _profilePhotoNoteId = widget.state.spaceProfilePhotoNoteId;
     _seasonPhotoNoteId = widget.state.spaceSeasonPhotoNoteId;
-    _shareProfilePhoto = widget.state.shareSpaceProfilePhoto;
-    _shareSeasonPhoto = widget.state.shareSpaceSeasonPhoto;
+    _shareProfilePhoto =
+        widget.visitorPhotoSharingEnabled &&
+        widget.state.shareSpaceProfilePhoto;
+    _shareSeasonPhoto =
+        widget.visitorPhotoSharingEnabled && widget.state.shareSpaceSeasonPhoto;
     _shared = widget.state.shareSpaceProfile;
   }
 
@@ -280,8 +288,9 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       seasonText: _season.text,
       profilePhotoNoteId: _profilePhotoNoteId,
       seasonPhotoNoteId: _seasonPhotoNoteId,
-      shareProfilePhoto: _shareProfilePhoto,
-      shareSeasonPhoto: _shareSeasonPhoto,
+      shareProfilePhoto:
+          widget.visitorPhotoSharingEnabled && _shareProfilePhoto,
+      shareSeasonPhoto: widget.visitorPhotoSharingEnabled && _shareSeasonPhoto,
       shareProfile: _shared,
     );
   }
@@ -324,7 +333,10 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
     final currentDisplay = roomDisplay(widget.state);
     final nextDisplay = roomDisplay(draft);
     String photoIntent(GameState state) => jsonEncode({
-      for (final entry in selectedSharedRoomPhotoFiles(state).entries)
+      for (final entry in selectedSharedRoomPhotoFiles(
+        state,
+        visitorPhotoSharingEnabled: widget.visitorPhotoSharingEnabled,
+      ).entries)
         entry.key.name: entry.value,
     });
     final code = widget.state.roomCode;
@@ -417,6 +429,7 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       selectedNoteId: _profilePhotoNoteId,
       sharePhoto: _shareProfilePhoto,
       visitorPageEnabled: _shared,
+      visitorPhotoSharingEnabled: widget.visitorPhotoSharingEnabled,
       onPhotoChanged: (id) => setState(() {
         _profilePhotoNoteId = id;
         _shareProfilePhoto = false;
@@ -449,6 +462,7 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       sharePhoto: _shareSeasonPhoto,
       visitorPageEnabled: _shared,
       visitorCardSelected: _visitorVisible.contains(SpaceCardKind.thisSeason),
+      visitorPhotoSharingEnabled: widget.visitorPhotoSharingEnabled,
       onPhotoChanged: (id) => setState(() {
         _seasonPhotoNoteId = id;
         _shareSeasonPhoto = false;
@@ -919,6 +933,7 @@ class _AboutSpaceEditor extends StatelessWidget {
     required this.visitorPageEnabled,
     required this.onPhotoChanged,
     required this.onSharePhotoChanged,
+    required this.visitorPhotoSharingEnabled,
   });
 
   final TextEditingController controller;
@@ -928,6 +943,7 @@ class _AboutSpaceEditor extends StatelessWidget {
   final bool visitorPageEnabled;
   final ValueChanged<String?> onPhotoChanged;
   final ValueChanged<bool> onSharePhotoChanged;
+  final bool visitorPhotoSharingEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -961,15 +977,18 @@ class _AboutSpaceEditor extends StatelessWidget {
           onChanged: onPhotoChanged,
         ),
         const SizedBox(height: 9),
-        _SharedPhotoAudienceControl(
-          slot: 'profile',
-          selected: sharePhoto,
-          hasPhoto: selectedNoteId != null,
-          visitorPageEnabled: visitorPageEnabled,
-          visitorCardSelected: true,
-          activeCopy: 'Visible in your visitor-page header.',
-          onChanged: onSharePhotoChanged,
-        ),
+        if (visitorPhotoSharingEnabled)
+          _SharedPhotoAudienceControl(
+            slot: 'profile',
+            selected: sharePhoto,
+            hasPhoto: selectedNoteId != null,
+            visitorPageEnabled: visitorPageEnabled,
+            visitorCardSelected: true,
+            activeCopy: 'Visible in your visitor-page header.',
+            onChanged: onSharePhotoChanged,
+          )
+        else
+          const _LocalPhotoOnlyNote(),
       ],
     );
   }
@@ -1164,6 +1183,7 @@ class _SeasonSpaceEditor extends StatelessWidget {
     required this.visitorCardSelected,
     required this.onPhotoChanged,
     required this.onSharePhotoChanged,
+    required this.visitorPhotoSharingEnabled,
   });
 
   final TextEditingController controller;
@@ -1174,6 +1194,7 @@ class _SeasonSpaceEditor extends StatelessWidget {
   final bool visitorCardSelected;
   final ValueChanged<String?> onPhotoChanged;
   final ValueChanged<bool> onSharePhotoChanged;
+  final bool visitorPhotoSharingEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -1207,15 +1228,18 @@ class _SeasonSpaceEditor extends StatelessWidget {
           onChanged: onPhotoChanged,
         ),
         const SizedBox(height: 9),
-        _SharedPhotoAudienceControl(
-          slot: 'season',
-          selected: sharePhoto,
-          hasPhoto: selectedNoteId != null,
-          visitorPageEnabled: visitorPageEnabled,
-          visitorCardSelected: visitorCardSelected,
-          activeCopy: 'Visible inside your shared This season card.',
-          onChanged: onSharePhotoChanged,
-        ),
+        if (visitorPhotoSharingEnabled)
+          _SharedPhotoAudienceControl(
+            slot: 'season',
+            selected: sharePhoto,
+            hasPhoto: selectedNoteId != null,
+            visitorPageEnabled: visitorPageEnabled,
+            visitorCardSelected: visitorCardSelected,
+            activeCopy: 'Visible inside your shared This season card.',
+            onChanged: onSharePhotoChanged,
+          )
+        else
+          const _LocalPhotoOnlyNote(),
       ],
     );
   }
@@ -1369,6 +1393,25 @@ class _SharedPhotoAudienceControl extends StatelessWidget {
       ),
     );
   }
+}
+
+class _LocalPhotoOnlyNote extends StatelessWidget {
+  const _LocalPhotoOnlyNote();
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      const Icon(Icons.lock_outline_rounded, size: 15, color: Palette.textLo),
+      const SizedBox(width: 7),
+      Expanded(
+        child: Text(
+          'This photo stays on this device.',
+          key: const ValueKey('space-photo-local-only'),
+          style: Type.body.copyWith(fontSize: 11.5, color: Palette.textLo),
+        ),
+      ),
+    ],
+  );
 }
 
 class _SeasonPhotoChoice extends StatelessWidget {
@@ -1551,6 +1594,7 @@ class MePage extends StatelessWidget {
     required this.onSignOut,
     required this.onDeleteAccount,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
+    this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
   });
 
   final GameState state;
@@ -1598,6 +1642,7 @@ class MePage extends StatelessWidget {
   /// Shared room perspective. Text and controls stay anchored while the
   /// authored plate and light respond beneath them.
   final ValueListenable<Offset> parallax;
+  final bool visitorPhotoSharingEnabled;
 
   static final _privacyUrl = Uri.parse(PublicLinks.privacy);
   static final _deletionUrl = Uri.parse(PublicLinks.deleteAccount);
@@ -1873,8 +1918,14 @@ class MePage extends StatelessWidget {
 
           _PersonalSpacePanel(
             state: state,
-            onEdit: () =>
-                _personalizeSpace(context, state, onPersist, onPublishRoom),
+            visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+            onEdit: () => _personalizeSpace(
+              context,
+              state,
+              onPersist,
+              onPublishRoom,
+              visitorPhotoSharingEnabled,
+            ),
           ),
           const SizedBox(height: 14),
 
@@ -3255,10 +3306,15 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
 }
 
 class _PersonalSpacePanel extends StatelessWidget {
-  const _PersonalSpacePanel({required this.state, required this.onEdit});
+  const _PersonalSpacePanel({
+    required this.state,
+    required this.onEdit,
+    required this.visitorPhotoSharingEnabled,
+  });
 
   final GameState state;
   final VoidCallback onEdit;
+  final bool visitorPhotoSharingEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -3318,7 +3374,9 @@ class _PersonalSpacePanel extends StatelessWidget {
                 shared: shared(SpaceCardKind.about),
                 photo: profilePhoto,
                 photoShared:
-                    state.shareSpaceProfile && state.shareSpaceProfilePhoto,
+                    visitorPhotoSharingEnabled &&
+                    state.shareSpaceProfile &&
+                    state.shareSpaceProfilePhoto,
               ),
               SpaceCardKind.rightNow => _RightNowSpaceCard(
                 goals: goals,
@@ -3333,6 +3391,7 @@ class _PersonalSpacePanel extends StatelessWidget {
                 photo: seasonPhoto,
                 shared: shared(SpaceCardKind.thisSeason),
                 photoShared:
+                    visitorPhotoSharingEnabled &&
                     shared(SpaceCardKind.thisSeason) &&
                     state.shareSpaceSeasonPhoto,
               ),

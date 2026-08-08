@@ -33,17 +33,18 @@ reason to add more features.
 - The share flow is preview-first and explicit about whether a room link travels
   with the image. Richer messaging should remain deferred until real-device
   feedback shows a need.
-- Visitor cards and photos are private by default and independently enabled.
+- Visitor cards are private by default. Journal and My Space photos remain
+  local in the v1 candidate.
 
 ## Corrections made during this audit
 
 1. Replaced the share card's flat procedural flame with the same authored,
    recolored parked-fire asset used in the room. The exported image now keeps
    the app's brush texture and no longer looks pasted together.
-2. Corrected iOS photo and camera permission copy: photos stay local unless one
-   is separately chosen for the shared visitor space.
-3. Corrected reviewer notes that previously claimed photos were never
-   published, and clarified the TestFlight photo check.
+2. Corrected iOS photo and camera permission copy to match the v1 behavior:
+   photos stay on the device.
+3. Aligned reviewer notes, public privacy copy, and the store privacy worksheet
+   with the same local-only photo boundary.
 4. Routed in-app feedback to the monitored `support@roomofdays.com` address.
 5. Recorded the live AASA verification and the intentionally empty Android
    `assetlinks.json` placeholder.
@@ -62,28 +63,28 @@ reason to add more features.
    temporary document and identity afterward.
 11. Made screenshot fixtures deterministic and corrected the share fixture to
    load the selected room's real authored wall plate before capture.
+12. Removed Firebase billing from the v1 release path without discarding the
+   finished visitor-photo work. The default candidate has no visitor-photo
+   switch and cannot upload, publish, or render those paths; a later build must
+   deliberately opt in and pass its own Storage review.
 
 ## Release gates, in order
 
 1. **Use the clean candidate snapshot.** Track the release-critical untracked
    files (`Runner.entitlements`, the AASA file, and Android ProGuard rules) and
    exclude the unrelated `student_notebook/` and August 4 notebook probes.
-2. **Enable visitor-photo infrastructure.** The Firebase project currently has
-   billing disabled and no Storage bucket. Choose a billing account, create the
-   bucket, deploy `storage.rules`, then run the full photo smoke. Do not submit
-   a candidate that displays visitor-photo controls against an absent backend.
-3. **Build and hold the real artifacts.** Upload/build iOS with Xcode 26 and the
+2. **Build and hold the real artifacts.** Upload/build iOS with Xcode 26 and the
    iOS 26 SDK, then confirm the release version/build numbers are new. The
    Android bundle is already release-signed, but Play App Signing still has to
    be enrolled.
-4. **Use both phones.** Install signed builds on iPhone and Android. Exercise
+3. **Use both phones.** Install signed builds on iPhone and Android. Exercise
    fresh install, upgrade, offline use, cloud backup, account deletion, photos,
    reminders, export/restore, sharing, large text, screen reader, Reduce Motion,
    Low Power Mode, long Quest scrolling, tilt, audio, and repeated tab changes.
-5. **Close the links.** Enable Associated Domains for the Apple App ID and
+4. **Close the links.** Enable Associated Domains for the Apple App ID and
    inspect the renewed profile. After the first Play upload, publish the Play
    signing SHA-256 in `assetlinks.json` and verify both link paths on-device.
-6. **Complete the consoles from the real behavior.** Finish Apple privacy,
+5. **Complete the consoles from the real behavior.** Finish Apple privacy,
    Google's Data safety form, age rating, screenshots, reviewer access, and the
    final submission record.
 
@@ -101,7 +102,7 @@ reason to add more features.
 
 - Formatting check: passed.
 - Flutter analysis: passed.
-- Full Flutter test suite: 317 tests passed.
+- Full Flutter test suite: 321 tests passed.
 - Release web build: passed, including the WebAssembly dry run.
 - Screenshot suite: all 21 captures passed, were visually reviewed, and passed
   again without updating baselines.
@@ -112,14 +113,14 @@ reason to add more features.
   reads, anti-enumeration, versioned path validation, anti-downgrade,
   owner-only Circle/Spark receipts, duplicate rejection, self-interaction
   rejection, and complete temporary-data cleanup.
-- Signed Android AAB and APK candidates for `1.0.0+2` passed release builds.
+- Signed Android AAB and APK candidates for `1.0.0+3` passed release builds.
   Their SHA-256 checksums are
-  `FA73AA98000F5F2F948ABD6D483BB55EE9387F252B21886EA276714058FB54E6`
-  and `0183584AF16371A6A3149D3DA07328DA6A0C39C92FFB0B885C7DA2C7C12BB1C0`;
+  `837FB7D42AC06BCD4AE2BBEC09D020C31A12515B3EEDFF0E222BC1ED878AC926`
+  and `513E2600A8332E0D2CDE9CE744347BD5E20510920E8587C9E4292DF88C0D770C`;
   both carry the expected upload certificate.
 
 ## Evidence limits
 
 This audit did not have a physical iPhone or Android device, App Store Connect,
-Play Console, Xcode signing, or an enabled Firebase Storage bucket. Those limits
-are release gates, not inferred passes.
+Play Console, or Xcode signing. Those limits are release gates, not inferred
+passes. Firebase Storage remains intentionally absent and dormant in v1.

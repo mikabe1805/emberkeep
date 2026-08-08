@@ -67,9 +67,9 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Room of Days adds photos you choose to journal entries. They stay on this device unless you separately choose one for your shared space.</string>
+	<string>Room of Days adds photos you choose to journal entries. They stay on this device.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Room of Days lets you snap a photo into a journal entry. It stays on this device unless you separately choose it for your shared space.</string>
+	<string>Room of Days lets you snap a photo into a journal entry. It stays on this device.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Room of Days uses gentle device tilt to give your room and quest materials a subtle sense of depth.</string>
 </dict>

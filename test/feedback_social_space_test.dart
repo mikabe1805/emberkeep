@@ -228,10 +228,19 @@ void main() {
         ..spaceSeasonPhotoPath =
             'shared_rooms/owner_123/ABC234/season/ABCDEFGHIJKLMNOPQRSTUV';
 
+      final releasePayload = roomDisplay(
+        state,
+        mediaOwnerUid: 'owner_123',
+        mediaRoomCode: 'ABC234',
+      );
+      expect(releasePayload['profilePhotoPath'], isEmpty);
+      expect(releasePayload['seasonPhotoPath'], isEmpty);
+
       var payload = roomDisplay(
         state,
         mediaOwnerUid: 'owner_123',
         mediaRoomCode: 'abc234',
+        visitorPhotoSharingEnabled: true,
       );
       expect(
         payload['profilePhotoPath'],
@@ -244,6 +253,7 @@ void main() {
         state,
         mediaOwnerUid: 'owner_123',
         mediaRoomCode: 'ABC234',
+        visitorPhotoSharingEnabled: true,
       );
       expect(
         payload['seasonPhotoPath'],
@@ -257,6 +267,7 @@ void main() {
         state,
         mediaOwnerUid: 'owner_123',
         mediaRoomCode: 'ABC234',
+        visitorPhotoSharingEnabled: true,
       );
       expect(payload['profilePhotoPath'], isEmpty);
       expect(payload['seasonPhotoPath'], isEmpty);

@@ -64,14 +64,26 @@ void main() {
     expect(compact, contains('short introduction'));
     expect(compact, contains('up to three selected goals'));
     expect(compact, contains('bounded writing'));
-    expect(compact, contains('separately allow one profile photo'));
-    expect(compact, contains('Firebase Cloud Storage'));
+    expect(compact, contains('Journal photos are not included'));
+    expect(compact, contains('stay on your device'));
+    expect(compact, contains('never include journal photos'));
+    expect(compact, isNot(contains('Firebase Cloud Storage')));
     expect(compact, contains('Anyone with the room link'));
     expect(compact, contains('does not turn on full-save backup'));
     expect(
       privacy,
       isNot(contains('chosen name and other free-form text are not published')),
     );
+  });
+
+  test('v1 visitor photos are a compile-time capability that defaults off', () {
+    final feature = _source('lib/release_features.dart');
+    final plist = _source('ios/Runner/Info.plist');
+
+    expect(feature, contains("'VISITOR_PHOTO_SHARING'"));
+    expect(feature, contains('defaultValue: false'));
+    expect(plist, contains('They stay on this device.'));
+    expect(plist, isNot(contains('shared space')));
   });
 
   test('canonical policy and support routes are clean and deployable', () {
