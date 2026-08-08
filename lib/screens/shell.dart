@@ -16,6 +16,7 @@ import '../haptics.dart';
 import '../journal_media.dart' as media;
 import '../models.dart';
 import '../notifications.dart';
+import '../release_features.dart';
 import '../storage.dart';
 import '../social.dart';
 import '../tokens.dart';
@@ -451,13 +452,20 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     final saved = await Storage.load();
     final state = saved?.$1 ?? GameState();
     final quests = saved?.$2 ?? _buildQuests();
+    final releaseCapabilitiesChanged = !kVisitorProfileSharingEnabled
+        ? state.disableVisitorProfileSharing()
+        : !kVisitorPhotoSharingEnabled
+        ? state.disableVisitorPhotoSharing()
+        : false;
     state.rollover(quests);
     _state?.removeListener(_persist);
     state.addListener(_persist);
     // No clean save in _key (first run, or a corrupt blob was quarantined):
     // write the fresh state now so the local store holds valid bytes — never
     // leave a corrupt blob sitting in _key to be read by a later push.
-    if (saved == null) await Storage.save(state, quests);
+    if (saved == null || releaseCapabilitiesChanged) {
+      await Storage.save(state, quests);
+    }
     if (!mounted) return;
     Haptics.reduceMotion = state.reduceMotion;
     // Decode the selected complete room while the Quest home is appearing, so

@@ -430,8 +430,8 @@ SOCIAL_PASS = [
     ("MY SPACE", GOLDENS / "store_02_keep_1290x2796.png"),
     ("YOUR CIRCLE", GOLDENS / "store_02b_hearth_circle_1290x2796.png"),
     (
-        "OPT-IN VISITOR PAGE",
-        GOLDENS / "store_02c_visitor_profile_1290x2796.png",
+        "GENERATED VISITOR ROOM",
+        GOLDENS / "store_02c_visitor_room_1290x2796.png",
     ),
 ]
 
@@ -448,12 +448,12 @@ MY_SPACE_CARDS_PASS = [
 
 SHARING_JOURNAL_PASS = [
     (
-        "VISITOR PROFILE",
-        GOLDENS / "store_02c_visitor_profile_1290x2796.png",
+        "GENERATED VISITOR ROOM",
+        GOLDENS / "store_02c_visitor_room_1290x2796.png",
     ),
     (
-        "VISITOR CARDS + CIRCLE",
-        GOLDENS / "store_02d_visitor_cards_1290x2796.png",
+        "FIXED SUPPORT PICKER",
+        GOLDENS / "store_02f_support_picker_1290x2796.png",
     ),
     (
         "PROMPT VS WRITING",
@@ -464,7 +464,7 @@ SHARING_JOURNAL_PASS = [
         GOLDENS / "store_13c_journal_read_mode_1290x2796.png",
     ),
     (
-        "PER-CARD VISIBILITY",
+        "LOCAL-ONLY SPACE CARDS",
         GOLDENS / "store_14c_my_space_arranger_1290x2796.png",
     ),
     (

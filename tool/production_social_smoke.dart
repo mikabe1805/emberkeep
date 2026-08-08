@@ -6,9 +6,10 @@ import 'dart:typed_data';
 /// A deliberately explicit production smoke for Room of Days sharing rules.
 ///
 /// This creates two temporary anonymous Firebase identities, exercises the
-/// public room, private receipt, Spark, and visitor-photo boundaries, then
-/// removes every object and identity it created. It refuses to run unless the
-/// caller passes `--confirm-production`.
+/// generated-only public room, private receipt, and Spark boundaries, then
+/// removes every object and identity it created. Dormant Storage rules run only
+/// with `--include-dormant-storage`. The script refuses to run unless the caller
+/// passes `--confirm-production`.
 Future<void> main(List<String> arguments) async {
   if (!arguments.contains('--confirm-production')) {
     stderr.writeln(
@@ -27,13 +28,13 @@ Future<void> main(List<String> arguments) async {
     );
   }
 
-  final includeStorage = !arguments.contains('--firestore-only');
+  final includeStorage = arguments.contains('--include-dormant-storage');
   final smoke = _ProductionSmoke(config, includeStorage: includeStorage);
   try {
     await smoke.run();
     stdout.writeln(
       includeStorage
-          ? 'PASS: production sharing, Spark, Circle, and photo rules.'
+          ? 'PASS: production sharing, Spark, Circle, and dormant photo rules.'
           : 'PASS: production sharing, Spark, and Circle rules. '
                 'Storage was intentionally skipped.',
     );
@@ -68,44 +69,46 @@ class _ProductionSmoke {
     owner = await _createAnonymousIdentity();
     visitor = await _createAnonymousIdentity();
 
-    roomCode = await _unusedRoomCode();
-    final code = roomCode!;
-
     _step('Publish a version 5 room as its owner');
-    final create = await _commitDocument(
-      path: 'rooms/$code',
-      token: owner!.idToken,
-      fields: _roomFields(owner!.uid, code),
-      serverTimestampField: 'updatedAt',
-      exists: false,
-    );
-    _expect(create, 200, 'owner v5 room create');
-    roomCreated = true;
+    roomCode = await _reserveGeneratedRoom();
+    final code = roomCode!;
+    final generatedFields = _roomFields(owner!.uid);
 
     _step('Read the exact code publicly and reject room enumeration');
     final exact = await http.get(Uri.parse('$_documentsBase/rooms/$code'));
     _expect(exact, 200, 'public exact-code read');
     final exactJson = jsonDecode(exact.text) as Map<String, dynamic>;
+    final exactFields = exactJson['fields'] as Map<String, dynamic>;
+    final profileVisible =
+        (exactFields['profileVisible'] as Map<String, dynamic>)['booleanValue'];
     final displayName =
-        ((exactJson['fields'] as Map<String, dynamic>)['displayName']
-            as Map<String, dynamic>)['stringValue'];
-    if (displayName != 'Release keeper') {
-      throw StateError('Exact-code read returned the wrong display name.');
+        (exactFields['displayName'] as Map<String, dynamic>)['stringValue'];
+    if (profileVisible != false || displayName != '') {
+      throw StateError('Exact-code read exposed a visitor profile.');
     }
     final list = await http.get(Uri.parse('$_documentsBase/rooms?pageSize=1'));
     _expect(list, 403, 'public room listing');
 
-    _step('Accept versioned visitor-photo paths and reject arbitrary ones');
-    const profileRevision = 'releaseSmokePhoto00001';
-    const seasonRevision = 'releaseSmokeSeason0001';
-    final mediaFields = _roomFields(
-      owner!.uid,
-      code,
-      profilePhotoPath:
-          'shared_rooms/${owner!.uid}/$code/profile/$profileRevision',
-      seasonPhotoPath:
-          'shared_rooms/${owner!.uid}/$code/season/$seasonRevision',
+    _step('Reject visitor writing and photo handles in the v1 room schema');
+    final ugcFields = Map<String, Object?>.from(generatedFields)
+      ..['profileVisible'] = true
+      ..['displayName'] = 'Release keeper'
+      ..['about'] = 'Temporary release smoke.'
+      ..['featuredGoals'] = <String>['Keep one small thing']
+      ..['cardOrder'] = <String>['about', 'rightNow'];
+    final ugcUpdate = await _commitDocument(
+      path: 'rooms/$code',
+      token: owner!.idToken,
+      fields: ugcFields,
+      serverTimestampField: 'updatedAt',
+      exists: true,
     );
+    _expect(ugcUpdate, 403, 'visitor-profile UGC');
+
+    const profileRevision = 'releaseSmokePhoto00001';
+    final mediaFields = Map<String, Object?>.from(generatedFields)
+      ..['profilePhotoPath'] =
+          'shared_rooms/${owner!.uid}/$code/profile/$profileRevision';
     final mediaUpdate = await _commitDocument(
       path: 'rooms/$code',
       token: owner!.idToken,
@@ -113,22 +116,10 @@ class _ProductionSmoke {
       serverTimestampField: 'updatedAt',
       exists: true,
     );
-    _expect(mediaUpdate, 200, 'valid deterministic media paths');
-
-    final badMediaFields = Map<String, Object?>.from(mediaFields)
-      ..['profilePhotoPath'] =
-          'shared_rooms/${owner!.uid}/$code/not-a-public-slot';
-    final badMedia = await _commitDocument(
-      path: 'rooms/$code',
-      token: owner!.idToken,
-      fields: badMediaFields,
-      serverTimestampField: 'updatedAt',
-      exists: true,
-    );
-    _expect(badMedia, 403, 'arbitrary media path');
+    _expect(mediaUpdate, 403, 'visitor-photo path');
 
     _step('Reject an owner downgrade from schema v5 to v4');
-    final downgradeFields = Map<String, Object?>.from(mediaFields)
+    final downgradeFields = Map<String, Object?>.from(generatedFields)
       ..remove('profilePhotoPath')
       ..remove('seasonPhotoPath')
       ..['v'] = 4;
@@ -351,28 +342,33 @@ class _ProductionSmoke {
     }
   }
 
-  Future<String> _unusedRoomCode() async {
+  Future<String> _reserveGeneratedRoom() async {
     const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
     for (var attempt = 0; attempt < 12; attempt++) {
       final code = List.generate(
         6,
         (_) => alphabet[_random.nextInt(alphabet.length)],
       ).join();
-      final existing = await http.get(Uri.parse('$_documentsBase/rooms/$code'));
-      if (existing.statusCode == 404) return code;
-      if (existing.statusCode != 200) {
-        _expect(existing, 404, 'room collision check');
+      final create = await _commitDocument(
+        path: 'rooms/$code',
+        token: owner!.idToken,
+        fields: _roomFields(owner!.uid),
+        serverTimestampField: 'updatedAt',
+        exists: false,
+      );
+      if (create.statusCode == 200) {
+        roomCreated = true;
+        return code;
       }
+      if (create.statusCode == 403) continue;
+      _expect(create, 200, 'owner v5 room create');
     }
-    throw StateError('Could not reserve an unused room code.');
+    throw StateError(
+      'Could not publish a generated-only v5 room after 12 reservations.',
+    );
   }
 
-  Map<String, Object?> _roomFields(
-    String ownerUid,
-    String code, {
-    String profilePhotoPath = '',
-    String seasonPhotoPath = '',
-  }) => {
+  Map<String, Object?> _roomFields(String ownerUid) => {
     'uid': ownerUid,
     'name': 'Fellow keeper',
     'title': 'STEADY FLAME',
@@ -384,19 +380,19 @@ class _ProductionSmoke {
     'window': 'moon',
     'awake': true,
     'memories': 8,
-    'weather': 'steady',
+    'weather': 'unknown',
     'todayLit': true,
     'focusKind': 'quiet',
     'focusUntil': 0,
-    'profileVisible': true,
-    'displayName': 'Release keeper',
-    'about': 'Temporary release smoke.',
-    'featuredGoals': <String>['Keep one small thing'],
-    'cardOrder': <String>['about', 'rightNow', 'thisSeason'],
+    'profileVisible': false,
+    'displayName': '',
+    'about': '',
+    'featuredGoals': <String>[],
+    'cardOrder': <String>[],
     'pinnedMoments': <Map<String, Object?>>[],
-    'season': 'Testing the room we share.',
-    'profilePhotoPath': profilePhotoPath,
-    'seasonPhotoPath': seasonPhotoPath,
+    'season': '',
+    'profilePhotoPath': '',
+    'seasonPhotoPath': '',
     'v': 5,
   };
 

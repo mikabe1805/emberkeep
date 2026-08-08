@@ -73,6 +73,37 @@ Future<void> _pumpCompact(
 }
 
 void main() {
+  testWidgets('v1 ignores a stale opted-in visitor profile payload', (
+    tester,
+  ) async {
+    await _pumpCompact(
+      tester,
+      VisitRoomScreen(
+        room: _room(
+          profileVisible: true,
+          displayName: 'STALE-NAME-SENTINEL',
+          about: 'STALE-INTRO-SENTINEL',
+          featuredGoals: const ['STALE-GOAL-SENTINEL'],
+          cardOrder: const ['about', 'rightNow', 'thisSeason'],
+          season: 'STALE-SEASON-SENTINEL',
+        ),
+        code: 'ABC234',
+        lively: false,
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('visitor-profile-card')), findsNothing);
+    for (final sentinel in const [
+      'STALE-NAME-SENTINEL',
+      'STALE-INTRO-SENTINEL',
+      'STALE-GOAL-SENTINEL',
+      'STALE-SEASON-SENTINEL',
+    ]) {
+      expect(find.text(sentinel), findsNothing);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'opted-out visitor profile stays entirely private at large text',
     (tester) async {
@@ -118,6 +149,7 @@ void main() {
         ),
         code: 'ABC234',
         lively: false,
+        visitorProfileSharingEnabled: true,
       ),
     );
 
@@ -164,6 +196,7 @@ void main() {
           ),
           code: 'ABC234',
           lively: false,
+          visitorProfileSharingEnabled: true,
         ),
       );
 
@@ -205,6 +238,7 @@ void main() {
         ),
         code: 'ABC234',
         lively: false,
+        visitorProfileSharingEnabled: true,
         photoUrlLoader: (_) async {
           loaderCalls++;
           return 'https://example.test/photo';
@@ -237,6 +271,7 @@ void main() {
         code: 'ABC234',
         lively: false,
         visitorPhotoSharingEnabled: true,
+        visitorProfileSharingEnabled: true,
         photoUrlLoader: (_) async => throw StateError('offline test'),
       ),
     );
@@ -276,7 +311,13 @@ void main() {
     );
     await _pumpCompact(
       tester,
-      VisitRoomScreen(room: room, code: 'ABC234', lively: false),
+      VisitRoomScreen(
+        room: room,
+        code: 'ABC234',
+        lively: false,
+        visitorPhotoSharingEnabled: true,
+        visitorProfileSharingEnabled: true,
+      ),
     );
 
     expect(find.byKey(const ValueKey('visitor-profile-photo')), findsNothing);

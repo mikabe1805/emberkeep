@@ -57,6 +57,7 @@ Future<void> _changePlayerName(
   GameState state,
   VoidCallback onPersist,
   SpaceRoomPublisher onPublishRoom,
+  bool visitorProfileSharingEnabled,
 ) async {
   var editedName = state.playerName ?? '';
   final next = await showDialog<String>(
@@ -101,7 +102,18 @@ Future<void> _changePlayerName(
   final code = state.roomCode;
   RoomPublishResult? published;
   if (code != null &&
-      jsonEncode(roomDisplay(state)) != jsonEncode(roomDisplay(draft))) {
+      jsonEncode(
+            roomDisplay(
+              state,
+              visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+            ),
+          ) !=
+          jsonEncode(
+            roomDisplay(
+              draft,
+              visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+            ),
+          )) {
     final progress = showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -171,6 +183,7 @@ Future<void> _personalizeSpace(
   VoidCallback onPersist,
   SpaceRoomPublisher onPublishRoom,
   bool visitorPhotoSharingEnabled,
+  bool visitorProfileSharingEnabled,
 ) async {
   await Navigator.of(context).push<void>(
     MaterialPageRoute(
@@ -180,6 +193,7 @@ Future<void> _personalizeSpace(
         onPersist: onPersist,
         onPublishRoom: onPublishRoom,
         visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+        visitorProfileSharingEnabled: visitorProfileSharingEnabled,
       ),
     ),
   );
@@ -214,12 +228,14 @@ class _SpacePageArranger extends StatefulWidget {
     required this.onPersist,
     required this.onPublishRoom,
     required this.visitorPhotoSharingEnabled,
+    required this.visitorProfileSharingEnabled,
   });
 
   final GameState state;
   final VoidCallback onPersist;
   final SpaceRoomPublisher onPublishRoom;
   final bool visitorPhotoSharingEnabled;
+  final bool visitorProfileSharingEnabled;
 
   @override
   State<_SpacePageArranger> createState() => _SpacePageArrangerState();
@@ -252,17 +268,23 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       if (!_order.contains(kind)) _order.add(kind);
     }
     _hidden = widget.state.hiddenSpaceCards.toSet();
-    _visitorVisible = widget.state.visitorSpaceCards.toSet();
+    _visitorVisible = widget.visitorProfileSharingEnabled
+        ? widget.state.visitorSpaceCards.toSet()
+        : <SpaceCardKind>{};
     _featuredGoals = widget.state.featuredGoalTitles.toSet();
     _pinnedMoments = widget.state.memoryPins.toSet();
     _profilePhotoNoteId = widget.state.spaceProfilePhotoNoteId;
     _seasonPhotoNoteId = widget.state.spaceSeasonPhotoNoteId;
     _shareProfilePhoto =
+        widget.visitorProfileSharingEnabled &&
         widget.visitorPhotoSharingEnabled &&
         widget.state.shareSpaceProfilePhoto;
     _shareSeasonPhoto =
-        widget.visitorPhotoSharingEnabled && widget.state.shareSpaceSeasonPhoto;
-    _shared = widget.state.shareSpaceProfile;
+        widget.visitorProfileSharingEnabled &&
+        widget.visitorPhotoSharingEnabled &&
+        widget.state.shareSpaceSeasonPhoto;
+    _shared =
+        widget.visitorProfileSharingEnabled && widget.state.shareSpaceProfile;
   }
 
   @override
@@ -282,17 +304,29 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
     target.setSpacePage(
       order: _order,
       hidden: _hidden,
-      visitorVisible: _visitorVisible,
+      visitorVisible: widget.visitorProfileSharingEnabled
+          ? _visitorVisible
+          : const <SpaceCardKind>[],
       intro: _intro.text,
       featuredGoalTitles: _featuredGoals,
       seasonText: _season.text,
       profilePhotoNoteId: _profilePhotoNoteId,
       seasonPhotoNoteId: _seasonPhotoNoteId,
       shareProfilePhoto:
-          widget.visitorPhotoSharingEnabled && _shareProfilePhoto,
-      shareSeasonPhoto: widget.visitorPhotoSharingEnabled && _shareSeasonPhoto,
-      shareProfile: _shared,
+          widget.visitorProfileSharingEnabled &&
+          widget.visitorPhotoSharingEnabled &&
+          _shareProfilePhoto,
+      shareSeasonPhoto:
+          widget.visitorProfileSharingEnabled &&
+          widget.visitorPhotoSharingEnabled &&
+          _shareSeasonPhoto,
+      shareProfile: widget.visitorProfileSharingEnabled && _shared,
     );
+    if (!widget.visitorProfileSharingEnabled) {
+      target.disableVisitorProfileSharing();
+    } else if (!widget.visitorPhotoSharingEnabled) {
+      target.disableVisitorPhotoSharing();
+    }
   }
 
   void _commitDraft(GameState draft) {
@@ -330,12 +364,21 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
     // reduction.
     final draft = GameState.fromJson(widget.state.toJson());
     _applyDraft(draft);
-    final currentDisplay = roomDisplay(widget.state);
-    final nextDisplay = roomDisplay(draft);
+    final currentDisplay = roomDisplay(
+      widget.state,
+      visitorPhotoSharingEnabled: widget.visitorPhotoSharingEnabled,
+      visitorProfileSharingEnabled: widget.visitorProfileSharingEnabled,
+    );
+    final nextDisplay = roomDisplay(
+      draft,
+      visitorPhotoSharingEnabled: widget.visitorPhotoSharingEnabled,
+      visitorProfileSharingEnabled: widget.visitorProfileSharingEnabled,
+    );
     String photoIntent(GameState state) => jsonEncode({
       for (final entry in selectedSharedRoomPhotoFiles(
         state,
         visitorPhotoSharingEnabled: widget.visitorPhotoSharingEnabled,
+        visitorProfileSharingEnabled: widget.visitorProfileSharingEnabled,
       ).entries)
         entry.key.name: entry.value,
     });
@@ -493,10 +536,13 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
                       parent: AlwaysScrollableScrollPhysics(),
                     ),
                     padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
-                    header: _SpaceSharingPanel(
-                      shared: _shared,
-                      onChanged: (value) => setState(() => _shared = value),
-                    ),
+                    header: widget.visitorProfileSharingEnabled
+                        ? _SpaceSharingPanel(
+                            shared: _shared,
+                            onChanged: (value) =>
+                                setState(() => _shared = value),
+                          )
+                        : const _PrivateSpaceReleaseNote(),
                     itemCount: _order.length,
                     onReorderItem: _reorder,
                     proxyDecorator: (child, _, animation) => AnimatedBuilder(
@@ -521,6 +567,8 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
                         hidden: _hidden.contains(kind),
                         visitorVisible: _visitorVisible.contains(kind),
                         visitorPageEnabled: _shared,
+                        visitorProfileSharingEnabled:
+                            widget.visitorProfileSharingEnabled,
                         expanded: _expanded.contains(kind),
                         onExpand: () => setState(() {
                           if (!_expanded.remove(kind)) _expanded.add(kind);
@@ -683,6 +731,45 @@ class _SpaceSharingPanel extends StatelessWidget {
   }
 }
 
+class _PrivateSpaceReleaseNote extends StatelessWidget {
+  const _PrivateSpaceReleaseNote();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 12, bottom: 12),
+    child: Container(
+      key: const ValueKey('space-profile-local-only'),
+      padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
+      decoration: facetedDecoration(
+        cut: 10,
+        color: Palette.glassFill,
+        borderColor: Palette.glassEdge,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.lock_outline_rounded,
+            size: 18,
+            color: Palette.textLo,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              'Your writing stays private. Shared codes show the room you built, not the words you keep here.',
+              style: Type.body.copyWith(
+                fontSize: 11.8,
+                height: 1.4,
+                color: Palette.textMid,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class _SpaceArrangerCard extends StatelessWidget {
   const _SpaceArrangerCard({
     super.key,
@@ -691,6 +778,7 @@ class _SpaceArrangerCard extends StatelessWidget {
     required this.hidden,
     required this.visitorVisible,
     required this.visitorPageEnabled,
+    required this.visitorProfileSharingEnabled,
     required this.expanded,
     required this.onExpand,
     required this.onVisibilityChanged,
@@ -703,6 +791,7 @@ class _SpaceArrangerCard extends StatelessWidget {
   final bool hidden;
   final bool visitorVisible;
   final bool visitorPageEnabled;
+  final bool visitorProfileSharingEnabled;
   final bool expanded;
   final VoidCallback onExpand;
   final VoidCallback onVisibilityChanged;
@@ -826,13 +915,14 @@ class _SpaceArrangerCard extends StatelessWidget {
                   ),
                 ],
               ),
-              _VisitorScopeControl(
-                kind: kind,
-                selected: visitorVisible,
-                visitorPageEnabled: visitorPageEnabled,
-                accent: accent,
-                onChanged: onVisitorVisibilityChanged,
-              ),
+              if (visitorProfileSharingEnabled)
+                _VisitorScopeControl(
+                  kind: kind,
+                  selected: visitorVisible,
+                  visitorPageEnabled: visitorPageEnabled,
+                  accent: accent,
+                  onChanged: onVisitorVisibilityChanged,
+                ),
               if (expanded)
                 Container(
                   key: ValueKey('space-card-editor-${kind.name}'),
@@ -1595,6 +1685,7 @@ class MePage extends StatelessWidget {
     required this.onDeleteAccount,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
+    this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
   });
 
   final GameState state;
@@ -1643,6 +1734,7 @@ class MePage extends StatelessWidget {
   /// authored plate and light respond beneath them.
   final ValueListenable<Offset> parallax;
   final bool visitorPhotoSharingEnabled;
+  final bool visitorProfileSharingEnabled;
 
   static final _privacyUrl = Uri.parse(PublicLinks.privacy);
   static final _deletionUrl = Uri.parse(PublicLinks.deleteAccount);
@@ -1813,6 +1905,7 @@ class MePage extends StatelessWidget {
                         state,
                         onPersist,
                         onPublishRoom,
+                        visitorProfileSharingEnabled,
                       ),
                     ),
                   ],
@@ -1919,12 +2012,14 @@ class MePage extends StatelessWidget {
           _PersonalSpacePanel(
             state: state,
             visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+            visitorProfileSharingEnabled: visitorProfileSharingEnabled,
             onEdit: () => _personalizeSpace(
               context,
               state,
               onPersist,
               onPublishRoom,
               visitorPhotoSharingEnabled,
+              visitorProfileSharingEnabled,
             ),
           ),
           const SizedBox(height: 14),
@@ -3310,11 +3405,13 @@ class _PersonalSpacePanel extends StatelessWidget {
     required this.state,
     required this.onEdit,
     required this.visitorPhotoSharingEnabled,
+    required this.visitorProfileSharingEnabled,
   });
 
   final GameState state;
   final VoidCallback onEdit;
   final bool visitorPhotoSharingEnabled;
+  final bool visitorProfileSharingEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -3350,8 +3447,10 @@ class _PersonalSpacePanel extends StatelessWidget {
           kind,
     ];
     bool shared(SpaceCardKind kind) =>
-        state.shareSpaceProfile && state.visitorSpaceCards.contains(kind);
-    final sharedCount = state.shareSpaceProfile
+        visitorProfileSharingEnabled &&
+        state.shareSpaceProfile &&
+        state.visitorSpaceCards.contains(kind);
+    final sharedCount = visitorProfileSharingEnabled && state.shareSpaceProfile
         ? state.visitorSpaceCards.length
         : 0;
     return Column(
@@ -3359,7 +3458,8 @@ class _PersonalSpacePanel extends StatelessWidget {
       children: [
         _SpaceDeckHeading(
           sharedCount: sharedCount,
-          visitorPageOpen: state.shareSpaceProfile,
+          visitorPageOpen:
+              visitorProfileSharingEnabled && state.shareSpaceProfile,
           onEdit: onEdit,
         ),
         const SizedBox(height: 10),
@@ -3374,6 +3474,7 @@ class _PersonalSpacePanel extends StatelessWidget {
                 shared: shared(SpaceCardKind.about),
                 photo: profilePhoto,
                 photoShared:
+                    visitorProfileSharingEnabled &&
                     visitorPhotoSharingEnabled &&
                     state.shareSpaceProfile &&
                     state.shareSpaceProfilePhoto,
@@ -3391,6 +3492,7 @@ class _PersonalSpacePanel extends StatelessWidget {
                 photo: seasonPhoto,
                 shared: shared(SpaceCardKind.thisSeason),
                 photoShared:
+                    visitorProfileSharingEnabled &&
                     visitorPhotoSharingEnabled &&
                     shared(SpaceCardKind.thisSeason) &&
                     state.shareSpaceSeasonPhoto,

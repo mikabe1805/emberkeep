@@ -367,6 +367,16 @@ void main() {
       'v1 publication clears photo intent without touching Storage',
       () async {
         final (current, target) = states();
+        target
+          ..playerName = 'PRIVATE-NAME-SENTINEL'
+          ..spaceIntro = 'PRIVATE-INTRO-SENTINEL'
+          ..spaceSeasonText = 'PRIVATE-SEASON-SENTINEL'
+          ..shareSpaceSeasonPhoto = true
+          ..spaceSeasonPhotoPath =
+              'shared_rooms/owner/ABC234/season/$_revision';
+        target.featuredGoalTitles.add('PRIVATE-GOAL-SENTINEL');
+        target.visitorSpaceCards.addAll(SpaceCardKind.values);
+        target.memoryPins.add(target.journal.last.id);
         final publishes = <Map<String, dynamic>>[];
         var mediaCalls = 0;
         final service = _service(
@@ -393,12 +403,25 @@ void main() {
         expect(result.ok, isTrue);
         expect(mediaCalls, 0);
         expect(publishes, hasLength(1));
+        expect(publishes.single['profileVisible'], isFalse);
+        expect(publishes.single['displayName'], isEmpty);
+        expect(publishes.single['about'], isEmpty);
+        expect(publishes.single['featuredGoals'], isEmpty);
+        expect(publishes.single['cardOrder'], isEmpty);
+        expect(publishes.single['pinnedMoments'], isEmpty);
+        expect(publishes.single['season'], isEmpty);
         expect(publishes.single['profilePhotoPath'], isEmpty);
         expect(publishes.single['seasonPhotoPath'], isEmpty);
+        expect(target.shareSpaceProfile, isFalse);
+        expect(target.visitorSpaceCards, isEmpty);
         expect(target.shareSpaceProfilePhoto, isFalse);
         expect(target.shareSpaceSeasonPhoto, isFalse);
         expect(target.spaceProfilePhotoPath, isEmpty);
         expect(target.spaceSeasonPhotoPath, isEmpty);
+        expect(target.playerName, 'PRIVATE-NAME-SENTINEL');
+        expect(target.spaceIntro, 'PRIVATE-INTRO-SENTINEL');
+        expect(target.spaceSeasonText, 'PRIVATE-SEASON-SENTINEL');
+        expect(target.featuredGoalTitles, ['PRIVATE-GOAL-SENTINEL']);
       },
     );
 
@@ -421,6 +444,7 @@ void main() {
           mediaService: service,
           publicationClient: client(publishes: publishes, failFinal: true),
           visitorPhotoSharingEnabled: true,
+          visitorProfileSharingEnabled: true,
         );
 
         expect(result.ok, isFalse);
@@ -466,6 +490,7 @@ void main() {
           mediaService: service,
           publicationClient: client(publishes: publishes, failFinal: false),
           visitorPhotoSharingEnabled: true,
+          visitorProfileSharingEnabled: true,
         );
 
         expect(result.ok, isTrue);
@@ -639,6 +664,7 @@ void main() {
         selectedSharedRoomPhotoFiles(
           withBothPhotos(),
           visitorPhotoSharingEnabled: true,
+          visitorProfileSharingEnabled: true,
         ).keys,
         containsAll(<SharedRoomMediaSlot>[
           SharedRoomMediaSlot.profile,
@@ -652,6 +678,7 @@ void main() {
       final selected = selectedSharedRoomPhotoFiles(
         s,
         visitorPhotoSharingEnabled: true,
+        visitorProfileSharingEnabled: true,
       );
       expect(selected, isNot(contains(SharedRoomMediaSlot.profile)));
       expect(selected, contains(SharedRoomMediaSlot.season));
@@ -660,7 +687,11 @@ void main() {
     test('closing the visitor page drops every photo', () {
       final s = withBothPhotos()..shareSpaceProfile = false;
       expect(
-        selectedSharedRoomPhotoFiles(s, visitorPhotoSharingEnabled: true),
+        selectedSharedRoomPhotoFiles(
+          s,
+          visitorPhotoSharingEnabled: true,
+          visitorProfileSharingEnabled: true,
+        ),
         isEmpty,
       );
     });
@@ -671,6 +702,7 @@ void main() {
       final selected = selectedSharedRoomPhotoFiles(
         s,
         visitorPhotoSharingEnabled: true,
+        visitorProfileSharingEnabled: true,
       );
       expect(selected, isNot(contains(SharedRoomMediaSlot.season)));
       expect(selected, contains(SharedRoomMediaSlot.profile));
@@ -679,7 +711,11 @@ void main() {
     test('deselecting the source note drops its photo', () {
       final s = withBothPhotos()..spaceSeasonPhotoNoteId = null;
       expect(
-        selectedSharedRoomPhotoFiles(s, visitorPhotoSharingEnabled: true),
+        selectedSharedRoomPhotoFiles(
+          s,
+          visitorPhotoSharingEnabled: true,
+          visitorProfileSharingEnabled: true,
+        ),
         isNot(contains(SharedRoomMediaSlot.season)),
       );
     });

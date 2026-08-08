@@ -167,8 +167,12 @@ String roomInviteText(String code, {String? ownerName}) {
 /// A local name enters the platform share sheet only under the same explicit
 /// visitor-page consent that publishes it with the room. Keeping the visitor
 /// page closed must also keep the invite itself anonymous.
-String? roomInviteOwnerName(GameState state) =>
-    state.shareSpaceProfile ? state.playerName : null;
+String? roomInviteOwnerName(
+  GameState state, {
+  bool visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
+}) => visitorProfileSharingEnabled && state.shareSpaceProfile
+    ? state.playerName
+    : null;
 
 String circleAddNoticeText(int count) => count == 1
     ? 'Someone added your space to their Circle.'
@@ -185,8 +189,13 @@ String _sharedProfileText(String? value, int maxCharacters) {
 Map<SharedRoomMediaSlot, String> selectedSharedRoomPhotoFiles(
   GameState s, {
   bool visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
+  bool visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
 }) {
-  if (!visitorPhotoSharingEnabled || !s.shareSpaceProfile) return const {};
+  if (!visitorPhotoSharingEnabled ||
+      !visitorProfileSharingEnabled ||
+      !s.shareSpaceProfile) {
+    return const {};
+  }
   final selected = <SharedRoomMediaSlot, String>{};
   final profile = s.spaceProfilePhotoNote;
   if (s.shareSpaceProfilePhoto && profile != null) {
@@ -243,6 +252,7 @@ Map<String, dynamic> roomDisplay(
   String? mediaRoomCode,
   Map<SharedRoomMediaSlot, String>? mediaObjectPaths,
   bool visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
+  bool visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
 }) {
   final milestoneGoals = s.goals
       .where((g) => g.complete || g.progress >= 25)
@@ -259,7 +269,7 @@ Map<String, dynamic> roomDisplay(
       s.unlockedAchievements.length +
       milestoneGoals +
       hearthMemories;
-  final profileVisible = s.shareSpaceProfile;
+  final profileVisible = visitorProfileSharingEnabled && s.shareSpaceProfile;
   // Energy weather is a private daily capacity lens (engine.dart). It leaves
   // the device only through the same door as the rest of the person: the
   // explicit visitor-profile opt-in. Code bearers without that opt-in see
@@ -306,6 +316,7 @@ Map<String, dynamic> roomDisplay(
   final selectedPhotos = selectedSharedRoomPhotoFiles(
     s,
     visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+    visitorProfileSharingEnabled: visitorProfileSharingEnabled,
   );
   final publishedPhotoPaths = mediaObjectPaths ?? _stateSharedRoomPhotoPaths(s);
   return {
@@ -422,6 +433,7 @@ Future<RoomPublishResult> publishSpaceRoomState(
   SharedRoomMediaService? mediaService,
   RoomPublicationClient? publicationClient,
   bool visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
+  bool visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
 }) async {
   final cloud = cloudSync ?? CloudSync.instance;
   final publication = publicationClient ?? RoomPublicationClient.cloud(cloud);
@@ -435,18 +447,26 @@ Future<RoomPublishResult> publishSpaceRoomState(
   }
 
   // The v1 store candidate takes this route. It writes a complete v5 room with
-  // empty photo handles in one acknowledged Firestore operation and never
-  // constructs a Firebase Storage client. A successful write also forgets any
-  // stale pre-release consent so a later opt-in build cannot revive it.
-  if (!visitorPhotoSharingEnabled) {
+  // no user-authored profile or photo handles in one acknowledged Firestore
+  // operation and never constructs a Firebase Storage client. A successful
+  // write also forgets stale pre-release consent so a later opt-in build cannot
+  // revive it without a new deliberate choice.
+  if (!visitorProfileSharingEnabled || !visitorPhotoSharingEnabled) {
     final display = roomDisplay(
       target,
       mediaOwnerUid: ownerUid,
       mediaRoomCode: code,
-      visitorPhotoSharingEnabled: false,
+      visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+      visitorProfileSharingEnabled: visitorProfileSharingEnabled,
     );
     final published = await publication.publishRoom(display, code: code);
-    if (published.ok) target.disableVisitorPhotoSharing();
+    if (published.ok) {
+      if (!visitorProfileSharingEnabled) {
+        target.disableVisitorProfileSharing();
+      } else if (!visitorPhotoSharingEnabled) {
+        target.disableVisitorPhotoSharing();
+      }
+    }
     return published;
   }
 
@@ -476,6 +496,7 @@ Future<RoomPublishResult> publishSpaceRoomState(
     mediaRoomCode: normalizedInputCode,
     mediaObjectPaths: previousPaths,
     visitorPhotoSharingEnabled: true,
+    visitorProfileSharingEnabled: true,
   );
   final reserved = await publication.publishRoom(currentDisplay, code: code);
   final finalCode = reserved.code;
@@ -486,10 +507,15 @@ Future<RoomPublishResult> publishSpaceRoomState(
   if (createdNew) previousPaths = const {};
   final previousFiles = createdNew
       ? const <SharedRoomMediaSlot, String>{}
-      : selectedSharedRoomPhotoFiles(current, visitorPhotoSharingEnabled: true);
+      : selectedSharedRoomPhotoFiles(
+          current,
+          visitorPhotoSharingEnabled: true,
+          visitorProfileSharingEnabled: true,
+        );
   final selected = selectedSharedRoomPhotoFiles(
     target,
     visitorPhotoSharingEnabled: true,
+    visitorProfileSharingEnabled: true,
   );
   final changed = <SharedRoomMediaSlot, String>{
     for (final entry in selected.entries)
@@ -551,6 +577,7 @@ Future<RoomPublishResult> publishSpaceRoomState(
     mediaRoomCode: finalCode,
     mediaObjectPaths: finalPaths,
     visitorPhotoSharingEnabled: true,
+    visitorProfileSharingEnabled: true,
   );
   final published = await publication.publishRoom(display, code: finalCode);
   if (!published.ok) {
@@ -983,7 +1010,7 @@ class _ShareDialogState extends State<_ShareDialog> {
                       const SizedBox(width: 9),
                       Expanded(
                         child: Text(
-                          'Anyone with this link can visit until you stop sharing. They see your room, whether its fire is lit today, and any quiet-company timer — plus only the cards and photos you chose. A profile or This season photo appears only when you separately allow it; every other photo, Journal page, quest, and account detail stays private.',
+                          'Anyone with this link can visit until you stop sharing. They see the room you built and a few small signs of presence, like whether its fire is lit today or a quiet-company timer is running. Your name, writing, photos, quests, Journal pages, and account details stay private.',
                           style: Type.body.copyWith(
                             fontSize: 11,
                             height: 1.42,

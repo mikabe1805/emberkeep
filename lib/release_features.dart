@@ -9,3 +9,13 @@ const bool kVisitorPhotoSharingEnabled = bool.fromEnvironment(
   'VISITOR_PHOTO_SHARING',
   defaultValue: false,
 );
+
+/// User-authored visitor profiles require a complete UGC safety operation:
+/// posting filters, terms, reporting, blocking, and timely human moderation.
+/// The first store release keeps My Space writing private and shares only the
+/// app-generated room/presence payload. Do not enable this flag in a store build
+/// until those controls and the moderation workflow have been reviewed.
+const bool kVisitorProfileSharingEnabled = bool.fromEnvironment(
+  'VISITOR_PROFILE_SHARING',
+  defaultValue: false,
+);

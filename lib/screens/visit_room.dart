@@ -23,11 +23,10 @@ import '../widgets/spark_picker.dart';
 import '../widgets/visitor_shared_room_photo.dart';
 
 /// A read-only look at someone else's "Your Space" (round-52, social). Built
-/// only from its bounded public room document: preset appearance plus profile
-/// cards the owner selected. Journal photos remain local in the v1 candidate;
-/// a later explicitly enabled build may accept the two validated Storage paths.
-/// Quests, unselected Journal pages, local filenames, and account data never
-/// travel.
+/// only from its bounded public room document. The v1 candidate accepts preset
+/// appearance and app-generated presence only; user-authored profile cards and
+/// journal photos require separately enabled, reviewed release capabilities.
+/// Quests, Journal pages, local filenames, and account data never travel.
 class VisitRoomScreen extends StatelessWidget {
   const VisitRoomScreen({
     super.key,
@@ -41,6 +40,7 @@ class VisitRoomScreen extends StatelessWidget {
     this.photoUrlLoader,
     this.sparkSender,
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
+    this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
   });
 
   final Map<String, dynamic> room;
@@ -61,6 +61,7 @@ class VisitRoomScreen extends StatelessWidget {
   final VoidCallback? onPersist;
   final VisitorPhotoUrlLoader? photoUrlLoader;
   final bool visitorPhotoSharingEnabled;
+  final bool visitorProfileSharingEnabled;
 
   /// Test seam for the leave-a-note action; the real path acquires the
   /// anonymous social session only on the explicit send.
@@ -74,7 +75,8 @@ class VisitRoomScreen extends StatelessWidget {
       return String.fromCharCodes(value.trim().runes.take(max));
     }
 
-    final profileVisible = room['profileVisible'] == true;
+    final profileVisible =
+        visitorProfileSharingEnabled && room['profileVisible'] == true;
     final legacyName = safeString('name', '', 40);
     final displayName = profileVisible ? safeString('displayName', '', 40) : '';
     final name = displayName.isNotEmpty ? displayName : legacyName;
@@ -321,7 +323,9 @@ class VisitRoomScreen extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Text(
-                  'Only the cards and photos they chose are here. Every other Journal page, photo, quest, and account detail stays private.',
+                  profileVisible
+                      ? 'Only the cards and photos they chose are here. Every other Journal page, photo, quest, and account detail stays private.'
+                      : 'Only the room they built and a few signs of presence are here. Their writing, photos, quests, and account details stay private.',
                   textAlign: TextAlign.center,
                   style: Type.body.copyWith(
                     fontSize: 12,

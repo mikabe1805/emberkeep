@@ -118,10 +118,10 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Trusted keeps remembered locally. A code exposes the same bounded room
-  /// payload as a one-off visit: preset appearance plus only the display name
-  /// and profile-card writing its owner explicitly selected. Photos, tasks,
-  /// account details, and every unselected Journal page remain private.
+  /// Trusted keeps remembered locally. In the first store release, a code
+  /// exposes only generated room appearance and broad presence fields. The
+  /// dormant visitor-profile capability must remain disabled until its UGC
+  /// safety operation exists.
   final List<String> hearthCircleCodes = [];
 
   bool addCircleCode(String raw) {
@@ -379,18 +379,41 @@ class GameState extends ChangeNotifier {
   /// For a candidate that does not offer remote visitor photos, forget any
   /// older consent bits and acknowledged public handles while preserving the
   /// locally selected My Space photos themselves.
-  void disableVisitorPhotoSharing() {
+  bool disableVisitorPhotoSharing() {
     if (!shareSpaceProfilePhoto &&
         !shareSpaceSeasonPhoto &&
         spaceProfilePhotoPath.isEmpty &&
         spaceSeasonPhotoPath.isEmpty) {
-      return;
+      return false;
     }
     shareSpaceProfilePhoto = false;
     shareSpaceSeasonPhoto = false;
     spaceProfilePhotoPath = '';
     spaceSeasonPhotoPath = '';
     notifyListeners();
+    return true;
+  }
+
+  /// For a candidate without UGC moderation, forget every public writing/name
+  /// consent bit while preserving the private My Space page itself. Photo
+  /// consent and public handles are part of the same visitor surface.
+  bool disableVisitorProfileSharing() {
+    final changed =
+        shareSpaceProfile ||
+        visitorSpaceCards.isNotEmpty ||
+        shareSpaceProfilePhoto ||
+        shareSpaceSeasonPhoto ||
+        spaceProfilePhotoPath.isNotEmpty ||
+        spaceSeasonPhotoPath.isNotEmpty;
+    if (!changed) return false;
+    shareSpaceProfile = false;
+    visitorSpaceCards.clear();
+    shareSpaceProfilePhoto = false;
+    shareSpaceSeasonPhoto = false;
+    spaceProfilePhotoPath = '';
+    spaceSeasonPhotoPath = '';
+    notifyListeners();
+    return true;
   }
 
   static String _cleanSharedRoomPhotoPath(Object? value) {

@@ -33,8 +33,8 @@ reason to add more features.
 - The share flow is preview-first and explicit about whether a room link travels
   with the image. Richer messaging should remain deferred until real-device
   feedback shows a need.
-- Visitor cards are private by default. Journal and My Space photos remain
-  local in the v1 candidate.
+- Shared codes expose the generated room and broad presence only. My Space and
+  Journal writing, display names, goals, and photos remain private in v1.
 
 ## Corrections made during this audit
 
@@ -74,6 +74,15 @@ reason to add more features.
    reads do not create a Firebase identity. Also removed the redirect-only
    `www` host from native-link claims so every claimed host serves its own
    association file.
+15. Closed the v1 user-generated-content policy gap. Visitor-profile writing is
+    now a dormant compile-time capability; release builds clear old consent,
+    ignore stale profile payloads, publish generated-only v5 rooms, and refuse to
+    serve legacy profile documents. It must stay off until filtering, reporting,
+    blocking, terms, and timely moderation exist.
+16. Corrected the share dialog's last visitor-profile claim and rebuilt its
+    privacy explanation around generated rooms and small signs of presence.
+    Visitor and capacity screenshot stories now preload their actual materials
+    and run independently, so the visual gate no longer depends on test order.
 
 ## Release gates, in order
 
@@ -109,7 +118,7 @@ reason to add more features.
 
 - Formatting check: passed.
 - Flutter analysis: passed.
-- Full Flutter test suite: 321 tests passed.
+- Full Flutter test suite: 323 tests passed.
 - Release web build: passed, including the WebAssembly dry run.
 - Screenshot suite: all 21 captures passed, were visually reviewed, and passed
   again without updating baselines.
@@ -117,22 +126,26 @@ reason to add more features.
 - Local AASA content exactly matches the live HTTPS response, including exact
   and wildcard forms for both `/space` and legacy `/room` links.
 - Current Firestore rules compiled and deployed to production on August 8.
-- The repeatable two-identity production smoke passed v5 publication, exact
-  reads, anti-enumeration, versioned path validation, anti-downgrade,
-  owner-only Circle/Spark receipts, duplicate rejection, self-interaction
-  rejection, and complete temporary-data cleanup.
-- Signed Android AAB and APK candidates for `1.0.0+6` passed clean release
+- The repeatable two-identity production smoke passed generated-only v5
+  publication, exact reads, anti-enumeration, visitor-writing and photo-path
+  rejection, anti-downgrade, owner-only Circle/Spark receipts, duplicate
+  rejection, self-interaction rejection, and complete temporary-data cleanup.
+- Signed Android AAB and APK candidates for `1.0.0+7` passed clean release
   builds. Newer native audio/share plugin releases were rejected after their
   AGP 9 Built-in Kotlin paths failed real release compilation; the candidate
   pins the last proven versions instead of carrying a build-system workaround.
-  Their SHA-256 checksums are
-  `34535C390D020B58A27A25D5D884EF2C5D4A66B0B737A05BBB6E3575E76C29AD`
-  and `A24EEBD34189FC3837053FBD7FB37CA6F2049E0E0B176612529AB051433714E7`;
-  both carry the expected upload certificate.
+  The AAB SHA-256 is
+  `7CDFBFE02DB89886AE5188FE8468C63730EC5F77E57B060F8A98A3DE68C25BE9`;
+  the APK SHA-256 is
+  `D078CB39C4068FB7A208B8EB7998D3DB38EB634F920FCFF60C58549A517FD94F`.
+  Both carry the expected upload certificate, and the packaged APK reports
+  version code 7, version name 1.0.0, minimum API 24, and target API 36.
 - The matching web build was deployed to Firebase Hosting. Live
   `main.dart.js`, the local-only privacy page, and the AASA file each matched
   their verified local build artifact byte-for-byte by SHA-256; privacy,
-  deletion, support, and AASA all returned HTTP 200.
+  deletion, support, and AASA all returned HTTP 200. The deployed
+  `main.dart.js` SHA-256 is
+  `334DE66EE3D7D41090FE54E191C6A4BF3DC1E6166E45B29766F6708C7540078E`.
 
 ## Evidence limits
 

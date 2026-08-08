@@ -169,6 +169,9 @@ service cloud.firestore {
             && validSharedProfile(d)
             && validSharedCards(d)
             && validSharedPhotos(d, code)
+            // The first store release shares generated room/presence only.
+            // User-authored profiles remain dormant until UGC moderation exists.
+            && d.profileVisible == false
           )
         )
         && d.updatedAt == request.time;
@@ -179,21 +182,26 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
     // Shared "spaces" (round-52, social): a public, read-only-to-others room
-    // card keyed by a short bearer code. Appearance and presence are bounded;
-    // optional profile cards are explicit, length-limited choices. Selected
-    // pinned/season writing may enter v4. V5 may additionally carry only two
-    // validated Storage object paths after separate photo consent; local media
-    // names, unselected Journal content, quests, history, and account data do
-    // not. Only the owner may create, replace, or delete this document.
+    // card keyed by a short bearer code. The v1 store service accepts only v5
+    // generated appearance/presence documents with every user-authored profile
+    // and photo field empty. Older schema validation remains solely to document
+    // migrations; it is not accepted at the write boundary. Only the owner may
+    // create, replace, or delete a room document.
     match /rooms/{code} {
       // A code is the bearer key. Single-room reads work without forcing a
       // visitor to enable cloud backup; enumeration remains impossible.
-      allow get: if true;
+      // Legacy pre-release profile documents remain stored for their owners,
+      // but code bearers cannot read them. Only the generated-only v5 shape is
+      // visible in the first store release.
+      allow get: if resource.data.v == 5
+                 && resource.data.profileVisible == false;
       allow list: if false;
       allow create: if request.auth != null
+                    && request.resource.data.v == 5
                     && validRoom(code);
       allow update: if request.auth != null
                     && resource.data.uid == request.auth.uid
+                    && request.resource.data.v == 5
                     && request.resource.data.v >= resource.data.v
                     && validRoom(code);
       allow delete: if request.auth != null

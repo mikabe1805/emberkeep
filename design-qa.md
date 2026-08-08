@@ -295,7 +295,7 @@ final result: passed
 
 ### Rendered evidence
 
-- My Space, Circle, and the opt-in visitor page:
+- My Space, Circle, and the earlier visitor-profile exploration:
   `design/comparisons/2026-08-03/my-space-circle-visitor-pass.webp`.
 - Complete-room chooser and both alternative-room previews:
   `design/comparisons/2026-08-03/complete-room-system-phone.webp`.
@@ -303,7 +303,7 @@ final result: passed
   `design/comparisons/2026-08-03/current-system-review-phone.webp`.
 - Individual production captures include
   `test/goldens/store_02_keep_1290x2796.png`,
-  `test/goldens/store_02c_visitor_profile_1290x2796.png`,
+  `test/goldens/store_02c_visitor_room_1290x2796.png`,
   `test/goldens/store_03b_conservatory_preview_1290x2796.png`, and
   `test/goldens/store_10_workout_active_1290x2796.png`.
 - Eight focused layout captures under `test/goldens/large_text_*.png` document

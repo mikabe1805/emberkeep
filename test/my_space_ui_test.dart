@@ -23,6 +23,7 @@ Widget _mePage(
   VoidCallback onPersist, {
   SpaceRoomPublisher onPublishRoom = _publishRoomSuccessfully,
   bool visitorPhotoSharingEnabled = false,
+  bool visitorProfileSharingEnabled = true,
 }) => Scaffold(
   body: MePage(
     state: state,
@@ -40,6 +41,7 @@ Widget _mePage(
     onSignOut: () async {},
     onDeleteAccount: (_) async => null,
     visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+    visitorProfileSharingEnabled: visitorProfileSharingEnabled,
   ),
 );
 
@@ -49,6 +51,7 @@ Future<void> _pumpMe(
   VoidCallback onPersist, {
   SpaceRoomPublisher onPublishRoom = _publishRoomSuccessfully,
   bool visitorPhotoSharingEnabled = false,
+  bool visitorProfileSharingEnabled = true,
 }) async {
   tester.view.physicalSize = _phoneSize;
   tester.view.devicePixelRatio = 1;
@@ -63,6 +66,7 @@ Future<void> _pumpMe(
         onPersist,
         onPublishRoom: onPublishRoom,
         visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+        visitorProfileSharingEnabled: visitorProfileSharingEnabled,
       ),
     ),
   );
@@ -124,6 +128,60 @@ Future<void> _moveRightNowBeforeAbout(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('v1 keeps My Space writing local and clears stale sharing', (
+    tester,
+  ) async {
+    final state = GameState()
+      ..reduceMotion = true
+      ..shareSpaceProfile = true
+      ..spaceIntro = 'My private introduction.'
+      ..spaceSeasonText = 'My private season.'
+      ..shareSpaceProfilePhoto = true
+      ..shareSpaceSeasonPhoto = true
+      ..spaceProfilePhotoPath = 'stale-profile-path'
+      ..spaceSeasonPhotoPath = 'stale-season-path';
+    state.visitorSpaceCards.addAll(SpaceCardKind.values);
+    var persists = 0;
+
+    await _pumpMe(
+      tester,
+      state,
+      () => persists++,
+      visitorProfileSharingEnabled: false,
+      visitorPhotoSharingEnabled: true,
+    );
+    await _openArranger(tester);
+
+    expect(
+      find.byKey(const ValueKey('space-profile-local-only')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('space-profile-share-toggle')),
+      findsNothing,
+    );
+    for (final kind in SpaceCardKind.values) {
+      expect(
+        find.byKey(ValueKey('space-card-share-${kind.name}')),
+        findsNothing,
+      );
+    }
+    expect(find.text('My private introduction.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('space-arranger-save')));
+    await tester.pumpAndSettle();
+
+    expect(state.spaceIntro, 'My private introduction.');
+    expect(state.spaceSeasonText, 'My private season.');
+    expect(state.shareSpaceProfile, isFalse);
+    expect(state.visitorSpaceCards, isEmpty);
+    expect(state.shareSpaceProfilePhoto, isFalse);
+    expect(state.shareSpaceSeasonPhoto, isFalse);
+    expect(state.spaceProfilePhotoPath, isEmpty);
+    expect(state.spaceSeasonPhotoPath, isEmpty);
+    expect(persists, 1);
+  });
+
   setUp(() {
     Sfx.instance.soundEnabled = false;
     Clock.freeze(DateTime(2026, 8, 3, 10));
@@ -437,7 +495,10 @@ void main() {
         onPublishRoom: (target, {required code}) {
           publishes++;
           expect(code, 'ABC234');
-          final display = roomDisplay(target);
+          final display = roomDisplay(
+            target,
+            visitorProfileSharingEnabled: true,
+          );
           expect(display['about'], isEmpty);
           return response.future;
         },
@@ -528,7 +589,7 @@ void main() {
       onPublishRoom: (target, {required code}) {
         publishes++;
         expect(code, 'ABC234');
-        final display = roomDisplay(target);
+        final display = roomDisplay(target, visitorProfileSharingEnabled: true);
         expect(display['displayName'], 'New name');
         return response.future;
       },

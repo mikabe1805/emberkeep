@@ -11,17 +11,17 @@ not replace a signed device build or store-console review.
 - [x] Core experience works without account or network.
 - [x] Cloud backup is explicit opt-in and account deletion exists in-app.
 - [x] Privacy and deletion pages are live and linked from Me.
-- [x] Visitor profiles are private by default and publish only the display name
-  and profile cards independently marked for visitors.
-- [x] Shared Pinned moments publish only bounded, deliberately selected writing.
-  Journal photos and unselected pages never enter the v1 visitor payload;
-  quest detail, streak, email, and account data stay private.
-- [x] Firestore rules bound every shared appearance, presence, and opt-in
-  profile field; exact room-code reads work while collection listing is denied.
+- [x] The v1 shared-room surface publishes generated appearance and broad
+  presence fields only. Display names, goals, My Space and Journal writing, and
+  photos stay out of the visitor payload.
+- [x] The dormant visitor-profile capability defaults off, old consent is
+  erased when a save loads, and visitor rendering ignores legacy profile data.
+- [x] Firestore accepts only generated-only v5 room writes, serves only
+  generated-only v5 rooms to code bearers, and denies collection listing.
 - [x] Android notification permission is declared and requested in context.
 - [x] Exact-alarm permission is unnecessary; reminders use inexact scheduling.
-- [x] Journal photos remain local and are excluded from cloud backup and the v1
-  visitor page.
+- [x] Journal photos remain local and are excluded from cloud backup and shared
+  rooms in v1.
 - [x] Cold-start backgrounds match the dark Room of Days canvas.
 - [x] Native/PWA icons use the approved lit-window Room of Days mark.
 - [x] The Apple association file is live at the apex domain with a JSON content
@@ -39,6 +39,9 @@ not replace a signed device build or store-console review.
   Space photos remain available, but the candidate exposes no visitor-photo
   switch and makes no visitor-photo Storage upload or download. The completed
   future infrastructure remains dormant until a separately reviewed build.
+- [x] The v1 store candidate defaults `VISITOR_PROFILE_SHARING` off. Enabling it
+  requires terms, filtering, reporting, blocking, and a timely human moderation
+  workflow before any store build can expose user-authored visitor content.
 
 - [x] `dart format --output=none --set-exit-if-changed lib test tool`
 - [x] `flutter analyze`
@@ -46,11 +49,11 @@ not replace a signed device build or store-console review.
 - [x] `flutter build web --release`
 - [x] Render and inspect the screenshot-golden suite; all 21 captures pass a
   second run without updating baselines, confirming deterministic output.
-- [x] Build signed Android App Bundle and APK candidates for `1.0.0+6` on
+- [x] Build signed Android App Bundle and APK candidates for `1.0.0+7` on
   August 8, 2026. The AAB SHA-256 is
-  `34535C390D020B58A27A25D5D884EF2C5D4A66B0B737A05BBB6E3575E76C29AD`;
+  `7CDFBFE02DB89886AE5188FE8468C63730EC5F77E57B060F8A98A3DE68C25BE9`;
   the APK SHA-256 is
-  `A24EEBD34189FC3837053FBD7FB37CA6F2049E0E0B176612529AB051433714E7`.
+  `D078CB39C4068FB7A208B8EB7998D3DB38EB634F920FCFF60C58549A517FD94F`.
   Both match upload certificate SHA-256
   `4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14`.
   Stable copies and install guidance are in `../release-artifacts/`.
@@ -68,21 +71,22 @@ not replace a signed device build or store-console review.
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.
 - [ ] Confirm the submitted version/build number exceeds every prior upload.
-- [x] Repository candidate version is `1.0.0+6`; Codemagic still derives the
+- [x] Repository candidate version is `1.0.0+7`; Codemagic still derives the
   next iOS build number from App Store Connect.
 - [x] Deploy the checked-in Firestore rules before testing Share, Visit, or
   Circle; current rules compiled and were released to `emberkeep-5b33b` on
   August 8, 2026.
 - [x] Run the repeatable authenticated production smoke: v5 publish, exact-code
-  read, name hydration, anti-enumeration, versioned media-path validation,
-  anti-downgrade, Circle/Spark delivery and owner-only reads, duplicate support
-  rejection, self-Spark/self-Circle rejection, and cleanup all passed on
-  August 8, 2026. Storage was intentionally excluded because it is not a v1
-  runtime dependency.
+  generated-only read, anti-enumeration, visitor-writing and photo-path
+  rejection, anti-downgrade, Circle/Spark delivery and owner-only reads,
+  duplicate support rejection, self-Spark/self-Circle rejection, and cleanup
+  all passed on August 8, 2026. Storage was intentionally excluded because it
+  is not a v1 runtime dependency.
   Re-run with
   `dart run tool/production_social_smoke.dart --confirm-production --firestore-only`;
   a future visitor-photo candidate must create its bucket, deploy
-  `storage.rules`, and omit `--firestore-only` before enabling the build flag.
+  `storage.rules`, and add `--include-dormant-storage` before enabling the build
+  flag.
 - [x] Reject malformed room codes before Firestore access, safely detach stale
   missing/non-owned codes, serialize all Firebase identity changes with guest
   startup, and preserve an owner-aware cleanup queue across offline resets.
@@ -128,5 +132,7 @@ Do not submit while any of these are true:
 - Firebase rules in production differ from the checked-in rules.
 - `VISITOR_PHOTO_SHARING` is enabled without an inspected Storage bucket,
   deployed rules, full production smoke, and matching privacy declarations.
+- `VISITOR_PROFILE_SHARING` is enabled without the complete reviewed UGC safety
+  operation and matching store declarations.
 - Screenshots or copy depict a character/avatar or feature absent from the
   candidate binary.

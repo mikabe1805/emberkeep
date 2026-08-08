@@ -162,7 +162,11 @@ void main() {
       expect(room.values.join(' '), isNot(contains('never publish this')));
 
       state.shareSpaceProfile = true;
-      expect(roomDisplay(state)['weather'], 'steady');
+      expect(roomDisplay(state)['weather'], 'unknown');
+      expect(
+        roomDisplay(state, visitorProfileSharingEnabled: true)['weather'],
+        'steady',
+      );
     },
   );
 

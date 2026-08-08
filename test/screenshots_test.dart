@@ -44,6 +44,7 @@ import 'package:emberkeep/widgets/gold_surface.dart';
 import 'package:emberkeep/widgets/luxe_depth.dart';
 import 'package:emberkeep/widgets/onboarding_flow.dart';
 import 'package:emberkeep/widgets/pressable.dart';
+import 'package:emberkeep/widgets/quest_depth_room.dart';
 import 'package:emberkeep/widgets/quest_desk.dart';
 import 'package:emberkeep/widgets/top_three_wizard.dart';
 import 'package:flutter/material.dart';
@@ -181,6 +182,36 @@ Future<void> _precacheSpaceThemeArt(WidgetTester tester) async {
   await tester.runAsync(() async {
     for (final theme in spaceThemes) {
       await precacheImage(AssetImage(theme.previewAsset), context);
+    }
+  });
+  await tester.pump(const Duration(milliseconds: 300));
+}
+
+Future<void> _precacheGoldSurface(WidgetTester tester) async {
+  final context = tester.element(find.byType(MaterialApp));
+  await tester.runAsync(
+    () => precacheImage(
+      const AssetImage('assets/quest/luminous-honey-gold-v2.webp'),
+      context,
+    ),
+  );
+  await tester.pump(const Duration(milliseconds: 120));
+}
+
+Future<void> _precacheQuestBoardArt(WidgetTester tester) async {
+  final context = tester.element(find.byType(MaterialApp));
+  await tester.runAsync(() async {
+    for (final asset in [
+      ...QuestDepthRoom.assets,
+      'assets/quest/luminous-honey-gold-v2.webp',
+      'assets/quest/category-body-v2.webp',
+      'assets/quest/category-care-v2.webp',
+      'assets/quest/category-mind-v2.webp',
+      'assets/quest/category-craft-v2.webp',
+      'assets/quest/category-people-v2.webp',
+      'assets/quest/category-home-v2.webp',
+    ]) {
+      await precacheImage(AssetImage(asset), context);
     }
   });
   await tester.pump(const Duration(milliseconds: 300));
@@ -1292,7 +1323,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('store screenshot story: identity features', (tester) async {
+  testWidgets('store screenshot story: keepsakes and sharing', (tester) async {
     tester.view.devicePixelRatio = 3;
     await tester.binding.setSurfaceSize(const Size(430, 932));
     addTearDown(() {
@@ -1406,6 +1437,7 @@ void main() {
         ),
       ),
     );
+    await _precacheGoldSurface(tester);
     await tester.tap(find.text('Share my space'));
     await tester.pumpAndSettle();
     await _storeShot(tester, '02e_share_dialog_1290x2796');
@@ -1502,6 +1534,8 @@ void main() {
     await tester.tap(find.text('SEND A NOTE'));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '02f_support_picker_1290x2796');
+    Navigator.of(tester.element(find.text('Send support'))).pop();
+    await tester.pumpAndSettle();
 
     await tester.pumpWidget(
       MaterialApp(
@@ -1516,14 +1550,8 @@ void main() {
         ),
       ),
     );
-    await _storeShot(tester, '02c_visitor_profile_1290x2796');
-    await tester.scrollUntilVisible(
-      find.text('PINNED MOMENTS'),
-      320,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pump(const Duration(milliseconds: 250));
-    await _storeShot(tester, '02d_visitor_cards_1290x2796');
+    await _storeShot(tester, '02c_visitor_room_1290x2796');
+    expect(find.text('PINNED MOMENTS'), findsNothing);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
@@ -1537,6 +1565,7 @@ void main() {
       tester.binding.setSurfaceSize(null);
       Clock.reset();
     });
+    SharedPreferences.setMockInitialValues({});
     final now = DateTime(2026, 7, 28, 10);
     Clock.freeze(now);
     Sfx.instance.soundEnabled = false;
@@ -1627,6 +1656,8 @@ void main() {
       ),
     );
 
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await _precacheQuestBoardArt(tester);
     await tester.pumpWidget(capacityJourney());
     await _storeShot(tester, '01b_low_flame_1290x2796');
 

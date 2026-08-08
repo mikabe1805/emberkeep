@@ -241,6 +241,7 @@ void main() {
         mediaOwnerUid: 'owner_123',
         mediaRoomCode: 'abc234',
         visitorPhotoSharingEnabled: true,
+        visitorProfileSharingEnabled: true,
       );
       expect(
         payload['profilePhotoPath'],
@@ -254,6 +255,7 @@ void main() {
         mediaOwnerUid: 'owner_123',
         mediaRoomCode: 'ABC234',
         visitorPhotoSharingEnabled: true,
+        visitorProfileSharingEnabled: true,
       );
       expect(
         payload['seasonPhotoPath'],
@@ -268,6 +270,7 @@ void main() {
         mediaOwnerUid: 'owner_123',
         mediaRoomCode: 'ABC234',
         visitorPhotoSharingEnabled: true,
+        visitorProfileSharingEnabled: true,
       );
       expect(payload['profilePhotoPath'], isEmpty);
       expect(payload['seasonPhotoPath'], isEmpty);
@@ -285,7 +288,7 @@ void main() {
           'A fourth goal that must not publish',
         ]);
 
-      final payload = roomDisplay(state);
+      final payload = roomDisplay(state, visitorProfileSharingEnabled: true);
       final goals = (payload['featuredGoals'] as List).cast<String>();
 
       expect(payload['profileVisible'], isTrue);
@@ -312,14 +315,14 @@ void main() {
         ..featuredGoalTitles.add('Finish this room');
 
       state.hiddenSpaceCards.add(SpaceCardKind.about);
-      var payload = roomDisplay(state);
+      var payload = roomDisplay(state, visitorProfileSharingEnabled: true);
       expect(payload['profileVisible'], isTrue);
       expect(payload['displayName'], 'Mika');
       expect(payload['about'], 'A room for making things.');
       expect(payload['featuredGoals'], ['Finish this room']);
 
       state.visitorSpaceCards.remove(SpaceCardKind.about);
-      payload = roomDisplay(state);
+      payload = roomDisplay(state, visitorProfileSharingEnabled: true);
       expect(payload['profileVisible'], isTrue);
       expect(payload['displayName'], 'Mika');
       expect(payload['about'], isEmpty);
@@ -330,7 +333,7 @@ void main() {
       state.visitorSpaceCards
         ..clear()
         ..add(SpaceCardKind.about);
-      payload = roomDisplay(state);
+      payload = roomDisplay(state, visitorProfileSharingEnabled: true);
       expect(payload['profileVisible'], isTrue);
       expect(payload['displayName'], 'Mika');
       expect(payload['about'], 'A room for making things.');
@@ -447,7 +450,7 @@ void main() {
           shareProfile: true,
         );
 
-        final payload = roomDisplay(state);
+        final payload = roomDisplay(state, visitorProfileSharingEnabled: true);
         final moments = (payload['pinnedMoments'] as List).cast<Map>();
         final encoded = jsonEncode(payload);
 
@@ -471,7 +474,7 @@ void main() {
       },
     );
 
-    test('rules retain v1-v4 while requiring bounded v5 photos', () {
+    test('legacy schemas stay documented but only generated v5 is public', () {
       final rules = _firestoreRules();
 
       expect(rules, contains('(d.v == 1'));
@@ -501,7 +504,19 @@ void main() {
         ),
       );
       expect(rules, contains("parts[4].matches('^[A-Za-z0-9_-]{22}\$')"));
+      expect(rules, contains('d.profileVisible == false'));
+      expect(
+        RegExp(r'request\.resource\.data\.v\s*==\s*5').allMatches(rules),
+        hasLength(2),
+      );
       expect(rules, contains('request.resource.data.v >= resource.data.v'));
+      expect(
+        rules,
+        contains(
+          'allow get: if resource.data.v == 5\n'
+          '                 && resource.data.profileVisible == false;',
+        ),
+      );
     });
   });
 
@@ -565,9 +580,18 @@ void main() {
     );
 
     state.shareSpaceProfile = true;
-    expect(roomInviteOwnerName(state), 'Mika');
     expect(
-      roomInviteText('ABC234', ownerName: roomInviteOwnerName(state)),
+      roomInviteOwnerName(state, visitorProfileSharingEnabled: true),
+      'Mika',
+    );
+    expect(
+      roomInviteText(
+        'ABC234',
+        ownerName: roomInviteOwnerName(
+          state,
+          visitorProfileSharingEnabled: true,
+        ),
+      ),
       contains('Mika'),
     );
   });
@@ -577,7 +601,7 @@ void main() {
     expect(circleAddNoticeText(3), contains('3 people'));
   });
 
-  test('room codes allow public get but never collection listing', () {
+  test('room codes expose generated v5 only and never allow listing', () {
     final rules = _firestoreRules();
     final roomsStart = rules.indexOf(r'match /rooms/{code}');
     final sparksStart = rules.indexOf(r'match /sparks/{senderId}', roomsStart);
@@ -585,7 +609,15 @@ void main() {
     expect(sparksStart, greaterThan(roomsStart));
     final roomRules = rules.substring(roomsStart, sparksStart);
 
-    expect(roomRules, matches(RegExp(r'allow\s+get:\s*if\s+true;')));
+    expect(
+      roomRules,
+      matches(
+        RegExp(
+          r'allow\s+get:\s*if\s+resource\.data\.v\s*==\s*5\s*'
+          r'&&\s*resource\.data\.profileVisible\s*==\s*false;',
+        ),
+      ),
+    );
     expect(roomRules, matches(RegExp(r'allow\s+list:\s*if\s+false;')));
     expect(roomRules, isNot(matches(RegExp(r'allow\s+list:\s*if\s+true;'))));
   });
@@ -884,6 +916,11 @@ void main() {
 
     await tester.tap(find.text('Open share'));
     await tester.pumpAndSettle();
+    expect(
+      find.textContaining('a few small signs of presence'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('cards and photos'), findsNothing);
     await tester.tap(find.byKey(const Key('share-space-preview')));
     expect(previews, 1);
 

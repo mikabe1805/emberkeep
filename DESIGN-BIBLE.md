@@ -460,7 +460,13 @@ Rules:
 - About holds a short introduction, Right now holds up to three chosen goals,
   Pinned moments holds up to four Journal pages, and This season holds a short
   reflection with an optional photo selected from the Journal.
-- A visitor page is private by default and has its own master door. Every card
+- In the first store release, shared codes expose generated room appearance and
+  broad presence only. My Space writing, names, goals, and photos remain local
+  or inside the person's optional private cloud backup.
+- The following visitor-page design is a dormant future capability, not a v1
+  promise. It cannot ship until its UGC terms, filtering, reporting, blocking,
+  and timely moderation operation exists.
+- A future visitor page is private by default and has its own master door. Every card
   has an independent visitor audience choice, separate from whether the owner
   hides that card on their own page.
 - Publishing the visitor page exposes the chosen name, selected card order, and

@@ -168,12 +168,14 @@ void main() {
     expect(find.text('Personalize your space'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    final shareToggle = find.byKey(
-      const ValueKey('space-profile-share-toggle'),
-    );
-    await tester.ensureVisible(shareToggle);
+    final localOnly = find.byKey(const ValueKey('space-profile-local-only'));
+    await tester.ensureVisible(localOnly);
     await tester.pump();
-    _expectComfortableTarget(tester, shareToggle);
+    expect(localOnly, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('space-profile-share-toggle')),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
     await _capture(tester, 'personalize_dialog_320x568_2x');
 
