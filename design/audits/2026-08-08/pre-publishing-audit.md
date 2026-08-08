@@ -118,6 +118,10 @@ reason to add more features.
   `837FB7D42AC06BCD4AE2BBEC09D020C31A12515B3EEDFF0E222BC1ED878AC926`
   and `513E2600A8332E0D2CDE9CE744347BD5E20510920E8587C9E4292DF88C0D770C`;
   both carry the expected upload certificate.
+- The matching web build was deployed to Firebase Hosting. Live
+  `main.dart.js`, the local-only privacy page, and the AASA file each matched
+  their verified local build artifact byte-for-byte by SHA-256; privacy,
+  deletion, support, and AASA all returned HTTP 200.
 
 ## Evidence limits
 

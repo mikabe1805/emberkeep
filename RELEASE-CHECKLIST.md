@@ -110,7 +110,8 @@ not replace a signed device build or store-console review.
 - [ ] Supply review-only credentials if a reviewer asks to test an existing
   cross-device account.
 - [x] Verify hosted privacy and deletion pages immediately before submit; both
-  returned HTTP 200 on August 8, 2026.
+  returned HTTP 200 on August 8, 2026. The deployed privacy page exactly matches
+  the local v1 local-photo policy by SHA-256.
 - [x] Verify `https://roomofdays.com/support` immediately before submit; it
   returned HTTP 200 over the public HTTPS domain on August 8, 2026.
 - [ ] Submit manually and monitor processing, pre-launch reports, and review
