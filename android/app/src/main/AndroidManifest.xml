@@ -39,7 +39,6 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="https"/>
                 <data android:host="roomofdays.com"/>
-                <data android:host="www.roomofdays.com"/>
                 <data android:pathPrefix="/space"/>
                 <data android:pathPrefix="/room"/>
             </intent-filter>

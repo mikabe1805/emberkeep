@@ -69,7 +69,8 @@ void main() {
     expect(compact, contains('never include journal photos'));
     expect(compact, isNot(contains('Firebase Cloud Storage')));
     expect(compact, contains('Anyone with the room link'));
-    expect(compact, contains('does not turn on full-save backup'));
+    expect(compact, contains('merely opening a room code does not'));
+    expect(compact, contains('turns on full-save backup'));
     expect(
       privacy,
       isNot(contains('chosen name and other free-form text are not published')),
@@ -104,12 +105,18 @@ void main() {
     final app = _source('lib/main.dart');
     final social = _source('lib/social.dart');
     final shell = _source('lib/screens/shell.dart');
+    final manifest = _source('android/app/src/main/AndroidManifest.xml');
+    final entitlements = _source('ios/Runner/Runner.entitlements');
 
     expect(social, contains("'space',\n          clean"));
     expect(social, contains('class RoomLinkInbox extends ChangeNotifier'));
     expect(app, contains('didPushRouteInformation'));
     expect(app, contains('initialRoute: Navigator.defaultRouteName'));
     expect(shell, contains('_drainPendingRoomLinks'));
+    expect(manifest, contains('android:host="roomofdays.com"'));
+    expect(entitlements, contains('applinks:roomofdays.com'));
+    expect(manifest, isNot(contains('www.roomofdays.com')));
+    expect(entitlements, isNot(contains('www.roomofdays.com')));
   });
 
   test(

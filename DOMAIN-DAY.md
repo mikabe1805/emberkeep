@@ -36,14 +36,16 @@ Everything user-facing routes through `lib/content/links.dart`; the old
 Status, August 8 2026:
 
 1. **Done in repo** — `ios/Runner/Runner.entitlements` carries
-   `applinks:roomofdays.com` + `www`, wired via `CODE_SIGN_ENTITLEMENTS` in
-   all three Runner configurations (Team ID `D63Z4RBRT8`).
+   `applinks:roomofdays.com`, wired via `CODE_SIGN_ENTITLEMENTS` in all three
+   Runner configurations (Team ID `D63Z4RBRT8`). The redirect-only `www` host
+   is intentionally not claimed because association files must live on the
+   exact host native links claim.
 2. **Done and live** — `web/.well-known/apple-app-site-association` scopes
    `/space/*` and `/room/*` to `D63Z4RBRT8.com.mikabe.emberkeep`; verified to
    ride `flutter build web` into `build/web`. On August 8, 2026, the live URL
    returned HTTP 200 with the JSON content type.
 3. **Done in repo** — AndroidManifest has the `autoVerify` intent filter for
-   `/space` + `/room` on both hosts (inert until assetlinks verifies).
+   `/space` + `/room` on the apex host (inert until assetlinks verifies).
 4. **Owner, once** — Apple Developer portal -> Identifiers ->
    `com.mikabe.emberkeep`: enable **Associated Domains**. The next Codemagic
    build's `fetch-signing-files --create` renews the profile with it.

@@ -70,6 +70,10 @@ reason to add more features.
 13. Removed the last user-facing failure-language holdovers. Resting quests are
    now described as safely kept, quiet days stay quiet, and store copy speaks
    about days away and returning instead of invoking loss.
+14. Corrected the privacy worksheet and public notice: passive exact-code room
+   reads do not create a Firebase identity. Also removed the redirect-only
+   `www` host from native-link claims so every claimed host serves its own
+   association file.
 
 ## Release gates, in order
 
@@ -116,10 +120,10 @@ reason to add more features.
   reads, anti-enumeration, versioned path validation, anti-downgrade,
   owner-only Circle/Spark receipts, duplicate rejection, self-interaction
   rejection, and complete temporary-data cleanup.
-- Signed Android AAB and APK candidates for `1.0.0+4` passed release builds.
+- Signed Android AAB and APK candidates for `1.0.0+5` passed release builds.
   Their SHA-256 checksums are
-  `F3D7EF0A51D7B8108D5BDFC8B755E7EE28E8C8E0C907710C7CD1DAEBF88320B0`
-  and `EC073C127FC16BED306B089FE20C60DEA51139D1AC9315F08843571477834DAD`;
+  `6B52EA8753AD0965540643016F8A0290645770487EAC898C4D1EF82AA63EE2D1`
+  and `CDB70BAC794111BC0B52D806424B30D1EFF2B1D3A05BB300A9D1C4EC10D0A8E0`;
   both carry the expected upload certificate.
 - The matching web build was deployed to Firebase Hosting. Live
   `main.dart.js`, the local-only privacy page, and the AASA file each matched
