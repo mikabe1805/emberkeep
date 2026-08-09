@@ -162,8 +162,7 @@ not replace a signed device build or store-console review.
 - [x] Build/upload iOS with Xcode 26+ and the iOS 26 SDK. Codemagic Build #26
   built `1.0.0` (Build 18) from source commit `61c70e8` with Xcode 26.4.1 and
   `iphoneos26.4`, uploaded it successfully, completed App Store Connect
-  processing, and created a TestFlight beta-review submission in
-  `WAITING_FOR_REVIEW`.
+  processing, passed beta review, and is `Approved` in TestFlight.
 - [ ] Complete `DEVICE-ACCEPTANCE-RUNBOOK.md` on physical Android and iPhone
   devices using the exact recorded release artifacts.
 - [ ] On a physical iPhone, continuously scroll the Quest board, tilt while
@@ -212,14 +211,18 @@ not replace a signed device build or store-console review.
 - [x] Confirm Codemagic App Store Connect integration/signing secrets are valid.
   Build #26 reused the persisted Apple Distribution private key, created the
   renewed App Store profile, uploaded Build 18, and submitted it to TestFlight.
-- [ ] In App Store Connect TestFlight Test Information, verify/paste the Beta
-  App Description and What to Test copy from `../STORE-LISTING.md`, use the
-  monitored support inbox as Feedback Email, and verify the review contact
-  fields before inviting testers. Build 18's review submission succeeded, but
-  that does not prove the exact checked-in copy is present.
-- [ ] Rename the App Store Connect app record from `Emberkeep: Habit RPG` to
-  `Room of Days`; Codemagic still reported the old record name while processing
-  Build 18 even though the signed binary display name is `Room of Days`.
+- [x] In App Store Connect TestFlight Test Information, paste the exact Beta App
+  Description and Build 18 What to Test copy from `../STORE-LISTING.md`, use
+  `support@roomofdays.com` as Feedback Email, add the marketing/privacy URLs and
+  beta-review notes, and verify the existing beta-review contact fields.
+- [x] Rename the App Store Connect app record from `Emberkeep: Habit RPG` to
+  `Room of Days`.
+- [x] Prepare App Store version 1.0 with the checked-in promotional text,
+  description, keywords, support/marketing URLs, review notes, Build 18, and
+  manual release. Sign-in remains correctly marked as not required.
+- [x] Configure the public app as Free in all 175 countries or regions on
+  release. Disable the untested Apple silicon Mac and Apple Vision Pro listings;
+  the candidate is intentionally iPhone-only.
 - [x] Enable Associated Domains for the App ID and confirm the renewed iOS
   provisioning profile contains the Associated Domains entitlement and the
   signed app contains exactly `applinks:roomofdays.com`. Build #26 created
@@ -231,8 +234,10 @@ not replace a signed device build or store-console review.
 - [x] Store builds default to no external coffee/payment link. A separately
   reviewed web or desktop build may opt in through `COFFEE_URL`.
 - [x] Route `support@roomofdays.com` to a monitored inbox (owner confirmed).
-- [ ] Complete Apple App Privacy and Google Play Data safety questionnaires from
-  `../STORE-LISTING.md`.
+- [x] Complete and publish Apple App Privacy from `../STORE-LISTING.md`, including
+  the privacy and deletion URLs and the seven linked, app-functionality data
+  types used by optional account/cloud and user-authored features.
+- [ ] Complete Google Play Data safety from `../STORE-LISTING.md`.
 - [ ] Complete Google Play's Health Apps declaration from `../STORE-LISTING.md`;
   do not claim that the app has no health features. Confirm the declaration
   includes Activity and Fitness, Nutrition and Weight Management, Sleep
@@ -260,14 +265,17 @@ not replace a signed device build or store-console review.
   and any additional card Play Console marks `Needs attention`.
 - [ ] Enter `https://roomofdays.com/delete-account` as Google Play's account
   deletion URL and verify the public request workflow from the console.
-- [ ] In App Store Connect, set Content Rights to Yes for the licensed fonts and
-  audio; use Apple's standard EULA; enter the exact legal copyright owner and
-  required App Review contact name/email/phone; and confirm the uploaded build
-  reports no non-exempt encryption.
+- [x] In App Store Connect, set Content Rights to Yes for the licensed fonts and
+  audio and retain Apple's standard EULA. The uploaded build declares that it
+  does not use non-exempt encryption, so no encryption document is required.
+- [ ] Enter the exact legal copyright owner and required App Review contact
+  name/email/phone; do not infer either from the Apple account profile.
 - [ ] Complete Apple's DSA trader/non-trader self-assessment. If trader applies,
   finish verification of the contact details Apple will publish in EU product
   pages; do not select non-trader merely to avoid publishing them.
-- [ ] Complete Apple’s current age-rating questionnaire.
+- [x] Complete Apple’s current age-rating questionnaire. The saved result is 9+:
+  Health or Wellness Topics and fixed in-app Messaging and Chat are present;
+  the other surveyed content is absent.
 - [ ] After the physical-iPhone accessibility pass, prepare App Store
   Accessibility Nutrition Labels. Publish only features whose every common task
   meets Apple's criteria; automated semantics and layout tests alone are not
@@ -275,7 +283,10 @@ not replace a signed device build or store-console review.
 - [x] Create the 1024×500 Google Play feature graphic.
 - [x] Capture and inspect final production screenshots for both store-specific
   aspect ratios; the old illustrated interface set has been removed.
-- [ ] Upload final production screenshots.
+- [x] Upload the five final 1290×2796 iPhone screenshots to App Store Connect and
+  verify their persisted order is quests, reward, My Space, room editing, then
+  Journal. Apple reuses the set for the 6.5-inch display.
+- [ ] Upload the final Google Play screenshots.
 - [ ] Supply review-only credentials if a reviewer asks to test an existing
   cross-device account.
 - [x] Verify hosted privacy and deletion pages immediately before submit; both
