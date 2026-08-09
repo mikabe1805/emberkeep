@@ -26,6 +26,23 @@ migrate_working_dir/
 # Firebase Hosting cache (web deploys)
 .firebase/
 
+# Private release credentials and signing material. Firebase client options are
+# public app configuration; service-account keys and signing keys are not.
+.env
+.env.*
+!.env.example
+**/key.properties
+**/*.jks
+**/*.keystore
+**/*.p8
+**/*.p12
+**/*.mobileprovision
+**/*private-key*.pem
+**/*private_key*.pem
+**/service-account*.json
+**/service_account*.json
+**/*serviceAccount*.json
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id

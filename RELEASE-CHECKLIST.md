@@ -43,6 +43,10 @@ not replace a signed device build or store-console review.
   `store-assets/screenshots/`; every frame was opened and visually accepted.
 - [x] Android 13+ themed icons use a dedicated monochrome Room of Days mark.
 - [x] Release Gradle tasks cannot fall back to debug signing.
+- [x] No keystore, App Store key/profile, service-account credential, password
+  file, or private-key marker is tracked or named in Git history. Root ignore
+  rules cover the common Android, Apple, environment, and Firebase Admin secret
+  formats; Codemagic receives its certificate key only through a secret group.
 - [x] Android API/NDK versions and Codemagic's Flutter, Xcode, and CocoaPods
   versions are pinned; CI verifies the signed IPA's identity, version, privacy
   manifest, signature, and associated-domain entitlement.
