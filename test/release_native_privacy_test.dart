@@ -71,7 +71,10 @@ void main() {
     expect(bootstrap, contains("canvasKitBaseUrl: 'canvaskit/'"));
     expect(worker, contains("const cachePrefix = 'room-of-days-shell-'"));
     expect(worker, contains("new URL('offline-assets.json', scopeUrl)"));
+    expect(worker, contains('const offlineDocumentUrl = scopeUrl;'));
     expect(worker, contains("request.mode === 'navigate'"));
+    expect(worker, contains('if (!self.navigator.onLine)'));
+    expect(worker, contains('if (response.ok) return response;'));
     expect(worker, contains("request.headers.get('range')"));
     expect(worker, contains('await self.clients.claim()'));
     expect(preparer, contains("args.single != '--check'"));
@@ -81,6 +84,18 @@ void main() {
     expect(hostingConfig['predeploy'], [
       'dart run tool/prepare_web_offline.dart',
     ]);
+    expect(
+      headers.any(
+        (header) =>
+            header['regex'] == r'^/[^.]*$' &&
+            (header['headers'] as List).any(
+              (value) =>
+                  (value as Map)['key'] == 'Cache-Control' &&
+                  value['value'].toString().contains('max-age=0'),
+            ),
+      ),
+      isTrue,
+    );
     expect(
       headers.any(
         (header) =>

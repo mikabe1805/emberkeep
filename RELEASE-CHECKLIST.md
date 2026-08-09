@@ -1,6 +1,6 @@
 # Room of Days Release Checklist
 
-Updated August 8, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 9, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
 ## Repository-ready
@@ -88,10 +88,12 @@ not replace a signed device build or store-console review.
 - [x] `dart run tool/prepare_web_offline.dart` and `--check` bind the Build 11
   web output to its generated version metadata and an exact 124-file, 32.9 MiB
   offline manifest capped at 96 MiB.
-- [x] A clean real Chromium session loaded Build 11 with zero console errors or
-  warnings, exposed only onboarding in the accessibility tree, activated the
-  124-entry release cache, and reopened successfully after the browser was put
-  fully offline on August 8, 2026.
+- [x] A clean real Chromium session loaded the deployed Build 11 at
+  `roomofdays.com` with zero console errors or warnings, exposed only onboarding
+  in the accessibility tree, activated the 124-entry release cache, and returned
+  HTTP 200 directly from that worker on a fully offline top-level reload on
+  August 9, 2026. Root, policy, and shared-room HTML routes now revalidate in
+  browsers instead of inheriting Firebase's one-hour default cache.
 - [x] `dart run tool/verify_android_candidate.dart` verifies the immutable
   artifact hashes and handoff, source commit, package/version/SDK contract,
   permissions, app-link scope, APK/AAB signers, Bundletool configuration, ZIP
@@ -258,10 +260,15 @@ not replace a signed device build or store-console review.
 - [ ] Supply review-only credentials if a reviewer asks to test an existing
   cross-device account.
 - [x] Verify hosted privacy and deletion pages immediately before submit; both
-  returned HTTP 200 on August 8, 2026. The deployed privacy and deletion pages
-  exactly match the checked-in files by SHA-256.
+  returned HTTP 200 on August 9, 2026. Their deployed SHA-256 values exactly
+  match the checked-in files: privacy
+  `45D3434D95D3F768EFE57238C90E968CEED052C92E1214B4CBAD72FC87B1396B`
+  and deletion
+  `250AA4DD60F627A200408A070854B8FF6BFE224678D9CFB148A6625A2628B29D`.
 - [x] Verify `https://roomofdays.com/support` immediately before submit; it
-  returned HTTP 200 over the public HTTPS domain on August 8, 2026.
+  returned HTTP 200 over the public HTTPS domain on August 9, 2026 and exactly
+  matched the checked-in SHA-256
+  `E827432EC49E710F265CF4B30E9C84673C4A542D145120E61F7D651637076638`.
 - [ ] Submit manually and monitor processing, pre-launch reports, and review
   messages.
 

@@ -6,7 +6,10 @@ const buildVersion =
 const cacheName = `${cachePrefix}${buildVersion.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
 const scopeUrl = new URL('./', self.registration.scope);
 const offlineManifestUrl = new URL('offline-assets.json', scopeUrl);
-const offlineDocumentUrl = new URL('index.html', scopeUrl);
+// Firebase clean URLs redirects /index.html to /. Cache and return the root
+// response itself so an offline navigation never receives a redirected
+// Response object that Chromium refuses as a fallback document.
+const offlineDocumentUrl = scopeUrl;
 
 async function cacheRelease() {
   const manifestResponse = await fetch(offlineManifestUrl, {cache: 'no-store'});
@@ -111,12 +114,14 @@ async function cachedAsset(request) {
 }
 
 async function navigate(request) {
+  const cache = await caches.open(cacheName);
+  const fallback = await cache.match(offlineDocumentUrl);
+  if (!self.navigator.onLine) return fallback || Response.error();
   try {
-    return await fetch(request);
-  } catch (_) {
-    const cache = await caches.open(cacheName);
-    return (await cache.match(offlineDocumentUrl)) || Response.error();
-  }
+    const response = await fetch(request);
+    if (response.ok) return response;
+  } catch (_) {}
+  return fallback || Response.error();
 }
 
 self.addEventListener('fetch', (event) => {
