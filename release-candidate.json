@@ -2,8 +2,8 @@
   "schema": 1,
   "packageId": "com.mikabe.emberkeep",
   "versionName": "1.0.0",
-  "versionCode": 10,
-  "sourceCommit": "68f45ac2b67bc41dc79e492cd556751577107a24",
+  "versionCode": 11,
+  "sourceCommit": "5eae2b596f8eb3f939a859c86e9bf4413979757c",
   "handoffPath": "../release-artifacts/README.md",
   "minSdk": 24,
   "targetSdk": 36,
@@ -17,12 +17,12 @@
   ],
   "certificateSha256": "4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14",
   "aab": {
-    "path": "../release-artifacts/room-of-days-1.0.0+10-android.aab",
-    "sha256": "0D46FBFC6EAAC2AFDDDD0BE1EFFAB9FF8576FBA251B2B43EC8DED46CFE19A654"
+    "path": "../release-artifacts/room-of-days-1.0.0+11-android.aab",
+    "sha256": "194687BF561622061C7742E6DFDE4518DC0771EEC5DE4AFAC6DAC30440EC5844"
   },
   "apk": {
-    "path": "../release-artifacts/room-of-days-1.0.0+10-android.apk",
-    "sha256": "8EA8CC79BF289B440A5FD1B384DD6AAD8B1F03FC2FA5FD36A2B39AF6B7960D16"
+    "path": "../release-artifacts/room-of-days-1.0.0+11-android.apk",
+    "sha256": "A87061799010FEEC415C2E16E8DE4A7425F4871E71A10111D413DC9FFF996F2F"
   },
   "bundletool": {
     "path": "../release-artifacts/_tools/bundletool-all-1.18.3.jar",

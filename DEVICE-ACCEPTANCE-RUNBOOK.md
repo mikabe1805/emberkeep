@@ -8,12 +8,12 @@ this gate. Use disposable test data and accounts; never risk a personal journal.
 
 ### Android
 
-- Install only `../release-artifacts/room-of-days-1.0.0+10-android.apk` for the
+- Install only `../release-artifacts/room-of-days-1.0.0+11-android.apk` for the
   direct phone smoke.
 - Before installing, run `dart run tool/verify_android_candidate.dart` from
   `app/`. The expected APK SHA-256 is
-  `8EA8CC79BF289B440A5FD1B384DD6AAD8B1F03FC2FA5FD36A2B39AF6B7960D16`.
-- Upload only the matching Build 10 AAB after the phone pass. Builds 2-9 are
+  `A87061799010FEEC415C2E16E8DE4A7425F4871E71A10111D413DC9FFF996F2F`.
+- Upload only the matching Build 11 AAB after the phone pass. Builds 2-10 are
   superseded snapshots, not fallback candidates.
 
 ### iPhone
@@ -33,7 +33,7 @@ Record before testing:
 | OS version |  |  |
 | Installed app version/build |  |  |
 | Artifact SHA-256 / evidence file |  |  |
-| Source commit | `68f45ac2b67bc41dc79e492cd556751577107a24` |  |
+| Source commit | `5eae2b596f8eb3f939a859c86e9bf4413979757c` |  |
 
 ## Stop conditions
 
@@ -48,12 +48,12 @@ passed because reopening the app happened to hide the failure.
 
 Run the upgrade check before uninstalling anything:
 
-- [ ] Install the signed Build 9 APK, finish onboarding, complete a quest, add a
+- [ ] Install the signed Build 10 APK, finish onboarding, complete a quest, add a
   Journal line, and note the visible XP.
-- [ ] Install the signed Build 10 APK over Build 9 without uninstalling. Confirm
-  Android reports version `1.0.0` / build `10`, onboarding does not return, and
+- [ ] Install the signed Build 11 APK over Build 10 without uninstalling. Confirm
+  Android reports version `1.0.0` / build `11`, onboarding does not return, and
   the XP and Journal line remain.
-- [ ] Uninstall Room of Days, then install the verified Build 10 APK fresh.
+- [ ] Uninstall Room of Days, then install the verified Build 11 APK fresh.
   Confirm the old test data is gone and onboarding begins normally.
 
 For iPhone, use the processed TestFlight build as a clean install unless a real

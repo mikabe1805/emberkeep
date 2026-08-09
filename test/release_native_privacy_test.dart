@@ -77,6 +77,7 @@ void main() {
     expect(preparer, contains("args.single != '--check'"));
     expect(preparer, contains('const _maximumCacheBytes = 96 * 1024 * 1024'));
     expect(preparer, contains("relative == 'flutter_service_worker.js'"));
+    expect(preparer, contains("builtVersion['build_number']"));
     expect(hostingConfig['predeploy'], [
       'dart run tool/prepare_web_offline.dart',
     ]);
@@ -174,9 +175,9 @@ void main() {
     ).replaceAll(RegExp(r'\s+'), ' ');
 
     for (final expected in const [
-      'room-of-days-1.0.0+10-android.apk',
-      '8EA8CC79BF289B440A5FD1B384DD6AAD8B1F03FC2FA5FD36A2B39AF6B7960D16',
-      '68f45ac2b67bc41dc79e492cd556751577107a24',
+      'room-of-days-1.0.0+11-android.apk',
+      'A87061799010FEEC415C2E16E8DE4A7425F4871E71A10111D413DC9FFF996F2F',
+      '5eae2b596f8eb3f939a859c86e9bf4413979757c',
       'manual Codemagic `ios-testflight` workflow',
       'Team ID `D63Z4RBRT8`',
       'private content in a visitor room',
@@ -339,7 +340,7 @@ void main() {
       expect(candidate['schema'], 1);
       expect(candidate['packageId'], 'com.mikabe.emberkeep');
       expect(candidate['versionName'], '1.0.0');
-      expect(candidate['versionCode'], 10);
+      expect(candidate['versionCode'], 11);
       expect(candidate['minSdk'], 24);
       expect(candidate['targetSdk'], 36);
       expect(candidate['ndkVersion'], '28.2.13676358');

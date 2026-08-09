@@ -12,7 +12,7 @@ not replace a signed device build or store-console review.
 - [x] Cloud backup is explicit opt-in and account deletion exists in-app.
 - [x] Optional-account recovery has a least-access owner runbook. It uses
   Firebase's one-time reset email, never asks support to handle a password, and
-  does not require changing the frozen Build 10 mobile candidate.
+  does not require changing the frozen Build 11 mobile candidate.
 - [x] Privacy and deletion pages are live and linked from Me. The deletion page
   also accepts a direct verified request without requiring the app, and the
   owner cleanup procedure is recorded in `ACCOUNT-DELETION-RUNBOOK.md`.
@@ -29,6 +29,10 @@ not replace a signed device build or store-console review.
   rooms in v1.
 - [x] Cold-start backgrounds match the dark Room of Days canvas.
 - [x] Native/PWA icons use the approved lit-window Room of Days mark.
+- [x] The web release uses a first-party, versioned offline cache now that
+  Flutter's generated service worker is intentionally a no-op. It keeps
+  CanvasKit on the Room of Days origin, refuses stale/incomplete deploy output,
+  and avoids permanently caching unhashed JavaScript in the browser.
 - [x] The Apple association file is live at the apex domain with a JSON content
   type; verified August 8, 2026.
 - [x] Android's association endpoint is live at the apex domain as a valid
@@ -52,7 +56,7 @@ not replace a signed device build or store-console review.
   manifest, signature, and associated-domain entitlement.
 - [x] No ads, analytics, subscriptions, in-app purchases, or paywalls.
 - [x] The exact Android candidate requests neither Advertising ID nor broad
-  photo/video access. Journal media uses the scoped system picker; Build 10 has
+  photo/video access. Journal media uses the scoped system picker; Build 11 has
   no `AD_ID`, `READ_MEDIA_IMAGES`, or `READ_MEDIA_VIDEO` permission.
 - [x] Third-party font and sound rights are recorded. The Android candidate
   bundles all four font OFL files, the sound-source record, and Flutter's
@@ -79,8 +83,15 @@ not replace a signed device build or store-console review.
 
 - [x] `dart format --output=none --set-exit-if-changed lib test tool`
 - [x] `flutter analyze`
-- [x] `flutter test` (333 tests on August 8, 2026)
+- [x] `flutter test` (335 tests on August 8, 2026)
 - [x] `flutter build web --release`
+- [x] `dart run tool/prepare_web_offline.dart` and `--check` bind the Build 11
+  web output to its generated version metadata and an exact 124-file, 32.9 MiB
+  offline manifest capped at 96 MiB.
+- [x] A clean real Chromium session loaded Build 11 with zero console errors or
+  warnings, exposed only onboarding in the accessibility tree, activated the
+  124-entry release cache, and reopened successfully after the browser was put
+  fully offline on August 8, 2026.
 - [x] `dart run tool/verify_android_candidate.dart` verifies the immutable
   artifact hashes and handoff, source commit, package/version/SDK contract,
   permissions, app-link scope, APK/AAB signers, Bundletool configuration, ZIP
@@ -95,12 +106,12 @@ not replace a signed device build or store-console review.
   advisory scan can prove that undiscovered vulnerabilities do not exist.
 - [x] Render and inspect the screenshot-golden suite; all 21 captures pass a
   second run without updating baselines, confirming deterministic output.
-- [x] Build signed Android App Bundle and APK candidates for `1.0.0+10` from
-  source commit `68f45ac2b67bc41dc79e492cd556751577107a24` on
+- [x] Build signed Android App Bundle and APK candidates for `1.0.0+11` from
+  source commit `5eae2b596f8eb3f939a859c86e9bf4413979757c` on
   August 8, 2026. The AAB SHA-256 is
-  `0D46FBFC6EAAC2AFDDDD0BE1EFFAB9FF8576FBA251B2B43EC8DED46CFE19A654`;
+  `194687BF561622061C7742E6DFDE4518DC0771EEC5DE4AFAC6DAC30440EC5844`;
   the APK SHA-256 is
-  `8EA8CC79BF289B440A5FD1B384DD6AAD8B1F03FC2FA5FD36A2B39AF6B7960D16`.
+  `A87061799010FEEC415C2E16E8DE4A7425F4871E71A10111D413DC9FFF996F2F`.
   Both match upload certificate SHA-256
   `4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14`.
   Stable copies and install guidance are in `../release-artifacts/`.
@@ -126,10 +137,17 @@ not replace a signed device build or store-console review.
   changes passed on August 8, 2026. The emulator required its supported host
   graphics backend; two unsupported software-renderer attempts crashed QEMU,
   not the app process.
-- [x] Install signed Build 10 over signed Build 9 on the API 36 emulator. The
+- [x] Earlier migration evidence: install signed Build 10 over signed Build 9 on
+  the API 36 emulator. The
   package upgraded from version code 9 to 10 without onboarding returning and
   preserved 10 XP. First-time sharing then produced a publicly readable v5
   room with every profile/photo field empty; Stop Sharing revoked the code.
+- [x] Install the exact signed Build 11 APK over that installed Build 10 on the
+  Android 16 / API 36 emulator. Android preserved the original install record
+  and reported `1.0.0` / version code 11 / API 24-36. Build 10's native
+  accessibility tree exposed Quest Desk and tab controls underneath first-run
+  onboarding; after the upgrade, Build 11 exposed onboarding only, and its
+  button advanced normally to step 2/4.
 - [x] Exercise the remaining release-mode data paths on API 36: a manual backup
   restored 23 XP back to its stashed 10-XP state across a cold relaunch; an
   Android scoped-picker photo and Journal text survived force-stop; optional
@@ -150,7 +168,7 @@ not replace a signed device build or store-console review.
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.
 - [ ] Confirm the submitted version/build number exceeds every prior upload.
-- [x] Repository candidate version is `1.0.0+10`; Codemagic keeps Build 10 as
+- [x] Repository candidate version is `1.0.0+11`; Codemagic keeps Build 11 as
   the iOS floor and increments only when App Store Connect already contains an
   equal or higher TestFlight build.
 - [x] Deploy the checked-in Firestore rules before testing Share, Visit, or
@@ -160,7 +178,7 @@ not replace a signed device build or store-console review.
   generated-only read, anti-enumeration, visitor-writing and photo-path
   rejection, anti-downgrade, Circle/Spark delivery and owner-only reads,
   duplicate support rejection, self-Spark/self-Circle rejection, and cleanup
-  all passed again under the Build 10 source on August 8, 2026. Cleanup now
+  all passed again under the Build 11 source on August 8, 2026. Cleanup now
   attempts every temporary resource and identity even if an earlier deletion
   fails; this run reported `Cleanup complete`. Storage was intentionally
   excluded because it is not a v1 runtime dependency.

@@ -65,6 +65,7 @@ void _verifyFreshBuild(Directory root) {
     'flutter_bootstrap.js',
     'main.dart.js',
     'manifest.json',
+    'version.json',
     'assets/AssetManifest.bin',
     'assets/FontManifest.json',
     _workerName,
@@ -100,20 +101,35 @@ void _verifyFreshBuild(Directory root) {
     );
   }
 
+  final pubspec = File('pubspec.yaml').readAsStringSync();
+  final packageVersion = RegExp(
+    r'^version:\s*([^+\s]+)\+(\d+)\s*$',
+    multiLine: true,
+  ).firstMatch(pubspec);
+  if (packageVersion == null) {
+    throw StateError('pubspec.yaml has no version name and build number.');
+  }
+  final builtVersion =
+      jsonDecode(File(_join(root.path, 'version.json')).readAsStringSync())
+          as Map<String, dynamic>;
+  if (builtVersion['version'] != packageVersion.group(1) ||
+      builtVersion['build_number'].toString() != packageVersion.group(2)) {
+    throw StateError(
+      'Built version.json does not match pubspec.yaml; rebuild before deploy.',
+    );
+  }
+
   final mainBuild = File(_join(root.path, 'main.dart.js')).lastModifiedSync();
-  final dartSources = <File>[
-    File('pubspec.yaml'),
-    ...Directory('lib')
-        .listSync(recursive: true)
-        .whereType<File>()
-        .where((file) => file.path.endsWith('.dart')),
-  ];
+  final dartSources = Directory('lib')
+      .listSync(recursive: true)
+      .whereType<File>()
+      .where((file) => file.path.endsWith('.dart'));
   final newestDartSource = dartSources
       .map((file) => file.lastModifiedSync())
       .reduce((a, b) => a.isAfter(b) ? a : b);
   if (mainBuild.isBefore(newestDartSource)) {
     throw StateError(
-      'main.dart.js predates Dart or pubspec source; rebuild before deploy.',
+      'main.dart.js predates Dart source; rebuild before deploy.',
     );
   }
 
