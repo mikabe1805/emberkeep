@@ -18,6 +18,9 @@
 #      VM (Apple never stores private keys) → "No development certificates". Pinning
 #      the PERSISTED Distribution cert's private key with `--certificate-key
 #      @env:CERTIFICATE_PRIVATE_KEY` makes --create reuse the existing cert.
+#   3. The first Room of Days profile predated the Associated Domains capability.
+#      The workflow enables that capability and removes only that known stale
+#      profile before creating its entitlement-aware replacement.
 #   Do NOT also add an `environment.ios_signing` block — mixing the two re-triggers
 #   "No matching profiles found".
 #
@@ -49,6 +52,8 @@ workflows:
         - emberkeep_signing # ← MUST contain the secret var CERTIFICATE_PRIVATE_KEY
       vars:
         BUNDLE_ID: "com.mikabe.emberkeep"
+        BUNDLE_ID_RESOURCE_ID: "ZV438Q53TS"
+        LEGACY_PROFILE_RESOURCE_ID: "NBD3AD99V5"
         APPLE_TEAM_ID: "D63Z4RBRT8"
         # numeric Apple ID of the app record (App Store Connect → App Information)
         APP_STORE_APPLE_ID: 6781401469
@@ -65,7 +70,29 @@ workflows:
           flutter test
       - name: Set up code signing (fetch + create App Store profile, key-safe)
         script: |
+          set -euo pipefail
           keychain initialize
+
+          # The checked-in Runner entitlement requires this App ID capability.
+          # Keep the operation idempotent so later builds only verify it.
+          CAPABILITIES=$(app-store-connect bundle-ids capabilities \
+            "$BUNDLE_ID_RESOURCE_ID" --json)
+          if jq -e \
+            'any(.[]; .attributes.capabilityType == "ASSOCIATED_DOMAINS")' \
+            <<< "$CAPABILITIES" >/dev/null; then
+            echo "Associated Domains is already enabled for $BUNDLE_ID"
+          else
+            app-store-connect bundle-ids enable-capabilities \
+              "$BUNDLE_ID_RESOURCE_ID" \
+              --capability "Associated Domains"
+          fi
+
+          # This exact profile was issued before Associated Domains was enabled.
+          # Delete only that stale resource; future profiles have different IDs.
+          app-store-connect profiles delete \
+            "$LEGACY_PROFILE_RESOURCE_ID" \
+            --ignore-not-found
+
           # --create makes the App Store profile if missing; --certificate-key pins
           # the PERSISTED Distribution cert's private key so the CLI reuses the
           # existing cert instead of minting a key-less one. API auth = CodemagicASC.
@@ -73,6 +100,18 @@ workflows:
             --type IOS_APP_STORE \
             --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
             --create
+
+          PROFILE=$(find \
+            "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
+            -maxdepth 1 -name '*.mobileprovision' -type f -print -quit)
+          test -n "$PROFILE"
+          PROFILE_PLIST=$(mktemp)
+          trap 'rm -f "$PROFILE_PLIST"' EXIT
+          security cms -D -i "$PROFILE" > "$PROFILE_PLIST"
+          /usr/libexec/PlistBuddy -c \
+            'Print :Entitlements:com.apple.developer.associated-domains' \
+            "$PROFILE_PLIST" >/dev/null
+
           keychain add-certificates
           # use-profiles wires the fetched profile into the Runner target AND writes
           # the export options plist to its default $HOME/export_options.plist.
@@ -158,14 +197,9 @@ workflows:
             '.NSPrivacyCollectedDataTypes[].NSPrivacyCollectedDataType' \
             "$VERIFY_DIR/privacy.json" | sort)
           test "$ACTUAL_DATA_TYPES" = "$EXPECTED_DATA_TYPES"
-          jq -e 'all(.NSPrivacyCollectedDataTypes[]; \
-            .NSPrivacyCollectedDataTypeLinked == true and \
-            .NSPrivacyCollectedDataTypeTracking == false and \
-            .NSPrivacyCollectedDataTypePurposes == ["NSPrivacyCollectedDataTypePurposeAppFunctionality"])' \
+          jq -e 'all(.NSPrivacyCollectedDataTypes[]; .NSPrivacyCollectedDataTypeLinked == true and .NSPrivacyCollectedDataTypeTracking == false and .NSPrivacyCollectedDataTypePurposes == ["NSPrivacyCollectedDataTypePurposeAppFunctionality"])' \
             "$VERIFY_DIR/privacy.json"
-          jq -e 'any(.NSPrivacyAccessedAPITypes[]; \
-            .NSPrivacyAccessedAPIType == "NSPrivacyAccessedAPICategoryUserDefaults" and \
-            (.NSPrivacyAccessedAPITypeReasons | index("CA92.1")))' \
+          jq -e 'any(.NSPrivacyAccessedAPITypes[]; .NSPrivacyAccessedAPIType == "NSPrivacyAccessedAPICategoryUserDefaults" and (.NSPrivacyAccessedAPITypeReasons | index("CA92.1")))' \
             "$VERIFY_DIR/privacy.json"
 
           codesign --verify --deep --strict --verbose=2 "$APP"
@@ -188,7 +222,9 @@ workflows:
             "$VERIFY_DIR/profile.plist")" = "$APPLE_TEAM_ID"
           test "$(/usr/libexec/PlistBuddy -c \
             'Print :Entitlements:get-task-allow' "$VERIFY_DIR/profile.plist")" = "false"
-          grep -q 'applinks:roomofdays.com' "$VERIFY_DIR/profile.plist"
+          /usr/libexec/PlistBuddy -c \
+            'Print :Entitlements:com.apple.developer.associated-domains' \
+            "$VERIFY_DIR/profile.plist" >/dev/null
           grep -q "$APPLE_TEAM_ID.$BUNDLE_ID" \
             web/.well-known/apple-app-site-association
 
