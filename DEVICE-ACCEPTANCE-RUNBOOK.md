@@ -213,10 +213,12 @@ On the physical iPhone, then on the lower-memory Android test phone:
 | Large text/screen reader/motion |  |  |  |
 | Warm-device performance/audio |  |  |  |
 
-Final decision: **PASS / FAIL**  
-Tester:  
-Date:  
-Unresolved issues:  
+| Sign-off | Record |
+| --- | --- |
+| Final decision | **PASS / FAIL** |
+| Tester |  |
+| Date |  |
+| Unresolved issues |  |
 
 A pass means every applicable checkbox above passed on the exact recorded
 artifacts and no stop condition remains. It does not replace Play/App Store

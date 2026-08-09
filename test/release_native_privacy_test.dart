@@ -142,7 +142,7 @@ void main() {
       'Low Power/Battery Saver',
       'VoiceOver/TalkBack',
       'Android Settings Force stop deliberately suppresses alarms',
-      'Final decision: **PASS / FAIL**',
+      '| Final decision | **PASS / FAIL** |',
     ]) {
       expect(runbook, contains(expected));
     }
