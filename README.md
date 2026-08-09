@@ -33,6 +33,7 @@ flutter run
 flutter analyze
 flutter test
 flutter build web --release
+dart run tool/audit_pub_dependencies.dart
 ```
 
 Visual render dumps are generated with:

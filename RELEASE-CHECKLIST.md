@@ -89,6 +89,10 @@ not replace a signed device build or store-console review.
   limits, public URLs, privacy and health disclosures, candidate-version
   agreement, icons, feature graphic, and both exact five-image RGB screenshot
   sets.
+- [x] `dart run tool/audit_pub_dependencies.dart` checked all 127 locked hosted
+  Pub packages against OSV on August 8, 2026; no known affecting advisory was
+  returned. This supports the proven native-plugin pins without pretending an
+  advisory scan can prove that undiscovered vulnerabilities do not exist.
 - [x] Render and inspect the screenshot-golden suite; all 21 captures pass a
   second run without updating baselines, confirming deterministic output.
 - [x] Build signed Android App Bundle and APK candidates for `1.0.0+10` from
