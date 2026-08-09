@@ -78,11 +78,21 @@ not replace a signed device build or store-console review.
   Both match upload certificate SHA-256
   `4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14`.
   Stable copies and install guidance are in `../release-artifacts/`.
-- [x] Android release lint passes after upgrading the core-library desugaring
-  runtime to the API-36-safe 2.1.5 release.
+- [x] The Android app module's `:app:lintRelease` task completes successfully
+  with 0 errors after upgrading the core-library desugaring runtime to the
+  API-36-safe 2.1.5 release. Its remaining findings are non-blocking
+  manifest/icon guidance. The Gradle root aggregate also analyzes pinned plugin
+  source and currently stops on dependency-internal AGP 9 findings in
+  `firebase_storage` and `flutter_local_notifications`, not Room of Days source.
 - [x] Bundletool 1.18.3 validates the AAB and reports
   `PAGE_ALIGNMENT_16K`; the APK passes `zipalign -c -P 16`, and all packaged
   native libraries have LOAD alignment of at least 16 KiB.
+- [x] Generate a device-specific APK set from the exact immutable AAB with
+  Bundletool 1.18.3. All four selected splits (`base-master`, `base-en`,
+  `base-x86_64`, and `base-xxhdpi`) carry the expected upload certificate. A
+  fresh Bundletool split install on Android 16 / API 36 completed onboarding,
+  a quest, first-time production sharing, an exact generated-only v5 read, Stop
+  Sharing, and Start Over on August 8, 2026.
 - [x] Install the release APK on an Android 16 / API 36 emulator. Cold
   launch, onboarding, quest completion, all five destinations, offline
   relaunch, notification permission and alarm cancellation, exact and

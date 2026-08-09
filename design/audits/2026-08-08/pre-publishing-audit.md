@@ -186,9 +186,14 @@ reason to add more features.
   `8EA8CC79BF289B440A5FD1B384DD6AAD8B1F03FC2FA5FD36A2B39AF6B7960D16`.
   Both carry the expected upload certificate, and the packaged APK reports
   version code 10, version name 1.0.0, minimum API 24, and target API 36.
-  Android release lint passes; bundletool validates the AAB and reports
-  `PAGE_ALIGNMENT_16K`; the APK passes 16 KiB zip alignment; and all twelve
-  packaged native libraries meet the 16 KiB LOAD-alignment requirement.
+  The Android app module's AGP 9 release lint completes with 0 errors; its
+  remaining findings are non-blocking manifest/icon guidance. The Gradle root
+  aggregate additionally analyzes pinned plugin source and stops on
+  dependency-internal findings in `firebase_storage` and
+  `flutter_local_notifications`, not candidate source. Bundletool validates the
+  AAB and reports `PAGE_ALIGNMENT_16K`; the APK passes 16 KiB zip alignment;
+  and all twelve packaged native libraries meet the 16 KiB LOAD-alignment
+  requirement.
 - The release APK passed an installed Android 16 / API 36 emulator smoke:
   cold launch, onboarding, quest completion, all five destinations, offline
   relaunch, notification permission and alarm cancellation, exact and
@@ -203,6 +208,13 @@ reason to add more features.
   returned a public generated-only v5 room with profile/photo fields empty;
   Stop Sharing revoked the code. This does not replace the physical-device
   performance gate.
+- Bundletool 1.18.3 generated a device-specific set from the exact immutable
+  Build 10 AAB: `base-master`, `base-en`, `base-x86_64`, and `base-xxhdpi`.
+  Every split carried the expected upload certificate. After removing the
+  direct APK install, the split set installed cleanly on Android 16 / API 36;
+  a fresh run completed onboarding, a quest, first-time production sharing,
+  an exact generated-only v5 read, Stop Sharing, and Start Over. This closes
+  the local AAB-delivery gap, but not the physical-device or Play Console gates.
 - The machine-readable candidate verifier passed the exact artifact pair and
   source handoff; the store-submission verifier passed every field limit, URL,
   disclosure, icon, feature graphic, and both five-image RGB screenshot sets.
