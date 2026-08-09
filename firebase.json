@@ -1,6 +1,7 @@
 {
   "hosting": {
     "public": "build/web",
+    "predeploy": ["dart run tool/prepare_web_offline.dart"],
     "ignore": [
       "firebase.json",
       "**/node_modules/**",
@@ -11,9 +12,21 @@
     "rewrites": [{"source": "**", "destination": "/index.html"}],
     "headers": [
       {
-        "source": "**/*.@(wasm|js)",
+        "source": "**/*.@(mjs|js|wasm|json)",
         "headers": [
-          {"key": "Cache-Control", "value": "public, max-age=31536000, immutable"}
+          {"key": "Cache-Control", "value": "public, max-age=0, s-maxage=604800"}
+        ]
+      },
+      {
+        "source": "**/*.@(html)",
+        "headers": [
+          {"key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600"}
+        ]
+      },
+      {
+        "source": "**/*.@(jpg|jpeg|gif|png|svg|webp|css|eot|otf|ttf|ttc|woff|woff2)",
+        "headers": [
+          {"key": "Cache-Control", "value": "public, max-age=3600, s-maxage=604800"}
         ]
       },
       {

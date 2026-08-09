@@ -54,6 +54,47 @@ void main() {
     expect(compact, contains('name="theme-color" content="#191210"'));
   });
 
+  test('web release has a first-party, freshness-checked offline shell', () {
+    final index = _source('web/index.html');
+    final bootstrap = _source('web/flutter_bootstrap.js');
+    final worker = _source('web/room_of_days_service_worker.js');
+    final preparer = _source('tool/prepare_web_offline.dart');
+    final hosting =
+        jsonDecode(_source('firebase.json')) as Map<String, dynamic>;
+    final hostingConfig = hosting['hosting'] as Map<String, dynamic>;
+    final headers = (hostingConfig['headers'] as List).cast<Map>();
+
+    expect(index, isNot(contains('rel="preload" href="assets/assets/rooms/')));
+    expect(bootstrap, contains('{{flutter_service_worker_version}}'));
+    expect(bootstrap, contains('registerRoomOfDaysServiceWorker'));
+    expect(bootstrap, contains('room_of_days_service_worker.js'));
+    expect(bootstrap, contains("canvasKitBaseUrl: 'canvaskit/'"));
+    expect(worker, contains("const cachePrefix = 'room-of-days-shell-'"));
+    expect(worker, contains("new URL('offline-assets.json', scopeUrl)"));
+    expect(worker, contains("request.mode === 'navigate'"));
+    expect(worker, contains("request.headers.get('range')"));
+    expect(worker, contains('await self.clients.claim()'));
+    expect(preparer, contains("args.single != '--check'"));
+    expect(preparer, contains('const _maximumCacheBytes = 96 * 1024 * 1024'));
+    expect(preparer, contains("relative == 'flutter_service_worker.js'"));
+    expect(hostingConfig['predeploy'], [
+      'dart run tool/prepare_web_offline.dart',
+    ]);
+    expect(
+      headers.any(
+        (header) =>
+            header['source'] == '**/*.@(mjs|js|wasm|json)' &&
+            (header['headers'] as List).any(
+              (value) =>
+                  (value as Map)['key'] == 'Cache-Control' &&
+                  value['value'].toString().contains('max-age=0'),
+            ),
+      ),
+      isTrue,
+    );
+    expect(_source('firebase.json'), isNot(contains('immutable')));
+  });
+
   test('public privacy copy covers v1 sharing and collection boundaries', () {
     final privacy = _source('web/privacy.html');
     final compact = privacy.replaceAll(RegExp(r'\s+'), ' ');
@@ -284,7 +325,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.0+10'));
+    expect(pubspec, contains('version: 1.0.0+11'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

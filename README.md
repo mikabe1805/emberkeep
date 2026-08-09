@@ -33,8 +33,14 @@ flutter run
 flutter analyze
 flutter test
 flutter build web --release
+dart run tool/prepare_web_offline.dart
+dart run tool/prepare_web_offline.dart --check
 dart run tool/audit_pub_dependencies.dart
 ```
+
+The web preparation step writes the versioned offline manifest consumed by the
+Room of Days service worker. Firebase Hosting runs it again immediately before
+deploy and refuses stale or incomplete web output.
 
 Visual render dumps are generated with:
 

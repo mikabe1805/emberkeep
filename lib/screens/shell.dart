@@ -1208,149 +1208,166 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           child: child!,
         );
       },
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: LayoutBuilder(
-          builder: (context, bounds) => MouseRegion(
-            onHover: (event) =>
-                _luxeMotion.handlePointer(event, bounds.biggest),
-            onExit: _luxeMotion.clearPointer,
-            child: Listener(
-              behavior: HitTestBehavior.translucent,
-              // iPhone browsers only unlock device orientation from a genuine
-              // touch. Calling here keeps the request in that first gesture;
-              // native builds and browsers without the gate simply no-op.
-              onPointerDown: (_) {
-                if (!state.reduceMotion) {
-                  unawaited(_luxeMotion.requestBrowserMotionPermission());
-                }
-              },
-              child: SafeArea(
-                bottom: false,
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: IndexedStack(
-                        index: _tab,
-                        // IndexedStack keeps all five tabs alive, and nothing about
-                        // being un-indexed stops a ticker — so before this the
-                        // keep's hearth, the fireflies, the sky and every other
-                        // ambient loop ran on ALL FIVE tabs at once, forever, four
-                        // of them invisible. TickerMode mutes the vsync for the
-                        // subtrees you can't see; each controller resumes exactly
-                        // where it was when its tab comes forward. Free battery.
+      // Onboarding is a full-screen OverlayEntry rather than a Navigator route.
+      // Without an explicit boundary, screen readers and hardware-keyboard
+      // focus can still reach the fully built Quest board underneath it.
+      child: ExcludeSemantics(
+        excluding: !state.onboarded,
+        child: ExcludeFocus(
+          excluding: !state.onboarded,
+          child: AbsorbPointer(
+            absorbing: !state.onboarded,
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: LayoutBuilder(
+                builder: (context, bounds) => MouseRegion(
+                  onHover: (event) =>
+                      _luxeMotion.handlePointer(event, bounds.biggest),
+                  onExit: _luxeMotion.clearPointer,
+                  child: Listener(
+                    behavior: HitTestBehavior.translucent,
+                    // iPhone browsers only unlock device orientation from a genuine
+                    // touch. Calling here keeps the request in that first gesture;
+                    // native builds and browsers without the gate simply no-op.
+                    onPointerDown: (_) {
+                      if (!state.reduceMotion) {
+                        unawaited(_luxeMotion.requestBrowserMotionPermission());
+                      }
+                    },
+                    child: SafeArea(
+                      bottom: false,
+                      child: Stack(
                         children: [
-                          for (final (i, page) in <Widget>[
-                            _visitedTabs.contains(0)
-                                ? MePage(
-                                    state: state,
-                                    quests: quests,
-                                    onPersist: _persist,
-                                    onPublishRoom: _publishSpaceRoom,
-                                    onAddQuest: _addQuest,
-                                    onExport: _export,
-                                    onImport: _import,
-                                    onReset: _reset,
-                                    onNotifyChanged: _rescheduleNotifications,
-                                    onEnableCloud: _enableCloud,
-                                    onLinkAccount: _linkAccount,
-                                    onSignIn: _signIn,
-                                    onSignOut: _signOut,
-                                    onDeleteAccount: _deleteAccount,
-                                    parallax: cameraFor(0),
-                                  )
-                                : const SizedBox.shrink(),
-                            _visitedTabs.contains(1)
-                                ? QuestsPage(
-                                    state: state,
-                                    quests: quests,
-                                    onRefresh: _refreshQuests,
-                                    onPersist: _persist,
-                                    onAdd: _addQuest,
-                                    onRemove: _removeQuest,
-                                    onSnapshot: _captureSnapshot,
-                                    onRestore: _restoreSnapshot,
-                                    onBindFlush: (flush) =>
-                                        _flushQuestsCommit = flush,
-                                    onNightClosed: () =>
-                                        unawaited(_rescheduleNotifications()),
-                                    parallax: cameraFor(1),
-                                    lightDirection: lightFor(1),
-                                  )
-                                : const SizedBox.shrink(),
-                            _visitedTabs.contains(2)
-                                ? GoalsPage(
-                                    state: state,
-                                    onAdd: _addQuest,
-                                    activeTitles: {
-                                      for (final q in quests) q.title,
-                                    },
-                                    onRemoveGoal: _removeGoal,
-                                    onPersist: _persist,
-                                    quests: quests,
-                                    onOpenQuests: () => _selectTab(1),
-                                    parallax: cameraFor(2),
-                                    lightDirection: lightFor(2),
-                                  )
-                                : const SizedBox.shrink(),
-                            _visitedTabs.contains(3)
-                                ? CalendarPage(
-                                    state: state,
-                                    quests: quests,
-                                    onAdd: _addQuest,
-                                    parallax: cameraFor(3),
-                                    lightDirection: lightFor(3),
-                                  )
-                                : const SizedBox.shrink(),
-                            _visitedTabs.contains(4)
-                                ? InsightsPage(
-                                    state: state,
-                                    quests: quests,
-                                    onPersist: _persist,
-                                    parallax: cameraFor(4),
-                                    lightDirection: lightFor(4),
-                                  )
-                                : const SizedBox.shrink(),
-                          ].indexed)
-                            TickerMode(enabled: _tab == i, child: page),
+                          Positioned.fill(
+                            child: IndexedStack(
+                              index: _tab,
+                              // IndexedStack keeps all five tabs alive, and nothing about
+                              // being un-indexed stops a ticker — so before this the
+                              // keep's hearth, the fireflies, the sky and every other
+                              // ambient loop ran on ALL FIVE tabs at once, forever, four
+                              // of them invisible. TickerMode mutes the vsync for the
+                              // subtrees you can't see; each controller resumes exactly
+                              // where it was when its tab comes forward. Free battery.
+                              children: [
+                                for (final (i, page) in <Widget>[
+                                  _visitedTabs.contains(0)
+                                      ? MePage(
+                                          state: state,
+                                          quests: quests,
+                                          onPersist: _persist,
+                                          onPublishRoom: _publishSpaceRoom,
+                                          onAddQuest: _addQuest,
+                                          onExport: _export,
+                                          onImport: _import,
+                                          onReset: _reset,
+                                          onNotifyChanged:
+                                              _rescheduleNotifications,
+                                          onEnableCloud: _enableCloud,
+                                          onLinkAccount: _linkAccount,
+                                          onSignIn: _signIn,
+                                          onSignOut: _signOut,
+                                          onDeleteAccount: _deleteAccount,
+                                          parallax: cameraFor(0),
+                                        )
+                                      : const SizedBox.shrink(),
+                                  _visitedTabs.contains(1)
+                                      ? QuestsPage(
+                                          state: state,
+                                          quests: quests,
+                                          onRefresh: _refreshQuests,
+                                          onPersist: _persist,
+                                          onAdd: _addQuest,
+                                          onRemove: _removeQuest,
+                                          onSnapshot: _captureSnapshot,
+                                          onRestore: _restoreSnapshot,
+                                          onBindFlush: (flush) =>
+                                              _flushQuestsCommit = flush,
+                                          onNightClosed: () => unawaited(
+                                            _rescheduleNotifications(),
+                                          ),
+                                          parallax: cameraFor(1),
+                                          lightDirection: lightFor(1),
+                                        )
+                                      : const SizedBox.shrink(),
+                                  _visitedTabs.contains(2)
+                                      ? GoalsPage(
+                                          state: state,
+                                          onAdd: _addQuest,
+                                          activeTitles: {
+                                            for (final q in quests) q.title,
+                                          },
+                                          onRemoveGoal: _removeGoal,
+                                          onPersist: _persist,
+                                          quests: quests,
+                                          onOpenQuests: () => _selectTab(1),
+                                          parallax: cameraFor(2),
+                                          lightDirection: lightFor(2),
+                                        )
+                                      : const SizedBox.shrink(),
+                                  _visitedTabs.contains(3)
+                                      ? CalendarPage(
+                                          state: state,
+                                          quests: quests,
+                                          onAdd: _addQuest,
+                                          parallax: cameraFor(3),
+                                          lightDirection: lightFor(3),
+                                        )
+                                      : const SizedBox.shrink(),
+                                  _visitedTabs.contains(4)
+                                      ? InsightsPage(
+                                          state: state,
+                                          quests: quests,
+                                          onPersist: _persist,
+                                          parallax: cameraFor(4),
+                                          lightDirection: lightFor(4),
+                                        )
+                                      : const SizedBox.shrink(),
+                                ].indexed)
+                                  TickerMode(enabled: _tab == i, child: page),
+                              ],
+                            ),
+                          ),
+                          // Content passes UNDER the dock, so without this it was
+                          // guillotined mid-glyph on every page long enough to scroll —
+                          // a section header sliced in half at the dock's hard top
+                          // edge. A short warm fade turns that cut into depth.
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 88 + MediaQuery.paddingOf(context).bottom,
+                            height: 34,
+                            child: const IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Color(0x0017120F),
+                                      Color(0xE617120F),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // The board owns the scene; navigation is one anchored dark
+                          // rail, not another floating glass object competing with it.
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: _BottomDock(
+                              selected: _tab,
+                              questAccent: activeQuestDeskLook(state).brass,
+                              bottomInset: MediaQuery.paddingOf(context).bottom,
+                              onSelect: _selectTab,
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    // Content passes UNDER the dock, so without this it was
-                    // guillotined mid-glyph on every page long enough to scroll —
-                    // a section header sliced in half at the dock's hard top
-                    // edge. A short warm fade turns that cut into depth.
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 88 + MediaQuery.paddingOf(context).bottom,
-                      height: 34,
-                      child: const IgnorePointer(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Color(0x0017120F), Color(0xE617120F)],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    // The board owns the scene; navigation is one anchored dark
-                    // rail, not another floating glass object competing with it.
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: _BottomDock(
-                        selected: _tab,
-                        questAccent: activeQuestDeskLook(state).brass,
-                        bottomInset: MediaQuery.paddingOf(context).bottom,
-                        onSelect: _selectTab,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
