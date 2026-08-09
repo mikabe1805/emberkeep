@@ -164,10 +164,15 @@ not replace a signed device build or store-console review.
   Android scoped-picker photo and Journal text survived force-stop; optional
   backup, account create, sign-out, sign-in, and account deletion all completed;
   deletion invalidated the temporary credentials and returned an empty Journal.
-- [x] Build/upload iOS with Xcode 26+ and the iOS 26 SDK. Codemagic Build #26
-  built `1.0.0` (Build 18) from source commit `61c70e8` with Xcode 26.4.1 and
-  `iphoneos26.4`, uploaded it successfully, completed App Store Connect
-  processing, passed beta review, and is `Approved` in TestFlight.
+- [x] Build/upload iOS with Xcode 26+ and the iOS 26 SDK. Codemagic Build #28
+  built `1.0.0` (Build 19) from source commit `32e1f05` with Xcode 26.4.1 and
+  `iphoneos26.4`. All 337 tests, signing setup, archive validation, and signed-IPA
+  verification passed; App Store Connect accepted the upload with no errors.
+  The exact IPA SHA-256 is
+  `5773219E32E60EEB799CE191C895A4CB82826C17E8C7FE8DF02C82F060AA65BE`.
+  App Store Connect completed processing and beta review; Build 19 is `Testing`
+  in the Me and Friends and Family groups. Build 18 remains only as the prior
+  approved baseline.
 - [ ] Complete `DEVICE-ACCEPTANCE-RUNBOOK.md` on physical Android and iPhone
   devices using the exact recorded release artifacts.
 - [ ] On a physical iPhone, continuously scroll the Quest board, tilt while
@@ -182,8 +187,8 @@ not replace a signed device build or store-console review.
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.
 - [x] Confirm the submitted version/build number exceeds every prior upload.
-  Build 18 was accepted after App Store Connect reported Build 17 as the
-  previous high-water mark.
+  Build 19 was accepted for upload after App Store Connect reported Build 18 as
+  the previous high-water mark.
 - [x] Repository candidate version is `1.0.0+12`; Codemagic keeps Build 12 as
   the iOS floor and increments only when App Store Connect already contains an
   equal or higher TestFlight build.
@@ -214,23 +219,29 @@ not replace a signed device build or store-console review.
 - [ ] Back up the upload keystore and password file off this machine.
 - [ ] Enroll in Play App Signing.
 - [x] Confirm Codemagic App Store Connect integration/signing secrets are valid.
-  Build #26 reused the persisted Apple Distribution private key, created the
-  renewed App Store profile, uploaded Build 18, and submitted it to TestFlight.
+  Build #28 reused the persisted Apple Distribution private key and renewed
+  App Store profile, uploaded Build 19, and completed its automatic TestFlight
+  submission after Apple processed the binary.
 - [x] In App Store Connect TestFlight Test Information, paste the exact Beta App
-  Description and Build 18 What to Test copy from `../STORE-LISTING.md`, use
+  Description and Build 19 What to Test copy from `../STORE-LISTING.md`, use
   `support@roomofdays.com` as Feedback Email, add the marketing/privacy URLs and
-  beta-review notes, and verify the existing beta-review contact fields.
+  beta-review notes, and verify the existing beta-review contact fields. Build
+  19's saved copy includes the redesigned About page, and the build is available
+  to both Me and Friends and Family.
 - [x] Rename the App Store Connect app record from `Emberkeep: Habit RPG` to
   `Room of Days`.
 - [x] Prepare App Store version 1.0 with the checked-in promotional text,
-  description, keywords, support/marketing URLs, review notes, Build 18, and
-  manual release. Sign-in remains correctly marked as not required.
+  description, keywords, support/marketing URLs, updated review notes, Build 19,
+  and manual release. Sign-in remains correctly marked as not required. The
+  selected binary is validated, reports non-exempt encryption `No`, contains the
+  intended associated-domain entitlement, and leaves `Add for Review` ready for
+  the later physical-device and owner gates.
 - [x] Configure the public app as Free in all 175 countries or regions on
   release. Disable the untested Apple silicon Mac and Apple Vision Pro listings;
   the candidate is intentionally iPhone-only.
 - [x] Enable Associated Domains for the App ID and confirm the renewed iOS
   provisioning profile contains the Associated Domains entitlement and the
-  signed app contains exactly `applinks:roomofdays.com`. Build #26 created
+  signed app contains exactly `applinks:roomofdays.com`. Build #28 reused
   profile `Emberkeep ios_app_store 1786285471`, expiring June 17, 2027, and
   verified both layers before upload.
 - [ ] After the first Play upload, publish the Play App Signing SHA-256 in

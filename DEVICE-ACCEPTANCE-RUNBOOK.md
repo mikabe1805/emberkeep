@@ -18,11 +18,15 @@ this gate. Use disposable test data and accounts; never risk a personal journal.
 
 ### iPhone
 
-- Install the processed TestFlight build produced by the manual Codemagic
-  `ios-testflight` workflow. Do not substitute a local debug/profile build.
-- Keep the matching IPA, dSYM, build log, and `release-evidence.txt` together.
-- Confirm the installed version and build match `release-evidence.txt`, and that
-  the evidence names the intended source commit and Team ID `D63Z4RBRT8`.
+- Install only the processed Room of Days `1.0.0` (Build 19) from TestFlight.
+  It was produced by the manual Codemagic `ios-testflight` workflow; do not
+  substitute a local debug/profile build or the superseded Build 18 candidate.
+- Keep `../release-artifacts/room-of-days-1.0.0+19-ios.ipa`, the matching Runner
+  dSYM, Codemagic Build #28 log, and `room-of-days-1.0.0+19-ios-evidence.txt`
+  together. The expected IPA SHA-256 is
+  `5773219E32E60EEB799CE191C895A4CB82826C17E8C7FE8DF02C82F060AA65BE`.
+- Confirm the installed version/build match the evidence, which must name source
+  commit `32e1f053f9f8f7d601c84fe2beef8bc834c4aa87` and Team ID `D63Z4RBRT8`.
 
 Record before testing:
 
@@ -33,7 +37,7 @@ Record before testing:
 | OS version |  |  |
 | Installed app version/build |  |  |
 | Artifact SHA-256 / evidence file |  |  |
-| Source commit | `ee091db079a54c982946aa6ab7e7b61546b3354f` |  |
+| Source commit | `ee091db079a54c982946aa6ab7e7b61546b3354f` | `32e1f053f9f8f7d601c84fe2beef8bc834c4aa87` |
 
 ## Stop conditions
 
@@ -48,16 +52,17 @@ passed because reopening the app happened to hide the failure.
 
 Run the upgrade check before uninstalling anything:
 
-- [ ] Install the signed Build 10 APK, finish onboarding, complete a quest, add a
+- [ ] Install the signed Build 11 APK, finish onboarding, complete a quest, add a
   Journal line, and note the visible XP.
-- [ ] Install the signed Build 11 APK over Build 10 without uninstalling. Confirm
-  Android reports version `1.0.0` / build `11`, onboarding does not return, and
+- [ ] Install the signed Build 12 APK over Build 11 without uninstalling. Confirm
+  Android reports version `1.0.0` / build `12`, onboarding does not return, and
   the XP and Journal line remain.
-- [ ] Uninstall Room of Days, then install the verified Build 11 APK fresh.
+- [ ] Uninstall Room of Days, then install the verified Build 12 APK fresh.
   Confirm the old test data is gone and onboarding begins normally.
 
-For iPhone, use the processed TestFlight build as a clean install unless a real
-earlier signed/TestFlight build is available for a legitimate update test.
+For iPhone, use processed Build 19 as a clean install. If approved Build 18 is
+still installed, first verify that updating to Build 19 preserves its test data,
+then clear the app and repeat the fresh-install path.
 
 ## 2. First launch and core story
 
