@@ -111,6 +111,29 @@ void main() {
     expect(_source('firebase.json'), isNot(contains('immutable')));
   });
 
+  test('temporary Android download is branded and verifiable', () {
+    final page = _source('web/android.html').replaceAll(RegExp(r'\s+'), ' ');
+
+    expect(page, contains('Room of Days for Android'));
+    expect(
+      page,
+      contains(
+        'https://github.com/mikabe1805/emberkeep/releases/download/'
+        'v1.0.0-android-preview.12/room-of-days-1.0.0-build-12.apk',
+      ),
+    );
+    expect(page, isNot(contains('href="/downloads/')));
+    expect(page, contains('Android 7 or newer'));
+    expect(page, contains('install unknown apps'));
+    expect(page, contains('export a backup'));
+    expect(
+      page,
+      contains(
+        '9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12',
+      ),
+    );
+  });
+
   test('public privacy copy covers v1 sharing and collection boundaries', () {
     final privacy = _source('web/privacy.html');
     final compact = privacy.replaceAll(RegExp(r'\s+'), ' ');

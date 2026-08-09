@@ -173,6 +173,11 @@ not replace a signed device build or store-console review.
   App Store Connect completed processing and beta review; Build 19 is `Testing`
   in the Me and Friends and Family groups. Build 18 remains only as the prior
   approved baseline.
+- [x] Confirm the exact Build 19 release candidate on a physical iPhone. On
+  August 9, 2026, the owner installed it and reported that the build looks great
+  and that things work nicely. The detailed performance, accessibility, and
+  cross-device cases below remain explicit follow-up coverage rather than being
+  inferred from that successful core smoke.
 - [ ] Complete `DEVICE-ACCEPTANCE-RUNBOOK.md` on physical Android and iPhone
   devices using the exact recorded release artifacts.
 - [ ] On a physical iPhone, continuously scroll the Quest board, tilt while
@@ -232,10 +237,14 @@ not replace a signed device build or store-console review.
   `Room of Days`.
 - [x] Prepare App Store version 1.0 with the checked-in promotional text,
   description, keywords, support/marketing URLs, updated review notes, Build 19,
-  and manual release. Sign-in remains correctly marked as not required. The
-  selected binary is validated, reports non-exempt encryption `No`, contains the
-  intended associated-domain entitlement, and leaves `Add for Review` ready for
-  the later physical-device and owner gates.
+  and automatic release after approval. Sign-in remains correctly marked as not
+  required. The selected binary is validated, reports non-exempt encryption
+  `No`, contains the
+  intended associated-domain entitlement, and was submitted to App Review on
+  August 9, 2026 at 3:25 PM EDT. Submission
+  `3ce04859-9480-48e2-ad50-2a9f27e2bbb3` is `Waiting for Review`; Apple advises
+  that review can take up to 48 hours. Automatic release is saved so approval
+  can publish version 1.0 without a later manual click.
 - [x] Configure the public app as Free in all 175 countries or regions on
   release. Disable the untested Apple silicon Mac and Apple Vision Pro listings;
   the candidate is intentionally iPhone-only.
@@ -263,7 +272,26 @@ not replace a signed device build or store-console review.
   Management, and Stress Management / Relaxation / Mental Acuity.
 - [ ] Confirm the Play developer account satisfies Google's Organization-account
   requirement for health apps, including verifiable organization details and a
-  D-U-N-S number. Do not submit under an ineligible Personal account.
+  D-U-N-S number. The live console currently identifies account
+  `7343443055439981513` as a new Personal account. Do not submit the health and
+  fitness candidate under an ineligible account or falsely declare that the app
+  has no health features.
+- [ ] Finish the Play developer-account gates. Identity was approved on August
+  6, 2026, but Google still requires the account owner to verify access through
+  the Play Console app on a physical Android 10+ device; contact-phone
+  verification remains locked until that device check is complete. Google has
+  disabled `Create app` until both checks pass.
+- [ ] If the final eligible account is a new Personal account, run a closed test
+  with at least 12 opted-in testers for 14 continuous days and then apply for
+  production access. The single current Android tester is enough for device
+  smoke and an internal test, but not for Google's production-access gate.
+- [x] Publish a temporary, direct Android tester route while Google Play remains
+  delayed. `https://roomofdays.com/android` is a branded install page pointing
+  to the public GitHub pre-release tag `v1.0.0-android-preview.12`; the fetched
+  76,240,607-byte APK was re-hashed end to end and exactly matched
+  `9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12`.
+  The page explains Android's outside-Play install prompt and tells testers to
+  export a backup before moving to the eventual Play Store edition.
 - [ ] Confirm `com.mikabe.emberkeep` is registered or auto-registered in Play
   Console's Android developer verification page before the September 30, 2026
   enforcement date.
@@ -290,9 +318,11 @@ not replace a signed device build or store-console review.
 - [x] Enter the exact legal copyright owner and required App Review contact
   name/email/phone. App Store version 1.0 now carries `2026 Mika Be`, and the
   saved review contact matches the already verified TestFlight review contact.
-- [ ] Complete Apple's DSA trader/non-trader self-assessment. If trader applies,
-  finish verification of the contact details Apple will publish in EU product
-  pages; do not select non-trader merely to avoid publishing them.
+- [x] Complete Apple's DSA trader/non-trader self-assessment. On August 9, 2026,
+  the owner explicitly selected `I'm not a trader under the DSA or I don't plan
+  to distribute in the EU`; App Store Connect now reports all current DSA
+  regulatory requirements complete and the 27-country compliance record
+  `Active` without public trader contact details.
 - [x] Complete Apple’s current age-rating questionnaire. The saved result is 9+:
   Health or Wellness Topics and fixed in-app Messaging and Chat are present;
   the other surveyed content is absent.
