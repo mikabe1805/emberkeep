@@ -18,9 +18,9 @@
 #      VM (Apple never stores private keys) → "No development certificates". Pinning
 #      the PERSISTED Distribution cert's private key with `--certificate-key
 #      @env:CERTIFICATE_PRIVATE_KEY` makes --create reuse the existing cert.
-#   3. The first Room of Days profile predated the Associated Domains capability.
-#      The workflow enables that capability and removes only that known stale
-#      profile before creating its entitlement-aware replacement.
+#   3. The workflow verifies that the App ID has Associated Domains enabled and
+#      verifies the fetched profile contains the corresponding entitlement before
+#      spending time on an archive.
 #   Do NOT also add an `environment.ios_signing` block — mixing the two re-triggers
 #   "No matching profiles found".
 #
@@ -53,7 +53,6 @@ workflows:
       vars:
         BUNDLE_ID: "com.mikabe.emberkeep"
         BUNDLE_ID_RESOURCE_ID: "ZV438Q53TS"
-        LEGACY_PROFILE_RESOURCE_ID: "NBD3AD99V5"
         APPLE_TEAM_ID: "D63Z4RBRT8"
         # numeric Apple ID of the app record (App Store Connect → App Information)
         APP_STORE_APPLE_ID: 6781401469
@@ -86,12 +85,6 @@ workflows:
               "$BUNDLE_ID_RESOURCE_ID" \
               --capability "Associated Domains"
           fi
-
-          # This exact profile was issued before Associated Domains was enabled.
-          # Delete only that stale resource; future profiles have different IDs.
-          app-store-connect profiles delete \
-            "$LEGACY_PROFILE_RESOURCE_ID" \
-            --ignore-not-found
 
           # --create makes the App Store profile if missing; --certificate-key pins
           # the PERSISTED Distribution cert's private key so the CLI reuses the
