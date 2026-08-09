@@ -190,9 +190,9 @@ void main() {
     ).replaceAll(RegExp(r'\s+'), ' ');
 
     for (final expected in const [
-      'room-of-days-1.0.0+11-android.apk',
-      'A87061799010FEEC415C2E16E8DE4A7425F4871E71A10111D413DC9FFF996F2F',
-      '5eae2b596f8eb3f939a859c86e9bf4413979757c',
+      'room-of-days-1.0.0+12-android.apk',
+      '9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12',
+      'ee091db079a54c982946aa6ab7e7b61546b3354f',
       'manual Codemagic `ios-testflight` workflow',
       'Team ID `D63Z4RBRT8`',
       'private content in a visitor room',
@@ -252,7 +252,7 @@ void main() {
       expect(workflow, isNot(contains('PURE SPM')));
       expect(workflow, contains('Verify signed IPA contents'));
       expect(workflow, contains('PUBSPEC_BUILD'));
-      expect(workflow, contains('Build 11 for 1.0.0'));
+      expect(workflow, contains('Build 12 for 1.0.0'));
       expect(workflow, contains(r'NEXT_BUILD=$PUBSPEC_BUILD'));
       expect(workflow, isNot(contains('2>/dev/null || echo 0')));
       expect(workflow, contains('codesign --verify --deep --strict'));
@@ -342,7 +342,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.0+11'));
+    expect(pubspec, contains('version: 1.0.0+12'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 
@@ -356,7 +356,7 @@ void main() {
       expect(candidate['schema'], 1);
       expect(candidate['packageId'], 'com.mikabe.emberkeep');
       expect(candidate['versionName'], '1.0.0');
-      expect(candidate['versionCode'], 11);
+      expect(candidate['versionCode'], 12);
       expect(candidate['minSdk'], 24);
       expect(candidate['targetSdk'], 36);
       expect(candidate['ndkVersion'], '28.2.13676358');

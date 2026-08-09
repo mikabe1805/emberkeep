@@ -8,12 +8,12 @@ this gate. Use disposable test data and accounts; never risk a personal journal.
 
 ### Android
 
-- Install only `../release-artifacts/room-of-days-1.0.0+11-android.apk` for the
+- Install only `../release-artifacts/room-of-days-1.0.0+12-android.apk` for the
   direct phone smoke.
 - Before installing, run `dart run tool/verify_android_candidate.dart` from
   `app/`. The expected APK SHA-256 is
-  `A87061799010FEEC415C2E16E8DE4A7425F4871E71A10111D413DC9FFF996F2F`.
-- Upload only the matching Build 11 AAB after the phone pass. Builds 2-10 are
+  `9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12`.
+- Upload only the matching Build 12 AAB after the phone pass. Builds 2-11 are
   superseded snapshots, not fallback candidates.
 
 ### iPhone
@@ -33,7 +33,7 @@ Record before testing:
 | OS version |  |  |
 | Installed app version/build |  |  |
 | Artifact SHA-256 / evidence file |  |  |
-| Source commit | `5eae2b596f8eb3f939a859c86e9bf4413979757c` |  |
+| Source commit | `ee091db079a54c982946aa6ab7e7b61546b3354f` |  |
 
 ## Stop conditions
 
