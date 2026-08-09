@@ -252,6 +252,7 @@ void main() {
       expect(workflow, isNot(contains('PURE SPM')));
       expect(workflow, contains('Verify signed IPA contents'));
       expect(workflow, contains('PUBSPEC_BUILD'));
+      expect(workflow, contains('Build 11 for 1.0.0'));
       expect(workflow, contains(r'NEXT_BUILD=$PUBSPEC_BUILD'));
       expect(workflow, isNot(contains('2>/dev/null || echo 0')));
       expect(workflow, contains('codesign --verify --deep --strict'));

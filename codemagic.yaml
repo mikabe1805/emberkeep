@@ -83,7 +83,7 @@ workflows:
       - name: Flutter build ipa
         script: |
           set -euo pipefail
-          # Keep the checked-in pubspec build as the floor (Build 10 for 1.0.0),
+          # Keep the checked-in pubspec build as the floor (Build 11 for 1.0.0),
           # then exceed any TestFlight build already uploaded for this app. An
           # authentication/API failure must stop the paid build instead of being
           # hidden as "no prior build" and producing a duplicate Build 1.

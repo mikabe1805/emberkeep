@@ -34,10 +34,12 @@ not replace a signed device build or store-console review.
   CanvasKit on the Room of Days origin, refuses stale/incomplete deploy output,
   and avoids permanently caching unhashed JavaScript in the browser.
 - [x] The Apple association file is live at the apex domain with a JSON content
-  type; verified August 8, 2026.
+  type and exactly matches the checked-in file; verified August 9, 2026
+  (SHA-256
+  `9810E971FB67DB38FCFAD46669F7652C3727BDEE86C6C1E2EBC805B2F9183142`).
 - [x] Android's association endpoint is live at the apex domain as a valid
   empty JSON placeholder with an explicit JSON content type. It returned HTTP
-  200 and matched the built file byte-for-byte on August 8, 2026 (SHA-256
+  200 and matched the built file byte-for-byte on August 9, 2026 (SHA-256
   `37517E5F3DC66819F61F5A7BB8ACE1921282415F10551D2DEFA5C3EB0985B570`).
   It intentionally remains empty until Play App Signing supplies the final
   certificate.
@@ -118,11 +120,13 @@ not replace a signed device build or store-console review.
   `4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14`.
   Stable copies and install guidance are in `../release-artifacts/`.
 - [x] The Android app module's `:app:lintRelease` task completes successfully
-  with 0 errors after upgrading the core-library desugaring runtime to the
-  API-36-safe 2.1.5 release. Its remaining findings are non-blocking
-  manifest/icon guidance. The Gradle root aggregate also analyzes pinned plugin
-  source and currently stops on dependency-internal AGP 9 findings in
-  `firebase_storage` and `flutter_local_notifications`, not Room of Days source.
+  with 0 errors on the current Build 11 source as of August 9, 2026, after
+  upgrading the core-library desugaring runtime to the API-36-safe 2.1.5
+  release. Its nine remaining findings are four non-blocking app-link clarity
+  suggestions and five launcher-silhouette advisories. The Gradle root aggregate
+  also analyzes pinned plugin source and currently stops on dependency-internal
+  AGP 9 findings in `firebase_storage` and `flutter_local_notifications`, not
+  Room of Days source.
 - [x] Bundletool 1.18.3 validates the AAB and reports
   `PAGE_ALIGNMENT_16K`; the APK passes `zipalign -c -P 16`, and all packaged
   native libraries have LOAD alignment of at least 16 KiB.
