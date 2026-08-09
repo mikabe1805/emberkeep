@@ -44,6 +44,13 @@ not replace a signed device build or store-console review.
   versions are pinned; CI verifies the signed IPA's identity, version, privacy
   manifest, signature, and associated-domain entitlement.
 - [x] No ads, analytics, subscriptions, in-app purchases, or paywalls.
+- [x] The exact Android candidate requests neither Advertising ID nor broad
+  photo/video access. Journal media uses the scoped system picker; Build 10 has
+  no `AD_ID`, `READ_MEDIA_IMAGES`, or `READ_MEDIA_VIDEO` permission.
+- [x] Third-party font and sound rights are recorded. The Android candidate
+  bundles all four font OFL files, the sound-source record, and Flutter's
+  generated notices; the remaining hearth sources are CC0 and recorded in
+  `ASSET-LICENSES.md`.
 - [x] Store copy no longer mentions the retired character/avatar concept.
 - [x] Privacy manifests, public policy, and console worksheets disclose both
   Fitness and Health data when optional cloud saves contain exercise, sleep,
@@ -178,8 +185,25 @@ not replace a signed device build or store-console review.
 - [ ] Confirm `com.mikabe.emberkeep` is registered or auto-registered in Play
   Console's Android developer verification page before the September 30, 2026
   enforcement date.
+- [ ] Create a dedicated, reusable review-only account and store its credentials
+  outside the repository. In Google Play, declare that some functionality is
+  restricted and provide the account proactively because optional cloud backup
+  is sign-in-gated. Keep it available for Apple if App Review asks to inspect
+  the optional account path.
+- [ ] Complete every Google Play App content card using
+  `../STORE-LISTING.md`: Ads No; sign-in details supplied; target audience and
+  content rating; Data safety; Health apps; Financial features None;
+  Government apps No; News and Magazine No; COVID-19 No; Advertising ID No;
+  and any additional card Play Console marks `Needs attention`.
 - [ ] Enter `https://roomofdays.com/delete-account` as Google Play's account
   deletion URL and verify the public request workflow from the console.
+- [ ] In App Store Connect, set Content Rights to Yes for the licensed fonts and
+  audio; use Apple's standard EULA; enter the exact legal copyright owner and
+  required App Review contact name/email/phone; and confirm the uploaded build
+  reports no non-exempt encryption.
+- [ ] Complete Apple's DSA trader/non-trader self-assessment. If trader applies,
+  finish verification of the contact details Apple will publish in EU product
+  pages; do not select non-trader merely to avoid publishing them.
 - [ ] Complete Apple’s current age-rating questionnaire.
 - [ ] After the physical-iPhone accessibility pass, prepare App Store
   Accessibility Nutrition Labels. Publish only features whose every common task

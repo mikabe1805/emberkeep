@@ -91,6 +91,7 @@ Future<void> main() async {
     final applePrivacyManifest = await File(
       'ios/Runner/PrivacyInfo.xcprivacy',
     ).readAsString();
+    final iosInfoPlist = await File('ios/Runner/Info.plist').readAsString();
     final pubspec = await File('pubspec.yaml').readAsString();
     final pubspecVersion = RegExp(
       r'^version:\s*(\S+)\s*$',
@@ -99,6 +100,8 @@ Future<void> main() async {
     final candidate =
         jsonDecode(await File('release-candidate.json').readAsString())
             as Map<String, dynamic>;
+    final candidatePermissions = (candidate['permissions'] as List<dynamic>)
+        .cast<String>();
     final candidateVersion =
         '${candidate['versionName']}+'
         '${candidate['versionCode']}';
@@ -161,6 +164,66 @@ Future<void> main() async {
           : normalizedListing;
       _expectContains('health disclosure', source, expected);
     }
+    for (final expected in const [
+      'Apple App Store Connect completion key',
+      'Content Rights:** **Yes',
+      'SIL Open Font License',
+      '2026 <legal rights holder>',
+      'Digital Services Act (DSA) status',
+      'Google Play App content completion key',
+      'All or some functionality is restricted',
+      'dedicated, reusable review-only account',
+      "My app doesn't provide any financial features",
+      'non-purchasable, non-transferable progression counters',
+      'Government apps:** No',
+      'News and Magazine apps:** No',
+      'COVID-19 contact tracing or status app:** No',
+      'Advertising ID:** No',
+      'READ_MEDIA_IMAGES',
+      'READ_MEDIA_VIDEO',
+      'not a Social or Dating app',
+    ]) {
+      _expectContains('console answer key', normalizedListing, expected);
+    }
+    if (!RegExp(
+      r'<key>ITSAppUsesNonExemptEncryption</key>\s*<false\s*/>',
+    ).hasMatch(iosInfoPlist)) {
+      throw StateError(
+        'iOS Info.plist must declare ITSAppUsesNonExemptEncryption=false.',
+      );
+    }
+    for (final permission in const [
+      'com.google.android.gms.permission.AD_ID',
+      'android.permission.READ_MEDIA_IMAGES',
+      'android.permission.READ_MEDIA_VIDEO',
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.ACCESS_FINE_LOCATION',
+      'android.permission.ACCESS_COARSE_LOCATION',
+      'android.permission.READ_CONTACTS',
+      'android.permission.SCHEDULE_EXACT_ALARM',
+      'android.permission.USE_EXACT_ALARM',
+      'android.permission.REQUEST_INSTALL_PACKAGES',
+      'com.android.vending.BILLING',
+    ]) {
+      if (candidatePermissions.contains(permission)) {
+        throw StateError(
+          'Store answer key says the candidate omits $permission, but the '
+          'release permission inventory contains it.',
+        );
+      }
+    }
+    for (final path in const [
+      'ASSET-LICENSES.md',
+      'assets/sfx/SOURCES.md',
+      'assets/google_fonts/OFL-EBGaramond.txt',
+      'assets/google_fonts/OFL-Fraunces.txt',
+      'assets/google_fonts/OFL-Inter.txt',
+      'assets/google_fonts/OFL-JetBrainsMono.txt',
+    ]) {
+      if (!File(path).existsSync()) {
+        throw StateError('Missing third-party rights record: $path.');
+      }
+    }
     _expectContains(
       'public health disclosure',
       privacyCopy,
@@ -172,8 +235,9 @@ Future<void> main() async {
       'does not diagnose, treat, cure, or prevent any medical condition',
     );
     _pass(
-      'public URLs, local pages, privacy/health disclosures, and '
-      '$candidateVersion agree',
+      'public URLs, local pages, privacy/health and console declarations, '
+      'candidate permissions, export status, licenses, and $candidateVersion '
+      'agree',
     );
 
     _section('Submission artwork');
