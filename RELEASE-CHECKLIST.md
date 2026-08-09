@@ -238,8 +238,9 @@ not replace a signed device build or store-console review.
   hosting, and verify Android App Links on-device.
 - [x] Android and web builds link to the owner's tip-only Ko-fi page from
   About; the link grants no content, rewards, or progress. iOS excludes the
-  external payment call-to-action under App Review Guideline 3.1.1, and an
-  empty `COFFEE_URL` remains the rollback switch.
+  external payment call-to-action under App Review Guideline 3.1.1 and
+  Codemagic compiles that URL as empty; an empty `COFFEE_URL` remains the
+  rollback switch for every platform.
 - [x] Route `support@roomofdays.com` to a monitored inbox (owner confirmed).
 - [x] Complete and publish Apple App Privacy from `../STORE-LISTING.md`, including
   the privacy and deletion URLs and the seven linked, app-functionality data

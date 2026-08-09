@@ -142,6 +142,7 @@ workflows:
           echo "Building Room of Days 1.0.0 ($NEXT_BUILD); pubspec floor $PUBSPEC_BUILD, latest TestFlight $LATEST"
           flutter build ipa --release \
             --build-number="$NEXT_BUILD" \
+            --dart-define=COFFEE_URL= \
             --export-options-plist="$HOME/export_options.plist"
       - name: Verify signed IPA contents
         script: |
