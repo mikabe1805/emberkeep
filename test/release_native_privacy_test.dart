@@ -101,6 +101,9 @@ void main() {
     final links = _source('lib/content/links.dart');
     final support = _source('web/support.html');
     final deletion = _source('web/delete-account.html');
+    final recovery = _source(
+      'ACCOUNT-RECOVERY-RUNBOOK.md',
+    ).replaceAll(RegExp(r'\s+'), ' ');
 
     expect(hosting, contains('"cleanUrls": true'));
     expect(links, contains("defaultValue: 'https://roomofdays.com'"));
@@ -117,6 +120,11 @@ void main() {
     );
     expect(deletion, contains('Request deletion without the app'));
     expect(deletion, contains('within seven days of verification'));
+    expect(recovery, contains('Never ask for or accept a'));
+    expect(recovery, contains('verified custom Auth email domain'));
+    expect(recovery, contains('None may expose Emberkeep'));
+    expect(recovery, contains('the old password fails'));
+    expect(recovery, contains("account's cloud save is preserved"));
   });
 
   test('native app-link runtime keeps room URLs scoped and queue-backed', () {

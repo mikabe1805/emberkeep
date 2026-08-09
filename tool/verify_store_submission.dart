@@ -82,11 +82,15 @@ Future<void> main() async {
       'web/privacy.html',
       'web/delete-account.html',
       'web/support.html',
+      'ACCOUNT-RECOVERY-RUNBOOK.md',
     ]) {
       if (!File(path).existsSync()) throw StateError('Missing $path.');
     }
     final privacyCopy = (await File(
       'web/privacy.html',
+    ).readAsString()).replaceAll(RegExp(r'\s+'), ' ');
+    final recoveryRunbook = (await File(
+      'ACCOUNT-RECOVERY-RUNBOOK.md',
     ).readAsString()).replaceAll(RegExp(r'\s+'), ' ');
     final applePrivacyManifest = await File(
       'ios/Runner/PrivacyInfo.xcprivacy',
@@ -184,6 +188,15 @@ Future<void> main() async {
       'not a Social or Dating app',
     ]) {
       _expectContains('console answer key', normalizedListing, expected);
+    }
+    for (final expected in const [
+      'verified custom Auth email domain',
+      'None may expose Emberkeep',
+      'Never ask for or accept a current password',
+      'the old password fails',
+      "the new password signs in, and the account's cloud save is preserved",
+    ]) {
+      _expectContains('account recovery runbook', recoveryRunbook, expected);
     }
     if (!RegExp(
       r'<key>ITSAppUsesNonExemptEncryption</key>\s*<false\s*/>',

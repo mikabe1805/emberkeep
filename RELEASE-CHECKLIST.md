@@ -10,6 +10,9 @@ not replace a signed device build or store-console review.
 - [x] Android, iOS, and web Firebase apps are registered and configured.
 - [x] Core experience works without account or network.
 - [x] Cloud backup is explicit opt-in and account deletion exists in-app.
+- [x] Optional-account recovery has a least-access owner runbook. It uses
+  Firebase's one-time reset email, never asks support to handle a password, and
+  does not require changing the frozen Build 10 mobile candidate.
 - [x] Privacy and deletion pages are live and linked from Me. The deletion page
   also accepts a direct verified request without requiring the app, and the
   owner cleanup procedure is recorded in `ACCOUNT-DELETION-RUNBOOK.md`.
@@ -195,6 +198,11 @@ not replace a signed device build or store-console review.
   restricted and provide the account proactively because optional cloud backup
   is sign-in-gated. Keep it available for Apple if App Review asks to inspect
   the optional account path.
+- [ ] Before giving that account to either store, complete
+  `ACCOUNT-RECOVERY-RUNBOOK.md`: brand Firebase's password-reset template and
+  sender as Room of Days, apply a verified `roomofdays.com` Auth email domain,
+  confirm no Emberkeep/project identity appears in the received email or action
+  page, and prove that a full reset preserves the review account's cloud save.
 - [ ] Complete every Google Play App content card using
   `../STORE-LISTING.md`: Ads No; sign-in details supplied; target audience and
   content rating; Data safety; Health apps; Financial features None;
@@ -236,6 +244,8 @@ Do not submit while any of these are true:
 - The Play artifact is debug-signed or the signing certificate is unknown.
 - Store privacy answers differ from optional-cloud behavior.
 - The support URL lacks working public contact information.
+- Firebase account email exposes the retired name/project identity, or the
+  review account has not completed a real password-reset cycle.
 - Firebase rules in production differ from the checked-in rules.
 - `VISITOR_PHOTO_SHARING` is enabled without an inspected Storage bucket,
   deployed rules, full production smoke, and matching privacy declarations.

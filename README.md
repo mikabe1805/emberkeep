@@ -61,6 +61,9 @@ Open the PNGs in `test/goldens/` after any visual change.
   `android/key.properties` points to the owner’s private Play upload keystore.
 - iOS signing/App Store setup is documented in
   [`../NATIVE-iOS.md`](../NATIVE-iOS.md).
+- Owner procedures for off-app account deletion and password recovery are in
+  [`ACCOUNT-DELETION-RUNBOOK.md`](ACCOUNT-DELETION-RUNBOOK.md) and
+  [`ACCOUNT-RECOVERY-RUNBOOK.md`](ACCOUNT-RECOVERY-RUNBOOK.md).
 - Store-console copy, privacy answers, screenshots, and remaining owner gates
   are tracked in [`RELEASE-CHECKLIST.md`](RELEASE-CHECKLIST.md) and
   [`../STORE-LISTING.md`](../STORE-LISTING.md).
