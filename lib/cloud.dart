@@ -64,6 +64,38 @@ class RoomPublishResult {
   bool get ok => code != null;
 }
 
+/// Reserves a fresh bearer code by attempting the create directly. Firestore
+/// rules deliberately hide missing/private room documents, so probing with a
+/// read first cannot distinguish an available code from a forbidden one.
+///
+/// A denied write can be a real collision; retry a bounded number of fresh
+/// codes. If every attempt is denied, preserve the final error so the caller
+/// reports a rules/policy failure instead of pretending six collisions
+/// happened.
+@visibleForTesting
+Future<String> reserveFreshRoomCode({
+  required String Function() generateCode,
+  required Future<void> Function(String code) writeCode,
+  required bool Function(Object error) shouldRetry,
+  int attempts = 6,
+}) async {
+  if (attempts < 1) {
+    throw ArgumentError.value(attempts, 'attempts', 'must be at least one');
+  }
+  for (var attempt = 0; attempt < attempts; attempt++) {
+    final code = generateCode();
+    try {
+      await writeCode(code);
+      return code;
+    } catch (error, stackTrace) {
+      if (!shouldRetry(error) || attempt == attempts - 1) {
+        Error.throwWithStackTrace(error, stackTrace);
+      }
+    }
+  }
+  throw StateError('Room-code reservation ended without a result.');
+}
+
 /// Serializes public-room writes so an older launch refresh cannot land after
 /// a newer privacy edit. The recovered tail is deliberately separate from the
 /// caller's result: a failed action still fails for that caller but never
@@ -721,23 +753,30 @@ class CloudSync extends ChangeNotifier {
       if (code != null && code.isNotEmpty) {
         final clean = _cleanRoomCode(code);
         if (clean != null) {
-          final existing = await _rooms
-              .doc(clean)
-              .get()
-              .timeout(const Duration(seconds: 8));
-          final existingData = existing.data();
-          final owner = existingData?['uid'];
-          if (!existing.exists || owner == _uid) {
-            if (existing.exists &&
-                skipCurrentVersion &&
-                existingData?['v'] == display['v']) {
+          try {
+            final existing = await _rooms
+                .doc(clean)
+                .get()
+                .timeout(const Duration(seconds: 8));
+            final existingData = existing.data();
+            final owner = existingData?['uid'];
+            if (!existing.exists || owner == _uid) {
+              if (existing.exists &&
+                  skipCurrentVersion &&
+                  existingData?['v'] == display['v']) {
+                return RoomPublishResult.success(clean);
+              }
+              await _rooms
+                  .doc(clean)
+                  .set(data)
+                  .timeout(const Duration(seconds: 8));
               return RoomPublishResult.success(clean);
             }
-            await _rooms
-                .doc(clean)
-                .set(data)
-                .timeout(const Duration(seconds: 8));
-            return RoomPublishResult.success(clean);
+          } on FirebaseException catch (error) {
+            // A missing document and a private pre-release document are both
+            // intentionally unreadable under the production rules. Rotate
+            // either stale local handle instead of stranding sharing forever.
+            if (error.code != 'permission-denied') rethrow;
           }
         }
         // A malformed restored value or a valid code owned by a lost Firebase
@@ -745,33 +784,32 @@ class CloudSync extends ChangeNotifier {
         // never try to overwrite somebody else's room.
         rotatedStaleCode = true;
       }
-      for (var i = 0; i < 6; i++) {
-        final c = _genCode();
-        final candidate = await _rooms
-            .doc(c)
-            .get()
-            .timeout(const Duration(seconds: 8));
-        if (candidate.exists) continue;
-        // The code was just confirmed absent. A denied create is therefore a
-        // rules/schema deployment failure, not a collision to disguise.
-        final newRoomData = Map<String, dynamic>.from(data);
-        // Deterministic media paths include the room code. A restored code
-        // owned by another anonymous session must not carry its old path into
-        // the freshly reserved document; the media coordinator uploads and
-        // republishes under [c] immediately after this reservation succeeds.
-        if (newRoomData.containsKey('profilePhotoPath')) {
-          newRoomData['profilePhotoPath'] = '';
-        }
-        if (newRoomData.containsKey('seasonPhotoPath')) {
-          newRoomData['seasonPhotoPath'] = '';
-        }
-        await _rooms
-            .doc(c)
-            .set(newRoomData)
-            .timeout(const Duration(seconds: 8));
-        return RoomPublishResult.success(c, rotatedStaleCode: rotatedStaleCode);
-      }
-      return const RoomPublishResult.failed(RoomPublishFailure.exhaustedCodes);
+      final freshCode = await reserveFreshRoomCode(
+        generateCode: _genCode,
+        writeCode: (candidateCode) async {
+          final newRoomData = Map<String, dynamic>.from(data);
+          // Deterministic media paths include the room code. A restored code
+          // owned by another anonymous session must not carry its old path into
+          // the freshly reserved document; the media coordinator uploads and
+          // republishes under [candidateCode] after this reservation succeeds.
+          if (newRoomData.containsKey('profilePhotoPath')) {
+            newRoomData['profilePhotoPath'] = '';
+          }
+          if (newRoomData.containsKey('seasonPhotoPath')) {
+            newRoomData['seasonPhotoPath'] = '';
+          }
+          await _rooms
+              .doc(candidateCode)
+              .set(newRoomData)
+              .timeout(const Duration(seconds: 8));
+        },
+        shouldRetry: (error) =>
+            error is FirebaseException && error.code == 'permission-denied',
+      );
+      return RoomPublishResult.success(
+        freshCode,
+        rotatedStaleCode: rotatedStaleCode,
+      );
     } on TimeoutException {
       debugPrint(
         'publishRoom failed: timeout v=${display['v']} existing=${code != null}',

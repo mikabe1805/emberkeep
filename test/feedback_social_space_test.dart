@@ -638,6 +638,23 @@ void main() {
     expect(roomRules, isNot(matches(RegExp(r'allow\s+list:\s*if\s+true;'))));
   });
 
+  test(
+    'fresh room codes reserve by write because missing rooms are private',
+    () {
+      final cloud = File('lib/cloud.dart').readAsStringSync();
+      final start = cloud.indexOf(
+        'final freshCode = await reserveFreshRoomCode(',
+      );
+      final end = cloud.indexOf('return RoomPublishResult.success(', start);
+      expect(start, greaterThanOrEqualTo(0));
+      expect(end, greaterThan(start));
+
+      final reservation = cloud.substring(start, end);
+      expect(reservation, contains('.set(newRoomData)'));
+      expect(reservation, isNot(contains('.get()')));
+    },
+  );
+
   test('Circle-add receipts are text-free and owner-only', () {
     final rules = _firestoreRules();
     final start = rules.indexOf(r'match /circleAdds/{senderId}');
