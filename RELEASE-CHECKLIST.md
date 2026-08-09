@@ -28,6 +28,12 @@ not replace a signed device build or store-console review.
 - [x] Native/PWA icons use the approved lit-window Room of Days mark.
 - [x] The Apple association file is live at the apex domain with a JSON content
   type; verified August 8, 2026.
+- [x] Android's association endpoint is live at the apex domain as a valid
+  empty JSON placeholder with an explicit JSON content type. It returned HTTP
+  200 and matched the built file byte-for-byte on August 8, 2026 (SHA-256
+  `37517E5F3DC66819F61F5A7BB8ACE1921282415F10551D2DEFA5C3EB0985B570`).
+  It intentionally remains empty until Play App Signing supplies the final
+  certificate.
 - [x] Google Play 1024×500 feature graphic is ready in `store-assets/`.
 - [x] Five opaque 24-bit RGB App Store screenshots at 1290×2796 and five
   independently rendered Google Play screenshots at 1080×1920 are ready in
@@ -52,8 +58,15 @@ not replace a signed device build or store-console review.
 
 - [x] `dart format --output=none --set-exit-if-changed lib test tool`
 - [x] `flutter analyze`
-- [x] `flutter test` (326 tests)
+- [x] `flutter test` (327 tests)
 - [x] `flutter build web --release`
+- [x] `dart run tool/verify_android_candidate.dart` verifies the immutable
+  artifact hashes and handoff, source commit, package/version/SDK contract,
+  permissions, app-link scope, APK/AAB signers, Bundletool configuration, ZIP
+  alignment, and every native library's ELF LOAD alignment.
+- [x] `dart run tool/verify_store_submission.dart` verifies store-field length
+  limits, public URLs and disclosures, candidate-version agreement, icons,
+  feature graphic, and both exact five-image RGB screenshot sets.
 - [x] Render and inspect the screenshot-golden suite; all 21 captures pass a
   second run without updating baselines, confirming deterministic output.
 - [x] Build signed Android App Bundle and APK candidates for `1.0.0+9` on
@@ -69,6 +82,17 @@ not replace a signed device build or store-console review.
 - [x] Bundletool 1.18.3 validates the AAB and reports
   `PAGE_ALIGNMENT_16K`; the APK passes `zipalign -c -P 16`, and all packaged
   native libraries have LOAD alignment of at least 16 KiB.
+- [x] Install the signed Build 9 APK on an Android 16 / API 36 emulator. Cold
+  launch, onboarding, quest completion, all five destinations, offline
+  relaunch, notification permission and alarm cancellation, exact and
+  near-miss app links, largest in-app text, reset persistence, and repeated tab
+  changes passed on August 8, 2026. The emulator required its supported host
+  graphics backend; two unsupported software-renderer attempts crashed QEMU,
+  not the app process.
+- [x] Install signed Build 9 over signed Build 8 on the API 36 emulator. The
+  package upgraded from version code 8 to 9 without onboarding returning, and
+  the completed quest, 10 XP, Body progress, and four remaining quests were
+  preserved.
 - [ ] Build/upload iOS with Xcode 26+ and the iOS 26 SDK.
 - [ ] Install release builds on physical Android and iPhone devices.
 - [ ] On a physical iPhone, continuously scroll the Quest board, tilt while
@@ -115,7 +139,8 @@ not replace a signed device build or store-console review.
 - [ ] Enable Associated Domains for the App ID and confirm the renewed iOS
   provisioning profile includes `applinks:roomofdays.com`.
 - [ ] After the first Play upload, publish the Play App Signing SHA-256 in
-  `assetlinks.json`, redeploy hosting, and verify Android App Links on-device.
+  `web/.well-known/assetlinks.json` (replacing the valid empty array), redeploy
+  hosting, and verify Android App Links on-device.
 - [x] Store builds default to no external coffee/payment link. A separately
   reviewed web or desktop build may opt in through `COFFEE_URL`.
 - [x] Route `support@roomofdays.com` to a monitored inbox (owner confirmed).

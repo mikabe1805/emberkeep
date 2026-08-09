@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "packageId": "com.mikabe.emberkeep",
+  "versionName": "1.0.0",
+  "versionCode": 9,
+  "sourceCommit": "8530f9988735ed5c4d768b0ba5646e3b00299a2e",
+  "handoffPath": "../release-artifacts/README.md",
+  "minSdk": 24,
+  "targetSdk": 36,
+  "ndkVersion": "28.2.13676358",
+  "nativeLoadAlignment": 16384,
+  "nativeLibraryCount": 12,
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86_64"
+  ],
+  "certificateSha256": "4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14",
+  "aab": {
+    "path": "../release-artifacts/room-of-days-1.0.0+9-android.aab",
+    "sha256": "3FF121450EAF4F39645935292047DE6D7407EA598F6A1E91403D4481F7002A32"
+  },
+  "apk": {
+    "path": "../release-artifacts/room-of-days-1.0.0+9-android.apk",
+    "sha256": "C1F61283E171383688B9FD618453CCAAF7E7DA6D37ED149B8558881B89C6D018"
+  },
+  "bundletool": {
+    "path": "../release-artifacts/_tools/bundletool-all-1.18.3.jar",
+    "version": "1.18.3"
+  },
+  "permissions": [
+    "android.permission.ACCESS_NETWORK_STATE",
+    "android.permission.INTERNET",
+    "android.permission.POST_NOTIFICATIONS",
+    "android.permission.RECEIVE_BOOT_COMPLETED",
+    "android.permission.VIBRATE",
+    "com.google.android.providers.gsf.permission.READ_GSERVICES",
+    "com.mikabe.emberkeep.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+  ],
+  "appLinks": {
+    "host": "roomofdays.com",
+    "exactPaths": [
+      "/space",
+      "/room"
+    ],
+    "pathPrefixes": [
+      "/space/",
+      "/room/"
+    ]
+  }
+}

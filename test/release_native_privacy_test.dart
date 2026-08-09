@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -226,4 +227,51 @@ void main() {
     expect(pubspec, contains('version: 1.0.0+9'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
+
+  test(
+    'release candidate and Android association inputs are machine-readable',
+    () {
+      final candidate = jsonDecode(_source('release-candidate.json')) as Map;
+      final aab = candidate['aab'] as Map;
+      final apk = candidate['apk'] as Map;
+
+      expect(candidate['schema'], 1);
+      expect(candidate['packageId'], 'com.mikabe.emberkeep');
+      expect(candidate['versionName'], '1.0.0');
+      expect(candidate['versionCode'], 9);
+      expect(candidate['minSdk'], 24);
+      expect(candidate['targetSdk'], 36);
+      expect(candidate['ndkVersion'], '28.2.13676358');
+      expect(candidate['nativeLoadAlignment'], 16384);
+      expect(candidate['nativeLibraryCount'], 12);
+      expect((aab['sha256'] as String), hasLength(64));
+      expect((apk['sha256'] as String), hasLength(64));
+      expect((candidate['sourceCommit'] as String), hasLength(40));
+
+      final assetLinks =
+          jsonDecode(_source('web/.well-known/assetlinks.json')) as List;
+      for (final entry in assetLinks.cast<Map>()) {
+        expect(
+          entry['relation'],
+          contains('delegate_permission/common.handle_all_urls'),
+        );
+        final target = entry['target'] as Map;
+        expect(target['namespace'], 'android_app');
+        expect(target['package_name'], 'com.mikabe.emberkeep');
+        expect(target['sha256_cert_fingerprints'], isNotEmpty);
+      }
+
+      final hosting = _source('firebase.json');
+      expect(hosting, contains('/.well-known/assetlinks.json'));
+      expect(hosting, contains('application/json'));
+      expect(
+        _source('tool/verify_android_candidate.dart'),
+        contains('PAGE_ALIGNMENT_16K'),
+      );
+      expect(
+        _source('tool/verify_store_submission.dart'),
+        contains('store submission packet is internally consistent'),
+      );
+    },
+  );
 }

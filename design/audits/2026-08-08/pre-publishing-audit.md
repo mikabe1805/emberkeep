@@ -112,6 +112,16 @@ reason to add more features.
 24. Made production-smoke cleanup attempt every temporary receipt, room, and
     Firebase identity even after an earlier cleanup error, with a regression
     test proving later cleanup actions still run.
+25. Added a machine-readable Android candidate manifest and a single verifier
+    for artifact hashes, source handoff, package/version/SDK values,
+    permissions, exact app links, both signing containers, Bundletool and 16
+    KiB packaging configuration, and all native ELF LOAD alignments.
+26. Added a store-submission verifier for Apple/Google character limits,
+    public URLs and deletion/privacy claims, candidate-version agreement,
+    exact image inventory, dimensions, and 24-bit RGB encoding.
+27. Added a valid empty Android `assetlinks.json` endpoint with an explicit JSON
+    content type. It remains deliberately unassociated until the first Play
+    upload exposes the Play App Signing certificate.
 
 ## Release gates, in order
 
@@ -147,7 +157,7 @@ reason to add more features.
 
 - Formatting check: passed.
 - Flutter analysis: passed.
-- Full Flutter test suite: 326 tests passed.
+- Full Flutter test suite: 327 tests passed.
 - Release web build: passed, including the WebAssembly dry run.
 - Screenshot suite: all 21 captures passed, were visually reviewed, and passed
   again without updating baselines.
@@ -172,21 +182,36 @@ reason to add more features.
   Android release lint passes; bundletool validates the AAB and reports
   `PAGE_ALIGNMENT_16K`; the APK passes 16 KiB zip alignment; and all twelve
   packaged native libraries meet the 16 KiB LOAD-alignment requirement.
+- The signed Build 9 APK passed an installed Android 16 / API 36 emulator smoke:
+  cold launch, onboarding, quest completion, all five destinations, offline
+  relaunch, notification permission and alarm cancellation, exact and
+  near-miss app-link resolution, largest in-app text, reset persistence, and
+  repeated tab changes. Installing Build 9 over signed Build 8 preserved the
+  completed quest, 10 XP, Body progress, and the remaining board. This does not
+  replace the physical-device performance gate.
+- The machine-readable candidate verifier passed the exact artifact pair and
+  source handoff; the store-submission verifier passed every field limit, URL,
+  disclosure, icon, feature graphic, and both five-image RGB screenshot sets.
 - The final submission screenshot sets contain only current production UI.
   All ten exports are 24-bit RGB PNGs without alpha, were inspected after
   export, and match the five-state Quests → reward → My Space → room preview →
   Journal story documented in `store-assets/screenshots/README.md`.
 - The matching web build was deployed to Firebase Hosting. Live
-  `main.dart.js`, privacy, deletion, support, and AASA responses each matched
-  their checked-in or built counterpart byte-for-byte by SHA-256 and returned
-  HTTP 200. The deployed `main.dart.js` SHA-256 is
+  `main.dart.js`, privacy, deletion, support, AASA, and the intentionally empty
+  Android association placeholder each matched their checked-in or built
+  counterpart byte-for-byte by SHA-256 and returned HTTP 200. The deployed
+  `main.dart.js` SHA-256 is
   `DDB566D16C0BFF50FCA56ED65EA12804E05D0C88B0B05722AE08292343FA5528`;
   privacy is
   `32905025D4C673CDCEBD37CFDAF62BE01798BC2F5A4FE1C90ED724193834372A`;
   deletion is
   `250AA4DD60F627A200408A070854B8FF6BFE224678D9CFB148A6625A2628B29D`;
-  and AASA is
-  `9810E971FB67DB38FCFAD46669F7652C3727BDEE86C6C1E2EBC805B2F9183142`.
+  support is
+  `E827432EC49E710F265CF4B30E9C84673C4A542D145120E61F7D651637076638`;
+  AASA is
+  `9810E971FB67DB38FCFAD46669F7652C3727BDEE86C6C1E2EBC805B2F9183142`;
+  and `assetlinks.json` is
+  `37517E5F3DC66819F61F5A7BB8ACE1921282415F10551D2DEFA5C3EB0985B570`.
 
 ## Evidence limits
 
