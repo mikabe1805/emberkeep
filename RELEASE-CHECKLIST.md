@@ -12,7 +12,7 @@ not replace a signed device build or store-console review.
 - [x] Cloud backup is explicit opt-in and account deletion exists in-app.
 - [x] Optional-account recovery has a least-access owner runbook. It uses
   Firebase's one-time reset email, never asks support to handle a password, and
-  does not require changing the frozen Build 11 mobile candidate.
+  does not require widening the Build 12 mobile candidate.
 - [x] Privacy and deletion pages are live and linked from Me. The deletion page
   also accepts a direct verified request without requiring the app, and the
   owner cleanup procedure is recorded in `ACCOUNT-DELETION-RUNBOOK.md`.
@@ -58,7 +58,7 @@ not replace a signed device build or store-console review.
   manifest, signature, and associated-domain entitlement.
 - [x] No ads, analytics, subscriptions, in-app purchases, or paywalls.
 - [x] The exact Android candidate requests neither Advertising ID nor broad
-  photo/video access. Journal media uses the scoped system picker; Build 11 has
+  photo/video access. Journal media uses the scoped system picker; Build 12 has
   no `AD_ID`, `READ_MEDIA_IMAGES`, or `READ_MEDIA_VIDEO` permission.
 - [x] Third-party font and sound rights are recorded. The Android candidate
   bundles all four font OFL files, the sound-source record, and Flutter's
@@ -85,7 +85,7 @@ not replace a signed device build or store-console review.
 
 - [x] `dart format --output=none --set-exit-if-changed lib test tool`
 - [x] `flutter analyze`
-- [x] `flutter test` (335 tests on August 8, 2026)
+- [x] `flutter test` (337 tests on August 9, 2026)
 - [x] `flutter build web --release`
 - [x] `dart run tool/prepare_web_offline.dart` and `--check` bind the Build 11
   web output to its generated version metadata and an exact 124-file, 32.9 MiB
@@ -108,19 +108,19 @@ not replace a signed device build or store-console review.
   Pub packages against OSV on August 8, 2026; no known affecting advisory was
   returned. This supports the proven native-plugin pins without pretending an
   advisory scan can prove that undiscovered vulnerabilities do not exist.
-- [x] Render and inspect the screenshot-golden suite; all 21 captures pass a
+- [x] Render and inspect the screenshot-golden suite; all 23 captures pass a
   second run without updating baselines, confirming deterministic output.
-- [x] Build signed Android App Bundle and APK candidates for `1.0.0+11` from
-  source commit `5eae2b596f8eb3f939a859c86e9bf4413979757c` on
-  August 8, 2026. The AAB SHA-256 is
-  `194687BF561622061C7742E6DFDE4518DC0771EEC5DE4AFAC6DAC30440EC5844`;
+- [x] Build signed Android App Bundle and APK candidates for `1.0.0+12` from
+  source commit `ee091db079a54c982946aa6ab7e7b61546b3354f` on
+  August 9, 2026. The AAB SHA-256 is
+  `E2EA2FB86D95208F8CE0F29A61FD385AEFE227FF0F4C573EF6EDB5C59E36EA90`;
   the APK SHA-256 is
-  `A87061799010FEEC415C2E16E8DE4A7425F4871E71A10111D413DC9FFF996F2F`.
+  `9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12`.
   Both match upload certificate SHA-256
   `4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14`.
   Stable copies and install guidance are in `../release-artifacts/`.
 - [x] The Android app module's `:app:lintRelease` task completes successfully
-  with 0 errors on the current Build 11 source as of August 9, 2026, after
+  with 0 errors on the current Build 12 source as of August 9, 2026, after
   upgrading the core-library desugaring runtime to the API-36-safe 2.1.5
   release. Its nine remaining findings are four non-blocking app-link clarity
   suggestions and five launcher-silhouette advisories. The Gradle root aggregate
@@ -154,6 +154,11 @@ not replace a signed device build or store-console review.
   accessibility tree exposed Quest Desk and tab controls underneath first-run
   onboarding; after the upgrade, Build 11 exposed onboarding only, and its
   button advanced normally to step 2/4.
+- [x] Package a Build 11 → Build 12 signed upgrade pair and a phone-friendly
+  Android test guide in
+  `../release-artifacts/room-of-days-android-tester-kit-build-12.zip`; its
+  SHA-256 is
+  `900B15567EFA6F0CE7AAF7EAC4257A9F321F82368565B5415115956B3913242D`.
 - [x] Exercise the remaining release-mode data paths on API 36: a manual backup
   restored 23 XP back to its stashed 10-XP state across a cold relaunch; an
   Android scoped-picker photo and Journal text survived force-stop; optional
@@ -179,7 +184,7 @@ not replace a signed device build or store-console review.
 - [x] Confirm the submitted version/build number exceeds every prior upload.
   Build 18 was accepted after App Store Connect reported Build 17 as the
   previous high-water mark.
-- [x] Repository candidate version is `1.0.0+11`; Codemagic keeps Build 11 as
+- [x] Repository candidate version is `1.0.0+12`; Codemagic keeps Build 12 as
   the iOS floor and increments only when App Store Connect already contains an
   equal or higher TestFlight build.
 - [x] Deploy the checked-in Firestore rules before testing Share, Visit, or
