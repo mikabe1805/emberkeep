@@ -54,7 +54,7 @@ void main() {
     expect(compact, contains('name="theme-color" content="#191210"'));
   });
 
-  test('public privacy copy promises generated-room sharing only', () {
+  test('public privacy copy covers v1 sharing and collection boundaries', () {
     final privacy = _source('web/privacy.html');
     final compact = privacy.replaceAll(RegExp(r'\s+'), ' ');
 
@@ -69,6 +69,12 @@ void main() {
     expect(compact, contains('operating system may include local app data'));
     expect(compact, contains('device backups you choose to enable'));
     expect(compact, contains('workout or other activity progress'));
+    expect(compact, contains('exercise, sleep, meals, medication'));
+    expect(compact, contains('does not read HealthKit'));
+    expect(compact, contains('Device tilt'));
+    expect(compact, contains('is not a medical device'));
+    expect(compact, contains('does not diagnose, treat, cure, or prevent'));
+    expect(compact, contains('qualified healthcare professional'));
     expect(compact, contains('basic app/device metadata'));
     expect(compact, contains('derive location'));
     expect(compact, isNot(contains('Firebase Cloud Storage')));
@@ -158,6 +164,8 @@ void main() {
       expect(workflow, contains('Verify signed IPA contents'));
       expect(workflow, contains('codesign --verify --deep --strict'));
       expect(workflow, contains('PrivacyInfo.xcprivacy'));
+      expect(workflow, contains("grep -q 'NSPrivacyCollectedDataTypeHealth'"));
+      expect(workflow, contains("Print :ITSAppUsesNonExemptEncryption"));
       expect(appDelegate, contains('import UserNotifications'));
       expect(
         appDelegate,
@@ -167,6 +175,7 @@ void main() {
         privacyManifest,
         contains('NSPrivacyCollectedDataTypeOtherUserContent'),
       );
+      expect(privacyManifest, contains('NSPrivacyCollectedDataTypeHealth'));
       expect(privacyManifest, contains('NSPrivacyCollectedDataTypeFitness'));
     },
   );

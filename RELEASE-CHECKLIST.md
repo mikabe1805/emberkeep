@@ -45,6 +45,11 @@ not replace a signed device build or store-console review.
   manifest, signature, and associated-domain entitlement.
 - [x] No ads, analytics, subscriptions, in-app purchases, or paywalls.
 - [x] Store copy no longer mentions the retired character/avatar concept.
+- [x] Privacy manifests, public policy, and console worksheets disclose both
+  Fitness and Health data when optional cloud saves contain exercise, sleep,
+  meal, medication, stress, or similar quest progress. The store description
+  carries Google's required non-medical disclaimer and professional-advice
+  reminder.
 
 ## Verify before every candidate
 
@@ -65,8 +70,9 @@ not replace a signed device build or store-console review.
   permissions, app-link scope, APK/AAB signers, Bundletool configuration, ZIP
   alignment, and every native library's ELF LOAD alignment.
 - [x] `dart run tool/verify_store_submission.dart` verifies store-field length
-  limits, public URLs and disclosures, candidate-version agreement, icons,
-  feature graphic, and both exact five-image RGB screenshot sets.
+  limits, public URLs, privacy and health disclosures, candidate-version
+  agreement, icons, feature graphic, and both exact five-image RGB screenshot
+  sets.
 - [x] Render and inspect the screenshot-golden suite; all 21 captures pass a
   second run without updating baselines, confirming deterministic output.
 - [x] Build signed Android App Bundle and APK candidates for `1.0.0+10` from
@@ -162,9 +168,23 @@ not replace a signed device build or store-console review.
 - [x] Route `support@roomofdays.com` to a monitored inbox (owner confirmed).
 - [ ] Complete Apple App Privacy and Google Play Data safety questionnaires from
   `../STORE-LISTING.md`.
+- [ ] Complete Google Play's Health Apps declaration from `../STORE-LISTING.md`;
+  do not claim that the app has no health features. Confirm the declaration
+  includes Activity and Fitness, Nutrition and Weight Management, Sleep
+  Management, and Stress Management / Relaxation / Mental Acuity.
+- [ ] Confirm the Play developer account satisfies Google's Organization-account
+  requirement for health apps, including verifiable organization details and a
+  D-U-N-S number. Do not submit under an ineligible Personal account.
+- [ ] Confirm `com.mikabe.emberkeep` is registered or auto-registered in Play
+  Console's Android developer verification page before the September 30, 2026
+  enforcement date.
 - [ ] Enter `https://roomofdays.com/delete-account` as Google Play's account
   deletion URL and verify the public request workflow from the console.
 - [ ] Complete Apple’s current age-rating questionnaire.
+- [ ] After the physical-iPhone accessibility pass, prepare App Store
+  Accessibility Nutrition Labels. Publish only features whose every common task
+  meets Apple's criteria; automated semantics and layout tests alone are not
+  enough evidence.
 - [x] Create the 1024×500 Google Play feature graphic.
 - [x] Capture and inspect final production screenshots for both store-specific
   aspect ratios; the old illustrated interface set has been removed.

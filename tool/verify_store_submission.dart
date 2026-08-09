@@ -85,6 +85,12 @@ Future<void> main() async {
     ]) {
       if (!File(path).existsSync()) throw StateError('Missing $path.');
     }
+    final privacyCopy = (await File(
+      'web/privacy.html',
+    ).readAsString()).replaceAll(RegExp(r'\s+'), ' ');
+    final applePrivacyManifest = await File(
+      'ios/Runner/PrivacyInfo.xcprivacy',
+    ).readAsString();
     final pubspec = await File('pubspec.yaml').readAsString();
     final pubspecVersion = RegExp(
       r'^version:\s*(\S+)\s*$',
@@ -118,6 +124,16 @@ Future<void> main() async {
       'There are no ads, subscriptions, paywalls, or paid cosmetics.',
     );
     _expectContains(
+      'health disclaimer',
+      normalizedFullDescription,
+      'It is not a medical device and does not diagnose, treat, cure, or prevent any medical condition.',
+    );
+    _expectContains(
+      'professional-advice reminder',
+      normalizedFullDescription,
+      'Consult a qualified healthcare professional for medical advice, diagnosis, or treatment.',
+    );
+    _expectContains(
       'deletion worksheet',
       normalizedListing,
       'verified requests are normally completed within seven days',
@@ -127,7 +143,38 @@ Future<void> main() async {
       normalizedListing,
       'journal photos local and does not upload them',
     );
-    _pass('public URLs, local pages, disclosures, and $candidateVersion agree');
+    for (final expected in const [
+      'Google Play Health apps declaration',
+      "My app doesn't provide any health features",
+      'Activity and Fitness',
+      'Nutrition and Weight Management',
+      'Sleep Management',
+      'Stress Management, Relaxation, Mental Acuity',
+      '| Health info | Yes | No | No | Optional | App functionality |',
+      'Device tilt only controls visual depth and is not stored or uploaded.',
+      'Organization',
+      'D-U-N-S number',
+      'NSPrivacyCollectedDataTypeHealth',
+    ]) {
+      final source = expected == 'NSPrivacyCollectedDataTypeHealth'
+          ? applePrivacyManifest
+          : normalizedListing;
+      _expectContains('health disclosure', source, expected);
+    }
+    _expectContains(
+      'public health disclosure',
+      privacyCopy,
+      'exercise, sleep, meals, medication, stress',
+    );
+    _expectContains(
+      'public health disclaimer',
+      privacyCopy,
+      'does not diagnose, treat, cure, or prevent any medical condition',
+    );
+    _pass(
+      'public URLs, local pages, privacy/health disclosures, and '
+      '$candidateVersion agree',
+    );
 
     _section('Submission artwork');
     _verifyRgbPng('web/icons/Icon-1024.png', 1024, 1024);

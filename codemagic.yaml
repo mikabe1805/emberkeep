@@ -98,10 +98,12 @@ workflows:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")" = "1.0.0"
           BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")
           test "$BUILD_NUMBER" -gt 0
+          test "$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$APP/Info.plist")" = "false"
 
           test -f "$APP/PrivacyInfo.xcprivacy"
           plutil -lint "$APP/PrivacyInfo.xcprivacy"
           grep -q 'NSPrivacyCollectedDataTypeOtherUserContent' "$APP/PrivacyInfo.xcprivacy"
+          grep -q 'NSPrivacyCollectedDataTypeHealth' "$APP/PrivacyInfo.xcprivacy"
           grep -q 'NSPrivacyCollectedDataTypeFitness' "$APP/PrivacyInfo.xcprivacy"
 
           codesign --verify --deep --strict --verbose=2 "$APP"

@@ -128,6 +128,13 @@ reason to add more features.
     retries only denied collisions, and preserves real policy/network errors.
     The signed artifact then published and revoked a generated-only v5 room in
     production.
+29. Closed the health-policy disclosure gap before console entry. Optional
+    cloud saves can contain exercise, sleep, meal, medication, stress, and
+    similar quest progress, so the public notice, Apple privacy manifest, and
+    Apple/Google worksheets now disclose Health as well as Fitness. The store
+    description carries Google's required non-medical disclaimer and
+    professional-advice reminder, and the packet identifies the Health Apps
+    declaration and Organization-account gate explicitly.
 
 ## Release gates, in order
 
@@ -217,7 +224,8 @@ reason to add more features.
   the local AAB-delivery gap, but not the physical-device or Play Console gates.
 - The machine-readable candidate verifier passed the exact artifact pair and
   source handoff; the store-submission verifier passed every field limit, URL,
-  disclosure, icon, feature graphic, and both five-image RGB screenshot sets.
+  privacy and health disclosure, icon, feature graphic, and both five-image RGB
+  screenshot sets.
 - The final submission screenshot sets contain only current production UI.
   All ten exports are 24-bit RGB PNGs without alpha, were inspected after
   export, and match the five-state Quests → reward → My Space → room preview →
@@ -229,7 +237,7 @@ reason to add more features.
   `main.dart.js` SHA-256 is
   `389659848DB320604A2E76D1C7481A66FAD5317EC537B427A7D30496AFB55A44`;
   privacy is
-  `32905025D4C673CDCEBD37CFDAF62BE01798BC2F5A4FE1C90ED724193834372A`;
+  `45D3434D95D3F768EFE57238C90E968CEED052C92E1214B4CBAD72FC87B1396B`;
   deletion is
   `250AA4DD60F627A200408A070854B8FF6BFE224678D9CFB148A6625A2628B29D`;
   support is
