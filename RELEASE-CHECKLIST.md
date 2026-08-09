@@ -231,8 +231,10 @@ not replace a signed device build or store-console review.
 - [ ] After the first Play upload, publish the Play App Signing SHA-256 in
   `web/.well-known/assetlinks.json` (replacing the valid empty array), redeploy
   hosting, and verify Android App Links on-device.
-- [x] Store builds default to no external coffee/payment link. A separately
-  reviewed web or desktop build may opt in through `COFFEE_URL`.
+- [x] Android and web builds link to the owner's tip-only Ko-fi page from
+  About; the link grants no content, rewards, or progress. iOS excludes the
+  external payment call-to-action under App Review Guideline 3.1.1, and an
+  empty `COFFEE_URL` remains the rollback switch.
 - [x] Route `support@roomofdays.com` to a monitored inbox (owner confirmed).
 - [x] Complete and publish Apple App Privacy from `../STORE-LISTING.md`, including
   the privacy and deletion URLs and the seven linked, app-functionality data
@@ -268,8 +270,9 @@ not replace a signed device build or store-console review.
 - [x] In App Store Connect, set Content Rights to Yes for the licensed fonts and
   audio and retain Apple's standard EULA. The uploaded build declares that it
   does not use non-exempt encryption, so no encryption document is required.
-- [ ] Enter the exact legal copyright owner and required App Review contact
-  name/email/phone; do not infer either from the Apple account profile.
+- [x] Enter the exact legal copyright owner and required App Review contact
+  name/email/phone. App Store version 1.0 now carries `2026 Mika Be`, and the
+  saved review contact matches the already verified TestFlight review contact.
 - [ ] Complete Apple's DSA trader/non-trader self-assessment. If trader applies,
   finish verification of the contact details Apple will publish in EU product
   pages; do not select non-trader merely to avoid publishing them.

@@ -1,18 +1,19 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../audio.dart';
+import '../platform/share_stub.dart'
+    if (dart.library.js_interop) '../platform/share_web.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
 import '../widgets/ember_flame_icon.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
+import '../widgets/pressable.dart';
 
-/// About Room of Days — who makes it, the promise it keeps, and the two ways
-/// to help: honest feedback, and in separately reviewed builds a voluntary
-/// coffee. Nothing here sells anything; progress is the only currency the app
-/// recognises, and this page says so in writing.
+/// The maker's page: a short, human account of why Room of Days exists, plus
+/// feedback and a policy-gated voluntary support link. Support never changes
+/// app access, rewards, or progress.
 class AboutScreen extends StatelessWidget {
   const AboutScreen({
     super.key,
@@ -25,30 +26,36 @@ class AboutScreen extends StatelessWidget {
   final bool reduceMotion;
   final String? coffeeUrlOverride;
 
-  /// Store builds default to no external payment link. A separately reviewed
-  /// web/desktop build can opt in with --dart-define=COFFEE_URL=...; an empty
-  /// value hides the whole section rather than rendering a fake control.
+  /// The owner can still override this for a separate build. An empty value
+  /// hides the whole section rather than rendering a fake control.
   static const String configuredCoffeeUrl = String.fromEnvironment(
     'COFFEE_URL',
-    defaultValue: '',
+    defaultValue: 'https://ko-fi.com/mikabe',
   );
 
   String get _coffeeUrl => coffeeUrlOverride ?? configuredCoffeeUrl;
 
-  /// Apple requires digital developer tips inside an iOS app to go through
-  /// In-App Purchase (guideline 3.1.1), so the external coffee link stays off
-  /// iOS builds entirely rather than risking the whole release on a review
-  /// gamble. Android, web, and desktop may link out freely.
-  bool get _coffeeAllowedHere =>
-      _coffeeUrl.isNotEmpty && defaultTargetPlatform != TargetPlatform.iOS;
+  /// Apple requires developer tips inside an iOS app to use In-App Purchase.
+  /// Google Play permits a direct creator contribution only when it grants no
+  /// digital content or app benefit. The page's copy and behavior preserve
+  /// that boundary; iOS remains excluded.
+  bool get _coffeeAllowedHere {
+    if (_coffeeUrl.isEmpty) return false;
+    if (kIsWeb) return true;
+    return defaultTargetPlatform != TargetPlatform.iOS &&
+        defaultTargetPlatform != TargetPlatform.fuchsia;
+  }
 
   static final Uri _feedbackMail = Uri.parse(
     'mailto:support@roomofdays.com'
     '?subject=${Uri.encodeComponent('Room of Days — feedback')}',
   );
 
+  static const String _shareCopy =
+      'Room of Days is a quiet habit app where the little things you keep '
+      'warm and grow a room of your own. https://roomofdays.com';
+
   Future<void> _open(BuildContext context, Uri uri) async {
-    Sfx.instance.play('tick');
     var opened = false;
     try {
       opened = await launchUrl(uri);
@@ -70,147 +77,76 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _share(BuildContext context, Offset origin) async {
+    final result = await shareText(
+      _shareCopy,
+      origin: Rect.fromCenter(center: origin, width: 1, height: 1),
+    );
+    if (!context.mounted || result != ShareTextResult.unavailable) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        content: Text(
+          'Couldn’t open sharing on this device. You can send roomofdays.com directly.',
+          style: Type.body.copyWith(color: Palette.textHi),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final showCoffee = _coffeeAllowedHere;
     return Scaffold(
       backgroundColor: Palette.parchment,
       body: WarmBackground(
         themeId: themeId,
+        tint: Palette.xp,
         reduceMotion: reduceMotion,
         child: SafeArea(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(0, 0, 0, 36),
+          child: Column(
             children: [
               const DetailHeader(
-                title: 'About Room of Days',
+                title: 'Room of Days',
                 accent: Palette.xp,
-                subtitle: 'one keeper, one fire',
+                subtitle: 'made by Mika',
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    GlassPanel(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const EmberFlameIcon(size: 22),
-                              const SizedBox(width: 9),
-                              Flexible(
-                                child: Text(
-                                  'THE PROMISE',
-                                  style: Type.label.copyWith(
-                                    fontSize: Type.minLabel,
-                                    color: Palette.xpLight,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Room of Days is for the little things — the '
-                            'chores and small actions that are hard to feel. '
-                            'Every one you keep pays into a room that warms '
-                            'and grows, so consistency shows up somewhere '
-                            'you can actually see. And when a day goes thin, '
-                            'nothing scolds and nothing is taken from you: '
-                            'streaks rest, the fire waits.\n\n'
-                            'It’s made by one person and meant for everyone '
-                            '— which is why all of it is free, and nothing '
-                            'you could buy moves your progress. There are no '
-                            'shortcuts, on purpose.',
-                            style: Type.body.copyWith(
-                              fontSize: 14,
-                              height: 1.5,
-                              color: Palette.textHi,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    GlassPanel(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'SAY SOMETHING',
-                            style: Type.label.copyWith(
-                              fontSize: Type.minLabel,
-                              color: Palette.xpLight,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Feedback lands directly with the person who '
-                            'builds this — what felt good, what felt off, '
-                            'what you wish the room could hold.',
-                            style: Type.body.copyWith(
-                              fontSize: 13,
-                              height: 1.45,
-                              color: Palette.textMid,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          _AboutAction(
-                            key: const ValueKey('about-send-feedback'),
-                            label: 'SEND FEEDBACK',
-                            icon: Icons.mail_outline,
-                            onTap: () => _open(context, _feedbackMail),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_coffeeAllowedHere) ...[
-                      const SizedBox(height: 14),
-                      GlassPanel(
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
+                      sliver: SliverFillRemaining(
+                        hasScrollBody: false,
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            const _MakerCard(),
+                            const SizedBox(height: 14),
+                            _ContactCard(
+                              onFeedback: (_) => _open(context, _feedbackMail),
+                            ),
+                            const SizedBox(height: 14),
+                            _SupportCard(
+                              showCoffee: showCoffee,
+                              onCoffee: (_) =>
+                                  _open(context, Uri.parse(_coffeeUrl)),
+                              onShare: (origin) => _share(context, origin),
+                            ),
+                            const Spacer(),
+                            const SizedBox(height: 18),
                             Text(
-                              'KEEP THE FIRE FED',
+                              'FREE TO USE  ·  NO PAID PROGRESS',
+                              textAlign: TextAlign.center,
                               style: Type.label.copyWith(
                                 fontSize: Type.minLabel,
-                                color: Palette.streak,
+                                letterSpacing: 1.15,
+                                color: Palette.textLo,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'If Room of Days has earned a place in your '
-                              'days, you can send a coffee. It changes '
-                              'nothing in the app — your room never knows. '
-                              'It just helps one person keep building it.',
-                              style: Type.body.copyWith(
-                                fontSize: 13,
-                                height: 1.45,
-                                color: Palette.textMid,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            _AboutAction(
-                              key: const ValueKey('about-send-coffee'),
-                              label: 'SEND A COFFEE',
-                              icon: Icons.local_cafe_outlined,
-                              gold: true,
-                              onTap: () =>
-                                  _open(context, Uri.parse(_coffeeUrl)),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    Text(
-                      'Thank you for keeping days here.',
-                      textAlign: TextAlign.center,
-                      style: Type.body.copyWith(
-                        fontSize: 12.5,
-                        fontStyle: FontStyle.italic,
-                        color: Palette.textLo,
                       ),
                     ),
                   ],
@@ -224,6 +160,205 @@ class AboutScreen extends StatelessWidget {
   }
 }
 
+class _MakerCard extends StatelessWidget {
+  const _MakerCard();
+
+  @override
+  Widget build(BuildContext context) => GlassPanel(
+    glow: true,
+    padding: const EdgeInsets.all(18),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const FacetMedallion(
+              size: 68,
+              accent: Palette.xp,
+              glow: true,
+              child: EmberFlameIcon(size: 34),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ONE-PERSON PROJECT',
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 1.35,
+                      color: Palette.xpLight,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Made by Mika',
+                    style: Type.display.copyWith(
+                      fontSize: 23,
+                      color: Palette.textHi,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Room of Days is my passion project. I built it because the hard '
+          'little things in a day deserve to feel like they count.',
+          style: Type.body.copyWith(
+            fontSize: 14,
+            height: 1.48,
+            color: Palette.textHi,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(13, 11, 13, 12),
+          decoration: facetedDecoration(
+            cut: 8,
+            color: Palette.xp.withValues(alpha: 0.09),
+            borderColor: Palette.xp.withValues(alpha: 0.28),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 1),
+                child: Icon(
+                  Icons.lock_open_rounded,
+                  size: 17,
+                  color: Palette.xpLight,
+                ),
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  'Everything in the room stays open to everyone. There are '
+                  'no paid shortcuts, and support never changes your progress.',
+                  style: Type.body.copyWith(
+                    fontSize: 12.5,
+                    height: 1.42,
+                    color: Palette.textMid,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ContactCard extends StatelessWidget {
+  const _ContactCard({required this.onFeedback});
+
+  final ValueChanged<Offset> onFeedback;
+
+  @override
+  Widget build(BuildContext context) => GlassPanel(
+    padding: const EdgeInsets.fromLTRB(16, 15, 16, 17),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'KEEP IN TOUCH',
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            letterSpacing: 1.35,
+            color: Palette.xpLight,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          'If something felt good, felt off, or should exist, tell me. Every '
+          'note reaches me directly.',
+          style: Type.body.copyWith(
+            fontSize: 12.8,
+            height: 1.42,
+            color: Palette.textMid,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _AboutAction(
+          key: const ValueKey('about-send-feedback'),
+          label: 'SEND FEEDBACK',
+          icon: Icons.mail_outline_rounded,
+          gold: true,
+          onTap: onFeedback,
+        ),
+      ],
+    ),
+  );
+}
+
+class _SupportCard extends StatelessWidget {
+  const _SupportCard({
+    required this.showCoffee,
+    required this.onCoffee,
+    required this.onShare,
+  });
+
+  final bool showCoffee;
+  final ValueChanged<Offset> onCoffee;
+  final ValueChanged<Offset> onShare;
+
+  @override
+  Widget build(BuildContext context) => GlassPanel(
+    padding: const EdgeInsets.fromLTRB(16, 15, 16, 17),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'SUPPORT THE PROJECT',
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            letterSpacing: 1.35,
+            color: Palette.streak,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          showCoffee
+              ? 'If the room has earned a place in your days, you can leave '
+                    'a tip on Ko-fi. It helps me keep building; nothing '
+                    'unlocks in the app.'
+              : 'The best way to help right now is to share Room of Days '
+                    'with someone who might need a gentler way to keep going.',
+          style: Type.body.copyWith(
+            fontSize: 12.5,
+            height: 1.42,
+            color: Palette.textMid,
+          ),
+        ),
+        const SizedBox(height: 12),
+        if (showCoffee) ...[
+          _AboutAction(
+            key: const ValueKey('about-send-coffee'),
+            label: 'VISIT KO-FI',
+            icon: Icons.local_cafe_outlined,
+            gold: true,
+            onTap: onCoffee,
+          ),
+          const SizedBox(height: 10),
+        ],
+        _AboutAction(
+          key: const ValueKey('about-share-app'),
+          label: 'SHARE ROOM OF DAYS',
+          icon: Icons.ios_share_rounded,
+          gold: !showCoffee,
+          onTap: onShare,
+        ),
+      ],
+    ),
+  );
+}
+
 class _AboutAction extends StatelessWidget {
   const _AboutAction({
     super.key,
@@ -235,45 +370,42 @@ class _AboutAction extends StatelessWidget {
 
   final String label;
   final IconData icon;
-  final VoidCallback onTap;
+  final ValueChanged<Offset> onTap;
   final bool gold;
 
   @override
   Widget build(BuildContext context) {
-    final ink = gold ? Palette.onHoney : Palette.textMid;
-    return Semantics(
-      button: true,
-      label: label,
-      onTap: onTap,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 48),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: facetedDecoration(
-            cut: 9,
-            gradient: gold ? Palette.honeyGradient : null,
-            color: gold ? null : Palette.glassFill,
-            borderColor: gold ? Colors.transparent : Palette.glassEdge,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 17, color: ink),
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  label,
-                  style: Type.label.copyWith(fontSize: 11, color: ink),
-                ),
+    final ink = gold ? Palette.onHoney : Palette.textHi;
+    return Pressable(
+      semanticLabel: label,
+      onTapUp: onTap,
+      pressDepth: 3,
+      edgeColor: gold ? const Color(0xFF5B3215) : const Color(0xFF0F0905),
+      shape: const FacetedBorder(cut: 9),
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(minHeight: 48),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: facetedDecoration(
+          cut: 9,
+          gradient: gold ? Palette.honeyGradient : null,
+          color: gold ? null : Palette.glassFill,
+          borderColor: gold ? Colors.transparent : Palette.glassEdge,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 17, color: ink),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                style: Type.label.copyWith(fontSize: 11, color: ink),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

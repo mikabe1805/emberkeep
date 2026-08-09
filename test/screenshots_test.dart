@@ -14,6 +14,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/cloud.dart';
@@ -29,6 +30,7 @@ import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/main.dart';
 import 'package:emberkeep/models.dart';
+import 'package:emberkeep/screens/about.dart';
 import 'package:emberkeep/screens/journal_entry.dart';
 import 'package:emberkeep/screens/journal_hub.dart';
 import 'package:emberkeep/screens/hearth_circle.dart';
@@ -354,6 +356,37 @@ void main() {
       ),
       'type_specimen',
     );
+  });
+
+  testWidgets('about screen', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _shoot(
+      tester,
+      const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: AboutScreen(reduceMotion: true),
+      ),
+      'about_screen_430x932',
+    );
+  });
+
+  testWidgets('about screen iOS', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    try {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _shoot(
+        tester,
+        const MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: AboutScreen(reduceMotion: true),
+        ),
+        'about_screen_ios_430x932',
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   // the KEEP: no creature, the central hearth is the heart — fire LIT (a kept

@@ -5,74 +5,78 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:emberkeep/screens/about.dart';
 
 void main() {
-  testWidgets('About states the promise and offers feedback', (tester) async {
+  testWidgets('About introduces the maker and preserves the free promise', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       const MaterialApp(home: AboutScreen(reduceMotion: true)),
     );
     await tester.pump();
 
-    expect(find.text('About Room of Days'), findsOneWidget);
-    // The free-forever promise is on the page in writing.
-    expect(find.textContaining('no '), findsWidgets);
-    expect(find.textContaining('shortcuts'), findsOneWidget);
+    expect(find.text('Room of Days'), findsOneWidget);
+    expect(find.text('Made by Mika'), findsOneWidget);
+    expect(find.textContaining('no paid shortcuts'), findsOneWidget);
     expect(find.byKey(const ValueKey('about-send-feedback')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('coffee section shows where store rules allow it', (
-    tester,
-  ) async {
+  testWidgets('Android build includes the tip-only Ko-fi path', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: AboutScreen(
-          reduceMotion: true,
-          coffeeUrlOverride: 'https://ko-fi.com/mikabe',
-        ),
-      ),
-    );
-    await tester.pump();
+    try {
+      await tester.pumpWidget(
+        const MaterialApp(home: AboutScreen(reduceMotion: true)),
+      );
+      await tester.pump();
 
-    expect(find.byKey(const ValueKey('about-send-coffee')), findsOneWidget);
-    expect(find.textContaining('your room never knows'), findsOneWidget);
-    expect(tester.takeException(), isNull);
-    // Must clear before the body ends — the framework checks foundation
-    // debug vars ahead of addTearDown callbacks.
-    debugDefaultTargetPlatformOverride = null;
+      expect(find.byKey(const ValueKey('about-send-coffee')), findsOneWidget);
+      expect(find.textContaining('nothing unlocks'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
-  testWidgets('store build defaults to no external payment link', (
+  testWidgets('an empty support URL removes the entire Ko-fi path', (
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
-    await tester.pumpWidget(
-      const MaterialApp(home: AboutScreen(reduceMotion: true)),
-    );
-    await tester.pump();
+    try {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AboutScreen(reduceMotion: true, coffeeUrlOverride: ''),
+        ),
+      );
+      await tester.pump();
 
-    expect(find.byKey(const ValueKey('about-send-coffee')), findsNothing);
-    expect(tester.takeException(), isNull);
-    debugDefaultTargetPlatformOverride = null;
+      expect(find.byKey(const ValueKey('about-send-coffee')), findsNothing);
+      expect(find.textContaining('Ko-fi'), findsNothing);
+      expect(tester.takeException(), isNull);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('coffee section stays off iOS builds (Apple 3.1.1)', (
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: AboutScreen(
-          reduceMotion: true,
-          coffeeUrlOverride: 'https://ko-fi.com/mikabe',
+    try {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AboutScreen(
+            reduceMotion: true,
+            coffeeUrlOverride: 'https://ko-fi.com/mikabe',
+          ),
         ),
-      ),
-    );
-    await tester.pump();
+      );
+      await tester.pump();
 
-    expect(find.byKey(const ValueKey('about-send-coffee')), findsNothing);
-    expect(find.textContaining('coffee'), findsNothing);
-    expect(tester.takeException(), isNull);
-    debugDefaultTargetPlatformOverride = null;
+      expect(find.byKey(const ValueKey('about-send-coffee')), findsNothing);
+      expect(find.textContaining('Ko-fi'), findsNothing);
+      expect(tester.takeException(), isNull);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 
   testWidgets('About survives a narrow large-text phone', (tester) async {
