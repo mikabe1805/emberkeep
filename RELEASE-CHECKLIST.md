@@ -276,11 +276,17 @@ not replace a signed device build or store-console review.
   `7343443055439981513` as a new Personal account. Do not submit the health and
   fitness candidate under an ineligible account or falsely declare that the app
   has no health features.
+- [x] Verify ownership of the Play developer website. On August 9, 2026,
+  `roomofdays.com` was registered as a domain property in Google Search Console
+  through Cloudflare's one-time DNS authorization, and Play Console then
+  auto-approved the same-account association and reported `Website verified`.
+  Retain the Google site-verification TXT record so ownership stays verified.
 - [ ] Finish the Play developer-account gates. Identity was approved on August
-  6, 2026, but Google still requires the account owner to verify access through
-  the Play Console app on a physical Android 10+ device; contact-phone
-  verification remains locked until that device check is complete. Google has
-  disabled `Create app` until both checks pass.
+  6, 2026, and website ownership is now verified, but Google still requires the
+  account owner to verify access through the Play Console app on a physical
+  Android 10+ device; contact-phone verification remains locked until that
+  device check is complete. Google has disabled `Create app` until both checks
+  pass.
 - [ ] If the final eligible account is a new Personal account, run a closed test
   with at least 12 opted-in testers for 14 continuous days and then apply for
   production access. The single current Android tester is enough for device
