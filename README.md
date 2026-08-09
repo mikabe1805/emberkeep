@@ -64,6 +64,8 @@ Open the PNGs in `test/goldens/` after any visual change.
 - Owner procedures for off-app account deletion and password recovery are in
   [`ACCOUNT-DELETION-RUNBOOK.md`](ACCOUNT-DELETION-RUNBOOK.md) and
   [`ACCOUNT-RECOVERY-RUNBOOK.md`](ACCOUNT-RECOVERY-RUNBOOK.md).
+- The exact physical Android/iPhone release pass is in
+  [`DEVICE-ACCEPTANCE-RUNBOOK.md`](DEVICE-ACCEPTANCE-RUNBOOK.md).
 - Store-console copy, privacy answers, screenshots, and remaining owner gates
   are tracked in [`RELEASE-CHECKLIST.md`](RELEASE-CHECKLIST.md) and
   [`../STORE-LISTING.md`](../STORE-LISTING.md).

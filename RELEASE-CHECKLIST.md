@@ -60,6 +60,8 @@ not replace a signed device build or store-console review.
   meal, medication, stress, or similar quest progress. The store description
   carries Google's required non-medical disclaimer and professional-advice
   reminder.
+- [x] `DEVICE-ACCEPTANCE-RUNBOOK.md` turns the remaining physical-phone gate
+  into an artifact-bound pass with stop conditions and a durable result record.
 
 ## Verify before every candidate
 
@@ -126,7 +128,8 @@ not replace a signed device build or store-console review.
   backup, account create, sign-out, sign-in, and account deletion all completed;
   deletion invalidated the temporary credentials and returned an empty Journal.
 - [ ] Build/upload iOS with Xcode 26+ and the iOS 26 SDK.
-- [ ] Install release builds on physical Android and iPhone devices.
+- [ ] Complete `DEVICE-ACCEPTANCE-RUNBOOK.md` on physical Android and iPhone
+  devices using the exact recorded release artifacts.
 - [ ] On a physical iPhone, continuously scroll the Quest board, tilt while
   scrolling, complete a Quest, open the one-line Journal sheet, and switch all
   five tabs twice. Confirm immediate press feedback, stable frame pacing, no

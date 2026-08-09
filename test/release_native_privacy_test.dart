@@ -127,6 +127,27 @@ void main() {
     expect(recovery, contains("account's cloud save is preserved"));
   });
 
+  test('physical acceptance runbook is bound to the release candidates', () {
+    final runbook = _source(
+      'DEVICE-ACCEPTANCE-RUNBOOK.md',
+    ).replaceAll(RegExp(r'\s+'), ' ');
+
+    for (final expected in const [
+      'room-of-days-1.0.0+10-android.apk',
+      '8EA8CC79BF289B440A5FD1B384DD6AAD8B1F03FC2FA5FD36A2B39AF6B7960D16',
+      '68f45ac2b67bc41dc79e492cd556751577107a24',
+      'manual Codemagic `ios-testflight` workflow',
+      'Team ID `D63Z4RBRT8`',
+      'private content in a visitor room',
+      'Low Power/Battery Saver',
+      'VoiceOver/TalkBack',
+      'Android Settings Force stop deliberately suppresses alarms',
+      'Final decision: **PASS / FAIL**',
+    ]) {
+      expect(runbook, contains(expected));
+    }
+  });
+
   test('native app-link runtime keeps room URLs scoped and queue-backed', () {
     final app = _source('lib/main.dart');
     final social = _source('lib/social.dart');
