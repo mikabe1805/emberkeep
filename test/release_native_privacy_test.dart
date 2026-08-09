@@ -238,7 +238,7 @@ void main() {
       expect(candidate['schema'], 1);
       expect(candidate['packageId'], 'com.mikabe.emberkeep');
       expect(candidate['versionName'], '1.0.0');
-      expect(candidate['versionCode'], 9);
+      expect(candidate['versionCode'], 10);
       expect(candidate['minSdk'], 24);
       expect(candidate['targetSdk'], 36);
       expect(candidate['ndkVersion'], '28.2.13676358');

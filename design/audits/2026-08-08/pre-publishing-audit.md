@@ -122,6 +122,12 @@ reason to add more features.
 27. Added a valid empty Android `assetlinks.json` endpoint with an explicit JSON
     content type. It remains deliberately unassociated until the first Play
     upload exposes the Play App Signing certificate.
+28. Found the first-time sharing failure in the installed release app: the
+    client probed a fresh code with a read, while production rules correctly
+    hide missing room documents. Build 10 now reserves by bounded writes,
+    retries only denied collisions, and preserves real policy/network errors.
+    The signed artifact then published and revoked a generated-only v5 room in
+    production.
 
 ## Release gates, in order
 
@@ -157,11 +163,11 @@ reason to add more features.
 
 - Formatting check: passed.
 - Flutter analysis: passed.
-- Full Flutter test suite: 327 tests passed.
+- Full Flutter test suite: 332 tests passed.
 - Release web build: passed, including the WebAssembly dry run.
 - Screenshot suite: all 21 captures passed, were visually reviewed, and passed
   again without updating baselines.
-- Focused release, privacy, account, reset, and cleanup tests: 47 passed.
+- Focused room-reservation, social, and release-policy suite: 40 passed.
 - Local AASA content exactly matches the live HTTPS response, including exact
   and wildcard forms for both `/space` and legacy `/room` links.
 - Current Firestore rules compiled and deployed to production on August 8.
@@ -169,26 +175,34 @@ reason to add more features.
   publication, exact reads, anti-enumeration, visitor-writing and photo-path
   rejection, anti-downgrade, owner-only Circle/Spark receipts, duplicate
   rejection, self-interaction rejection, and complete temporary-data cleanup.
-- Signed Android AAB and APK candidates for `1.0.0+9` passed clean release
+- Signed Android AAB and APK candidates for `1.0.0+10`, built from source commit
+  `68f45ac2b67bc41dc79e492cd556751577107a24`, passed clean release
   builds. Newer native audio/share plugin releases were rejected after their
   AGP 9 Built-in Kotlin paths failed real release compilation; the candidate
   pins the last proven versions instead of carrying a build-system workaround.
   The AAB SHA-256 is
-  `3FF121450EAF4F39645935292047DE6D7407EA598F6A1E91403D4481F7002A32`;
+  `0D46FBFC6EAAC2AFDDDD0BE1EFFAB9FF8576FBA251B2B43EC8DED46CFE19A654`;
   the APK SHA-256 is
-  `C1F61283E171383688B9FD618453CCAAF7E7DA6D37ED149B8558881B89C6D018`.
+  `8EA8CC79BF289B440A5FD1B384DD6AAD8B1F03FC2FA5FD36A2B39AF6B7960D16`.
   Both carry the expected upload certificate, and the packaged APK reports
-  version code 9, version name 1.0.0, minimum API 24, and target API 36.
+  version code 10, version name 1.0.0, minimum API 24, and target API 36.
   Android release lint passes; bundletool validates the AAB and reports
   `PAGE_ALIGNMENT_16K`; the APK passes 16 KiB zip alignment; and all twelve
   packaged native libraries meet the 16 KiB LOAD-alignment requirement.
-- The signed Build 9 APK passed an installed Android 16 / API 36 emulator smoke:
+- The release APK passed an installed Android 16 / API 36 emulator smoke:
   cold launch, onboarding, quest completion, all five destinations, offline
   relaunch, notification permission and alarm cancellation, exact and
   near-miss app-link resolution, largest in-app text, reset persistence, and
-  repeated tab changes. Installing Build 9 over signed Build 8 preserved the
-  completed quest, 10 XP, Body progress, and the remaining board. This does not
-  replace the physical-device performance gate.
+  repeated tab changes. A manual backup restored a changed 23-XP room to its
+  stashed 10-XP state across cold relaunch; a system-picker photo and Journal
+  text survived force-stop; and optional backup, account creation, sign-out,
+  sign-in, and deletion completed against production. Account deletion
+  invalidated the temporary credentials and left an empty Journal.
+- Installing the signed Build 10 APK over signed Build 9 advanced version code
+  9 to 10 and preserved 10 XP. First-time sharing from that exact Build 10 APK
+  returned a public generated-only v5 room with profile/photo fields empty;
+  Stop Sharing revoked the code. This does not replace the physical-device
+  performance gate.
 - The machine-readable candidate verifier passed the exact artifact pair and
   source handoff; the store-submission verifier passed every field limit, URL,
   disclosure, icon, feature graphic, and both five-image RGB screenshot sets.
@@ -201,7 +215,7 @@ reason to add more features.
   Android association placeholder each matched their checked-in or built
   counterpart byte-for-byte by SHA-256 and returned HTTP 200. The deployed
   `main.dart.js` SHA-256 is
-  `DDB566D16C0BFF50FCA56ED65EA12804E05D0C88B0B05722AE08292343FA5528`;
+  `389659848DB320604A2E76D1C7481A66FAD5317EC537B427A7D30496AFB55A44`;
   privacy is
   `32905025D4C673CDCEBD37CFDAF62BE01798BC2F5A4FE1C90ED724193834372A`;
   deletion is

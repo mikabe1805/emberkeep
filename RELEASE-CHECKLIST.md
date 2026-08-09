@@ -58,7 +58,7 @@ not replace a signed device build or store-console review.
 
 - [x] `dart format --output=none --set-exit-if-changed lib test tool`
 - [x] `flutter analyze`
-- [x] `flutter test` (327 tests)
+- [x] `flutter test` (332 tests)
 - [x] `flutter build web --release`
 - [x] `dart run tool/verify_android_candidate.dart` verifies the immutable
   artifact hashes and handoff, source commit, package/version/SDK contract,
@@ -69,11 +69,12 @@ not replace a signed device build or store-console review.
   feature graphic, and both exact five-image RGB screenshot sets.
 - [x] Render and inspect the screenshot-golden suite; all 21 captures pass a
   second run without updating baselines, confirming deterministic output.
-- [x] Build signed Android App Bundle and APK candidates for `1.0.0+9` on
+- [x] Build signed Android App Bundle and APK candidates for `1.0.0+10` from
+  source commit `68f45ac2b67bc41dc79e492cd556751577107a24` on
   August 8, 2026. The AAB SHA-256 is
-  `3FF121450EAF4F39645935292047DE6D7407EA598F6A1E91403D4481F7002A32`;
+  `0D46FBFC6EAAC2AFDDDD0BE1EFFAB9FF8576FBA251B2B43EC8DED46CFE19A654`;
   the APK SHA-256 is
-  `C1F61283E171383688B9FD618453CCAAF7E7DA6D37ED149B8558881B89C6D018`.
+  `8EA8CC79BF289B440A5FD1B384DD6AAD8B1F03FC2FA5FD36A2B39AF6B7960D16`.
   Both match upload certificate SHA-256
   `4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14`.
   Stable copies and install guidance are in `../release-artifacts/`.
@@ -82,17 +83,22 @@ not replace a signed device build or store-console review.
 - [x] Bundletool 1.18.3 validates the AAB and reports
   `PAGE_ALIGNMENT_16K`; the APK passes `zipalign -c -P 16`, and all packaged
   native libraries have LOAD alignment of at least 16 KiB.
-- [x] Install the signed Build 9 APK on an Android 16 / API 36 emulator. Cold
+- [x] Install the release APK on an Android 16 / API 36 emulator. Cold
   launch, onboarding, quest completion, all five destinations, offline
   relaunch, notification permission and alarm cancellation, exact and
   near-miss app links, largest in-app text, reset persistence, and repeated tab
   changes passed on August 8, 2026. The emulator required its supported host
   graphics backend; two unsupported software-renderer attempts crashed QEMU,
   not the app process.
-- [x] Install signed Build 9 over signed Build 8 on the API 36 emulator. The
-  package upgraded from version code 8 to 9 without onboarding returning, and
-  the completed quest, 10 XP, Body progress, and four remaining quests were
-  preserved.
+- [x] Install signed Build 10 over signed Build 9 on the API 36 emulator. The
+  package upgraded from version code 9 to 10 without onboarding returning and
+  preserved 10 XP. First-time sharing then produced a publicly readable v5
+  room with every profile/photo field empty; Stop Sharing revoked the code.
+- [x] Exercise the remaining release-mode data paths on API 36: a manual backup
+  restored 23 XP back to its stashed 10-XP state across a cold relaunch; an
+  Android scoped-picker photo and Journal text survived force-stop; optional
+  backup, account create, sign-out, sign-in, and account deletion all completed;
+  deletion invalidated the temporary credentials and returned an empty Journal.
 - [ ] Build/upload iOS with Xcode 26+ and the iOS 26 SDK.
 - [ ] Install release builds on physical Android and iPhone devices.
 - [ ] On a physical iPhone, continuously scroll the Quest board, tilt while
@@ -107,7 +113,7 @@ not replace a signed device build or store-console review.
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.
 - [ ] Confirm the submitted version/build number exceeds every prior upload.
-- [x] Repository candidate version is `1.0.0+9`; Codemagic still derives the
+- [x] Repository candidate version is `1.0.0+10`; Codemagic still derives the
   next iOS build number from App Store Connect.
 - [x] Deploy the checked-in Firestore rules before testing Share, Visit, or
   Circle; current rules compiled and were released to `emberkeep-5b33b` on
@@ -116,10 +122,10 @@ not replace a signed device build or store-console review.
   generated-only read, anti-enumeration, visitor-writing and photo-path
   rejection, anti-downgrade, Circle/Spark delivery and owner-only reads,
   duplicate support rejection, self-Spark/self-Circle rejection, and cleanup
-  all passed again on Build 9 on August 8, 2026. Cleanup now attempts every
-  temporary resource and identity even if an earlier deletion fails; this run
-  reported `Cleanup complete`. Storage was intentionally excluded because it
-  is not a v1 runtime dependency.
+  all passed again under the Build 10 source on August 8, 2026. Cleanup now
+  attempts every temporary resource and identity even if an earlier deletion
+  fails; this run reported `Cleanup complete`. Storage was intentionally
+  excluded because it is not a v1 runtime dependency.
   Re-run with
   `dart run tool/production_social_smoke.dart --confirm-production --firestore-only`;
   a future visitor-photo candidate must create its bucket, deploy
