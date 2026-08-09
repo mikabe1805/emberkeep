@@ -170,7 +170,9 @@ reason to add more features.
 
 - Formatting check: passed.
 - Flutter analysis: passed.
-- Full Flutter test suite: 332 tests passed.
+- Full Flutter test suite: 332 tests passed on the immutable Build 10 source.
+  Repository-only release handoff guardrails added afterward bring the current
+  suite to 333 tests; all 333 pass.
 - Release web build: passed, including the WebAssembly dry run.
 - Screenshot suite: all 21 captures passed, were visually reviewed, and passed
   again without updating baselines.

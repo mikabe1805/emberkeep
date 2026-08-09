@@ -79,7 +79,7 @@ not replace a signed device build or store-console review.
 
 - [x] `dart format --output=none --set-exit-if-changed lib test tool`
 - [x] `flutter analyze`
-- [x] `flutter test` (332 tests)
+- [x] `flutter test` (333 tests on August 8, 2026)
 - [x] `flutter build web --release`
 - [x] `dart run tool/verify_android_candidate.dart` verifies the immutable
   artifact hashes and handoff, source commit, package/version/SDK contract,
