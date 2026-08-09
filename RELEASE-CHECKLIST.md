@@ -136,8 +136,9 @@ not replace a signed device build or store-console review.
   notifications, export/restore, reset, sharing, large text, screen reader, and
   reduce-motion paths.
 - [ ] Confirm the submitted version/build number exceeds every prior upload.
-- [x] Repository candidate version is `1.0.0+10`; Codemagic still derives the
-  next iOS build number from App Store Connect.
+- [x] Repository candidate version is `1.0.0+10`; Codemagic keeps Build 10 as
+  the iOS floor and increments only when App Store Connect already contains an
+  equal or higher TestFlight build.
 - [x] Deploy the checked-in Firestore rules before testing Share, Visit, or
   Circle; current rules compiled and were released to `emberkeep-5b33b` on
   August 8, 2026.
@@ -165,6 +166,10 @@ not replace a signed device build or store-console review.
 - [ ] Back up the upload keystore and password file off this machine.
 - [ ] Enroll in Play App Signing.
 - [ ] Confirm Codemagic App Store Connect integration/signing secrets are valid.
+- [ ] In App Store Connect TestFlight Test Information, paste the Beta App
+  Description and What to Test copy from `../STORE-LISTING.md`, use the
+  monitored support inbox as Feedback Email, and complete the review contact
+  fields before Codemagic's `submit_to_testflight` post-processing runs.
 - [ ] Enable Associated Domains for the App ID and confirm the renewed iOS
   provisioning profile includes `applinks:roomofdays.com`.
 - [ ] After the first Play upload, publish the Play App Signing SHA-256 in

@@ -148,6 +148,7 @@ void main() {
     expect(association, contains('{ "/": "/space/*",'));
     expect(association, contains('{ "/": "/room",'));
     expect(association, contains('{ "/": "/room/*",'));
+    expect(association, contains('D63Z4RBRT8.com.mikabe.emberkeep'));
   });
 
   test(
@@ -160,12 +161,33 @@ void main() {
       expect(workflow, contains('flutter: 3.44.2'));
       expect(workflow, contains('xcode: 26.4'));
       expect(workflow, contains('cocoapods: 1.16.2'));
+      expect(workflow, contains('APPLE_TEAM_ID: "D63Z4RBRT8"'));
+      expect(workflow, contains('TRIGGERING: intentionally manual'));
       expect(workflow, isNot(contains('PURE SPM')));
       expect(workflow, contains('Verify signed IPA contents'));
+      expect(workflow, contains('PUBSPEC_BUILD'));
+      expect(workflow, contains(r'NEXT_BUILD=$PUBSPEC_BUILD'));
+      expect(workflow, isNot(contains('2>/dev/null || echo 0')));
       expect(workflow, contains('codesign --verify --deep --strict'));
       expect(workflow, contains('PrivacyInfo.xcprivacy'));
-      expect(workflow, contains("grep -q 'NSPrivacyCollectedDataTypeHealth'"));
+      for (final dataType in const [
+        'NSPrivacyCollectedDataTypeName',
+        'NSPrivacyCollectedDataTypeEmailAddress',
+        'NSPrivacyCollectedDataTypeUserID',
+        'NSPrivacyCollectedDataTypeGameplayContent',
+        'NSPrivacyCollectedDataTypeHealth',
+        'NSPrivacyCollectedDataTypeFitness',
+        'NSPrivacyCollectedDataTypeOtherUserContent',
+      ]) {
+        expect(workflow, contains(dataType));
+      }
       expect(workflow, contains("Print :ITSAppUsesNonExemptEncryption"));
+      expect(workflow, contains("Print :DTSDKName"));
+      expect(workflow, contains('iphoneos26'));
+      expect(workflow, contains('embedded.mobileprovision'));
+      expect(workflow, contains(r'$APPLE_TEAM_ID.$BUNDLE_ID'));
+      expect(workflow, contains('release-evidence.txt'));
+      expect(workflow, contains('Runner.xcarchive/dSYMs/*.dSYM'));
       expect(appDelegate, contains('import UserNotifications'));
       expect(
         appDelegate,

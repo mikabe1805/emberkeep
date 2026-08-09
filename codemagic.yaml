@@ -3,6 +3,11 @@
 # REPO LAYOUT: this file sits at the ROOT of the app's git repo (the `app/` folder
 # IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
 #
+# TRIGGERING: intentionally manual. Routine source/docs pushes must not spend a
+# cloud-Mac build or upload an unreviewed binary to TestFlight. Start exactly one
+# `ios-testflight` build from the Codemagic UI when the release checklist calls
+# for it; see ../NATIVE-iOS.md.
+#
 # SIGNING: EXPLICIT App Store Connect CLI signing (NOT the automatic ios_signing
 # block). Two hard-won facts drove this:
 #   1. The in-yaml `ios_signing` automatic block is FETCH-ONLY — it never CREATES
@@ -44,6 +49,7 @@ workflows:
         - emberkeep_signing # ← MUST contain the secret var CERTIFICATE_PRIVATE_KEY
       vars:
         BUNDLE_ID: "com.mikabe.emberkeep"
+        APPLE_TEAM_ID: "D63Z4RBRT8"
         # numeric Apple ID of the app record (App Store Connect → App Information)
         APP_STORE_APPLE_ID: 6781401469
     scripts:
@@ -76,12 +82,34 @@ workflows:
             --export-options-plist="$HOME/export_options.plist"
       - name: Flutter build ipa
         script: |
-          # First-build-safe build number: a missing/failed TestFlight lookup
-          # degrades to 0, so the first CI run is build 1 and later runs increment.
-          # The version NAME (1.0.0) comes from pubspec.yaml.
-          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0)
+          set -euo pipefail
+          # Keep the checked-in pubspec build as the floor (Build 10 for 1.0.0),
+          # then exceed any TestFlight build already uploaded for this app. An
+          # authentication/API failure must stop the paid build instead of being
+          # hidden as "no prior build" and producing a duplicate Build 1.
+          PUBSPEC_BUILD=$(sed -nE \
+            's/^version:[[:space:]]*[^+]+\+([0-9]+)[[:space:]]*$/\1/p' \
+            pubspec.yaml)
+          case "$PUBSPEC_BUILD" in
+            ''|*[!0-9]*) echo "Invalid pubspec build number: $PUBSPEC_BUILD" >&2; exit 1 ;;
+          esac
+          LATEST=$(app-store-connect \
+            get-latest-testflight-build-number "$APP_STORE_APPLE_ID" | \
+            tr -d '[:space:]')
+          # A brand-new app may have no prior build. The CLI normally reports 0;
+          # accept an empty successful response as the same state, but never hide
+          # a non-zero command exit because pipefail remains active.
+          LATEST=${LATEST:-0}
+          case "$LATEST" in
+            *[!0-9]*) echo "Invalid TestFlight build number: $LATEST" >&2; exit 1 ;;
+          esac
+          NEXT_BUILD=$PUBSPEC_BUILD
+          if [ "$LATEST" -ge "$NEXT_BUILD" ]; then
+            NEXT_BUILD=$((LATEST + 1))
+          fi
+          echo "Building Room of Days 1.0.0 ($NEXT_BUILD); pubspec floor $PUBSPEC_BUILD, latest TestFlight $LATEST"
           flutter build ipa --release \
-            --build-number=$((LATEST + 1)) \
+            --build-number="$NEXT_BUILD" \
             --export-options-plist="$HOME/export_options.plist"
       - name: Verify signed IPA contents
         script: |
@@ -97,21 +125,111 @@ workflows:
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = "$BUNDLE_ID"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")" = "1.0.0"
           BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")
-          test "$BUILD_NUMBER" -gt 0
+          PUBSPEC_BUILD=$(sed -nE \
+            's/^version:[[:space:]]*[^+]+\+([0-9]+)[[:space:]]*$/\1/p' \
+            pubspec.yaml)
+          test "$BUILD_NUMBER" -ge "$PUBSPEC_BUILD"
           test "$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$APP/Info.plist")" = "false"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist")" = "Room of Days"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist")" = "15.0"
+          SDK_NAME=$(/usr/libexec/PlistBuddy -c 'Print :DTSDKName' "$APP/Info.plist")
+          case "$SDK_NAME" in iphoneos26*) ;; *) echo "Unexpected SDK: $SDK_NAME" >&2; exit 1 ;; esac
+          plutil -extract UIDeviceFamily json -o - "$APP/Info.plist" | jq -e '. == [1]'
+          plutil -extract UISupportedInterfaceOrientations json -o - "$APP/Info.plist" | \
+            jq -e '. == ["UIInterfaceOrientationPortrait"]'
+          for KEY in NSCameraUsageDescription NSPhotoLibraryUsageDescription NSMotionUsageDescription; do
+            test -n "$(/usr/libexec/PlistBuddy -c "Print :$KEY" "$APP/Info.plist")"
+          done
 
           test -f "$APP/PrivacyInfo.xcprivacy"
           plutil -lint "$APP/PrivacyInfo.xcprivacy"
-          grep -q 'NSPrivacyCollectedDataTypeOtherUserContent' "$APP/PrivacyInfo.xcprivacy"
-          grep -q 'NSPrivacyCollectedDataTypeHealth' "$APP/PrivacyInfo.xcprivacy"
-          grep -q 'NSPrivacyCollectedDataTypeFitness' "$APP/PrivacyInfo.xcprivacy"
+          plutil -convert json -o "$VERIFY_DIR/privacy.json" "$APP/PrivacyInfo.xcprivacy"
+          jq -e '.NSPrivacyTracking == false and (.NSPrivacyTrackingDomains | length == 0)' \
+            "$VERIFY_DIR/privacy.json"
+          EXPECTED_DATA_TYPES=$(printf '%s\n' \
+            NSPrivacyCollectedDataTypeEmailAddress \
+            NSPrivacyCollectedDataTypeFitness \
+            NSPrivacyCollectedDataTypeGameplayContent \
+            NSPrivacyCollectedDataTypeHealth \
+            NSPrivacyCollectedDataTypeName \
+            NSPrivacyCollectedDataTypeOtherUserContent \
+            NSPrivacyCollectedDataTypeUserID | sort)
+          ACTUAL_DATA_TYPES=$(jq -r \
+            '.NSPrivacyCollectedDataTypes[].NSPrivacyCollectedDataType' \
+            "$VERIFY_DIR/privacy.json" | sort)
+          test "$ACTUAL_DATA_TYPES" = "$EXPECTED_DATA_TYPES"
+          jq -e 'all(.NSPrivacyCollectedDataTypes[]; \
+            .NSPrivacyCollectedDataTypeLinked == true and \
+            .NSPrivacyCollectedDataTypeTracking == false and \
+            .NSPrivacyCollectedDataTypePurposes == ["NSPrivacyCollectedDataTypePurposeAppFunctionality"])' \
+            "$VERIFY_DIR/privacy.json"
+          jq -e 'any(.NSPrivacyAccessedAPITypes[]; \
+            .NSPrivacyAccessedAPIType == "NSPrivacyAccessedAPICategoryUserDefaults" and \
+            (.NSPrivacyAccessedAPITypeReasons | index("CA92.1")))' \
+            "$VERIFY_DIR/privacy.json"
 
           codesign --verify --deep --strict --verbose=2 "$APP"
           codesign -d --entitlements :- "$APP" > "$VERIFY_DIR/entitlements.plist" 2>/dev/null
           plutil -lint "$VERIFY_DIR/entitlements.plist"
           grep -q 'applinks:roomofdays.com' "$VERIFY_DIR/entitlements.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :get-task-allow' "$VERIFY_DIR/entitlements.plist")" = "false"
+          test "$(/usr/libexec/PlistBuddy -c \
+            'Print :com.apple.developer.team-identifier' "$VERIFY_DIR/entitlements.plist")" = "$APPLE_TEAM_ID"
+          test "$(/usr/libexec/PlistBuddy -c \
+            'Print :application-identifier' "$VERIFY_DIR/entitlements.plist")" = "$APPLE_TEAM_ID.$BUNDLE_ID"
+
+          test -f "$APP/embedded.mobileprovision"
+          security cms -D -i "$APP/embedded.mobileprovision" > "$VERIFY_DIR/profile.plist"
+          plutil -lint "$VERIFY_DIR/profile.plist"
+          PROFILE_APP_ID=$(/usr/libexec/PlistBuddy -c \
+            'Print :Entitlements:application-identifier' "$VERIFY_DIR/profile.plist")
+          test "$PROFILE_APP_ID" = "$APPLE_TEAM_ID.$BUNDLE_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' \
+            "$VERIFY_DIR/profile.plist")" = "$APPLE_TEAM_ID"
+          test "$(/usr/libexec/PlistBuddy -c \
+            'Print :Entitlements:get-task-allow' "$VERIFY_DIR/profile.plist")" = "false"
+          grep -q 'applinks:roomofdays.com' "$VERIFY_DIR/profile.plist"
+          grep -q "$APPLE_TEAM_ID.$BUNDLE_ID" \
+            web/.well-known/apple-app-site-association
+
+          EXECUTABLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")
+          lipo -info "$APP/$EXECUTABLE" | grep -q 'arm64'
+
+          # Persist a secret-free, downloadable evidence record beside the IPA.
+          EVIDENCE=build/ios/ipa/release-evidence.txt
+          IPA_SHA256=$(shasum -a 256 "$IPA" | awk '{print toupper($1)}')
+          TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$VERIFY_DIR/profile.plist")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$VERIFY_DIR/profile.plist")
+          PROFILE_EXPIRATION=$(/usr/libexec/PlistBuddy -c 'Print :ExpirationDate' "$VERIFY_DIR/profile.plist")
+          XCODE_BUILD=$(/usr/libexec/PlistBuddy -c 'Print :DTXcodeBuild' "$APP/Info.plist")
+          CODESIGN_DETAILS=$(codesign -dv --verbose=4 "$APP" 2>&1)
+          SIGNING_AUTHORITY=
+          while IFS= read -r LINE; do
+            case "$LINE" in
+              Authority=*) SIGNING_AUTHORITY=${LINE#Authority=}; break ;;
+            esac
+          done <<< "$CODESIGN_DETAILS"
+          test -n "$SIGNING_AUTHORITY"
+          {
+            echo "source_commit=${CM_COMMIT:-$(git rev-parse HEAD)}"
+            echo "ipa_sha256=$IPA_SHA256"
+            echo "bundle_id=$BUNDLE_ID"
+            echo "marketing_version=1.0.0"
+            echo "build_number=$BUILD_NUMBER"
+            echo "sdk_name=$SDK_NAME"
+            echo "xcode_build=$XCODE_BUILD"
+            echo "minimum_os=15.0"
+            echo "team_id=$TEAM_ID"
+            echo "profile_name=$PROFILE_NAME"
+            echo "profile_expiration=$PROFILE_EXPIRATION"
+            echo "signing_authority=$SIGNING_AUTHORITY"
+            echo "associated_domain=applinks:roomofdays.com"
+          } > "$EVIDENCE"
+          cat "$EVIDENCE"
     artifacts:
       - build/ios/ipa/*.ipa
+      - build/ios/ipa/release-evidence.txt
+      - build/ios/archive/Runner.xcarchive/dSYMs/*.dSYM
       - /tmp/xcodebuild_logs/*.log
       - flutter_drive.log
     publishing:
