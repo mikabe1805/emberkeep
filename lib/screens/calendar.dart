@@ -195,6 +195,9 @@ class _CalendarPageState extends State<CalendarPage> {
   List<ClassOccurrence> _classesOn(DateTime day) =>
       _academicSchedule.occurrencesOn(CivilDate.fromDateTime(day));
 
+  List<AcademicWorkItem> _academicWorkOn(DateTime day) =>
+      _academicSchedule.workItemsOn(CivilDate.fromDateTime(day));
+
   Future<bool> _saveAcademicMeeting(
     AcademicTerm term,
     AcademicCourse course,
@@ -219,6 +222,48 @@ class _CalendarPageState extends State<CalendarPage> {
     return true;
   }
 
+  Future<bool> _saveAcademicWork(AcademicWorkItem item) async {
+    late final AcademicSchedule next;
+    try {
+      next = _academicSchedule.putWorkItem(item);
+    } on ArgumentError {
+      return false;
+    }
+    if (!await _scheduleRepository.save(next)) return false;
+    if (mounted) setState(() => _academicSchedule = next);
+    return true;
+  }
+
+  Future<void> _toggleAcademicWork(AcademicWorkItem item) async {
+    late final AcademicSchedule next;
+    try {
+      next = _academicSchedule.setWorkItemCompleted(
+        workId: item.workId,
+        completed: !item.completed,
+        updatedAt: Clock.now().toUtc(),
+      );
+    } on ArgumentError {
+      return;
+    }
+    if (!await _scheduleRepository.save(next)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Palette.card,
+          content: Text(
+            'Couldn’t update this course item locally. Try again.',
+            style: Type.body.copyWith(color: Palette.textHi),
+          ),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    Sfx.instance.play('tick');
+    setState(() => _academicSchedule = next);
+  }
+
   Future<void> _openNotebook(ClassOccurrence occurrence) async {
     final course = _academicSchedule.courseById(occurrence.courseId);
     if (course == null) return;
@@ -228,6 +273,14 @@ class _CalendarPageState extends State<CalendarPage> {
         courseId: occurrence.courseId,
         occurrenceKey: occurrence.occurrenceKey,
         notebookId: course.notebookId,
+        courseCode: course.code,
+        courseTitle: course.title,
+        occurrenceDate: occurrence.date.toString(),
+        startMinute: occurrence.localStartMinute,
+        endMinute: occurrence.localEndMinute,
+        meetingKind: occurrence.kind.name,
+        place: occurrence.place.shortLabel,
+        courseColorValue: course.colorValue,
       ),
     );
     if (!mounted || result == NotebookHandoffResult.opened) return;
@@ -398,7 +451,7 @@ class _CalendarPageState extends State<CalendarPage> {
               termName: selectedTerm?.name,
               loading: _academicLoading,
               onModeChanged: _setAcademicMode,
-              onAddClass: () => _showAddClass(context),
+              onAddAcademic: () => _showAddAcademic(context),
             ),
             if (doorwayClasses.isNotEmpty) ...[
               const SizedBox(height: 10),
@@ -533,6 +586,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 onToday: _goToday,
                 onSelectDay: _selectDay,
                 onOpenNotebook: _openNotebook,
+                onToggleWork: _toggleAcademicWork,
               ),
             ],
             const SizedBox(height: 14),
@@ -548,11 +602,17 @@ class _CalendarPageState extends State<CalendarPage> {
               academicOccurrences: _academicMode == AcademicCalendarMode.month
                   ? _classesOn(_selected)
                   : const <ClassOccurrence>[],
-              hasAcademicOccurrences: _classesOn(_selected).isNotEmpty,
+              academicWorkItems: _academicMode == AcademicCalendarMode.month
+                  ? _academicWorkOn(_selected)
+                  : const <AcademicWorkItem>[],
+              hasAcademicItems:
+                  _classesOn(_selected).isNotEmpty ||
+                  _academicWorkOn(_selected).isNotEmpty,
               now: now,
               onPlan: () => _showAddEvent(context),
               onOpenJournal: _openJournal,
               onOpenNotebook: _openNotebook,
+              onToggleWork: _toggleAcademicWork,
               lightDirection: widget.lightDirection ?? widget.parallax,
             ),
           ],
@@ -571,6 +631,7 @@ class _CalendarPageState extends State<CalendarPage> {
     final done = widget.state.history[Days.key(date)] ?? 0;
     final events = _eventsOn(date);
     final classes = _classesOn(date);
+    final academicWork = _academicWorkOn(date);
     final journalEntries = _journalOn(date);
 
     final spoken = StringBuffer(
@@ -592,6 +653,17 @@ class _CalendarPageState extends State<CalendarPage> {
         spoken.write(
           ', ${course?.code ?? 'class'} ${occurrence.kind.label} at '
           '${formatAcademicTime(occurrence.localStartMinute)}',
+        );
+      }
+    }
+    if (academicWork.isNotEmpty) {
+      spoken.write(
+        ', ${academicWork.length} course item${academicWork.length == 1 ? '' : 's'} due',
+      );
+      for (final item in academicWork.take(2)) {
+        final course = _academicSchedule.courseById(item.courseId);
+        spoken.write(
+          ', ${course?.code ?? 'course'} ${item.kind.label}: ${item.title}',
         );
       }
     }
@@ -622,6 +694,7 @@ class _CalendarPageState extends State<CalendarPage> {
               done,
               events,
               classes,
+              academicWork,
               journalEntries.length,
             ),
             // The folio names today under its date, the way the target does —
@@ -655,6 +728,7 @@ class _CalendarPageState extends State<CalendarPage> {
     int done,
     List<Quest> events,
     List<ClassOccurrence> classes,
+    List<AcademicWorkItem> academicWork,
     int journalEntries,
   ) {
     return Container(
@@ -759,6 +833,45 @@ class _CalendarPageState extends State<CalendarPage> {
                         color: Palette.textLo,
                       ),
                     ),
+                  for (final item in academicWork.take(2))
+                    Transform.rotate(
+                      key: ValueKey('academic-month-work-${item.workId}'),
+                      angle: item.kind == AcademicWorkKind.assignment
+                          ? 0.785
+                          : 0,
+                      child: Container(
+                        width: 5,
+                        height: 5,
+                        margin: const EdgeInsets.symmetric(horizontal: 1),
+                        decoration: BoxDecoration(
+                          color: item.completed
+                              ? Colors.transparent
+                              : Color(
+                                  _academicSchedule
+                                          .courseById(item.courseId)
+                                          ?.colorValue ??
+                                      0xFF8AAFC6,
+                                ),
+                          border: Border.all(
+                            color: Color(
+                              _academicSchedule
+                                      .courseById(item.courseId)
+                                      ?.colorValue ??
+                                  0xFF8AAFC6,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (academicWork.length > 2)
+                    Text(
+                      '+${academicWork.length - 2}',
+                      style: Type.label.copyWith(
+                        fontSize: 8,
+                        letterSpacing: 0,
+                        color: Palette.textLo,
+                      ),
+                    ),
                   if (journalEntries > 0)
                     Padding(
                       padding: const EdgeInsets.only(left: 1.5),
@@ -786,15 +899,37 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  void _showAddClass(BuildContext context) {
+  Future<void> _showAddAcademic(BuildContext context) async {
     Sfx.instance.play('tick');
-    showDialog<void>(
+    final target = await showDialog<AcademicAddTarget>(
       context: context,
       barrierColor: Palette.dialogBarrier,
-      builder: (_) => AddAcademicMeetingDialog(
+      builder: (_) => const AcademicAddChoiceDialog(),
+    );
+    if (!mounted || !context.mounted || target == null) return;
+    Sfx.instance.play('tick');
+    if (target == AcademicAddTarget.classMeeting) {
+      await showDialog<void>(
+        context: context,
+        barrierColor: Palette.dialogBarrier,
+        builder: (_) => AddAcademicMeetingDialog(
+          schedule: _academicSchedule,
+          selectedDay: _selected,
+          onSave: _saveAcademicMeeting,
+        ),
+      );
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (_) => AddAcademicWorkDialog(
         schedule: _academicSchedule,
         selectedDay: _selected,
-        onSave: _saveAcademicMeeting,
+        initialKind: target == AcademicAddTarget.exam
+            ? AcademicWorkKind.exam
+            : AcademicWorkKind.assignment,
+        onSave: _saveAcademicWork,
       ),
     );
   }
@@ -886,11 +1021,13 @@ class _DayPanel extends StatelessWidget {
     required this.quests,
     required this.academicSchedule,
     required this.academicOccurrences,
-    required this.hasAcademicOccurrences,
+    required this.academicWorkItems,
+    required this.hasAcademicItems,
     required this.now,
     required this.onPlan,
     required this.onOpenJournal,
     required this.onOpenNotebook,
+    required this.onToggleWork,
     required this.lightDirection,
   });
 
@@ -901,11 +1038,13 @@ class _DayPanel extends StatelessWidget {
   final List<Quest> quests;
   final AcademicSchedule academicSchedule;
   final List<ClassOccurrence> academicOccurrences;
-  final bool hasAcademicOccurrences;
+  final List<AcademicWorkItem> academicWorkItems;
+  final bool hasAcademicItems;
   final DateTime now;
   final VoidCallback onPlan;
   final ValueChanged<Note> onOpenJournal;
   final OpenAcademicNotebook onOpenNotebook;
+  final ToggleAcademicWork onToggleWork;
   final ValueListenable<Offset> lightDirection;
 
   @override
@@ -984,12 +1123,33 @@ class _DayPanel extends StatelessWidget {
                 course: academicSchedule.courseById(occurrence.courseId),
                 onOpenNotebook: () => onOpenNotebook(occurrence),
               ),
-            if (completions > 0 ||
-                reflections > 0 ||
-                journalEntries.isNotEmpty ||
-                quests.isNotEmpty)
-              const Divider(height: 17, color: Color(0x2EE7C47E)),
           ],
+          if (academicWorkItems.isNotEmpty) ...[
+            if (academicOccurrences.isNotEmpty)
+              const Divider(height: 17, color: Color(0x2EE7C47E)),
+            Text(
+              'COURSE WORK',
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                letterSpacing: 1.7,
+                color: Palette.xpLight,
+              ),
+            ),
+            const SizedBox(height: 7),
+            for (final item in academicWorkItems)
+              AcademicWorkRow(
+                item: item,
+                course: academicSchedule.courseById(item.courseId),
+                onToggle: () => onToggleWork(item),
+              ),
+          ],
+          if ((academicOccurrences.isNotEmpty ||
+                  academicWorkItems.isNotEmpty) &&
+              (completions > 0 ||
+                  reflections > 0 ||
+                  journalEntries.isNotEmpty ||
+                  quests.isNotEmpty))
+            const Divider(height: 17, color: Color(0x2EE7C47E)),
           if (completions > 0)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -1056,7 +1216,7 @@ class _DayPanel extends StatelessWidget {
           if (quests.isEmpty &&
               completions == 0 &&
               reflections == 0 &&
-              !hasAcademicOccurrences)
+              !hasAcademicItems)
             Text(
               isPast ? 'A quiet day.' : 'Nothing planned for this day yet.',
               style: Type.body.copyWith(

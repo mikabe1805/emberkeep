@@ -89,6 +89,15 @@ enum MeetingKind {
 
 enum OccurrenceState { scheduled, moved, cancelled }
 
+enum AcademicWorkKind {
+  assignment('Assignment', 'DUE'),
+  exam('Exam', 'EXAM');
+
+  const AcademicWorkKind(this.label, this.shortLabel);
+  final String label;
+  final String shortLabel;
+}
+
 final class CampusPlace {
   CampusPlace({
     required String label,
@@ -565,6 +574,99 @@ final class ClassOccurrence {
   };
 }
 
+/// A course-linked obligation. Academic work stays separate from Quests so its
+/// identity, due date, and completion state remain ordinary schedule truth.
+final class AcademicWorkItem {
+  AcademicWorkItem({
+    required String workId,
+    required String courseId,
+    required this.kind,
+    required String title,
+    required this.dueDate,
+    this.dueMinute,
+    this.details,
+    this.completedAt,
+    this.revision = 1,
+    required this.updatedAt,
+    this.tombstonedAt,
+  }) : workId = _requiredOpaqueId(workId, 'workId'),
+       courseId = _requiredOpaqueId(courseId, 'courseId'),
+       title = _requiredText(title, 'title') {
+    if (dueMinute != null && (dueMinute! < 0 || dueMinute! >= 24 * 60)) {
+      throw ArgumentError.value(dueMinute, 'dueMinute');
+    }
+    if (details != null && details!.trim().isEmpty) {
+      throw ArgumentError.value(details, 'details');
+    }
+    if (revision < 1) throw ArgumentError.value(revision, 'revision');
+  }
+
+  factory AcademicWorkItem.fromJson(Map<String, dynamic> json) =>
+      AcademicWorkItem(
+        workId: json['workId'] as String,
+        courseId: json['courseId'] as String,
+        kind: AcademicWorkKind.values.byName(json['kind'] as String),
+        title: json['title'] as String,
+        dueDate: CivilDate.parse(json['dueDate'] as String),
+        dueMinute: json['dueMinute'] as int?,
+        details: _optionalText(json['details']),
+        completedAt: _dateTimeFromJson(json['completedAt']),
+        revision: json['revision'] as int? ?? 1,
+        updatedAt: DateTime.fromMillisecondsSinceEpoch(
+          json['updatedAt'] as int,
+          isUtc: true,
+        ),
+        tombstonedAt: _dateTimeFromJson(json['tombstonedAt']),
+      );
+
+  final String workId;
+  final String courseId;
+  final AcademicWorkKind kind;
+  final String title;
+  final CivilDate dueDate;
+  final int? dueMinute;
+  final String? details;
+  final DateTime? completedAt;
+  final int revision;
+  final DateTime updatedAt;
+  final DateTime? tombstonedAt;
+
+  bool get completed => completedAt != null;
+
+  AcademicWorkItem withCompletion({
+    required bool completed,
+    required DateTime updatedAt,
+  }) => AcademicWorkItem(
+    workId: workId,
+    courseId: courseId,
+    kind: kind,
+    title: title,
+    dueDate: dueDate,
+    dueMinute: dueMinute,
+    details: details,
+    completedAt: completed ? updatedAt.toUtc() : null,
+    revision: revision + 1,
+    updatedAt: updatedAt.toUtc(),
+    tombstonedAt: tombstonedAt,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'workId': workId,
+    'courseId': courseId,
+    'kind': kind.name,
+    'title': title,
+    'dueDate': dueDate.toString(),
+    if (dueMinute != null) 'dueMinute': dueMinute,
+    if (details != null) 'details': details,
+    if (completedAt != null)
+      'completedAt': completedAt!.toUtc().millisecondsSinceEpoch,
+    'revision': revision,
+    'updatedAt': updatedAt.toUtc().millisecondsSinceEpoch,
+    if (tombstonedAt != null)
+      'tombstonedAt': tombstonedAt!.toUtc().millisecondsSinceEpoch,
+  };
+}
+
 typedef AcademicIdFactory = String Function(String kind);
 
 abstract final class AcademicIds {
@@ -700,6 +802,7 @@ final class AcademicSchedule {
     required this.courses,
     required this.meetingSeries,
     required this.occurrences,
+    this.workItems = const [],
   }) {
     _validateGraph();
   }
@@ -709,11 +812,12 @@ final class AcademicSchedule {
     courses: const [],
     meetingSeries: const [],
     occurrences: const [],
+    workItems: const [],
   );
 
   factory AcademicSchedule.fromJson(Map<String, dynamic> json) {
     final schema = json['schema'] as int? ?? 1;
-    if (schema != currentSchema) {
+    if (schema < 1 || schema > currentSchema) {
       throw FormatException('Unsupported academic schedule schema $schema');
     }
     return AcademicSchedule(
@@ -733,15 +837,24 @@ final class AcademicSchedule {
         for (final occurrence in json['occurrences'] as List? ?? const [])
           ClassOccurrence.fromJson((occurrence as Map).cast<String, dynamic>()),
       ],
+      workItems: schema < 2
+          ? const []
+          : [
+              for (final item in json['workItems'] as List? ?? const [])
+                AcademicWorkItem.fromJson(
+                  (item as Map).cast<String, dynamic>(),
+                ),
+            ],
     );
   }
 
-  static const int currentSchema = 1;
+  static const int currentSchema = 2;
 
   final List<AcademicTerm> terms;
   final List<AcademicCourse> courses;
   final List<MeetingSeries> meetingSeries;
   final List<ClassOccurrence> occurrences;
+  final List<AcademicWorkItem> workItems;
 
   AcademicTerm? termFor(CivilDate date) {
     for (final term in terms.reversed) {
@@ -778,6 +891,23 @@ final class AcademicSchedule {
       for (final occurrence in occurrences)
         if (occurrence.date.isWithin(first, last)) occurrence,
     ]..sort(_compareOccurrences);
+    return found;
+  }
+
+  List<AcademicWorkItem> workItemsOn(CivilDate date) {
+    final found = [
+      for (final item in workItems)
+        if (item.tombstonedAt == null && item.dueDate == date) item,
+    ]..sort(_compareWorkItems);
+    return found;
+  }
+
+  List<AcademicWorkItem> workItemsBetween(CivilDate first, CivilDate last) {
+    final found = [
+      for (final item in workItems)
+        if (item.tombstonedAt == null && item.dueDate.isWithin(first, last))
+          item,
+    ]..sort(_compareWorkItems);
     return found;
   }
 
@@ -855,6 +985,44 @@ final class AcademicSchedule {
       courses: nextCourses,
       meetingSeries: nextSeries,
       occurrences: nextOccurrences,
+      workItems: workItems,
+    );
+  }
+
+  AcademicSchedule putWorkItem(AcademicWorkItem item) {
+    final course = courseById(item.courseId);
+    if (course == null) {
+      throw ArgumentError('Academic work requires an existing course');
+    }
+    final term = terms
+        .where((term) => term.termId == course.termId)
+        .firstOrNull;
+    if (term == null || !item.dueDate.isWithin(term.startDate, term.endDate)) {
+      throw ArgumentError('Academic work must stay inside its course term');
+    }
+    final nextWorkItems = _replaceById(
+      workItems,
+      item,
+      (value) => value.workId,
+    ).toList()..sort(_compareWorkItems);
+    return AcademicSchedule(
+      terms: terms,
+      courses: courses,
+      meetingSeries: meetingSeries,
+      occurrences: occurrences,
+      workItems: nextWorkItems,
+    );
+  }
+
+  AcademicSchedule setWorkItemCompleted({
+    required String workId,
+    required bool completed,
+    required DateTime updatedAt,
+  }) {
+    final item = workItems.where((item) => item.workId == workId).firstOrNull;
+    if (item == null) throw ArgumentError.value(workId, 'workId');
+    return putWorkItem(
+      item.withCompletion(completed: completed, updatedAt: updatedAt),
     );
   }
 
@@ -864,6 +1032,7 @@ final class AcademicSchedule {
     'courses': [for (final course in courses) course.toJson()],
     'meetingSeries': [for (final series in meetingSeries) series.toJson()],
     'occurrences': [for (final occurrence in occurrences) occurrence.toJson()],
+    'workItems': [for (final item in workItems) item.toJson()],
   };
 
   void _validateGraph() {
@@ -872,9 +1041,11 @@ final class AcademicSchedule {
     final seriesIds = meetingSeries
         .map((series) => series.meetingSeriesId)
         .toSet();
+    final workIds = workItems.map((item) => item.workId).toSet();
     if (termIds.length != terms.length ||
         courseIds.length != courses.length ||
         seriesIds.length != meetingSeries.length ||
+        workIds.length != workItems.length ||
         occurrences.map((item) => item.occurrenceKey).toSet().length !=
             occurrences.length) {
       throw const FormatException('Academic schedule IDs must be unique');
@@ -896,6 +1067,11 @@ final class AcademicSchedule {
         throw const FormatException('Occurrence references are incomplete');
       }
     }
+    for (final item in workItems) {
+      if (!courseIds.contains(item.courseId)) {
+        throw const FormatException('Academic work has no course');
+      }
+    }
   }
 }
 
@@ -915,6 +1091,16 @@ int _compareOccurrences(ClassOccurrence a, ClassOccurrence b) {
   final start = a.startInstant.compareTo(b.startInstant);
   if (start != 0) return start;
   return a.occurrenceKey.compareTo(b.occurrenceKey);
+}
+
+int _compareWorkItems(AcademicWorkItem a, AcademicWorkItem b) {
+  final date = a.dueDate.compareTo(b.dueDate);
+  if (date != 0) return date;
+  final completion = (a.completed ? 1 : 0).compareTo(b.completed ? 1 : 0);
+  if (completion != 0) return completion;
+  final minute = (a.dueMinute ?? 24 * 60).compareTo(b.dueMinute ?? 24 * 60);
+  if (minute != 0) return minute;
+  return a.workId.compareTo(b.workId);
 }
 
 CivilDate _later(CivilDate a, CivilDate b) => a.compareTo(b) >= 0 ? a : b;

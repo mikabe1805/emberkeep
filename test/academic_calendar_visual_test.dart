@@ -233,6 +233,29 @@ AcademicSchedule _visualSchedule() {
     building: 'Scott Hall',
     room: '205',
   );
+  schedule = schedule.putWorkItem(
+    AcademicWorkItem(
+      workId: 'work_visual_problem_set',
+      courseId: 'course_ece_345',
+      kind: AcademicWorkKind.assignment,
+      title: 'Problem set 3',
+      dueDate: CivilDate(2026, 8, 11),
+      dueMinute: 23 * 60 + 59,
+      details: 'Convolution problems 1–10',
+      updatedAt: DateTime.utc(2026, 8, 11),
+    ),
+  );
+  schedule = schedule.putWorkItem(
+    AcademicWorkItem(
+      workId: 'work_visual_chem_exam',
+      courseId: 'course_chem_161',
+      kind: AcademicWorkKind.exam,
+      title: 'Stoichiometry quiz',
+      dueDate: CivilDate(2026, 8, 12),
+      dueMinute: 13 * 60,
+      updatedAt: DateTime.utc(2026, 8, 11),
+    ),
+  );
   return schedule;
 }
 

@@ -22,6 +22,11 @@ typedef SaveAcademicMeeting =
       MeetingSeries series,
     );
 
+typedef SaveAcademicWork = Future<bool> Function(AcademicWorkItem item);
+typedef ToggleAcademicWork = Future<void> Function(AcademicWorkItem item);
+
+enum AcademicAddTarget { classMeeting, assignment, exam }
+
 class AcademicCalendarHeader extends StatelessWidget {
   const AcademicCalendarHeader({
     super.key,
@@ -29,14 +34,14 @@ class AcademicCalendarHeader extends StatelessWidget {
     required this.termName,
     required this.loading,
     required this.onModeChanged,
-    required this.onAddClass,
+    required this.onAddAcademic,
   });
 
   final AcademicCalendarMode mode;
   final String? termName;
   final bool loading;
   final ValueChanged<AcademicCalendarMode> onModeChanged;
-  final VoidCallback onAddClass;
+  final VoidCallback onAddAcademic;
 
   @override
   Widget build(BuildContext context) {
@@ -93,10 +98,10 @@ class AcademicCalendarHeader extends StatelessWidget {
               const SizedBox(width: 8),
               _BrassAction(
                 key: const ValueKey('academic-add-class'),
-                label: 'CLASS',
-                semanticLabel: 'Add a class',
+                label: 'ADD',
+                semanticLabel: 'Add a class, assignment, or exam',
                 icon: Icons.add_rounded,
-                onTap: onAddClass,
+                onTap: onAddAcademic,
               ),
             ],
           ),
@@ -122,6 +127,145 @@ class AcademicCalendarHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+class AcademicAddChoiceDialog extends StatelessWidget {
+  const AcademicAddChoiceDialog({super.key});
+
+  @override
+  Widget build(BuildContext context) => Dialog(
+    backgroundColor: Colors.transparent,
+    insetPadding: const EdgeInsets.all(16),
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 440),
+      child: GlassPanel(
+        tint: Palette.dialogSurface,
+        padding: const EdgeInsets.fromLTRB(18, 15, 18, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'ADD TO YOUR DAYBOOK',
+                    style: Type.label.copyWith(
+                      fontSize: 12,
+                      color: Palette.xpLight,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Close',
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded, color: Palette.textLo),
+                ),
+              ],
+            ),
+            Text(
+              'Keep the class itself, or something the class asks of you.',
+              style: Type.body.copyWith(fontSize: 13, color: Palette.textMid),
+            ),
+            const SizedBox(height: 12),
+            _AcademicAddChoice(
+              key: const ValueKey('academic-add-choice-class'),
+              icon: Icons.calendar_view_week_outlined,
+              title: 'CLASS',
+              subtitle: 'A weekly lecture, lab, or recitation',
+              onTap: () =>
+                  Navigator.of(context).pop(AcademicAddTarget.classMeeting),
+            ),
+            const SizedBox(height: 7),
+            _AcademicAddChoice(
+              key: const ValueKey('academic-add-choice-assignment'),
+              icon: Icons.assignment_outlined,
+              title: 'ASSIGNMENT',
+              subtitle: 'Course work with a due date and time',
+              onTap: () =>
+                  Navigator.of(context).pop(AcademicAddTarget.assignment),
+            ),
+            const SizedBox(height: 7),
+            _AcademicAddChoice(
+              key: const ValueKey('academic-add-choice-exam'),
+              icon: Icons.quiz_outlined,
+              title: 'EXAM',
+              subtitle: 'A test, midterm, or final on your calendar',
+              onTap: () => Navigator.of(context).pop(AcademicAddTarget.exam),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _AcademicAddChoice extends StatelessWidget {
+  const _AcademicAddChoice({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: '$title, $subtitle',
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(11),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 58),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: facetedDecoration(
+          cut: 9,
+          color: Palette.xp.withValues(alpha: 0.07),
+          borderColor: Palette.brass.withValues(alpha: 0.42),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 21, color: Palette.xpLight),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 1.1,
+                      color: Palette.textHi,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: Type.body.copyWith(
+                      fontSize: 12.5,
+                      color: Palette.textMid,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 19,
+              color: Palette.textLo,
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class AcademicDoorway extends StatelessWidget {
@@ -259,6 +403,7 @@ class AcademicSpanPanel extends StatelessWidget {
     required this.onToday,
     required this.onSelectDay,
     required this.onOpenNotebook,
+    required this.onToggleWork,
   });
 
   final AcademicCalendarMode mode;
@@ -270,6 +415,7 @@ class AcademicSpanPanel extends StatelessWidget {
   final VoidCallback onToday;
   final ValueChanged<DateTime> onSelectDay;
   final OpenAcademicNotebook onOpenNotebook;
+  final ToggleAcademicWork onToggleWork;
 
   @override
   Widget build(BuildContext context) {
@@ -354,6 +500,7 @@ class AcademicSpanPanel extends StatelessWidget {
               schedule: schedule,
               onSelectDay: onSelectDay,
               onOpenNotebook: onOpenNotebook,
+              onToggleWork: onToggleWork,
             ),
             if (index != count - 1) const _AcademicRule(strength: 0.42),
           ],
@@ -372,6 +519,7 @@ class AcademicAgendaDay extends StatelessWidget {
     required this.schedule,
     required this.onSelectDay,
     required this.onOpenNotebook,
+    required this.onToggleWork,
     this.compact = false,
   });
 
@@ -381,11 +529,13 @@ class AcademicAgendaDay extends StatelessWidget {
   final AcademicSchedule schedule;
   final ValueChanged<DateTime> onSelectDay;
   final OpenAcademicNotebook onOpenNotebook;
+  final ToggleAcademicWork onToggleWork;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final occurrences = schedule.occurrencesOn(date);
+    final workItems = schedule.workItemsOn(date);
     return Padding(
       padding: EdgeInsets.symmetric(vertical: compact ? 6 : 8),
       child: Column(
@@ -407,33 +557,47 @@ class AcademicAgendaDay extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 5),
                   child: Row(
                     children: [
-                      Text(
-                        '${_weekdayNames[date.weekday - 1]} ${date.day}',
-                        style: Type.label.copyWith(
-                          fontSize: Type.minLabel,
-                          letterSpacing: 1.25,
-                          color: today || selected
-                              ? Palette.xpLight
-                              : Palette.textMid,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                '${_weekdayNames[date.weekday - 1]} ${date.day}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Type.label.copyWith(
+                                  fontSize: Type.minLabel,
+                                  letterSpacing: 1.25,
+                                  color: today || selected
+                                      ? Palette.xpLight
+                                      : Palette.textMid,
+                                ),
+                              ),
+                            ),
+                            if (today) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                'TODAY',
+                                style: Type.label.copyWith(
+                                  fontSize: Type.minLabel,
+                                  color: Palette.xp,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      if (today) ...[
-                        const SizedBox(width: 6),
-                        Text(
-                          'TODAY',
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          _dayCountLabel(occurrences.length, workItems.length),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.end,
                           style: Type.label.copyWith(
                             fontSize: Type.minLabel,
-                            color: Palette.xp,
+                            color: Palette.textLo,
                           ),
-                        ),
-                      ],
-                      const Spacer(),
-                      Text(
-                        '${occurrences.length} '
-                        '${occurrences.length == 1 ? 'CLASS' : 'CLASSES'}',
-                        style: Type.label.copyWith(
-                          fontSize: Type.minLabel,
-                          color: Palette.textLo,
                         ),
                       ),
                     ],
@@ -442,11 +606,11 @@ class AcademicAgendaDay extends StatelessWidget {
               ),
             ),
           ),
-          if (occurrences.isEmpty)
+          if (occurrences.isEmpty && workItems.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
               child: Text(
-                'No classes.',
+                'No classes or course work.',
                 style: Type.body.copyWith(
                   fontSize: 12.5,
                   fontStyle: FontStyle.italic,
@@ -454,13 +618,20 @@ class AcademicAgendaDay extends StatelessWidget {
                 ),
               ),
             )
-          else
+          else ...[
             for (final occurrence in occurrences)
               AcademicOccurrenceRow(
                 occurrence: occurrence,
                 course: schedule.courseById(occurrence.courseId),
                 onOpenNotebook: () => onOpenNotebook(occurrence),
               ),
+            for (final item in workItems)
+              AcademicWorkRow(
+                item: item,
+                course: schedule.courseById(item.courseId),
+                onToggle: () => onToggleWork(item),
+              ),
+          ],
         ],
       ),
     );
@@ -597,6 +768,138 @@ class AcademicOccurrenceRow extends StatelessWidget {
               occurrenceKey: occurrence.occurrenceKey,
               courseCode: code,
               onTap: onOpenNotebook,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AcademicWorkRow extends StatelessWidget {
+  const AcademicWorkRow({
+    super.key,
+    required this.item,
+    required this.course,
+    required this.onToggle,
+  });
+
+  final AcademicWorkItem item;
+  final AcademicCourse? course;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Color(course?.colorValue ?? 0xFF8AAFC6);
+    final code = course?.code ?? 'COURSE';
+    final time = item.dueMinute == null
+        ? 'No time set'
+        : item.kind == AcademicWorkKind.exam
+        ? 'At ${formatAcademicTime(item.dueMinute!)}'
+        : 'Due ${formatAcademicTime(item.dueMinute!)}';
+    final state = item.completed ? 'completed' : 'not completed';
+    return Semantics(
+      container: true,
+      label:
+          '$code ${item.kind.label}, ${item.title}, ${item.dueDate}, $time, $state',
+      child: Container(
+        key: ValueKey('academic-work-${item.workId}'),
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 7),
+        padding: const EdgeInsets.fromLTRB(9, 8, 10, 8),
+        decoration: facetedDecoration(
+          cut: 9,
+          color: accent.withValues(alpha: item.completed ? 0.035 : 0.065),
+          borderColor: accent.withValues(alpha: item.completed ? 0.18 : 0.34),
+        ),
+        child: Row(
+          children: [
+            Semantics(
+              button: true,
+              checked: item.completed,
+              label:
+                  '${item.completed ? 'Mark incomplete' : 'Mark complete'}: ${item.title}',
+              child: InkWell(
+                key: ValueKey('academic-work-toggle-${item.workId}'),
+                onTap: onToggle,
+                borderRadius: BorderRadius.circular(22),
+                child: SizedBox.square(
+                  dimension: 44,
+                  child: Center(
+                    child: Container(
+                      width: 25,
+                      height: 25,
+                      decoration: BoxDecoration(
+                        shape: item.kind == AcademicWorkKind.exam
+                            ? BoxShape.rectangle
+                            : BoxShape.circle,
+                        borderRadius: item.kind == AcademicWorkKind.exam
+                            ? BorderRadius.circular(6)
+                            : null,
+                        color: item.completed
+                            ? accent.withValues(alpha: 0.85)
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: item.completed ? accent : Palette.textLo,
+                        ),
+                      ),
+                      child: item.completed
+                          ? const Icon(
+                              Icons.check_rounded,
+                              size: 17,
+                              color: Color(0xFF17100C),
+                            )
+                          : Icon(
+                              item.kind == AcademicWorkKind.exam
+                                  ? Icons.quiz_outlined
+                                  : Icons.assignment_outlined,
+                              size: 15,
+                              color: accent,
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$code · ${item.kind.shortLabel}',
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 0.8,
+                      color: item.completed ? Palette.textLo : accent,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.body.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: item.completed ? Palette.textLo : Palette.textHi,
+                      decoration: item.completed
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$time${item.details == null ? '' : ' · ${item.details}'}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.body.copyWith(
+                      fontSize: 12.5,
+                      color: Palette.textMid,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -1094,6 +1397,348 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
   }
 }
 
+class AddAcademicWorkDialog extends StatefulWidget {
+  const AddAcademicWorkDialog({
+    super.key,
+    required this.schedule,
+    required this.selectedDay,
+    required this.initialKind,
+    required this.onSave,
+  });
+
+  final AcademicSchedule schedule;
+  final DateTime selectedDay;
+  final AcademicWorkKind initialKind;
+  final SaveAcademicWork onSave;
+
+  @override
+  State<AddAcademicWorkDialog> createState() => _AddAcademicWorkDialogState();
+}
+
+class _AddAcademicWorkDialogState extends State<AddAcademicWorkDialog> {
+  final _title = TextEditingController();
+  final _details = TextEditingController();
+
+  late AcademicWorkKind _kind;
+  late CivilDate _dueDate;
+  late TimeOfDay _time;
+  String? _courseId;
+  String? _error;
+  bool _saving = false;
+
+  List<AcademicCourse> get _courses => [
+    for (final course in widget.schedule.courses)
+      if (!course.archived) course,
+  ]..sort((left, right) => left.code.compareTo(right.code));
+
+  @override
+  void initState() {
+    super.initState();
+    _kind = widget.initialKind;
+    _time = _kind == AcademicWorkKind.exam
+        ? const TimeOfDay(hour: 10, minute: 0)
+        : const TimeOfDay(hour: 23, minute: 59);
+    final selected = CivilDate.fromDateTime(widget.selectedDay);
+    final courses = _courses;
+    AcademicCourse? initialCourse;
+    for (final course in courses) {
+      final term = _termForCourse(course);
+      if (term != null && selected.isWithin(term.startDate, term.endDate)) {
+        initialCourse = course;
+        break;
+      }
+    }
+    initialCourse ??= courses.isEmpty ? null : courses.first;
+    _courseId = initialCourse?.courseId;
+    _dueDate = _dateInsideCourse(selected, initialCourse);
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _details.dispose();
+    super.dispose();
+  }
+
+  AcademicTerm? _termForCourse(AcademicCourse course) {
+    for (final term in widget.schedule.terms) {
+      if (term.termId == course.termId) return term;
+    }
+    return null;
+  }
+
+  AcademicCourse? get _course {
+    for (final course in _courses) {
+      if (course.courseId == _courseId) return course;
+    }
+    return null;
+  }
+
+  CivilDate _dateInsideCourse(CivilDate preferred, AcademicCourse? course) {
+    if (course == null) return preferred;
+    final term = _termForCourse(course);
+    if (term == null) return preferred;
+    if (preferred.compareTo(term.startDate) < 0) return term.startDate;
+    if (preferred.compareTo(term.endDate) > 0) return term.endDate;
+    return preferred;
+  }
+
+  void _selectCourse(AcademicCourse course) {
+    setState(() {
+      _courseId = course.courseId;
+      _dueDate = _dateInsideCourse(_dueDate, course);
+      _error = null;
+    });
+  }
+
+  Future<void> _pickDate() async {
+    final course = _course;
+    final term = course == null ? null : _termForCourse(course);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dueDate.dateArithmeticValue,
+      firstDate: term?.startDate.dateArithmeticValue ?? DateTime.utc(2020),
+      lastDate: term?.endDate.dateArithmeticValue ?? DateTime.utc(2100, 12, 31),
+      helpText: _kind == AcademicWorkKind.exam ? 'EXAM DATE' : 'DUE DATE',
+    );
+    if (!mounted || picked == null) return;
+    setState(() {
+      _dueDate = CivilDate.fromDateTime(picked);
+      _error = null;
+    });
+  }
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _time,
+      helpText: _kind == AcademicWorkKind.exam ? 'EXAM TIME' : 'DUE TIME',
+    );
+    if (!mounted || picked == null) return;
+    setState(() {
+      _time = picked;
+      _error = null;
+    });
+  }
+
+  Future<void> _save() async {
+    final course = _course;
+    final title = _title.text.trim();
+    if (course == null) {
+      setState(() => _error = 'Add a class before adding its course work.');
+      return;
+    }
+    if (title.isEmpty) {
+      setState(() => _error = 'Give this ${_kind.label.toLowerCase()} a name.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final saved = await widget.onSave(
+      AcademicWorkItem(
+        workId: AcademicIds.create('work'),
+        courseId: course.courseId,
+        kind: _kind,
+        title: title,
+        dueDate: _dueDate,
+        dueMinute: _time.hour * 60 + _time.minute,
+        details: _clean(_details.text),
+        updatedAt: Clock.now().toUtc(),
+      ),
+    );
+    if (!mounted) return;
+    if (!saved) {
+      Sfx.instance.play('boing');
+      setState(() {
+        _saving = false;
+        _error = 'Couldn’t save this locally. Try again.';
+      });
+      return;
+    }
+    Sfx.instance.play('streak');
+    HapticFeedback.mediumImpact();
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final courses = _courses;
+    final label = _kind.label.toUpperCase();
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: GlassPanel(
+          tint: Palette.dialogSurface,
+          padding: const EdgeInsets.fromLTRB(18, 15, 18, 18),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'ADD AN $label',
+                        style: Type.label.copyWith(
+                          fontSize: 12,
+                          color: Palette.xpLight,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+                Wrap(
+                  spacing: 7,
+                  children: [
+                    for (final kind in AcademicWorkKind.values)
+                      _SelectChip(
+                        label: kind.label.toUpperCase(),
+                        selected: kind == _kind,
+                        onTap: () => setState(() {
+                          _kind = kind;
+                          _error = null;
+                        }),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 13),
+                _SectionLabel('COURSE'),
+                const SizedBox(height: 7),
+                if (courses.isEmpty)
+                  Text(
+                    'Add a class first, then its assignments and exams can stay attached to it.',
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      color: Palette.textMid,
+                    ),
+                  )
+                else
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final course in courses)
+                        _SelectChip(
+                          label: course.code,
+                          selected: course.courseId == _courseId,
+                          onTap: () => _selectCourse(course),
+                        ),
+                    ],
+                  ),
+                const SizedBox(height: 13),
+                _SectionLabel(label),
+                const SizedBox(height: 7),
+                TextField(
+                  key: const ValueKey('academic-work-title'),
+                  controller: _title,
+                  textCapitalization: TextCapitalization.sentences,
+                  onChanged: (_) => setState(() => _error = null),
+                  style: _inputStyle,
+                  decoration: _fieldDecoration(
+                    _kind == AcademicWorkKind.exam
+                        ? 'Midterm 1'
+                        : 'Problem set 4',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _DateButton(
+                        label: _kind == AcademicWorkKind.exam
+                            ? 'DATE'
+                            : 'DUE DATE',
+                        date: _dueDate,
+                        enabled: courses.isNotEmpty,
+                        onTap: _pickDate,
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: _TimeButton(
+                        label: _kind == AcademicWorkKind.exam
+                            ? 'TIME'
+                            : 'DUE TIME',
+                        time: _time,
+                        onTap: _pickTime,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  key: const ValueKey('academic-work-details'),
+                  controller: _details,
+                  minLines: 2,
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: _inputStyle,
+                  decoration: _fieldDecoration(
+                    'Details or chapters (optional)',
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _error!,
+                    key: const ValueKey('academic-work-error'),
+                    style: Type.body.copyWith(
+                      fontSize: 12,
+                      color: Palette.danger,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: GestureDetector(
+                    key: const ValueKey('academic-work-save'),
+                    onTap: _saving ? null : _save,
+                    child: Opacity(
+                      opacity: _saving ? 0.55 : 1,
+                      child: GoldSurface(
+                        cut: 9,
+                        glow: false,
+                        textured: false,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Center(
+                            child: Text(
+                              _saving ? 'SAVING…' : 'KEEP THIS $label',
+                              style: Type.label.copyWith(
+                                fontSize: 12,
+                                letterSpacing: 1.1,
+                                color: Palette.onHoney,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ModeCell extends StatelessWidget {
   const _ModeCell({
     required this.mode,
@@ -1582,6 +2227,15 @@ String formatAcademicTime(int minute) {
   final minutes = (minute % 60).toString().padLeft(2, '0');
   final suffix = hour24 < 12 ? 'AM' : 'PM';
   return '$hour12:$minutes $suffix';
+}
+
+String _dayCountLabel(int classes, int workItems) {
+  final parts = <String>[];
+  if (classes > 0) {
+    parts.add('$classes ${classes == 1 ? 'CLASS' : 'CLASSES'}');
+  }
+  if (workItems > 0) parts.add('$workItems DUE');
+  return parts.isEmpty ? 'QUIET DAY' : parts.join(' · ');
 }
 
 String _rangeLabel(CivilDate first, CivilDate last) {

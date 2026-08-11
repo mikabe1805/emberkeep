@@ -42,6 +42,14 @@ void main() {
       schedule.occurrences.single.occurrenceKey,
     );
     expect(handoff.intents.single.notebookId, isNull);
+    expect(handoff.intents.single.courseCode, 'ECE 345');
+    expect(handoff.intents.single.courseTitle, 'Linear Systems');
+    expect(handoff.intents.single.occurrenceDate, '2026-08-11');
+    expect(handoff.intents.single.startMinute, 10 * 60 + 20);
+    expect(handoff.intents.single.endMinute, 11 * 60 + 40);
+    expect(handoff.intents.single.meetingKind, 'lecture');
+    expect(handoff.intents.single.place, contains('Hill Center'));
+    expect(handoff.intents.single.courseColorValue, 0xFF8AAFC6);
   });
 
   testWidgets('Month, Week, 3-day, and Day read the same occurrence record', (
@@ -89,6 +97,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('academic-add-class')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
+    await tester.tap(find.byKey(const ValueKey('academic-add-choice-class')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
 
     await tester.enterText(
       find.byKey(const ValueKey('academic-course-code')),
@@ -129,6 +140,72 @@ void main() {
       isTrue,
     );
     expect(find.byType(AddAcademicMeetingDialog), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Add assignment keeps course work in the academic daybook', (
+    tester,
+  ) async {
+    final repository = InMemoryAcademicScheduleRepository(_scheduleFixture());
+    await _pumpCalendar(
+      tester,
+      repository: repository,
+      handoff: _RecordingHandoff(),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('academic-add-class')));
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.tap(
+      find.byKey(const ValueKey('academic-add-choice-assignment')),
+    );
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(tester.takeException(), isNull, reason: 'work dialog layout');
+
+    expect(find.byType(AddAcademicWorkDialog), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('academic-work-title')),
+      'Problem set 3',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('academic-work-details')),
+      'Problems 1–10',
+    );
+    final save = find.byKey(const ValueKey('academic-work-save'));
+    await tester.ensureVisible(save);
+    await tester.pump();
+    await tester.tap(save);
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(tester.takeException(), isNull, reason: 'month layout after save');
+
+    expect(repository.schedule.workItems, hasLength(1));
+    final item = repository.schedule.workItems.single;
+    expect(item.kind, AcademicWorkKind.assignment);
+    expect(item.title, 'Problem set 3');
+    expect(item.courseId, repository.schedule.courses.single.courseId);
+    expect(item.dueDate, CivilDate(2026, 8, 11));
+    expect(item.dueMinute, 23 * 60 + 59);
+    expect(
+      find.byKey(ValueKey('academic-month-work-${item.workId}')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('academic-mode-day')));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(tester.takeException(), isNull, reason: 'day layout');
+    expect(
+      find.byKey(ValueKey('academic-work-${item.workId}')),
+      findsOneWidget,
+    );
+
+    final toggle = find.byKey(ValueKey('academic-work-toggle-${item.workId}'));
+    await tester.ensureVisible(toggle);
+    await tester.pump();
+    await tester.tap(toggle);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.takeException(), isNull, reason: 'completed layout');
+
+    expect(repository.schedule.workItems.single.completed, isTrue);
+    expect(repository.saveCount, 2);
     expect(tester.takeException(), isNull);
   });
 
