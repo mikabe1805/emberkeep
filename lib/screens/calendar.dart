@@ -935,7 +935,8 @@ class _CalendarPageState extends State<CalendarPage> {
                     Palette.xp.withValues(alpha: 0.055),
                   ],
                 ),
-                borderColor: Palette.xpLight.withValues(alpha: 0.34),
+                borderColor: Colors.transparent,
+                borderWidth: 0,
               ),
             ),
           Column(
@@ -1063,9 +1064,9 @@ class _MonthDayWeightMark extends StatelessWidget {
   Widget build(BuildContext context) {
     final tickHeight = switch (weight) {
       _MonthDayWeight.none => 0.0,
-      _MonthDayWeight.light => 7.0,
-      _MonthDayWeight.moderate => 10.5,
-      _MonthDayWeight.full => 14.0,
+      _MonthDayWeight.light => 6.0,
+      _MonthDayWeight.moderate => 8.0,
+      _MonthDayWeight.full => 10.0,
     };
     final ink = switch (weight) {
       _MonthDayWeight.none => Colors.transparent,
@@ -1076,10 +1077,10 @@ class _MonthDayWeightMark extends StatelessWidget {
 
     return SizedBox(
       width: 9,
-      height: 16,
+      height: 13,
       child: Stack(
         alignment: Alignment.bottomCenter,
-        clipBehavior: Clip.none,
+        clipBehavior: Clip.hardEdge,
         children: [
           Container(
             width: 3,
@@ -1091,14 +1092,19 @@ class _MonthDayWeightMark extends StatelessWidget {
           ),
           if (hasDeadline)
             Positioned(
-              bottom: (tickHeight - 1.5).clamp(2.5, 12.0),
-              child: Transform.rotate(
-                angle: 0.785398,
-                child: Container(
-                  key: deadlineKey,
-                  width: 4.2,
-                  height: 4.2,
-                  color: Palette.brassLit.withValues(alpha: 0.94),
+              bottom: (tickHeight - 3).clamp(3.0, 7.0),
+              child: SizedBox.square(
+                dimension: 6,
+                child: Center(
+                  child: Transform.rotate(
+                    angle: 0.785398,
+                    child: Container(
+                      key: deadlineKey,
+                      width: 4.2,
+                      height: 4.2,
+                      color: Palette.brassLit.withValues(alpha: 0.94),
+                    ),
+                  ),
                 ),
               ),
             ),

@@ -181,6 +181,58 @@ void main() {
     }
   });
 
+  testWidgets('today deadline stays below the compact marker', (tester) async {
+    Clock.freeze(DateTime.utc(2026, 8, 17, 12));
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      quests: [
+        Quest(
+          title: 'Submit the project brief',
+          stat: Stat.foc,
+          difficulty: 5,
+          schedule: QuestSchedule.once,
+          dueDate: DateTime(2026, 8, 17),
+          timerMinutes: 240,
+        ),
+      ],
+      size: const Size(320, 568),
+      textScale: 2,
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.month,
+          selectedDate: '2026-08-17',
+        ),
+      ),
+    );
+
+    await tester.dragFrom(const Offset(160, 500), const Offset(0, -480));
+    await tester.pump();
+    final marker = find.byKey(const ValueKey('month-today-marker-2026-08-17'));
+    final wash = find.byKey(const ValueKey('month-selected-wash-2026-08-17'));
+    final weight = find.byKey(
+      const ValueKey('academic-month-weight-2026-08-17'),
+    );
+    final deadline = find.byKey(
+      const ValueKey('academic-month-deadline-2026-08-17'),
+    );
+
+    expect(marker, findsOneWidget);
+    expect(weight, findsOneWidget);
+    expect(deadline, findsOneWidget);
+    expect(tester.getSize(weight), const Size(9, 13));
+    final markerRect = tester.getRect(marker);
+    final washRect = tester.getRect(wash);
+    final weightRect = tester.getRect(weight);
+    final deadlineRect = tester.getRect(deadline);
+    expect(weightRect.top, greaterThanOrEqualTo(markerRect.bottom));
+    expect(weightRect.bottom, lessThanOrEqualTo(washRect.bottom));
+    expect(deadlineRect.top, greaterThanOrEqualTo(markerRect.bottom));
+    expect(deadlineRect.bottom, lessThanOrEqualTo(washRect.bottom));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('month day weight compresses scheduled time into three heights', (
     tester,
   ) async {
@@ -223,19 +275,19 @@ void main() {
       visibleTickHeight(
         find.byKey(const ValueKey('academic-month-weight-2026-08-11')),
       ),
-      7,
+      6,
     );
     expect(
       visibleTickHeight(
         find.byKey(const ValueKey('academic-month-weight-2026-08-12')),
       ),
-      10.5,
+      8,
     );
     expect(
       visibleTickHeight(
         find.byKey(const ValueKey('academic-month-weight-2026-08-13')),
       ),
-      13,
+      10,
     );
   });
 

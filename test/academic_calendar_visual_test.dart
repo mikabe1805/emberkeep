@@ -148,6 +148,14 @@ void main() {
       tester.binding.setSurfaceSize(null);
     });
     final state = GameState()..reduceMotion = true;
+    final todayDeadline = Quest(
+      title: 'Submit the project brief',
+      stat: Stat.foc,
+      difficulty: 5,
+      schedule: QuestSchedule.once,
+      dueDate: DateTime(2026, 8, 17),
+      timerMinutes: 240,
+    );
     await tester.pumpWidget(
       MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -163,7 +171,7 @@ void main() {
         home: Scaffold(
           body: CalendarPage(
             state: state,
-            quests: const [],
+            quests: [todayDeadline],
             onAdd: (_) => true,
             scheduleRepository: InMemoryAcademicScheduleRepository(
               _visualSchedule(),
