@@ -16,7 +16,7 @@ void main() {
   tearDown(Clock.reset);
 
   test('calendar gaps stay correct across daylight-saving boundaries', () {
-    final state = GameState();
+    final state = GameState()..streakFreezes = 0;
     final quest = Quest(title: 'Walk', stat: Stat.vit, difficulty: 2);
 
     Clock.freeze(DateTime(2026, 3, 7, 12));
@@ -36,7 +36,7 @@ void main() {
   });
 
   test('hearth ignition is reserved for first spark and real comeback', () {
-    final state = GameState();
+    final state = GameState()..streakFreezes = 0;
     final quest = Quest(title: 'Tend the fire', stat: Stat.dis, difficulty: 2);
 
     Clock.freeze(DateTime(2026, 7, 20, 9));
@@ -221,7 +221,12 @@ void main() {
       MaterialApp(
         home: OnboardingFlow(
           state: state,
-          onFinish: ({required forgeFirstGoal, required timeShape}) {},
+          onFinish:
+              ({
+                required forgeFirstGoal,
+                required openGuide,
+                required timeShape,
+              }) {},
         ),
       ),
     );
@@ -264,7 +269,12 @@ void main() {
       MaterialApp(
         home: OnboardingFlow(
           state: state,
-          onFinish: ({required forgeFirstGoal, required timeShape}) {},
+          onFinish:
+              ({
+                required forgeFirstGoal,
+                required openGuide,
+                required timeShape,
+              }) {},
         ),
       ),
     );

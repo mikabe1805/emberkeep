@@ -80,8 +80,8 @@ abstract final class Haptics {
     );
   }
 
-  /// Streak shield held the line — a steady, protective double-tap.
-  static void shield() {
+  /// A streak freeze held the quiet days — a steady, protective double-tap.
+  static void streakFreeze() {
     if (reduceMotion) {
       HapticFeedback.lightImpact();
       return;

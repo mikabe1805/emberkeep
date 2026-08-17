@@ -19,7 +19,10 @@ String _firestoreRules() {
     isTrue,
     reason: 'Run this test from the Flutter package root.',
   );
-  return file.readAsStringSync();
+  return file
+      .readAsStringSync()
+      .replaceAll('\r\n', '\n')
+      .replaceAll('\r', '\n');
 }
 
 Set<String> _singleQuotedValues(String source) => RegExp(

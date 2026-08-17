@@ -1,10 +1,15 @@
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/content/release_notes.dart';
 import 'package:emberkeep/engine.dart';
+import 'package:emberkeep/release_notes_preferences.dart';
+import 'package:emberkeep/screens/room_guide.dart';
 import 'package:emberkeep/screens/shell.dart';
+import 'package:emberkeep/screens/whats_new.dart';
+import 'package:emberkeep/social.dart';
 import 'package:emberkeep/storage.dart';
-import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:emberkeep/widgets/onboarding_flow.dart';
+import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,7 +22,9 @@ void main() {
   });
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      whatsNewSeenReleasePreferenceKey: currentRoomReleaseNotes.id,
+    });
     Sfx.instance.soundEnabled = false;
   });
 
@@ -154,5 +161,217 @@ void main() {
       semantics.dispose();
       await disposeShell(tester);
     }
+  });
+
+  testWidgets('existing install opens an unseen release exactly once', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    Clock.freeze(DateTime(2026, 8, 17, 12));
+    await Storage.save(
+      GameState()
+        ..onboarded = true
+        ..reduceMotion = true,
+      const [],
+    );
+
+    await pumpShell(tester);
+
+    expect(find.byType(WhatsNewScreen), findsOneWidget);
+    final preferences = await SharedPreferences.getInstance();
+    expect(
+      preferences.getString(whatsNewSeenReleasePreferenceKey),
+      currentRoomReleaseNotes.id,
+    );
+
+    await disposeShell(tester);
+    await pumpShell(tester);
+    expect(find.byType(WhatsNewScreen), findsNothing);
+    await disposeShell(tester);
+  });
+
+  testWidgets('fresh install records the release but leaves onboarding alone', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+
+    await pumpShell(tester);
+
+    expect(find.byType(OnboardingFlow), findsOneWidget);
+    expect(find.byType(WhatsNewScreen), findsNothing);
+    final preferences = await SharedPreferences.getInstance();
+    expect(
+      preferences.getString(whatsNewSeenReleasePreferenceKey),
+      currentRoomReleaseNotes.id,
+    );
+    await disposeShell(tester);
+  });
+
+  testWidgets('What\'s New waits for onboarding on an older unfinished save', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await Storage.save(GameState()..reduceMotion = true, const []);
+
+    await pumpShell(tester);
+
+    expect(find.byType(OnboardingFlow), findsOneWidget);
+    expect(find.byType(WhatsNewScreen), findsNothing);
+    await disposeShell(tester);
+  });
+
+  testWidgets('older unfinished install sees What\'s New after onboarding', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await Storage.save(GameState()..reduceMotion = true, const []);
+    await pumpShell(tester);
+
+    await tester.tap(find.text('ENTER ROOM OF DAYS'));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.text('skip for now'));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.text('CONTINUE').last);
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.text('OPEN TODAY’S QUESTS'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 80));
+
+    expect(find.byType(OnboardingFlow), findsNothing);
+    expect(find.byType(WhatsNewScreen), findsOneWidget);
+    await disposeShell(tester);
+  });
+
+  testWidgets('Room Guide finishes before deferred What\'s New', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await Storage.save(GameState()..reduceMotion = true, const []);
+    await pumpShell(tester);
+
+    await tester.tap(find.text('ENTER ROOM OF DAYS'));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.text('skip for now'));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.text('CONTINUE').last);
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.tap(find.text('open the room guide'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.byType(RoomGuideScreen), findsOneWidget);
+    expect(find.byType(WhatsNewScreen), findsNothing);
+
+    Navigator.of(tester.element(find.byType(RoomGuideScreen))).pop();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(find.byType(RoomGuideScreen), findsNothing);
+    expect(find.byType(WhatsNewScreen), findsOneWidget);
+    await disposeShell(tester);
+  });
+
+  testWidgets('What\'s New precedes a due Morning Flow then hands it off', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await saveMorning(due: true);
+
+    await pumpShell(tester);
+
+    expect(find.byType(WhatsNewScreen), findsOneWidget);
+    expect(find.byType(MorningFlow), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('whats-new-keep-going')),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const ValueKey('whats-new-keep-going')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 80));
+
+    expect(find.byType(WhatsNewScreen), findsNothing);
+    expect(find.byType(MorningFlow), findsOneWidget);
+    await disposeShell(tester);
+  });
+
+  testWidgets('resume cannot stack a second What\'s New overlay', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await Storage.save(
+      GameState()
+        ..onboarded = true
+        ..reduceMotion = true,
+      const [],
+    );
+    await pumpShell(tester);
+    expect(find.byType(WhatsNewScreen), findsOneWidget);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 80));
+
+    expect(find.byType(WhatsNewScreen), findsOneWidget);
+    await disposeShell(tester);
+  });
+
+  testWidgets('automatic release screen owns shell semantics and focus', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      SharedPreferences.setMockInitialValues({});
+      await Storage.save(
+        GameState()
+          ..onboarded = true
+          ..reduceMotion = true,
+        const [],
+      );
+
+      await pumpShell(tester);
+
+      expect(find.bySemanticsLabel("Close What's New"), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Quest Desk')), findsNothing);
+      expect(find.bySemanticsLabel(RegExp('QUESTS tab')), findsNothing);
+    } finally {
+      semantics.dispose();
+      await disposeShell(tester);
+    }
+  });
+
+  testWidgets('queued room link is handled before What\'s New appears', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    await Storage.save(
+      GameState()
+        ..onboarded = true
+        ..reduceMotion = true,
+      const [],
+    );
+    final inbox = RoomLinkInbox()..enqueuePrompt();
+
+    await tester.pumpWidget(MaterialApp(home: AppShell(roomLinks: inbox)));
+    for (var frame = 0; frame < 12; frame++) {
+      await tester.pump(const Duration(milliseconds: 20));
+      if (!inbox.isNotEmpty) break;
+    }
+    for (var frame = 0; frame < 6; frame++) {
+      await tester.pump(const Duration(milliseconds: 20));
+      if (find.byType(WhatsNewScreen).evaluate().isNotEmpty) break;
+    }
+
+    expect(inbox.isNotEmpty, isFalse);
+    expect(
+      find.text('Visiting needs a connection — try again in a moment.'),
+      findsWidgets,
+    );
+    expect(find.byType(WhatsNewScreen), findsOneWidget);
+
+    await disposeShell(tester);
+    inbox.dispose();
   });
 }

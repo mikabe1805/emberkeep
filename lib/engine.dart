@@ -832,12 +832,35 @@ class GameState extends ChangeNotifier {
   int bestStreak = 0;
   String? lastCompletionDay;
 
-  /// Streak shields — the Lv-6 unlock, finally real. Each one quietly bridges
-  /// a single missed day so a long streak survives one bad day (never-punish;
-  /// RESEARCH-momentum.md §7). Granted at the unlock and earned on perfect days.
-  int streakShields = 0;
-  bool shieldUnlockGranted = false;
-  static const maxShields = 5;
+  /// Streak freezes are available from the beginning. Each one quietly holds
+  /// one day away, but is spent only when the whole gap can be covered. The
+  /// serialized names remain the old `streakShields` names for save and cloud
+  /// compatibility; public copy consistently calls these freezes.
+  static const starterStreakFreezes = 3;
+  static const maxStreakFreezes = 7;
+  static const _baseFreezeCapacity = 5;
+  static const _streakFreezeVersion = 1;
+  int streakFreezes = starterStreakFreezes;
+  int streakFreezeProgress = 0;
+  int streakFreezeVersion = _streakFreezeVersion;
+  bool freezeLevelBonusGranted = false;
+  final Set<String> frozenStreakDays = {};
+
+  /// Level 6 opens enough room to hold a full week; freezes still work before
+  /// then, so the app never withholds its safety net from a new keeper.
+  int get streakFreezeCapacity =>
+      level >= 6 ? maxStreakFreezes : _baseFreezeCapacity;
+
+  /// Ordinary active days replenish the reserve. CARE bends this loop in a
+  /// deterministic, legible way instead of hiding a random reward chance.
+  int get activeDaysPerFreeze => (stats[Stat.vit] ?? 0) >= 40 ? 2 : 3;
+
+  /// A small public preview for UI. Nothing is spent until a quest is actually
+  /// completed, and an under-covered gap never wastes the reserve.
+  ({int days, bool covered}) get pendingStreakGap {
+    final situation = _streakSituation();
+    return (days: situation.days.length, covered: situation.covered);
+  }
 
   // ── achievement counters ─────────────────────────────────────────
   int totalCompletions = 0;
@@ -1138,7 +1161,7 @@ class GameState extends ChangeNotifier {
     3: 'CHARACTER SHEET',
     4: 'EVIDENCE ARCHIVE',
     5: 'THEMES',
-    6: 'STREAK SHIELDS',
+    6: 'WEEK-LONG FREEZE RESERVE',
     8: 'TODAY’S BONUS',
     12: 'WINDOW VIEWS',
     14: 'ROOM STYLES+',
@@ -1186,19 +1209,27 @@ class GameState extends ChangeNotifier {
   double get streakMult => streakMultFor(streakDays);
 
   /// How this completion sits against the streak: is there a gap since the
-  /// last active day, how many days were missed, and can shields bridge it?
+  /// last active day, which quiet dates sit inside it, and can freezes bridge
+  /// every one? Partial coverage is deliberately refused so no freeze is ever
+  /// spent without preserving the streak.
   /// Read identically by [roll] (for messaging) and [commit] (to apply) —
   /// both run before lastCompletionDay is bumped, so they agree.
-  ({bool gap, int missed, bool covered}) _streakSituation() {
+  ({bool gap, List<String> days, bool covered}) _streakSituation() {
     final last = lastCompletionDay;
     final now = Clock.now();
     if (last == null || last == Days.key(now)) {
-      return (gap: false, missed: 0, covered: false);
+      return (gap: false, days: const <String>[], covered: false);
     }
     final d = Days.parse(last);
     final missed = Days.between(d, now) - 1;
-    if (missed <= 0) return (gap: false, missed: 0, covered: false);
-    return (gap: true, missed: missed, covered: streakShields >= missed);
+    if (missed <= 0) {
+      return (gap: false, days: const <String>[], covered: false);
+    }
+    final days = [
+      for (var i = 1; i <= missed; i++)
+        Days.key(DateTime(d.year, d.month, d.day + i)),
+    ];
+    return (gap: true, days: days, covered: streakFreezes >= days.length);
   }
 
   /// Verified completions (timer proof) pay ×1.2 — proof multiplies,
@@ -1297,7 +1328,7 @@ class GameState extends ChangeNotifier {
   RewardBundle roll(Quest q, {bool verified = false}) {
     final now = Clock.now();
     final nowKey = Days.key(now);
-    // How a gap (if any) resolves: a shield bridges it silently, otherwise
+    // How a gap (if any) resolves: freezes bridge it quietly, otherwise
     // it's a true lapse and the return earns a warm comeback bonus. Read
     // before we stamp anything (mirrors [commit]'s decision).
     final sit = _streakSituation();
@@ -1305,6 +1336,8 @@ class GameState extends ChangeNotifier {
     final isComeback = sit.gap && !sit.covered;
     // the FIRST completion of the day (no completion committed yet today)
     final firstOfDay = lastCompletionDay != nowKey;
+    final freezesUsed = shieldHeld ? sit.days.length : 0;
+    final reserveAfterHeldDays = streakFreezes - freezesUsed;
 
     final priorSame = todayTitleCounts[q.title] ?? 0;
     final neglect = _neglectMult(q, nowKey);
@@ -1360,6 +1393,21 @@ class GameState extends ChangeNotifier {
     gain *= dayOne;
     gain *= sameDayDecay(priorSame);
     if ((todayStats[q.stat] ?? 0) >= dailyStatSoft) gain *= 0.5;
+    final projectedVit =
+        stats[Stat.vit]! +
+        (q.stat == Stat.vit ? max(1, gain.round() + (q.dread ? 3 : 0)) : 0);
+    final freezeCadenceAfter = projectedVit >= 40 ? 2 : 3;
+    final freezeEarnedAfterCommit =
+        firstOfDay &&
+        reserveAfterHeldDays < streakFreezeCapacity &&
+        streakFreezeProgress + 1 >= freezeCadenceAfter;
+    final finalFreezeBalance = min(
+      streakFreezeCapacity,
+      reserveAfterHeldDays + (freezeEarnedAfterCommit ? 1 : 0),
+    );
+    final freezeProgressAfter = freezeEarnedAfterCommit
+        ? 0
+        : min(freezeCadenceAfter - 1, streakFreezeProgress + 1);
 
     return RewardBundle(
       xp: earned.round(),
@@ -1389,7 +1437,11 @@ class GameState extends ChangeNotifier {
           : (streakDays > 0 ? streakMult : null),
       verifiedMult: verified ? verifiedBonus : null,
       comebackMult: isComeback ? comebackBonus : null,
-      shieldHeld: shieldHeld,
+      freezesUsed: freezesUsed,
+      freezeEarned: freezeEarnedAfterCommit,
+      freezeBalanceAfter: finalFreezeBalance,
+      freezeProgressAfter: freezeProgressAfter,
+      freezeCadenceAfter: freezeCadenceAfter,
       firstOfDay: firstOfDay,
       loot: loot,
       hasEvidence:
@@ -1443,8 +1495,9 @@ class GameState extends ChangeNotifier {
     );
     if (ledger.length > 8) ledger.removeLast();
 
-    // streak: consecutive days with at least one completion — a shield
-    // bridges a missed day so a long run survives one bad day (never-punish)
+    // Streak: active days count upward; freezes hold calendar days away without
+    // pretending those days were active. Full-save undo restores this whole
+    // transaction, including reserve, progress, and the exact frozen dates.
     final now = Clock.now();
     final today = Days.key(now);
     if (lastCompletionDay != today) {
@@ -1452,13 +1505,23 @@ class GameState extends ChangeNotifier {
       if (!sit.gap) {
         streakDays += 1; // first ever, or yesterday → continues
       } else if (sit.covered) {
-        streakShields -= sit.missed; // shield(s) hold the line
+        streakFreezes -= sit.days.length;
+        frozenStreakDays.addAll(sit.days);
         streakDays += 1;
       } else {
         comebacks++; // a real lapse — reset, but the return is celebrated
         streakDays = 1;
       }
       lastCompletionDay = today;
+
+      // Showing up replenishes freezes without asking for a perfect board.
+      // Progress can sit one day from ready while the reserve is full; if a
+      // later completion spends a freeze, that same active day may refill it.
+      streakFreezes = b.freezeBalanceAfter;
+      streakFreezeProgress = min(
+        b.freezeCadenceAfter - 1,
+        b.freezeProgressAfter,
+      );
 
       // streak milestone — a 7/30/100 day CROSSING queues a chest. This lives
       // INSIDE the day-change block on purpose: a milestone can only be
@@ -1493,16 +1556,6 @@ class GameState extends ChangeNotifier {
     history[today] = (history[today] ?? 0) + 1;
     final titleKey = b.questKey ?? b.questTitle;
     todayTitleCounts[titleKey] = (todayTitleCounts[titleKey] ?? 0) + 1;
-
-    // VIT perk: high Vitality occasionally forges an extra shield on the
-    // day's first ember (never above the cap; only once shields unlock).
-    if (b.firstOfDay &&
-        shieldUnlockGranted &&
-        streakShields < maxShields &&
-        stats[Stat.vit]! >= 40 &&
-        _rng.nextDouble() < 0.08) {
-      streakShields++;
-    }
 
     // today's haul (night recap)
     todayXp += b.xp;
@@ -1579,10 +1632,10 @@ class GameState extends ChangeNotifier {
     if (level >= 2) ownedFurniture.add('rug');
     if (level >= 3) ownedFurniture.add('plant');
     if (level >= 4) ownedFurniture.add('cushion');
-    // the STREAK SHIELDS unlock (Lv 6) actually hands you shields now
-    if (level >= 6 && !shieldUnlockGranted) {
-      shieldUnlockGranted = true;
-      streakShields = (streakShields + 2).clamp(0, maxShields);
+    // Lv 6 widens the reserve to a full week and places two freezes inside it.
+    if (level >= 6 && !freezeLevelBonusGranted) {
+      freezeLevelBonusGranted = true;
+      streakFreezes = (streakFreezes + 2).clamp(0, streakFreezeCapacity);
     }
     // the GILDED SKIN unlock (Lv 15) grants the gilded skin for free
     if (level >= 15 && !ownedSkins.contains('gilded')) {
@@ -1681,9 +1734,6 @@ class GameState extends ChangeNotifier {
     if (lastPerfectDay == today || (history[today] ?? 0) < 1) return;
     lastPerfectDay = today;
     perfectDays++;
-    // once shields are unlocked, a perfect day forges one (capped) — a
-    // reason to clear the whole board, and a buffer for the day you can't
-    if (shieldUnlockGranted && streakShields < maxShields) streakShields++;
     notifyListeners();
   }
 
@@ -1762,8 +1812,12 @@ class GameState extends ChangeNotifier {
     'ledger': [for (final e in ledger) e.toJson()],
     'streakDays': streakDays,
     'bestStreak': bestStreak,
-    'streakShields': streakShields,
-    'shieldUnlockGranted': shieldUnlockGranted,
+    // Keep legacy keys stable so an existing cloud/local save keeps merging.
+    'streakShields': streakFreezes,
+    'shieldUnlockGranted': freezeLevelBonusGranted,
+    'streakFreezeProgress': streakFreezeProgress,
+    'streakFreezeVersion': streakFreezeVersion,
+    'frozenStreakDays': frozenStreakDays.toList()..sort(),
     'lastCompletionDay': lastCompletionDay,
     'lastActiveDay': lastActiveDay,
     'totalCompletions': totalCompletions,
@@ -1984,8 +2038,25 @@ class GameState extends ChangeNotifier {
     }
     s.streakDays = j['streakDays'] as int? ?? 0;
     s.bestStreak = j['bestStreak'] as int? ?? s.streakDays;
-    s.streakShields = j['streakShields'] as int? ?? 0;
-    s.shieldUnlockGranted = j['shieldUnlockGranted'] as bool? ?? false;
+    final encodedFreezeVersion = j['streakFreezeVersion'] as int? ?? 0;
+    final encodedFreezes = j['streakShields'] as int? ?? 0;
+    // Every pre-freeze-system save receives the starter reserve exactly once;
+    // any old shields already earned are preserved if that is more generous.
+    s.streakFreezes =
+        (encodedFreezeVersion >= _streakFreezeVersion
+                ? encodedFreezes
+                : max(encodedFreezes, starterStreakFreezes))
+            .clamp(0, s.streakFreezeCapacity);
+    s.streakFreezeVersion = _streakFreezeVersion;
+    s.freezeLevelBonusGranted = j['shieldUnlockGranted'] as bool? ?? false;
+    s.streakFreezeProgress = (j['streakFreezeProgress'] as int? ?? 0).clamp(
+      0,
+      s.activeDaysPerFreeze - 1,
+    );
+    for (final day in (j['frozenStreakDays'] as List?) ?? const []) {
+      final key = Days.validKey(day);
+      if (key != null) s.frozenStreakDays.add(key);
+    }
     s.lastCompletionDay = Days.validKey(j['lastCompletionDay']);
     s.lastActiveDay = Days.validKey(j['lastActiveDay']);
     s.totalCompletions = j['totalCompletions'] as int? ?? 0;

@@ -48,10 +48,25 @@ const _weekdayNames = [
   'SUNDAY',
 ];
 
-/// The Plans page: a warm month calendar. Honey tallies = your completion
-/// history; stat-colored diamonds = upcoming events/long-term goals. Tap a
-/// day to see or plan it. (Push reminders arrive with the phone build —
-/// due quests surface on the Quests page meanwhile.)
+enum _MonthDayWeight { none, light, moderate, full }
+
+final class _MonthDayLoad {
+  const _MonthDayLoad({required this.weight, required this.hasDeadline});
+
+  final _MonthDayWeight weight;
+  final bool hasDeadline;
+
+  String get spokenLabel => switch (weight) {
+    _MonthDayWeight.none => 'open day',
+    _MonthDayWeight.light => 'lightly scheduled day',
+    _MonthDayWeight.moderate => 'moderately scheduled day',
+    _MonthDayWeight.full => 'heavily scheduled day',
+  };
+}
+
+/// The Plans page: a warm month calendar. One brass day-weight mark answers
+/// the month view's useful question at a glance: how much of this day is
+/// spoken for? Tap a day to read the actual classes, plans, work, and notes.
 class CalendarPage extends StatefulWidget {
   const CalendarPage({
     super.key,
@@ -198,6 +213,51 @@ class _CalendarPageState extends State<CalendarPage> {
   List<AcademicWorkItem> _academicWorkOn(DateTime day) =>
       _academicSchedule.workItemsOn(CivilDate.fromDateTime(day));
 
+  List<AcademicStudyBlock> _academicStudyOn(DateTime day) =>
+      _academicSchedule.studyBlocksOn(CivilDate.fromDateTime(day));
+
+  _MonthDayLoad _monthDayLoad({
+    required DateTime day,
+    required List<Quest> plans,
+    required List<ClassOccurrence> classes,
+    required List<AcademicWorkItem> work,
+    required List<AcademicStudyBlock> study,
+  }) {
+    var scheduledMinutes = 0;
+    for (final occurrence in classes) {
+      if (occurrence.state == OccurrenceState.cancelled) continue;
+      scheduledMinutes +=
+          occurrence.localEndMinute - occurrence.localStartMinute;
+      scheduledMinutes +=
+          _academicSchedule
+              .meetingSeriesById(occurrence.meetingSeriesId)
+              ?.transitionBufferMinutes ??
+          0;
+    }
+    for (final block in study) {
+      scheduledMinutes += block.durationMinutes;
+    }
+    for (final plan in plans) {
+      // Calendar plans currently have a due day rather than start/end times.
+      // Their timer is the best estimate when present; otherwise one neutral
+      // hour keeps an untimed plan visible without pretending XP difficulty
+      // is a duration.
+      scheduledMinutes += plan.timerMinutes > 0 ? plan.timerMinutes : 60;
+    }
+
+    final hasDeadline =
+        plans.any((plan) => !plan.doneFor(day)) ||
+        work.any((item) => !item.completed);
+    final weight = switch (scheduledMinutes) {
+      0 when hasDeadline => _MonthDayWeight.light,
+      0 => _MonthDayWeight.none,
+      < 120 => _MonthDayWeight.light,
+      < 240 => _MonthDayWeight.moderate,
+      _ => _MonthDayWeight.full,
+    };
+    return _MonthDayLoad(weight: weight, hasDeadline: hasDeadline);
+  }
+
   Future<bool> _saveAcademicMeeting(
     AcademicTerm term,
     AcademicCourse course,
@@ -231,6 +291,186 @@ class _CalendarPageState extends State<CalendarPage> {
     }
     if (!await _scheduleRepository.save(next)) return false;
     if (mounted) setState(() => _academicSchedule = next);
+    return true;
+  }
+
+  Future<bool> _saveAcademicStudyPlan(
+    AcademicStudyPlan plan,
+    List<AcademicStudyBlock> blocks,
+  ) async {
+    late final AcademicSchedule next;
+    try {
+      next = _academicSchedule.putStudyPlan(plan: plan, blocks: blocks);
+    } on ArgumentError {
+      return false;
+    }
+    if (!await _scheduleRepository.save(next)) return false;
+    if (mounted) setState(() => _academicSchedule = next);
+    return true;
+  }
+
+  Future<void> _toggleAcademicStudyBlock(AcademicStudyBlock block) async {
+    late final AcademicSchedule next;
+    try {
+      next = _academicSchedule.setStudyBlockCompleted(
+        studyBlockId: block.studyBlockId,
+        completed: !block.completed,
+        updatedAt: Clock.now().toUtc(),
+      );
+    } on ArgumentError {
+      return;
+    }
+    if (!await _scheduleRepository.save(next)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Palette.card,
+          content: Text(
+            "Couldn't update this study block locally. Try again.",
+            style: Type.body.copyWith(color: Palette.textHi),
+          ),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    Sfx.instance.play('tick');
+    setState(() => _academicSchedule = next);
+  }
+
+  Future<void> _showAcademicStudyPlanner(AcademicWorkItem item) async {
+    Sfx.instance.play('tick');
+    await showDialog<void>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (_) => AcademicStudyPlannerDialog(
+        schedule: _academicSchedule,
+        item: item,
+        onSave: _saveAcademicStudyPlan,
+      ),
+    );
+  }
+
+  Future<bool> _moveAcademicOccurrence(
+    ClassOccurrence occurrence,
+    CivilDate date,
+    int startMinute,
+    int endMinute,
+  ) => _changeAcademicOccurrence(
+    (updatedAt) => _academicSchedule.moveOccurrence(
+      occurrenceKey: occurrence.occurrenceKey,
+      date: date,
+      startMinute: startMinute,
+      endMinute: endMinute,
+      updatedAt: updatedAt,
+    ),
+  );
+
+  Future<bool> _cancelAcademicOccurrence(ClassOccurrence occurrence) =>
+      _changeAcademicOccurrence(
+        (updatedAt) => _academicSchedule.cancelOccurrence(
+          occurrenceKey: occurrence.occurrenceKey,
+          updatedAt: updatedAt,
+        ),
+      );
+
+  Future<bool> _restoreAcademicOccurrence(ClassOccurrence occurrence) =>
+      _changeAcademicOccurrence(
+        (updatedAt) => _academicSchedule.restoreOccurrence(
+          occurrenceKey: occurrence.occurrenceKey,
+          updatedAt: updatedAt,
+        ),
+      );
+
+  Future<bool> _changeAcademicOccurrence(
+    AcademicSchedule Function(DateTime updatedAt) change,
+  ) async {
+    late final AcademicSchedule next;
+    try {
+      next = change(Clock.now().toUtc());
+    } on ArgumentError {
+      return false;
+    }
+    if (!await _scheduleRepository.save(next)) return false;
+    if (mounted) setState(() => _academicSchedule = next);
+    return true;
+  }
+
+  Future<void> _showAcademicOccurrenceAdjuster(
+    ClassOccurrence occurrence,
+  ) async {
+    Sfx.instance.play('tick');
+    await showDialog<void>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (_) => AcademicOccurrenceAdjustDialog(
+        schedule: _academicSchedule,
+        occurrence: occurrence,
+        onMove: _moveAcademicOccurrence,
+        onCancel: _cancelAcademicOccurrence,
+        onRestore: _restoreAcademicOccurrence,
+      ),
+    );
+  }
+
+  Future<bool> _updateAcademicTransitionBuffer(
+    ClassOccurrence occurrence,
+    int minutes,
+  ) async {
+    final series = _academicSchedule.meetingSeriesById(
+      occurrence.meetingSeriesId,
+    );
+    if (series == null) return false;
+    final course = _academicSchedule.courseById(series.courseId);
+    if (course == null) return false;
+    final term = _academicSchedule.terms
+        .where((term) => term.termId == course.termId)
+        .firstOrNull;
+    if (term == null) return false;
+
+    final updatedAt = Clock.now().toUtc();
+    final updatedSeries = MeetingSeries(
+      meetingSeriesId: series.meetingSeriesId,
+      courseId: series.courseId,
+      kind: series.kind,
+      weekdays: series.weekdays,
+      localStartMinute: series.localStartMinute,
+      localEndMinute: series.localEndMinute,
+      transitionBufferMinutes: minutes,
+      intervalWeeks: series.intervalWeeks,
+      firstDate: series.firstDate,
+      lastDate: series.lastDate,
+      timeZoneId: series.timeZoneId,
+      place: series.place,
+      reminders: series.reminders,
+      revision: series.revision + 1,
+      updatedAt: updatedAt,
+      tombstonedAt: series.tombstonedAt,
+    );
+    final next = _academicSchedule.putMeeting(
+      term: term,
+      course: course,
+      series: updatedSeries,
+      updatedAt: updatedAt,
+    );
+    if (!await _scheduleRepository.save(next)) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Palette.card,
+          content: Text(
+            "Couldn't update this class buffer locally. Try again.",
+            style: Type.body.copyWith(color: Palette.textHi),
+          ),
+        ),
+      );
+      return false;
+    }
+    if (!mounted) return false;
+    Sfx.instance.play('tick');
+    setState(() => _academicSchedule = next);
     return true;
   }
 
@@ -470,110 +710,16 @@ class _CalendarPageState extends State<CalendarPage> {
               // built like the bound month-folio in the approved target: a
               // book-cloth board, a brass-ruled masthead, then the dated page
               // inset into it. A flat panel this size read as an empty block.
-              GlassPanel(
-                blur: true,
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        _Chevron(
-                          icon: Icons.chevron_left,
-                          label: 'Previous month',
-                          onTap: () => _moveMonth(-1),
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              '${_monthNames[_month.month - 1].toUpperCase()} ${_month.year}',
-                              style: Type.display.copyWith(
-                                fontSize: 16,
-                                letterSpacing: 2.4,
-                                color: Palette.textHi,
-                              ),
-                            ),
-                          ),
-                        ),
-                        _Chevron(
-                          icon: Icons.chevron_right,
-                          label: 'Next month',
-                          onTap: () => _moveMonth(1),
-                        ),
-                      ],
-                    ),
-                    if (_month.year != now.year || _month.month != now.month)
-                      TextButton(
-                        onPressed: _goToday,
-                        child: Text(
-                          'BACK TO TODAY',
-                          style: Type.label.copyWith(
-                            fontSize: Type.minLabel,
-                            color: Palette.xpLight,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 6),
-                    const _FolioRule(),
-                    const SizedBox(height: 8),
-                    DecoratedBox(
-                      decoration: _folioPage,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                for (var i = 0; i < 7; i++)
-                                  Expanded(
-                                    child: Center(
-                                      child: Text(
-                                        const [
-                                          'M',
-                                          'T',
-                                          'W',
-                                          'T',
-                                          'F',
-                                          'S',
-                                          'S',
-                                        ][i],
-                                        style: Type.label.copyWith(
-                                          fontSize: 11,
-                                          letterSpacing: 1.4,
-                                          color: i >= 5
-                                              ? Palette.brass
-                                              : Palette.textLo,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 5),
-                            const _FolioRule(strength: 0.55),
-                            const SizedBox(height: 3),
-                            for (
-                              var week = 0;
-                              week * 7 - (firstWeekday - 1) < daysInMonth;
-                              week++
-                            )
-                              Row(
-                                children: [
-                                  for (var col = 0; col < 7; col++)
-                                    Expanded(
-                                      child: _dayCell(
-                                        week * 7 + col - (firstWeekday - 1) + 1,
-                                        daysInMonth,
-                                        now,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              _MonthFolio(
+                key: const ValueKey('academic-month-folio'),
+                month: _month,
+                now: now,
+                firstWeekday: firstWeekday,
+                daysInMonth: daysInMonth,
+                onPrevious: () => _moveMonth(-1),
+                onNext: () => _moveMonth(1),
+                onToday: _goToday,
+                dayCell: (day) => _dayCell(day, daysInMonth, now),
               ),
             ] else ...[
               AcademicSpanPanel(
@@ -587,6 +733,10 @@ class _CalendarPageState extends State<CalendarPage> {
                 onSelectDay: _selectDay,
                 onOpenNotebook: _openNotebook,
                 onToggleWork: _toggleAcademicWork,
+                onOpenStudyPlanner: _showAcademicStudyPlanner,
+                onToggleStudyBlock: _toggleAcademicStudyBlock,
+                onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
+                onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
               ),
             ],
             const SizedBox(height: 14),
@@ -605,14 +755,22 @@ class _CalendarPageState extends State<CalendarPage> {
               academicWorkItems: _academicMode == AcademicCalendarMode.month
                   ? _academicWorkOn(_selected)
                   : const <AcademicWorkItem>[],
+              academicStudyBlocks: _academicMode == AcademicCalendarMode.month
+                  ? _academicStudyOn(_selected)
+                  : const <AcademicStudyBlock>[],
               hasAcademicItems:
                   _classesOn(_selected).isNotEmpty ||
-                  _academicWorkOn(_selected).isNotEmpty,
+                  _academicWorkOn(_selected).isNotEmpty ||
+                  _academicStudyOn(_selected).isNotEmpty,
               now: now,
               onPlan: () => _showAddEvent(context),
               onOpenJournal: _openJournal,
               onOpenNotebook: _openNotebook,
               onToggleWork: _toggleAcademicWork,
+              onOpenStudyPlanner: _showAcademicStudyPlanner,
+              onToggleStudyBlock: _toggleAcademicStudyBlock,
+              onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
+              onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
               lightDirection: widget.lightDirection ?? widget.parallax,
             ),
           ],
@@ -623,7 +781,7 @@ class _CalendarPageState extends State<CalendarPage> {
 
   Widget _dayCell(int day, int daysInMonth, DateTime now) {
     if (day < 1 || day > daysInMonth) {
-      return ConstrainedBox(constraints: const BoxConstraints(minHeight: 55));
+      return const SizedBox.expand();
     }
     final date = DateTime(_month.year, _month.month, day);
     final isToday = Days.sameDay(date, now);
@@ -632,12 +790,22 @@ class _CalendarPageState extends State<CalendarPage> {
     final events = _eventsOn(date);
     final classes = _classesOn(date);
     final academicWork = _academicWorkOn(date);
+    final academicStudy = _academicStudyOn(date);
     final journalEntries = _journalOn(date);
+    final load = _monthDayLoad(
+      day: date,
+      plans: events,
+      classes: classes,
+      work: academicWork,
+      study: academicStudy,
+    );
 
     final spoken = StringBuffer(
       '${_monthNames[date.month - 1]} ${date.day}, ${date.year}',
     );
     if (isToday) spoken.write(', today');
+    spoken.write(', ${load.spokenLabel}');
+    if (load.hasDeadline) spoken.write(', deadline due');
     if (done > 0) {
       spoken.write(', $done quest${done == 1 ? '' : 's'} completed');
     }
@@ -667,6 +835,27 @@ class _CalendarPageState extends State<CalendarPage> {
         );
       }
     }
+    if (academicStudy.isNotEmpty) {
+      spoken.write(
+        ', ${academicStudy.length} study block${academicStudy.length == 1 ? '' : 's'}',
+      );
+    }
+    final conflicts = _academicSchedule.meetingConflictsOn(
+      CivilDate.fromDateTime(date),
+    );
+    if (conflicts.isNotEmpty) {
+      spoken.write(
+        ', ${conflicts.length} class overlap${conflicts.length == 1 ? '' : 's'}',
+      );
+    }
+    final transitionPressures = _academicSchedule.transitionPressuresOn(
+      CivilDate.fromDateTime(date),
+    );
+    if (transitionPressures.isNotEmpty) {
+      spoken.write(
+        ', ${transitionPressures.length} tight class transition${transitionPressures.length == 1 ? '' : 's'}',
+      );
+    }
     if (journalEntries.isNotEmpty) {
       spoken.write(
         ', ${journalEntries.length} journal entr${journalEntries.length == 1 ? 'y' : 'ies'}',
@@ -686,17 +875,7 @@ class _CalendarPageState extends State<CalendarPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _dayPlate(
-              day,
-              date,
-              isToday,
-              isSelected,
-              done,
-              events,
-              classes,
-              academicWork,
-              journalEntries.length,
-            ),
+            _dayPlate(day, date, isToday, isSelected, load),
             // The folio names today under its date, the way the target does —
             // the honey plate alone doesn't say WHICH kind of mark it is.
             ConstrainedBox(
@@ -705,6 +884,11 @@ class _CalendarPageState extends State<CalendarPage> {
                   ? Center(
                       child: Text(
                         'TODAY',
+                        maxLines: 1,
+                        overflow: TextOverflow.clip,
+                        // A seven-column month cell is truly bounded metadata;
+                        // its full spoken date remains available in Semantics.
+                        textScaler: TextScaler.noScaling,
                         style: Type.label.copyWith(
                           fontSize: Type.minLabel,
                           letterSpacing: 0.9,
@@ -725,14 +909,10 @@ class _CalendarPageState extends State<CalendarPage> {
     DateTime date,
     bool isToday,
     bool isSelected,
-    int done,
-    List<Quest> events,
-    List<ClassOccurrence> classes,
-    List<AcademicWorkItem> academicWork,
-    int journalEntries,
+    _MonthDayLoad load,
   ) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 43),
+      constraints: const BoxConstraints.tightFor(height: 43),
       margin: const EdgeInsets.all(1.5),
       decoration: facetedDecoration(
         cut: 7,
@@ -757,133 +937,37 @@ class _CalendarPageState extends State<CalendarPage> {
         children: [
           Text(
             '$day',
+            // Keep the compact month numeral inside its fixed folio plate at
+            // large system text. The complete date is exposed by Semantics.
+            textScaler: TextScaler.noScaling,
             style: Type.numerals.copyWith(
               fontSize: 13,
               color: isToday
                   ? Palette.xp
-                  : done > 0
+                  : isSelected
                   ? Palette.textHi
                   : Palette.textMid,
             ),
           ),
           const SizedBox(height: 2),
           SizedBox(
-            height: 10,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // One brass pip whose size carries the day's haul. It was a
-                  // glowing blob whose halo bled into the neighbouring dates;
-                  // a hard-edged dot is the mark the folio actually wants.
-                  if (done > 0)
-                    Container(
-                      width: 3.6 + (done.clamp(1, 9)) * 0.42,
-                      height: 3.6 + (done.clamp(1, 9)) * 0.42,
-                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Palette.xpLight.withValues(
-                          alpha: (0.46 + 0.06 * done).clamp(0.46, 0.95),
-                        ),
-                      ),
-                    ),
-                  // stat-colored diamonds: planned events
-                  for (final e in events.take(2))
-                    Transform.rotate(
-                      angle: 0.785,
-                      child: Container(
-                        width: 4.5,
-                        height: 4.5,
-                        margin: const EdgeInsets.symmetric(horizontal: 1),
-                        color: e.stat.color,
-                      ),
-                    ),
-                  for (final occurrence in classes.take(2))
-                    Container(
+            height: 16,
+            child: load.weight == _MonthDayWeight.none
+                ? null
+                : Center(
+                    child: _MonthDayWeightMark(
                       key: ValueKey(
-                        'academic-month-occurrence-${occurrence.occurrenceKey}',
+                        'academic-month-weight-'
+                        '${CivilDate.fromDateTime(date)}',
                       ),
-                      width: 7,
-                      height: 3.5,
-                      margin: const EdgeInsets.symmetric(horizontal: 1),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(2),
-                        color:
-                            Color(
-                              _academicSchedule
-                                      .courseById(occurrence.courseId)
-                                      ?.colorValue ??
-                                  0xFF8AAFC6,
-                            ).withValues(
-                              alpha:
-                                  occurrence.state == OccurrenceState.cancelled
-                                  ? 0.34
-                                  : 0.92,
-                            ),
+                      weight: load.weight,
+                      hasDeadline: load.hasDeadline,
+                      deadlineKey: ValueKey(
+                        'academic-month-deadline-'
+                        '${CivilDate.fromDateTime(date)}',
                       ),
                     ),
-                  if (classes.length > 2)
-                    Text(
-                      '+${classes.length - 2}',
-                      style: Type.label.copyWith(
-                        fontSize: 8,
-                        letterSpacing: 0,
-                        color: Palette.textLo,
-                      ),
-                    ),
-                  for (final item in academicWork.take(2))
-                    Transform.rotate(
-                      key: ValueKey('academic-month-work-${item.workId}'),
-                      angle: item.kind == AcademicWorkKind.assignment
-                          ? 0.785
-                          : 0,
-                      child: Container(
-                        width: 5,
-                        height: 5,
-                        margin: const EdgeInsets.symmetric(horizontal: 1),
-                        decoration: BoxDecoration(
-                          color: item.completed
-                              ? Colors.transparent
-                              : Color(
-                                  _academicSchedule
-                                          .courseById(item.courseId)
-                                          ?.colorValue ??
-                                      0xFF8AAFC6,
-                                ),
-                          border: Border.all(
-                            color: Color(
-                              _academicSchedule
-                                      .courseById(item.courseId)
-                                      ?.colorValue ??
-                                  0xFF8AAFC6,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  if (academicWork.length > 2)
-                    Text(
-                      '+${academicWork.length - 2}',
-                      style: Type.label.copyWith(
-                        fontSize: 8,
-                        letterSpacing: 0,
-                        color: Palette.textLo,
-                      ),
-                    ),
-                  if (journalEntries > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 1.5),
-                      child: Icon(
-                        Icons.menu_book_outlined,
-                        size: 8,
-                        color: Palette.xpLight.withValues(alpha: 0.9),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+                  ),
           ),
         ],
       ),
@@ -935,6 +1019,70 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 }
 
+/// The month deliberately carries only one visual sentence per date. Height
+/// means scheduled weight; the small diamond at the tick's crown means that
+/// something is due. Specific categories belong in the selected-day panel.
+class _MonthDayWeightMark extends StatelessWidget {
+  const _MonthDayWeightMark({
+    super.key,
+    required this.weight,
+    required this.hasDeadline,
+    required this.deadlineKey,
+  });
+
+  final _MonthDayWeight weight;
+  final bool hasDeadline;
+  final Key deadlineKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final tickHeight = switch (weight) {
+      _MonthDayWeight.none => 0.0,
+      _MonthDayWeight.light => 7.0,
+      _MonthDayWeight.moderate => 10.5,
+      _MonthDayWeight.full => 14.0,
+    };
+    final ink = switch (weight) {
+      _MonthDayWeight.none => Colors.transparent,
+      _MonthDayWeight.light => Palette.xp.withValues(alpha: 0.65),
+      _MonthDayWeight.moderate => Palette.xp.withValues(alpha: 0.82),
+      _MonthDayWeight.full => Palette.xp.withValues(alpha: 0.96),
+    };
+
+    return SizedBox(
+      width: 9,
+      height: 16,
+      child: Stack(
+        alignment: Alignment.bottomCenter,
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 3,
+            height: tickHeight,
+            decoration: BoxDecoration(
+              color: ink,
+              borderRadius: BorderRadius.circular(1.5),
+            ),
+          ),
+          if (hasDeadline)
+            Positioned(
+              bottom: (tickHeight - 1.5).clamp(2.5, 12.0),
+              child: Transform.rotate(
+                angle: 0.785398,
+                child: Container(
+                  key: deadlineKey,
+                  width: 4.2,
+                  height: 4.2,
+                  color: Palette.brassLit.withValues(alpha: 0.94),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 /// The dated page inset into the folio board — a shade darker than the board,
 /// warmer at the top lip where the desk candle reaches it.
 final _folioPage = facetedDecoration(
@@ -966,6 +1114,128 @@ class _FolioRule extends StatelessWidget {
         ],
         stops: const [0, 0.14, 0.86, 1],
       ),
+    ),
+  );
+}
+
+class _MonthFolio extends StatelessWidget {
+  const _MonthFolio({
+    super.key,
+    required this.month,
+    required this.now,
+    required this.firstWeekday,
+    required this.daysInMonth,
+    required this.onPrevious,
+    required this.onNext,
+    required this.onToday,
+    required this.dayCell,
+  });
+
+  final DateTime month;
+  final DateTime now;
+  final int firstWeekday;
+  final int daysInMonth;
+  final VoidCallback onPrevious;
+  final VoidCallback onNext;
+  final VoidCallback onToday;
+  final Widget Function(int day) dayCell;
+
+  int get _weekCount => ((firstWeekday - 1 + daysInMonth + 6) ~/ 7);
+
+  @override
+  Widget build(BuildContext context) => GlassPanel(
+    blur: true,
+    padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
+    child: Column(
+      children: [
+        Row(
+          children: [
+            _Chevron(
+              icon: Icons.chevron_left,
+              label: 'Previous month',
+              onTap: onPrevious,
+            ),
+            Expanded(
+              child: Center(
+                child: Text(
+                  '${_monthNames[month.month - 1].toUpperCase()} ${month.year}',
+                  style: Type.display.copyWith(
+                    fontSize: 16,
+                    letterSpacing: 2.4,
+                    color: Palette.textHi,
+                  ),
+                ),
+              ),
+            ),
+            _Chevron(
+              icon: Icons.chevron_right,
+              label: 'Next month',
+              onTap: onNext,
+            ),
+          ],
+        ),
+        if (month.year != now.year || month.month != now.month)
+          TextButton(
+            onPressed: onToday,
+            child: Text(
+              'BACK TO TODAY',
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: Palette.xpLight,
+              ),
+            ),
+          ),
+        const SizedBox(height: 6),
+        const _FolioRule(),
+        const SizedBox(height: 8),
+        DecoratedBox(
+          decoration: _folioPage,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(5, 10, 5, 8),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    for (var index = 0; index < 7; index++)
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index],
+                            style: Type.label.copyWith(
+                              fontSize: 11,
+                              letterSpacing: 1.4,
+                              color: index >= 5
+                                  ? Palette.brass
+                                  : Palette.textLo,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                const _FolioRule(strength: 0.55),
+                const SizedBox(height: 5),
+                for (var week = 0; week < _weekCount; week++)
+                  SizedBox(
+                    height: 62,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (var column = 0; column < 7; column++)
+                          Expanded(
+                            child: dayCell(
+                              week * 7 + column - (firstWeekday - 1) + 1,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -1022,12 +1292,17 @@ class _DayPanel extends StatelessWidget {
     required this.academicSchedule,
     required this.academicOccurrences,
     required this.academicWorkItems,
+    required this.academicStudyBlocks,
     required this.hasAcademicItems,
     required this.now,
     required this.onPlan,
     required this.onOpenJournal,
     required this.onOpenNotebook,
     required this.onToggleWork,
+    required this.onOpenStudyPlanner,
+    required this.onToggleStudyBlock,
+    required this.onUpdateTransitionBuffer,
+    required this.onOpenOccurrenceAdjuster,
     required this.lightDirection,
   });
 
@@ -1039,12 +1314,17 @@ class _DayPanel extends StatelessWidget {
   final AcademicSchedule academicSchedule;
   final List<ClassOccurrence> academicOccurrences;
   final List<AcademicWorkItem> academicWorkItems;
+  final List<AcademicStudyBlock> academicStudyBlocks;
   final bool hasAcademicItems;
   final DateTime now;
   final VoidCallback onPlan;
   final ValueChanged<Note> onOpenJournal;
   final OpenAcademicNotebook onOpenNotebook;
   final ToggleAcademicWork onToggleWork;
+  final OpenAcademicStudyPlanner onOpenStudyPlanner;
+  final ToggleAcademicStudyBlock onToggleStudyBlock;
+  final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
+  final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
   final ValueListenable<Offset> lightDirection;
 
   @override
@@ -1121,7 +1401,23 @@ class _DayPanel extends StatelessWidget {
               AcademicOccurrenceRow(
                 occurrence: occurrence,
                 course: academicSchedule.courseById(occurrence.courseId),
+                transitionBufferMinutes:
+                    academicSchedule
+                        .meetingSeriesById(occurrence.meetingSeriesId)
+                        ?.transitionBufferMinutes ??
+                    10,
+                conflict: academicSchedule
+                    .meetingConflictsOn(CivilDate.fromDateTime(day))
+                    .any((item) => item.includes(occurrence.occurrenceKey)),
+                transitionPressure: academicSchedule
+                    .transitionPressuresOn(CivilDate.fromDateTime(day))
+                    .any((item) => item.includes(occurrence.occurrenceKey)),
                 onOpenNotebook: () => onOpenNotebook(occurrence),
+                onSetTransitionBuffer: (minutes) =>
+                    onUpdateTransitionBuffer(occurrence, minutes),
+                onAdjust: occurrence.canAdjust
+                    ? () => onOpenOccurrenceAdjuster(occurrence)
+                    : null,
               ),
           ],
           if (academicWorkItems.isNotEmpty) ...[
@@ -1140,11 +1436,45 @@ class _DayPanel extends StatelessWidget {
               AcademicWorkRow(
                 item: item,
                 course: academicSchedule.courseById(item.courseId),
+                studyPlan: academicSchedule.studyPlanFor(item.workId),
+                plannedStudyMinutes: academicSchedule.plannedStudyMinutesFor(
+                  item.workId,
+                ),
                 onToggle: () => onToggleWork(item),
+                onPlanStudy: () => onOpenStudyPlanner(item),
+              ),
+          ],
+          if (academicStudyBlocks.isNotEmpty) ...[
+            if (academicOccurrences.isNotEmpty || academicWorkItems.isNotEmpty)
+              const Divider(height: 17, color: Color(0x2EE7C47E)),
+            Text(
+              'STUDY BLOCKS',
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                letterSpacing: 1.7,
+                color: Palette.xpLight,
+              ),
+            ),
+            const SizedBox(height: 7),
+            for (final block in academicStudyBlocks)
+              AcademicStudyBlockRow(
+                block: block,
+                item: academicSchedule.workItems
+                    .where((item) => item.workId == block.workId)
+                    .firstOrNull,
+                course: academicSchedule.courseById(
+                  academicSchedule.workItems
+                          .where((item) => item.workId == block.workId)
+                          .firstOrNull
+                          ?.courseId ??
+                      '',
+                ),
+                onToggle: () => onToggleStudyBlock(block),
               ),
           ],
           if ((academicOccurrences.isNotEmpty ||
-                  academicWorkItems.isNotEmpty) &&
+                  academicWorkItems.isNotEmpty ||
+                  academicStudyBlocks.isNotEmpty) &&
               (completions > 0 ||
                   reflections > 0 ||
                   journalEntries.isNotEmpty ||

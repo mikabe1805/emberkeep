@@ -5,9 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/content/release_notes.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/main.dart';
 import 'package:emberkeep/models.dart';
+import 'package:emberkeep/release_notes_preferences.dart';
 import 'package:emberkeep/storage.dart';
 
 void main() {
@@ -65,6 +67,7 @@ void main() {
     state.history[Days.key(Clock.now())] = 3;
     state.closeNight();
     SharedPreferences.setMockInitialValues({
+      whatsNewSeenReleasePreferenceKey: currentRoomReleaseNotes.id,
       'liferpg_save_v1': jsonEncode({
         'app': 'emberkeep',
         'schema': Storage.schema,

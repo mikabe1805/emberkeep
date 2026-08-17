@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:ui' show ImageFilter;
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../content/themes.dart';
@@ -173,7 +174,10 @@ class WarmBackground extends StatelessWidget {
             right: 30,
             child: _Glow(color: _glow(theme.glows[3]), size: 180, phase: 0.85),
           ),
-          Positioned.fill(child: _Fireflies(still: still)),
+          // The room/fire still provides a living source on web. Parking these
+          // almost-imperceptible full-canvas motes removes a permanent browser
+          // ticker while preserving the exact composed resting frame.
+          Positioned.fill(child: _Fireflies(still: still || kIsWeb)),
           // a soft vignette: the center where content lives feels lit, the
           // corners recede — editorial depth, not a flat fill.
           const Positioned.fill(

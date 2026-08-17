@@ -119,6 +119,29 @@ void main() {
     });
   }
 
+  testWidgets('first-run Room Guide keeps the first Quest path available', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const LifeRpgApp());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    await tester.tap(find.text('ENTER ROOM OF DAYS'));
+    await settle(tester);
+    await tester.tap(find.text('skip for now'));
+    await settle(tester);
+    await tester.tap(find.text('CONTINUE'));
+    await settle(tester);
+    expect(find.text('OPEN TODAY’S QUESTS'), findsOneWidget);
+
+    await tester.tap(find.text('open the room guide'));
+    await settle(tester);
+
+    expect(find.text('Room Guide'), findsOneWidget);
+    expect(find.text('Help for Today'), findsOneWidget);
+    expect(find.textContaining('messy room'), findsOneWidget);
+  });
+
   testWidgets('completing a quest marks it done and grants XP', (tester) async {
     await pumpApp(tester);
 

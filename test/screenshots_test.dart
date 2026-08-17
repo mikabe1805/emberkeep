@@ -21,15 +21,18 @@ import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/content/day_planning.dart';
 import 'package:emberkeep/content/furniture.dart';
+import 'package:emberkeep/content/release_notes.dart';
 import 'package:emberkeep/content/routines.dart';
 import 'package:emberkeep/content/space_themes.dart';
 import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:emberkeep/widgets/share_moment_card.dart';
+import 'package:emberkeep/widgets/streak_freeze_status.dart';
 import 'package:emberkeep/content/room_styles.dart';
 import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/main.dart';
 import 'package:emberkeep/models.dart';
+import 'package:emberkeep/release_notes_preferences.dart';
 import 'package:emberkeep/screens/about.dart';
 import 'package:emberkeep/screens/journal_entry.dart';
 import 'package:emberkeep/screens/journal_hub.dart';
@@ -723,8 +726,11 @@ void main() {
       ..totalXp = 980
       ..streakDays = 6
       ..bestStreak = 11
+      ..streakFreezes = 3
+      ..streakFreezeProgress = 2
       ..lastActiveDay = '2026-07-07'
       ..lastCompletionDay = '2026-07-07';
+    state.frozenStreakDays.add('2026-07-05');
     state.stats[Stat.str] = 42;
     state.stats[Stat.vit] = 35;
     state.stats[Stat.intl] = 58;
@@ -753,6 +759,7 @@ void main() {
       ),
     ];
     SharedPreferences.setMockInitialValues({
+      whatsNewSeenReleasePreferenceKey: currentRoomReleaseNotes.id,
       'liferpg_save_v1': jsonEncode({
         'app': 'emberkeep',
         'schema': Storage.schema,
@@ -768,6 +775,14 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/quest_board.png'),
+      );
+      await tester.tap(find.byType(StreakFreezeStatus));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 450));
+      expect(find.text('STREAK FREEZES'), findsOneWidget);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/streak_freeze_sheet.png'),
       );
     }
   });
@@ -790,7 +805,12 @@ void main() {
         debugShowCheckedModeBanner: false,
         home: OnboardingFlow(
           state: state,
-          onFinish: ({required forgeFirstGoal, required timeShape}) {},
+          onFinish:
+              ({
+                required forgeFirstGoal,
+                required openGuide,
+                required timeShape,
+              }) {},
         ),
       ),
     );
@@ -831,6 +851,7 @@ void main() {
       ..reduceMotion = true
       ..soundEnabled = false;
     SharedPreferences.setMockInitialValues({
+      whatsNewSeenReleasePreferenceKey: currentRoomReleaseNotes.id,
       'liferpg_save_v1': jsonEncode({
         'app': 'emberkeep',
         'schema': Storage.schema,
@@ -1207,6 +1228,7 @@ void main() {
       workoutLauncherQuest(),
     ];
     SharedPreferences.setMockInitialValues({
+      whatsNewSeenReleasePreferenceKey: currentRoomReleaseNotes.id,
       'liferpg_save_v1': jsonEncode({
         'app': 'emberkeep',
         'schema': Storage.schema,
@@ -1986,6 +2008,14 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 250));
     await _storeShot(tester, '14b_my_space_season_1290x2796');
+
+    await tester.scrollUntilVisible(
+      find.text('ROOM GUIDE'),
+      520,
+      scrollable: pageScroll,
+    );
+    await tester.pump(const Duration(milliseconds: 250));
+    await _storeShot(tester, '14d_room_guide_entry_1290x2796');
 
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('space-page-open-arranger')),

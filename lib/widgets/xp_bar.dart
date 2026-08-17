@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../tokens.dart';
@@ -40,8 +41,13 @@ class XpBar extends StatelessWidget {
             tween: Tween(begin: 0, end: progress.clamp(0.0, 1.0)),
             duration: still ? Duration.zero : Motion.barFill,
             curve: Motion.barCurve,
-            builder: (_, value, _) =>
-                _RibbedFill(value: value, height: height, lively: !still),
+            builder: (_, value, _) => _RibbedFill(
+              value: value,
+              height: height,
+              // The fill itself still pours on web. Only the endless
+              // decorative stripe crawl parks after it settles.
+              lively: !still && !kIsWeb,
+            ),
           ),
         ),
       ),

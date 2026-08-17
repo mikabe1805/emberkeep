@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' show min, pi, sin;
 import 'dart:ui' show ImageFilter;
 
-import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../clock.dart';
@@ -566,15 +566,29 @@ class _QuestTitleBlock extends StatelessWidget {
           ),
         ] else if (featured && quest.ladderHint != null) ...[
           const SizedBox(height: 4),
-          Text(
-            quest.ladderHint!,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Type.label.copyWith(
-              fontSize: Type.minLabel,
-              letterSpacing: 0.2,
-              color: Palette.textLo,
-            ),
+          Row(
+            children: [
+              Flexible(
+                child: Text(
+                  quest.ladderHint!.replaceAll('📈', '').trim(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    letterSpacing: 0.2,
+                    color: Palette.textLo,
+                  ),
+                ),
+              ),
+              if (quest.ladderHint!.contains('📈')) ...[
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.trending_up_rounded,
+                  size: 12,
+                  color: Palette.textLo,
+                ),
+              ],
+            ],
           ),
         ],
       ],
@@ -639,12 +653,17 @@ class _QuestCategoryVignette extends StatelessWidget {
     final still =
         reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     return AnimatedBuilder(
-      animation: Listenable.merge([?lightDirection, ?scrollPosition]),
+      // The vignette is already softly masked artwork. Its sub-pixel drift
+      // cost a blur + shader recomposite on every browser scroll update while
+      // adding almost no visible information, so web keeps its finished still.
+      animation: kIsWeb
+          ? const AlwaysStoppedAnimation<double>(0)
+          : Listenable.merge([?lightDirection, ?scrollPosition]),
       builder: (context, _) {
-        final light = still
+        final light = still || kIsWeb
             ? Offset.zero
             : lightDirection?.value ?? Offset.zero;
-        final scroll = still ? 0.0 : scrollPosition?.value ?? 0.0;
+        final scroll = still || kIsWeb ? 0.0 : scrollPosition?.value ?? 0.0;
         final drift = still ? 0.0 : sin(scroll * 0.0042);
         return ShaderMask(
           blendMode: BlendMode.dstIn,

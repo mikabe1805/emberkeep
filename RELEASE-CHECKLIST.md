@@ -1,6 +1,6 @@
 # Room of Days Release Checklist
 
-Updated August 9, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 13, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
 ## Repository-ready
@@ -75,6 +75,14 @@ not replace a signed device build or store-console review.
 
 ## Verify before every candidate
 
+- [ ] Add the shipped build to `lib/content/release_notes.dart`, keep the
+  newest record first, and confirm its `version+build` matches both
+  `pubspec.yaml` and `release-candidate.json`. Include only factual changes
+  present in that exact candidate.
+- [ ] Install over the previous build and confirm What's New appears once,
+  dismisses through both exits, and remains replayable from Me. Confirm a
+  fresh install goes directly to onboarding, then inspect the normal,
+  large-text, and Reduce Motion release screens on a phone-sized viewport.
 - [x] The v1 store candidate defaults `VISITOR_PHOTO_SHARING` off. Local My
   Space photos remain available, but the candidate exposes no visitor-photo
   switch and makes no visitor-photo Storage upload or download. The completed
@@ -85,17 +93,19 @@ not replace a signed device build or store-console review.
 
 - [x] `dart format --output=none --set-exit-if-changed lib test tool`
 - [x] `flutter analyze`
-- [x] `flutter test` (337 tests on August 9, 2026)
-- [x] `flutter build web --release`
-- [x] `dart run tool/prepare_web_offline.dart` and `--check` bind the Build 11
-  web output to its generated version metadata and an exact 124-file, 32.9 MiB
-  offline manifest capped at 96 MiB.
-- [x] A clean real Chromium session loaded the deployed Build 11 at
-  `roomofdays.com` with zero console errors or warnings, exposed only onboarding
-  in the accessibility tree, activated the 124-entry release cache, and returned
-  HTTP 200 directly from that worker on a fully offline top-level reload on
-  August 9, 2026. Root, policy, and shared-room HTML routes now revalidate in
-  browsers instead of inheriting Firebase's one-hour default cache.
+- [x] `flutter test` (401 tests on August 13, 2026)
+- [x] `flutter build web --release --wasm`
+- [x] `dart run tool/prepare_web_offline.dart` bound the Build 13 web output to
+  its generated version metadata and an exact 129-file offline manifest: 25.7
+  MiB core plus 8.2 MiB deferred, capped at 96 MiB.
+- [x] A fresh real mobile Chromium session loaded the deployed Build 13 at
+  `roomofdays.com` with zero console errors or warnings, completed onboarding,
+  and exposed the Quest board in the accessibility tree. A new save started
+  with 3 streak freezes; an isolated quiet-day completion moved a 5-day streak
+  to 6, spent exactly one freeze, and recorded August 12 under Recently Held.
+  The installed release also loaded from its first-party cache while the browser
+  was fully offline on August 13, 2026. Root, policy, and shared-room HTML routes
+  continue to revalidate instead of inheriting Firebase's one-hour default cache.
 - [x] `dart run tool/verify_android_candidate.dart` verifies the immutable
   artifact hashes and handoff, source commit, package/version/SDK contract,
   permissions, app-link scope, APK/AAB signers, Bundletool configuration, ZIP
@@ -293,11 +303,12 @@ not replace a signed device build or store-console review.
   smoke and an internal test, but not for Google's production-access gate.
 - [x] Publish a temporary, direct Android tester route while Google Play remains
   delayed. `https://roomofdays.com/android` is a branded install page pointing
-  to the public GitHub pre-release tag `v1.0.0-android-preview.12`; the fetched
-  76,240,607-byte APK was re-hashed end to end and exactly matched
-  `9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12`.
-  The page explains Android's outside-Play install prompt and tells testers to
-  export a backup before moving to the eventual Play Store edition.
+  to the public GitHub pre-release tag `v1.0.1-android-preview.13`; GitHub reports
+  the exact 79,190,875-byte APK and SHA-256
+  `42A827512A2E3F9F364FFBD4A050D3AB152D11964CEBDA830C436576F61A0A47`.
+  The page explains Android's outside-Play install prompt, tells Build 12 users
+  to install Build 13 over it, and keeps the backup guidance for the eventual
+  Play Store edition.
 - [ ] Confirm `com.mikabe.emberkeep` is registered or auto-registered in Play
   Console's Android developer verification page before the September 30, 2026
   enforcement date.

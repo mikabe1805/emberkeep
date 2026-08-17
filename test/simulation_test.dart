@@ -19,43 +19,55 @@ void main() {
   // helper: complete a quest end to end (roll marks done + commits rewards)
   void complete(GameState s, Quest q) => s.commit(s.roll(q));
 
-  test('a week of Aria — streak builds, dailies reset, a gap resets it', () {
-    today = DateTime(2026, 6, 15, 9, 0); // Monday
-    final s = GameState();
-    final pushups = Quest(title: 'Push-ups', stat: Stat.str, difficulty: 2);
-    final read = Quest(title: 'Read', stat: Stat.intl, difficulty: 3);
-    final quests = [pushups, read];
+  test(
+    'a week of Aria — streak builds, dailies reset, no reserve resets it',
+    () {
+      today = DateTime(2026, 6, 15, 9, 0); // Monday
+      final s = GameState()..streakFreezes = 0;
+      final pushups = Quest(title: 'Push-ups', stat: Stat.str, difficulty: 2);
+      final read = Quest(title: 'Read', stat: Stat.intl, difficulty: 3);
+      final quests = [pushups, read];
 
-    // Mon
-    s.rollover(quests);
-    complete(s, pushups);
-    complete(s, read);
-    expect(s.streakDays, 1);
-    expect(pushups.doneFor(today), isTrue);
-    expect(s.history[Days.key(today)], 2);
-
-    // Tue–Thu: dailies reset each morning, streak climbs
-    for (var d = 2; d <= 4; d++) {
-      today = today.add(const Duration(days: 1));
+      // Mon
       s.rollover(quests);
-      expect(pushups.doneFor(today), isFalse, reason: 'daily resets day $d');
       complete(s, pushups);
       complete(s, read);
-      expect(s.streakDays, d);
-    }
+      expect(s.streakDays, 1);
+      expect(pushups.doneFor(today), isTrue);
+      expect(s.history[Days.key(today)], 2);
 
-    // Fri: SKIPPED (no completions)
-    today = today.add(const Duration(days: 1));
-    s.rollover(quests);
+      // Tue–Thu: dailies reset each morning, streak climbs
+      for (var d = 2; d <= 4; d++) {
+        today = today.add(const Duration(days: 1));
+        s.rollover(quests);
+        expect(pushups.doneFor(today), isFalse, reason: 'daily resets day $d');
+        complete(s, pushups);
+        complete(s, read);
+        expect(s.streakDays, d);
+      }
 
-    // Sat: completing after a missed day resets the streak to 1
-    today = today.add(const Duration(days: 1));
-    s.rollover(quests);
-    complete(s, pushups);
-    expect(s.streakDays, 1, reason: 'a gap breaks the streak');
-    expect(s.comebacks, 1, reason: 'returning after a gap is a comeback');
-    expect(s.bestStreak, 4, reason: 'best streak remembers the peak (Mon–Thu)');
-  });
+      // Fri: SKIPPED (no completions)
+      today = today.add(const Duration(days: 1));
+      s.rollover(quests);
+      // This case studies the no-reserve fallback; the ordinary cadence earned
+      // one during Mon–Thu, so exhaust it deliberately before the gap resolves.
+      s
+        ..streakFreezes = 0
+        ..streakFreezeProgress = 0;
+
+      // Sat: completing after a missed day resets the streak to 1
+      today = today.add(const Duration(days: 1));
+      s.rollover(quests);
+      complete(s, pushups);
+      expect(s.streakDays, 1, reason: 'an uncovered gap starts a fresh streak');
+      expect(s.comebacks, 1, reason: 'returning after a gap is a comeback');
+      expect(
+        s.bestStreak,
+        4,
+        reason: 'best streak remembers the peak (Mon–Thu)',
+      );
+    },
+  );
 
   test('weekly carries forward from its anchor through the week; monthly hits '
       'its day', () {

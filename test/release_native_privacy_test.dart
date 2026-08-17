@@ -6,7 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 String _source(String path) {
   final file = File(path);
   expect(file.existsSync(), isTrue, reason: 'Missing release source: $path');
-  return file.readAsStringSync();
+  return file
+      .readAsStringSync()
+      .replaceAll('\r\n', '\n')
+      .replaceAll('\r', '\n');
 }
 
 void main() {
@@ -59,6 +62,9 @@ void main() {
     final bootstrap = _source('web/flutter_bootstrap.js');
     final worker = _source('web/room_of_days_service_worker.js');
     final preparer = _source('tool/prepare_web_offline.dart');
+    final downloadVerifier = _source('tool/verify_public_downloads.mjs');
+    final audio = _source('lib/audio.dart');
+    final webAudioSupport = _source('lib/platform/audio_support_web.dart');
     final hosting =
         jsonDecode(_source('firebase.json')) as Map<String, dynamic>;
     final hostingConfig = hosting['hosting'] as Map<String, dynamic>;
@@ -71,19 +77,75 @@ void main() {
     expect(bootstrap, contains("canvasKitBaseUrl: 'canvaskit/'"));
     expect(worker, contains("const cachePrefix = 'room-of-days-shell-'"));
     expect(worker, contains("new URL('offline-assets.json', scopeUrl)"));
+    expect(worker, contains('manifest.schema !== 2'));
+    expect(worker, contains("supportsSkwasm() ? 'skwasm' : 'canvaskit'"));
+    expect(worker, contains("event.data === 'PAUSE_OFFLINE_CACHE'"));
+    expect(worker, contains("event.data === 'WARM_OFFLINE_CACHE'"));
     expect(worker, contains('const offlineDocumentUrl = scopeUrl;'));
     expect(worker, contains("request.mode === 'navigate'"));
     expect(worker, contains('if (!self.navigator.onLine)'));
     expect(worker, contains('if (response.ok) return response;'));
+    expect(worker, contains('if (bypassAppShell(url)) return;'));
+    expect(worker, contains("relativePath === 'android'"));
+    expect(worker, contains("relativePath === 'introduction'"));
+    expect(worker, contains("relativePath.startsWith('introduction/')"));
     expect(worker, contains("request.headers.get('range')"));
     expect(worker, contains('await self.clients.claim()'));
     expect(preparer, contains("args.single != '--check'"));
     expect(preparer, contains('const _maximumCacheBytes = 96 * 1024 * 1024'));
+    expect(preparer, contains("'main.dart.wasm'"));
+    expect(preparer, contains("'schema': 2"));
     expect(preparer, contains("relative == 'flutter_service_worker.js'"));
+    expect(
+      preparer,
+      contains("relative == 'assets/assets/sfx/hearth_room.wav'"),
+    );
+    expect(preparer, contains("relative == 'android.html'"));
     expect(preparer, contains("builtVersion['build_number']"));
+    expect(downloadVerifier, contains('api.github.com/repos/'));
+    expect(downloadVerifier, contains('asset.digest'));
+    expect(downloadVerifier, contains('VITE_APP_STORE_URL'));
+    expect(
+      audio,
+      contains('kIsWeb && !browserAudioAvailable'),
+      reason: 'web taps must stay silent when a browser has no Web Audio',
+    );
+    expect(webAudioSupport, contains("'AudioContext'.toJS"));
     expect(hostingConfig['predeploy'], [
+      'node tool/verify_public_downloads.mjs',
+      'flutter build web --release --wasm',
       'dart run tool/prepare_web_offline.dart',
+      'node tool/overlay_introduction.mjs',
     ]);
+    expect(
+      headers.any(
+        (header) =>
+            header['regex'] == r'^/(introduction|android)(/|\.html)?$' &&
+            (header['headers'] as List).any(
+              (value) =>
+                  (value as Map)['key'] == 'Cache-Control' &&
+                  value['value'] == 'no-cache, no-store, must-revalidate',
+            ),
+      ),
+      isTrue,
+    );
+    expect(
+      headers.any(
+        (header) =>
+            header['source'] == '**' &&
+            (header['headers'] as List).any(
+              (value) =>
+                  (value as Map)['key'] == 'Cross-Origin-Opener-Policy' &&
+                  value['value'] == 'same-origin',
+            ) &&
+            (header['headers'] as List).any(
+              (value) =>
+                  (value as Map)['key'] == 'Cross-Origin-Embedder-Policy' &&
+                  value['value'] == 'credentialless',
+            ),
+      ),
+      isTrue,
+    );
     expect(
       headers.any(
         (header) =>
@@ -109,6 +171,26 @@ void main() {
       isTrue,
     );
     expect(_source('firebase.json'), isNot(contains('immutable')));
+    for (final source in const [
+      '/flutter_bootstrap.js',
+      '/room_of_days_service_worker.js',
+      '/offline-assets.json',
+      '/version.json',
+    ]) {
+      expect(
+        headers.any(
+          (header) =>
+              header['source'] == source &&
+              (header['headers'] as List).any(
+                (value) =>
+                    (value as Map)['key'] == 'Cache-Control' &&
+                    value['value'] == 'no-cache, no-store, must-revalidate',
+              ),
+        ),
+        isTrue,
+        reason: '$source must always revalidate so installed PWAs update',
+      );
+    }
   });
 
   test('temporary Android download is branded and verifiable', () {
@@ -119,17 +201,18 @@ void main() {
       page,
       contains(
         'https://github.com/mikabe1805/emberkeep/releases/download/'
-        'v1.0.0-android-preview.12/room-of-days-1.0.0-build-12.apk',
+        'v1.0.1-android-preview.13/room-of-days-1.0.1-build-13.apk',
       ),
     );
     expect(page, isNot(contains('href="/downloads/')));
     expect(page, contains('Android 7 or newer'));
     expect(page, contains('install unknown apps'));
+    expect(page, contains('install Build 13 over it without uninstalling'));
     expect(page, contains('export a backup'));
     expect(
       page,
       contains(
-        '9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12',
+        '42A827512A2E3F9F364FFBD4A050D3AB152D11964CEBDA830C436576F61A0A47',
       ),
     );
   });
@@ -275,7 +358,7 @@ void main() {
       expect(workflow, isNot(contains('PURE SPM')));
       expect(workflow, contains('Verify signed IPA contents'));
       expect(workflow, contains('PUBSPEC_BUILD'));
-      expect(workflow, contains('Build 12 for 1.0.0'));
+      expect(workflow, contains('Build 20 for 1.0.2'));
       expect(workflow, contains(r'NEXT_BUILD=$PUBSPEC_BUILD'));
       expect(workflow, isNot(contains('2>/dev/null || echo 0')));
       expect(workflow, contains('codesign --verify --deep --strict'));
@@ -365,7 +448,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.0+12'));
+    expect(pubspec, contains('version: 1.0.2+20'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 
@@ -378,16 +461,20 @@ void main() {
 
       expect(candidate['schema'], 1);
       expect(candidate['packageId'], 'com.mikabe.emberkeep');
-      expect(candidate['versionName'], '1.0.0');
-      expect(candidate['versionCode'], 12);
+      expect(candidate['versionName'], '1.0.1');
+      expect(candidate['versionCode'], 13);
       expect(candidate['minSdk'], 24);
       expect(candidate['targetSdk'], 36);
       expect(candidate['ndkVersion'], '28.2.13676358');
       expect(candidate['nativeLoadAlignment'], 16384);
       expect(candidate['nativeLibraryCount'], 12);
+      expect(aab['size'], 76906618);
+      expect(apk['size'], 79190875);
       expect((aab['sha256'] as String), hasLength(64));
       expect((apk['sha256'] as String), hasLength(64));
-      expect((candidate['sourceCommit'] as String), hasLength(40));
+      final sourceCommit = candidate['sourceCommit'] as String;
+      expect(sourceCommit, matches(RegExp(r'^[0-9a-f]{40}$')));
+      expect(sourceCommit, isNot('0000000000000000000000000000000000000000'));
 
       final assetLinks =
           jsonDecode(_source('web/.well-known/assetlinks.json')) as List;

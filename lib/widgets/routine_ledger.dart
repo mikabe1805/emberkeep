@@ -105,20 +105,30 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
   final ScrollController _scroll = ScrollController();
   final ValueNotifier<double> _scrollPosition = ValueNotifier(0);
   final ValueNotifier<double> _firePhase = ValueNotifier(0.18);
+  Timer? _webFireTimer;
+  var _webFireFrame = (0.18 * 54).round();
+  var _tickerModeEnabled = true;
   static const _fireFramesPerLoop = 96;
 
   @override
   void initState() {
     super.initState();
     _scroll.addListener(_publishScroll);
-    _fire.addListener(_publishFireFrame);
+    if (!kIsWeb) _fire.addListener(_publishFireFrame);
     unawaited(_motion.start());
     if (widget.reduceMotion) {
       _entrance.value = 1;
     } else {
       _entrance.forward();
-      _fire.repeat();
     }
+    _syncFire();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tickerModeEnabled = TickerMode.valuesOf(context).enabled;
+    _syncFire();
   }
 
   void _publishFireFrame() {
@@ -131,6 +141,31 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
     if (snapped != _firePhase.value) _firePhase.value = snapped;
   }
 
+  void _syncFire() {
+    final shouldLive = !widget.reduceMotion && _tickerModeEnabled;
+    if (kIsWeb) {
+      if (shouldLive) {
+        _webFireTimer ??= Timer.periodic(const Duration(milliseconds: 100), (
+          _,
+        ) {
+          const steps = 54;
+          _webFireFrame = (_webFireFrame + 1) % steps;
+          _firePhase.value = _webFireFrame / steps;
+        });
+      } else {
+        _webFireTimer?.cancel();
+        _webFireTimer = null;
+        _webFireFrame = (0.18 * 54).round();
+        if (_firePhase.value != 0.18) _firePhase.value = 0.18;
+      }
+    } else if (shouldLive) {
+      if (!_fire.isAnimating) _fire.repeat();
+    } else {
+      _fire.stop();
+      if (_firePhase.value != 0.18) _firePhase.value = 0.18;
+    }
+  }
+
   @override
   void didUpdateWidget(RoutineLedgerScaffold oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -138,25 +173,23 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
       _motion.setReduceMotion(widget.reduceMotion);
       if (widget.reduceMotion) {
         _entrance.value = 1;
-        _fire.stop();
-        _firePhase.value = 0.18;
-      } else {
-        _fire.repeat();
       }
+      _syncFire();
     }
   }
 
   void _publishScroll() {
     final next = _scroll.hasClients ? _scroll.offset : 0.0;
-    if ((_scrollPosition.value - next).abs() > 0.25) {
+    if ((_scrollPosition.value - next).abs() > (kIsWeb ? 2.0 : 0.25)) {
       _scrollPosition.value = next;
     }
   }
 
   @override
   void dispose() {
+    _webFireTimer?.cancel();
     _scroll.removeListener(_publishScroll);
-    _fire.removeListener(_publishFireFrame);
+    if (!kIsWeb) _fire.removeListener(_publishFireFrame);
     _scroll.dispose();
     _scrollPosition.dispose();
     _firePhase.dispose();

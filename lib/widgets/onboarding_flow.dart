@@ -24,9 +24,11 @@ class OnboardingFlow extends StatefulWidget {
   final GameState state;
 
   /// [forgeFirstGoal] true → caller opens the Oath Wizard right after.
+  /// [openGuide] true → caller opens the re-usable Room Guide right after.
   /// [timeShape] seeds how dense the starter quest board should feel.
   final void Function({
     required bool forgeFirstGoal,
+    required bool openGuide,
     required TimeShape timeShape,
   })
   onFinish;
@@ -52,13 +54,17 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     setState(() => _step++);
   }
 
-  void _finish({required bool forge}) {
+  void _finish({required bool forge, bool openGuide = false}) {
     widget.state.setPlayerName(_name.text);
     widget.state.onboarded = true;
     widget.state.timeShape = _shape.name;
     Sfx.instance.play('streak');
     Haptics.success();
-    widget.onFinish(forgeFirstGoal: forge, timeShape: _shape);
+    widget.onFinish(
+      forgeFirstGoal: forge,
+      openGuide: openGuide,
+      timeShape: _shape,
+    );
   }
 
   void _back() {
@@ -450,9 +456,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                 'XP and Glimmers land on the thing you actually completed.',
               ),
               _fact(
-                Icons.chair_outlined,
-                'THE ROOM RESPONDS',
-                'Your room begins complete, and the atmosphere you choose stays visible without another checklist.',
+                Icons.support_outlined,
+                'HELP FOR TODAY',
+                'A stuck task, a messy room, or a low-energy day can become a few doable quests.',
               ),
               _fact(
                 Icons.edit_note_rounded,
@@ -465,14 +471,26 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         SizedBox(height: compact ? 10 : 22),
         _Cta(label: 'OPEN TODAY’S QUESTS', onTap: () => _finish(forge: false)),
         SizedBox(height: compact ? 3 : 10),
-        Center(
-          child: TextButton(
-            onPressed: () => _finish(forge: true),
-            child: Text(
-              'set a goal first',
-              style: Type.label.copyWith(fontSize: 11),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 6,
+          runSpacing: 0,
+          children: [
+            TextButton(
+              onPressed: () => _finish(forge: true),
+              child: Text(
+                'set a goal first',
+                style: Type.label.copyWith(fontSize: 11),
+              ),
             ),
-          ),
+            TextButton(
+              onPressed: () => _finish(forge: false, openGuide: true),
+              child: Text(
+                'open the room guide',
+                style: Type.label.copyWith(fontSize: 11),
+              ),
+            ),
+          ],
         ),
       ],
     );

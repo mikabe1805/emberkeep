@@ -7,8 +7,44 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/quest_card.dart';
+import 'package:emberkeep/widgets/quest_depth_room.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+const _captureQuestScrollAudit = bool.fromEnvironment(
+  'CAPTURE_QUEST_SCROLL_AUDIT',
+);
+const _captureBoundaryKey = ValueKey('capacity-board-capture');
+
+Future<void> _captureBoard(WidgetTester tester, String name) async {
+  if (!_captureQuestScrollAudit) return;
+  await expectLater(
+    find.byKey(_captureBoundaryKey),
+    matchesGoldenFile(
+      '../design/audits/2026-08-15/quest-scroll-quality/$name.png',
+    ),
+  );
+}
+
+Future<void> _precacheQuestBoardArt(WidgetTester tester) async {
+  if (!_captureQuestScrollAudit) return;
+  final context = tester.element(find.byType(MaterialApp));
+  await tester.runAsync(() async {
+    for (final asset in [
+      ...QuestDepthRoom.assets,
+      'assets/quest/luminous-honey-gold-v2.webp',
+      'assets/quest/category-mind-v2.webp',
+    ]) {
+      await precacheImage(AssetImage(asset), context);
+    }
+  });
+  for (var frame = 0; frame < 4; frame++) {
+    await tester.pump(const Duration(milliseconds: 120));
+  }
+}
 
 Quest _quest(String title, int difficulty, {bool dread = false}) => Quest(
   title: title,
@@ -20,19 +56,22 @@ Quest _quest(String title, int difficulty, {bool dread = false}) => Quest(
 );
 
 Widget _board(GameState state, List<Quest> quests) => MaterialApp(
-  home: Scaffold(
-    body: QuestsPage(
-      state: state,
-      quests: quests,
-      onRefresh: () => 0,
-      onPersist: () {},
-      onAdd: (q) {
-        quests.add(q);
-        return true;
-      },
-      onRemove: quests.remove,
-      onSnapshot: () => '{}',
-      onRestore: (_) {},
+  home: RepaintBoundary(
+    key: _captureBoundaryKey,
+    child: Scaffold(
+      body: QuestsPage(
+        state: state,
+        quests: quests,
+        onRefresh: () => 0,
+        onPersist: () {},
+        onAdd: (q) {
+          quests.add(q);
+          return true;
+        },
+        onRemove: quests.remove,
+        onSnapshot: () => '{}',
+        onRestore: (_) {},
+      ),
     ),
   ),
 );
@@ -49,7 +88,36 @@ void _quietOtherMantelCards(GameState state, DateTime now) {
 }
 
 void main() {
-  setUp(() => Sfx.instance.soundEnabled = false);
+  setUpAll(() async {
+    if (!_captureQuestScrollAudit) return;
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final materialIcons = FontLoader('MaterialIcons')
+      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+    final fraunces = FontLoader('Fraunces')
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-Bold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-SemiBold.ttf'));
+    final inter = FontLoader('Inter')
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Regular.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Medium.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-SemiBold.ttf'));
+    final mono = FontLoader('JetBrainsMono')
+      ..addFont(
+        rootBundle.load('assets/google_fonts/JetBrainsMono-SemiBold.ttf'),
+      )
+      ..addFont(rootBundle.load('assets/google_fonts/JetBrainsMono-Bold.ttf'));
+    await Future.wait([
+      materialIcons.load(),
+      fraunces.load(),
+      inter.load(),
+      mono.load(),
+    ]);
+    GoogleFonts.config.allowRuntimeFetching = false;
+  });
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    Sfx.instance.soundEnabled = false;
+  });
   tearDown(() {
     Sfx.instance.soundEnabled = true;
     Clock.reset();
@@ -139,7 +207,7 @@ void main() {
     expect(find.byType(QuestCard), findsNWidgets(3));
   });
 
-  testWidgets('quests climb over the fixed room through the blur layer', (
+  testWidgets('the room waits for the quest list to reach its top', (
     tester,
   ) async {
     tester.view.devicePixelRatio = 1;
@@ -154,11 +222,12 @@ void main() {
     _quietOtherMantelCards(state, now);
     state.energyWeatherDay = Days.key(now);
     final quests = [
-      for (var i = 1; i <= 8; i++) _quest('Quest $i', i.clamp(1, 8)),
+      for (var i = 1; i <= 16; i++) _quest('Quest $i', i.clamp(1, 8)),
     ];
 
     await tester.pumpWidget(_board(state, quests));
     await tester.pump(const Duration(milliseconds: 500));
+    await _precacheQuestBoardArt(tester);
 
     expect(find.text('MARK COMPLETE'), findsOneWidget);
     // At rest there is no blur to gather, so the filter layer is not mounted
@@ -168,29 +237,114 @@ void main() {
       find.byKey(const ValueKey('quest-board-scroll')),
     );
     expect(board.controller!.offset, 0);
+    await _captureBoard(tester, '01-room-resting');
 
     await tester.drag(
       find.byKey(const ValueKey('quest-board-scroll')),
-      const Offset(0, -520),
+      const Offset(0, -1400),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('quest-board-scroll')),
+      const Offset(0, -700),
     );
     await tester.pumpAndSettle();
 
+    final innerScrollable = find.descendant(
+      of: find.byType(ListView),
+      matching: find.byType(Scrollable),
+    );
+    final innerPosition = tester
+        .state<ScrollableState>(innerScrollable)
+        .position;
     expect(board.controller!.offset, greaterThan(180));
+    expect(innerPosition.pixels, greaterThan(0));
     expect(find.byKey(const ValueKey('quest-backdrop-blur')), findsOneWidget);
-    expect(find.text('Quest 1'), findsWidgets);
+    expect(find.byType(QuestCard), findsWidgets);
+    await _captureBoard(tester, '02-list-scrolled');
 
-    // A downward pull from the list must hand the gesture back to the outer
-    // room header. On mobile web this used to strand the board in its
-    // collapsed position, leaving only a thin strip of the authored room even
-    // after the user had reached the first quest.
+    final collapsedRoomOffset = board.controller!.offset;
+    final listOffset = innerPosition.pixels;
+
+    // Reversing direction while there are still quests above must move only
+    // the list. The authored room stays parked until the first quest is back.
     await tester.drag(
       find.byKey(const ValueKey('quest-board-scroll')),
-      const Offset(0, 900),
+      const Offset(0, 120),
     );
     await tester.pumpAndSettle();
 
+    expect(board.controller!.offset, closeTo(collapsedRoomOffset, 1));
+    expect(innerPosition.pixels, lessThan(listOffset));
+    expect(innerPosition.pixels, greaterThan(0));
+    expect(find.byKey(const ValueKey('quest-backdrop-blur')), findsOneWidget);
+    await _captureBoard(tester, '03-reverse-list-first');
+
+    // Once the list reaches its true top, the remaining reverse motion may
+    // reveal the room and clear the overlap treatment.
+    await tester.drag(
+      find.byKey(const ValueKey('quest-board-scroll')),
+      const Offset(0, 1800),
+    );
+    await tester.pumpAndSettle();
+
+    expect(innerPosition.pixels, 0);
     expect(board.controller!.offset, 0);
     expect(find.byKey(const ValueKey('quest-backdrop-blur')), findsNothing);
+    await _captureBoard(tester, '04-room-returned-at-top');
+  });
+
+  testWidgets('focus mode protects its exit and names both ordering choices', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    final now = DateTime(2026, 7, 29, 10);
+    Clock.freeze(now);
+    final state = GameState()
+      ..reduceMotion = true
+      ..focusMode = true;
+    _quietOtherMantelCards(state, now);
+    final quests = [
+      _quest('Small reset', 2),
+      _quest('Write the difficult opening', 8, dread: true),
+    ];
+
+    await tester.pumpWidget(_board(state, quests));
+    await tester.pump(const Duration(milliseconds: 500));
+    await _precacheQuestBoardArt(tester);
+
+    final focusList = tester.widget<ListView>(
+      find.byKey(const ValueKey('focus-quest-list')),
+    );
+    expect(focusList.padding, const EdgeInsets.fromLTRB(16, 4, 16, 130));
+    expect(find.bySemanticsLabel('Order quests: Ease in'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Order quests: Hardest first'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.bySemanticsLabel('Order quests: Hardest first'));
+    await tester.pumpAndSettle();
+    expect(find.text('Write the difficult opening'), findsWidgets);
+
+    await tester.drag(
+      find.byKey(const ValueKey('quest-board-scroll')),
+      const Offset(0, -700),
+    );
+    await tester.pumpAndSettle();
+    await _captureBoard(tester, '05-focus-short-phone');
+
+    await tester.drag(
+      find.byKey(const ValueKey('focus-quest-list')),
+      const Offset(0, -600),
+    );
+    await tester.pumpAndSettle();
+    expect(find.bySemanticsLabel('Show the full quest board'), findsOneWidget);
   });
 
   testWidgets('planning Ember opens a real two-step tomorrow chooser', (

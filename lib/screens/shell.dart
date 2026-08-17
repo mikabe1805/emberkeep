@@ -10,6 +10,7 @@ import '../clock.dart';
 import '../cloud.dart';
 import '../content/ladders.dart';
 import '../content/quest_desk_styles.dart';
+import '../content/release_notes.dart';
 import '../content/routines.dart';
 import '../engine.dart';
 import '../haptics.dart';
@@ -17,11 +18,12 @@ import '../journal_media.dart' as media;
 import '../models.dart';
 import '../notifications.dart';
 import '../release_features.dart';
+import '../release_notes_preferences.dart';
 import '../storage.dart';
 import '../social.dart';
 import '../tokens.dart';
 import '../widgets/facets.dart';
-import '../widgets/glass.dart' show WarmBackground;
+import '../widgets/glass.dart' show OverlaySurface, WarmBackground;
 import '../widgets/home_room.dart'
     show preloadHearthFireFrames, preloadSpaceTheme;
 import '../widgets/luxe_depth.dart';
@@ -35,6 +37,8 @@ import 'hearth_circle.dart';
 import 'insights.dart';
 import 'me.dart';
 import 'quests.dart';
+import 'room_guide.dart';
+import 'whats_new.dart';
 
 /// Returns the next occurrence of a reminder's local wall-clock time.
 /// Calendar construction keeps the displayed hour stable across DST changes.
@@ -107,10 +111,19 @@ String socialInboxNoticeText({
 /// persists them locally, and runs day-rollover on launch/resume + at an
 /// in-app midnight tick (so a foregrounded PWA rolls over on time).
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, this.initialRoomCode, this.roomLinks});
+  const AppShell({
+    super.key,
+    this.initialRoomCode,
+    this.roomLinks,
+    this.releaseNotesGate,
+  });
 
   final String? initialRoomCode;
   final RoomLinkInbox? roomLinks;
+
+  /// Optional seam for preference-failure and launch-order tests. Production
+  /// uses the device-local SharedPreferences implementation.
+  final ReleaseNotesGate? releaseNotesGate;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -122,8 +135,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   int _tab = 1; // Quests is home
   final Set<int> _visitedTabs = {1};
   late final LuxeMotionController _luxeMotion;
+  late final ReleaseNotesGate _releaseNotesGate;
   OverlayEntry? _morningOverlay;
+  OverlayEntry? _whatsNewOverlay;
   bool _morningCheckScheduled = false;
+  bool _whatsNewCheckScheduled = false;
+  bool _whatsNewPending = false;
   bool _startupSettled = false;
   bool _initialRoomHandled = false;
   bool _drainingRoomLinks = false;
@@ -146,6 +163,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _releaseNotesGate =
+        widget.releaseNotesGate ??
+        const ReleaseNotesGate(SharedPreferencesReleaseSeenStore());
     _luxeMotion = LuxeMotionController();
     unawaited(_luxeMotion.start());
     WidgetsBinding.instance.addObserver(this);
@@ -206,6 +226,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       // a new day may have started while we were away
       if (s.rollover(q)) setState(() {});
       _armMidnight(); // re-aim at the (possibly new) next midnight
+      _maybeWhatsNew();
       _maybeMorning();
       unawaited(_rescheduleNotifications(refreshTimeZone: true));
       unawaited(_notifySocialInbox());
@@ -263,6 +284,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     unawaited(_refreshPublishedRoom());
     unawaited(_notifySocialInbox());
     _maybeOnboard();
+    _maybeWhatsNew();
     _maybeMorning();
     _rescheduleNotifications(); // refresh reminders for today (native-only)
   }
@@ -391,6 +413,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     );
     if (mounted) {
       _maybeOnboard();
+      _maybeWhatsNew();
       _maybeMorning();
       _rescheduleNotifications();
     }
@@ -433,6 +456,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         );
         if (!mounted) break;
         _maybeOnboard();
+        _maybeWhatsNew();
         _maybeMorning();
         _rescheduleNotifications();
       }
@@ -450,6 +474,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// listener cleanly; never touches the cloud or the welcome overlays.
   Future<void> _loadFromStorage() async {
     final saved = await Storage.load();
+    _whatsNewPending =
+        _whatsNewPending ||
+        await _releaseNotesGate.claim(
+          releaseId: currentRoomReleaseNotes.id,
+          freshInstall: saved == null,
+        );
     final state = saved?.$1 ?? GameState();
     final quests = saved?.$2 ?? _buildQuests();
     final releaseCapabilitiesChanged = !kVisitorProfileSharingEnabled
@@ -584,25 +614,63 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         builder: (_) => OnboardingFlow(
           state: s,
           onFinish:
-              ({required bool forgeFirstGoal, required TimeShape timeShape}) {
+              ({
+                required bool forgeFirstGoal,
+                required bool openGuide,
+                required TimeShape timeShape,
+              }) {
                 _applyTimeShape(timeShape);
                 _persist();
                 e.remove();
                 if (!mounted) return;
                 setState(() {});
-                if (forgeFirstGoal) {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          GoalWizardScreen(state: s, onAdd: _addQuest),
-                    ),
-                  );
-                }
+                unawaited(
+                  _continueAfterOnboarding(
+                    state: s,
+                    forgeFirstGoal: forgeFirstGoal,
+                    openGuide: openGuide,
+                  ),
+                );
               },
         ),
       );
       Overlay.of(context).insert(e);
     });
+  }
+
+  Future<void> _continueAfterOnboarding({
+    required GameState state,
+    required bool forgeFirstGoal,
+    required bool openGuide,
+  }) async {
+    if (!mounted) return;
+    if (forgeFirstGoal) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => GoalWizardScreen(state: state, onAdd: _addQuest),
+        ),
+      );
+    } else if (openGuide) {
+      await _openRoomGuide();
+    }
+    if (!mounted) return;
+    _maybeWhatsNew();
+    _maybeMorning();
+  }
+
+  Future<void> _openRoomGuide() async {
+    final state = _state;
+    if (!mounted || state == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => RoomGuideScreen(
+          state: state,
+          onAddQuest: _addQuest,
+          onPersist: _persist,
+          onSelectTab: _selectTab,
+        ),
+      ),
+    );
   }
 
   /// Trim or keep the starter board to match how much room days have.
@@ -624,15 +692,81 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _state?.removedDefaults.addAll(drop.map((e) => e.toLowerCase()));
   }
 
+  /// A shipped build gets one calm release card. Eligibility is claimed in
+  /// [_loadFromStorage] before this runs, so a crash or force-close while the
+  /// card is visible cannot turn it into a repeat-launch trap.
+  void _maybeWhatsNew() {
+    if (!_startupSettled ||
+        !_whatsNewPending ||
+        _whatsNewOverlay != null ||
+        _whatsNewCheckScheduled) {
+      return;
+    }
+    _whatsNewCheckScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _whatsNewCheckScheduled = false;
+      final state = _state;
+      if (!mounted ||
+          !_startupSettled ||
+          !_whatsNewPending ||
+          state == null ||
+          !state.onboarded ||
+          _whatsNewOverlay != null ||
+          _morningOverlay != null ||
+          Navigator.of(context).canPop()) {
+        return;
+      }
+
+      late final OverlayEntry entry;
+      entry = OverlayEntry(
+        builder: (_) => OverlaySurface(
+          child: WhatsNewScreen(
+            automatic: true,
+            themeId: state.canvasTheme,
+            reduceMotion: state.reduceMotion,
+            onDismiss: _dismissWhatsNew,
+          ),
+        ),
+      );
+      _whatsNewPending = false;
+      _whatsNewOverlay = entry;
+      setState(() {});
+      Overlay.of(context).insert(entry);
+    });
+  }
+
+  void _dismissWhatsNew() {
+    final entry = _whatsNewOverlay;
+    if (entry == null) return;
+    entry.remove();
+    _whatsNewOverlay = null;
+    if (mounted) setState(() {});
+    _maybeMorning();
+  }
+
   /// Auto-greet: last night was closed out, today hasn't been briefed.
   void _maybeMorning() {
-    if (!_startupSettled || _morningCheckScheduled) return;
+    if (!_startupSettled ||
+        _morningCheckScheduled ||
+        _whatsNewPending ||
+        _whatsNewOverlay != null ||
+        _whatsNewCheckScheduled) {
+      return;
+    }
     _morningCheckScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _morningCheckScheduled = false;
       final s = _state;
       final q = _quests;
-      if (!mounted || !_startupSettled || s == null || q == null) return;
+      if (!mounted ||
+          !_startupSettled ||
+          s == null ||
+          q == null ||
+          _whatsNewPending ||
+          _whatsNewOverlay != null ||
+          _whatsNewCheckScheduled) {
+        return;
+      }
       if (!s.onboarded) return; // welcome first; morning can wait
       // [morningArmed] is persisted separately for old-save migration. Treat
       // today's completion stamp as authoritative if a restored/cloud copy
@@ -1161,11 +1295,16 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // immediate instead of waiting for the gesture arena. Build a destination
     // only on its first visit; keeping five illustrated pages alive from frame
     // one decoded tens of megabytes the person had not asked to see yet.
+    final entersRoom = i == 0 || i == 1;
     setState(() {
       _visitedTabs.add(i);
       _tab = i;
     });
-    Sfx.instance.setHearthRoomActive(i == 0 || i == 1);
+    // The room acknowledges a deliberate arrival once. Continuous fireplace
+    // ambience turned a navigation cue into an unending fire sound, and firing
+    // only on the boundary would make Me -> Quests silent even though the user
+    // has entered a different room-facing page.
+    if (entersRoom) Sfx.instance.play('hearth', volumeScale: 0.32);
   }
 
   @override
@@ -1189,6 +1328,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         _tab == index ? _luxeMotion.parallax : parkedMotion;
     ValueListenable<Offset> lightFor(int index) =>
         _tab == index ? _luxeMotion.light : parkedMotion;
+    // Hide the shell as soon as an eligible release has been claimed, not one
+    // frame later when the OverlayEntry is inserted. That closes the brief
+    // screen-reader/focus window between the post-frame check and the modal.
+    final releaseOverlayVisible =
+        _whatsNewPending || _whatsNewOverlay != null || _whatsNewCheckScheduled;
 
     // Only the canvas listens to the notifier (theme swaps recolor it live);
     // the Scaffold subtree is passed as `child` and not rebuilt on every notify.
@@ -1198,9 +1342,6 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         _luxeMotion.setReduceMotion(
           state.reduceMotion ||
               (MediaQuery.maybeDisableAnimationsOf(context) ?? false),
-        );
-        Sfx.instance.setHearthRoomActive(
-          state.soundEnabled && (_tab == 0 || _tab == 1),
         );
         return WarmBackground(
           themeId: state.canvasTheme,
@@ -1212,11 +1353,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       // Without an explicit boundary, screen readers and hardware-keyboard
       // focus can still reach the fully built Quest board underneath it.
       child: ExcludeSemantics(
-        excluding: !state.onboarded,
+        excluding: !state.onboarded || releaseOverlayVisible,
         child: ExcludeFocus(
-          excluding: !state.onboarded,
+          excluding: !state.onboarded || releaseOverlayVisible,
           child: AbsorbPointer(
-            absorbing: !state.onboarded,
+            absorbing: !state.onboarded || releaseOverlayVisible,
             child: Scaffold(
               backgroundColor: Colors.transparent,
               body: LayoutBuilder(
@@ -1267,6 +1408,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           onSignIn: _signIn,
                                           onSignOut: _signOut,
                                           onDeleteAccount: _deleteAccount,
+                                          onSelectTab: _selectTab,
                                           parallax: cameraFor(0),
                                         )
                                       : const SizedBox.shrink(),

@@ -6,6 +6,7 @@ import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/me.dart';
+import 'package:emberkeep/screens/whats_new.dart';
 import 'package:emberkeep/social.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:flutter/material.dart';
@@ -687,4 +688,50 @@ void main() {
       expect(attempts, 2);
     },
   );
+
+  testWidgets('Room Guide remains available from Me settings', (tester) async {
+    final state = GameState()
+      ..onboarded = true
+      ..reduceMotion = true;
+    await _pumpMe(tester, state, () {});
+
+    final guide = find.text('ROOM GUIDE');
+    await tester.scrollUntilVisible(
+      guide,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(guide);
+    await tester.pump();
+    await tester.tap(guide);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.text('Room Guide'), findsOneWidget);
+    expect(find.text('Help for Today'), findsOneWidget);
+    expect(find.textContaining('messy room'), findsOneWidget);
+  });
+
+  testWidgets("What's New remains available from Me settings", (tester) async {
+    final state = GameState()
+      ..onboarded = true
+      ..reduceMotion = true;
+    await _pumpMe(tester, state, () {});
+
+    final whatsNew = find.text("WHAT'S NEW");
+    await tester.scrollUntilVisible(
+      whatsNew,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(whatsNew);
+    await tester.pump();
+    await tester.tap(whatsNew);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+
+    expect(find.byType(WhatsNewScreen), findsOneWidget);
+    expect(find.text('Your semester has a place in Plans.'), findsOneWidget);
+    expect(find.text('VERSION 1.0.2 · BUILD 20'), findsOneWidget);
+  });
 }

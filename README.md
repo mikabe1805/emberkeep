@@ -32,7 +32,7 @@ flutter pub get
 flutter run
 flutter analyze
 flutter test
-flutter build web --release
+flutter build web --release --wasm
 dart run tool/prepare_web_offline.dart
 dart run tool/prepare_web_offline.dart --check
 dart run tool/audit_pub_dependencies.dart

@@ -66,29 +66,39 @@ void main() {
       );
     });
 
-    test('adopts a newer remote when both saves are schema 24', () {
+    test('holds a newer schema-24 remote against schema-25 local', () {
       expect(
         Storage.decideCloudMerge(
-          localRaw: _save(schema: 24, modified: 100),
+          localRaw: _save(schema: 25, modified: 100),
           remoteRaw: _save(schema: 24, modified: 200),
+        ),
+        CloudMergeDecision.hold,
+      );
+    });
+
+    test('adopts a newer remote when both saves use the current schema', () {
+      expect(
+        Storage.decideCloudMerge(
+          localRaw: _save(schema: Storage.schema, modified: 100),
+          remoteRaw: _save(schema: Storage.schema, modified: 200),
         ),
         CloudMergeDecision.adoptRemote,
       );
     });
 
-    test('pushes a newer local save when both saves are schema 24', () {
+    test('pushes a newer local save when both use the current schema', () {
       expect(
         Storage.decideCloudMerge(
-          localRaw: _save(schema: 24, modified: 300),
-          remoteRaw: _save(schema: 24, modified: 200),
+          localRaw: _save(schema: Storage.schema, modified: 300),
+          remoteRaw: _save(schema: Storage.schema, modified: 200),
         ),
         CloudMergeDecision.pushLocal,
       );
     });
 
     test('holds instead of overwriting unreadable or future saves', () {
-      expect(Storage.schema, 24);
-      final local = _save(schema: 24, modified: 300);
+      expect(Storage.schema, 25);
+      final local = _save(schema: Storage.schema, modified: 300);
       expect(
         Storage.decideCloudMerge(localRaw: local, remoteRaw: '{not json'),
         CloudMergeDecision.hold,

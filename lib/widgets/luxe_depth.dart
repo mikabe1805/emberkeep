@@ -147,23 +147,24 @@ class LuxeMotionController {
 
     // The sensor itself arrives near 30 Hz, so publishing the interpolated
     // light faster than that only rebuilds every reactive gold/card layer with
-    // values the hand cannot distinguish. Thirty clean updates leave the
-    // raster thread room for touch, scrolling, and fire on native and web.
+    // values the hand cannot distinguish. Native stays near 30 clean updates;
+    // web uses 24 to leave its raster thread room for touch, scroll, and fire.
     final lastLight = _lastLightPublish;
-    final lightDue =
-        lastLight == null ||
-        timestamp - lastLight >= const Duration(milliseconds: 33);
+    final lightPeriod = kIsWeb
+        ? const Duration(milliseconds: 42)
+        : const Duration(milliseconds: 33);
+    final lightDue = lastLight == null || timestamp - lastLight >= lightPeriod;
     if (lightDue && (light.value - values.light).distanceSquared >= 0.000010) {
       _lastLightPublish = timestamp;
       light.value = values.light;
     }
 
-    // The authored room is the expensive plane. Thirty paint updates a second
-    // are visually continuous at its small travel distance and leave enough
-    // headroom for scrolling, blur, fire, and the active gold surface.
+    // The authored room is the expensive plane. Native stays near 30 paint
+    // updates; web uses 18. Both are continuous at this small travel distance
+    // and preserve headroom for scroll, blur, fire, and active gold surfaces.
     final lastCamera = _lastCameraPublish;
     final cameraPeriod = kIsWeb
-        ? const Duration(milliseconds: 41)
+        ? const Duration(milliseconds: 56)
         : const Duration(milliseconds: 32);
     if (lastCamera == null || timestamp - lastCamera >= cameraPeriod) {
       _lastCameraPublish = timestamp;
@@ -575,26 +576,72 @@ class _HeroFireLifeState extends State<_HeroFireLife>
     vsync: this,
     duration: const Duration(seconds: 8),
   );
+  Timer? _webTimer;
+  var _webFrame = 0;
+  var _tickerModeEnabled = true;
+  final ValueNotifier<double> _paintPhase = ValueNotifier(0);
+  static const _nativeFramesPerLoop = 8 * 12;
+  static const _webFramesPerLoop = 8 * 8;
 
   @override
   void initState() {
     super.initState();
-    if (!widget.still) _life.repeat();
+    if (!kIsWeb) _life.addListener(_publishFrame);
+    _syncLife();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tickerModeEnabled = TickerMode.valuesOf(context).enabled;
+    _syncLife();
+  }
+
+  void _publishFrame() {
+    final snapped =
+        (_life.value * _nativeFramesPerLoop).round() / _nativeFramesPerLoop;
+    if (snapped != _paintPhase.value) _paintPhase.value = snapped;
+  }
+
+  void _publishWebFrame(Timer _) {
+    _webFrame = (_webFrame + 1) % _webFramesPerLoop;
+    _paintPhase.value = _webFrame / _webFramesPerLoop;
+  }
+
+  void _syncLife() {
+    final shouldLive = !widget.still && _tickerModeEnabled;
+    if (kIsWeb) {
+      if (shouldLive) {
+        _webTimer ??= Timer.periodic(
+          const Duration(milliseconds: 125),
+          _publishWebFrame,
+        );
+      } else {
+        _webTimer?.cancel();
+        _webTimer = null;
+        _webFrame = 0;
+        if (_paintPhase.value != 0) _paintPhase.value = 0;
+      }
+    } else if (shouldLive) {
+      if (!_life.isAnimating) _life.repeat();
+    } else {
+      _life.stop();
+      if (_paintPhase.value != 0) _paintPhase.value = 0;
+    }
   }
 
   @override
   void didUpdateWidget(_HeroFireLife oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.still && !oldWidget.still) {
-      _life.stop();
-    } else if (!widget.still && oldWidget.still) {
-      _life.repeat();
-    }
+    if (widget.still != oldWidget.still) _syncLife();
   }
 
   @override
   void dispose() {
+    _webTimer?.cancel();
+    if (!kIsWeb) _life.removeListener(_publishFrame);
     _life.dispose();
+    _paintPhase.dispose();
     super.dispose();
   }
 
@@ -603,11 +650,11 @@ class _HeroFireLifeState extends State<_HeroFireLife>
     return IgnorePointer(
       child: RepaintBoundary(
         child: AnimatedBuilder(
-          animation: _life,
+          animation: _paintPhase,
           builder: (context, _) => CustomPaint(
             painter: _HeroFirePainter(
               focal: widget.focal,
-              t: widget.still ? 0.0 : (_life.value * 96).round() / 96,
+              t: widget.still ? 0.0 : _paintPhase.value,
             ),
           ),
         ),

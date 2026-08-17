@@ -44,7 +44,9 @@ import '../social.dart';
 import 'domain_detail.dart';
 import 'hearth_circle.dart';
 import 'about.dart';
+import 'room_guide.dart';
 import 'shop.dart';
+import 'whats_new.dart';
 
 typedef SpaceRoomPublisher =
     Future<RoomPublishResult> Function(
@@ -1683,6 +1685,7 @@ class MePage extends StatelessWidget {
     required this.onSignIn,
     required this.onSignOut,
     required this.onDeleteAccount,
+    this.onSelectTab,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
     this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
@@ -1730,6 +1733,10 @@ class MePage extends StatelessWidget {
 
   /// Permanently deletes the linked cloud account; null = success.
   final Future<String?> Function(String password) onDeleteAccount;
+
+  /// Switches the five-room shell after the Room Guide closes. Optional for
+  /// directly constructed test/demo pages; the production shell always sets it.
+  final ValueChanged<int>? onSelectTab;
 
   /// Shared room perspective. Text and controls stay anchored while the
   /// authored plate and light respond beneath them.
@@ -2322,6 +2329,23 @@ class MePage extends StatelessWidget {
           const SizedBox(height: 14),
           _remindersPanel(context),
           const SizedBox(height: 14),
+          _RoomGuidePanel(
+            onTap: () {
+              Sfx.instance.play('tick');
+              Haptics.tap();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => RoomGuideScreen(
+                    state: state,
+                    onAddQuest: onAddQuest,
+                    onPersist: onPersist,
+                    onSelectTab: onSelectTab ?? (_) {},
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
 
           // ── account (sync across devices) ─────────────────────────
           _AccountPanel(
@@ -2428,6 +2452,22 @@ class MePage extends StatelessWidget {
                       label: 'DELETE HELP',
                       icon: Icons.person_remove_outlined,
                       onTap: () => _openPolicyPage(context, _deletionUrl),
+                    ),
+                    _DataButton(
+                      label: "WHAT'S NEW",
+                      icon: Icons.history_rounded,
+                      onTap: () {
+                        Sfx.instance.play('tick');
+                        Haptics.tap();
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => WhatsNewScreen(
+                              themeId: state.canvasTheme,
+                              reduceMotion: state.reduceMotion,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     _DataButton(
                       label: 'ABOUT + FEEDBACK',
@@ -5421,6 +5461,72 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
           ),
         );
       },
+    );
+  }
+}
+
+class _RoomGuidePanel extends StatelessWidget {
+  const _RoomGuidePanel({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label:
+          'Room Guide. A map of the app with direct doors to daily help, goals, plans, the journal, and your space.',
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: GlassPanel(
+          padding: const EdgeInsets.fromLTRB(15, 14, 13, 14),
+          child: Row(
+            children: [
+              const FacetMedallion(
+                size: 44,
+                accent: Palette.xp,
+                child: Icon(
+                  Icons.map_outlined,
+                  size: 21,
+                  color: Palette.xpLight,
+                ),
+              ),
+              const SizedBox(width: 13),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'ROOM GUIDE',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'A map of the app, including help for stuck tasks, low-energy days, and overwhelmed spaces.',
+                      style: Type.body.copyWith(
+                        fontSize: 12.5,
+                        height: 1.35,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 21,
+                color: Palette.textLo,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,9 +1,9 @@
-import 'dart:async' show unawaited;
+import 'dart:async' show Timer, unawaited;
 import 'dart:math' show cos, min, pi, sin;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart'
-    show ValueListenable, listEquals, setEquals;
+    show ValueListenable, kIsWeb, listEquals, setEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -564,16 +564,36 @@ class HomeRoom extends StatefulWidget {
 
 class _HomeRoomState extends State<HomeRoom>
     with SingleTickerProviderStateMixin {
-  /// ONE slow loop drives every ambient motion in the room — hearth, candles,
-  /// garland, weather, dust. Quantized to ~11fps (MascotSprite's trick) inside
-  /// its own RepaintBoundary, so a living room costs a handful of small
-  /// repaints a second, not a 60fps rebuild of the screen. Created lazily and
-  /// only while [HomeRoom.lively] + the OS animation setting allow it.
+  /// ONE slow phase drives every ambient motion in the room — hearth, candles,
+  /// garland, weather, dust. Native quantizes its controller near 11 fps; web
+  /// uses a true 7 fps timer so it does not wake at display rate. The room has
+  /// its own RepaintBoundary and runs only while [HomeRoom.lively], TickerMode,
+  /// and the OS animation setting allow it.
   AnimationController? _life;
+  Timer? _webTimer;
+  var _webFrame = 0;
+  final ValueNotifier<double> _paintPhase = ValueNotifier(0);
+
+  void _publishLifeFrame() {
+    final life = _life;
+    if (life == null) return;
+    final steps = 10 * (kIsWeb ? 7 : 11);
+    final snapped = (life.value * steps).round() / steps;
+    if (snapped != _paintPhase.value) _paintPhase.value = snapped;
+  }
+
+  void _publishWebLifeFrame(Timer _) {
+    const steps = 10 * 7;
+    _webFrame = (_webFrame + 1) % steps;
+    _paintPhase.value = _webFrame / steps;
+  }
 
   @override
   void dispose() {
+    _webTimer?.cancel();
+    _life?.removeListener(_publishLifeFrame);
     _life?.dispose();
+    _paintPhase.dispose();
     super.dispose();
   }
 
@@ -585,16 +605,32 @@ class _HomeRoomState extends State<HomeRoom>
     final lively =
         widget.lively &&
         !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    if (lively && _life == null) {
-      _life = AnimationController(
+    final tickerEnabled = TickerMode.valuesOf(context).enabled;
+    if (kIsWeb && lively && tickerEnabled) {
+      _webTimer ??= Timer.periodic(
+        const Duration(milliseconds: 143),
+        _publishWebLifeFrame,
+      );
+    } else if (kIsWeb) {
+      _webTimer?.cancel();
+      _webTimer = null;
+      _webFrame = 0;
+    }
+    if (!kIsWeb && lively && _life == null) {
+      final life = AnimationController(
         vsync: this,
         duration: const Duration(seconds: 10),
-      )..repeat();
-    } else if (!lively && _life != null) {
-      _life!.dispose();
+      );
+      life.addListener(_publishLifeFrame);
+      _life = life..repeat();
+    } else if (!kIsWeb && !lively && _life != null) {
+      _life!
+        ..removeListener(_publishLifeFrame)
+        ..dispose();
       _life = null;
     }
     final life = _life;
+    final phaseIsLive = kIsWeb ? _webTimer != null : life != null;
     return AspectRatio(
       aspectRatio: widget.aspect,
       child: ClipPath(
@@ -610,16 +646,14 @@ class _HomeRoomState extends State<HomeRoom>
                     _RoomGrain.version,
                     _RoomFireFrames.version,
                     _RoomPlate.version,
-                    ?life,
+                    _paintPhase,
                     ?widget.parallax,
                   ]),
                   builder: (_, _) {
-                    // quantize the loop to 110 steps (~11fps) — alive to the
-                    // eye, near-free to paint; t=0 is the calm reduced-motion
-                    // frame and every t must look finished on its own
-                    final t = life == null
-                        ? 0.0
-                        : (life.value * 110).round() / 110;
+                    // The publisher already applies the platform cadence. t=0
+                    // is the calm reduced-motion frame, and every phase must
+                    // look finished on its own.
+                    final t = phaseIsLive ? _paintPhase.value : 0.0;
                     return CustomPaint(
                       painter: _RoomPainter(
                         widget.unlocked,

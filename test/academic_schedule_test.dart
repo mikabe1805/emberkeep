@@ -103,6 +103,87 @@ void main() {
     },
   );
 
+  test('one class can move and restore without changing its weekly series', () {
+    final schedule = _fixtureSchedule(
+      weekdays: const {DateTime.tuesday, DateTime.friday},
+    );
+    final original = schedule.occurrences.first;
+    final changedAt = DateTime.utc(2026, 8, 24, 14);
+
+    final moved = schedule.moveOccurrence(
+      occurrenceKey: original.occurrenceKey,
+      date: CivilDate(2026, 8, 26),
+      startMinute: 13 * 60,
+      endMinute: 14 * 60 + 20,
+      updatedAt: changedAt,
+    );
+    final adjusted = moved.occurrenceByKey(original.occurrenceKey)!;
+
+    expect(adjusted.occurrenceKey, original.occurrenceKey);
+    expect(adjusted.originalDate, original.originalDate);
+    expect(adjusted.date, CivilDate(2026, 8, 26));
+    expect(adjusted.localStartMinute, 13 * 60);
+    expect(adjusted.localEndMinute, 14 * 60 + 20);
+    expect(adjusted.state, OccurrenceState.moved);
+    expect(adjusted.userAdjusted, isTrue);
+    expect(adjusted.movedFrom, original.originalDate.toString());
+    expect(moved.meetingSeries.single.localStartMinute, 10 * 60 + 20);
+    expect(
+      moved.occurrences
+          .where((item) => item.occurrenceKey != original.occurrenceKey)
+          .map((item) => item.originalDate),
+      schedule.occurrences
+          .where((item) => item.occurrenceKey != original.occurrenceKey)
+          .map((item) => item.originalDate),
+    );
+
+    final restored = moved.restoreOccurrence(
+      occurrenceKey: original.occurrenceKey,
+      updatedAt: changedAt.add(const Duration(minutes: 1)),
+    );
+    final back = restored.occurrenceByKey(original.occurrenceKey)!;
+    expect(back.date, original.originalDate);
+    expect(
+      back.localStartMinute,
+      schedule.meetingSeries.single.localStartMinute,
+    );
+    expect(back.localEndMinute, schedule.meetingSeries.single.localEndMinute);
+    expect(back.state, OccurrenceState.scheduled);
+    expect(back.userAdjusted, isFalse);
+    expect(back.movedFrom, isNull);
+  });
+
+  test('one class can cancel and restore without cancelling the series', () {
+    final schedule = _fixtureSchedule(weekdays: const {DateTime.tuesday});
+    final original = schedule.occurrences.first;
+
+    final cancelled = schedule.cancelOccurrence(
+      occurrenceKey: original.occurrenceKey,
+      updatedAt: DateTime.utc(2026, 8, 24, 14),
+    );
+    final adjusted = cancelled.occurrenceByKey(original.occurrenceKey)!;
+
+    expect(adjusted.state, OccurrenceState.cancelled);
+    expect(adjusted.userAdjusted, isTrue);
+    expect(adjusted.tombstonedAt, isNull);
+    expect(cancelled.doorwayOccurrences(original.startInstant), isEmpty);
+    expect(
+      cancelled.occurrences.where(
+        (item) => item.state == OccurrenceState.scheduled,
+      ),
+      isNotEmpty,
+    );
+
+    final restored = cancelled.restoreOccurrence(
+      occurrenceKey: original.occurrenceKey,
+      updatedAt: DateTime.utc(2026, 8, 24, 14, 1),
+    );
+    expect(
+      restored.occurrenceByKey(original.occurrenceKey)!.state,
+      OccurrenceState.scheduled,
+    );
+  });
+
   test('doorway is active from fifteen minutes before through class end', () {
     final schedule = _fixtureSchedule(weekdays: const {DateTime.tuesday});
     final occurrence = schedule.occurrences.first;
@@ -115,6 +196,68 @@ void main() {
 
     Clock.freeze(occurrence.endInstant.add(const Duration(milliseconds: 1)));
     expect(schedule.doorwayOccurrences(Clock.now()), isEmpty);
+  });
+
+  test('meeting conflicts find real overlap but not touching edges', () {
+    final base = _fixtureSchedule(weekdays: const {DateTime.tuesday});
+    final overlapping = _addClass(
+      base,
+      courseId: 'course_chem_161',
+      seriesId: 'series_chem_161_lab',
+      code: 'CHEM 161',
+      startMinute: 11 * 60,
+      endMinute: 12 * 60 + 20,
+    );
+
+    final conflicts = overlapping.meetingConflictsOn(CivilDate(2026, 8, 25));
+    expect(conflicts, hasLength(1));
+    expect(conflicts.single.overlapStartMinute, 11 * 60);
+    expect(conflicts.single.overlapEndMinute, 11 * 60 + 40);
+    expect(conflicts.single.overlapMinutes, 40);
+
+    final touching = _addClass(
+      base,
+      courseId: 'course_hist_210',
+      seriesId: 'series_hist_210_recitation',
+      code: 'HIST 210',
+      startMinute: 11 * 60 + 40,
+      endMinute: 12 * 60 + 40,
+    );
+    expect(touching.meetingConflictsOn(CivilDate(2026, 8, 25)), isEmpty);
+  });
+
+  test('transition pressure respects both buffers without moving classes', () {
+    final base = _fixtureSchedule(
+      weekdays: const {DateTime.tuesday},
+      transitionBufferMinutes: 5,
+    );
+    final tight = _addClass(
+      base,
+      courseId: 'course_chem_161',
+      seriesId: 'series_chem_161_lab',
+      code: 'CHEM 161',
+      startMinute: 11 * 60 + 45,
+      endMinute: 13 * 60,
+      transitionBufferMinutes: 10,
+    );
+
+    expect(tight.meetingConflictsOn(CivilDate(2026, 8, 25)), isEmpty);
+    final pressure = tight.transitionPressuresOn(CivilDate(2026, 8, 25)).single;
+    expect(pressure.gapMinutes, 5);
+    expect(pressure.requestedMinutes, 10);
+    expect(pressure.before.localEndMinute, 11 * 60 + 40);
+    expect(pressure.after.localStartMinute, 11 * 60 + 45);
+
+    final enoughRoom = _addClass(
+      base,
+      courseId: 'course_hist_210',
+      seriesId: 'series_hist_210_recitation',
+      code: 'HIST 210',
+      startMinute: 11 * 60 + 50,
+      endMinute: 12 * 60 + 50,
+      transitionBufferMinutes: 10,
+    );
+    expect(enoughRoom.transitionPressuresOn(CivilDate(2026, 8, 25)), isEmpty);
   });
 
   test('assignments and exams persist, sort, and complete independently', () {
@@ -173,6 +316,295 @@ void main() {
     );
   });
 
+  test(
+    'study suggestions honor class buffers, due time, and existing blocks',
+    () {
+      var schedule = _fixtureSchedule(
+        weekdays: const {DateTime.tuesday},
+        transitionBufferMinutes: 10,
+      );
+      final work = AcademicWorkItem(
+        workId: 'work_problem_set',
+        courseId: schedule.courses.single.courseId,
+        kind: AcademicWorkKind.assignment,
+        title: 'Problem set 4',
+        dueDate: CivilDate(2026, 8, 26),
+        dueMinute: 10 * 60,
+        updatedAt: DateTime.utc(2026, 8, 24),
+      );
+      schedule = schedule.putWorkItem(work);
+      schedule = schedule.putStudyPlan(
+        plan: AcademicStudyPlan(
+          workId: work.workId,
+          totalMinutes: 30,
+          sessionMinutes: 30,
+          dailyStartMinute: 9 * 60,
+          dailyEndMinute: 17 * 60,
+          updatedAt: DateTime.utc(2026, 8, 24),
+        ),
+        blocks: [
+          AcademicStudyBlock(
+            studyBlockId: 'study_other',
+            workId: work.workId,
+            date: CivilDate(2026, 8, 24),
+            startMinute: 9 * 60 + 30,
+            endMinute: 10 * 60,
+            completedAt: DateTime.utc(2026, 8, 24, 14),
+            updatedAt: DateTime.utc(2026, 8, 24, 14),
+          ),
+        ],
+      );
+
+      var id = 0;
+      final suggestion = schedule.suggestStudyBlocks(
+        workId: work.workId,
+        totalMinutes: 150,
+        sessionMinutes: 60,
+        dailyStartMinute: 9 * 60,
+        dailyEndMinute: 17 * 60,
+        now: DateTime(2026, 8, 25, 8),
+        idFactory: (_) => 'study_${++id}',
+      );
+
+      expect(suggestion.completedMinutes, 30);
+      expect(suggestion.scheduledMinutes, 120);
+      expect(suggestion.unscheduledMinutes, 0);
+      expect(suggestion.blocks, hasLength(2));
+      expect(suggestion.blocks.first.date, CivilDate(2026, 8, 25));
+      expect(suggestion.blocks.first.startMinute, 9 * 60);
+      expect(suggestion.blocks.first.endMinute, 10 * 60);
+      expect(suggestion.blocks.last.date, CivilDate(2026, 8, 26));
+      expect(suggestion.blocks.last.startMinute, 9 * 60);
+      expect(suggestion.blocks.last.endMinute, 10 * 60);
+      expect(
+        suggestion.blocks.any(
+          (block) =>
+              block.date == CivilDate(2026, 8, 26) && block.endMinute > 10 * 60,
+        ),
+        isFalse,
+      );
+    },
+  );
+
+  test(
+    'study plan replaces only open blocks and persists completed history',
+    () {
+      final base = _fixtureSchedule(weekdays: const {DateTime.tuesday})
+          .putWorkItem(
+            AcademicWorkItem(
+              workId: 'work_exam',
+              courseId: 'course_ece_345',
+              kind: AcademicWorkKind.exam,
+              title: 'Midterm',
+              dueDate: CivilDate(2026, 9, 8),
+              dueMinute: 10 * 60,
+              updatedAt: DateTime.utc(2026, 8, 24),
+            ),
+          );
+      final plan = AcademicStudyPlan(
+        workId: 'work_exam',
+        totalMinutes: 120,
+        sessionMinutes: 45,
+        dailyStartMinute: 9 * 60,
+        dailyEndMinute: 19 * 60,
+        updatedAt: DateTime.utc(2026, 8, 24),
+      );
+      final first = base.putStudyPlan(
+        plan: plan,
+        blocks: [
+          AcademicStudyBlock(
+            studyBlockId: 'study_done',
+            workId: 'work_exam',
+            date: CivilDate(2026, 8, 24),
+            startMinute: 9 * 60,
+            endMinute: 9 * 60 + 30,
+            completedAt: DateTime.utc(2026, 8, 24, 14),
+            updatedAt: DateTime.utc(2026, 8, 24, 14),
+          ),
+          AcademicStudyBlock(
+            studyBlockId: 'study_open',
+            workId: 'work_exam',
+            date: CivilDate(2026, 8, 25),
+            startMinute: 13 * 60,
+            endMinute: 13 * 60 + 45,
+            updatedAt: DateTime.utc(2026, 8, 24),
+          ),
+        ],
+      );
+      final replanned = first.putStudyPlan(
+        plan: AcademicStudyPlan(
+          workId: plan.workId,
+          totalMinutes: plan.totalMinutes,
+          sessionMinutes: 30,
+          dailyStartMinute: plan.dailyStartMinute,
+          dailyEndMinute: plan.dailyEndMinute,
+          revision: 2,
+          updatedAt: DateTime.utc(2026, 8, 25),
+        ),
+        blocks: [
+          AcademicStudyBlock(
+            studyBlockId: 'study_new',
+            workId: 'work_exam',
+            date: CivilDate(2026, 8, 26),
+            startMinute: 14 * 60,
+            endMinute: 14 * 60 + 30,
+            updatedAt: DateTime.utc(2026, 8, 25),
+          ),
+        ],
+      );
+
+      expect(
+        replanned
+            .studyBlocksFor('work_exam')
+            .map((block) => block.studyBlockId),
+        ['study_done', 'study_new'],
+      );
+      final restored = AcademicSchedule.fromJson(
+        (jsonDecode(jsonEncode(replanned.toJson())) as Map)
+            .cast<String, dynamic>(),
+      );
+      expect(restored.studyPlanFor('work_exam')?.sessionMinutes, 30);
+      expect(restored.studyBlocksFor('work_exam'), hasLength(2));
+    },
+  );
+
+  test(
+    'completing course work clears future study blocks but keeps history',
+    () {
+      final base = _fixtureSchedule(weekdays: const {DateTime.tuesday})
+          .putWorkItem(
+            AcademicWorkItem(
+              workId: 'work_exam',
+              courseId: 'course_ece_345',
+              kind: AcademicWorkKind.exam,
+              title: 'Midterm',
+              dueDate: CivilDate(2026, 9, 8),
+              updatedAt: DateTime.utc(2026, 8, 24),
+            ),
+          );
+      final withStudy = base.putStudyPlan(
+        plan: AcademicStudyPlan(
+          workId: 'work_exam',
+          totalMinutes: 90,
+          sessionMinutes: 45,
+          dailyStartMinute: 9 * 60,
+          dailyEndMinute: 18 * 60,
+          updatedAt: DateTime.utc(2026, 8, 24),
+        ),
+        blocks: [
+          AcademicStudyBlock(
+            studyBlockId: 'study_done',
+            workId: 'work_exam',
+            date: CivilDate(2026, 8, 24),
+            startMinute: 9 * 60,
+            endMinute: 9 * 60 + 45,
+            completedAt: DateTime.utc(2026, 8, 24, 14),
+            updatedAt: DateTime.utc(2026, 8, 24, 14),
+          ),
+          AcademicStudyBlock(
+            studyBlockId: 'study_future',
+            workId: 'work_exam',
+            date: CivilDate(2026, 8, 25),
+            startMinute: 9 * 60,
+            endMinute: 9 * 60 + 45,
+            updatedAt: DateTime.utc(2026, 8, 24),
+          ),
+        ],
+      );
+
+      final completed = withStudy.setWorkItemCompleted(
+        workId: 'work_exam',
+        completed: true,
+        updatedAt: DateTime.utc(2026, 8, 24, 15),
+      );
+
+      expect(completed.studyBlocksFor('work_exam'), hasLength(1));
+      expect(completed.studyBlocksFor('work_exam').single.completed, isTrue);
+      expect(completed.studyPlanFor('work_exam'), isNotNull);
+    },
+  );
+
+  test(
+    'moving a class refits open study blocks and preserves completed history',
+    () {
+      var schedule = _fixtureSchedule(weekdays: const {DateTime.tuesday});
+      schedule = schedule.putWorkItem(
+        AcademicWorkItem(
+          workId: 'work_exam',
+          courseId: schedule.courses.single.courseId,
+          kind: AcademicWorkKind.exam,
+          title: 'Midterm',
+          dueDate: CivilDate(2026, 8, 28),
+          dueMinute: 17 * 60,
+          updatedAt: DateTime.utc(2026, 8, 24, 13),
+        ),
+      );
+      schedule = schedule.putStudyPlan(
+        plan: AcademicStudyPlan(
+          workId: 'work_exam',
+          totalMinutes: 90,
+          sessionMinutes: 45,
+          dailyStartMinute: 9 * 60,
+          dailyEndMinute: 12 * 60,
+          updatedAt: DateTime.utc(2026, 8, 24, 13),
+        ),
+        blocks: [
+          AcademicStudyBlock(
+            studyBlockId: 'study_done',
+            workId: 'work_exam',
+            date: CivilDate(2026, 8, 24),
+            startMinute: 9 * 60,
+            endMinute: 9 * 60 + 45,
+            completedAt: DateTime.utc(2026, 8, 24, 14),
+            updatedAt: DateTime.utc(2026, 8, 24, 14),
+          ),
+          AcademicStudyBlock(
+            studyBlockId: 'study_stale',
+            workId: 'work_exam',
+            date: CivilDate(2026, 8, 26),
+            startMinute: 10 * 60,
+            endMinute: 10 * 60 + 45,
+            updatedAt: DateTime.utc(2026, 8, 24, 13),
+          ),
+        ],
+      );
+      final occurrence = schedule.occurrences.first;
+      var id = 0;
+
+      final moved = schedule.moveOccurrence(
+        occurrenceKey: occurrence.occurrenceKey,
+        date: CivilDate(2026, 8, 26),
+        startMinute: 9 * 60 + 30,
+        endMinute: 11 * 60,
+        updatedAt: DateTime.utc(2026, 8, 24, 15),
+        idFactory: (_) => 'study_reflow_${++id}',
+      );
+      final blocks = moved.studyBlocksFor('work_exam');
+
+      expect(blocks.where((block) => block.completed), hasLength(1));
+      expect(
+        blocks.singleWhere((block) => block.completed).studyBlockId,
+        'study_done',
+      );
+      expect(
+        blocks.any((block) => block.studyBlockId == 'study_stale'),
+        isFalse,
+      );
+      expect(
+        blocks
+            .where((block) => !block.completed)
+            .any(
+              (block) =>
+                  block.date == CivilDate(2026, 8, 26) &&
+                  block.startMinute < 11 * 60 + 10 &&
+                  block.endMinute > 9 * 60 + 20,
+            ),
+        isFalse,
+      );
+      expect(moved.plannedStudyMinutesFor('work_exam'), 90);
+    },
+  );
+
   test('schema 1 schedules migrate with an empty academic work list', () {
     final legacy = _fixtureSchedule(weekdays: const {DateTime.tuesday}).toJson()
       ..['schema'] = 1
@@ -182,6 +614,31 @@ void main() {
 
     expect(restored.workItems, isEmpty);
     expect(restored.occurrences, isNotEmpty);
+  });
+
+  test('schema 2 schedules adopt a ten minute transition buffer', () {
+    final legacy = _fixtureSchedule(weekdays: const {DateTime.tuesday}).toJson()
+      ..['schema'] = 2;
+    for (final rawSeries in legacy['meetingSeries']! as List) {
+      (rawSeries as Map).remove('transitionBufferMinutes');
+    }
+
+    final restored = AcademicSchedule.fromJson(legacy);
+
+    expect(restored.meetingSeries.single.transitionBufferMinutes, 10);
+    expect(restored.toJson()['schema'], AcademicSchedule.currentSchema);
+  });
+
+  test('schema 3 schedules migrate with no invented study plan', () {
+    final legacy = _fixtureSchedule(weekdays: const {DateTime.tuesday}).toJson()
+      ..['schema'] = 3
+      ..remove('studyPlans')
+      ..remove('studyBlocks');
+
+    final restored = AcademicSchedule.fromJson(legacy);
+
+    expect(restored.studyPlans, isEmpty);
+    expect(restored.studyBlocks, isEmpty);
   });
 
   test('academic work must reference a course and stay inside its term', () {
@@ -312,12 +769,20 @@ void main() {
       ),
       throwsArgumentError,
     );
+    expect(
+      () => _series(
+        weekdays: const {DateTime.monday},
+        transitionBufferMinutes: 121,
+      ),
+      throwsArgumentError,
+    );
   });
 }
 
 AcademicSchedule _fixtureSchedule({
   required Set<int> weekdays,
   AcademicIdFactory idFactory = AcademicIds.create,
+  int transitionBufferMinutes = 10,
 }) {
   final term = AcademicTerm(
     termId: 'term_fall_2026',
@@ -334,7 +799,10 @@ AcademicSchedule _fixtureSchedule({
     colorValue: 0xFF8AAFC6,
     colorLabel: 'Dusk blue',
   );
-  final series = _series(weekdays: weekdays);
+  final series = _series(
+    weekdays: weekdays,
+    transitionBufferMinutes: transitionBufferMinutes,
+  );
   return AcademicSchedule.empty().putMeeting(
     term: term,
     course: course,
@@ -348,6 +816,7 @@ MeetingSeries _series({
   required Set<int> weekdays,
   int startMinute = 10 * 60 + 20,
   int endMinute = 11 * 60 + 40,
+  int transitionBufferMinutes = 10,
 }) => MeetingSeries(
   meetingSeriesId: 'series_ece_345_lecture',
   courseId: 'course_ece_345',
@@ -355,6 +824,7 @@ MeetingSeries _series({
   weekdays: weekdays,
   localStartMinute: startMinute,
   localEndMinute: endMinute,
+  transitionBufferMinutes: transitionBufferMinutes,
   firstDate: CivilDate(2026, 8, 24),
   lastDate: CivilDate(2026, 12, 18),
   timeZoneId: 'America/New_York',
@@ -368,3 +838,44 @@ MeetingSeries _series({
   ],
   updatedAt: DateTime.utc(2026, 8, 11),
 );
+
+AcademicSchedule _addClass(
+  AcademicSchedule schedule, {
+  required String courseId,
+  required String seriesId,
+  required String code,
+  required int startMinute,
+  required int endMinute,
+  int transitionBufferMinutes = 10,
+}) {
+  final term = schedule.terms.single;
+  var occurrenceIndex = 0;
+  final course = AcademicCourse(
+    courseId: courseId,
+    termId: term.termId,
+    code: code,
+    title: code,
+    colorValue: 0xFF9CBC88,
+    colorLabel: 'Moss',
+  );
+  return schedule.putMeeting(
+    term: term,
+    course: course,
+    series: MeetingSeries(
+      meetingSeriesId: seriesId,
+      courseId: courseId,
+      kind: MeetingKind.lab,
+      weekdays: const {DateTime.tuesday},
+      localStartMinute: startMinute,
+      localEndMinute: endMinute,
+      transitionBufferMinutes: transitionBufferMinutes,
+      firstDate: term.startDate,
+      lastDate: term.endDate,
+      timeZoneId: term.timeZoneId,
+      place: CampusPlace(label: 'Wright Labs B12'),
+      updatedAt: DateTime.utc(2026, 8, 12),
+    ),
+    updatedAt: DateTime.utc(2026, 8, 12),
+    idFactory: (_) => 'occurrence_${courseId}_${++occurrenceIndex}',
+  );
+}

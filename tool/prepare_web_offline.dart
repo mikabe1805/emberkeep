@@ -11,6 +11,12 @@ const _canvasKitRuntime = <String>{
   'canvaskit/chromium/canvaskit.js',
   'canvaskit/chromium/canvaskit.wasm',
 };
+const _skwasmRuntime = <String>{
+  'canvaskit/skwasm.js',
+  'canvaskit/skwasm.wasm',
+  'canvaskit/skwasm_heavy.js',
+  'canvaskit/skwasm_heavy.wasm',
+};
 
 Future<void> main(List<String> args) async {
   if (args.length > 1 || (args.isNotEmpty && args.single != '--check')) {
@@ -24,7 +30,7 @@ Future<void> main(List<String> args) async {
     final root = Directory(_buildRoot).absolute;
     if (!root.existsSync()) {
       throw StateError(
-        'Missing ${root.path}; run flutter build web --release.',
+        'Missing ${root.path}; run flutter build web --release --wasm.',
       );
     }
 
@@ -42,8 +48,9 @@ Future<void> main(List<String> args) async {
         );
       }
       stdout.writeln(
-        'PASS: ${release.assetCount} offline files '
-        '(${_mib(release.bytes)} MiB) are complete and current.',
+        'PASS: ${release.assetCount} offline files are current; '
+        '${_mib(release.coreBytes)} MiB starts the app and '
+        '${_mib(release.deferredBytes)} MiB warms later.',
       );
       return;
     }
@@ -51,7 +58,8 @@ Future<void> main(List<String> args) async {
     await output.writeAsString(encoded, flush: true);
     stdout.writeln(
       'Prepared ${output.path}: ${release.assetCount} files, '
-      '${_mib(release.bytes)} MiB.',
+      '${_mib(release.coreBytes)} MiB core + '
+      '${_mib(release.deferredBytes)} MiB deferred.',
     );
   } on Object catch (error) {
     stderr.writeln('FAIL: web offline release preparation failed: $error');
@@ -64,12 +72,15 @@ void _verifyFreshBuild(Directory root) {
     'index.html',
     'flutter_bootstrap.js',
     'main.dart.js',
+    'main.dart.mjs',
+    'main.dart.wasm',
     'manifest.json',
     'version.json',
     'assets/AssetManifest.bin',
     'assets/FontManifest.json',
     _workerName,
     ..._canvasKitRuntime,
+    ..._skwasmRuntime,
   ];
   for (final relative in critical) {
     if (!File(_join(root.path, relative)).existsSync()) {
@@ -168,16 +179,96 @@ Future<_ReleaseManifest> _releaseManifest(Directory root) async {
     );
   }
 
-  final assets = <String>[
-    './',
-    for (final entry in files) './${Uri(path: entry.relative)}',
-    './$_manifestName',
+  final canvasKit = files
+      .where(
+        (entry) =>
+            entry.relative == 'main.dart.js' ||
+            _canvasKitRuntime.contains(entry.relative),
+      )
+      .toList();
+  final skwasm = files
+      .where(
+        (entry) =>
+            entry.relative == 'main.dart.mjs' ||
+            entry.relative == 'main.dart.wasm' ||
+            _skwasmRuntime.contains(entry.relative),
+      )
+      .toList();
+  final rendererPaths = <String>{
+    for (final entry in [...canvasKit, ...skwasm]) entry.relative,
+  };
+  final shared = files
+      .where(
+        (entry) =>
+            !rendererPaths.contains(entry.relative) &&
+            _sharedCore(entry.relative),
+      )
+      .toList();
+  final sharedPaths = {for (final entry in shared) entry.relative};
+  final deferred = files
+      .where(
+        (entry) =>
+            !rendererPaths.contains(entry.relative) &&
+            !sharedPaths.contains(entry.relative),
+      )
+      .toList();
+
+  List<String> urls(Iterable<({String relative, File file})> entries) => [
+    for (final entry in entries) './${Uri(path: entry.relative)}',
   ];
-  return _ReleaseManifest(
-    json: {'schema': 1, 'assets': assets},
-    assetCount: assets.length,
-    bytes: bytes,
+
+  final sharedAssets = <String>['./', ...urls(shared), './$_manifestName'];
+  final canvasKitAssets = urls(canvasKit);
+  final skwasmAssets = urls(skwasm);
+  final deferredAssets = urls(deferred);
+  final canvasKitBytes = canvasKit.fold<int>(
+    0,
+    (sum, entry) => sum + entry.file.lengthSync(),
   );
+  final skwasmBytes = skwasm.fold<int>(
+    0,
+    (sum, entry) => sum + entry.file.lengthSync(),
+  );
+  final coreBytes =
+      shared.fold<int>(0, (sum, entry) => sum + entry.file.lengthSync()) +
+      (canvasKitBytes > skwasmBytes ? canvasKitBytes : skwasmBytes);
+  final deferredBytes = deferred.fold<int>(
+    0,
+    (sum, entry) => sum + entry.file.lengthSync(),
+  );
+  return _ReleaseManifest(
+    json: {
+      'schema': 2,
+      'sharedAssets': sharedAssets,
+      'rendererAssets': {'canvaskit': canvasKitAssets, 'skwasm': skwasmAssets},
+      'deferredAssets': deferredAssets,
+    },
+    assetCount:
+        sharedAssets.length +
+        canvasKitAssets.length +
+        skwasmAssets.length +
+        deferredAssets.length,
+    coreBytes: coreBytes,
+    deferredBytes: deferredBytes,
+  );
+}
+
+bool _sharedCore(String relative) {
+  if (relative == 'assets/NOTICES') return false;
+  if (!relative.startsWith('assets/assets/')) return true;
+  if (relative.startsWith('assets/assets/google_fonts/')) return true;
+  if (relative.startsWith('assets/assets/quest/')) return true;
+  if (relative.startsWith('assets/assets/rooms/quest-')) return true;
+  if (relative == 'assets/assets/rooms/wall_walnut-fireless-v3.webp' ||
+      relative == 'assets/assets/rooms/wall_walnut-clean-v2.webp') {
+    return true;
+  }
+  return const {
+    'assets/assets/sfx/tick.wav',
+    'assets/assets/sfx/tick_warm.wav',
+    'assets/assets/sfx/tick_lift.wav',
+    'assets/assets/sfx/complete.wav',
+  }.contains(relative);
 }
 
 bool _cacheable(String relative) {
@@ -185,12 +276,24 @@ bool _cacheable(String relative) {
       relative == _manifestName ||
       relative == _workerName ||
       relative == 'flutter_service_worker.js' ||
+      // Continuous room ambience was removed on every platform. Keep the old
+      // loop asset out of new offline releases so stale clients cannot fetch it.
+      relative == 'assets/assets/sfx/hearth_room.wav' ||
       relative.endsWith('.map') ||
       relative.endsWith('.symbols')) {
     return false;
   }
+  // The marketing page and Android release handoff publish independently from
+  // the installable app shell. Never retain either in the app's offline cache:
+  // a stale copy could hide the introduction or serve a superseded APK link.
+  if (relative == 'android.html' ||
+      relative == 'introduction.html' ||
+      relative.startsWith('introduction/')) {
+    return false;
+  }
   if (relative.startsWith('canvaskit/')) {
-    return _canvasKitRuntime.contains(relative);
+    return _canvasKitRuntime.contains(relative) ||
+        _skwasmRuntime.contains(relative);
   }
   return true;
 }
@@ -204,10 +307,12 @@ final class _ReleaseManifest {
   const _ReleaseManifest({
     required this.json,
     required this.assetCount,
-    required this.bytes,
+    required this.coreBytes,
+    required this.deferredBytes,
   });
 
   final Map<String, Object> json;
   final int assetCount;
-  final int bytes;
+  final int coreBytes;
+  final int deferredBytes;
 }

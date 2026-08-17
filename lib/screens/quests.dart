@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math' show min, pi, sin;
 
-import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -52,6 +52,7 @@ import '../widgets/timer_overlay.dart';
 import '../widgets/top_three_wizard.dart';
 import '../widgets/streak_milestone_overlay.dart';
 import '../widgets/stat_chips.dart';
+import '../widgets/streak_freeze_status.dart';
 
 /// Focus-mode ordering lens: ease in with quick wins, or take the hardest
 /// (most-dreaded / heaviest) first. Ephemeral — resets to easeIn each session.
@@ -449,7 +450,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   void _handleScrollLight() {
     if (!_boardScroll.hasClients) return;
-    _scrollLight.value = _boardScroll.offset;
+    final next = _boardScroll.offset;
+    if ((_scrollLight.value - next).abs() >= (kIsWeb ? 2.0 : 0.25)) {
+      _scrollLight.value = next;
+    }
   }
 
   @override
@@ -793,9 +797,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _celebrateDayClearedIfDone(q); // a warm wash when the last ember is lit
     Sfx.instance.play('complete');
     if (_combo < 2 && !bundle.shieldHeld) Haptics.questComplete();
-    // a shield that held the line gets its own steady double-tap
+    // a freeze that held the quiet days gets its own steady double-tap
     if (bundle.shieldHeld) {
-      Future.delayed(const Duration(milliseconds: 260), Haptics.shield);
+      Future.delayed(const Duration(milliseconds: 260), Haptics.streakFreeze);
     }
 
     final overlay = Overlay.of(context);
@@ -926,7 +930,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// A perfect day must be EARNED, not snoozed: a quest hidden "just for today"
   /// was due and not cleared, so a day cleared only by hiding quests can't mint
-  /// a perfect-day reward / streak shield.
+  /// a perfect-day reward. Freeze replenishment is intentionally based on
+  /// ordinary active days, never an all-or-nothing board.
   bool _anySnoozedToday() {
     final today = Days.key(Clock.now());
     return widget.quests.any((q) => q.snoozedDay == today);
@@ -2371,7 +2376,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   Widget _focusBody(List<Quest> pool, int allDayLeft, DateTime now) {
     final q = pool.first;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      key: const ValueKey('focus-quest-list'),
+      // Match the rest of the board's protected dock inset so the exit action
+      // never disappears behind navigation on short phones.
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(6, 2, 6, 12),
@@ -2443,14 +2451,28 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         ],
         const SizedBox(height: 22),
         Center(
-          child: GestureDetector(
+          child: Semantics(
+            button: true,
+            label: 'Show the full quest board',
             onTap: _toggleFocus,
-            behavior: HitTestBehavior.opaque,
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Text(
-                'SEE THE FULL BOARD',
-                style: Type.label.copyWith(fontSize: 11, color: Palette.textLo),
+            excludeSemantics: true,
+            child: GestureDetector(
+              onTap: _toggleFocus,
+              behavior: HitTestBehavior.opaque,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Center(
+                    child: Text(
+                      'SEE THE FULL BOARD',
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -2695,11 +2717,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 NestedScrollView(
                   key: const ValueKey('quest-board-scroll'),
                   controller: _boardScroll,
-                  // Prioritize a downward drag for the outer room header.
-                  // Without this, mobile web could strand the inner quest
-                  // list at its top while the outer header remained mostly
-                  // collapsed, so the complete room could not be revealed.
-                  floatHeaderSlivers: true,
+                  // A reverse scroll belongs to the quest list until it has
+                  // genuinely reached the top. Only then may the room return.
+                  floatHeaderSlivers: false,
                   physics: const BouncingScrollPhysics(
                     parent: AlwaysScrollableScrollPhysics(),
                   ),
@@ -2900,22 +2920,32 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    dayResting
-                                        ? 'THE DAY IS KEPT'
-                                        : showFocus
-                                        ? 'FOCUS MODE'
-                                        : lowFlame
-                                        ? (_showFullLowFlame
-                                              ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
-                                              : 'GENTLE MODE · $remaining LEFT')
-                                        : 'TODAY · $remaining LEFT',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Type.label.copyWith(
-                                      fontSize: 12,
-                                      color: showFocus ? Palette.streak : null,
-                                    ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        dayResting
+                                            ? 'THE DAY IS KEPT'
+                                            : showFocus
+                                            ? 'FOCUS MODE'
+                                            : lowFlame
+                                            ? (_showFullLowFlame
+                                                  ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
+                                                  : 'GENTLE MODE · $remaining LEFT')
+                                            : 'TODAY · $remaining LEFT',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Type.label.copyWith(
+                                          fontSize: 12,
+                                          color: showFocus
+                                              ? Palette.streak
+                                              : null,
+                                        ),
+                                      ),
+                                      StreakFreezeStatus(state: _state),
+                                    ],
                                   ),
                                 ),
                                 if (!dayResting)
@@ -3353,7 +3383,7 @@ class _QuestBackdropBlur extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([controller, parallax]),
+      animation: kIsWeb ? controller : Listenable.merge([controller, parallax]),
       builder: (context, _) {
         final offset = controller.hasClients
             ? controller.offset.clamp(0.0, 220.0)
@@ -3364,6 +3394,40 @@ class _QuestBackdropBlur extends StatelessWidget {
         // BackdropFilter, preserving the expensive-looking depth cue without
         // asking a phone GPU to reblur the full animated room every frame.
         if (strength <= 0.001) return const SizedBox.shrink();
+        if (kIsWeb) {
+          // CanvasKit's extra full-room raster cross-fade was still expensive
+          // enough to interrupt iPhone scrolling. A source-colored value veil
+          // keeps the foreground separation and warmth without introducing a
+          // second viewport-sized image layer.
+          return Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: height,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                key: const ValueKey('quest-backdrop-blur'),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      const Color(
+                        0xFF1A120E,
+                      ).withValues(alpha: 0.04 * strength),
+                      const Color(
+                        0xFF211610,
+                      ).withValues(alpha: 0.18 * strength),
+                      const Color(
+                        0xFF140D0A,
+                      ).withValues(alpha: 0.48 * strength),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
         final tilt = parallax.value;
         return Positioned(
           top: 0,
@@ -3867,22 +3931,36 @@ class _FocusLensToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget seg(_FocusLens l, String label) {
       final on = lens == l;
-      return GestureDetector(
+      final spokenLabel = l == _FocusLens.quickWin
+          ? 'Order quests: Ease in'
+          : 'Order quests: Hardest first';
+      return Semantics(
+        button: true,
+        selected: on,
+        label: spokenLabel,
         onTap: () => onChanged(l),
-        behavior: HitTestBehavior.opaque,
-        child: AnimatedContainer(
-          duration: Motion.quick,
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-          decoration: facetedDecoration(
-            cut: 7,
-            color: on ? Palette.xpLight.withValues(alpha: 0.22) : null,
-            borderColor: Colors.transparent,
-          ),
-          child: Text(
-            label,
-            style: Type.label.copyWith(
-              fontSize: Type.minLabel,
-              color: on ? Palette.xpLight : Palette.textLo,
+        excludeSemantics: true,
+        child: GestureDetector(
+          onTap: () => onChanged(l),
+          behavior: HitTestBehavior.opaque,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: AnimatedContainer(
+              duration: Motion.quick,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              decoration: facetedDecoration(
+                cut: 7,
+                color: on ? Palette.xpLight.withValues(alpha: 0.22) : null,
+                borderColor: Colors.transparent,
+              ),
+              child: Text(
+                label,
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: on ? Palette.xpLight : Palette.textLo,
+                ),
+              ),
             ),
           ),
         ),

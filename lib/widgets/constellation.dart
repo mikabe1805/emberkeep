@@ -1,5 +1,7 @@
+import 'dart:async' show Timer;
 import 'dart:math';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../models.dart';
@@ -42,6 +44,10 @@ class HistorySky extends StatefulWidget {
 class _HistorySkyState extends State<HistorySky>
     with SingleTickerProviderStateMixin {
   AnimationController? _c;
+  Timer? _webTimer;
+  var _webFrame = 0;
+  var _tickerModeEnabled = true;
+  final ValueNotifier<double> _paintPhase = ValueNotifier(0);
 
   /// The laid-out sky. Rebuilt only when the history actually changes — the
   /// spiral maths shouldn't run on every twinkle frame.
@@ -50,25 +56,60 @@ class _HistorySkyState extends State<HistorySky>
   @override
   void initState() {
     super.initState();
+    if (!kIsWeb) _sync();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tickerModeEnabled = TickerMode.valuesOf(context).enabled;
     _sync();
   }
 
   void _sync() {
-    if (!widget.reduceMotion && _c == null) {
-      _c = AnimationController(
+    final shouldLive = !widget.reduceMotion && _tickerModeEnabled;
+    if (kIsWeb) {
+      if (shouldLive) {
+        _webTimer ??= Timer.periodic(const Duration(milliseconds: 167), (_) {
+          const steps = 24 * 6;
+          _webFrame = (_webFrame + 1) % steps;
+          _paintPhase.value = _webFrame / steps;
+        });
+      } else {
+        _webTimer?.cancel();
+        _webTimer = null;
+        _webFrame = 0;
+        if (_paintPhase.value != 0) _paintPhase.value = 0;
+      }
+      return;
+    }
+    if (shouldLive && _c == null) {
+      final controller = AnimationController(
         vsync: this,
         duration: const Duration(seconds: 24),
-      )..repeat();
-    } else if (widget.reduceMotion && _c != null) {
-      _c!.dispose();
+      );
+      controller.addListener(_publishFrame);
+      _c = controller..repeat();
+    } else if (!shouldLive && _c != null) {
+      _c!
+        ..removeListener(_publishFrame)
+        ..dispose();
       _c = null;
     }
+  }
+
+  void _publishFrame() {
+    final controller = _c;
+    if (controller == null) return;
+    const steps = 24 * 8;
+    final snapped = (controller.value * steps).round() / steps;
+    if (snapped != _paintPhase.value) _paintPhase.value = snapped;
   }
 
   @override
   void didUpdateWidget(HistorySky old) {
     super.didUpdateWidget(old);
-    if (old.reduceMotion != widget.reduceMotion) setState(_sync);
+    if (old.reduceMotion != widget.reduceMotion) _sync();
     if (old.history.length != widget.history.length) {
       _stars = _layout(widget.history);
     }
@@ -76,7 +117,10 @@ class _HistorySkyState extends State<HistorySky>
 
   @override
   void dispose() {
+    _webTimer?.cancel();
+    _c?.removeListener(_publishFrame);
     _c?.dispose();
+    _paintPhase.dispose();
     super.dispose();
   }
 
@@ -132,22 +176,23 @@ class _HistorySkyState extends State<HistorySky>
   @override
   Widget build(BuildContext context) {
     final c = _c;
+    final active = kIsWeb ? _webTimer != null : c != null;
     return RepaintBoundary(
       child: AspectRatio(
         aspectRatio: 1.45,
-        child: c == null
+        child: !active
             ? CustomPaint(
                 painter: _SkyPainter(stars: _stars, ember: widget.ember, t: 0),
                 size: Size.infinite,
               )
             : AnimatedBuilder(
-                animation: c,
+                animation: _paintPhase,
                 builder: (_, _) => CustomPaint(
                   // ~8 repaints/s is plenty for stars that only breathe
                   painter: _SkyPainter(
                     stars: _stars,
                     ember: widget.ember,
-                    t: (c.value * 192).round() / 192,
+                    t: _paintPhase.value,
                   ),
                   size: Size.infinite,
                 ),

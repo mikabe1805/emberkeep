@@ -1038,14 +1038,14 @@ class _NightFlowState extends State<NightFlow> {
               Text(
                 '$done quest${done == 1 ? "" : "s"} · streak day ${s.streakDays}'
                 '${s.bestStreak > s.streakDays ? " · best ${s.bestStreak}" : ""}'
-                '${s.streakShields > 0 ? " · 🛡️${s.streakShields}" : ""}',
+                '${s.streakFreezes > 0 ? " · ${s.streakFreezes} freezes ready" : ""}',
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Type.body.copyWith(fontSize: 13, color: Palette.textLo),
               ),
               const SizedBox(height: 12),
-              MomentumStrip(history: s.history),
+              MomentumStrip(history: s.history, frozenDays: s.frozenStreakDays),
               if (s.nightStatGains.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Wrap(
@@ -1842,13 +1842,24 @@ class _LegacyMorningFlow extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            if (state.streakShields > 0)
-                              Text(
-                                '🛡️ ${state.streakShields}',
-                                style: Type.label.copyWith(
-                                  fontSize: 11,
-                                  color: Palette.verify,
-                                ),
+                            if (state.streakFreezes > 0)
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.ac_unit_rounded,
+                                    size: 12,
+                                    color: Palette.info,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '${state.streakFreezes} READY',
+                                    style: Type.label.copyWith(
+                                      fontSize: 11,
+                                      color: Palette.info,
+                                    ),
+                                  ),
+                                ],
                               ),
                           ],
                         ),
@@ -1875,7 +1886,12 @@ class _LegacyMorningFlow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                GlassPanel(child: MomentumStrip(history: state.history)),
+                GlassPanel(
+                  child: MomentumStrip(
+                    history: state.history,
+                    frozenDays: state.frozenStreakDays,
+                  ),
+                ),
                 ..._goalNudges(state),
                 if (main.isNotEmpty) ...[
                   const SizedBox(height: 12),
@@ -3384,11 +3400,16 @@ class _EmptyMorningPage extends StatelessWidget {
   }
 }
 
-/// Last-7-days momentum: a row of day dots sized + lit by that day's
-/// completions, today ringed. Shared by the night recap and morning brief.
+/// Last-7-days momentum: active days glow, frozen days hold a small snowflake,
+/// and today is ringed. Shared by the night recap and morning brief.
 class MomentumStrip extends StatelessWidget {
-  const MomentumStrip({super.key, required this.history});
+  const MomentumStrip({
+    super.key,
+    required this.history,
+    this.frozenDays = const <String>{},
+  });
   final Map<String, int> history;
+  final Set<String> frozenDays;
 
   static const _dow = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
@@ -3405,6 +3426,7 @@ class MomentumStrip extends StatelessWidget {
               final n = history[Days.key(day)] ?? 0;
               final isToday = i == 0;
               final lit = n > 0;
+              final frozen = !lit && frozenDays.contains(Days.key(day));
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Column(
@@ -3418,16 +3440,27 @@ class MomentumStrip extends StatelessWidget {
                             ? Palette.xpLight.withValues(
                                 alpha: (0.4 + 0.15 * n).clamp(0.4, 1.0),
                               )
+                            : frozen
+                            ? Palette.info.withValues(alpha: 0.12)
                             : Palette.glassFill,
                         border: Border.all(
                           color: isToday
                               ? Palette.xp
                               : lit
                               ? Palette.xpLight.withValues(alpha: 0.6)
+                              : frozen
+                              ? Palette.info.withValues(alpha: 0.78)
                               : Palette.glassEdge,
                           width: isToday ? 1.6 : 1,
                         ),
                       ),
+                      child: frozen
+                          ? const Icon(
+                              Icons.ac_unit_rounded,
+                              size: 10,
+                              color: Palette.info,
+                            )
+                          : null,
                     ),
                     const SizedBox(height: 3),
                     Text(

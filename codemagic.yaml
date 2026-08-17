@@ -115,7 +115,7 @@ workflows:
       - name: Flutter build ipa
         script: |
           set -euo pipefail
-          # Keep the checked-in pubspec build as the floor (Build 12 for 1.0.0),
+          # Keep the checked-in pubspec build as the floor (Build 20 for 1.0.2),
           # then exceed any TestFlight build already uploaded for this app. An
           # authentication/API failure must stop the paid build instead of being
           # hidden as "no prior build" and producing a duplicate Build 1.
@@ -139,7 +139,7 @@ workflows:
           if [ "$LATEST" -ge "$NEXT_BUILD" ]; then
             NEXT_BUILD=$((LATEST + 1))
           fi
-          echo "Building Room of Days 1.0.0 ($NEXT_BUILD); pubspec floor $PUBSPEC_BUILD, latest TestFlight $LATEST"
+          echo "Building Room of Days 1.0.2 ($NEXT_BUILD); pubspec floor $PUBSPEC_BUILD, latest TestFlight $LATEST"
           flutter build ipa --release \
             --build-number="$NEXT_BUILD" \
             --dart-define=COFFEE_URL= \
@@ -156,7 +156,7 @@ workflows:
           test -n "$APP"
 
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = "$BUNDLE_ID"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")" = "1.0.0"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")" = "1.0.2"
           BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")
           PUBSPEC_BUILD=$(sed -nE \
             's/^version:[[:space:]]*[^+]+\+([0-9]+)[[:space:]]*$/\1/p' \
@@ -244,7 +244,7 @@ workflows:
             echo "source_commit=${CM_COMMIT:-$(git rev-parse HEAD)}"
             echo "ipa_sha256=$IPA_SHA256"
             echo "bundle_id=$BUNDLE_ID"
-            echo "marketing_version=1.0.0"
+            echo "marketing_version=1.0.2"
             echo "build_number=$BUILD_NUMBER"
             echo "sdk_name=$SDK_NAME"
             echo "xcode_build=$XCODE_BUILD"

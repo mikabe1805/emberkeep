@@ -186,6 +186,11 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Palette.parchment,
+        // CanvasKit otherwise asks Google for Roboto during the first web
+        // frame even though Inter is already bundled with the app. Keep the
+        // native theme untouched; the browser gets the intended local face
+        // without another network/font-registration task during startup.
+        fontFamily: kIsWeb ? 'Inter' : null,
         colorScheme: ColorScheme.fromSeed(
           seedColor: Palette.xp,
           brightness: Brightness.dark,

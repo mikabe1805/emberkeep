@@ -1,0 +1,106 @@
+/// A visual category for one factual release highlight. The presentation layer
+/// maps these semantic roles to the app's existing icon family.
+enum ReleaseHighlightKind {
+  academicDaybook,
+  courseWork,
+  calendarViews,
+  flexiblePlans,
+  streakSafety,
+  roomGuide,
+}
+
+class ReleaseHighlight {
+  const ReleaseHighlight({
+    required this.kind,
+    required this.title,
+    required this.body,
+  });
+
+  final ReleaseHighlightKind kind;
+  final String title;
+  final String body;
+}
+
+/// One immutable, user-facing release record. Entries remain checked in after
+/// they stop being current so Me -> What's New becomes a quiet local archive.
+class RoomReleaseNotes {
+  const RoomReleaseNotes({
+    required this.id,
+    required this.versionLabel,
+    required this.dateLabel,
+    required this.title,
+    required this.introduction,
+    required this.highlights,
+  });
+
+  /// Stable identity for once-per-release presentation. This must match the
+  /// shipped Flutter `version+build` value exactly.
+  final String id;
+  final String versionLabel;
+  final String dateLabel;
+  final String title;
+  final String introduction;
+  final List<ReleaseHighlight> highlights;
+}
+
+/// Newest first. A user-facing build is not ready to release until its record
+/// is at the front of this list and its id matches the candidate metadata.
+const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
+  RoomReleaseNotes(
+    id: '1.0.2+20',
+    versionLabel: 'VERSION 1.0.2 · BUILD 20',
+    dateLabel: 'AUGUST 2026',
+    title: 'More room for real life.',
+    introduction:
+        'Plans can bend with the week, streaks have a gentler safety net, and help is closer when the day feels heavy.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'PLANS THAT BEND',
+        body:
+            'Make room for study blocks, transition time, and one-off schedule changes without rewriting the whole semester.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.streakSafety,
+        title: 'A SOFTER LANDING',
+        body:
+            'Streak freezes can hold a missed day, then refill as you keep showing up.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'HELP FOR TODAY',
+        body:
+            'Room Guide offers a next step for stuck tasks, low-energy days, and overwhelmed spaces.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
+    id: '1.0.1+13',
+    versionLabel: 'VERSION 1.0.1 · BUILD 13',
+    dateLabel: 'AUGUST 2026',
+    title: 'Your semester has a place in Plans.',
+    introduction:
+        'Classes, assignments, and exams can now live beside the rest of your days.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.academicDaybook,
+        title: 'ACADEMIC DAYBOOK',
+        body: 'Keep classes, assignments, and exams together inside Plans.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.courseWork,
+        title: 'COURSE WORK WITH CONTEXT',
+        body:
+            'Add a due date and details, then mark the work complete when it is done.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.calendarViews,
+        title: 'THE VIEW THAT FITS TODAY',
+        body:
+            'Move between month, week, three-day, and day views. Room of Days remembers the one you chose.',
+      ),
+    ],
+  ),
+];
+
+RoomReleaseNotes get currentRoomReleaseNotes => roomOfDaysReleaseNotes.first;

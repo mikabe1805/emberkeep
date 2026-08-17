@@ -327,6 +327,7 @@ final class MeetingSeries {
     required Set<int> weekdays,
     required this.localStartMinute,
     required this.localEndMinute,
+    this.transitionBufferMinutes = 10,
     this.intervalWeeks = 1,
     required this.firstDate,
     required this.lastDate,
@@ -352,6 +353,12 @@ final class MeetingSeries {
     if (intervalWeeks < 1) {
       throw ArgumentError.value(intervalWeeks, 'intervalWeeks');
     }
+    if (transitionBufferMinutes < 0 || transitionBufferMinutes > 120) {
+      throw ArgumentError.value(
+        transitionBufferMinutes,
+        'transitionBufferMinutes',
+      );
+    }
     if (lastDate.compareTo(firstDate) < 0) {
       throw ArgumentError('A meeting series must end on or after it starts');
     }
@@ -372,6 +379,7 @@ final class MeetingSeries {
     },
     localStartMinute: json['localStartMinute'] as int,
     localEndMinute: json['localEndMinute'] as int,
+    transitionBufferMinutes: json['transitionBufferMinutes'] as int? ?? 10,
     intervalWeeks: json['intervalWeeks'] as int? ?? 1,
     firstDate: CivilDate.parse(json['firstDate'] as String),
     lastDate: CivilDate.parse(json['lastDate'] as String),
@@ -395,6 +403,7 @@ final class MeetingSeries {
   final Set<int> weekdays;
   final int localStartMinute;
   final int localEndMinute;
+  final int transitionBufferMinutes;
   final int intervalWeeks;
   final CivilDate firstDate;
   final CivilDate lastDate;
@@ -412,6 +421,7 @@ final class MeetingSeries {
     'weekdays': weekdays.toList()..sort(),
     'localStartMinute': localStartMinute,
     'localEndMinute': localEndMinute,
+    'transitionBufferMinutes': transitionBufferMinutes,
     'intervalWeeks': intervalWeeks,
     'firstDate': firstDate.toString(),
     'lastDate': lastDate.toString(),
@@ -442,6 +452,7 @@ final class ClassOccurrence {
     this.reminders = const <AcademicReminder>[],
     this.state = OccurrenceState.scheduled,
     this.movedFrom,
+    this.userAdjusted = false,
     this.revision = 1,
     required this.updatedAt,
     this.tombstonedAt,
@@ -455,43 +466,51 @@ final class ClassOccurrence {
     if (revision < 1) throw ArgumentError.value(revision, 'revision');
   }
 
-  factory ClassOccurrence.fromJson(Map<String, dynamic> json) =>
-      ClassOccurrence(
-        occurrenceKey: json['occurrenceKey'] as String,
-        meetingSeriesId: json['meetingSeriesId'] as String,
-        courseId: json['courseId'] as String,
-        originalDate: CivilDate.parse(json['originalDate'] as String),
-        date: CivilDate.parse(json['date'] as String),
-        startInstant: DateTime.fromMillisecondsSinceEpoch(
-          json['startInstant'] as int,
-          isUtc: true,
-        ),
-        endInstant: DateTime.fromMillisecondsSinceEpoch(
-          json['endInstant'] as int,
-          isUtc: true,
-        ),
-        localStartMinute: json['localStartMinute'] as int,
-        localEndMinute: json['localEndMinute'] as int,
-        kind: MeetingKind.values.byName(json['kind'] as String),
-        place: CampusPlace.fromJson(
-          (json['place'] as Map).cast<String, dynamic>(),
-        ),
-        timeZoneId: json['timeZoneId'] as String,
-        reminders: [
-          for (final rule in json['reminders'] as List? ?? const [])
-            AcademicReminder.fromJson((rule as Map).cast<String, dynamic>()),
-        ],
-        state: OccurrenceState.values.byName(
-          json['state'] as String? ?? OccurrenceState.scheduled.name,
-        ),
-        movedFrom: _optionalText(json['movedFrom']),
-        revision: json['revision'] as int? ?? 1,
-        updatedAt: DateTime.fromMillisecondsSinceEpoch(
-          json['updatedAt'] as int,
-          isUtc: true,
-        ),
-        tombstonedAt: _dateTimeFromJson(json['tombstonedAt']),
-      );
+  factory ClassOccurrence.fromJson(Map<String, dynamic> json) {
+    final state = OccurrenceState.values.byName(
+      json['state'] as String? ?? OccurrenceState.scheduled.name,
+    );
+    final tombstonedAt = _dateTimeFromJson(json['tombstonedAt']);
+    return ClassOccurrence(
+      occurrenceKey: json['occurrenceKey'] as String,
+      meetingSeriesId: json['meetingSeriesId'] as String,
+      courseId: json['courseId'] as String,
+      originalDate: CivilDate.parse(json['originalDate'] as String),
+      date: CivilDate.parse(json['date'] as String),
+      startInstant: DateTime.fromMillisecondsSinceEpoch(
+        json['startInstant'] as int,
+        isUtc: true,
+      ),
+      endInstant: DateTime.fromMillisecondsSinceEpoch(
+        json['endInstant'] as int,
+        isUtc: true,
+      ),
+      localStartMinute: json['localStartMinute'] as int,
+      localEndMinute: json['localEndMinute'] as int,
+      kind: MeetingKind.values.byName(json['kind'] as String),
+      place: CampusPlace.fromJson(
+        (json['place'] as Map).cast<String, dynamic>(),
+      ),
+      timeZoneId: json['timeZoneId'] as String,
+      reminders: [
+        for (final rule in json['reminders'] as List? ?? const [])
+          AcademicReminder.fromJson((rule as Map).cast<String, dynamic>()),
+      ],
+      state: state,
+      movedFrom: _optionalText(json['movedFrom']),
+      userAdjusted:
+          json['userAdjusted'] as bool? ??
+          ((state == OccurrenceState.moved ||
+                  state == OccurrenceState.cancelled) &&
+              tombstonedAt == null),
+      revision: json['revision'] as int? ?? 1,
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(
+        json['updatedAt'] as int,
+        isUtc: true,
+      ),
+      tombstonedAt: tombstonedAt,
+    );
+  }
 
   final String occurrenceKey;
   final String meetingSeriesId;
@@ -508,12 +527,14 @@ final class ClassOccurrence {
   final List<AcademicReminder> reminders;
   final OccurrenceState state;
   final String? movedFrom;
+  final bool userAdjusted;
   final int revision;
   final DateTime updatedAt;
   final DateTime? tombstonedAt;
 
   bool get canOpenNotebook => true;
   bool get triggersDoorway => state != OccurrenceState.cancelled;
+  bool get canAdjust => userAdjusted || tombstonedAt == null;
 
   ClassOccurrence copyWith({
     CivilDate? date,
@@ -527,9 +548,12 @@ final class ClassOccurrence {
     List<AcademicReminder>? reminders,
     OccurrenceState? state,
     String? movedFrom,
+    bool clearMovedFrom = false,
+    bool? userAdjusted,
     int? revision,
     DateTime? updatedAt,
     DateTime? tombstonedAt,
+    bool clearTombstonedAt = false,
   }) => ClassOccurrence(
     occurrenceKey: occurrenceKey,
     meetingSeriesId: meetingSeriesId,
@@ -545,10 +569,11 @@ final class ClassOccurrence {
     timeZoneId: timeZoneId ?? this.timeZoneId,
     reminders: reminders ?? this.reminders,
     state: state ?? this.state,
-    movedFrom: movedFrom ?? this.movedFrom,
+    movedFrom: clearMovedFrom ? null : movedFrom ?? this.movedFrom,
+    userAdjusted: userAdjusted ?? this.userAdjusted,
     revision: revision ?? this.revision,
     updatedAt: updatedAt ?? this.updatedAt,
-    tombstonedAt: tombstonedAt ?? this.tombstonedAt,
+    tombstonedAt: clearTombstonedAt ? null : tombstonedAt ?? this.tombstonedAt,
   );
 
   Map<String, dynamic> toJson() => {
@@ -567,11 +592,61 @@ final class ClassOccurrence {
     'reminders': [for (final rule in reminders) rule.toJson()],
     'state': state.name,
     if (movedFrom != null) 'movedFrom': movedFrom,
+    if (userAdjusted) 'userAdjusted': true,
     'revision': revision,
     'updatedAt': updatedAt.toUtc().millisecondsSinceEpoch,
     if (tombstonedAt != null)
       'tombstonedAt': tombstonedAt!.toUtc().millisecondsSinceEpoch,
   };
+}
+
+/// A pair of live classes occupying the same part of a day.
+///
+/// Conflicts are derived schedule truth rather than persisted state, so moving
+/// or cancelling either occurrence immediately resolves the pressure point.
+final class AcademicMeetingConflict {
+  const AcademicMeetingConflict(this.first, this.second);
+
+  final ClassOccurrence first;
+  final ClassOccurrence second;
+
+  CivilDate get date => first.date;
+  int get overlapStartMinute =>
+      max(first.localStartMinute, second.localStartMinute);
+  int get overlapEndMinute => min(first.localEndMinute, second.localEndMinute);
+  int get overlapMinutes => overlapEndMinute - overlapStartMinute;
+
+  bool includes(String occurrenceKey) =>
+      first.occurrenceKey == occurrenceKey ||
+      second.occurrenceKey == occurrenceKey;
+
+  ClassOccurrence otherThan(String occurrenceKey) =>
+      first.occurrenceKey == occurrenceKey ? second : first;
+}
+
+/// Two non-overlapping classes that leave less transition time than requested.
+///
+/// A tight transition is deliberately separate from a conflict: both meetings
+/// remain truthful fixed commitments, while the daybook can still warn that
+/// travel or breathing room is thinner than the person asked for.
+final class AcademicTransitionPressure {
+  const AcademicTransitionPressure({
+    required this.before,
+    required this.after,
+    required this.gapMinutes,
+    required this.requestedMinutes,
+  });
+
+  final ClassOccurrence before;
+  final ClassOccurrence after;
+  final int gapMinutes;
+  final int requestedMinutes;
+
+  CivilDate get date => before.date;
+
+  bool includes(String occurrenceKey) =>
+      before.occurrenceKey == occurrenceKey ||
+      after.occurrenceKey == occurrenceKey;
 }
 
 /// A course-linked obligation. Academic work stays separate from Quests so its
@@ -667,6 +742,164 @@ final class AcademicWorkItem {
   };
 }
 
+/// The person's explicit study-planning preferences for one course item.
+///
+/// The plan is separate from the assignment or exam itself: changing or
+/// clearing study time never changes the obligation's title or deadline.
+final class AcademicStudyPlan {
+  AcademicStudyPlan({
+    required String workId,
+    required this.totalMinutes,
+    required this.sessionMinutes,
+    required this.dailyStartMinute,
+    required this.dailyEndMinute,
+    this.revision = 1,
+    required this.updatedAt,
+  }) : workId = _requiredOpaqueId(workId, 'workId') {
+    if (totalMinutes < 15 || totalMinutes > 7 * 24 * 60) {
+      throw ArgumentError.value(totalMinutes, 'totalMinutes');
+    }
+    if (sessionMinutes < 15 || sessionMinutes > 4 * 60) {
+      throw ArgumentError.value(sessionMinutes, 'sessionMinutes');
+    }
+    if (dailyStartMinute < 0 ||
+        dailyStartMinute >= 24 * 60 ||
+        dailyEndMinute <= dailyStartMinute ||
+        dailyEndMinute > 24 * 60 ||
+        dailyEndMinute - dailyStartMinute < 15) {
+      throw ArgumentError('Study hours must leave at least fifteen minutes');
+    }
+    if (revision < 1) throw ArgumentError.value(revision, 'revision');
+  }
+
+  factory AcademicStudyPlan.fromJson(Map<String, dynamic> json) =>
+      AcademicStudyPlan(
+        workId: json['workId'] as String,
+        totalMinutes: json['totalMinutes'] as int,
+        sessionMinutes: json['sessionMinutes'] as int,
+        dailyStartMinute: json['dailyStartMinute'] as int,
+        dailyEndMinute: json['dailyEndMinute'] as int,
+        revision: json['revision'] as int? ?? 1,
+        updatedAt: DateTime.fromMillisecondsSinceEpoch(
+          json['updatedAt'] as int,
+          isUtc: true,
+        ),
+      );
+
+  final String workId;
+  final int totalMinutes;
+  final int sessionMinutes;
+  final int dailyStartMinute;
+  final int dailyEndMinute;
+  final int revision;
+  final DateTime updatedAt;
+
+  Map<String, dynamic> toJson() => {
+    'workId': workId,
+    'totalMinutes': totalMinutes,
+    'sessionMinutes': sessionMinutes,
+    'dailyStartMinute': dailyStartMinute,
+    'dailyEndMinute': dailyEndMinute,
+    'revision': revision,
+    'updatedAt': updatedAt.toUtc().millisecondsSinceEpoch,
+  };
+}
+
+/// One concrete, user-approved study appointment.
+final class AcademicStudyBlock {
+  AcademicStudyBlock({
+    required String studyBlockId,
+    required String workId,
+    required this.date,
+    required this.startMinute,
+    required this.endMinute,
+    this.completedAt,
+    this.revision = 1,
+    required this.updatedAt,
+  }) : studyBlockId = _requiredOpaqueId(studyBlockId, 'studyBlockId'),
+       workId = _requiredOpaqueId(workId, 'workId') {
+    if (startMinute < 0 ||
+        startMinute >= 24 * 60 ||
+        endMinute <= startMinute ||
+        endMinute > 24 * 60) {
+      throw ArgumentError('Study block times must stay within one day');
+    }
+    if (revision < 1) throw ArgumentError.value(revision, 'revision');
+  }
+
+  factory AcademicStudyBlock.fromJson(Map<String, dynamic> json) =>
+      AcademicStudyBlock(
+        studyBlockId: json['studyBlockId'] as String,
+        workId: json['workId'] as String,
+        date: CivilDate.parse(json['date'] as String),
+        startMinute: json['startMinute'] as int,
+        endMinute: json['endMinute'] as int,
+        completedAt: _dateTimeFromJson(json['completedAt']),
+        revision: json['revision'] as int? ?? 1,
+        updatedAt: DateTime.fromMillisecondsSinceEpoch(
+          json['updatedAt'] as int,
+          isUtc: true,
+        ),
+      );
+
+  final String studyBlockId;
+  final String workId;
+  final CivilDate date;
+  final int startMinute;
+  final int endMinute;
+  final DateTime? completedAt;
+  final int revision;
+  final DateTime updatedAt;
+
+  int get durationMinutes => endMinute - startMinute;
+  bool get completed => completedAt != null;
+
+  AcademicStudyBlock withCompletion({
+    required bool completed,
+    required DateTime updatedAt,
+  }) => AcademicStudyBlock(
+    studyBlockId: studyBlockId,
+    workId: workId,
+    date: date,
+    startMinute: startMinute,
+    endMinute: endMinute,
+    completedAt: completed ? updatedAt.toUtc() : null,
+    revision: revision + 1,
+    updatedAt: updatedAt.toUtc(),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'studyBlockId': studyBlockId,
+    'workId': workId,
+    'date': date.toString(),
+    'startMinute': startMinute,
+    'endMinute': endMinute,
+    if (completedAt != null)
+      'completedAt': completedAt!.toUtc().millisecondsSinceEpoch,
+    'revision': revision,
+    'updatedAt': updatedAt.toUtc().millisecondsSinceEpoch,
+  };
+}
+
+final class AcademicStudySuggestion {
+  const AcademicStudySuggestion({
+    required this.targetMinutes,
+    required this.completedMinutes,
+    required this.blocks,
+  });
+
+  final int targetMinutes;
+  final int completedMinutes;
+  final List<AcademicStudyBlock> blocks;
+
+  int get remainingTargetMinutes => max(0, targetMinutes - completedMinutes);
+  int get scheduledMinutes =>
+      blocks.fold(0, (total, block) => total + block.durationMinutes);
+  int get unscheduledMinutes =>
+      max(0, remainingTargetMinutes - scheduledMinutes);
+  bool get fullyScheduled => unscheduledMinutes == 0;
+}
+
 typedef AcademicIdFactory = String Function(String kind);
 
 abstract final class AcademicIds {
@@ -724,6 +957,7 @@ abstract final class OccurrenceMaterializer {
     for (final date in targetDates) {
       final prior = existingByDate[date];
       if (prior != null &&
+          prior.userAdjusted &&
           (prior.state == OccurrenceState.moved ||
               prior.state == OccurrenceState.cancelled)) {
         rebuilt.add(prior);
@@ -759,10 +993,12 @@ abstract final class OccurrenceMaterializer {
     for (final prior in existingByDate.values) {
       if (targetSet.contains(prior.originalDate)) continue;
       rebuilt.add(
-        prior.state == OccurrenceState.cancelled
+        prior.tombstonedAt != null && !prior.userAdjusted
             ? prior
             : prior.copyWith(
                 state: OccurrenceState.cancelled,
+                clearMovedFrom: true,
+                userAdjusted: false,
                 revision: series.revision,
                 updatedAt: updatedAt,
                 tombstonedAt: updatedAt,
@@ -794,6 +1030,24 @@ abstract final class OccurrenceMaterializer {
     );
     return (atMinute(startMinute).toUtc(), atMinute(endMinute).toUtc());
   }
+
+  static (DateTime, DateTime) resolveInstants(
+    CivilDate date,
+    int startMinute,
+    int endMinute,
+    String timeZoneId,
+  ) => _resolveInstants(date, startMinute, endMinute, timeZoneId);
+
+  static time_zone.TZDateTime localTime(DateTime instant, String timeZoneId) {
+    if (!_timeZonesReady) {
+      time_zone_data.initializeTimeZones();
+      _timeZonesReady = true;
+    }
+    return time_zone.TZDateTime.from(
+      instant.toUtc(),
+      time_zone.getLocation(timeZoneId),
+    );
+  }
 }
 
 final class AcademicSchedule {
@@ -803,6 +1057,8 @@ final class AcademicSchedule {
     required this.meetingSeries,
     required this.occurrences,
     this.workItems = const [],
+    this.studyPlans = const [],
+    this.studyBlocks = const [],
   }) {
     _validateGraph();
   }
@@ -813,6 +1069,8 @@ final class AcademicSchedule {
     meetingSeries: const [],
     occurrences: const [],
     workItems: const [],
+    studyPlans: const [],
+    studyBlocks: const [],
   );
 
   factory AcademicSchedule.fromJson(Map<String, dynamic> json) {
@@ -845,16 +1103,34 @@ final class AcademicSchedule {
                   (item as Map).cast<String, dynamic>(),
                 ),
             ],
+      studyPlans: schema < 4
+          ? const []
+          : [
+              for (final plan in json['studyPlans'] as List? ?? const [])
+                AcademicStudyPlan.fromJson(
+                  (plan as Map).cast<String, dynamic>(),
+                ),
+            ],
+      studyBlocks: schema < 4
+          ? const []
+          : [
+              for (final block in json['studyBlocks'] as List? ?? const [])
+                AcademicStudyBlock.fromJson(
+                  (block as Map).cast<String, dynamic>(),
+                ),
+            ],
     );
   }
 
-  static const int currentSchema = 2;
+  static const int currentSchema = 4;
 
   final List<AcademicTerm> terms;
   final List<AcademicCourse> courses;
   final List<MeetingSeries> meetingSeries;
   final List<ClassOccurrence> occurrences;
   final List<AcademicWorkItem> workItems;
+  final List<AcademicStudyPlan> studyPlans;
+  final List<AcademicStudyBlock> studyBlocks;
 
   AcademicTerm? termFor(CivilDate date) {
     for (final term in terms.reversed) {
@@ -878,6 +1154,20 @@ final class AcademicSchedule {
     return null;
   }
 
+  MeetingSeries? meetingSeriesById(String id) {
+    for (final series in meetingSeries) {
+      if (series.meetingSeriesId == id) return series;
+    }
+    return null;
+  }
+
+  ClassOccurrence? occurrenceByKey(String key) {
+    for (final occurrence in occurrences) {
+      if (occurrence.occurrenceKey == key) return occurrence;
+    }
+    return null;
+  }
+
   List<ClassOccurrence> occurrencesOn(CivilDate date) {
     final found = [
       for (final occurrence in occurrences)
@@ -892,6 +1182,101 @@ final class AcademicSchedule {
         if (occurrence.date.isWithin(first, last)) occurrence,
     ]..sort(_compareOccurrences);
     return found;
+  }
+
+  List<AcademicMeetingConflict> meetingConflictsOn(CivilDate date) {
+    final live = occurrencesOn(
+      date,
+    ).where((item) => item.state != OccurrenceState.cancelled).toList();
+    final conflicts = <AcademicMeetingConflict>[];
+    for (var first = 0; first < live.length; first++) {
+      for (var second = first + 1; second < live.length; second++) {
+        final left = live[first];
+        final right = live[second];
+        if (left.startInstant.isBefore(right.endInstant) &&
+            right.startInstant.isBefore(left.endInstant)) {
+          conflicts.add(AcademicMeetingConflict(left, right));
+        }
+      }
+    }
+    return List.unmodifiable(conflicts);
+  }
+
+  List<AcademicMeetingConflict> meetingConflictsBetween(
+    CivilDate first,
+    CivilDate last,
+  ) {
+    final conflicts = <AcademicMeetingConflict>[];
+    for (var date = first; date.compareTo(last) <= 0; date = date.addDays(1)) {
+      conflicts.addAll(meetingConflictsOn(date));
+    }
+    return List.unmodifiable(conflicts);
+  }
+
+  List<AcademicTransitionPressure> transitionPressuresOn(CivilDate date) {
+    final live = occurrencesOn(
+      date,
+    ).where((item) => item.state != OccurrenceState.cancelled).toList();
+    final conflictedKeys = <String>{
+      for (final conflict in meetingConflictsOn(date)) ...[
+        conflict.first.occurrenceKey,
+        conflict.second.occurrenceKey,
+      ],
+    };
+    final pressures = <AcademicTransitionPressure>[];
+
+    for (var index = 0; index < live.length; index++) {
+      final before = live[index];
+      if (conflictedKeys.contains(before.occurrenceKey)) continue;
+
+      ClassOccurrence? after;
+      for (
+        var candidateIndex = index + 1;
+        candidateIndex < live.length;
+        candidateIndex++
+      ) {
+        final candidate = live[candidateIndex];
+        if (conflictedKeys.contains(candidate.occurrenceKey)) continue;
+        if (!candidate.startInstant.isBefore(before.endInstant)) {
+          after = candidate;
+          break;
+        }
+      }
+      if (after == null) continue;
+
+      final beforeBuffer =
+          meetingSeriesById(before.meetingSeriesId)?.transitionBufferMinutes ??
+          10;
+      final afterBuffer =
+          meetingSeriesById(after.meetingSeriesId)?.transitionBufferMinutes ??
+          10;
+      final requested = max(beforeBuffer, afterBuffer);
+      if (requested == 0) continue;
+      final gap = after.startInstant.difference(before.endInstant).inMinutes;
+      if (gap >= requested) continue;
+
+      pressures.add(
+        AcademicTransitionPressure(
+          before: before,
+          after: after,
+          gapMinutes: gap,
+          requestedMinutes: requested,
+        ),
+      );
+    }
+
+    return List.unmodifiable(pressures);
+  }
+
+  List<AcademicTransitionPressure> transitionPressuresBetween(
+    CivilDate first,
+    CivilDate last,
+  ) {
+    final pressures = <AcademicTransitionPressure>[];
+    for (var date = first; date.compareTo(last) <= 0; date = date.addDays(1)) {
+      pressures.addAll(transitionPressuresOn(date));
+    }
+    return List.unmodifiable(pressures);
   }
 
   List<AcademicWorkItem> workItemsOn(CivilDate date) {
@@ -909,6 +1294,176 @@ final class AcademicSchedule {
           item,
     ]..sort(_compareWorkItems);
     return found;
+  }
+
+  AcademicStudyPlan? studyPlanFor(String workId) {
+    for (final plan in studyPlans) {
+      if (plan.workId == workId) return plan;
+    }
+    return null;
+  }
+
+  List<AcademicStudyBlock> studyBlocksFor(String workId) {
+    final found = [
+      for (final block in studyBlocks)
+        if (block.workId == workId) block,
+    ]..sort(_compareStudyBlocks);
+    return found;
+  }
+
+  List<AcademicStudyBlock> studyBlocksOn(CivilDate date) {
+    final found = [
+      for (final block in studyBlocks)
+        if (block.date == date) block,
+    ]..sort(_compareStudyBlocks);
+    return found;
+  }
+
+  List<AcademicStudyBlock> studyBlocksBetween(CivilDate first, CivilDate last) {
+    final found = [
+      for (final block in studyBlocks)
+        if (block.date.isWithin(first, last)) block,
+    ]..sort(_compareStudyBlocks);
+    return found;
+  }
+
+  int plannedStudyMinutesFor(String workId) => studyBlocksFor(
+    workId,
+  ).fold(0, (total, block) => total + block.durationMinutes);
+
+  AcademicStudySuggestion suggestStudyBlocks({
+    required String workId,
+    required int totalMinutes,
+    required int sessionMinutes,
+    required int dailyStartMinute,
+    required int dailyEndMinute,
+    required DateTime now,
+    CivilDate? planningStartDate,
+    AcademicIdFactory idFactory = AcademicIds.create,
+  }) {
+    final plan = AcademicStudyPlan(
+      workId: workId,
+      totalMinutes: totalMinutes,
+      sessionMinutes: sessionMinutes,
+      dailyStartMinute: dailyStartMinute,
+      dailyEndMinute: dailyEndMinute,
+      updatedAt: now.toUtc(),
+    );
+    final work = workItems.where((item) => item.workId == workId).firstOrNull;
+    if (work == null || work.tombstonedAt != null || work.completed) {
+      throw ArgumentError.value(workId, 'workId');
+    }
+    final course = courseById(work.courseId);
+    final term = course == null
+        ? null
+        : terms.where((item) => item.termId == course.termId).firstOrNull;
+    if (term == null) throw ArgumentError.value(work.courseId, 'courseId');
+
+    final completedMinutes = studyBlocksFor(workId)
+        .where((block) => block.completed)
+        .fold(0, (total, block) => total + block.durationMinutes);
+    var remaining = max(0, totalMinutes - completedMinutes);
+    if (remaining == 0) {
+      return AcademicStudySuggestion(
+        targetMinutes: totalMinutes,
+        completedMinutes: completedMinutes,
+        blocks: const [],
+      );
+    }
+
+    final localNow = OccurrenceMaterializer.localTime(now, term.timeZoneId);
+    final today = planningStartDate ?? CivilDate.fromDateTime(localNow);
+    if (today.compareTo(work.dueDate) > 0) {
+      return AcademicStudySuggestion(
+        targetMinutes: totalMinutes,
+        completedMinutes: completedMinutes,
+        blocks: const [],
+      );
+    }
+    final nowMinute = localNow.hour * 60 + localNow.minute;
+    final candidates = <AcademicStudyBlock>[];
+    final occupiedByOtherWork = [
+      for (final block in studyBlocks)
+        if (block.workId != workId || block.completed) block,
+    ];
+    final availableDays = <({CivilDate date, List<(int, int)> ranges})>[];
+
+    for (
+      var date = today;
+      date.compareTo(work.dueDate) <= 0;
+      date = date.addDays(1)
+    ) {
+      var windowStart = plan.dailyStartMinute;
+      var windowEnd = plan.dailyEndMinute;
+      if (planningStartDate == null && date == today) {
+        windowStart = max(windowStart, _ceilToQuarterHour(nowMinute));
+      }
+      if (date == work.dueDate) {
+        windowEnd = min(windowEnd, work.dueMinute ?? 24 * 60);
+      }
+      if (windowEnd - windowStart < 15) continue;
+
+      final occupied = <(int, int)>[];
+      for (final occurrence in occurrencesOn(date)) {
+        if (occurrence.state == OccurrenceState.cancelled) continue;
+        final buffer =
+            meetingSeriesById(
+              occurrence.meetingSeriesId,
+            )?.transitionBufferMinutes ??
+            10;
+        occupied.add((
+          max(0, occurrence.localStartMinute - buffer),
+          min(24 * 60, occurrence.localEndMinute + buffer),
+        ));
+      }
+      for (final block in occupiedByOtherWork) {
+        if (block.date != date) continue;
+        occupied.add((block.startMinute, block.endMinute));
+      }
+      final ranges = _availableMinuteRanges(windowStart, windowEnd, occupied);
+      if (ranges.any((range) => range.$2 - range.$1 >= 15)) {
+        availableDays.add((date: date, ranges: ranges));
+      }
+    }
+
+    var preferredDay = 0;
+    for (final duration in _studySessionDurations(remaining, sessionMinutes)) {
+      if (availableDays.isEmpty) break;
+      var placed = false;
+      for (var offset = 0; offset < availableDays.length; offset++) {
+        final dayIndex = (preferredDay + offset) % availableDays.length;
+        final day = availableDays[dayIndex];
+        final rangeIndex = day.ranges.indexWhere(
+          (range) => range.$2 - range.$1 >= duration,
+        );
+        if (rangeIndex < 0) continue;
+        final range = day.ranges.removeAt(rangeIndex);
+        candidates.add(
+          AcademicStudyBlock(
+            studyBlockId: idFactory('study_block'),
+            workId: workId,
+            date: day.date,
+            startMinute: range.$1,
+            endMinute: range.$1 + duration,
+            updatedAt: now.toUtc(),
+          ),
+        );
+        if (range.$2 - (range.$1 + duration) >= 15) {
+          day.ranges.insert(rangeIndex, (range.$1 + duration, range.$2));
+        }
+        preferredDay = (dayIndex + 1) % availableDays.length;
+        placed = true;
+        break;
+      }
+      if (!placed) break;
+    }
+    candidates.sort(_compareStudyBlocks);
+
+    return AcademicStudySuggestion(
+      targetMinutes: totalMinutes,
+      completedMinutes: completedMinutes,
+      blocks: List.unmodifiable(candidates),
+    );
   }
 
   List<ClassOccurrence> doorwayOccurrences(DateTime now) {
@@ -986,6 +1541,226 @@ final class AcademicSchedule {
       meetingSeries: nextSeries,
       occurrences: nextOccurrences,
       workItems: workItems,
+      studyPlans: studyPlans,
+      studyBlocks: studyBlocks,
+    );
+  }
+
+  /// Moves one materialized class while keeping its recurring series intact.
+  /// Any unfinished study blocks are then recalculated around the new shape of
+  /// the schedule; completed study history is never moved.
+  AcademicSchedule moveOccurrence({
+    required String occurrenceKey,
+    required CivilDate date,
+    required int startMinute,
+    required int endMinute,
+    required DateTime updatedAt,
+    AcademicIdFactory idFactory = AcademicIds.create,
+  }) {
+    final occurrence = _adjustableOccurrence(occurrenceKey);
+    final series = meetingSeriesById(occurrence.meetingSeriesId)!;
+    final term = _termForCourseId(occurrence.courseId);
+    if (term == null || !date.isWithin(term.startDate, term.endDate)) {
+      throw ArgumentError('A moved class must stay inside its term');
+    }
+    if (startMinute < 0 ||
+        startMinute >= 24 * 60 ||
+        endMinute <= startMinute ||
+        endMinute > 24 * 60) {
+      throw ArgumentError('Class times must be within one day, start to end');
+    }
+    if (date == occurrence.date &&
+        startMinute == occurrence.localStartMinute &&
+        endMinute == occurrence.localEndMinute) {
+      return this;
+    }
+    if (date == occurrence.originalDate &&
+        startMinute == series.localStartMinute &&
+        endMinute == series.localEndMinute) {
+      if (!occurrence.userAdjusted) return this;
+      return restoreOccurrence(
+        occurrenceKey: occurrenceKey,
+        updatedAt: updatedAt,
+        idFactory: idFactory,
+      );
+    }
+    final (start, end) = OccurrenceMaterializer.resolveInstants(
+      date,
+      startMinute,
+      endMinute,
+      series.timeZoneId,
+    );
+    final moved = occurrence.copyWith(
+      date: date,
+      startInstant: start,
+      endInstant: end,
+      localStartMinute: startMinute,
+      localEndMinute: endMinute,
+      state: OccurrenceState.moved,
+      movedFrom: occurrence.movedFrom ?? occurrence.originalDate.toString(),
+      userAdjusted: true,
+      revision: occurrence.revision + 1,
+      updatedAt: updatedAt.toUtc(),
+      clearTombstonedAt: true,
+    );
+    return _withOccurrence(
+      moved,
+    ).reflowOpenStudyPlans(now: updatedAt, idFactory: idFactory);
+  }
+
+  /// Cancels only this class occurrence, not the weekly series.
+  AcademicSchedule cancelOccurrence({
+    required String occurrenceKey,
+    required DateTime updatedAt,
+    AcademicIdFactory idFactory = AcademicIds.create,
+  }) {
+    final occurrence = _adjustableOccurrence(occurrenceKey);
+    if (occurrence.state == OccurrenceState.cancelled &&
+        occurrence.userAdjusted) {
+      return this;
+    }
+    final cancelled = occurrence.copyWith(
+      state: OccurrenceState.cancelled,
+      userAdjusted: true,
+      revision: occurrence.revision + 1,
+      updatedAt: updatedAt.toUtc(),
+      clearTombstonedAt: true,
+    );
+    return _withOccurrence(
+      cancelled,
+    ).reflowOpenStudyPlans(now: updatedAt, idFactory: idFactory);
+  }
+
+  /// Restores a user-moved or user-cancelled class to the current recurring
+  /// series date and time.
+  AcademicSchedule restoreOccurrence({
+    required String occurrenceKey,
+    required DateTime updatedAt,
+    AcademicIdFactory idFactory = AcademicIds.create,
+  }) {
+    final occurrence = occurrenceByKey(occurrenceKey);
+    if (occurrence == null || !occurrence.userAdjusted) {
+      throw ArgumentError.value(occurrenceKey, 'occurrenceKey');
+    }
+    final series = meetingSeriesById(occurrence.meetingSeriesId);
+    if (series == null) {
+      throw ArgumentError('The recurring class no longer exists');
+    }
+    final (start, end) = OccurrenceMaterializer.resolveInstants(
+      occurrence.originalDate,
+      series.localStartMinute,
+      series.localEndMinute,
+      series.timeZoneId,
+    );
+    final restored = occurrence.copyWith(
+      date: occurrence.originalDate,
+      startInstant: start,
+      endInstant: end,
+      localStartMinute: series.localStartMinute,
+      localEndMinute: series.localEndMinute,
+      kind: series.kind,
+      place: series.place,
+      timeZoneId: series.timeZoneId,
+      reminders: series.reminders,
+      state: OccurrenceState.scheduled,
+      clearMovedFrom: true,
+      userAdjusted: false,
+      revision: occurrence.revision + 1,
+      updatedAt: updatedAt.toUtc(),
+      clearTombstonedAt: true,
+    );
+    return _withOccurrence(
+      restored,
+    ).reflowOpenStudyPlans(now: updatedAt, idFactory: idFactory);
+  }
+
+  /// Rebuilds every active plan from its existing preferences after the class
+  /// grid changes. All unfinished blocks are replaced together so stale blocks
+  /// from one plan cannot crowd out another; completed blocks stay immutable.
+  AcademicSchedule reflowOpenStudyPlans({
+    required DateTime now,
+    AcademicIdFactory idFactory = AcademicIds.create,
+  }) {
+    final openWorkIds = <String>{
+      for (final item in workItems)
+        if (!item.completed && item.tombstonedAt == null) item.workId,
+    };
+    final plans =
+        [
+          for (final plan in studyPlans)
+            if (openWorkIds.contains(plan.workId)) plan,
+        ]..sort((left, right) {
+          final leftWork = workItems.firstWhere(
+            (item) => item.workId == left.workId,
+          );
+          final rightWork = workItems.firstWhere(
+            (item) => item.workId == right.workId,
+          );
+          final due = _compareWorkItems(leftWork, rightWork);
+          return due != 0 ? due : left.workId.compareTo(right.workId);
+        });
+    if (plans.isEmpty) return this;
+
+    final replannedWorkIds = plans.map((plan) => plan.workId).toSet();
+    var working = AcademicSchedule(
+      terms: terms,
+      courses: courses,
+      meetingSeries: meetingSeries,
+      occurrences: occurrences,
+      workItems: workItems,
+      studyPlans: studyPlans,
+      studyBlocks: [
+        for (final block in studyBlocks)
+          if (!replannedWorkIds.contains(block.workId) || block.completed)
+            block,
+      ],
+    );
+    for (final plan in plans) {
+      final suggestion = working.suggestStudyBlocks(
+        workId: plan.workId,
+        totalMinutes: plan.totalMinutes,
+        sessionMinutes: plan.sessionMinutes,
+        dailyStartMinute: plan.dailyStartMinute,
+        dailyEndMinute: plan.dailyEndMinute,
+        now: now,
+        idFactory: idFactory,
+      );
+      working = working.putStudyPlan(plan: plan, blocks: suggestion.blocks);
+    }
+    return working;
+  }
+
+  ClassOccurrence _adjustableOccurrence(String occurrenceKey) {
+    final occurrence = occurrenceByKey(occurrenceKey);
+    if (occurrence == null || !occurrence.canAdjust) {
+      throw ArgumentError.value(occurrenceKey, 'occurrenceKey');
+    }
+    if (meetingSeriesById(occurrence.meetingSeriesId) == null) {
+      throw ArgumentError('The recurring class no longer exists');
+    }
+    return occurrence;
+  }
+
+  AcademicTerm? _termForCourseId(String courseId) {
+    final course = courseById(courseId);
+    if (course == null) return null;
+    return terms.where((term) => term.termId == course.termId).firstOrNull;
+  }
+
+  AcademicSchedule _withOccurrence(ClassOccurrence replacement) {
+    final nextOccurrences = _replaceById(
+      occurrences,
+      replacement,
+      (value) => value.occurrenceKey,
+    ).toList()..sort(_compareOccurrences);
+    return AcademicSchedule(
+      terms: terms,
+      courses: courses,
+      meetingSeries: meetingSeries,
+      occurrences: nextOccurrences,
+      workItems: workItems,
+      studyPlans: studyPlans,
+      studyBlocks: studyBlocks,
     );
   }
 
@@ -1011,6 +1786,73 @@ final class AcademicSchedule {
       meetingSeries: meetingSeries,
       occurrences: occurrences,
       workItems: nextWorkItems,
+      studyPlans: studyPlans,
+      studyBlocks: studyBlocks,
+    );
+  }
+
+  AcademicSchedule putStudyPlan({
+    required AcademicStudyPlan plan,
+    required List<AcademicStudyBlock> blocks,
+  }) {
+    final work = workItems
+        .where((item) => item.workId == plan.workId)
+        .firstOrNull;
+    if (work == null || work.tombstonedAt != null || work.completed) {
+      throw ArgumentError('Study plans require an open course item');
+    }
+    if (blocks.any((block) => block.workId != plan.workId)) {
+      throw ArgumentError('Study blocks must belong to their plan');
+    }
+    final completed = [
+      for (final block in studyBlocksFor(plan.workId))
+        if (block.completed) block,
+    ];
+    final replacementIds = blocks.map((block) => block.studyBlockId).toSet();
+    if (replacementIds.length != blocks.length ||
+        completed.any((block) => replacementIds.contains(block.studyBlockId))) {
+      throw ArgumentError('Study block IDs must stay unique');
+    }
+    final nextPlans = _replaceById(studyPlans, plan, (value) => value.workId);
+    final nextBlocks = <AcademicStudyBlock>[
+      for (final block in studyBlocks)
+        if (block.workId != plan.workId) block,
+      ...completed,
+      ...blocks,
+    ]..sort(_compareStudyBlocks);
+    return AcademicSchedule(
+      terms: terms,
+      courses: courses,
+      meetingSeries: meetingSeries,
+      occurrences: occurrences,
+      workItems: workItems,
+      studyPlans: nextPlans,
+      studyBlocks: nextBlocks,
+    );
+  }
+
+  AcademicSchedule setStudyBlockCompleted({
+    required String studyBlockId,
+    required bool completed,
+    required DateTime updatedAt,
+  }) {
+    final block = studyBlocks
+        .where((item) => item.studyBlockId == studyBlockId)
+        .firstOrNull;
+    if (block == null) throw ArgumentError.value(studyBlockId, 'studyBlockId');
+    final nextBlocks = _replaceById(
+      studyBlocks,
+      block.withCompletion(completed: completed, updatedAt: updatedAt),
+      (value) => value.studyBlockId,
+    ).toList()..sort(_compareStudyBlocks);
+    return AcademicSchedule(
+      terms: terms,
+      courses: courses,
+      meetingSeries: meetingSeries,
+      occurrences: occurrences,
+      workItems: workItems,
+      studyPlans: studyPlans,
+      studyBlocks: nextBlocks,
     );
   }
 
@@ -1021,8 +1863,21 @@ final class AcademicSchedule {
   }) {
     final item = workItems.where((item) => item.workId == workId).firstOrNull;
     if (item == null) throw ArgumentError.value(workId, 'workId');
-    return putWorkItem(
+    final next = putWorkItem(
       item.withCompletion(completed: completed, updatedAt: updatedAt),
+    );
+    if (!completed) return next;
+    return AcademicSchedule(
+      terms: next.terms,
+      courses: next.courses,
+      meetingSeries: next.meetingSeries,
+      occurrences: next.occurrences,
+      workItems: next.workItems,
+      studyPlans: next.studyPlans,
+      studyBlocks: [
+        for (final block in next.studyBlocks)
+          if (block.workId != workId || block.completed) block,
+      ],
     );
   }
 
@@ -1033,6 +1888,8 @@ final class AcademicSchedule {
     'meetingSeries': [for (final series in meetingSeries) series.toJson()],
     'occurrences': [for (final occurrence in occurrences) occurrence.toJson()],
     'workItems': [for (final item in workItems) item.toJson()],
+    'studyPlans': [for (final plan in studyPlans) plan.toJson()],
+    'studyBlocks': [for (final block in studyBlocks) block.toJson()],
   };
 
   void _validateGraph() {
@@ -1042,10 +1899,14 @@ final class AcademicSchedule {
         .map((series) => series.meetingSeriesId)
         .toSet();
     final workIds = workItems.map((item) => item.workId).toSet();
+    final studyPlanWorkIds = studyPlans.map((item) => item.workId).toSet();
+    final studyBlockIds = studyBlocks.map((item) => item.studyBlockId).toSet();
     if (termIds.length != terms.length ||
         courseIds.length != courses.length ||
         seriesIds.length != meetingSeries.length ||
         workIds.length != workItems.length ||
+        studyPlanWorkIds.length != studyPlans.length ||
+        studyBlockIds.length != studyBlocks.length ||
         occurrences.map((item) => item.occurrenceKey).toSet().length !=
             occurrences.length) {
       throw const FormatException('Academic schedule IDs must be unique');
@@ -1070,6 +1931,16 @@ final class AcademicSchedule {
     for (final item in workItems) {
       if (!courseIds.contains(item.courseId)) {
         throw const FormatException('Academic work has no course');
+      }
+    }
+    for (final plan in studyPlans) {
+      if (!workIds.contains(plan.workId)) {
+        throw const FormatException('Study plan has no course item');
+      }
+    }
+    for (final block in studyBlocks) {
+      if (!workIds.contains(block.workId)) {
+        throw const FormatException('Study block has no course item');
       }
     }
   }
@@ -1101,6 +1972,68 @@ int _compareWorkItems(AcademicWorkItem a, AcademicWorkItem b) {
   final minute = (a.dueMinute ?? 24 * 60).compareTo(b.dueMinute ?? 24 * 60);
   if (minute != 0) return minute;
   return a.workId.compareTo(b.workId);
+}
+
+int _compareStudyBlocks(AcademicStudyBlock a, AcademicStudyBlock b) {
+  final date = a.date.compareTo(b.date);
+  if (date != 0) return date;
+  final time = a.startMinute.compareTo(b.startMinute);
+  if (time != 0) return time;
+  return a.studyBlockId.compareTo(b.studyBlockId);
+}
+
+int _ceilToQuarterHour(int minute) => ((minute + 14) ~/ 15) * 15;
+
+List<(int, int)> _mergeMinuteRanges(Iterable<(int, int)> ranges) {
+  final sorted = [
+    for (final range in ranges)
+      if (range.$2 > range.$1) range,
+  ]..sort((left, right) => left.$1.compareTo(right.$1));
+  final merged = <(int, int)>[];
+  for (final range in sorted) {
+    if (merged.isEmpty || range.$1 > merged.last.$2) {
+      merged.add(range);
+      continue;
+    }
+    final prior = merged.removeLast();
+    merged.add((prior.$1, max(prior.$2, range.$2)));
+  }
+  return merged;
+}
+
+List<(int, int)> _availableMinuteRanges(
+  int windowStart,
+  int windowEnd,
+  Iterable<(int, int)> occupied,
+) {
+  final available = <(int, int)>[];
+  var cursor = windowStart;
+  for (final busy in _mergeMinuteRanges(occupied)) {
+    if (busy.$2 <= windowStart || busy.$1 >= windowEnd) continue;
+    final busyStart = max(windowStart, busy.$1);
+    if (busyStart > cursor) available.add((cursor, busyStart));
+    cursor = max(cursor, min(windowEnd, busy.$2));
+    if (cursor >= windowEnd) break;
+  }
+  if (cursor < windowEnd) available.add((cursor, windowEnd));
+  return available;
+}
+
+List<int> _studySessionDurations(int totalMinutes, int sessionMinutes) {
+  final durations = <int>[];
+  var remaining = totalMinutes;
+  while (remaining > 0) {
+    final duration = min(sessionMinutes, remaining);
+    if (duration < 15) {
+      if (durations.isNotEmpty && durations.last + duration <= 4 * 60) {
+        durations[durations.length - 1] += duration;
+      }
+      break;
+    }
+    durations.add(duration);
+    remaining -= duration;
+  }
+  return durations;
 }
 
 CivilDate _later(CivilDate a, CivilDate b) => a.compareTo(b) >= 0 ? a : b;

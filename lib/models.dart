@@ -921,7 +921,11 @@ class RewardBundle {
     this.streakMult,
     this.verifiedMult,
     this.comebackMult,
-    this.shieldHeld = false,
+    this.freezesUsed = 0,
+    this.freezeEarned = false,
+    this.freezeBalanceAfter = 0,
+    this.freezeProgressAfter = 0,
+    this.freezeCadenceAfter = 3,
     this.firstOfDay = false,
     this.loot,
     this.hasEvidence = false,
@@ -962,9 +966,29 @@ class RewardBundle {
   /// comeback bonus, never a scold (never-punish; RESEARCH-momentum.md §4).
   final double? comebackMult;
 
-  /// True when a streak shield silently bridged a gap to keep the
-  /// streak alive — the completion celebrates "streak safe", not a reset.
-  final bool shieldHeld;
+  /// Number of quiet days automatically covered by streak freezes on this
+  /// completion. A freeze is only spent when the entire gap can be held.
+  final int freezesUsed;
+
+  /// True when this active day completed the ordinary show-up cadence and
+  /// banked another freeze. This is intentionally not tied to a perfect day.
+  final bool freezeEarned;
+
+  /// Freeze reserve after this completion applies both the held days and any
+  /// newly earned freeze. The receipt can therefore tell the exact truth.
+  final int freezeBalanceAfter;
+
+  /// Ordinary active-day progress remaining after this completion. Carrying
+  /// the value through the staged reward keeps roll and commit identical even
+  /// if this quest itself crosses the CARE-40 cadence threshold.
+  final int freezeProgressAfter;
+
+  /// Cadence used to compute [freezeProgressAfter]. This closes the last seam
+  /// between a staged roll and a commit that itself crosses CARE 40.
+  final int freezeCadenceAfter;
+
+  /// Compatibility name for the existing completion motion path.
+  bool get shieldHeld => freezesUsed > 0;
 
   /// The day's FIRST completion — gets a notch-brighter beat ("first ember
   /// lit today"). One step above a normal completion, never a takeover.

@@ -62,17 +62,27 @@ class _QuestDepthRoomState extends State<QuestDepthRoom> {
 
   @override
   Widget build(BuildContext context) {
+    final roomMotion = kIsWeb
+        ? widget.parallax
+        : Listenable.merge([widget.parallax, widget.scrollPosition]);
     return ClipRect(
       child: RepaintBoundary(
         child: AnimatedBuilder(
-          animation: Listenable.merge([widget.parallax, widget.scrollPosition]),
-          child: _QuestLivingFire(hue: widget.flameHue, lively: widget.lively),
+          animation: roomMotion,
+          child: _QuestLivingFire(
+            hue: widget.flameHue,
+            lively: widget.lively,
+            scrollPosition: widget.scrollPosition,
+          ),
           builder: (context, fire) {
             final tilt = widget.lively ? widget.parallax.value : Offset.zero;
             // Reduce Motion means the room is a parked illustration. Scrolling
             // content remains usable, but it must not counter-slide the room
             // behind it: that is still motion from the person's point of view.
-            final scroll = widget.lively
+            // On the browser, scrolling keeps ownership of the frame. The
+            // authored room stays parked while the soft plate and card sheen
+            // provide the depth response; native retains the tiny plane travel.
+            final scroll = widget.lively && !kIsWeb
                 ? widget.scrollPosition.value.clamp(0.0, 240.0).toDouble() /
                       240.0
                 : 0.0;
@@ -177,10 +187,15 @@ class _RoomRaster extends StatelessWidget {
 /// perfectly still. It is intentionally fire, not sparkle: a breathing glow,
 /// moving tongues rooted to the fuel line, and a few natural embers.
 class _QuestLivingFire extends StatefulWidget {
-  const _QuestLivingFire({required this.hue, required this.lively});
+  const _QuestLivingFire({
+    required this.hue,
+    required this.lively,
+    required this.scrollPosition,
+  });
 
   final Color hue;
   final bool lively;
+  final ValueListenable<double> scrollPosition;
 
   @override
   State<_QuestLivingFire> createState() => _QuestLivingFireState();
@@ -188,51 +203,103 @@ class _QuestLivingFire extends StatefulWidget {
 
 class _QuestLivingFireState extends State<_QuestLivingFire>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _life = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 9),
-  );
+  AnimationController? _life;
+  Timer? _webTimer;
+  var _webFrame = 0;
+  var _tickerModeEnabled = true;
   final ValueNotifier<double> _paintPhase = ValueNotifier(0);
-  static final _paintFramesPerLoop = 9 * (kIsWeb ? 12 : 20);
+  static const _nativePaintFramesPerLoop = 9 * 20;
+  static const _webPaintFramesPerLoop = 9 * 8;
 
   @override
   void initState() {
     super.initState();
-    _life.addListener(_publishFireFrame);
+    if (!kIsWeb) {
+      _life = AnimationController(
+        vsync: this,
+        duration: const Duration(seconds: 9),
+      )..addListener(_publishFireFrame);
+    }
+    widget.scrollPosition.addListener(_syncLife);
+    _syncLife();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _tickerModeEnabled = TickerMode.valuesOf(context).enabled;
     _syncLife();
   }
 
   void _publishFireFrame() {
     // The raster blend and full-room glow are the expensive part of the living
     // source. Native keeps twenty authored updates per second. Browser phones
-    // use twelve: two blended transparent rasters at 24 fps consumed
+    // use eight: two blended transparent rasters at 24 fps consumed
     // the frame budget that scroll and tilt needed, while the flame's tiny
     // travel remains naturally fluid at this scale.
+    final life = _life;
+    if (life == null) return;
     final snapped =
-        (_life.value * _paintFramesPerLoop).floor() / _paintFramesPerLoop;
+        (life.value * _nativePaintFramesPerLoop).floor() /
+        _nativePaintFramesPerLoop;
     if (snapped != _paintPhase.value) _paintPhase.value = snapped;
+  }
+
+  void _publishWebFrame(Timer _) {
+    _webFrame = (_webFrame + 1) % _webPaintFramesPerLoop;
+    _paintPhase.value = _webFrame / _webPaintFramesPerLoop;
   }
 
   @override
   void didUpdateWidget(_QuestLivingFire oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.scrollPosition != widget.scrollPosition) {
+      oldWidget.scrollPosition.removeListener(_syncLife);
+      widget.scrollPosition.addListener(_syncLife);
+    }
     if (widget.lively != oldWidget.lively) _syncLife();
   }
 
   void _syncLife() {
-    if (widget.lively) {
-      if (!_life.isAnimating) _life.repeat();
+    // Once the browser board leaves its resting top, the softened environment
+    // already obscures the flame. Parking it there prevents an off-focus fire
+    // repaint from stealing the same frames as touch/scroll.
+    final shouldLive =
+        widget.lively &&
+        _tickerModeEnabled &&
+        (!kIsWeb || widget.scrollPosition.value <= 1.0);
+    if (kIsWeb) {
+      if (shouldLive) {
+        _webTimer ??= Timer.periodic(
+          const Duration(milliseconds: 125),
+          _publishWebFrame,
+        );
+      } else {
+        _webTimer?.cancel();
+        _webTimer = null;
+        _webFrame = 0;
+        if (_paintPhase.value != 0) _paintPhase.value = 0;
+      }
+      return;
+    }
+    final life = _life!;
+    if (shouldLive) {
+      if (!life.isAnimating) life.repeat();
     } else {
-      _life.stop();
-      _life.value = 0;
-      _paintPhase.value = 0;
+      if (life.isAnimating || life.value != 0) {
+        life.stop();
+        life.value = 0;
+      }
+      if (_paintPhase.value != 0) _paintPhase.value = 0;
     }
   }
 
   @override
   void dispose() {
-    _life.removeListener(_publishFireFrame);
-    _life.dispose();
+    widget.scrollPosition.removeListener(_syncLife);
+    _webTimer?.cancel();
+    _life?.removeListener(_publishFireFrame);
+    _life?.dispose();
     _paintPhase.dispose();
     super.dispose();
   }

@@ -1,7 +1,12 @@
 {
   "hosting": {
     "public": "build/web",
-    "predeploy": ["dart run tool/prepare_web_offline.dart"],
+    "predeploy": [
+      "node tool/verify_public_downloads.mjs",
+      "flutter build web --release --wasm",
+      "dart run tool/prepare_web_offline.dart",
+      "node tool/overlay_introduction.mjs"
+    ],
     "ignore": [
       "firebase.json",
       "**/node_modules/**",
@@ -12,6 +17,19 @@
     "rewrites": [{"source": "**", "destination": "/index.html"}],
     "headers": [
       {
+        "source": "**",
+        "headers": [
+          {"key": "Cross-Origin-Opener-Policy", "value": "same-origin"},
+          {"key": "Cross-Origin-Embedder-Policy", "value": "credentialless"}
+        ]
+      },
+      {
+        "regex": "^/(introduction|android)(/|\\.html)?$",
+        "headers": [
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
+        ]
+      },
+      {
         "regex": "^/[^.]*$",
         "headers": [
           {"key": "Cache-Control", "value": "public, max-age=0, s-maxage=3600"}
@@ -21,6 +39,30 @@
         "source": "**/*.@(mjs|js|wasm|json)",
         "headers": [
           {"key": "Cache-Control", "value": "public, max-age=0, s-maxage=604800"}
+        ]
+      },
+      {
+        "source": "/flutter_bootstrap.js",
+        "headers": [
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
+        ]
+      },
+      {
+        "source": "/room_of_days_service_worker.js",
+        "headers": [
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
+        ]
+      },
+      {
+        "source": "/offline-assets.json",
+        "headers": [
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
+        ]
+      },
+      {
+        "source": "/version.json",
+        "headers": [
+          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
         ]
       },
       {

@@ -141,7 +141,19 @@ class _RewardReceiptState extends State<RewardReceipt>
           'streak',
         ),
       if (b.shieldHeld)
-        _Bubble('STREAK SAFE 🛡️', Icons.shield, Palette.verify, 'streak'),
+        _Bubble(
+          'STREAK FROZEN · ${b.freezesUsed} ${b.freezesUsed == 1 ? "DAY" : "DAYS"} HELD',
+          Icons.ac_unit_rounded,
+          Palette.info,
+          'streak',
+        ),
+      if (b.freezeEarned)
+        _Bubble(
+          'FREEZE BANKED · ${b.freezeBalanceAfter} READY',
+          Icons.ac_unit_rounded,
+          Palette.info,
+          'streak',
+        ),
       if (b.critMult != null)
         _Bubble(
           'CRITICAL! ×${b.critMult!.toStringAsFixed(1)}',

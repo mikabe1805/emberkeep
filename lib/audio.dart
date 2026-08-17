@@ -3,13 +3,16 @@ import 'dart:async' show unawaited;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 
+import 'platform/audio_support_stub.dart'
+    if (dart.library.js_interop) 'platform/audio_support_web.dart';
+
 /// Event-typed sound palette (DESIGN.md §8). Sounds are always paired with
 /// visuals, so every call is fire-and-forget and failure-tolerant — a muted
 /// or audio-broken device loses nothing.
 ///
-/// All wavs are pooled (preloaded + decoded) so rare, high-magnitude events
-/// (crit, levelup, loot) land frame-synced with their visual beat instead of
-/// paying asset-load latency at the worst possible moment.
+/// Native wavs are pooled (preloaded + decoded) so rare, high-magnitude events
+/// land frame-synced with their visual beat. Browsers warm each event sound on
+/// first use instead of competing with the first interactive room frame.
 class Sfx {
   Sfx._();
   static final Sfx instance = Sfx._();
@@ -46,8 +49,8 @@ class Sfx {
     'complete': 0.55,
     'streak': 0.55,
     'boing': 0.4,
-    // The larger ignition marks a genuinely revived hearth. Merely entering
-    // Me stays quiet: an automatic sound on every visit became grating.
+    // Full volume marks a genuinely revived hearth. Room navigation reuses the
+    // cue once at a much quieter scale; it never starts a background loop.
     'hearth': 0.68,
     'stat_0': 0.45,
     'stat_1': 0.45,
@@ -62,6 +65,7 @@ class Sfx {
   static double _volFor(String name) => _volume[name] ?? 0.55;
 
   final Map<String, AudioPool> _pools = {};
+  final Map<String, Future<AudioPool?>> _poolLoads = {};
 
   // Everyday taps form a tiny six-beat cadence: neutral and warmer contacts
   // alternate, then the sixth interaction gets a barely brighter lift. It is
@@ -84,64 +88,15 @@ class Sfx {
     return asset;
   }
 
-  /// Sound enabled flag — set from GameState.soundEnabled. Turning sound off
-  /// also stops the room bed immediately.
-  bool _soundEnabled = true;
-  bool get soundEnabled => _soundEnabled;
-  set soundEnabled(bool value) {
-    _soundEnabled = value;
-    if (!value) {
-      unawaited(_stopHearthRoom());
-    } else if (_hearthRoomWanted) {
-      unawaited(_startHearthRoom());
-    }
-  }
-
-  AudioPlayer? _hearthRoom;
-  bool _hearthRoomWanted = false;
-  bool _hearthRoomPlaying = false;
-
-  /// A near-subliminal room bed. The asset is original project audio and loops
-  /// only while a room-facing page is active. It stays far below event sounds
-  /// and mixes with the user's own music through the ambient audio context.
-  void setHearthRoomActive(bool active) {
-    _hearthRoomWanted = active;
-    if (!active || !_soundEnabled) {
-      unawaited(_stopHearthRoom());
-    } else {
-      unawaited(_startHearthRoom());
-    }
-  }
-
-  Future<void> _startHearthRoom() async {
-    if (!_soundEnabled || !_hearthRoomWanted || _hearthRoomPlaying) return;
-    // Constructing an AudioPlayer subscribes to the global event channel on a
-    // microtask, *outside* any try/catch here — so on a host with no plugin
-    // (tests, some web contexts) that surfaced as an uncaught
-    // MissingPluginException rather than a silent no-op. Gate the bed on a
-    // pool having actually loaded: no audio backend, no player, no noise.
-    if (_pools.isEmpty) return;
-    final player = _hearthRoom ??= AudioPlayer();
-    try {
-      await player.setReleaseMode(ReleaseMode.loop);
-      await player.play(AssetSource('sfx/hearth_room.wav'), volume: 0.045);
-      _hearthRoomPlaying = true;
-    } catch (e) {
-      debugPrint('Hearth room ambience (continuing silent): $e');
-    }
-  }
-
-  Future<void> _stopHearthRoom() async {
-    if (!_hearthRoomPlaying) return;
-    try {
-      await _hearthRoom?.stop();
-    } catch (_) {
-      // Sound is enhancement-only.
-    }
-    _hearthRoomPlaying = false;
-  }
+  /// Sound enabled flag — set from GameState.soundEnabled.
+  bool soundEnabled = true;
 
   Future<void> init() async {
+    // Some embedded/automation WebKit builds expose CanvasKit but no Web Audio
+    // constructor. Treat sound as an unavailable enhancement there instead of
+    // throwing once per tap and repeatedly attempting pools that cannot load.
+    if (kIsWeb && !browserAudioAvailable) return;
+
     // FIRST, before any pool ever activates the audio session: make our SFX
     // mix WITH the user's own music instead of evicting it. audioplayers
     // defaults the iOS AVAudioSession to `.playback` (non-mixable), so the
@@ -173,27 +128,49 @@ class Sfx {
       debugPrint('Sfx audio context (continuing): $e');
     }
 
+    // A browser cannot play before a gesture anyway. Eagerly constructing all
+    // sixteen pools made a first visit fetch every wav (and several byte-range
+    // copies) while Flutter was decoding the room and accepting the first tap.
+    // Native keeps its frame-synchronous preload; web warms only sounds the
+    // person actually reaches.
+    if (kIsWeb) return;
+
     // Parallel loads; each pool becomes playable as soon as it lands, and
     // one failed asset never mutes the others.
-    await Future.wait(
-      _all.map((name) async {
-        try {
-          _pools[name] = await AudioPool.createFromAsset(
-            path: 'sfx/$name.wav',
-            maxPlayers: 4,
-          );
-        } catch (e) {
-          debugPrint('Sfx pool "$name" failed (continuing silent): $e');
-        }
-      }),
-    );
+    await Future.wait(_all.map(_loadPool));
+  }
+
+  Future<AudioPool?> _loadPool(String name) {
+    final loaded = _pools[name];
+    if (loaded != null) return Future.value(loaded);
+    final active = _poolLoads[name];
+    if (active != null) return active;
+
+    late final Future<AudioPool?> attempt;
+    attempt = () async {
+      try {
+        final pool = await AudioPool.createFromAsset(
+          path: 'sfx/$name.wav',
+          maxPlayers: 4,
+        );
+        _pools[name] = pool;
+        return pool;
+      } catch (e) {
+        debugPrint('Sfx pool "$name" failed (continuing silent): $e');
+        return null;
+      } finally {
+        _poolLoads.remove(name);
+      }
+    }();
+    _poolLoads[name] = attempt;
+    return attempt;
   }
 
   /// names: tick, complete, streak, crit, loot, levelup, boing, hearth,
   /// stat_0..5. [volumeScale] lets ambient echoes reuse a sound without
   /// competing with the user's music; event calls normally leave it at 1.
   void play(String name, {double volumeScale = 1}) {
-    if (!soundEnabled) return;
+    if (!soundEnabled || (kIsWeb && !browserAudioAvailable)) return;
     try {
       final vol = (_volFor(name) * volumeScale).clamp(0.0, 1.0);
       final asset = _assetFor(name);
@@ -204,7 +181,9 @@ class Sfx {
           return () async {};
         });
       } else {
-        // Pool missing (failed or still loading): best-effort one-shot.
+        // Pool missing (failed, still loading, or intentionally lazy on web):
+        // best-effort one-shot now, and keep a pool warm for the next use.
+        unawaited(_loadPool(asset));
         final p = AudioPlayer();
         p.onPlayerComplete.first.then((_) => p.dispose());
         p.play(AssetSource('sfx/$asset.wav'), volume: vol).catchError((

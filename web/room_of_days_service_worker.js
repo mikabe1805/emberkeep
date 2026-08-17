@@ -10,8 +10,10 @@ const offlineManifestUrl = new URL('offline-assets.json', scopeUrl);
 // response itself so an offline navigation never receives a redirected
 // Response object that Chromium refuses as a fallback document.
 const offlineDocumentUrl = scopeUrl;
+let deferredWarmPaused = true;
+let deferredWarmPromise = null;
 
-async function cacheRelease() {
+async function releaseManifest() {
   const manifestResponse = await fetch(offlineManifestUrl, {cache: 'no-store'});
   if (!manifestResponse.ok) {
     throw new Error(
@@ -20,19 +22,42 @@ async function cacheRelease() {
   }
 
   const manifest = await manifestResponse.json();
-  if (manifest.schema !== 1 || !Array.isArray(manifest.assets)) {
+  if (
+    manifest.schema !== 2 ||
+    !Array.isArray(manifest.sharedAssets) ||
+    !Array.isArray(manifest.deferredAssets) ||
+    !manifest.rendererAssets ||
+    !Array.isArray(manifest.rendererAssets.canvaskit) ||
+    !Array.isArray(manifest.rendererAssets.skwasm)
+  ) {
     throw new Error('Offline manifest is malformed.');
   }
+  return manifest;
+}
 
-  const cache = await caches.open(cacheName);
-  const urls = manifest.assets.map((asset) => new URL(asset, scopeUrl));
+function supportsSkwasm() {
+  const agent = self.navigator.userAgent || '';
+  const blink =
+    (/(?:Chrome|Chromium)\//.test(agent) || /Edg\//.test(agent)) &&
+    !/(?:CriOS|EdgiOS|OPiOS)/.test(agent);
+  if (!blink) return false;
+  try {
+    const wasmGcProbe = new Uint8Array([
+      0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 95, 1, 120, 0,
+    ]);
+    return WebAssembly.validate(wasmGcProbe);
+  } catch (_) {
+    return false;
+  }
+}
 
-  // A bounded batch keeps low-memory mobile browsers from fetching the whole
-  // illustrated app in one burst while still making install atomic: any failed
-  // response rejects installation instead of claiming an incomplete cache.
-  for (let index = 0; index < urls.length; index += 8) {
+async function cacheUrls(cache, assets, {batchSize = 4} = {}) {
+  const urls = assets.map((asset) => new URL(asset, scopeUrl));
+
+  for (let index = 0; index < urls.length; index += batchSize) {
     await Promise.all(
-      urls.slice(index, index + 8).map(async (url) => {
+      urls.slice(index, index + batchSize).map(async (url) => {
+        if (await cache.match(url, {ignoreSearch: true})) return;
         const response = await fetch(url, {
           cache: 'reload',
           credentials: 'same-origin',
@@ -46,8 +71,49 @@ async function cacheRelease() {
   }
 }
 
+async function cacheCore() {
+  const manifest = await releaseManifest();
+  const renderer = supportsSkwasm() ? 'skwasm' : 'canvaskit';
+  const cache = await caches.open(cacheName);
+  // Cache only the runtime this browser can execute plus the first room. The
+  // old installer downloaded every page, sound, and renderer while the person
+  // was trying to use the first screen.
+  await cacheUrls(cache, [
+    ...manifest.sharedAssets,
+    ...manifest.rendererAssets[renderer],
+  ]);
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function warmDeferredCache() {
+  if (deferredWarmPromise) return deferredWarmPromise;
+  deferredWarmPromise = (async () => {
+    const manifest = await releaseManifest();
+    const cache = await caches.open(cacheName);
+    for (const asset of manifest.deferredAssets) {
+      if (deferredWarmPaused) return;
+      const url = new URL(asset, scopeUrl);
+      if (!(await cache.match(url, {ignoreSearch: true}))) {
+        const response = await fetch(url, {
+          cache: 'reload',
+          credentials: 'same-origin',
+        });
+        if (response.ok) await cache.put(url, response);
+      }
+      // One quiet request at a time leaves input, paint, and audio in front.
+      await wait(90);
+    }
+  })().finally(() => {
+    deferredWarmPromise = null;
+  });
+  return deferredWarmPromise;
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(cacheRelease().then(() => self.skipWaiting()));
+  event.waitUntil(cacheCore().then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
@@ -124,12 +190,29 @@ async function navigate(request) {
   return fallback || Response.error();
 }
 
+function bypassAppShell(url) {
+  if (!url.pathname.startsWith(scopeUrl.pathname)) return false;
+  const relativePath = url.pathname.slice(scopeUrl.pathname.length);
+  return (
+    relativePath === 'android' ||
+    relativePath === 'android.html' ||
+    relativePath === 'introduction' ||
+    relativePath === 'introduction.html' ||
+    relativePath.startsWith('introduction/')
+  );
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
   if (url.origin !== scopeUrl.origin) return;
+
+  // These pages publish independently from the installable Flutter shell.
+  // Leave their documents and assets on the network so an older app cache can
+  // never replace the introduction or retain a superseded download link.
+  if (bypassAppShell(url)) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(navigate(request));
@@ -140,5 +223,12 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data === 'SKIP_WAITING') {
+    self.skipWaiting();
+  } else if (event.data === 'PAUSE_OFFLINE_CACHE') {
+    deferredWarmPaused = true;
+  } else if (event.data === 'WARM_OFFLINE_CACHE') {
+    deferredWarmPaused = false;
+    event.waitUntil(warmDeferredCache());
+  }
 });

@@ -24,6 +24,27 @@ typedef SaveAcademicMeeting =
 
 typedef SaveAcademicWork = Future<bool> Function(AcademicWorkItem item);
 typedef ToggleAcademicWork = Future<void> Function(AcademicWorkItem item);
+typedef OpenAcademicStudyPlanner = Future<void> Function(AcademicWorkItem item);
+typedef ToggleAcademicStudyBlock =
+    Future<void> Function(AcademicStudyBlock block);
+typedef SaveAcademicStudyPlan =
+    Future<bool> Function(
+      AcademicStudyPlan plan,
+      List<AcademicStudyBlock> blocks,
+    );
+typedef UpdateAcademicTransitionBuffer =
+    Future<bool> Function(ClassOccurrence occurrence, int minutes);
+typedef MoveAcademicOccurrence =
+    Future<bool> Function(
+      ClassOccurrence occurrence,
+      CivilDate date,
+      int startMinute,
+      int endMinute,
+    );
+typedef ChangeAcademicOccurrence =
+    Future<bool> Function(ClassOccurrence occurrence);
+typedef OpenAcademicOccurrenceAdjuster =
+    Future<void> Function(ClassOccurrence occurrence);
 
 enum AcademicAddTarget { classMeeting, assignment, exam }
 
@@ -404,6 +425,10 @@ class AcademicSpanPanel extends StatelessWidget {
     required this.onSelectDay,
     required this.onOpenNotebook,
     required this.onToggleWork,
+    required this.onOpenStudyPlanner,
+    required this.onToggleStudyBlock,
+    required this.onUpdateTransitionBuffer,
+    required this.onOpenOccurrenceAdjuster,
   });
 
   final AcademicCalendarMode mode;
@@ -416,6 +441,10 @@ class AcademicSpanPanel extends StatelessWidget {
   final ValueChanged<DateTime> onSelectDay;
   final OpenAcademicNotebook onOpenNotebook;
   final ToggleAcademicWork onToggleWork;
+  final OpenAcademicStudyPlanner onOpenStudyPlanner;
+  final ToggleAcademicStudyBlock onToggleStudyBlock;
+  final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
+  final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
 
   @override
   Widget build(BuildContext context) {
@@ -501,6 +530,10 @@ class AcademicSpanPanel extends StatelessWidget {
               onSelectDay: onSelectDay,
               onOpenNotebook: onOpenNotebook,
               onToggleWork: onToggleWork,
+              onOpenStudyPlanner: onOpenStudyPlanner,
+              onToggleStudyBlock: onToggleStudyBlock,
+              onUpdateTransitionBuffer: onUpdateTransitionBuffer,
+              onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
             ),
             if (index != count - 1) const _AcademicRule(strength: 0.42),
           ],
@@ -520,6 +553,10 @@ class AcademicAgendaDay extends StatelessWidget {
     required this.onSelectDay,
     required this.onOpenNotebook,
     required this.onToggleWork,
+    required this.onOpenStudyPlanner,
+    required this.onToggleStudyBlock,
+    required this.onUpdateTransitionBuffer,
+    required this.onOpenOccurrenceAdjuster,
     this.compact = false,
   });
 
@@ -530,12 +567,19 @@ class AcademicAgendaDay extends StatelessWidget {
   final ValueChanged<DateTime> onSelectDay;
   final OpenAcademicNotebook onOpenNotebook;
   final ToggleAcademicWork onToggleWork;
+  final OpenAcademicStudyPlanner onOpenStudyPlanner;
+  final ToggleAcademicStudyBlock onToggleStudyBlock;
+  final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
+  final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final occurrences = schedule.occurrencesOn(date);
     final workItems = schedule.workItemsOn(date);
+    final studyBlocks = schedule.studyBlocksOn(date);
+    final conflicts = schedule.meetingConflictsOn(date);
+    final transitionPressures = schedule.transitionPressuresOn(date);
     return Padding(
       padding: EdgeInsets.symmetric(vertical: compact ? 6 : 8),
       child: Column(
@@ -606,11 +650,11 @@ class AcademicAgendaDay extends StatelessWidget {
               ),
             ),
           ),
-          if (occurrences.isEmpty && workItems.isEmpty)
+          if (occurrences.isEmpty && workItems.isEmpty && studyBlocks.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
               child: Text(
-                'No classes or course work.',
+                'No classes, course work, or study blocks.',
                 style: Type.body.copyWith(
                   fontSize: 12.5,
                   fontStyle: FontStyle.italic,
@@ -619,17 +663,64 @@ class AcademicAgendaDay extends StatelessWidget {
               ),
             )
           else ...[
+            if (conflicts.isNotEmpty) ...[
+              AcademicConflictNotice(conflicts: conflicts, schedule: schedule),
+              const SizedBox(height: 7),
+            ],
+            if (transitionPressures.isNotEmpty) ...[
+              AcademicTransitionNotice(
+                pressures: transitionPressures,
+                schedule: schedule,
+              ),
+              const SizedBox(height: 7),
+            ],
             for (final occurrence in occurrences)
               AcademicOccurrenceRow(
                 occurrence: occurrence,
                 course: schedule.courseById(occurrence.courseId),
+                transitionBufferMinutes:
+                    schedule
+                        .meetingSeriesById(occurrence.meetingSeriesId)
+                        ?.transitionBufferMinutes ??
+                    10,
+                conflict: conflicts.any(
+                  (item) => item.includes(occurrence.occurrenceKey),
+                ),
+                transitionPressure: transitionPressures.any(
+                  (item) => item.includes(occurrence.occurrenceKey),
+                ),
                 onOpenNotebook: () => onOpenNotebook(occurrence),
+                onSetTransitionBuffer: (minutes) =>
+                    onUpdateTransitionBuffer(occurrence, minutes),
+                onAdjust: occurrence.canAdjust
+                    ? () => onOpenOccurrenceAdjuster(occurrence)
+                    : null,
               ),
             for (final item in workItems)
               AcademicWorkRow(
                 item: item,
                 course: schedule.courseById(item.courseId),
+                studyPlan: schedule.studyPlanFor(item.workId),
+                plannedStudyMinutes: schedule.plannedStudyMinutesFor(
+                  item.workId,
+                ),
                 onToggle: () => onToggleWork(item),
+                onPlanStudy: () => onOpenStudyPlanner(item),
+              ),
+            for (final block in studyBlocks)
+              AcademicStudyBlockRow(
+                block: block,
+                item: schedule.workItems
+                    .where((item) => item.workId == block.workId)
+                    .firstOrNull,
+                course: schedule.courseById(
+                  schedule.workItems
+                          .where((item) => item.workId == block.workId)
+                          .firstOrNull
+                          ?.courseId ??
+                      '',
+                ),
+                onToggle: () => onToggleStudyBlock(block),
               ),
           ],
         ],
@@ -643,12 +734,22 @@ class AcademicOccurrenceRow extends StatelessWidget {
     super.key,
     required this.occurrence,
     required this.course,
+    this.transitionBufferMinutes = 10,
+    this.conflict = false,
+    this.transitionPressure = false,
     required this.onOpenNotebook,
+    required this.onSetTransitionBuffer,
+    this.onAdjust,
   });
 
   final ClassOccurrence occurrence;
   final AcademicCourse? course;
+  final int transitionBufferMinutes;
+  final bool conflict;
+  final bool transitionPressure;
   final VoidCallback onOpenNotebook;
+  final ValueChanged<int> onSetTransitionBuffer;
+  final VoidCallback? onAdjust;
 
   @override
   Widget build(BuildContext context) {
@@ -671,7 +772,10 @@ class AcademicOccurrenceRow extends StatelessWidget {
         '${formatAcademicTime(occurrence.localStartMinute)} to '
         '${formatAcademicTime(occurrence.localEndMinute)}, '
         '${occurrence.place.shortLabel}, '
-        '${stateLabel?.toLowerCase() ?? 'scheduled'}, $reminderLabel';
+        '${stateLabel?.toLowerCase() ?? 'scheduled'}, $reminderLabel'
+        '${conflict ? ', overlaps another class' : ''}'
+        '${transitionPressure ? ', has a tight transition' : ''}, '
+        '${transitionBufferMinutes == 0 ? 'no transition buffer' : '$transitionBufferMinutes minute transition buffer'}';
 
     return Semantics(
       label: semantics,
@@ -732,6 +836,28 @@ class AcademicOccurrenceRow extends StatelessWidget {
                                 : Palette.xpLight,
                           ),
                         ),
+                      if (conflict)
+                        Text(
+                          'OVERLAP',
+                          key: ValueKey(
+                            'academic-overlap-${occurrence.occurrenceKey}',
+                          ),
+                          style: Type.label.copyWith(
+                            fontSize: Type.minLabel,
+                            color: Palette.danger,
+                          ),
+                        ),
+                      if (transitionPressure)
+                        Text(
+                          'TIGHT TURNAROUND',
+                          key: ValueKey(
+                            'academic-transition-${occurrence.occurrenceKey}',
+                          ),
+                          style: Type.label.copyWith(
+                            fontSize: Type.minLabel,
+                            color: Palette.xp,
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 3),
@@ -760,14 +886,175 @@ class AcademicOccurrenceRow extends StatelessWidget {
                       color: Palette.textMid,
                     ),
                   ),
+                  if (transitionPressure) ...[
+                    const SizedBox(height: 7),
+                    _TransitionBufferButton(
+                      occurrenceKey: occurrence.occurrenceKey,
+                      courseCode: code,
+                      transitionBufferMinutes: transitionBufferMinutes,
+                      onSetTransitionBuffer: onSetTransitionBuffer,
+                    ),
+                  ],
                 ],
               ),
             ),
             const SizedBox(width: 6),
-            _NotebookButton(
+            _OccurrenceActions(
               occurrenceKey: occurrence.occurrenceKey,
               courseCode: code,
-              onTap: onOpenNotebook,
+              onOpenNotebook: onOpenNotebook,
+              onAdjust: onAdjust,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AcademicConflictNotice extends StatelessWidget {
+  const AcademicConflictNotice({
+    super.key,
+    required this.conflicts,
+    required this.schedule,
+  });
+
+  final List<AcademicMeetingConflict> conflicts;
+  final AcademicSchedule schedule;
+
+  @override
+  Widget build(BuildContext context) {
+    String codeFor(ClassOccurrence item) =>
+        schedule.courseById(item.courseId)?.code ?? 'CLASS';
+    final first = conflicts.first;
+    final detail = conflicts.length == 1
+        ? '${codeFor(first.first)} and ${codeFor(first.second)} share '
+              '${formatAcademicTime(first.overlapStartMinute)}–'
+              '${formatAcademicTime(first.overlapEndMinute)}.'
+        : '${conflicts.length} class overlaps are sharing this day.';
+    return Semantics(
+      container: true,
+      label: 'Schedule overlap. $detail Both classes are still kept.',
+      child: Container(
+        key: ValueKey('academic-conflicts-${first.date}'),
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+        decoration: facetedDecoration(
+          cut: 9,
+          color: Palette.danger.withValues(alpha: 0.055),
+          borderColor: Palette.danger.withValues(alpha: 0.42),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 1),
+              child: Icon(
+                Icons.call_split_rounded,
+                size: 18,
+                color: Palette.danger,
+              ),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    conflicts.length == 1
+                        ? 'TWO CLASSES SHARE THIS TIME'
+                        : '${conflicts.length} TIMES NEED A LOOK',
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 1.1,
+                      color: Palette.danger,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$detail Both stay on your daybook.',
+                    style: Type.body.copyWith(
+                      fontSize: 12.5,
+                      color: Palette.textMid,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AcademicTransitionNotice extends StatelessWidget {
+  const AcademicTransitionNotice({
+    super.key,
+    required this.pressures,
+    required this.schedule,
+  });
+
+  final List<AcademicTransitionPressure> pressures;
+  final AcademicSchedule schedule;
+
+  @override
+  Widget build(BuildContext context) {
+    String codeFor(ClassOccurrence item) =>
+        schedule.courseById(item.courseId)?.code ?? 'CLASS';
+    final first = pressures.first;
+    final detail = pressures.length == 1
+        ? '${codeFor(first.before)} ends ${first.gapMinutes} min before '
+              '${codeFor(first.after)}; your buffer is ${first.requestedMinutes} min.'
+        : '${pressures.length} transitions have less room than requested.';
+    return Semantics(
+      container: true,
+      label: 'Tight class transition. $detail Class times are unchanged.',
+      child: Container(
+        key: ValueKey('academic-transitions-${first.date}'),
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+        decoration: facetedDecoration(
+          cut: 9,
+          color: Palette.xp.withValues(alpha: 0.045),
+          borderColor: Palette.brass.withValues(alpha: 0.46),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 1),
+              child: Icon(
+                Icons.directions_walk_rounded,
+                size: 18,
+                color: Palette.xp,
+              ),
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    pressures.length == 1
+                        ? 'A TIGHT TURNAROUND'
+                        : '${pressures.length} TIGHT TURNAROUNDS',
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 1.1,
+                      color: Palette.xp,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$detail Class times stay exactly as entered.',
+                    style: Type.body.copyWith(
+                      fontSize: 12.5,
+                      color: Palette.textMid,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -781,12 +1068,18 @@ class AcademicWorkRow extends StatelessWidget {
     super.key,
     required this.item,
     required this.course,
+    required this.studyPlan,
+    required this.plannedStudyMinutes,
     required this.onToggle,
+    required this.onPlanStudy,
   });
 
   final AcademicWorkItem item;
   final AcademicCourse? course;
+  final AcademicStudyPlan? studyPlan;
+  final int plannedStudyMinutes;
   final VoidCallback onToggle;
+  final VoidCallback onPlanStudy;
 
   @override
   Widget build(BuildContext context) {
@@ -798,10 +1091,13 @@ class AcademicWorkRow extends StatelessWidget {
         ? 'At ${formatAcademicTime(item.dueMinute!)}'
         : 'Due ${formatAcademicTime(item.dueMinute!)}';
     final state = item.completed ? 'completed' : 'not completed';
+    final studyState = studyPlan == null
+        ? 'no study time planned'
+        : '$plannedStudyMinutes of ${studyPlan!.totalMinutes} study minutes planned';
     return Semantics(
       container: true,
       label:
-          '$code ${item.kind.label}, ${item.title}, ${item.dueDate}, $time, $state',
+          '$code ${item.kind.label}, ${item.title}, ${item.dueDate}, $time, $state, $studyState',
       child: Container(
         key: ValueKey('academic-work-${item.workId}'),
         width: double.infinity,
@@ -898,10 +1194,613 @@ class AcademicWorkRow extends StatelessWidget {
                       color: Palette.textMid,
                     ),
                   ),
+                  if (!item.completed) ...[
+                    const SizedBox(height: 7),
+                    Semantics(
+                      button: true,
+                      label: studyPlan == null
+                          ? 'Plan study time for ${item.title}'
+                          : 'Review study plan for ${item.title}',
+                      child: InkWell(
+                        key: ValueKey('academic-plan-study-${item.workId}'),
+                        onTap: onPlanStudy,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 44),
+                          padding: const EdgeInsets.symmetric(horizontal: 9),
+                          decoration: facetedDecoration(
+                            cut: 7,
+                            color: Palette.xp.withValues(alpha: 0.06),
+                            borderColor: Palette.brass.withValues(alpha: 0.44),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.schedule_rounded,
+                                size: 16,
+                                color: Palette.xp,
+                              ),
+                              const SizedBox(width: 7),
+                              Expanded(
+                                child: Text(
+                                  studyPlan == null
+                                      ? 'PLAN STUDY TIME'
+                                      : '$plannedStudyMinutes / ${studyPlan!.totalMinutes} MIN PLANNED',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Type.label.copyWith(
+                                    fontSize: Type.minLabel,
+                                    letterSpacing: 0.55,
+                                    color: Palette.xpLight,
+                                  ),
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 17,
+                                color: Palette.xpLight,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class AcademicStudyBlockRow extends StatelessWidget {
+  const AcademicStudyBlockRow({
+    super.key,
+    required this.block,
+    required this.item,
+    required this.course,
+    required this.onToggle,
+  });
+
+  final AcademicStudyBlock block;
+  final AcademicWorkItem? item;
+  final AcademicCourse? course;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = Color(course?.colorValue ?? 0xFF8AAFC6);
+    final code = course?.code ?? 'COURSE';
+    final title = item?.title ?? 'Study block';
+    return Semantics(
+      container: true,
+      label:
+          '$code study block for $title, ${formatAcademicTime(block.startMinute)} to ${formatAcademicTime(block.endMinute)}, ${block.completed ? 'completed' : 'not completed'}',
+      child: Container(
+        key: ValueKey('academic-study-block-${block.studyBlockId}'),
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 7),
+        padding: const EdgeInsets.fromLTRB(9, 8, 10, 8),
+        decoration: facetedDecoration(
+          cut: 9,
+          color: accent.withValues(alpha: block.completed ? 0.03 : 0.055),
+          borderColor: accent.withValues(alpha: block.completed ? 0.16 : 0.30),
+        ),
+        child: Row(
+          children: [
+            Semantics(
+              button: true,
+              checked: block.completed,
+              label:
+                  '${block.completed ? 'Mark incomplete' : 'Mark complete'}: study $title',
+              child: InkWell(
+                key: ValueKey('academic-study-toggle-${block.studyBlockId}'),
+                onTap: onToggle,
+                borderRadius: BorderRadius.circular(22),
+                child: SizedBox.square(
+                  dimension: 44,
+                  child: Center(
+                    child: Container(
+                      width: 25,
+                      height: 25,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: block.completed
+                            ? accent.withValues(alpha: 0.85)
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: block.completed ? accent : Palette.textLo,
+                        ),
+                      ),
+                      child: block.completed
+                          ? const Icon(
+                              Icons.check_rounded,
+                              size: 17,
+                              color: Color(0xFF17100C),
+                            )
+                          : Icon(
+                              Icons.menu_book_rounded,
+                              size: 14,
+                              color: accent,
+                            ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 5),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$code · STUDY',
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 0.8,
+                      color: block.completed ? Palette.textLo : accent,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.body.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: block.completed ? Palette.textLo : Palette.textHi,
+                      decoration: block.completed
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${formatAcademicTime(block.startMinute)}–${formatAcademicTime(block.endMinute)} · ${block.durationMinutes} min',
+                    style: Type.body.copyWith(
+                      fontSize: 12.5,
+                      color: Palette.textMid,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class AcademicOccurrenceAdjustDialog extends StatefulWidget {
+  const AcademicOccurrenceAdjustDialog({
+    super.key,
+    required this.schedule,
+    required this.occurrence,
+    required this.onMove,
+    required this.onCancel,
+    required this.onRestore,
+  });
+
+  final AcademicSchedule schedule;
+  final ClassOccurrence occurrence;
+  final MoveAcademicOccurrence onMove;
+  final ChangeAcademicOccurrence onCancel;
+  final ChangeAcademicOccurrence onRestore;
+
+  @override
+  State<AcademicOccurrenceAdjustDialog> createState() =>
+      _AcademicOccurrenceAdjustDialogState();
+}
+
+class _AcademicOccurrenceAdjustDialogState
+    extends State<AcademicOccurrenceAdjustDialog> {
+  late CivilDate _date;
+  late TimeOfDay _start;
+  late TimeOfDay _end;
+  bool _editingMove = false;
+  bool _saving = false;
+  String? _error;
+
+  AcademicCourse? get _course =>
+      widget.schedule.courseById(widget.occurrence.courseId);
+
+  AcademicTerm? get _term {
+    final course = _course;
+    if (course == null) return null;
+    return widget.schedule.terms
+        .where((term) => term.termId == course.termId)
+        .firstOrNull;
+  }
+
+  bool get _hasOpenStudyPlans {
+    final openWorkIds = {
+      for (final item in widget.schedule.workItems)
+        if (!item.completed && item.tombstonedAt == null) item.workId,
+    };
+    return widget.schedule.studyPlans.any(
+      (plan) => openWorkIds.contains(plan.workId),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _date = widget.occurrence.date;
+    _start = _timeOfDay(widget.occurrence.localStartMinute);
+    _end = _timeOfDay(widget.occurrence.localEndMinute);
+  }
+
+  Future<void> _pickDate() async {
+    final term = _term;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _date.dateArithmeticValue,
+      firstDate: term?.startDate.dateArithmeticValue ?? DateTime.utc(2020),
+      lastDate: term?.endDate.dateArithmeticValue ?? DateTime.utc(2100, 12, 31),
+      helpText: 'MOVE THIS CLASS TO',
+    );
+    if (!mounted || picked == null) return;
+    setState(() {
+      _date = CivilDate.fromDateTime(picked);
+      _error = null;
+    });
+  }
+
+  Future<void> _pickTime({required bool start}) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: start ? _start : _end,
+      helpText: start ? 'NEW CLASS START' : 'NEW CLASS END',
+    );
+    if (!mounted || picked == null) return;
+    setState(() {
+      if (start) {
+        _start = picked;
+      } else {
+        _end = picked;
+      }
+      _error = null;
+    });
+  }
+
+  Future<void> _move() async {
+    final startMinute = _minuteOf(_start);
+    final endMinute = _minuteOf(_end);
+    if (endMinute <= startMinute) {
+      setState(() => _error = 'Class end needs to be after its start.');
+      return;
+    }
+    if (_date == widget.occurrence.date &&
+        startMinute == widget.occurrence.localStartMinute &&
+        endMinute == widget.occurrence.localEndMinute) {
+      setState(() => _error = 'Choose a new date or time for this class.');
+      return;
+    }
+    await _save(
+      () => widget.onMove(widget.occurrence, _date, startMinute, endMinute),
+    );
+  }
+
+  Future<void> _save(Future<bool> Function() change) async {
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final saved = await change();
+    if (!mounted) return;
+    if (!saved) {
+      Sfx.instance.play('boing');
+      setState(() {
+        _saving = false;
+        _error = 'Couldn’t save this class change locally. Try again.';
+      });
+      return;
+    }
+    Sfx.instance.play('streak');
+    HapticFeedback.mediumImpact();
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final occurrence = widget.occurrence;
+    final code = _course?.code ?? 'CLASS';
+    final adjusted = occurrence.userAdjusted;
+    final studyNote = _hasOpenStudyPlans
+        ? 'Only this class changes; the weekly class stays intact. Open study blocks will refit, while completed study stays put.'
+        : 'Only this class changes. The weekly class stays intact.';
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: GlassPanel(
+          tint: Palette.dialogSurface,
+          padding: const EdgeInsets.fromLTRB(18, 15, 18, 18),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'ADJUST THIS CLASS',
+                        style: Type.label.copyWith(
+                          fontSize: 12,
+                          color: Palette.xpLight,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: _saving
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(11, 10, 11, 10),
+                  decoration: facetedDecoration(
+                    cut: 9,
+                    color: Color(
+                      _course?.colorValue ?? 0xFF8AAFC6,
+                    ).withValues(alpha: 0.07),
+                    borderColor: Palette.brass.withValues(alpha: 0.38),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '$code · ${occurrence.kind.label.toUpperCase()}',
+                        style: Type.label.copyWith(
+                          fontSize: Type.minLabel,
+                          color: Palette.xpLight,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${_formatAcademicDate(occurrence.date)} · '
+                        '${formatAcademicTime(occurrence.localStartMinute)}–'
+                        '${formatAcademicTime(occurrence.localEndMinute)}',
+                        style: Type.body.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: occurrence.state == OccurrenceState.cancelled
+                              ? Palette.textLo
+                              : Palette.textHi,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        studyNote,
+                        key: const ValueKey('academic-adjust-study-note'),
+                        style: Type.body.copyWith(
+                          fontSize: 12.5,
+                          color: Palette.textMid,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_editingMove) ...[
+                  const SizedBox(height: 14),
+                  _SectionLabel('NEW DATE & TIME'),
+                  const SizedBox(height: 7),
+                  _DateButton(
+                    label: 'DATE',
+                    date: _date,
+                    enabled: !_saving,
+                    onTap: _pickDate,
+                  ),
+                  const SizedBox(height: 7),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _TimeButton(
+                          label: 'START',
+                          time: _start,
+                          onTap: () => _pickTime(start: true),
+                        ),
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: _TimeButton(
+                          label: 'END',
+                          time: _end,
+                          onTap: () => _pickTime(start: false),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 13),
+                  _OccurrenceDialogAction(
+                    key: const ValueKey('academic-occurrence-move-save'),
+                    label: _saving ? 'SAVING…' : 'MOVE THIS CLASS',
+                    icon: Icons.event_available_rounded,
+                    onTap: _saving ? null : _move,
+                    primary: true,
+                  ),
+                  const SizedBox(height: 7),
+                  _OccurrenceDialogAction(
+                    label: 'BACK',
+                    icon: Icons.arrow_back_rounded,
+                    onTap: _saving
+                        ? null
+                        : () => setState(() {
+                            _editingMove = false;
+                            _error = null;
+                          }),
+                  ),
+                ] else ...[
+                  const SizedBox(height: 14),
+                  if (occurrence.state != OccurrenceState.cancelled) ...[
+                    _OccurrenceDialogAction(
+                      key: const ValueKey('academic-occurrence-move'),
+                      label: 'MOVE THIS CLASS',
+                      icon: Icons.event_available_rounded,
+                      onTap: _saving
+                          ? null
+                          : () => setState(() {
+                              _editingMove = true;
+                              _error = null;
+                            }),
+                      primary: true,
+                    ),
+                    const SizedBox(height: 7),
+                    _OccurrenceDialogAction(
+                      key: const ValueKey('academic-occurrence-cancel'),
+                      label: 'CANCEL THIS CLASS',
+                      icon: Icons.event_busy_rounded,
+                      onTap: _saving
+                          ? null
+                          : () =>
+                                _save(() => widget.onCancel(widget.occurrence)),
+                      danger: true,
+                    ),
+                  ],
+                  if (adjusted) ...[
+                    if (occurrence.state != OccurrenceState.cancelled)
+                      const SizedBox(height: 7),
+                    _OccurrenceDialogAction(
+                      key: const ValueKey('academic-occurrence-restore'),
+                      label: occurrence.state == OccurrenceState.cancelled
+                          ? 'RESTORE THIS CLASS'
+                          : 'RESTORE ORIGINAL TIME',
+                      icon: Icons.restore_rounded,
+                      onTap: _saving
+                          ? null
+                          : () => _save(
+                              () => widget.onRestore(widget.occurrence),
+                            ),
+                    ),
+                  ],
+                ],
+                if (_error != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _error!,
+                    key: const ValueKey('academic-occurrence-adjust-error'),
+                    style: Type.body.copyWith(
+                      fontSize: 12,
+                      color: Palette.danger,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OccurrenceDialogAction extends StatelessWidget {
+  const _OccurrenceDialogAction({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.primary = false,
+    this.danger = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool primary;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = primary
+        ? Palette.onHoney
+        : danger
+        ? Palette.danger
+        : Palette.xpLight;
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: label.toLowerCase(),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9),
+        child: Opacity(
+          opacity: onTap == null ? 0.52 : 1,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 46),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: primary
+                ? null
+                : facetedDecoration(
+                    cut: 8,
+                    color: danger
+                        ? Palette.danger.withValues(alpha: 0.045)
+                        : Palette.xp.withValues(alpha: 0.055),
+                    borderColor: danger
+                        ? Palette.danger.withValues(alpha: 0.42)
+                        : Palette.brass.withValues(alpha: 0.42),
+                  ),
+            child: primary
+                ? GoldSurface(
+                    cut: 8,
+                    glow: false,
+                    textured: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(icon, size: 18, color: foreground),
+                          const SizedBox(width: 7),
+                          Flexible(
+                            child: Text(
+                              label,
+                              textAlign: TextAlign.center,
+                              style: Type.label.copyWith(
+                                fontSize: 11.5,
+                                letterSpacing: 0.9,
+                                color: foreground,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 18, color: foreground),
+                      const SizedBox(width: 7),
+                      Flexible(
+                        child: Text(
+                          label,
+                          textAlign: TextAlign.center,
+                          style: Type.label.copyWith(
+                            fontSize: 11.5,
+                            letterSpacing: 0.9,
+                            color: foreground,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
@@ -940,9 +1839,56 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
   late Set<int> _weekdays;
   TimeOfDay _start = const TimeOfDay(hour: 10, minute: 0);
   TimeOfDay _end = const TimeOfDay(hour: 11, minute: 15);
+  int _transitionBufferMinutes = 10;
   int _colorIndex = 0;
   String? _error;
   bool _saving = false;
+
+  List<MeetingSeries> get _matchingTimeSeries {
+    final startMinute = _start.hour * 60 + _start.minute;
+    final endMinute = _end.hour * 60 + _end.minute;
+    if (_weekdays.isEmpty || endMinute <= startMinute) return const [];
+    return [
+      for (final series in widget.schedule.meetingSeries)
+        if (series.tombstonedAt == null &&
+            series.weekdays.any(_weekdays.contains) &&
+            series.firstDate.compareTo(_termEnd) <= 0 &&
+            series.lastDate.compareTo(_termStart) >= 0 &&
+            startMinute < series.localEndMinute &&
+            series.localStartMinute < endMinute)
+          series,
+    ];
+  }
+
+  List<({MeetingSeries series, int gapMinutes, int requestedMinutes})>
+  get _tightTransitionSeries {
+    final startMinute = _start.hour * 60 + _start.minute;
+    final endMinute = _end.hour * 60 + _end.minute;
+    if (_weekdays.isEmpty || endMinute <= startMinute) return const [];
+    return [
+      for (final series in widget.schedule.meetingSeries)
+        if (series.tombstonedAt == null &&
+            series.weekdays.any(_weekdays.contains) &&
+            series.firstDate.compareTo(_termEnd) <= 0 &&
+            series.lastDate.compareTo(_termStart) >= 0 &&
+            (endMinute <= series.localStartMinute ||
+                series.localEndMinute <= startMinute))
+          if ((
+                series: series,
+                gapMinutes: endMinute <= series.localStartMinute
+                    ? series.localStartMinute - endMinute
+                    : startMinute - series.localEndMinute,
+                requestedMinutes: math.max(
+                  _transitionBufferMinutes,
+                  series.transitionBufferMinutes,
+                ),
+              )
+              case final pressure
+              when pressure.requestedMinutes > 0 &&
+                  pressure.gapMinutes < pressure.requestedMinutes)
+            pressure,
+    ];
+  }
 
   static const _courseColors = <({int value, String label})>[
     (value: 0xFF8AAFC6, label: 'Dusk blue'),
@@ -1078,6 +2024,7 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
       weekdays: _weekdays,
       localStartMinute: startMinute,
       localEndMinute: endMinute,
+      transitionBufferMinutes: _transitionBufferMinutes,
       firstDate: term.startDate,
       lastDate: term.endDate,
       timeZoneId: term.timeZoneId,
@@ -1301,6 +2248,47 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
                         onTap: () => _pickTime(start: false),
                       ),
                     ),
+                  ],
+                ),
+                if (_matchingTimeSeries.isNotEmpty) ...[
+                  const SizedBox(height: 9),
+                  _SchedulePressurePreview(
+                    key: const ValueKey('academic-class-overlap-preview'),
+                    series: _matchingTimeSeries,
+                    schedule: widget.schedule,
+                  ),
+                ],
+                if (_matchingTimeSeries.isEmpty &&
+                    _tightTransitionSeries.isNotEmpty) ...[
+                  const SizedBox(height: 9),
+                  _ScheduleTransitionPreview(
+                    key: const ValueKey('academic-class-transition-preview'),
+                    pressure: _tightTransitionSeries.first,
+                    schedule: widget.schedule,
+                  ),
+                ],
+                const SizedBox(height: 13),
+                _SectionLabel('TIME AROUND CLASS'),
+                const SizedBox(height: 7),
+                Text(
+                  'How much room should the daybook leave for walking or resetting?',
+                  style: Type.body.copyWith(
+                    fontSize: 12.5,
+                    color: Palette.textMid,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final minutes in const [0, 5, 10, 15, 20, 30])
+                      _SelectChip(
+                        label: minutes == 0 ? 'NONE' : '$minutes MIN',
+                        selected: _transitionBufferMinutes == minutes,
+                        onTap: () =>
+                            setState(() => _transitionBufferMinutes = minutes),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 13),
@@ -1739,6 +2727,530 @@ class _AddAcademicWorkDialogState extends State<AddAcademicWorkDialog> {
   }
 }
 
+class AcademicStudyPlannerDialog extends StatefulWidget {
+  const AcademicStudyPlannerDialog({
+    super.key,
+    required this.schedule,
+    required this.item,
+    required this.onSave,
+    this.planningStartDate,
+  });
+
+  final AcademicSchedule schedule;
+  final AcademicWorkItem item;
+  final SaveAcademicStudyPlan onSave;
+  final CivilDate? planningStartDate;
+
+  @override
+  State<AcademicStudyPlannerDialog> createState() =>
+      _AcademicStudyPlannerDialogState();
+}
+
+class _AcademicStudyPlannerDialogState
+    extends State<AcademicStudyPlannerDialog> {
+  late int _totalMinutes;
+  late int _sessionMinutes;
+  late TimeOfDay _dailyStart;
+  late TimeOfDay _dailyEnd;
+  AcademicStudySuggestion? _suggestion;
+  String? _error;
+  bool _saving = false;
+
+  AcademicCourse? get _course =>
+      widget.schedule.courseById(widget.item.courseId);
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.schedule.studyPlanFor(widget.item.workId);
+    _totalMinutes =
+        existing?.totalMinutes ??
+        (widget.item.kind == AcademicWorkKind.exam ? 180 : 120);
+    _sessionMinutes = existing?.sessionMinutes ?? 45;
+    _dailyStart = _timeOfDay(existing?.dailyStartMinute ?? 9 * 60);
+    _dailyEnd = _timeOfDay(existing?.dailyEndMinute ?? 20 * 60);
+    _suggest();
+  }
+
+  void _suggest() {
+    try {
+      final suggestion = widget.schedule.suggestStudyBlocks(
+        workId: widget.item.workId,
+        totalMinutes: _totalMinutes,
+        sessionMinutes: _sessionMinutes,
+        dailyStartMinute: _minuteOf(_dailyStart),
+        dailyEndMinute: _minuteOf(_dailyEnd),
+        now: Clock.now(),
+        planningStartDate: widget.planningStartDate,
+      );
+      _suggestion = suggestion;
+      _error =
+          suggestion.blocks.isEmpty && suggestion.remainingTargetMinutes > 0
+          ? 'There isn’t an open study slot before this deadline in those hours.'
+          : null;
+    } on ArgumentError {
+      _suggestion = null;
+      _error = 'Choose study hours with at least fifteen minutes between them.';
+    }
+  }
+
+  void _change(VoidCallback update) {
+    setState(() {
+      update();
+      _suggest();
+    });
+  }
+
+  Future<void> _pickHours({required bool start}) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: start ? _dailyStart : _dailyEnd,
+      helpText: start ? 'EARLIEST STUDY TIME' : 'LATEST STUDY TIME',
+    );
+    if (!mounted || picked == null) return;
+    _change(() {
+      if (start) {
+        _dailyStart = picked;
+      } else {
+        _dailyEnd = picked;
+      }
+    });
+  }
+
+  Future<void> _save() async {
+    final suggestion = _suggestion;
+    if (suggestion == null || suggestion.blocks.isEmpty) return;
+    final existing = widget.schedule.studyPlanFor(widget.item.workId);
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final saved = await widget.onSave(
+      AcademicStudyPlan(
+        workId: widget.item.workId,
+        totalMinutes: _totalMinutes,
+        sessionMinutes: _sessionMinutes,
+        dailyStartMinute: _minuteOf(_dailyStart),
+        dailyEndMinute: _minuteOf(_dailyEnd),
+        revision: (existing?.revision ?? 0) + 1,
+        updatedAt: Clock.now().toUtc(),
+      ),
+      suggestion.blocks,
+    );
+    if (!mounted) return;
+    if (!saved) {
+      Sfx.instance.play('boing');
+      setState(() {
+        _saving = false;
+        _error = 'Couldn’t save these study blocks locally. Try again.';
+      });
+      return;
+    }
+    Sfx.instance.play('streak');
+    HapticFeedback.mediumImpact();
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final suggestion = _suggestion;
+    final code = _course?.code ?? 'COURSE';
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(16),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: GlassPanel(
+          tint: Palette.dialogSurface,
+          padding: const EdgeInsets.fromLTRB(18, 15, 18, 18),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'PLAN STUDY TIME',
+                        style: Type.label.copyWith(
+                          fontSize: 12,
+                          color: Palette.xpLight,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '$code · ${widget.item.title}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.display.copyWith(
+                    fontSize: 20,
+                    color: Palette.textHi,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Choose the effort. The daybook finds open time before ${_formatAcademicDate(widget.item.dueDate)} and leaves every class exactly where it is.',
+                  style: Type.body.copyWith(
+                    fontSize: 12.5,
+                    color: Palette.textMid,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _SectionLabel('TOTAL EFFORT'),
+                const SizedBox(height: 7),
+                _ChoiceGrid(
+                  children: [
+                    for (final minutes in const [60, 90, 120, 180, 240, 360])
+                      _SelectChip(
+                        label: _durationLabel(minutes),
+                        selected: _totalMinutes == minutes,
+                        onTap: () => _change(() => _totalMinutes = minutes),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 13),
+                _SectionLabel('SESSION LENGTH'),
+                const SizedBox(height: 7),
+                _ChoiceGrid(
+                  children: [
+                    for (final minutes in const [25, 30, 45, 60, 90])
+                      _SelectChip(
+                        label: '$minutes MIN',
+                        selected: _sessionMinutes == minutes,
+                        onTap: () => _change(() => _sessionMinutes = minutes),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 13),
+                _SectionLabel('USABLE HOURS'),
+                const SizedBox(height: 7),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _TimeButton(
+                        label: 'EARLIEST',
+                        time: _dailyStart,
+                        onTap: () => _pickHours(start: true),
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: _TimeButton(
+                        label: 'LATEST',
+                        time: _dailyEnd,
+                        onTap: () => _pickHours(start: false),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 13),
+                _StudySuggestionPreview(
+                  key: const ValueKey('academic-study-suggestion-preview'),
+                  suggestion: suggestion,
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _error!,
+                    key: const ValueKey('academic-study-plan-error'),
+                    style: Type.body.copyWith(
+                      fontSize: 12,
+                      color: Palette.danger,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: GestureDetector(
+                    key: const ValueKey('academic-study-plan-save'),
+                    onTap:
+                        _saving ||
+                            suggestion == null ||
+                            suggestion.blocks.isEmpty
+                        ? null
+                        : _save,
+                    child: Opacity(
+                      opacity:
+                          _saving ||
+                              suggestion == null ||
+                              suggestion.blocks.isEmpty
+                          ? 0.5
+                          : 1,
+                      child: GoldSurface(
+                        cut: 9,
+                        glow: false,
+                        textured: false,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          child: Center(
+                            child: Text(
+                              _saving
+                                  ? 'SAVING…'
+                                  : widget.schedule.studyPlanFor(
+                                          widget.item.workId,
+                                        ) ==
+                                        null
+                                  ? 'KEEP THESE BLOCKS'
+                                  : 'REPLACE OPEN BLOCKS',
+                              style: Type.label.copyWith(
+                                fontSize: 12,
+                                letterSpacing: 1.1,
+                                color: Palette.onHoney,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StudySuggestionPreview extends StatelessWidget {
+  const _StudySuggestionPreview({super.key, required this.suggestion});
+
+  final AcademicStudySuggestion? suggestion;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = suggestion;
+    if (value == null) return const SizedBox.shrink();
+    return Semantics(
+      container: true,
+      label:
+          '${value.blocks.length} suggested study blocks, ${value.scheduledMinutes} minutes scheduled, ${value.unscheduledMinutes} minutes still needing room',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(11, 10, 11, 9),
+        decoration: facetedDecoration(
+          cut: 9,
+          color: Palette.xp.withValues(alpha: 0.05),
+          borderColor: Palette.brass.withValues(alpha: 0.44),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              value.fullyScheduled
+                  ? '${value.blocks.length} OPEN ${value.blocks.length == 1 ? 'BLOCK' : 'BLOCKS'} FOUND'
+                  : '${_durationLabel(value.unscheduledMinutes)} STILL NEEDS ROOM',
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                letterSpacing: 1.0,
+                color: value.fullyScheduled ? Palette.xp : Palette.danger,
+              ),
+            ),
+            if (value.completedMinutes > 0) ...[
+              const SizedBox(height: 3),
+              Text(
+                '${_durationLabel(value.completedMinutes)} already completed stays in the record.',
+                style: Type.body.copyWith(fontSize: 12, color: Palette.textMid),
+              ),
+            ],
+            if (value.blocks.isNotEmpty) ...[
+              const SizedBox(height: 7),
+              for (final block in value.blocks.take(6))
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 5),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.schedule_rounded,
+                        size: 15,
+                        color: Palette.xp,
+                      ),
+                      const SizedBox(width: 7),
+                      Expanded(
+                        child: Text(
+                          '${_formatAcademicDate(block.date)} · ${formatAcademicTime(block.startMinute)}–${formatAcademicTime(block.endMinute)}',
+                          style: Type.body.copyWith(
+                            fontSize: 12.5,
+                            color: Palette.textHi,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (value.blocks.length > 6)
+                Text(
+                  '+${value.blocks.length - 6} more blocks',
+                  style: Type.body.copyWith(
+                    fontSize: 12,
+                    color: Palette.textMid,
+                  ),
+                ),
+            ],
+            const SizedBox(height: 3),
+            Text(
+              'Nothing is added until you keep this plan.',
+              style: Type.body.copyWith(fontSize: 11.5, color: Palette.textLo),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SchedulePressurePreview extends StatelessWidget {
+  const _SchedulePressurePreview({
+    super.key,
+    required this.series,
+    required this.schedule,
+  });
+
+  final List<MeetingSeries> series;
+  final AcademicSchedule schedule;
+
+  @override
+  Widget build(BuildContext context) {
+    final first = series.first;
+    final course = schedule.courseById(first.courseId);
+    final more = series.length - 1;
+    final detail =
+        '${course?.code ?? 'Another class'} runs '
+        '${formatAcademicTime(first.localStartMinute)}–'
+        '${formatAcademicTime(first.localEndMinute)}'
+        '${more > 0 ? ', plus $more more' : ''}.';
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: 'Schedule overlap preview. $detail You can still keep this class.',
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+        decoration: facetedDecoration(
+          cut: 8,
+          color: Palette.danger.withValues(alpha: 0.05),
+          borderColor: Palette.danger.withValues(alpha: 0.38),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.call_split_rounded,
+              size: 18,
+              color: Palette.danger,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'THIS TIME ALREADY HAS A CLASS\n',
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        letterSpacing: 0.9,
+                        color: Palette.danger,
+                      ),
+                    ),
+                    TextSpan(
+                      text:
+                          '$detail It can still be kept if that is intentional.',
+                      style: Type.body.copyWith(
+                        fontSize: 12.5,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScheduleTransitionPreview extends StatelessWidget {
+  const _ScheduleTransitionPreview({
+    super.key,
+    required this.pressure,
+    required this.schedule,
+  });
+
+  final ({MeetingSeries series, int gapMinutes, int requestedMinutes}) pressure;
+  final AcademicSchedule schedule;
+
+  @override
+  Widget build(BuildContext context) {
+    final course = schedule.courseById(pressure.series.courseId);
+    final detail =
+        '${course?.code ?? 'Another class'} leaves ${pressure.gapMinutes} min; '
+        'your buffer is ${pressure.requestedMinutes} min.';
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: 'Tight transition preview. $detail Class times are unchanged.',
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+        decoration: facetedDecoration(
+          cut: 8,
+          color: Palette.xp.withValues(alpha: 0.045),
+          borderColor: Palette.brass.withValues(alpha: 0.46),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.directions_walk_rounded,
+              size: 18,
+              color: Palette.xp,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'TIGHT TURNAROUND\n',
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        letterSpacing: 0.9,
+                        color: Palette.xp,
+                      ),
+                    ),
+                    TextSpan(
+                      text:
+                          '$detail Class times stay unchanged. Keep it if that timing is real.',
+                      style: Type.body.copyWith(
+                        fontSize: 12.5,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ModeCell extends StatelessWidget {
   const _ModeCell({
     required this.mode,
@@ -1785,43 +3297,89 @@ class _ModeCell extends StatelessWidget {
   );
 }
 
-class _NotebookButton extends StatelessWidget {
-  const _NotebookButton({
+class _OccurrenceActions extends StatelessWidget {
+  const _OccurrenceActions({
     required this.occurrenceKey,
     required this.courseCode,
-    required this.onTap,
+    required this.onOpenNotebook,
+    required this.onAdjust,
   });
 
   final String occurrenceKey;
   final String courseCode;
+  final VoidCallback onOpenNotebook;
+  final VoidCallback? onAdjust;
+
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(minWidth: 56, minHeight: 44),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _OccurrenceActionButton(
+          key: ValueKey('open-notebook-$occurrenceKey'),
+          semanticLabel: 'Open $courseCode notebook',
+          label: 'NOTES',
+          icon: Icons.edit_note_rounded,
+          onTap: onOpenNotebook,
+        ),
+        if (onAdjust != null) ...[
+          const SizedBox(height: 1),
+          _OccurrenceActionButton(
+            key: ValueKey('academic-adjust-occurrence-$occurrenceKey'),
+            semanticLabel: 'Adjust this $courseCode class only',
+            label: 'ADJUST',
+            icon: Icons.event_repeat_rounded,
+            onTap: onAdjust!,
+            quiet: true,
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+class _OccurrenceActionButton extends StatelessWidget {
+  const _OccurrenceActionButton({
+    super.key,
+    required this.semanticLabel,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.quiet = false,
+  });
+
+  final String semanticLabel;
+  final String label;
+  final IconData icon;
   final VoidCallback onTap;
+  final bool quiet;
 
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
-    label: 'Open $courseCode notebook',
+    label: semanticLabel,
     child: InkWell(
-      key: ValueKey('open-notebook-$occurrenceKey'),
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 54, minHeight: 44),
+        constraints: const BoxConstraints(minWidth: 56, minHeight: 44),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 7),
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.edit_note_rounded,
-                size: 19,
-                color: Palette.xpLight,
+              Icon(
+                icon,
+                size: 18,
+                color: quiet ? Palette.textMid : Palette.xpLight,
               ),
               Text(
-                'NOTES',
+                label,
                 style: Type.label.copyWith(
                   fontSize: Type.minLabel,
-                  letterSpacing: 0.5,
-                  color: Palette.xpLight,
+                  letterSpacing: 0.45,
+                  color: quiet ? Palette.textMid : Palette.xpLight,
                 ),
               ),
             ],
@@ -1829,6 +3387,116 @@ class _NotebookButton extends StatelessWidget {
         ),
       ),
     ),
+  );
+}
+
+class _TransitionBufferButton extends StatelessWidget {
+  const _TransitionBufferButton({
+    required this.occurrenceKey,
+    required this.courseCode,
+    required this.transitionBufferMinutes,
+    required this.onSetTransitionBuffer,
+  });
+
+  final String occurrenceKey;
+  final String courseCode;
+  final int transitionBufferMinutes;
+  final ValueChanged<int> onSetTransitionBuffer;
+
+  @override
+  Widget build(BuildContext context) => PopupMenuButton<int>(
+    key: ValueKey('academic-buffer-menu-$occurrenceKey'),
+    tooltip: 'Set transition buffer for $courseCode',
+    color: Palette.card,
+    initialValue: transitionBufferMinutes,
+    onSelected: onSetTransitionBuffer,
+    padding: EdgeInsets.zero,
+    constraints: const BoxConstraints(minHeight: 44),
+    position: PopupMenuPosition.under,
+    child: Semantics(
+      button: true,
+      label:
+          'Set transition buffer for $courseCode. Current buffer $transitionBufferMinutes minutes',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Palette.xp.withValues(alpha: 0.08),
+            border: Border.all(color: Palette.xp.withValues(alpha: 0.38)),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 120;
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 7 : 10,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.directions_walk_rounded,
+                      size: 17,
+                      color: Palette.xp,
+                    ),
+                    SizedBox(width: compact ? 4 : 7),
+                    Expanded(
+                      child: Text(
+                        transitionBufferMinutes == 0
+                            ? 'NONE'
+                            : compact
+                            ? '$transitionBufferMinutes MIN'
+                            : '$transitionBufferMinutes MIN BUFFER',
+                        maxLines: compact ? 2 : 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.label.copyWith(
+                          fontSize: Type.minLabel,
+                          letterSpacing: compact ? 0.25 : 0.55,
+                          color: Palette.xpLight,
+                        ),
+                      ),
+                    ),
+                    if (!compact) ...[
+                      const SizedBox(width: 3),
+                      const Icon(
+                        Icons.expand_more_rounded,
+                        size: 17,
+                        color: Palette.xpLight,
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    ),
+    itemBuilder: (context) => [
+      for (final minutes in const [0, 5, 10, 15, 20, 30])
+        PopupMenuItem<int>(
+          value: minutes,
+          child: Row(
+            children: [
+              Icon(
+                minutes == transitionBufferMinutes
+                    ? Icons.check_rounded
+                    : Icons.directions_walk_rounded,
+                size: 18,
+                color: minutes == transitionBufferMinutes
+                    ? Palette.xp
+                    : Palette.textLo,
+              ),
+              const SizedBox(width: 9),
+              Text(
+                minutes == 0 ? 'No buffer' : '$minutes min buffer',
+                style: Type.body.copyWith(color: Palette.textHi),
+              ),
+            ],
+          ),
+        ),
+    ],
   );
 }
 
@@ -2013,6 +3681,29 @@ class _SectionLabel extends StatelessWidget {
       letterSpacing: 1.5,
       color: Palette.textLo,
     ),
+  );
+}
+
+class _ChoiceGrid extends StatelessWidget {
+  const _ChoiceGrid({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final textScale = MediaQuery.textScalerOf(context).scale(1);
+      final columns = constraints.maxWidth < 330 || textScale > 1.35 ? 2 : 3;
+      const gap = 6.0;
+      final width = (constraints.maxWidth - gap * (columns - 1)) / columns;
+      return Wrap(
+        spacing: gap,
+        runSpacing: gap,
+        children: [
+          for (final child in children) SizedBox(width: width, child: child),
+        ],
+      );
+    },
   );
 }
 
@@ -2221,6 +3912,22 @@ InputDecoration _fieldDecoration(String hint) => InputDecoration(
 
 final _inputStyle = Type.body.copyWith(fontSize: 14, color: Palette.textHi);
 
+TimeOfDay _timeOfDay(int minute) =>
+    TimeOfDay(hour: minute ~/ 60, minute: minute % 60);
+
+int _minuteOf(TimeOfDay time) => time.hour * 60 + time.minute;
+
+String _durationLabel(int minutes) {
+  final hours = minutes ~/ 60;
+  final remainder = minutes % 60;
+  if (hours == 0) return '$minutes MIN';
+  if (remainder == 0) return '$hours HR${hours == 1 ? '' : 'S'}';
+  return '$hours HR $remainder MIN';
+}
+
+String _formatAcademicDate(CivilDate date) =>
+    '${_monthNames[date.month - 1]} ${date.day}';
+
 String formatAcademicTime(int minute) {
   final hour24 = minute ~/ 60;
   final hour12 = hour24 % 12 == 0 ? 12 : hour24 % 12;
@@ -2232,7 +3939,7 @@ String formatAcademicTime(int minute) {
 String _dayCountLabel(int classes, int workItems) {
   final parts = <String>[];
   if (classes > 0) {
-    parts.add('$classes ${classes == 1 ? 'CLASS' : 'CLASSES'}');
+    parts.add('$classes ${classes == 1 ? 'CLASS' : 'CLS'}');
   }
   if (workItems > 0) parts.add('$workItems DUE');
   return parts.isEmpty ? 'QUIET DAY' : parts.join(' · ');
