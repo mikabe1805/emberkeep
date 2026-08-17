@@ -6,9 +6,41 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/momentum_kits.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final material = FontLoader('MaterialIcons')
+      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+    final fraunces = FontLoader('Fraunces')
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-Bold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-SemiBold.ttf'))
+      ..addFont(
+        rootBundle.load('assets/google_fonts/Fraunces-SemiBoldItalic.ttf'),
+      );
+    final inter = FontLoader('Inter')
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Regular.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Medium.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-SemiBold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Bold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Italic.ttf'));
+    final mono = FontLoader('JetBrainsMono')
+      ..addFont(
+        rootBundle.load('assets/google_fonts/JetBrainsMono-SemiBold.ttf'),
+      )
+      ..addFont(rootBundle.load('assets/google_fonts/JetBrainsMono-Bold.ttf'));
+    await Future.wait([
+      material.load(),
+      fraunces.load(),
+      inter.load(),
+      mono.load(),
+    ]);
+    GoogleFonts.config.allowRuntimeFetching = false;
+  });
+
   setUp(() {
     Sfx.instance.soundEnabled = false;
   });
@@ -114,6 +146,32 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 450));
     }
+  });
+
+  testWidgets('Help for Today keeps its composed resting frame', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MomentumKitsPage(
+          state: GameState()..reduceMotion = true,
+          onAdd: (_) => true,
+          onPersist: () {},
+          onOpenQuests: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await expectLater(
+      find.byType(MomentumKitsPage),
+      matchesGoldenFile('goldens/help_for_today_430x932.png'),
+    );
   });
 
   testWidgets('low flame launcher pins its selected sparks to Quests', (
