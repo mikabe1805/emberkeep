@@ -878,8 +878,13 @@ class _CalendarPageState extends State<CalendarPage> {
             _dayPlate(day, date, isToday, isSelected, load),
             // The folio names today under its date, the way the target does —
             // the honey plate alone doesn't say WHICH kind of mark it is.
-            ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 12),
+            SizedBox(
+              key: isToday
+                  ? ValueKey(
+                      'month-today-label-${CivilDate.fromDateTime(date)}',
+                    )
+                  : null,
+              height: 12,
               child: isToday
                   ? Center(
                       child: Text(
@@ -891,6 +896,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         textScaler: TextScaler.noScaling,
                         style: Type.label.copyWith(
                           fontSize: Type.minLabel,
+                          height: 1,
                           letterSpacing: 0.9,
                           color: Palette.xp.withValues(alpha: 0.85),
                         ),
@@ -911,63 +917,82 @@ class _CalendarPageState extends State<CalendarPage> {
     bool isSelected,
     _MonthDayLoad load,
   ) {
+    final keyDate = CivilDate.fromDateTime(date).toString();
     return Container(
-      constraints: const BoxConstraints.tightFor(height: 43),
+      key: isSelected ? ValueKey('month-selected-wash-$keyDate') : null,
+      height: 43,
       margin: const EdgeInsets.all(1.5),
-      decoration: facetedDecoration(
-        cut: 7,
-        gradient: isSelected
-            ? LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Palette.xpLight.withValues(alpha: 0.22),
-                  Palette.xp.withValues(alpha: 0.07),
-                ],
-              )
-            : null,
-        borderColor: isToday
-            ? Palette.xp.withValues(alpha: 0.85)
-            : isSelected
-            ? Palette.xpLight.withValues(alpha: 0.55)
-            : Colors.transparent,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Text(
-            '$day',
-            // Keep the compact month numeral inside its fixed folio plate at
-            // large system text. The complete date is exposed by Semantics.
-            textScaler: TextScaler.noScaling,
-            style: Type.numerals.copyWith(
-              fontSize: 13,
-              color: isToday
-                  ? Palette.xp
-                  : isSelected
-                  ? Palette.textHi
-                  : Palette.textMid,
+          if (isSelected)
+            DecoratedBox(
+              decoration: facetedDecoration(
+                cut: 7,
+                gradient: LinearGradient(
+                  colors: [
+                    Palette.xpLight.withValues(alpha: 0.18),
+                    Palette.xp.withValues(alpha: 0.055),
+                  ],
+                ),
+                borderColor: Palette.xpLight.withValues(alpha: 0.34),
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          SizedBox(
-            height: 16,
-            child: load.weight == _MonthDayWeight.none
-                ? null
-                : Center(
-                    child: _MonthDayWeightMark(
-                      key: ValueKey(
-                        'academic-month-weight-'
-                        '${CivilDate.fromDateTime(date)}',
-                      ),
-                      weight: load.weight,
-                      hasDeadline: load.hasDeadline,
-                      deadlineKey: ValueKey(
-                        'academic-month-deadline-'
-                        '${CivilDate.fromDateTime(date)}',
+          Column(
+            children: [
+              SizedBox(
+                height: 30,
+                child: Center(
+                  child: Container(
+                    key: isToday
+                        ? ValueKey('month-today-marker-$keyDate')
+                        : null,
+                    width: 30,
+                    height: 30,
+                    decoration: isToday
+                        ? facetedDecoration(
+                            cut: 6,
+                            gradient: const LinearGradient(
+                              colors: [Color(0x36FFE4A1), Color(0x0FE7B66C)],
+                            ),
+                            borderColor: Palette.xp.withValues(alpha: 0.85),
+                          )
+                        : null,
+                    alignment: Alignment.center,
+                    child: Text(
+                      '$day',
+                      // Keep the compact month numeral inside its fixed folio
+                      // plate at large system text. The complete date is
+                      // exposed by Semantics.
+                      textScaler: TextScaler.noScaling,
+                      style: Type.numerals.copyWith(
+                        fontSize: 13,
+                        color: isToday
+                            ? Palette.xp
+                            : isSelected
+                            ? Palette.textHi
+                            : Palette.textMid,
                       ),
                     ),
                   ),
+                ),
+              ),
+              SizedBox(
+                height: 13,
+                child: load.weight == _MonthDayWeight.none
+                    ? null
+                    : Center(
+                        child: _MonthDayWeightMark(
+                          key: ValueKey('academic-month-weight-$keyDate'),
+                          weight: load.weight,
+                          hasDeadline: load.hasDeadline,
+                          deadlineKey: ValueKey(
+                            'academic-month-deadline-$keyDate',
+                          ),
+                        ),
+                      ),
+              ),
+            ],
           ),
         ],
       ),

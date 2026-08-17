@@ -23,6 +23,7 @@ const _captureStudyPlanner = bool.fromEnvironment(
 const _captureOccurrenceAdjust = bool.fromEnvironment(
   'CAPTURE_ACADEMIC_OCCURRENCE_ADJUST',
 );
+const _captureTodayMarker = bool.fromEnvironment('CAPTURE_TODAY_MARKER');
 
 void main() {
   setUpAll(() async {
@@ -137,6 +138,66 @@ void main() {
       }
     });
   }
+
+  testWidgets('daybook today marker visual', (tester) async {
+    Clock.freeze(DateTime.utc(2026, 8, 17, 12));
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    final state = GameState()..reduceMotion = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: CalendarPage(
+            state: state,
+            quests: const [],
+            onAdd: (_) => true,
+            scheduleRepository: InMemoryAcademicScheduleRepository(
+              _visualSchedule(),
+            ),
+            calendarPreferences: InMemoryAcademicCalendarPreferences(
+              state: const AcademicCalendarViewState(
+                mode: AcademicCalendarMode.month,
+                selectedDate: '2026-08-17',
+              ),
+            ),
+            notebookHandoff: _NoopHandoff(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final context = tester.element(find.byType(MaterialApp));
+    await tester.runAsync(
+      () => precacheImage(
+        const AssetImage('assets/pages/plans-desk-v2.webp'),
+        context,
+      ),
+    );
+    for (var frame = 0; frame < 5; frame++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    expect(tester.takeException(), isNull);
+    if (_captureTodayMarker) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/daybook_today_marker_430x932.png'),
+      );
+    }
+  });
 
   testWidgets('academic conflict visual', (tester) async {
     tester.view.devicePixelRatio = 1;

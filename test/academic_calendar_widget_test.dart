@@ -107,6 +107,80 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('today marker stays compact', (tester) async {
+    final today = DateTime.utc(2026, 8, 17, 12);
+    Clock.freeze(today);
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      size: const Size(320, 568),
+      textScale: 2,
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.month,
+          selectedDate: '2026-08-17',
+        ),
+      ),
+    );
+
+    final marker = find.byKey(const ValueKey('month-today-marker-2026-08-17'));
+    await tester.dragFrom(const Offset(160, 500), const Offset(0, -480));
+    await tester.pump();
+    expect(marker, findsOneWidget);
+    expect(tester.getSize(marker), const Size(30, 30));
+    expect(
+      find.byKey(const ValueKey('month-today-label-2026-08-17')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('month-selected-wash-2026-08-17')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getSemantics(find.text('17').first).label,
+      contains('August 17, 2026, today'),
+    );
+
+    // August 2026 displays six rows; September displays five. Together these
+    // cases place Today in each weekday column while exercising both layouts.
+    for (final day in [
+      DateTime.utc(2026, 8, 17, 12),
+      DateTime.utc(2026, 8, 18, 12),
+      DateTime.utc(2026, 8, 19, 12),
+      DateTime.utc(2026, 9, 17, 12),
+      DateTime.utc(2026, 9, 18, 12),
+      DateTime.utc(2026, 9, 19, 12),
+      DateTime.utc(2026, 9, 20, 12),
+    ]) {
+      Clock.freeze(day);
+      final keyDate =
+          '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+        handoff: _RecordingHandoff(),
+        calendarKey: ValueKey(keyDate),
+        size: const Size(320, 568),
+        textScale: 2,
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: AcademicCalendarViewState(
+            mode: AcademicCalendarMode.month,
+            selectedDate: keyDate,
+          ),
+        ),
+      );
+      await tester.dragFrom(const Offset(160, 500), const Offset(0, -480));
+      await tester.pump();
+      expect(
+        find.byKey(ValueKey('month-today-marker-$keyDate')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('month day weight compresses scheduled time into three heights', (
     tester,
   ) async {
@@ -128,7 +202,7 @@ void main() {
       find.byKey(const ValueKey('academic-month-weight-2026-08-13')),
     );
 
-    // The outer mark keeps a stable hit-free slot; the visible brass tick is
+    // The outer mark keeps a stable 13px hit-free slot; the visible brass tick is
     // the only nested Container with one of the encoded workload heights.
     double visibleTickHeight(Finder mark) {
       final heights = <double>[];
@@ -142,9 +216,9 @@ void main() {
       return heights.single;
     }
 
-    expect(light, const Size(9, 16));
-    expect(moderate, const Size(9, 16));
-    expect(full, const Size(9, 16));
+    expect(light, const Size(9, 13));
+    expect(moderate, const Size(9, 13));
+    expect(full, const Size(9, 13));
     expect(
       visibleTickHeight(
         find.byKey(const ValueKey('academic-month-weight-2026-08-11')),
@@ -161,7 +235,7 @@ void main() {
       visibleTickHeight(
         find.byKey(const ValueKey('academic-month-weight-2026-08-13')),
       ),
-      14,
+      13,
     );
   });
 
@@ -866,6 +940,7 @@ Future<void> _pumpCalendar(
   required InMemoryAcademicScheduleRepository repository,
   required NotebookHandoff handoff,
   AcademicCalendarPreferences? preferences,
+  Key? calendarKey,
   List<Quest> quests = const [],
   Size size = const Size(430, 932),
   double textScale = 1,
@@ -884,6 +959,7 @@ Future<void> _pumpCalendar(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: CalendarPage(
+          key: calendarKey,
           state: state,
           quests: quests,
           onAdd: (_) => true,
