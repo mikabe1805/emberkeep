@@ -400,8 +400,8 @@ final class AcademicStudyAction extends DaybookActionTarget {
   final String studyBlockId;
 }
 final class QuestPlanAction extends DaybookActionTarget {
-  const QuestPlanAction(this.questId);
-  final String questId;
+  const QuestPlanAction(this.questTitle);
+  final String questTitle;
 }
 
 final class DaybookRangeProjection {
