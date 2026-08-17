@@ -1,7 +1,29 @@
 # Room of Days Release Checklist
 
-Updated August 13, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 17, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
+
+## 1.0.2+20 release record
+
+- [x] Frozen source commit `b20649424053723855236f6951f16cf688bf6b5d`
+  carries the 1.0.2+20 app and newest-first What's New record.
+- [x] A clean checkout passes formatting, analysis, and all 433 tests on
+  Windows. The clean-checkout run also normalizes source assertions across LF
+  and CRLF clones.
+- [x] The signed APK and AAB pass immutable hash, identity, signer, permissions,
+  app-link, 16 KiB alignment, Bundletool, and native-library validation.
+- [x] The public GitHub prerelease
+  `v1.0.2-android-preview.20` serves the exact 79,306,323-byte APK with SHA-256
+  `07DFA5EB180C1AF3C53773B7AC24AC4176503F67F5807DD9DDCBECA9DCBFF61F`.
+- [x] Firebase Hosting serves web/PWA version 1.0.2+20, the Build 20 Android
+  route, and always-fresh version, introduction, and Android release routes.
+  A real 390 x 844 Chromium session loaded first-run onboarding and the Android
+  page with no console warnings or errors.
+- [ ] Install Build 20 over Build 13 on a physical Android phone and confirm the
+  local save remains intact and What's New appears once.
+- [ ] Start exactly one `ios-testflight` Codemagic build from the released main
+  commit, then install and smoke the processed TestFlight build before any App
+  Store submission change.
 
 ## Repository-ready
 
