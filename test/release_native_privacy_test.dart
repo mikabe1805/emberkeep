@@ -201,18 +201,18 @@ void main() {
       page,
       contains(
         'https://github.com/mikabe1805/emberkeep/releases/download/'
-        'v1.0.1-android-preview.13/room-of-days-1.0.1-build-13.apk',
+        'v1.0.2-android-preview.20/room-of-days-1.0.2-build-20.apk',
       ),
     );
     expect(page, isNot(contains('href="/downloads/')));
     expect(page, contains('Android 7 or newer'));
     expect(page, contains('install unknown apps'));
-    expect(page, contains('install Build 13 over it without uninstalling'));
+    expect(page, contains('install Build 20 over it without uninstalling'));
     expect(page, contains('export a backup'));
     expect(
       page,
       contains(
-        '42A827512A2E3F9F364FFBD4A050D3AB152D11964CEBDA830C436576F61A0A47',
+        '07DFA5EB180C1AF3C53773B7AC24AC4176503F67F5807DD9DDCBECA9DCBFF61F',
       ),
     );
   });
@@ -461,15 +461,15 @@ void main() {
 
       expect(candidate['schema'], 1);
       expect(candidate['packageId'], 'com.mikabe.emberkeep');
-      expect(candidate['versionName'], '1.0.1');
-      expect(candidate['versionCode'], 13);
+      expect(candidate['versionName'], '1.0.2');
+      expect(candidate['versionCode'], 20);
       expect(candidate['minSdk'], 24);
       expect(candidate['targetSdk'], 36);
       expect(candidate['ndkVersion'], '28.2.13676358');
       expect(candidate['nativeLoadAlignment'], 16384);
       expect(candidate['nativeLibraryCount'], 12);
-      expect(aab['size'], 76906618);
-      expect(apk['size'], 79190875);
+      expect(aab['size'], 77026849);
+      expect(apk['size'], 79306323);
       expect((aab['sha256'] as String), hasLength(64));
       expect((apk['sha256'] as String), hasLength(64));
       final sourceCommit = candidate['sourceCommit'] as String;
