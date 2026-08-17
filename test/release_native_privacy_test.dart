@@ -129,6 +129,18 @@ void main() {
       ),
       isTrue,
     );
+    final genericRouteHeader = headers.indexWhere(
+      (header) => header['regex'] == r'^/[^.]*$',
+    );
+    final alwaysFreshRouteHeader = headers.indexWhere(
+      (header) => header['regex'] == r'^/(introduction|android)(/|\.html)?$',
+    );
+    expect(
+      alwaysFreshRouteHeader,
+      greaterThan(genericRouteHeader),
+      reason:
+          'Firebase applies matching header rules in order, so the exact download and introduction routes must override the generic HTML cache',
+    );
     expect(
       headers.any(
         (header) =>
