@@ -143,17 +143,6 @@ class WarmBackground extends StatelessWidget {
         children: [
           // pools of warm light — recolored by the theme — glowing in the dark
           // (static; the drifting fireflies carry the motion, cheaply).
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(
-                painter: _AmbientPlanesPainter(
-                  top: theme.top,
-                  bottom: theme.bottom,
-                  accent: tint ?? theme.glows.first,
-                ),
-              ),
-            ),
-          ),
           Positioned(
             top: -70,
             left: -60,
@@ -230,101 +219,6 @@ class _Glow extends StatelessWidget {
       ),
     );
   }
-}
-
-class _AmbientPlanesPainter extends CustomPainter {
-  const _AmbientPlanesPainter({
-    required this.top,
-    required this.bottom,
-    required this.accent,
-  });
-
-  final Color top;
-  final Color bottom;
-  final Color accent;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Three light planes, each fading along its own length. They used to be
-    // flat-filled polygons at 8–14% alpha across the whole viewport, which read
-    // as hard-edged shafts terminating in mid-air — the same seam three
-    // separate screen audits reported at roughly x = 0.5 of the canvas. A plane
-    // with a falloff still gives the canvas construction, but it has somewhere
-    // for the light to go.
-    void plane(Path path, Rect bounds, Color tone, double alpha) {
-      canvas.drawPath(
-        path,
-        Paint()
-          ..shader = LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              tone.withValues(alpha: alpha),
-              tone.withValues(alpha: alpha * 0.35),
-              tone.withValues(alpha: 0),
-            ],
-            stops: const [0, 0.55, 1],
-          ).createShader(bounds),
-      );
-    }
-
-    plane(
-      Path()
-        ..moveTo(0, 0)
-        ..lineTo(size.width * 0.62, 0)
-        ..lineTo(size.width * 0.28, size.height * 0.46)
-        ..lineTo(0, size.height * 0.34)
-        ..close(),
-      Rect.fromLTWH(0, 0, size.width * 0.62, size.height * 0.46),
-      Color.lerp(top, accent, 0.35)!,
-      0.11,
-    );
-
-    plane(
-      Path()
-        ..moveTo(size.width, size.height * 0.12)
-        ..lineTo(size.width, size.height * 0.72)
-        ..lineTo(size.width * 0.58, size.height * 0.45)
-        ..lineTo(size.width * 0.78, size.height * 0.08)
-        ..close(),
-      Rect.fromLTWH(
-        size.width,
-        size.height * 0.08,
-        -size.width * 0.42,
-        size.height * 0.64,
-      ),
-      Color.lerp(bottom, accent, 0.24)!,
-      0.09,
-    );
-
-    final floorRect = Rect.fromLTWH(
-      0,
-      size.height * 0.78,
-      size.width,
-      size.height * 0.22,
-    );
-    canvas.drawPath(
-      Path()
-        ..moveTo(0, size.height)
-        ..lineTo(size.width, size.height)
-        ..lineTo(size.width * 0.64, size.height * 0.78)
-        ..lineTo(size.width * 0.22, size.height * 0.86)
-        ..close(),
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [
-            Palette.warmShadow.withValues(alpha: 0.16),
-            Palette.warmShadow.withValues(alpha: 0),
-          ],
-        ).createShader(floorRect),
-    );
-  }
-
-  @override
-  bool shouldRepaint(_AmbientPlanesPainter old) =>
-      old.top != top || old.bottom != bottom || old.accent != accent;
 }
 
 /// Drifting, twinkling motes of warm light. One repaint-bounded layer,
