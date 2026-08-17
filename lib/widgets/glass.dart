@@ -204,15 +204,20 @@ class _Glow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: ClipPath(
-        clipper: FacetedClipper(cut: size * 0.16),
-        child: Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            gradient: RadialGradient(
-              center: const Alignment(-0.25, -0.2),
-              colors: [color, color.withValues(alpha: 0)],
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Transform.translate(
+          // Keep the authored off-center pool while allowing its circular
+          // fade to reach transparent pixels before every painted edge.
+          offset: Offset(-size * 0.125, -size * 0.1),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                radius: 0.5,
+                colors: [color, color.withValues(alpha: 0)],
+                stops: const [0, 1],
+              ),
             ),
           ),
         ),

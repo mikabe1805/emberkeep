@@ -23,7 +23,6 @@ const _captureStudyPlanner = bool.fromEnvironment(
 const _captureOccurrenceAdjust = bool.fromEnvironment(
   'CAPTURE_ACADEMIC_OCCURRENCE_ADJUST',
 );
-const _captureTodayMarker = bool.fromEnvironment('CAPTURE_TODAY_MARKER');
 
 void main() {
   setUpAll(() async {
@@ -199,12 +198,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 120));
     }
     expect(tester.takeException(), isNull);
-    if (_captureTodayMarker) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/daybook_today_marker_430x932.png'),
-      );
-    }
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/daybook_today_marker_430x932.png'),
+    );
   });
 
   testWidgets('academic conflict visual', (tester) async {
