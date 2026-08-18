@@ -4,6 +4,8 @@ import 'package:emberkeep/academic_calendar/data/academic_schedule_repository.da
 import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 import 'package:emberkeep/academic_calendar/services/notebook_handoff.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/daybook/domain/daybook_event.dart';
+import 'package:emberkeep/daybook/domain/daybook_task.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -54,7 +56,7 @@ void main() {
       final original = _fixtureSchedule(
         weekdays: {DateTime.tuesday, DateTime.friday},
         idFactory: nextId,
-      );
+      ).putEvent(_generalEvent()).putTask(_generalTask());
       final priorTuesday = original.occurrences.firstWhere(
         (occurrence) => occurrence.originalDate.weekday == DateTime.tuesday,
       );
@@ -100,6 +102,8 @@ void main() {
       expect(cancelledFriday.occurrenceKey, priorFriday.occurrenceKey);
       expect(cancelledFriday.state, OccurrenceState.cancelled);
       expect(cancelledFriday.tombstonedAt, isNotNull);
+      expect(rebuilt.events.single.eventId, 'event_team');
+      expect(rebuilt.tasks.single.taskId, 'task_submit');
     },
   );
 
@@ -641,6 +645,222 @@ void main() {
     expect(restored.studyBlocks, isEmpty);
   });
 
+  test('schemas 1 through 4 never invent neutral records', () {
+    final combined = _fixtureSchedule(
+      weekdays: const {DateTime.tuesday},
+    ).putEvent(_generalEvent()).putTask(_generalTask());
+
+    for (final schema in [1, 2, 3, 4]) {
+      final legacy = combined.toJson()..['schema'] = schema;
+      final restored = AcademicSchedule.fromJson(legacy);
+
+      expect(restored.events, isEmpty, reason: 'schema $schema events');
+      expect(restored.tasks, isEmpty, reason: 'schema $schema tasks');
+      expect(restored.occurrences, isNotEmpty, reason: 'schema $schema class');
+    }
+  });
+
+  test('schema 5 round-trips academic classes, events, and tasks', () {
+    final combined = _fixtureSchedule(
+      weekdays: const {DateTime.tuesday},
+    ).putEvent(_generalEvent()).putTask(_generalTask());
+
+    final restored = AcademicSchedule.fromJson(
+      (jsonDecode(jsonEncode(combined.toJson())) as Map)
+          .cast<String, dynamic>(),
+    );
+
+    expect(restored.toJson()['schema'], 5);
+    expect(restored.occurrences, hasLength(combined.occurrences.length));
+    expect(restored.events.single.eventId, 'event_team');
+    expect(restored.tasks.single.taskId, 'task_submit');
+  });
+
+  test('general event mutations preserve moved and cancelled exceptions', () {
+    final changedAt = DateTime.utc(2026, 8, 20, 15);
+    var schedule = AcademicSchedule.empty()
+        .putEvent(_generalEvent())
+        .putTask(_generalTask());
+
+    schedule = schedule.moveEventOccurrence(
+      eventId: 'event_team',
+      occurrenceKey: 'event_team@2026-08-10',
+      startDate: CivilDate(2026, 8, 11),
+      endDate: CivilDate(2026, 8, 11),
+      startMinute: 11 * 60,
+      endMinute: 12 * 60,
+      updatedAt: changedAt,
+    );
+    schedule = schedule.cancelEventOccurrence(
+      eventId: 'event_team',
+      occurrenceKey: 'event_team@2026-08-17',
+      updatedAt: changedAt.add(const Duration(minutes: 1)),
+    );
+    schedule = schedule.putEvent(
+      schedule.events.single.copyWith(title: 'Team sync revised'),
+    );
+
+    schedule = AcademicSchedule.fromJson(
+      (jsonDecode(jsonEncode(schedule.toJson())) as Map)
+          .cast<String, dynamic>(),
+    );
+
+    final occurrences = schedule.eventOccurrencesBetween(
+      CivilDate(2026, 8, 1),
+      CivilDate(2026, 8, 31),
+    );
+    final moved = occurrences.singleWhere(
+      (item) => item.occurrenceKey == 'event_team@2026-08-10',
+    );
+    final cancelled = occurrences.singleWhere(
+      (item) => item.occurrenceKey == 'event_team@2026-08-17',
+    );
+    expect(moved.state, DaybookEventOccurrenceState.moved);
+    expect(moved.startDate, CivilDate(2026, 8, 11));
+    expect(cancelled.state, DaybookEventOccurrenceState.cancelled);
+    expect(
+      schedule.tasksOn(CivilDate(2026, 8, 21)).single.taskId,
+      'task_submit',
+    );
+
+    final restored = schedule.restoreEventOccurrence(
+      eventId: 'event_team',
+      occurrenceKey: cancelled.occurrenceKey,
+      updatedAt: changedAt.add(const Duration(minutes: 2)),
+    );
+    expect(
+      restored
+          .eventOccurrencesBetween(
+            CivilDate(2026, 8, 17),
+            CivilDate(2026, 8, 17),
+          )
+          .single
+          .state,
+      DaybookEventOccurrenceState.scheduled,
+    );
+    expect(restored.deleteEvent('event_team').events, isEmpty);
+    expect(restored.deleteTask('task_submit').tasks, isEmpty);
+  });
+
+  test('every academic reconstruction preserves neutral collections', () {
+    final event = _generalEvent();
+    final task = _generalTask();
+    final base = _fixtureSchedule(
+      weekdays: const {DateTime.tuesday},
+    ).putEvent(event).putTask(task);
+    final work = AcademicWorkItem(
+      workId: 'work_preservation',
+      courseId: base.courses.single.courseId,
+      kind: AcademicWorkKind.assignment,
+      title: 'Preservation exercise',
+      dueDate: CivilDate(2026, 9, 1),
+      dueMinute: 17 * 60,
+      updatedAt: DateTime.utc(2026, 8, 24),
+    );
+    final withWork = base.putWorkItem(work);
+    final plan = AcademicStudyPlan(
+      workId: work.workId,
+      totalMinutes: 45,
+      sessionMinutes: 45,
+      dailyStartMinute: 13 * 60,
+      dailyEndMinute: 18 * 60,
+      updatedAt: DateTime.utc(2026, 8, 24),
+    );
+    final block = AcademicStudyBlock(
+      studyBlockId: 'study_preservation',
+      workId: work.workId,
+      date: CivilDate(2026, 8, 27),
+      startMinute: 13 * 60,
+      endMinute: 13 * 60 + 45,
+      updatedAt: DateTime.utc(2026, 8, 24),
+    );
+    final withStudy = withWork.putStudyPlan(plan: plan, blocks: [block]);
+    final occurrence = withStudy.occurrences.first;
+    final moved = withStudy.moveOccurrence(
+      occurrenceKey: occurrence.occurrenceKey,
+      date: occurrence.date.addDays(1),
+      startMinute: occurrence.localStartMinute,
+      endMinute: occurrence.localEndMinute,
+      updatedAt: DateTime.utc(2026, 8, 24, 14),
+    );
+
+    final rebuiltMeeting = withStudy.putMeeting(
+      term: withStudy.terms.single,
+      course: withStudy.courses.single,
+      series: withStudy.meetingSeries.single,
+      updatedAt: DateTime.utc(2026, 8, 24, 14),
+    );
+    final cancelled = withStudy.cancelOccurrence(
+      occurrenceKey: occurrence.occurrenceKey,
+      updatedAt: DateTime.utc(2026, 8, 24, 14),
+    );
+    final restored = moved.restoreOccurrence(
+      occurrenceKey: occurrence.occurrenceKey,
+      updatedAt: DateTime.utc(2026, 8, 24, 14, 1),
+    );
+    final replanned = withStudy.reflowOpenStudyPlans(
+      now: DateTime.utc(2026, 8, 24, 14),
+      idFactory: (_) => 'study_replanned',
+    );
+    final replacedWork = withStudy.putWorkItem(
+      AcademicWorkItem(
+        workId: work.workId,
+        courseId: work.courseId,
+        kind: work.kind,
+        title: 'Preservation exercise revised',
+        dueDate: work.dueDate,
+        dueMinute: work.dueMinute,
+        updatedAt: DateTime.utc(2026, 8, 24, 14),
+      ),
+    );
+    final replacedPlan = withStudy.putStudyPlan(
+      plan: AcademicStudyPlan(
+        workId: work.workId,
+        totalMinutes: 30,
+        sessionMinutes: 30,
+        dailyStartMinute: 13 * 60,
+        dailyEndMinute: 18 * 60,
+        revision: 2,
+        updatedAt: DateTime.utc(2026, 8, 24, 14),
+      ),
+      blocks: [
+        AcademicStudyBlock(
+          studyBlockId: 'study_replacement',
+          workId: work.workId,
+          date: CivilDate(2026, 8, 28),
+          startMinute: 14 * 60,
+          endMinute: 14 * 60 + 30,
+          updatedAt: DateTime.utc(2026, 8, 24, 14),
+        ),
+      ],
+    );
+    final completedBlock = withStudy.setStudyBlockCompleted(
+      studyBlockId: block.studyBlockId,
+      completed: true,
+      updatedAt: DateTime.utc(2026, 8, 24, 14),
+    );
+    final completedWork = withStudy.setWorkItemCompleted(
+      workId: work.workId,
+      completed: true,
+      updatedAt: DateTime.utc(2026, 8, 24, 14),
+    );
+
+    for (final rebuilt in [
+      rebuiltMeeting,
+      moved,
+      cancelled,
+      restored,
+      replanned,
+      replacedWork,
+      replacedPlan,
+      completedBlock,
+      completedWork,
+    ]) {
+      expect(rebuilt.events.single.eventId, event.eventId);
+      expect(rebuilt.tasks.single.taskId, task.taskId);
+    }
+  });
+
   test('academic work must reference a course and stay inside its term', () {
     final schedule = _fixtureSchedule(weekdays: const {DateTime.tuesday});
     AcademicWorkItem item(String courseId, CivilDate date) => AcademicWorkItem(
@@ -668,7 +888,7 @@ void main() {
     final repository = LocalAcademicScheduleRepository();
     final schedule = _fixtureSchedule(
       weekdays: const {DateTime.monday, DateTime.wednesday},
-    );
+    ).putEvent(_generalEvent()).putTask(_generalTask());
 
     expect(await repository.save(schedule), isTrue);
     final restored = await repository.load();
@@ -678,6 +898,9 @@ void main() {
       restored.occurrences.map((item) => item.occurrenceKey),
       schedule.occurrences.map((item) => item.occurrenceKey),
     );
+    expect(restored.events.single.eventId, 'event_team');
+    expect(restored.tasks.single.taskId, 'task_submit');
+    expect(repository.lastRecoveredRecordCount, 0);
   });
 
   test(
@@ -698,6 +921,61 @@ void main() {
       );
     },
   );
+
+  test(
+    'local repository recovers valid neutral records independently',
+    () async {
+      final combined = _fixtureSchedule(
+        weekdays: const {DateTime.tuesday},
+      ).putEvent(_generalEvent()).putTask(_generalTask());
+      final root = combined.toJson();
+      root['events'] = [
+        _generalEvent().toJson(),
+        {'eventId': 'malformed_event'},
+      ];
+      final raw = jsonEncode(root);
+      SharedPreferences.setMockInitialValues({
+        LocalAcademicScheduleRepository.storageKey: raw,
+      });
+      final repository = LocalAcademicScheduleRepository();
+
+      final restored = await repository.load();
+      final preferences = await SharedPreferences.getInstance();
+
+      expect(restored.occurrences, isNotEmpty);
+      expect(restored.events.single.eventId, 'event_team');
+      expect(restored.tasks.single.taskId, 'task_submit');
+      expect(repository.lastRecoveredRecordCount, 1);
+      expect(
+        preferences.getString(LocalAcademicScheduleRepository.corruptBackupKey),
+        raw,
+      );
+    },
+  );
+
+  test('neutral recovery never hides an invalid academic graph', () async {
+    final root = _fixtureSchedule(
+      weekdays: const {DateTime.tuesday},
+    ).putEvent(_generalEvent()).putTask(_generalTask()).toJson();
+    root['terms'] = <Object>[];
+    final raw = jsonEncode(root);
+    SharedPreferences.setMockInitialValues({
+      LocalAcademicScheduleRepository.storageKey: raw,
+    });
+    final repository = LocalAcademicScheduleRepository();
+
+    final restored = await repository.load();
+    final preferences = await SharedPreferences.getInstance();
+
+    expect(restored.occurrences, isEmpty);
+    expect(restored.events, isEmpty);
+    expect(restored.tasks, isEmpty);
+    expect(repository.lastRecoveredRecordCount, 0);
+    expect(
+      preferences.getString(LocalAcademicScheduleRepository.corruptBackupKey),
+      raw,
+    );
+  });
 
   test('notebook handoff matches v2 and safely encodes opaque IDs', () {
     final codec = NotebookHandoffCodec.fromBase(
@@ -879,3 +1157,26 @@ AcademicSchedule _addClass(
     idFactory: (_) => 'occurrence_${courseId}_${++occurrenceIndex}',
   );
 }
+
+DaybookEvent _generalEvent() => DaybookEvent(
+  eventId: 'event_team',
+  title: 'Team sync',
+  startDate: CivilDate(2026, 8, 3),
+  endDate: CivilDate(2026, 8, 3),
+  timeZoneId: 'America/New_York',
+  allDay: false,
+  startMinute: 9 * 60,
+  endMinute: 10 * 60,
+  weeklyRule: WeeklyEventRule(weekdays: const {DateTime.monday}),
+  createdAt: DateTime.utc(2026, 8, 1, 12),
+  updatedAt: DateTime.utc(2026, 8, 2, 12),
+);
+
+DaybookTask _generalTask() => DaybookTask(
+  taskId: 'task_submit',
+  title: 'Submit form',
+  dueDate: CivilDate(2026, 8, 21),
+  dueMinute: 17 * 60,
+  createdAt: DateTime.utc(2026, 8, 1, 12),
+  updatedAt: DateTime.utc(2026, 8, 2, 12),
+);

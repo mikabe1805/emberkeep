@@ -20,15 +20,31 @@ final class LocalAcademicScheduleRepository
   static const storageKey = 'room_of_days_academic_schedule_v1';
   static const corruptBackupKey = 'room_of_days_academic_schedule_corrupt_v1';
 
+  int _lastRecoveredRecordCount = 0;
+  int get lastRecoveredRecordCount => _lastRecoveredRecordCount;
+
   @override
   Future<AcademicSchedule> load() async {
+    _lastRecoveredRecordCount = 0;
     try {
       final preferences = await SharedPreferences.getInstance();
       final raw = preferences.getString(storageKey);
       if (raw == null) return AcademicSchedule.empty();
       try {
         final decoded = (jsonDecode(raw) as Map).cast<String, dynamic>();
-        return AcademicSchedule.fromJson(decoded);
+        final result = AcademicSchedule.decode(decoded);
+        _lastRecoveredRecordCount = result.droppedNeutralRecords;
+        if (result.droppedNeutralRecords > 0) {
+          debugPrint(
+            'Academic schedule recovered with '
+            '${result.droppedNeutralRecords} invalid general record(s) '
+            'removed.',
+          );
+          if (preferences.getString(corruptBackupKey) == null) {
+            await preferences.setString(corruptBackupKey, raw);
+          }
+        }
+        return result.schedule;
       } catch (error) {
         debugPrint(
           'Academic schedule is unreadable; preserving a recovery copy: '

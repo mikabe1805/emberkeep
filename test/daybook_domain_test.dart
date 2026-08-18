@@ -5,6 +5,7 @@ import 'package:emberkeep/daybook/domain/civil_date.dart';
 import 'package:emberkeep/daybook/domain/daybook_event.dart';
 import 'package:emberkeep/daybook/domain/daybook_place.dart';
 import 'package:emberkeep/daybook/domain/daybook_task.dart';
+import 'package:emberkeep/daybook/domain/weekly_event_materializer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -242,4 +243,140 @@ void main() {
       );
     },
   );
+
+  test('weekly materialization is inclusive, bounded, and stably keyed', () {
+    final event = DaybookEvent(
+      eventId: 'event_team',
+      title: 'Team sync',
+      startDate: CivilDate(2026, 8, 3),
+      endDate: CivilDate(2026, 8, 3),
+      timeZoneId: 'America/New_York',
+      allDay: false,
+      startMinute: 9 * 60,
+      endMinute: 10 * 60,
+      weeklyRule: WeeklyEventRule(weekdays: const {DateTime.monday}),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+
+    expect(
+      WeeklyEventMaterializer.between(
+        event,
+        CivilDate(2026, 8, 1),
+        CivilDate(2026, 8, 31),
+      ).map((item) => item.occurrenceKey),
+      [
+        'event_team@2026-08-03',
+        'event_team@2026-08-10',
+        'event_team@2026-08-17',
+        'event_team@2026-08-24',
+        'event_team@2026-08-31',
+      ],
+    );
+  });
+
+  test('interval weeks stay anchored to the event start week', () {
+    final event = DaybookEvent(
+      eventId: 'event_biweekly',
+      title: 'Biweekly studio',
+      startDate: CivilDate(2026, 8, 5),
+      endDate: CivilDate(2026, 8, 5),
+      timeZoneId: 'America/New_York',
+      allDay: false,
+      startMinute: 13 * 60,
+      endMinute: 14 * 60,
+      weeklyRule: WeeklyEventRule(
+        weekdays: const {DateTime.monday, DateTime.wednesday},
+        intervalWeeks: 2,
+      ),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+
+    expect(
+      WeeklyEventMaterializer.between(
+        event,
+        CivilDate(2026, 8, 1),
+        CivilDate(2026, 8, 31),
+      ).map((item) => item.occurrenceKey),
+      [
+        'event_biweekly@2026-08-05',
+        'event_biweekly@2026-08-17',
+        'event_biweekly@2026-08-19',
+        'event_biweekly@2026-08-31',
+      ],
+    );
+  });
+
+  test('weekly materialization applies exceptions and carries duration', () {
+    final event = DaybookEvent(
+      eventId: 'event_overnight',
+      title: 'Overnight rotation',
+      startDate: CivilDate(2026, 8, 3),
+      endDate: CivilDate(2026, 8, 4),
+      timeZoneId: 'America/New_York',
+      allDay: false,
+      startMinute: 23 * 60,
+      endMinute: 60,
+      weeklyRule: WeeklyEventRule(weekdays: const {DateTime.monday}),
+      exceptions: [
+        DaybookEventException(
+          occurrenceKey: 'event_overnight@2026-08-10',
+          originalDate: CivilDate(2026, 8, 10),
+          state: DaybookEventOccurrenceState.moved,
+          movedStartDate: CivilDate(2026, 8, 12),
+          movedEndDate: CivilDate(2026, 8, 13),
+          movedStartMinute: 22 * 60,
+          movedEndMinute: 30,
+          updatedAt: updatedAt,
+        ),
+        DaybookEventException(
+          occurrenceKey: 'event_overnight@2026-08-17',
+          originalDate: CivilDate(2026, 8, 17),
+          state: DaybookEventOccurrenceState.cancelled,
+          updatedAt: updatedAt,
+        ),
+      ],
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+
+    final occurrences = WeeklyEventMaterializer.between(
+      event,
+      CivilDate(2026, 8, 3),
+      CivilDate(2026, 8, 17),
+    );
+
+    expect(occurrences.first.endDate, CivilDate(2026, 8, 4));
+    expect(occurrences[1].state, DaybookEventOccurrenceState.moved);
+    expect(occurrences[1].startDate, CivilDate(2026, 8, 12));
+    expect(occurrences[1].endDate, CivilDate(2026, 8, 13));
+    expect(occurrences[2].state, DaybookEventOccurrenceState.cancelled);
+    expect(occurrences[2].occurrenceKey, 'event_overnight@2026-08-17');
+  });
+
+  test('weekly all-day occurrences carry their date span forward', () {
+    final event = DaybookEvent(
+      eventId: 'event_retreat',
+      title: 'Retreat',
+      startDate: CivilDate(2026, 8, 3),
+      endDate: CivilDate(2026, 8, 5),
+      timeZoneId: 'America/New_York',
+      allDay: true,
+      weeklyRule: WeeklyEventRule(weekdays: const {DateTime.monday}),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+
+    final occurrence = WeeklyEventMaterializer.between(
+      event,
+      CivilDate(2026, 8, 10),
+      CivilDate(2026, 8, 10),
+    ).single;
+
+    expect(occurrence.startDate, CivilDate(2026, 8, 10));
+    expect(occurrence.endDate, CivilDate(2026, 8, 12));
+    expect(occurrence.startMinute, isNull);
+    expect(occurrence.endMinute, isNull);
+  });
 }

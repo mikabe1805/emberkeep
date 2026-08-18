@@ -1,4 +1,7 @@
 import 'package:emberkeep/daybook/domain/civil_date.dart';
+import 'package:emberkeep/daybook/domain/daybook_event.dart';
+import 'package:emberkeep/daybook/domain/daybook_task.dart';
+import 'package:emberkeep/daybook/domain/weekly_event_materializer.dart';
 export 'package:emberkeep/daybook/domain/civil_date.dart';
 
 import 'dart:convert';
@@ -982,6 +985,13 @@ abstract final class OccurrenceMaterializer {
   }
 }
 
+final class AcademicScheduleDecodeResult {
+  const AcademicScheduleDecodeResult(this.schedule, this.droppedNeutralRecords);
+
+  final AcademicSchedule schedule;
+  final int droppedNeutralRecords;
+}
+
 final class AcademicSchedule {
   AcademicSchedule({
     required this.terms,
@@ -991,6 +1001,8 @@ final class AcademicSchedule {
     this.workItems = const [],
     this.studyPlans = const [],
     this.studyBlocks = const [],
+    this.events = const [],
+    this.tasks = const [],
   }) {
     _validateGraph();
   }
@@ -1003,14 +1015,19 @@ final class AcademicSchedule {
     workItems: const [],
     studyPlans: const [],
     studyBlocks: const [],
+    events: const [],
+    tasks: const [],
   );
 
-  factory AcademicSchedule.fromJson(Map<String, dynamic> json) {
+  factory AcademicSchedule.fromJson(Map<String, dynamic> json) =>
+      decode(json).schedule;
+
+  static AcademicScheduleDecodeResult decode(Map<String, dynamic> json) {
     final schema = json['schema'] as int? ?? 1;
     if (schema < 1 || schema > currentSchema) {
       throw FormatException('Unsupported academic schedule schema $schema');
     }
-    return AcademicSchedule(
+    final academic = AcademicSchedule(
       terms: [
         for (final term in json['terms'] as List? ?? const [])
           AcademicTerm.fromJson((term as Map).cast<String, dynamic>()),
@@ -1052,9 +1069,41 @@ final class AcademicSchedule {
                 ),
             ],
     );
+    if (schema < 5) {
+      return AcademicScheduleDecodeResult(academic, 0);
+    }
+
+    var droppedNeutralRecords = 0;
+    final events = <DaybookEvent>[];
+    for (final rawEvent in json['events'] as List? ?? const []) {
+      try {
+        events.add(
+          DaybookEvent.fromJson((rawEvent as Map).cast<String, dynamic>()),
+        );
+      } catch (_) {
+        droppedNeutralRecords += 1;
+      }
+    }
+    final tasks = <DaybookTask>[];
+    for (final rawTask in json['tasks'] as List? ?? const []) {
+      try {
+        tasks.add(
+          DaybookTask.fromJson((rawTask as Map).cast<String, dynamic>()),
+        );
+      } catch (_) {
+        droppedNeutralRecords += 1;
+      }
+    }
+    return AcademicScheduleDecodeResult(
+      academic._rebuild(
+        events: List.unmodifiable(events),
+        tasks: List.unmodifiable(tasks),
+      ),
+      droppedNeutralRecords,
+    );
   }
 
-  static const int currentSchema = 4;
+  static const int currentSchema = 5;
 
   final List<AcademicTerm> terms;
   final List<AcademicCourse> courses;
@@ -1063,6 +1112,8 @@ final class AcademicSchedule {
   final List<AcademicWorkItem> workItems;
   final List<AcademicStudyPlan> studyPlans;
   final List<AcademicStudyBlock> studyBlocks;
+  final List<DaybookEvent> events;
+  final List<DaybookTask> tasks;
 
   AcademicTerm? termFor(CivilDate date) {
     for (final term in terms.reversed) {
@@ -1114,6 +1165,28 @@ final class AcademicSchedule {
         if (occurrence.date.isWithin(first, last)) occurrence,
     ]..sort(_compareOccurrences);
     return found;
+  }
+
+  List<DaybookEventOccurrence> eventOccurrencesBetween(
+    CivilDate first,
+    CivilDate last,
+  ) {
+    if (first.compareTo(last) > 0) {
+      throw ArgumentError('The event range must start before it ends');
+    }
+    final found = <DaybookEventOccurrence>[
+      for (final event in events)
+        ...WeeklyEventMaterializer.between(event, first, last),
+    ]..sort(_compareDaybookOccurrences);
+    return List.unmodifiable(found);
+  }
+
+  List<DaybookTask> tasksOn(CivilDate date) {
+    final found = [
+      for (final task in tasks)
+        if (task.dueDate == date) task,
+    ]..sort(_compareDaybookTasks);
+    return List.unmodifiable(found);
   }
 
   List<AcademicMeetingConflict> meetingConflictsOn(CivilDate date) {
@@ -1424,6 +1497,113 @@ final class AcademicSchedule {
     return found.isEmpty ? null : found.first;
   }
 
+  AcademicSchedule putEvent(DaybookEvent event) {
+    final nextEvents = _replaceById(
+      events,
+      event,
+      (value) => value.eventId,
+    ).toList()..sort(_compareDaybookEvents);
+    return _rebuild(events: List.unmodifiable(nextEvents));
+  }
+
+  AcademicSchedule deleteEvent(String eventId) {
+    final nextEvents = [
+      for (final event in events)
+        if (event.eventId != eventId) event,
+    ];
+    if (nextEvents.length == events.length) return this;
+    return _rebuild(events: List.unmodifiable(nextEvents));
+  }
+
+  AcademicSchedule moveEventOccurrence({
+    required String eventId,
+    required String occurrenceKey,
+    required CivilDate startDate,
+    required CivilDate endDate,
+    int? startMinute,
+    int? endMinute,
+    required DateTime updatedAt,
+  }) {
+    final event = _eventById(eventId);
+    final originalDate = _eventOriginalDate(event, occurrenceKey);
+    final exception = DaybookEventException(
+      occurrenceKey: occurrenceKey,
+      originalDate: originalDate,
+      state: DaybookEventOccurrenceState.moved,
+      movedStartDate: startDate,
+      movedEndDate: endDate,
+      movedStartMinute: startMinute,
+      movedEndMinute: endMinute,
+      updatedAt: updatedAt,
+    );
+    return putEvent(
+      event.copyWith(
+        exceptions: _replaceEventException(event, exception),
+        updatedAt: updatedAt,
+      ),
+    );
+  }
+
+  AcademicSchedule cancelEventOccurrence({
+    required String eventId,
+    required String occurrenceKey,
+    required DateTime updatedAt,
+  }) {
+    final event = _eventById(eventId);
+    final originalDate = _eventOriginalDate(event, occurrenceKey);
+    final exception = DaybookEventException(
+      occurrenceKey: occurrenceKey,
+      originalDate: originalDate,
+      state: DaybookEventOccurrenceState.cancelled,
+      updatedAt: updatedAt,
+    );
+    return putEvent(
+      event.copyWith(
+        exceptions: _replaceEventException(event, exception),
+        updatedAt: updatedAt,
+      ),
+    );
+  }
+
+  AcademicSchedule restoreEventOccurrence({
+    required String eventId,
+    required String occurrenceKey,
+    required DateTime updatedAt,
+  }) {
+    final event = _eventById(eventId);
+    final originalDate = _eventOriginalDate(event, occurrenceKey);
+    if (!event.exceptions.any((item) => item.originalDate == originalDate)) {
+      throw ArgumentError.value(occurrenceKey, 'occurrenceKey');
+    }
+    return putEvent(
+      event.copyWith(
+        exceptions: List.unmodifiable([
+          for (final exception in event.exceptions)
+            if (exception.originalDate != originalDate) exception,
+        ]),
+        updatedAt: updatedAt,
+      ),
+    );
+  }
+
+  AcademicSchedule putTask(DaybookTask task) {
+    final nextTasks = _replaceById(
+      tasks,
+      task,
+      (value) => value.taskId,
+    ).toList()..sort(_compareDaybookTasks);
+    return _rebuild(tasks: List.unmodifiable(nextTasks));
+  }
+
+  AcademicSchedule deleteTask(String taskId) {
+    final nextTasks = [
+      for (final task in tasks)
+        if (task.taskId != taskId) task,
+    ];
+    if (nextTasks.length == tasks.length) return this;
+    return _rebuild(tasks: List.unmodifiable(nextTasks));
+  }
+
   AcademicSchedule putMeeting({
     required AcademicTerm term,
     required AcademicCourse course,
@@ -1467,14 +1647,11 @@ final class AcademicSchedule {
         if (occurrence.meetingSeriesId != series.meetingSeriesId) occurrence,
       ...rebuilt,
     ]..sort(_compareOccurrences);
-    return AcademicSchedule(
+    return _rebuild(
       terms: nextTerms,
       courses: nextCourses,
       meetingSeries: nextSeries,
       occurrences: nextOccurrences,
-      workItems: workItems,
-      studyPlans: studyPlans,
-      studyBlocks: studyBlocks,
     );
   }
 
@@ -1634,13 +1811,7 @@ final class AcademicSchedule {
     if (plans.isEmpty) return this;
 
     final replannedWorkIds = plans.map((plan) => plan.workId).toSet();
-    var working = AcademicSchedule(
-      terms: terms,
-      courses: courses,
-      meetingSeries: meetingSeries,
-      occurrences: occurrences,
-      workItems: workItems,
-      studyPlans: studyPlans,
+    var working = _rebuild(
       studyBlocks: [
         for (final block in studyBlocks)
           if (!replannedWorkIds.contains(block.workId) || block.completed)
@@ -1679,21 +1850,72 @@ final class AcademicSchedule {
     return terms.where((term) => term.termId == course.termId).firstOrNull;
   }
 
+  DaybookEvent _eventById(String eventId) {
+    final found = events.where((event) => event.eventId == eventId).firstOrNull;
+    if (found == null) throw ArgumentError.value(eventId, 'eventId');
+    return found;
+  }
+
+  CivilDate _eventOriginalDate(DaybookEvent event, String occurrenceKey) {
+    final existing = event.exceptions
+        .where((exception) => exception.occurrenceKey == occurrenceKey)
+        .firstOrNull;
+    if (existing != null) return existing.originalDate;
+    final prefix = '${event.eventId}@';
+    if (!occurrenceKey.startsWith(prefix)) {
+      throw ArgumentError.value(occurrenceKey, 'occurrenceKey');
+    }
+    try {
+      final originalDate = CivilDate.parse(
+        occurrenceKey.substring(prefix.length),
+      );
+      event.occurrenceFor(originalDate);
+      return originalDate;
+    } catch (_) {
+      throw ArgumentError.value(occurrenceKey, 'occurrenceKey');
+    }
+  }
+
+  List<DaybookEventException> _replaceEventException(
+    DaybookEvent event,
+    DaybookEventException replacement,
+  ) => List.unmodifiable([
+    for (final exception in event.exceptions)
+      if (exception.originalDate != replacement.originalDate) exception,
+    replacement,
+  ]);
+
+  /// The single reconstruction path for mutations. Keeping all durable lists
+  /// here prevents academic edits from accidentally dropping general entries.
+  AcademicSchedule _rebuild({
+    List<AcademicTerm>? terms,
+    List<AcademicCourse>? courses,
+    List<MeetingSeries>? meetingSeries,
+    List<ClassOccurrence>? occurrences,
+    List<AcademicWorkItem>? workItems,
+    List<AcademicStudyPlan>? studyPlans,
+    List<AcademicStudyBlock>? studyBlocks,
+    List<DaybookEvent>? events,
+    List<DaybookTask>? tasks,
+  }) => AcademicSchedule(
+    terms: terms ?? this.terms,
+    courses: courses ?? this.courses,
+    meetingSeries: meetingSeries ?? this.meetingSeries,
+    occurrences: occurrences ?? this.occurrences,
+    workItems: workItems ?? this.workItems,
+    studyPlans: studyPlans ?? this.studyPlans,
+    studyBlocks: studyBlocks ?? this.studyBlocks,
+    events: events ?? this.events,
+    tasks: tasks ?? this.tasks,
+  );
+
   AcademicSchedule _withOccurrence(ClassOccurrence replacement) {
     final nextOccurrences = _replaceById(
       occurrences,
       replacement,
       (value) => value.occurrenceKey,
     ).toList()..sort(_compareOccurrences);
-    return AcademicSchedule(
-      terms: terms,
-      courses: courses,
-      meetingSeries: meetingSeries,
-      occurrences: nextOccurrences,
-      workItems: workItems,
-      studyPlans: studyPlans,
-      studyBlocks: studyBlocks,
-    );
+    return _rebuild(occurrences: nextOccurrences);
   }
 
   AcademicSchedule putWorkItem(AcademicWorkItem item) {
@@ -1712,15 +1934,7 @@ final class AcademicSchedule {
       item,
       (value) => value.workId,
     ).toList()..sort(_compareWorkItems);
-    return AcademicSchedule(
-      terms: terms,
-      courses: courses,
-      meetingSeries: meetingSeries,
-      occurrences: occurrences,
-      workItems: nextWorkItems,
-      studyPlans: studyPlans,
-      studyBlocks: studyBlocks,
-    );
+    return _rebuild(workItems: nextWorkItems);
   }
 
   AcademicSchedule putStudyPlan({
@@ -1752,15 +1966,7 @@ final class AcademicSchedule {
       ...completed,
       ...blocks,
     ]..sort(_compareStudyBlocks);
-    return AcademicSchedule(
-      terms: terms,
-      courses: courses,
-      meetingSeries: meetingSeries,
-      occurrences: occurrences,
-      workItems: workItems,
-      studyPlans: nextPlans,
-      studyBlocks: nextBlocks,
-    );
+    return _rebuild(studyPlans: nextPlans, studyBlocks: nextBlocks);
   }
 
   AcademicSchedule setStudyBlockCompleted({
@@ -1777,15 +1983,7 @@ final class AcademicSchedule {
       block.withCompletion(completed: completed, updatedAt: updatedAt),
       (value) => value.studyBlockId,
     ).toList()..sort(_compareStudyBlocks);
-    return AcademicSchedule(
-      terms: terms,
-      courses: courses,
-      meetingSeries: meetingSeries,
-      occurrences: occurrences,
-      workItems: workItems,
-      studyPlans: studyPlans,
-      studyBlocks: nextBlocks,
-    );
+    return _rebuild(studyBlocks: nextBlocks);
   }
 
   AcademicSchedule setWorkItemCompleted({
@@ -1799,13 +1997,7 @@ final class AcademicSchedule {
       item.withCompletion(completed: completed, updatedAt: updatedAt),
     );
     if (!completed) return next;
-    return AcademicSchedule(
-      terms: next.terms,
-      courses: next.courses,
-      meetingSeries: next.meetingSeries,
-      occurrences: next.occurrences,
-      workItems: next.workItems,
-      studyPlans: next.studyPlans,
+    return next._rebuild(
       studyBlocks: [
         for (final block in next.studyBlocks)
           if (block.workId != workId || block.completed) block,
@@ -1822,6 +2014,8 @@ final class AcademicSchedule {
     'workItems': [for (final item in workItems) item.toJson()],
     'studyPlans': [for (final plan in studyPlans) plan.toJson()],
     'studyBlocks': [for (final block in studyBlocks) block.toJson()],
+    'events': [for (final event in events) event.toJson()],
+    'tasks': [for (final task in tasks) task.toJson()],
   };
 
   void _validateGraph() {
@@ -1894,6 +2088,35 @@ int _compareOccurrences(ClassOccurrence a, ClassOccurrence b) {
   final start = a.startInstant.compareTo(b.startInstant);
   if (start != 0) return start;
   return a.occurrenceKey.compareTo(b.occurrenceKey);
+}
+
+int _compareDaybookOccurrences(
+  DaybookEventOccurrence left,
+  DaybookEventOccurrence right,
+) {
+  final date = left.startDate.compareTo(right.startDate);
+  if (date != 0) return date;
+  final minute = (left.startMinute ?? -1).compareTo(right.startMinute ?? -1);
+  if (minute != 0) return minute;
+  return left.occurrenceKey.compareTo(right.occurrenceKey);
+}
+
+int _compareDaybookEvents(DaybookEvent left, DaybookEvent right) {
+  final date = left.startDate.compareTo(right.startDate);
+  if (date != 0) return date;
+  final minute = (left.startMinute ?? -1).compareTo(right.startMinute ?? -1);
+  if (minute != 0) return minute;
+  return left.eventId.compareTo(right.eventId);
+}
+
+int _compareDaybookTasks(DaybookTask left, DaybookTask right) {
+  final date = left.dueDate.compareTo(right.dueDate);
+  if (date != 0) return date;
+  final minute = (left.dueMinute ?? 24 * 60).compareTo(
+    right.dueMinute ?? 24 * 60,
+  );
+  if (minute != 0) return minute;
+  return left.taskId.compareTo(right.taskId);
 }
 
 int _compareWorkItems(AcademicWorkItem a, AcademicWorkItem b) {
