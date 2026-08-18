@@ -7,6 +7,7 @@ import 'place_search_service.dart';
 
 const placeSearchUnavailableMessage =
     'Search unavailable — type the location instead.';
+final _nonWhitespaceCharacter = RegExp(r'\S', unicode: true);
 
 typedef PlaceSearchUuidFactory = String Function();
 
@@ -75,7 +76,7 @@ final class PlaceSearchController extends ChangeNotifier {
     _clearSuggestionContexts();
     _selectionInFlight = false;
     final trimmed = rawQuery.trim();
-    if (trimmed.length < 3) {
+    if (_nonWhitespaceCharacter.allMatches(trimmed).length < 3) {
       _sessionToken = null;
       _setState(PlaceSearchState(query: rawQuery));
       return;

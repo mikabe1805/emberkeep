@@ -150,6 +150,7 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
   bool _accessInFlight = false;
   bool _searchActive = false;
   String? _accessErrorMessage;
+  int _accessGeneration = 0;
 
   @override
   void initState() {
@@ -179,6 +180,7 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
 
   @override
   void dispose() {
+    _accessGeneration += 1;
     _savedName.dispose();
     _routingText.dispose();
     _building.dispose();
@@ -423,7 +425,7 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
                 style: Type.body.copyWith(
                   fontSize: 11.5,
                   height: 1.25,
-                  color: Palette.textLo,
+                  color: Palette.textMid,
                 ),
               ),
             ],
@@ -456,7 +458,7 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
             style: Type.body.copyWith(
               fontSize: 11.5,
               height: 1.25,
-              color: Palette.textLo,
+              color: Palette.textMid,
             ),
           ),
         ],
@@ -497,6 +499,7 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
 
   Future<void> _startSearch() async {
     if (_accessInFlight || _searchActive) return;
+    final accessGeneration = ++_accessGeneration;
     setState(() {
       _accessInFlight = true;
       _accessErrorMessage = null;
@@ -506,7 +509,7 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
         requestConsent: () => showPlaceSearchConsentDialog(context),
       );
       final result = await access.ensureReady();
-      if (!mounted) return;
+      if (!mounted || accessGeneration != _accessGeneration) return;
       if (result case PlaceSearchReady(:final installId)) {
         final locale = Localizations.localeOf(context).toLanguageTag();
         final controller = widget.placeSearchFactory.createController(
@@ -527,7 +530,7 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
         });
       }
     } catch (_) {
-      if (!mounted) return;
+      if (!mounted || accessGeneration != _accessGeneration) return;
       setState(() {
         _accessInFlight = false;
         _accessErrorMessage = placeSearchUnavailableMessage;
@@ -568,6 +571,7 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
   }
 
   void _resetTransientSearch() {
+    _accessGeneration += 1;
     _disposeSearchController();
     _searchAccess = null;
     _searchQuery.clear();

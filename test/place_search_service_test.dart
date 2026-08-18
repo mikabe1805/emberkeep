@@ -71,6 +71,30 @@ void main() {
   );
 
   test(
+    'controller requires three non-whitespace characters before autocomplete',
+    () async {
+      final service = _RecordingService();
+      final controller = PlaceSearchController(
+        service: service,
+        installId: installId,
+        locale: 'en-US',
+        debounce: const Duration(milliseconds: 5),
+        createSessionToken: () => '11111111-1111-4111-8111-111111111111',
+      );
+      addTearDown(controller.dispose);
+
+      controller.updateQuery('a b');
+      await Future<void>.delayed(const Duration(milliseconds: 8));
+      expect(service.autocompleteCalls, isEmpty);
+
+      controller.updateQuery('a b c');
+      await Future<void>.delayed(const Duration(milliseconds: 8));
+      expect(service.autocompleteCalls, hasLength(1));
+      expect(service.autocompleteCalls.single.query, 'a b c');
+    },
+  );
+
+  test(
     'selection calls details once with the current raw query and ends session',
     () async {
       final service = _RecordingService();

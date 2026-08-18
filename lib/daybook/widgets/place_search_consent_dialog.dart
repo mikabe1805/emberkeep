@@ -43,10 +43,11 @@ class PlaceSearchConsentDialog extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               for (final disclosure in const [
-                'Place search sends only the query you type to Google through Room of Days.',
+                'Through Room of Days, Google receives the query you type, a temporary search session token, and the app display language.',
+                'If you choose a result, Room of Days sends Google its place ID once for confirmation.',
                 'Your current device location is not requested or used.',
                 'Room of Days creates or reuses a private Firebase identity for authenticated service access and abuse controls.',
-                'A private random install identifier is retained for abuse and cost limits.',
+                'Room of Days retains a private random install identifier for abuse and cost limits; it is not a hardware or device identifier.',
               ]) ...[
                 Text(
                   disclosure,
