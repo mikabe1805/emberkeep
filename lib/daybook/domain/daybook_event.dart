@@ -354,28 +354,51 @@ final class DaybookEvent {
     List<DaybookEventException>? exceptions,
     DateTime? createdAt,
     DateTime? updatedAt,
-  }) => DaybookEvent(
-    eventId: eventId ?? this.eventId,
-    title: title ?? this.title,
-    startDate: startDate ?? this.startDate,
-    endDate: endDate ?? this.endDate,
-    timeZoneId: timeZoneId ?? this.timeZoneId,
-    allDay: allDay ?? this.allDay,
-    startMinute: identical(startMinute, _unset)
+  }) {
+    final nextStartDate = startDate ?? this.startDate;
+    final nextEndDate = endDate ?? this.endDate;
+    final nextAllDay = allDay ?? this.allDay;
+    final nextStartMinute = identical(startMinute, _unset)
         ? this.startMinute
-        : startMinute as int?,
-    endMinute: identical(endMinute, _unset)
+        : startMinute as int?;
+    final nextEndMinute = identical(endMinute, _unset)
         ? this.endMinute
-        : endMinute as int?,
-    notes: identical(notes, _unset) ? this.notes : notes as String?,
-    place: identical(place, _unset) ? this.place : place as DaybookPlace?,
-    weeklyRule: identical(weeklyRule, _unset)
+        : endMinute as int?;
+    final nextWeeklyRule = identical(weeklyRule, _unset)
         ? this.weeklyRule
-        : weeklyRule as WeeklyEventRule?,
-    exceptions: exceptions ?? this.exceptions,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-  );
+        : weeklyRule as WeeklyEventRule?;
+    final sourceExceptions = exceptions ?? this.exceptions;
+    final recurrenceOrTimingChanged =
+        !identical(weeklyRule, _unset) ||
+        startDate != null ||
+        allDay != null ||
+        !identical(startMinute, _unset) ||
+        !identical(endMinute, _unset);
+    final nextExceptions = recurrenceOrTimingChanged
+        ? _reconcileExceptions(
+            sourceExceptions,
+            startDate: nextStartDate,
+            allDay: nextAllDay,
+            weeklyRule: nextWeeklyRule,
+          )
+        : sourceExceptions;
+    return DaybookEvent(
+      eventId: eventId ?? this.eventId,
+      title: title ?? this.title,
+      startDate: nextStartDate,
+      endDate: nextEndDate,
+      timeZoneId: timeZoneId ?? this.timeZoneId,
+      allDay: nextAllDay,
+      startMinute: nextStartMinute,
+      endMinute: nextEndMinute,
+      notes: identical(notes, _unset) ? this.notes : notes as String?,
+      place: identical(place, _unset) ? this.place : place as DaybookPlace?,
+      weeklyRule: nextWeeklyRule,
+      exceptions: nextExceptions,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 
   DaybookEventOccurrence occurrenceFor(CivilDate originalDate) {
     if (!_includes(originalDate)) {
@@ -478,6 +501,45 @@ final class DaybookEvent {
 
   String _occurrenceKey(CivilDate originalDate) =>
       '$eventId/${originalDate.toString()}';
+}
+
+List<DaybookEventException> _reconcileExceptions(
+  Iterable<DaybookEventException> exceptions, {
+  required CivilDate startDate,
+  required bool allDay,
+  required WeeklyEventRule? weeklyRule,
+}) {
+  if (weeklyRule == null) return const [];
+  return [
+    for (final exception in exceptions)
+      if (_belongsToWeeklyRule(exception.originalDate, startDate, weeklyRule) &&
+          _exceptionMatchesMode(exception, allDay))
+        exception,
+  ];
+}
+
+bool _belongsToWeeklyRule(
+  CivilDate date,
+  CivilDate startDate,
+  WeeklyEventRule weeklyRule,
+) {
+  if (date.compareTo(startDate) < 0 ||
+      (weeklyRule.endsOn != null && date.compareTo(weeklyRule.endsOn!) > 0) ||
+      !weeklyRule.weekdays.contains(date.weekday)) {
+    return false;
+  }
+  final weekDelta = _daysBetween(
+    startDate.startOfWeek(DateTime.monday),
+    date.startOfWeek(DateTime.monday),
+  );
+  return weekDelta % (7 * weeklyRule.intervalWeeks) == 0;
+}
+
+bool _exceptionMatchesMode(DaybookEventException exception, bool allDay) {
+  if (exception.state != DaybookEventOccurrenceState.moved) return true;
+  final hasTimes =
+      exception.movedStartMinute != null && exception.movedEndMinute != null;
+  return allDay ? !hasTimes : hasTimes;
 }
 
 void _validateRange({

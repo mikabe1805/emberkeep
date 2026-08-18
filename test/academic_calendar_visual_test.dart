@@ -170,18 +170,12 @@ void main() {
       expect(tester.takeException(), isNull);
 
       if (mode == AcademicCalendarMode.day) {
-        for (
-          var drag = 0;
-          drag < 20 &&
-              find.text('Return the field recorder').evaluate().isEmpty;
-          drag++
-        ) {
-          await tester.dragFrom(const Offset(160, 498), const Offset(0, -260));
-          await tester.pump();
-        }
-        expect(find.text('Return the field recorder'), findsOneWidget);
-        await tester.ensureVisible(find.text('Return the field recorder'));
+        await Scrollable.ensureVisible(
+          tester.element(find.text('ALL DAY').first),
+          alignment: 0.02,
+        );
         await tester.pump();
+        expect(find.text('Return the field recorder'), findsOneWidget);
         expect(find.text('Museum tickets release'), findsOneWidget);
         expect(find.text('Portfolio review'), findsOneWidget);
         expect(find.text('Studio circle'), findsOneWidget);
@@ -191,6 +185,14 @@ void main() {
             'Clear the kitchen table and put every borrowed thing back',
           ),
           findsOneWidget,
+        );
+        expect(
+          tester.getTopLeft(find.text('Museum tickets release')).dy,
+          greaterThanOrEqualTo(16),
+        );
+        expect(
+          tester.getTopLeft(find.text('Return the field recorder')).dy,
+          greaterThan(932 * 0.65),
         );
         expect(tester.takeException(), isNull);
       }
@@ -384,6 +386,35 @@ void main() {
       );
     });
   }
+
+  testWidgets('integrated projected directions row visual', (tester) async {
+    await _pumpGeneralDaybookReleaseFixture(
+      tester,
+      mode: AcademicCalendarMode.day,
+      size: const Size(430, 932),
+      textScale: 1,
+      integratedDirections: true,
+    );
+
+    final eventTitle = find.text('Portfolio review');
+    await Scrollable.ensureVisible(tester.element(eventTitle), alignment: 0.20);
+    await tester.pump();
+
+    final directions = find.bySemanticsLabel(
+      'Get directions to Zimmerli Art Museum',
+    );
+    expect(eventTitle, findsOneWidget);
+    expect(directions, findsOneWidget);
+    expect(
+      tester.getTopLeft(directions).dy,
+      greaterThan(tester.getBottomLeft(eventTitle).dy),
+    );
+    expect(tester.takeException(), isNull);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/daybook_directions_integrated_430x932.png'),
+    );
+  });
 
   for (final configuration in const [
     (name: 'normal', size: Size(430, 932), textScale: 1.0),
@@ -812,6 +843,7 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
   required AcademicCalendarMode mode,
   required Size size,
   required double textScale,
+  bool integratedDirections = false,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
@@ -848,7 +880,9 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
           quests: [quest],
           onAdd: (_) => true,
           scheduleRepository: InMemoryAcademicScheduleRepository(
-            _generalDaybookReleaseSchedule(),
+            _generalDaybookReleaseSchedule(
+              integratedDirections: integratedDirections,
+            ),
           ),
           calendarPreferences: InMemoryAcademicCalendarPreferences(
             state: AcademicCalendarViewState(
@@ -857,6 +891,12 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
             ),
           ),
           notebookHandoff: _NoopHandoff(),
+          directionsLauncher: integratedDirections
+              ? _UnavailableDirectionsLauncher()
+              : null,
+          daybookPreferences: integratedDirections
+              ? InMemoryDaybookPreferences()
+              : null,
         ),
       ),
     ),
@@ -874,7 +914,9 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
   }
 }
 
-AcademicSchedule _generalDaybookReleaseSchedule() {
+AcademicSchedule _generalDaybookReleaseSchedule({
+  bool integratedDirections = false,
+}) {
   final createdAt = DateTime.utc(2026, 8, 8);
   final term = AcademicTerm(
     termId: 'term_release_summer_2026',
@@ -941,6 +983,12 @@ AcademicSchedule _generalDaybookReleaseSchedule() {
           allDay: false,
           startMinute: 9 * 60,
           endMinute: 10 * 60,
+          place: integratedDirections
+              ? DaybookPlace(
+                  savedName: 'Zimmerli Art Museum',
+                  routingText: '71 Hamilton Street, New Brunswick, NJ',
+                )
+              : null,
           createdAt: createdAt,
           updatedAt: createdAt,
         ),

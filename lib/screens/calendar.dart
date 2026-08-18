@@ -15,6 +15,7 @@ import '../daybook/data/daybook_preferences.dart';
 import '../daybook/domain/daybook_event.dart';
 import '../daybook/domain/daybook_task.dart';
 import '../daybook/presentation/daybook_range_projection.dart';
+import '../daybook/services/device_time_zone.dart';
 import '../daybook/services/directions_launcher.dart';
 import '../daybook/widgets/daybook_add_choice_dialog.dart';
 import '../daybook/widgets/daybook_event_actions.dart';
@@ -73,6 +74,7 @@ class CalendarPage extends StatefulWidget {
     this.notebookHandoff,
     this.directionsLauncher,
     this.daybookPreferences,
+    this.timeZoneIdProvider,
   });
 
   final GameState state;
@@ -85,6 +87,7 @@ class CalendarPage extends StatefulWidget {
   final NotebookHandoff? notebookHandoff;
   final DirectionsLauncher? directionsLauncher;
   final DaybookPreferences? daybookPreferences;
+  final TimeZoneIdProvider? timeZoneIdProvider;
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -1044,6 +1047,7 @@ class _CalendarPageState extends State<CalendarPage> {
           barrierColor: Palette.dialogBarrier,
           builder: (_) => DaybookEventEditor(
             selectedDay: CivilDate.fromDateTime(_selected),
+            timeZoneIdProvider: widget.timeZoneIdProvider,
             onSave: _saveDaybookEvent,
           ),
         );
@@ -1145,6 +1149,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 ? occurrence
                 : null,
             occurrenceMoveOnly: scope == DaybookEventScope.thisEvent,
+            timeZoneIdProvider: widget.timeZoneIdProvider,
             onSave: scope == DaybookEventScope.thisEvent
                 ? (candidate) =>
                       _moveDaybookEventOccurrence(event, occurrence, candidate)

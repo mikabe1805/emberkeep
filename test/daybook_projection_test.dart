@@ -106,6 +106,44 @@ void main() {
     expect(result.dayOn(date).summary.scheduledMinutes, 60);
   });
 
+  test('an event ending at next-day midnight has no zero-minute end row', () {
+    final previous = date.addDays(-1);
+    final schedule = AcademicSchedule.empty().putEvent(
+      DaybookEvent(
+        eventId: 'midnight-end',
+        title: 'Ends at midnight',
+        startDate: previous,
+        endDate: date,
+        timeZoneId: 'America/New_York',
+        allDay: false,
+        startMinute: 23 * 60,
+        endMinute: 0,
+        createdAt: now.toUtc(),
+        updatedAt: now.toUtc(),
+      ),
+    );
+
+    final result = DaybookRangeProjection.build(
+      schedule: schedule,
+      quests: const [],
+      first: previous,
+      last: date,
+      now: now,
+    );
+
+    expect(result.dayOn(previous).entries, hasLength(1));
+    expect(
+      (
+        result.dayOn(previous).entries.single.startMinute,
+        result.dayOn(previous).entries.single.endMinute,
+      ),
+      (23 * 60, 24 * 60),
+    );
+    expect(result.dayOn(date).entries, isEmpty);
+    expect(result.dayOn(date).summary.scheduledMinutes, 0);
+    expect(result.dayOn(date).summary.semanticLabel, isNot(contains('event')));
+  });
+
   test('keeps an all-day event visible across its in-range days', () {
     final previous = date.addDays(-2);
     final schedule = AcademicSchedule.empty().putEvent(

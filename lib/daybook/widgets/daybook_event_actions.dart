@@ -361,8 +361,12 @@ class _ActionTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       supporting!,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
+                      maxLines: MediaQuery.textScalerOf(context).scale(1) > 1.35
+                          ? null
+                          : 3,
+                      overflow: MediaQuery.textScalerOf(context).scale(1) > 1.35
+                          ? TextOverflow.clip
+                          : TextOverflow.ellipsis,
                       style: Type.body.copyWith(
                         fontSize: 11.5,
                         color: Palette.textLo,

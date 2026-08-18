@@ -284,10 +284,11 @@ abstract final class DaybookRangeProjection {
         date.compareTo(occurrence.endDate) <= 0;
         date = date.addDays(1)
       ) {
-        final items = byDate[date];
-        if (items == null) continue;
         final isStart = date == occurrence.startDate;
         final isEnd = date == occurrence.endDate;
+        if (isEnd && !isStart && occurrence.endMinute == 0) continue;
+        final items = byDate[date];
+        if (items == null) continue;
         items.add(
           DaybookEntry(
             displayKey: 'event:${occurrence.occurrenceKey}',

@@ -9,6 +9,7 @@ import '../../widgets/glass.dart';
 import '../../widgets/gold_surface.dart';
 import '../domain/civil_date.dart';
 import '../domain/daybook_event.dart';
+import '../services/device_time_zone.dart';
 import 'daybook_place_fields.dart';
 
 class DaybookEventEditor extends StatefulWidget {
@@ -18,6 +19,7 @@ class DaybookEventEditor extends StatefulWidget {
     this.initialEvent,
     this.initialOccurrence,
     this.occurrenceMoveOnly = false,
+    this.timeZoneIdProvider,
     required this.onSave,
   });
 
@@ -25,6 +27,7 @@ class DaybookEventEditor extends StatefulWidget {
   final DaybookEvent? initialEvent;
   final DaybookEventOccurrence? initialOccurrence;
   final bool occurrenceMoveOnly;
+  final TimeZoneIdProvider? timeZoneIdProvider;
   final Future<bool> Function(DaybookEvent event) onSave;
 
   @override
@@ -202,32 +205,47 @@ class _DaybookEventEditorState extends State<DaybookEventEditor> {
     });
     final now = Clock.now().toUtc();
     final initial = widget.initialEvent;
-    final event = DaybookEvent(
-      eventId:
-          initial?.eventId ?? 'daybook_event_${now.microsecondsSinceEpoch}',
-      title: title,
-      startDate: _startDate,
-      endDate: _endDate,
-      timeZoneId: initial?.timeZoneId ?? 'America/New_York',
-      allDay: _allDay,
-      startMinute: _allDay ? null : startMinute,
-      endMinute: _allDay ? null : endMinute,
-      notes: _notes.text,
-      place: _place.toPlace(),
-      weeklyRule: _weekly
+    late final DaybookEvent event;
+    var saved = false;
+    try {
+      final timeZoneId =
+          initial?.timeZoneId ??
+          await resolveDeviceTimeZoneId(discover: widget.timeZoneIdProvider);
+      final weeklyRule = _weekly
           ? WeeklyEventRule(
               weekdays: _weekdays,
               intervalWeeks: intervalWeeks!,
               endsOn: _hasRecurrenceEnd ? _recurrenceEnd : null,
             )
-          : null,
-      exceptions: initial?.exceptions ?? const [],
-      createdAt: initial?.createdAt ?? now,
-      updatedAt: now,
-    );
-
-    var saved = false;
-    try {
+          : null;
+      event = initial == null
+          ? DaybookEvent(
+              eventId: 'daybook_event_${now.microsecondsSinceEpoch}',
+              title: title,
+              startDate: _startDate,
+              endDate: _endDate,
+              timeZoneId: timeZoneId,
+              allDay: _allDay,
+              startMinute: _allDay ? null : startMinute,
+              endMinute: _allDay ? null : endMinute,
+              notes: _notes.text,
+              place: _place.toPlace(),
+              weeklyRule: weeklyRule,
+              createdAt: now,
+              updatedAt: now,
+            )
+          : initial.copyWith(
+              title: title,
+              startDate: _startDate,
+              endDate: _endDate,
+              allDay: _allDay,
+              startMinute: _allDay ? null : startMinute,
+              endMinute: _allDay ? null : endMinute,
+              notes: _notes.text,
+              place: _place.toPlace(),
+              weeklyRule: weeklyRule,
+              updatedAt: now,
+            );
       saved = await widget.onSave(event);
     } catch (_) {
       saved = false;

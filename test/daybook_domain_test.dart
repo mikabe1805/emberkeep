@@ -244,6 +244,64 @@ void main() {
     },
   );
 
+  group('DaybookEvent series edit reconciliation', () {
+    test('disabling recurrence drops every occurrence exception', () {
+      final edited = _eventWithSeriesExceptions(
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      ).copyWith(weeklyRule: null);
+
+      expect(edited.weeklyRule, isNull);
+      expect(edited.exceptions, isEmpty);
+    });
+
+    test('removing a weekday drops exceptions that no longer belong', () {
+      final edited =
+          _eventWithSeriesExceptions(
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+          ).copyWith(
+            weeklyRule: WeeklyEventRule(weekdays: const {DateTime.monday}),
+          );
+
+      expect(edited.exceptions.map((item) => item.originalDate), [
+        CivilDate(2026, 8, 24),
+      ]);
+    });
+
+    test('changing to all-day drops only incompatible moved timing', () {
+      final edited =
+          _eventWithSeriesExceptions(
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+          ).copyWith(
+            endDate: CivilDate(2026, 8, 18),
+            allDay: true,
+            startMinute: null,
+            endMinute: null,
+          );
+
+      expect(edited.allDay, isTrue);
+      expect(edited.exceptions, hasLength(1));
+      expect(
+        edited.exceptions.single.state,
+        DaybookEventOccurrenceState.cancelled,
+      );
+      expect(edited.exceptions.single.originalDate, CivilDate(2026, 8, 18));
+    });
+
+    test('compatible series edits preserve moved and cancelled exceptions', () {
+      final source = _eventWithSeriesExceptions(
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
+      final edited = source.copyWith(title: 'Longer studio hour');
+
+      expect(edited.exceptions, source.exceptions);
+    });
+  });
+
   test('weekly materialization is inclusive, bounded, and stably keyed', () {
     final event = DaybookEvent(
       eventId: 'event_team',
@@ -472,3 +530,40 @@ void main() {
     },
   );
 }
+
+DaybookEvent _eventWithSeriesExceptions({
+  required DateTime createdAt,
+  required DateTime updatedAt,
+}) => DaybookEvent(
+  eventId: 'event_reconcile',
+  title: 'Studio hour',
+  startDate: CivilDate(2026, 8, 17),
+  endDate: CivilDate(2026, 8, 17),
+  timeZoneId: 'America/New_York',
+  allDay: false,
+  startMinute: 9 * 60,
+  endMinute: 10 * 60,
+  weeklyRule: WeeklyEventRule(
+    weekdays: const {DateTime.monday, DateTime.tuesday},
+  ),
+  exceptions: [
+    DaybookEventException(
+      occurrenceKey: 'event_reconcile@2026-08-24',
+      originalDate: CivilDate(2026, 8, 24),
+      state: DaybookEventOccurrenceState.moved,
+      movedStartDate: CivilDate(2026, 8, 25),
+      movedEndDate: CivilDate(2026, 8, 25),
+      movedStartMinute: 11 * 60,
+      movedEndMinute: 12 * 60,
+      updatedAt: updatedAt,
+    ),
+    DaybookEventException(
+      occurrenceKey: 'event_reconcile@2026-08-18',
+      originalDate: CivilDate(2026, 8, 18),
+      state: DaybookEventOccurrenceState.cancelled,
+      updatedAt: updatedAt,
+    ),
+  ],
+  createdAt: createdAt,
+  updatedAt: updatedAt,
+);

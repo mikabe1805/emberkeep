@@ -142,6 +142,7 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
                 ValueKey('${widget.keyPrefix}-routing-text'),
             controller: _routingText,
             label: 'ADDRESS OR ROUTING TEXT',
+            labelAbove: true,
             capitalization: TextCapitalization.words,
             keyboardType: TextInputType.streetAddress,
             onChanged: (value) => widget.controller.routingText = value,
@@ -169,21 +170,40 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
     required Key key,
     required TextEditingController controller,
     required String label,
+    bool labelAbove = false,
     required TextCapitalization capitalization,
     TextInputType? keyboardType,
     required ValueChanged<String> onChanged,
-  }) => TextField(
-    key: key,
-    controller: controller,
-    textCapitalization: capitalization,
-    keyboardType: keyboardType,
-    onChanged: onChanged,
-    style: Type.body.copyWith(fontSize: 14, color: Palette.textHi),
-    decoration: _fieldDecoration(label),
-  );
+  }) {
+    final field = TextField(
+      key: key,
+      controller: controller,
+      textCapitalization: capitalization,
+      keyboardType: keyboardType,
+      onChanged: onChanged,
+      style: Type.body.copyWith(fontSize: 14, color: Palette.textHi),
+      decoration: _fieldDecoration(labelAbove ? null : label),
+    );
+    if (!labelAbove) return field;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            letterSpacing: 0.7,
+            color: Palette.textLo,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Semantics(label: label, textField: true, child: field),
+      ],
+    );
+  }
 }
 
-InputDecoration _fieldDecoration(String label) => InputDecoration(
+InputDecoration _fieldDecoration(String? label) => InputDecoration(
   labelText: label,
   labelStyle: Type.label.copyWith(
     fontSize: Type.minLabel,

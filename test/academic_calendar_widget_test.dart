@@ -13,6 +13,7 @@ import 'package:emberkeep/daybook/domain/daybook_place.dart';
 import 'package:emberkeep/daybook/domain/daybook_task.dart';
 import 'package:emberkeep/daybook/services/directions_launcher.dart';
 import 'package:emberkeep/daybook/widgets/daybook_add_choice_dialog.dart';
+import 'package:emberkeep/daybook/widgets/daybook_event_actions.dart';
 import 'package:emberkeep/daybook/widgets/daybook_event_editor.dart';
 import 'package:emberkeep/daybook/widgets/daybook_rows.dart';
 import 'package:emberkeep/daybook/widgets/daybook_task_editor.dart';
@@ -21,6 +22,7 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/calendar.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -78,6 +80,15 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('SCHOOL'), findsOneWidget);
+    for (final description in const [
+      'Something happening at a time or across a day',
+      'Something to finish by a date or time',
+      'A lecture, lab, meeting, or recurring class',
+      'Course work with a due date and time',
+      'A test, midterm, or final on your calendar',
+    ]) {
+      expect(find.text(description), findsOneWidget);
+    }
 
     final labels = ['EVENT', 'TASK', 'SCHOOL', 'CLASS', 'ASSIGNMENT', 'EXAM'];
     final tops = [
@@ -107,6 +118,7 @@ void main() {
         tester,
         DaybookEventEditor(
           selectedDay: CivilDate(2026, 8, 11),
+          timeZoneIdProvider: () async => 'Etc/UTC',
           onSave: (_) async {
             saveCalls += 1;
             return false;
@@ -146,6 +158,7 @@ void main() {
       tester,
       DaybookEventEditor(
         selectedDay: CivilDate(2026, 8, 11),
+        timeZoneIdProvider: () async => 'Etc/UTC',
         onSave: (event) async {
           saved = event;
           return true;
@@ -206,6 +219,7 @@ void main() {
       tester,
       DaybookEventEditor(
         selectedDay: CivilDate(2026, 8, 11),
+        timeZoneIdProvider: () async => 'Etc/UTC',
         onSave: (event) async {
           saved = event;
           return true;
@@ -251,6 +265,248 @@ void main() {
     expect(saved!.weeklyRule!.weekdays, {DateTime.wednesday});
     expect(saved!.weeklyRule!.intervalWeeks, 1);
   });
+
+  testWidgets(
+    'Daybook series edit reconciles exceptions inside save failure and retry handling',
+    (tester) async {
+      final source = DaybookEvent(
+        eventId: 'event_series_retry',
+        title: 'Studio hour',
+        startDate: CivilDate(2026, 8, 11),
+        endDate: CivilDate(2026, 8, 11),
+        timeZoneId: 'America/New_York',
+        allDay: false,
+        startMinute: 9 * 60,
+        endMinute: 10 * 60,
+        weeklyRule: WeeklyEventRule(weekdays: const {DateTime.tuesday}),
+        exceptions: [
+          DaybookEventException(
+            occurrenceKey: 'event_series_retry@2026-08-18',
+            originalDate: CivilDate(2026, 8, 18),
+            state: DaybookEventOccurrenceState.moved,
+            movedStartDate: CivilDate(2026, 8, 19),
+            movedEndDate: CivilDate(2026, 8, 19),
+            movedStartMinute: 11 * 60,
+            movedEndMinute: 12 * 60,
+            updatedAt: DateTime.utc(2026, 8, 10),
+          ),
+          DaybookEventException(
+            occurrenceKey: 'event_series_retry@2026-08-25',
+            originalDate: CivilDate(2026, 8, 25),
+            state: DaybookEventOccurrenceState.cancelled,
+            updatedAt: DateTime.utc(2026, 8, 10),
+          ),
+        ],
+        createdAt: DateTime.utc(2026, 8, 8),
+        updatedAt: DateTime.utc(2026, 8, 8),
+      );
+      final attempts = <DaybookEvent>[];
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: source.startDate,
+          initialEvent: source,
+          onSave: (event) async {
+            attempts.add(event);
+            return attempts.length > 1;
+          },
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('daybook-event-all-day')));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-event-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(attempts, hasLength(1));
+      expect(attempts.single.allDay, isTrue);
+      expect(attempts.single.exceptions, hasLength(1));
+      expect(
+        attempts.single.exceptions.single.state,
+        DaybookEventOccurrenceState.cancelled,
+      );
+      expect(
+        find.text('Couldn’t save this event locally. Try again.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(attempts, hasLength(2));
+      expect(attempts.last.exceptions, attempts.first.exceptions);
+    },
+  );
+
+  for (final platformZone in const [
+    (platform: 'native', zone: 'Asia/Tokyo'),
+    (platform: 'web', zone: 'Europe/London'),
+  ]) {
+    testWidgets(
+      'Daybook new event uses the injected ${platformZone.platform} IANA zone',
+      (tester) async {
+        DaybookEvent? saved;
+        await _pumpDaybookWidget(
+          tester,
+          DaybookEventEditor(
+            selectedDay: CivilDate(2026, 8, 11),
+            timeZoneIdProvider: () async => platformZone.zone,
+            onSave: (event) async {
+              saved = event;
+              return true;
+            },
+          ),
+        );
+
+        await tester.enterText(
+          find.byKey(const ValueKey('daybook-event-title')),
+          'Cross-zone call',
+        );
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('daybook-event-save')),
+        );
+        await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+        await tester.pump();
+
+        expect(saved?.timeZoneId, platformZone.zone);
+      },
+    );
+  }
+
+  testWidgets('Daybook event edit preserves its stored time zone', (
+    tester,
+  ) async {
+    var discoveryCalls = 0;
+    DaybookEvent? saved;
+    final source = DaybookEvent(
+      eventId: 'event_zone_preserved',
+      title: 'Remote review',
+      startDate: CivilDate(2026, 8, 11),
+      endDate: CivilDate(2026, 8, 11),
+      timeZoneId: 'Australia/Perth',
+      allDay: false,
+      startMinute: 9 * 60,
+      endMinute: 10 * 60,
+      createdAt: DateTime.utc(2026, 8, 8),
+      updatedAt: DateTime.utc(2026, 8, 8),
+    );
+    await _pumpDaybookWidget(
+      tester,
+      DaybookEventEditor(
+        selectedDay: source.startDate,
+        initialEvent: source,
+        timeZoneIdProvider: () async {
+          discoveryCalls += 1;
+          return 'Pacific/Auckland';
+        },
+        onSave: (event) async {
+          saved = event;
+          return true;
+        },
+      ),
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('daybook-event-save')),
+    );
+    await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+    await tester.pump();
+
+    expect(discoveryCalls, 0);
+    expect(saved?.timeZoneId, 'Australia/Perth');
+  });
+
+  testWidgets('Daybook new event falls back to neutral Etc/UTC', (
+    tester,
+  ) async {
+    DaybookEvent? saved;
+    await _pumpDaybookWidget(
+      tester,
+      DaybookEventEditor(
+        selectedDay: CivilDate(2026, 8, 11),
+        timeZoneIdProvider: () async => throw StateError('zone unavailable'),
+        onSave: (event) async {
+          saved = event;
+          return true;
+        },
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('daybook-event-title')),
+      'Fallback-zone call',
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('daybook-event-save')),
+    );
+    await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+    await tester.pump();
+
+    expect(saved?.timeZoneId, 'Etc/UTC');
+  });
+
+  testWidgets(
+    'address or routing label remains fully visible at 320x568 and 200% text',
+    (tester) async {
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          timeZoneIdProvider: () async => 'Etc/UTC',
+          onSave: (_) async => true,
+        ),
+        size: const Size(320, 568),
+        textScale: 2,
+      );
+
+      final label = find.text('ADDRESS OR ROUTING TEXT');
+      expect(label, findsOneWidget);
+      await tester.ensureVisible(label);
+      await tester.pump();
+
+      expect(
+        tester.renderObject<RenderParagraph>(label).didExceedMaxLines,
+        isFalse,
+      );
+      final bounds = tester.getRect(label);
+      expect(bounds.left, greaterThanOrEqualTo(0));
+      expect(bounds.right, lessThanOrEqualTo(320));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'occurrence cancellation explanation remains fully readable at 200% text',
+    (tester) async {
+      await _pumpDaybookWidget(
+        tester,
+        const DaybookEventActionsDialog(
+          title: 'A weekly event with a descriptive title',
+          scope: DaybookEventScope.thisEvent,
+        ),
+        size: const Size(320, 568),
+        textScale: 2,
+      );
+
+      final explanation = find.text(
+        'Keep the series and mark only this occurrence cancelled.',
+      );
+      expect(explanation, findsOneWidget);
+      await tester.ensureVisible(explanation);
+      await tester.pump();
+
+      expect(
+        tester.renderObject<RenderParagraph>(explanation).didExceedMaxLines,
+        isFalse,
+      );
+      expect(tester.getBottomLeft(explanation).dy, lessThanOrEqualTo(568));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets(
     'Daybook weekday controls stay 44 px and expose unambiguous semantics',
@@ -1463,6 +1719,101 @@ void main() {
       expect(find.text('CAMPUS TIME'), findsNothing);
     },
   );
+
+  testWidgets(
+    'general daybook empty schedule saves and renders an event after retry',
+    (tester) async {
+      final repository = InMemoryAcademicScheduleRepository();
+      await _pumpCalendar(
+        tester,
+        repository: repository,
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-11',
+          ),
+        ),
+        timeZoneIdProvider: () async => 'Etc/UTC',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('academic-add-class')));
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(find.byKey(const ValueKey('daybook-add-choice-event')));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(DaybookEventEditor), findsOneWidget);
+      expect(find.byKey(const ValueKey('academic-term-name')), findsNothing);
+      expect(find.byKey(const ValueKey('academic-course-code')), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-title')),
+        'Call the repair shop',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-event-save')),
+      );
+      repository.allowWrites = false;
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pumpAndSettle();
+
+      expect(repository.schedule.events, isEmpty);
+      expect(find.byType(DaybookEventEditor), findsOneWidget);
+      expect(
+        find.text('Couldn’t save this event locally. Try again.'),
+        findsOneWidget,
+      );
+
+      repository.allowWrites = true;
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pumpAndSettle();
+
+      expect(repository.schedule.terms, isEmpty);
+      expect(repository.schedule.courses, isEmpty);
+      expect(repository.schedule.events.single.title, 'Call the repair shop');
+      expect(repository.schedule.events.single.timeZoneId, 'Etc/UTC');
+      expect(repository.saveCount, 2);
+      expect(find.byType(DaybookEventEditor), findsNothing);
+      expect(find.text('Call the repair shop'), findsOneWidget);
+    },
+  );
+
+  testWidgets('event ending at midnight does not render on its end date', (
+    tester,
+  ) async {
+    final event = DaybookEvent(
+      eventId: 'event_midnight_end',
+      title: 'Ends at midnight',
+      startDate: CivilDate(2026, 8, 11),
+      endDate: CivilDate(2026, 8, 12),
+      timeZoneId: 'America/New_York',
+      allDay: false,
+      startMinute: 23 * 60,
+      endMinute: 0,
+      createdAt: DateTime.utc(2026, 8, 8),
+      updatedAt: DateTime.utc(2026, 8, 8),
+    );
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(
+        AcademicSchedule.empty().putEvent(event),
+      ),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.day,
+          selectedDate: '2026-08-12',
+        ),
+      ),
+    );
+
+    expect(find.text('Ends at midnight'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.bySemanticsLabel('Previous day'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ends at midnight'), findsOneWidget);
+    expect(find.text('11:00 PM–12:00 AM'), findsOneWidget);
+  });
 
   testWidgets(
     'one-off event actions edit and delete without a weekly event scope chooser',
@@ -2770,6 +3121,7 @@ Future<void> _pumpCalendar(
   AcademicCalendarPreferences? preferences,
   DirectionsLauncher? directionsLauncher,
   DaybookPreferences? daybookPreferences,
+  Future<String> Function()? timeZoneIdProvider,
   Key? calendarKey,
   List<Quest> quests = const [],
   Size size = const Size(430, 932),
@@ -2801,6 +3153,7 @@ Future<void> _pumpCalendar(
           notebookHandoff: handoff,
           directionsLauncher: directionsLauncher,
           daybookPreferences: daybookPreferences,
+          timeZoneIdProvider: timeZoneIdProvider,
         ),
       ),
     ),
