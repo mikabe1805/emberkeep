@@ -6,6 +6,31 @@ import '../domain/daybook_event.dart';
 import '../domain/daybook_place.dart';
 import '../domain/daybook_task.dart';
 
+class DaybookRowActionsButton extends StatelessWidget {
+  const DaybookRowActionsButton({
+    super.key,
+    required this.title,
+    required this.onTap,
+  });
+
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: 'Actions for $title',
+    child: InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: const SizedBox.square(
+        dimension: 44,
+        child: Icon(Icons.more_horiz_rounded, size: 22, color: Palette.xpLight),
+      ),
+    ),
+  );
+}
+
 class DaybookEventRow extends StatelessWidget {
   const DaybookEventRow({
     super.key,

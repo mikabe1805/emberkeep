@@ -17,12 +17,14 @@ class DaybookEventEditor extends StatefulWidget {
     required this.selectedDay,
     this.initialEvent,
     this.initialOccurrence,
+    this.occurrenceMoveOnly = false,
     required this.onSave,
   });
 
   final CivilDate selectedDay;
   final DaybookEvent? initialEvent;
   final DaybookEventOccurrence? initialOccurrence;
+  final bool occurrenceMoveOnly;
   final Future<bool> Function(DaybookEvent event) onSave;
 
   @override
@@ -153,7 +155,7 @@ class _DaybookEventEditorState extends State<DaybookEventEditor> {
       setState(() => _error = 'Add a title before keeping this event.');
       return;
     }
-    if (_place.needsSavedName) {
+    if (!widget.occurrenceMoveOnly && _place.needsSavedName) {
       setState(() => _error = 'Add a saved name for this place.');
       return;
     }
@@ -260,38 +262,53 @@ class _DaybookEventEditorState extends State<DaybookEventEditor> {
             children: [
               _editorHeader(
                 context,
-                widget.initialEvent == null ? 'ADD AN EVENT' : 'EDIT EVENT',
+                widget.occurrenceMoveOnly
+                    ? 'MOVE EVENT'
+                    : widget.initialEvent == null
+                    ? 'ADD AN EVENT'
+                    : 'EDIT EVENT',
               ),
               const SizedBox(height: 6),
-              _sectionLabel('EVENT'),
-              const SizedBox(height: 7),
-              TextField(
-                key: const ValueKey('daybook-event-title'),
-                controller: _title,
-                textCapitalization: TextCapitalization.sentences,
-                onChanged: (_) => setState(() => _error = null),
-                style: _inputStyle,
-                decoration: _fieldDecoration('TITLE'),
-              ),
-              const SizedBox(height: 7),
-              TextField(
-                key: const ValueKey('daybook-event-notes'),
-                controller: _notes,
-                minLines: 2,
-                maxLines: 4,
-                textCapitalization: TextCapitalization.sentences,
-                style: _inputStyle,
-                decoration: _fieldDecoration('NOTES'),
-              ),
-              const SizedBox(height: 10),
-              _toggleTile(
-                key: const ValueKey('daybook-event-all-day'),
-                title: 'ALL DAY',
-                subtitle: 'Keep this event above the timed day.',
-                value: _allDay,
-                onChanged: _setAllDay,
-              ),
-              const SizedBox(height: 12),
+              if (widget.occurrenceMoveOnly) ...[
+                Text(
+                  'Only this occurrence moves. The weekly details stay with the series.',
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    color: Palette.textMid,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ] else ...[
+                _sectionLabel('EVENT'),
+                const SizedBox(height: 7),
+                TextField(
+                  key: const ValueKey('daybook-event-title'),
+                  controller: _title,
+                  textCapitalization: TextCapitalization.sentences,
+                  onChanged: (_) => setState(() => _error = null),
+                  style: _inputStyle,
+                  decoration: _fieldDecoration('TITLE'),
+                ),
+                const SizedBox(height: 7),
+                TextField(
+                  key: const ValueKey('daybook-event-notes'),
+                  controller: _notes,
+                  minLines: 2,
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: _inputStyle,
+                  decoration: _fieldDecoration('NOTES'),
+                ),
+                const SizedBox(height: 10),
+                _toggleTile(
+                  key: const ValueKey('daybook-event-all-day'),
+                  title: 'ALL DAY',
+                  subtitle: 'Keep this event above the timed day.',
+                  value: _allDay,
+                  onChanged: _setAllDay,
+                ),
+                const SizedBox(height: 12),
+              ],
               _sectionLabel('WHEN'),
               const SizedBox(height: 7),
               _PickerPair(
@@ -329,18 +346,20 @@ class _DaybookEventEditorState extends State<DaybookEventEditor> {
                   ),
                 ),
               ],
-              const SizedBox(height: 10),
-              _toggleTile(
-                key: const ValueKey('daybook-event-weekly'),
-                title: 'REPEAT WEEKLY',
-                subtitle: 'Use the same days each interval.',
-                value: _weekly,
-                onChanged: (value) => setState(() {
-                  _weekly = value;
-                  _error = null;
-                }),
-              ),
-              if (_weekly) ...[
+              if (!widget.occurrenceMoveOnly) ...[
+                const SizedBox(height: 10),
+                _toggleTile(
+                  key: const ValueKey('daybook-event-weekly'),
+                  title: 'REPEAT WEEKLY',
+                  subtitle: 'Use the same days each interval.',
+                  value: _weekly,
+                  onChanged: (value) => setState(() {
+                    _weekly = value;
+                    _error = null;
+                  }),
+                ),
+              ],
+              if (!widget.occurrenceMoveOnly && _weekly) ...[
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 4,
@@ -398,13 +417,15 @@ class _DaybookEventEditorState extends State<DaybookEventEditor> {
                   ),
                 ],
               ],
-              const SizedBox(height: 13),
-              _sectionLabel('PLACE · OPTIONAL'),
-              const SizedBox(height: 7),
-              DaybookPlaceFields(
-                controller: _place,
-                keyPrefix: 'daybook-event-place',
-              ),
+              if (!widget.occurrenceMoveOnly) ...[
+                const SizedBox(height: 13),
+                _sectionLabel('PLACE · OPTIONAL'),
+                const SizedBox(height: 7),
+                DaybookPlaceFields(
+                  controller: _place,
+                  keyPrefix: 'daybook-event-place',
+                ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 10),
                 Text(
@@ -422,6 +443,8 @@ class _DaybookEventEditorState extends State<DaybookEventEditor> {
                 saving: _saving,
                 label: widget.initialEvent == null
                     ? 'KEEP THIS EVENT'
+                    : widget.occurrenceMoveOnly
+                    ? 'MOVE EVENT'
                     : 'KEEP CHANGES',
                 onTap: _save,
               ),

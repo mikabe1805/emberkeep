@@ -10,6 +10,7 @@ import '../../daybook/domain/daybook_place.dart';
 import '../../daybook/domain/daybook_task.dart';
 import '../../daybook/presentation/daybook_range_projection.dart';
 import '../../daybook/widgets/daybook_place_fields.dart';
+import '../../daybook/widgets/daybook_rows.dart';
 import '../../tokens.dart';
 import '../../widgets/facets.dart';
 import '../../widgets/glass.dart';
@@ -52,6 +53,7 @@ typedef OpenAcademicOccurrenceAdjuster =
     Future<void> Function(ClassOccurrence occurrence);
 typedef ToggleDaybookTask =
     Future<void> Function(DaybookTask task, bool completed);
+typedef OpenDaybookActions = Future<void> Function(DaybookActionTarget target);
 
 enum AcademicAddTarget { classMeeting, assignment, exam }
 
@@ -432,6 +434,7 @@ class DaybookSpanPanel extends StatelessWidget {
     required this.onToday,
     required this.onSelectDay,
     required this.onOpenNotebook,
+    required this.onOpenDaybookActions,
     required this.onToggleTask,
     required this.onToggleWork,
     required this.onOpenStudyPlanner,
@@ -450,6 +453,7 @@ class DaybookSpanPanel extends StatelessWidget {
   final VoidCallback onToday;
   final ValueChanged<DateTime> onSelectDay;
   final OpenAcademicNotebook onOpenNotebook;
+  final OpenDaybookActions onOpenDaybookActions;
   final ToggleDaybookTask onToggleTask;
   final ToggleAcademicWork onToggleWork;
   final OpenAcademicStudyPlanner onOpenStudyPlanner;
@@ -534,6 +538,7 @@ class DaybookSpanPanel extends StatelessWidget {
               schedule: schedule,
               onSelectDay: onSelectDay,
               onOpenNotebook: onOpenNotebook,
+              onOpenDaybookActions: onOpenDaybookActions,
               onToggleTask: onToggleTask,
               onToggleWork: onToggleWork,
               onOpenStudyPlanner: onOpenStudyPlanner,
@@ -558,6 +563,7 @@ class DaybookAgendaDay extends StatelessWidget {
     required this.schedule,
     required this.onSelectDay,
     required this.onOpenNotebook,
+    required this.onOpenDaybookActions,
     required this.onToggleTask,
     required this.onToggleWork,
     required this.onOpenStudyPlanner,
@@ -573,6 +579,7 @@ class DaybookAgendaDay extends StatelessWidget {
   final AcademicSchedule schedule;
   final ValueChanged<DateTime> onSelectDay;
   final OpenAcademicNotebook onOpenNotebook;
+  final OpenDaybookActions onOpenDaybookActions;
   final ToggleDaybookTask onToggleTask;
   final ToggleAcademicWork onToggleWork;
   final OpenAcademicStudyPlanner onOpenStudyPlanner;
@@ -671,6 +678,7 @@ class DaybookAgendaDay extends StatelessWidget {
               day: day,
               schedule: schedule,
               onOpenNotebook: onOpenNotebook,
+              onOpenDaybookActions: onOpenDaybookActions,
               onToggleTask: onToggleTask,
               onToggleWork: onToggleWork,
               onOpenStudyPlanner: onOpenStudyPlanner,
@@ -690,6 +698,7 @@ class DaybookAgendaEntries extends StatelessWidget {
     required this.day,
     required this.schedule,
     required this.onOpenNotebook,
+    required this.onOpenDaybookActions,
     required this.onToggleTask,
     required this.onToggleWork,
     required this.onOpenStudyPlanner,
@@ -702,6 +711,7 @@ class DaybookAgendaEntries extends StatelessWidget {
   final DaybookDay day;
   final AcademicSchedule schedule;
   final OpenAcademicNotebook onOpenNotebook;
+  final OpenDaybookActions onOpenDaybookActions;
   final ToggleDaybookTask onToggleTask;
   final ToggleAcademicWork onToggleWork;
   final OpenAcademicStudyPlanner onOpenStudyPlanner;
@@ -791,6 +801,7 @@ class DaybookAgendaEntries extends StatelessWidget {
                 day: day,
                 schedule: schedule,
                 onOpenNotebook: onOpenNotebook,
+                onOpenDaybookActions: onOpenDaybookActions,
                 onToggleTask: onToggleTask,
                 onToggleWork: onToggleWork,
                 onOpenStudyPlanner: onOpenStudyPlanner,
@@ -811,6 +822,7 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
     required this.day,
     required this.schedule,
     required this.onOpenNotebook,
+    required this.onOpenDaybookActions,
     required this.onToggleTask,
     required this.onToggleWork,
     required this.onOpenStudyPlanner,
@@ -823,6 +835,7 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
   final DaybookDay day;
   final AcademicSchedule schedule;
   final OpenAcademicNotebook onOpenNotebook;
+  final OpenDaybookActions onOpenDaybookActions;
   final ToggleDaybookTask onToggleTask;
   final ToggleAcademicWork onToggleWork;
   final OpenAcademicStudyPlanner onOpenStudyPlanner;
@@ -846,6 +859,19 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
             onAdjust: entry.adjustable ? _openOccurrenceAdjuster : null,
           )
         : null;
+    final daybookActions = switch (entry.action) {
+      DaybookEventAction() => DaybookRowActionsButton(
+        key: ValueKey('daybook-event-actions-${entry.sourceId}'),
+        title: entry.title,
+        onTap: _openDaybookActions,
+      ),
+      DaybookTaskAction() => DaybookRowActionsButton(
+        key: ValueKey('daybook-task-actions-${entry.sourceId}'),
+        title: entry.title,
+        onTap: _openDaybookActions,
+      ),
+      _ => null,
+    };
     final footer = switch (entry.action) {
       AcademicOccurrenceAction() when entry.transitionPressure => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -908,10 +934,12 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
       entry: entry,
       conflict: conflict,
       leading: toggle,
-      actions: classActions,
+      actions: classActions ?? daybookActions,
       footer: footer,
     );
   }
+
+  Future<void> _openDaybookActions() => onOpenDaybookActions(entry.action);
 
   Future<void> _toggleTask() async {
     final action = entry.action as DaybookTaskAction;

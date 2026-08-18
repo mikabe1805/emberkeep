@@ -15,6 +15,7 @@ import '../daybook/domain/daybook_event.dart';
 import '../daybook/domain/daybook_task.dart';
 import '../daybook/presentation/daybook_range_projection.dart';
 import '../daybook/widgets/daybook_add_choice_dialog.dart';
+import '../daybook/widgets/daybook_event_actions.dart';
 import '../daybook/widgets/daybook_event_editor.dart';
 import '../daybook/widgets/daybook_task_editor.dart';
 import '../engine.dart';
@@ -243,6 +244,64 @@ class _CalendarPageState extends State<CalendarPage> {
     if (mounted) setState(() => _academicSchedule = next);
     return true;
   }
+
+  Future<bool> _applyDaybookMutation(
+    AcademicSchedule Function(AcademicSchedule schedule) change,
+  ) async {
+    late final AcademicSchedule next;
+    try {
+      next = change(_academicSchedule);
+    } on ArgumentError {
+      return false;
+    }
+    if (!await _scheduleRepository.save(next)) return false;
+    if (mounted) setState(() => _academicSchedule = next);
+    return true;
+  }
+
+  Future<bool> _deleteDaybookEvent(String eventId) =>
+      _applyDaybookMutation((schedule) => schedule.deleteEvent(eventId));
+
+  Future<bool> _deleteDaybookTask(String taskId) =>
+      _applyDaybookMutation((schedule) => schedule.deleteTask(taskId));
+
+  Future<bool> _moveDaybookEventOccurrence(
+    DaybookEvent event,
+    DaybookEventOccurrence occurrence,
+    DaybookEvent candidate,
+  ) => _applyDaybookMutation(
+    (schedule) => schedule.moveEventOccurrence(
+      eventId: event.eventId,
+      occurrenceKey: occurrence.occurrenceKey,
+      startDate: candidate.startDate,
+      endDate: candidate.endDate,
+      startMinute: candidate.startMinute,
+      endMinute: candidate.endMinute,
+      updatedAt: candidate.updatedAt,
+    ),
+  );
+
+  Future<bool> _cancelDaybookEventOccurrence(
+    DaybookEvent event,
+    DaybookEventOccurrence occurrence,
+  ) => _applyDaybookMutation(
+    (schedule) => schedule.cancelEventOccurrence(
+      eventId: event.eventId,
+      occurrenceKey: occurrence.occurrenceKey,
+      updatedAt: Clock.now().toUtc(),
+    ),
+  );
+
+  Future<bool> _restoreDaybookEventOccurrence(
+    DaybookEvent event,
+    DaybookEventOccurrence occurrence,
+  ) => _applyDaybookMutation(
+    (schedule) => schedule.restoreEventOccurrence(
+      eventId: event.eventId,
+      occurrenceKey: occurrence.occurrenceKey,
+      updatedAt: Clock.now().toUtc(),
+    ),
+  );
 
   Future<void> _toggleDaybookTask(DaybookTask task, bool completed) async {
     final updatedAt = Clock.now().toUtc();
@@ -726,6 +785,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 onToday: _goToday,
                 onSelectDay: _selectDay,
                 onOpenNotebook: _openNotebook,
+                onOpenDaybookActions: _showDaybookActions,
                 onToggleTask: _toggleDaybookTask,
                 onToggleWork: _toggleAcademicWork,
                 onOpenStudyPlanner: _showAcademicStudyPlanner,
@@ -749,6 +809,7 @@ class _CalendarPageState extends State<CalendarPage> {
               onPlan: () => _showAddEvent(context),
               onOpenJournal: _openJournal,
               onOpenNotebook: _openNotebook,
+              onOpenDaybookActions: _showDaybookActions,
               onToggleTask: _toggleDaybookTask,
               onToggleWork: _toggleAcademicWork,
               onOpenStudyPlanner: _showAcademicStudyPlanner,
@@ -1004,6 +1065,164 @@ class _CalendarPageState extends State<CalendarPage> {
         );
     }
   }
+
+  Future<void> _showDaybookActions(DaybookActionTarget target) async {
+    switch (target) {
+      case DaybookEventAction():
+        final event = _academicSchedule.events
+            .where((item) => item.eventId == target.eventId)
+            .firstOrNull;
+        if (event == null) return;
+        final separator = target.occurrenceKey.lastIndexOf('@');
+        if (separator < 0) return;
+        final originalDate = CivilDate.parse(
+          target.occurrenceKey.substring(separator + 1),
+        );
+        final occurrence = event
+            .occurrenceFor(originalDate)
+            .copyWith(occurrenceKey: target.occurrenceKey);
+        await _showDaybookEventActions(event, occurrence);
+      case DaybookTaskAction():
+        final task = _academicSchedule.tasks
+            .where((item) => item.taskId == target.taskId)
+            .firstOrNull;
+        if (task != null) await _showDaybookTaskActions(task);
+      default:
+        return;
+    }
+  }
+
+  Future<void> _showDaybookEventActions(
+    DaybookEvent event,
+    DaybookEventOccurrence occurrence,
+  ) async {
+    DaybookEventScope? scope;
+    if (event.weeklyRule != null) {
+      scope = await showDialog<DaybookEventScope>(
+        context: context,
+        barrierColor: Palette.dialogBarrier,
+        builder: (_) => DaybookEventScopeDialog(title: event.title),
+      );
+      if (!mounted || scope == null) return;
+    }
+    final command = await showDialog<DaybookEventCommand>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (_) => DaybookEventActionsDialog(
+        title: event.title,
+        scope: scope,
+        cancelled: occurrence.state == DaybookEventOccurrenceState.cancelled,
+      ),
+    );
+    if (!mounted || command == null) return;
+    switch (command) {
+      case DaybookEventCommand.edit:
+        await showDialog<void>(
+          context: context,
+          barrierColor: Palette.dialogBarrier,
+          builder: (_) => DaybookEventEditor(
+            selectedDay: occurrence.startDate,
+            initialEvent: scope == DaybookEventScope.thisEvent
+                ? event.copyWith(weeklyRule: null, exceptions: const [])
+                : event,
+            initialOccurrence: scope == DaybookEventScope.thisEvent
+                ? occurrence
+                : null,
+            occurrenceMoveOnly: scope == DaybookEventScope.thisEvent,
+            onSave: scope == DaybookEventScope.thisEvent
+                ? (candidate) =>
+                      _moveDaybookEventOccurrence(event, occurrence, candidate)
+                : _saveDaybookEvent,
+          ),
+        );
+      case DaybookEventCommand.delete:
+        await _confirmDaybookMutation(
+          heading: scope == DaybookEventScope.entireSeries
+              ? 'DELETE SERIES'
+              : 'DELETE EVENT',
+          message: scope == DaybookEventScope.entireSeries
+              ? 'Remove ${event.title} and every generated occurrence?'
+              : 'Remove ${event.title} from your Daybook?',
+          confirmLabel: scope == DaybookEventScope.entireSeries
+              ? 'DELETE SERIES'
+              : 'DELETE EVENT',
+          confirmKey: const ValueKey('daybook-confirm-delete-event'),
+          errorMessage: "Couldn’t delete this event locally. Try again.",
+          onConfirm: () => _deleteDaybookEvent(event.eventId),
+        );
+      case DaybookEventCommand.cancel:
+        await _confirmDaybookMutation(
+          heading: 'CANCEL EVENT',
+          message: 'Cancel only this occurrence of ${event.title}?',
+          confirmLabel: 'CANCEL EVENT',
+          confirmKey: const ValueKey('daybook-confirm-cancel-event'),
+          errorMessage: "Couldn’t cancel this event locally. Try again.",
+          onConfirm: () => _cancelDaybookEventOccurrence(event, occurrence),
+        );
+      case DaybookEventCommand.restore:
+        await _confirmDaybookMutation(
+          heading: 'RESTORE EVENT',
+          message: 'Return this occurrence of ${event.title}?',
+          confirmLabel: 'RESTORE EVENT',
+          confirmKey: const ValueKey('daybook-confirm-restore-event'),
+          errorMessage: "Couldn’t restore this event locally. Try again.",
+          danger: false,
+          onConfirm: () => _restoreDaybookEventOccurrence(event, occurrence),
+        );
+    }
+  }
+
+  Future<void> _showDaybookTaskActions(DaybookTask task) async {
+    final command = await showDialog<DaybookTaskCommand>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (_) => DaybookTaskActionsDialog(title: task.title),
+    );
+    if (!mounted || command == null) return;
+    switch (command) {
+      case DaybookTaskCommand.edit:
+        await showDialog<void>(
+          context: context,
+          barrierColor: Palette.dialogBarrier,
+          builder: (_) => DaybookTaskEditor(
+            selectedDay: task.dueDate,
+            initialTask: task,
+            onSave: _saveDaybookTask,
+          ),
+        );
+      case DaybookTaskCommand.delete:
+        await _confirmDaybookMutation(
+          heading: 'DELETE TASK',
+          message: 'Remove ${task.title} from your Daybook?',
+          confirmLabel: 'DELETE TASK',
+          confirmKey: const ValueKey('daybook-confirm-delete-task'),
+          errorMessage: "Couldn’t delete this task locally. Try again.",
+          onConfirm: () => _deleteDaybookTask(task.taskId),
+        );
+    }
+  }
+
+  Future<void> _confirmDaybookMutation({
+    required String heading,
+    required String message,
+    required String confirmLabel,
+    required Key confirmKey,
+    required String errorMessage,
+    required Future<bool> Function() onConfirm,
+    bool danger = true,
+  }) => showDialog<void>(
+    context: context,
+    barrierColor: Palette.dialogBarrier,
+    builder: (_) => DaybookMutationDialog(
+      heading: heading,
+      message: message,
+      confirmLabel: confirmLabel,
+      confirmKey: confirmKey,
+      errorMessage: errorMessage,
+      onConfirm: onConfirm,
+      danger: danger,
+    ),
+  );
 }
 
 String _spokenDayWeight(DaybookDayWeight weight) => switch (weight) {
@@ -1294,6 +1513,7 @@ class _DayPanel extends StatelessWidget {
     required this.onPlan,
     required this.onOpenJournal,
     required this.onOpenNotebook,
+    required this.onOpenDaybookActions,
     required this.onToggleTask,
     required this.onToggleWork,
     required this.onOpenStudyPlanner,
@@ -1314,6 +1534,7 @@ class _DayPanel extends StatelessWidget {
   final VoidCallback onPlan;
   final ValueChanged<Note> onOpenJournal;
   final OpenAcademicNotebook onOpenNotebook;
+  final OpenDaybookActions onOpenDaybookActions;
   final ToggleDaybookTask onToggleTask;
   final ToggleAcademicWork onToggleWork;
   final OpenAcademicStudyPlanner onOpenStudyPlanner;
@@ -1387,6 +1608,7 @@ class _DayPanel extends StatelessWidget {
               day: daybookDay,
               schedule: academicSchedule,
               onOpenNotebook: onOpenNotebook,
+              onOpenDaybookActions: onOpenDaybookActions,
               onToggleTask: onToggleTask,
               onToggleWork: onToggleWork,
               onOpenStudyPlanner: onOpenStudyPlanner,

@@ -1129,6 +1129,338 @@ void main() {
     },
   );
 
+  testWidgets(
+    'one-off event actions edit and delete without a weekly event scope chooser',
+    (tester) async {
+      final event = DaybookEvent(
+        eventId: 'event_dentist',
+        title: 'Dentist appointment',
+        startDate: CivilDate(2026, 8, 11),
+        endDate: CivilDate(2026, 8, 11),
+        timeZoneId: 'America/New_York',
+        allDay: false,
+        startMinute: 9 * 60,
+        endMinute: 10 * 60,
+        createdAt: DateTime.utc(2026, 8, 8),
+        updatedAt: DateTime.utc(2026, 8, 8),
+      );
+      final repository = InMemoryAcademicScheduleRepository(
+        AcademicSchedule.empty().putEvent(event),
+      );
+      await _pumpCalendar(
+        tester,
+        repository: repository,
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-11',
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-event-actions-event_dentist')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('EDIT EVENT'), findsOneWidget);
+      expect(find.text('DELETE EVENT'), findsOneWidget);
+      expect(find.text('THIS EVENT'), findsNothing);
+      expect(find.text('ENTIRE SERIES'), findsNothing);
+
+      await tester.tap(find.byKey(const ValueKey('daybook-event-edit')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DaybookEventEditor), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-title')),
+        'Dentist and pharmacy',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-event-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pumpAndSettle();
+      expect(repository.schedule.events.single.title, 'Dentist and pharmacy');
+
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-event-actions-event_dentist')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('daybook-event-delete')));
+      await tester.pumpAndSettle();
+      repository.allowWrites = false;
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-confirm-delete-event')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.schedule.events, hasLength(1));
+      expect(
+        find.text("Couldn’t delete this event locally. Try again."),
+        findsOneWidget,
+      );
+
+      repository.allowWrites = true;
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-confirm-delete-event')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.schedule.events, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'task actions edit and delete while weekly event scope stays absent',
+    (tester) async {
+      final task = DaybookTask(
+        taskId: 'task_print_form',
+        title: 'Print the form',
+        dueDate: CivilDate(2026, 8, 11),
+        dueMinute: 16 * 60,
+        createdAt: DateTime.utc(2026, 8, 8),
+        updatedAt: DateTime.utc(2026, 8, 8),
+      );
+      final repository = InMemoryAcademicScheduleRepository(
+        AcademicSchedule.empty().putTask(task),
+      );
+      await _pumpCalendar(
+        tester,
+        repository: repository,
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-11',
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-task-actions-task_print_form')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('EDIT TASK'), findsOneWidget);
+      expect(find.text('DELETE TASK'), findsOneWidget);
+      expect(find.text('THIS EVENT'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('daybook-task-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-title')),
+        'Print and sign the form',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-task-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-task-save')));
+      await tester.pumpAndSettle();
+      expect(repository.schedule.tasks.single.title, 'Print and sign the form');
+      expect(repository.schedule.tasks.single.dueDate, CivilDate(2026, 8, 11));
+      expect(repository.schedule.tasks.single.dueMinute, 16 * 60);
+
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-task-actions-task_print_form')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('daybook-task-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-confirm-delete-task')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.schedule.tasks, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'weekly event this-event edit writes one moved exception and preserves siblings',
+    (tester) async {
+      final event = _weeklyDaybookEvent();
+      final repository = InMemoryAcademicScheduleRepository(
+        AcademicSchedule.empty().putEvent(event),
+      );
+      await _pumpCalendar(
+        tester,
+        repository: repository,
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-11',
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-event-actions-event_studio')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('THIS EVENT'), findsOneWidget);
+      expect(find.text('ENTIRE SERIES'), findsOneWidget);
+      expect(find.text('THIS AND FUTURE EVENTS'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('daybook-scope-this-event')));
+      await tester.pumpAndSettle();
+      expect(find.text('MOVE EVENT'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('daybook-event-move')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DaybookEventEditor), findsOneWidget);
+      expect(find.byKey(const ValueKey('daybook-event-title')), findsNothing);
+      expect(find.byKey(const ValueKey('daybook-event-weekly')), findsNothing);
+      expect(
+        find.text(
+          'Only this occurrence moves. The weekly details stay with the series.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-event-start-date')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('12').last);
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.descendant(
+          of: find.byType(DaybookEventEditor),
+          matching: find.byType(SingleChildScrollView),
+        ),
+        const Offset(0, -350),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pumpAndSettle();
+
+      final saved = repository.schedule.events.single;
+      expect(saved.exceptions, hasLength(1));
+      expect(saved.exceptions.single.state, DaybookEventOccurrenceState.moved);
+      expect(saved.exceptions.single.originalDate, CivilDate(2026, 8, 11));
+      expect(saved.exceptions.single.movedStartDate, CivilDate(2026, 8, 12));
+      final siblings = repository.schedule.eventOccurrencesBetween(
+        CivilDate(2026, 8, 11),
+        CivilDate(2026, 8, 25),
+      );
+      expect(
+        siblings.map((item) => item.originalDate),
+        containsAll([CivilDate(2026, 8, 18), CivilDate(2026, 8, 25)]),
+      );
+    },
+  );
+
+  testWidgets(
+    'weekly event this-event cancellation remains visible and restorable',
+    (tester) async {
+      final repository = InMemoryAcademicScheduleRepository(
+        AcademicSchedule.empty().putEvent(_weeklyDaybookEvent()),
+      );
+      await _pumpCalendar(
+        tester,
+        repository: repository,
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-11',
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-event-actions-event_studio')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('daybook-scope-this-event')));
+      await tester.pumpAndSettle();
+      expect(find.text('CANCEL EVENT'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('daybook-event-cancel')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-confirm-cancel-event')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('CANCELLED'), findsOneWidget);
+      expect(
+        repository.schedule.events.single.exceptions.single.state,
+        DaybookEventOccurrenceState.cancelled,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-event-actions-event_studio')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('daybook-scope-this-event')));
+      await tester.pumpAndSettle();
+      expect(find.text('RESTORE EVENT'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('daybook-event-restore')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-confirm-restore-event')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.schedule.events.single.exceptions, isEmpty);
+      expect(find.text('CANCELLED'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'weekly event entire-series edit replaces source and delete removes occurrences',
+    (tester) async {
+      final repository = InMemoryAcademicScheduleRepository(
+        AcademicSchedule.empty().putEvent(_weeklyDaybookEvent()),
+      );
+      await _pumpCalendar(
+        tester,
+        repository: repository,
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-11',
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-event-actions-event_studio')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-scope-entire-series')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('daybook-event-edit')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-title')),
+        'Open studio',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-event-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pumpAndSettle();
+      expect(repository.schedule.events.single.title, 'Open studio');
+
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-event-actions-event_studio')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-scope-entire-series')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('daybook-event-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-confirm-delete-event')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.schedule.events, isEmpty);
+      expect(
+        repository.schedule.eventOccurrencesBetween(
+          CivilDate(2026, 8, 11),
+          CivilDate(2026, 8, 31),
+        ),
+        isEmpty,
+      );
+    },
+  );
+
   testWidgets('six-week month keeps an even readable folio rhythm', (
     tester,
   ) async {
@@ -2218,6 +2550,23 @@ AcademicSchedule _generalDaybookSchedule() {
     ],
   );
 }
+
+DaybookEvent _weeklyDaybookEvent() => DaybookEvent(
+  eventId: 'event_studio',
+  title: 'Studio hour',
+  startDate: CivilDate(2026, 8, 11),
+  endDate: CivilDate(2026, 8, 11),
+  timeZoneId: 'America/New_York',
+  allDay: false,
+  startMinute: 9 * 60,
+  endMinute: 10 * 60,
+  weeklyRule: WeeklyEventRule(
+    weekdays: const {DateTime.tuesday},
+    endsOn: CivilDate(2026, 8, 25),
+  ),
+  createdAt: DateTime.utc(2026, 8, 8),
+  updatedAt: DateTime.utc(2026, 8, 8),
+);
 
 AcademicSchedule _scheduleFixtureWithDayWeights() {
   var schedule = _scheduleFixture(startMinute: 10 * 60, endMinute: 11 * 60);

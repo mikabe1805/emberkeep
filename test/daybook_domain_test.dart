@@ -379,4 +379,82 @@ void main() {
     expect(occurrence.startMinute, isNull);
     expect(occurrence.endMinute, isNull);
   });
+
+  test(
+    'weekly event occurrence mutations preserve siblings and restore overrides',
+    () {
+      final event = DaybookEvent(
+        eventId: 'event_actions',
+        title: 'Studio hour',
+        startDate: CivilDate(2026, 8, 11),
+        endDate: CivilDate(2026, 8, 11),
+        timeZoneId: 'America/New_York',
+        allDay: false,
+        startMinute: 9 * 60,
+        endMinute: 10 * 60,
+        weeklyRule: WeeklyEventRule(
+          weekdays: const {DateTime.tuesday},
+          endsOn: CivilDate(2026, 8, 25),
+        ),
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+      final moved = AcademicSchedule.empty()
+          .putEvent(event)
+          .moveEventOccurrence(
+            eventId: event.eventId,
+            occurrenceKey: 'event_actions@2026-08-11',
+            startDate: CivilDate(2026, 8, 12),
+            endDate: CivilDate(2026, 8, 12),
+            startMinute: 13 * 60,
+            endMinute: 14 * 60,
+            updatedAt: updatedAt,
+          );
+
+      expect(moved.events.single.exceptions, hasLength(1));
+      expect(
+        moved
+            .eventOccurrencesBetween(
+              CivilDate(2026, 8, 11),
+              CivilDate(2026, 8, 25),
+            )
+            .map((item) => item.originalDate),
+        containsAll([
+          CivilDate(2026, 8, 11),
+          CivilDate(2026, 8, 18),
+          CivilDate(2026, 8, 25),
+        ]),
+      );
+
+      final cancelled = moved.cancelEventOccurrence(
+        eventId: event.eventId,
+        occurrenceKey: 'event_actions@2026-08-11',
+        updatedAt: updatedAt.add(const Duration(hours: 1)),
+      );
+      expect(
+        cancelled.events.single.exceptions.single.state,
+        DaybookEventOccurrenceState.cancelled,
+      );
+
+      final restored = cancelled.restoreEventOccurrence(
+        eventId: event.eventId,
+        occurrenceKey: 'event_actions@2026-08-11',
+        updatedAt: updatedAt.add(const Duration(hours: 2)),
+      );
+      expect(restored.events.single.exceptions, isEmpty);
+      expect(
+        restored
+            .eventOccurrencesBetween(
+              CivilDate(2026, 8, 11),
+              CivilDate(2026, 8, 25),
+            )
+            .map((item) => item.originalDate),
+        [
+          CivilDate(2026, 8, 11),
+          CivilDate(2026, 8, 18),
+          CivilDate(2026, 8, 25),
+        ],
+      );
+    },
+  );
 }
