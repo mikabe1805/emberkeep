@@ -17,6 +17,7 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/calendar.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -142,6 +143,120 @@ void main() {
         );
       }
     });
+  }
+
+  for (final mode in const [
+    AcademicCalendarMode.month,
+    AcademicCalendarMode.day,
+  ]) {
+    testWidgets('general daybook ${mode.name} release visual', (tester) async {
+      await _pumpGeneralDaybookReleaseFixture(
+        tester,
+        mode: mode,
+        size: const Size(430, 932),
+        textScale: 1,
+      );
+
+      expect(find.text('DAYBOOK'), findsOneWidget);
+      expect(find.text('Summer 2026'), findsOneWidget);
+      expect(
+        find.text(
+          mode == AcademicCalendarMode.month
+              ? 'AUGUST 2026'
+              : 'AUGUST 11, 2026',
+        ),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+
+      if (mode == AcademicCalendarMode.day) {
+        for (
+          var drag = 0;
+          drag < 20 &&
+              find.text('Return the field recorder').evaluate().isEmpty;
+          drag++
+        ) {
+          await tester.dragFrom(const Offset(160, 498), const Offset(0, -260));
+          await tester.pump();
+        }
+        expect(find.text('Return the field recorder'), findsOneWidget);
+        await tester.ensureVisible(find.text('Return the field recorder'));
+        await tester.pump();
+        expect(find.text('Museum tickets release'), findsOneWidget);
+        expect(find.text('Portfolio review'), findsOneWidget);
+        expect(find.text('Studio circle'), findsOneWidget);
+        expect(find.text('DES 210 · STU'), findsOneWidget);
+        expect(find.text('Refill the bird feeder'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/daybook_general_${mode.name}_430x932.png'),
+      );
+    });
+
+    testWidgets(
+      'general daybook ${mode.name} reflows at 320x568 and 200% text',
+      (tester) async {
+        await _pumpGeneralDaybookReleaseFixture(
+          tester,
+          mode: mode,
+          size: const Size(320, 568),
+          textScale: 2,
+        );
+
+        expect(find.text('DAYBOOK'), findsOneWidget);
+        expect(find.text('Summer 2026'), findsOneWidget);
+        expect(find.text('MON'), findsOneWidget);
+        expect(find.text('WK'), findsOneWidget);
+        expect(find.text('3D'), findsOneWidget);
+        expect(find.text('DAY'), findsOneWidget);
+        expect(
+          tester
+              .renderObject<RenderParagraph>(find.text('Summer 2026'))
+              .didExceedMaxLines,
+          isFalse,
+        );
+        expect(tester.takeException(), isNull);
+        for (
+          var drag = 0;
+          drag < 20 &&
+              find.text('Return the field recorder').evaluate().isEmpty;
+          drag++
+        ) {
+          await tester.dragFrom(const Offset(160, 498), const Offset(0, -260));
+          await tester.pump();
+        }
+        expect(find.text('Return the field recorder'), findsOneWidget);
+        await tester.ensureVisible(find.text('Return the field recorder'));
+        await tester.pump();
+        expect(find.text('Museum tickets release'), findsOneWidget);
+        expect(find.text('Portfolio review'), findsOneWidget);
+        expect(find.text('Studio circle'), findsOneWidget);
+        expect(find.text('DES 210 · STU'), findsOneWidget);
+        expect(find.text('Refill the bird feeder'), findsOneWidget);
+        expect(
+          tester
+              .renderObject<RenderParagraph>(
+                find.text('Return the field recorder'),
+              )
+              .didExceedMaxLines,
+          isFalse,
+        );
+        expect(
+          tester
+              .renderObject<RenderParagraph>(find.text('TUESDAY 11 · TODAY'))
+              .didExceedMaxLines,
+          isFalse,
+        );
+        expect(
+          tester.getBottomLeft(find.text('TUESDAY 11 · TODAY')).dy,
+          lessThan(tester.getTopLeft(find.text('+ PLAN')).dy),
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   for (final configuration in const [
@@ -670,6 +785,174 @@ void main() {
       );
     }
   });
+}
+
+Future<void> _pumpGeneralDaybookReleaseFixture(
+  WidgetTester tester, {
+  required AcademicCalendarMode mode,
+  required Size size,
+  required double textScale,
+}) async {
+  tester.view.devicePixelRatio = 1;
+  tester.platformDispatcher.textScaleFactorTestValue = textScale;
+  await tester.binding.setSurfaceSize(size);
+  addTearDown(() {
+    tester.view.resetDevicePixelRatio();
+    tester.platformDispatcher.clearTextScaleFactorTestValue();
+    tester.binding.setSurfaceSize(null);
+  });
+
+  final state = GameState()..reduceMotion = true;
+  final quest = Quest(
+    title: 'Refill the bird feeder',
+    stat: Stat.dis,
+    difficulty: 2,
+    schedule: QuestSchedule.once,
+    dueDate: DateTime(2026, 8, 11),
+  );
+  await tester.pumpWidget(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Palette.parchment,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Palette.xp,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: Scaffold(
+        body: CalendarPage(
+          state: state,
+          quests: [quest],
+          onAdd: (_) => true,
+          scheduleRepository: InMemoryAcademicScheduleRepository(
+            _generalDaybookReleaseSchedule(),
+          ),
+          calendarPreferences: InMemoryAcademicCalendarPreferences(
+            state: AcademicCalendarViewState(
+              mode: mode,
+              selectedDate: '2026-08-11',
+            ),
+          ),
+          notebookHandoff: _NoopHandoff(),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+  final context = tester.element(find.byType(MaterialApp));
+  await tester.runAsync(
+    () => precacheImage(
+      const AssetImage('assets/pages/plans-desk-v2.webp'),
+      context,
+    ),
+  );
+  for (var frame = 0; frame < 5; frame++) {
+    await tester.pump(const Duration(milliseconds: 120));
+  }
+}
+
+AcademicSchedule _generalDaybookReleaseSchedule() {
+  final createdAt = DateTime.utc(2026, 8, 8);
+  final term = AcademicTerm(
+    termId: 'term_release_summer_2026',
+    name: 'Summer 2026',
+    startDate: CivilDate(2026, 8, 1),
+    endDate: CivilDate(2026, 8, 31),
+    timeZoneId: 'America/New_York',
+  );
+  final course = AcademicCourse(
+    courseId: 'course_release_des_210',
+    termId: term.termId,
+    code: 'DES 210',
+    title: 'Interaction Studio',
+    colorValue: 0xFF8AAFC6,
+    colorLabel: 'Dusk blue',
+  );
+  final series = MeetingSeries(
+    meetingSeriesId: 'series_release_des_210',
+    courseId: course.courseId,
+    kind: MeetingKind.studio,
+    weekdays: const {DateTime.tuesday},
+    localStartMinute: 11 * 60 + 30,
+    localEndMinute: 12 * 60 + 30,
+    firstDate: term.startDate,
+    lastDate: term.endDate,
+    timeZoneId: term.timeZoneId,
+    place: CampusPlace(
+      label: 'Civic Hall 204',
+      building: 'Civic Hall',
+      room: '204',
+    ),
+    reminders: const [],
+    updatedAt: createdAt,
+  );
+  var occurrenceIndex = 0;
+  var schedule = AcademicSchedule.empty().putMeeting(
+    term: term,
+    course: course,
+    series: series,
+    updatedAt: createdAt,
+    idFactory: (_) => 'occurrence_release_${++occurrenceIndex}',
+  );
+
+  schedule = schedule
+      .putEvent(
+        DaybookEvent(
+          eventId: 'event_release_museum_tickets',
+          title: 'Museum tickets release',
+          startDate: CivilDate(2026, 8, 11),
+          endDate: CivilDate(2026, 8, 12),
+          timeZoneId: term.timeZoneId,
+          allDay: true,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      )
+      .putEvent(
+        DaybookEvent(
+          eventId: 'event_release_portfolio_review',
+          title: 'Portfolio review',
+          startDate: CivilDate(2026, 8, 11),
+          endDate: CivilDate(2026, 8, 11),
+          timeZoneId: term.timeZoneId,
+          allDay: false,
+          startMinute: 9 * 60,
+          endMinute: 10 * 60,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      )
+      .putEvent(
+        DaybookEvent(
+          eventId: 'event_release_studio_circle',
+          title: 'Studio circle',
+          startDate: CivilDate(2026, 8, 11),
+          endDate: CivilDate(2026, 8, 11),
+          timeZoneId: term.timeZoneId,
+          allDay: false,
+          startMinute: 16 * 60,
+          endMinute: 17 * 60,
+          weeklyRule: WeeklyEventRule(
+            weekdays: const {DateTime.tuesday},
+            endsOn: CivilDate(2026, 8, 25),
+          ),
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      )
+      .putTask(
+        DaybookTask(
+          taskId: 'task_release_field_recorder',
+          title: 'Return the field recorder',
+          dueDate: CivilDate(2026, 8, 11),
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      );
+  return schedule;
 }
 
 AcademicSchedule _visualSchedule({

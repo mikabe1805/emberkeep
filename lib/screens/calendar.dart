@@ -1566,62 +1566,72 @@ class _DayPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isPast = day.isBefore(DateTime(now.year, now.month, now.day));
+    final largeText = MediaQuery.textScalerOf(context).scale(11.5) >= 17.25;
+    final dayLabel = Text(
+      '${_weekdayNames[day.weekday - 1]} ${day.day}'
+      '${Days.sameDay(day, now) ? " · TODAY" : " · ${_monthNames[day.month - 1].toUpperCase()}"}',
+      maxLines: largeText ? 2 : 1,
+      overflow: largeText ? TextOverflow.clip : TextOverflow.ellipsis,
+      style: Type.label.copyWith(
+        fontSize: 11.5,
+        letterSpacing: 1.5,
+        color: Days.sameDay(day, now) ? Palette.xpLight : Palette.textMid,
+      ),
+    );
+    final planAction = isPast
+        ? null
+        : GestureDetector(
+            onTap: onPlan,
+            child: GoldSurface(
+              cut: 7,
+              glow: false,
+              textured: false,
+              light: lightDirection,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 8,
+                ),
+                child: Text(
+                  '+ PLAN',
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    letterSpacing: 1.2,
+                    color: Palette.onHoney,
+                    shadows: const [
+                      Shadow(color: Color(0x59FFEBBE), offset: Offset(0, 1)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
     return GlassPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                // "26.7.2026" was a raw numeric locale dump in the one place
-                // the design speaks a date out loud. The approved target reads
-                // THURSDAY 30 · TODAY.
-                child: Text(
-                  '${_weekdayNames[day.weekday - 1]} ${day.day}'
-                  '${Days.sameDay(day, now) ? " · TODAY" : " · ${_monthNames[day.month - 1].toUpperCase()}"}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Type.label.copyWith(
-                    fontSize: 11.5,
-                    letterSpacing: 1.5,
-                    color: Days.sameDay(day, now)
-                        ? Palette.xpLight
-                        : Palette.textMid,
-                  ),
-                ),
-              ),
-              if (!isPast)
-                GestureDetector(
-                  onTap: onPlan,
-                  child: GoldSurface(
-                    cut: 7,
-                    glow: false,
-                    textured: false,
-                    light: lightDirection,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 13,
-                        vertical: 8,
-                      ),
-                      child: Text(
-                        '+ PLAN',
-                        style: Type.label.copyWith(
-                          fontSize: 11,
-                          letterSpacing: 1.2,
-                          color: Palette.onHoney,
-                          shadows: const [
-                            Shadow(
-                              color: Color(0x59FFEBBE),
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          // "26.7.2026" was a raw numeric locale dump in the one place the
+          // design speaks a date out loud. The approved target reads
+          // THURSDAY 30 · TODAY. At large text, keep that sentence intact and
+          // move the action below it instead of truncating either one.
+          if (largeText)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                dayLabel,
+                if (planAction != null) ...[
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerRight, child: planAction),
+                ],
+              ],
+            )
+          else
+            Row(
+              children: [
+                Expanded(child: dayLabel),
+                ?planAction,
+              ],
+            ),
           const SizedBox(height: 10),
           if (showDaybookEntries && daybookDay.entries.isNotEmpty)
             DaybookAgendaEntries(

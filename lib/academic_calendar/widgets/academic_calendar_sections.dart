@@ -77,6 +77,7 @@ class AcademicCalendarHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final largeText = MediaQuery.textScalerOf(context).scale(12.5) >= 18.75;
     return GlassPanel(
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 11),
       child: Column(
@@ -117,8 +118,10 @@ class AcademicCalendarHeader extends StatelessWidget {
                           ? 'Opening your schedule…'
                           : termName ??
                                 'Events, tasks, classes, and places in one view',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      maxLines: largeText ? 2 : 1,
+                      overflow: largeText
+                          ? TextOverflow.clip
+                          : TextOverflow.ellipsis,
                       style: Type.body.copyWith(
                         fontSize: 12.5,
                         color: Palette.textLo,
@@ -1081,8 +1084,8 @@ class _ProjectedDaybookEntryRow extends StatelessWidget {
           if (entry.sourceLabel != null) const SizedBox(height: 2),
           Text(
             entry.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            maxLines: largeText ? 3 : 2,
+            overflow: largeText ? TextOverflow.clip : TextOverflow.ellipsis,
             style: Type.body.copyWith(
               fontSize: 14,
               fontWeight: FontWeight.w700,
