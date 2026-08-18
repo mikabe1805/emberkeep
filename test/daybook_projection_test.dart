@@ -133,6 +133,48 @@ void main() {
     expect(result.dayOn(date).entries.single.section, DaybookSection.allDay);
   });
 
+  test('projects a moved all-day span that starts before the range', () {
+    final originalDate = date.addDays(-10);
+    final movedStart = date.addDays(-2);
+    final movedEnd = date.addDays(2);
+    var schedule = AcademicSchedule.empty().putEvent(
+      DaybookEvent(
+        eventId: 'moved-conference',
+        title: 'Moved conference',
+        startDate: originalDate,
+        endDate: originalDate.addDays(1),
+        timeZoneId: 'America/New_York',
+        allDay: true,
+        createdAt: now.toUtc(),
+        updatedAt: now.toUtc(),
+      ),
+    );
+    schedule = schedule.moveEventOccurrence(
+      eventId: 'moved-conference',
+      occurrenceKey: 'moved-conference@$originalDate',
+      startDate: movedStart,
+      endDate: movedEnd,
+      updatedAt: now.toUtc(),
+    );
+
+    final result = DaybookRangeProjection.build(
+      schedule: schedule,
+      quests: const [],
+      first: date,
+      last: date.addDays(3),
+      now: now,
+    );
+
+    expect(result.dayOn(date).entries.single.title, 'Moved conference');
+    expect(
+      result.dayOn(date.addDays(1)).entries.single.title,
+      'Moved conference',
+    );
+    expect(result.dayOn(movedEnd).entries, isEmpty);
+    expect(schedule.events.single.exceptions.single.movedStartDate, movedStart);
+    expect(schedule.events.single.exceptions.single.movedEndDate, movedEnd);
+  });
+
   test(
     'uses the specified month weights and keeps still-open tasks gentle',
     () {

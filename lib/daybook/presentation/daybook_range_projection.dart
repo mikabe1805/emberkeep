@@ -202,10 +202,29 @@ abstract final class DaybookRangeProjection {
     // Timed events can cross one midnight and all-day events may span several
     // days. Widening the materialization query by the source's longest
     // duration keeps a range view complete without storing occurrences.
-    final occurrences = schedule.eventOccurrencesBetween(
-      first.addDays(-_eventLookbackDays(schedule.events)),
-      last,
-    );
+    final occurrences = schedule
+        .eventOccurrencesBetween(
+          first.addDays(-_eventLookbackDays(schedule.events)),
+          last,
+        )
+        .toList();
+    final occurrenceKeys = {
+      for (final occurrence in occurrences) occurrence.occurrenceKey,
+    };
+    for (final event in schedule.events) {
+      for (final exception in event.exceptions) {
+        if (exception.state != DaybookEventOccurrenceState.moved) continue;
+        final occurrence = event
+            .occurrenceFor(exception.originalDate)
+            .copyWith(
+              occurrenceKey: '${event.eventId}@${exception.originalDate}',
+            );
+        if (_overlapsRange(occurrence, first, last) &&
+            occurrenceKeys.add(occurrence.occurrenceKey)) {
+          occurrences.add(occurrence);
+        }
+      }
+    }
     for (final occurrence in occurrences) {
       final eventTitle = titles[occurrence.eventId] ?? 'Event';
       if (occurrence.allDay) {
@@ -269,13 +288,31 @@ abstract final class DaybookRangeProjection {
     var longest = 1;
     for (final event in events) {
       if (!event.allDay) continue;
-      final duration = event.endDate.dateArithmeticValue
-          .difference(event.startDate.dateArithmeticValue)
-          .inDays;
-      if (duration > longest) longest = duration;
+      final spans = <(CivilDate, CivilDate)>[
+        (event.startDate, event.endDate),
+        for (final exception in event.exceptions)
+          if (exception.state == DaybookEventOccurrenceState.moved)
+            (exception.movedStartDate!, exception.movedEndDate!),
+      ];
+      for (final span in spans) {
+        final duration = span.$2.dateArithmeticValue
+            .difference(span.$1.dateArithmeticValue)
+            .inDays;
+        if (duration > longest) longest = duration;
+      }
     }
     return longest;
   }
+
+  static bool _overlapsRange(
+    DaybookEventOccurrence occurrence,
+    CivilDate first,
+    CivilDate last,
+  ) => occurrence.allDay
+      ? occurrence.startDate.compareTo(last) <= 0 &&
+            occurrence.endDate.compareTo(first) > 0
+      : occurrence.startDate.compareTo(last) <= 0 &&
+            occurrence.endDate.compareTo(first) >= 0;
 
   static void _addClasses(
     AcademicSchedule schedule,
