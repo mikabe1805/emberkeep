@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:emberkeep/academic_calendar/data/academic_calendar_preferences.dart';
@@ -571,6 +572,33 @@ void main() {
     );
   });
 
+  testWidgets(
+    'directions launch synchronously on non-iOS without reading preferences',
+    (tester) async {
+      final launcher = _RecordingDirectionsLauncher();
+      final preferences = _BlockingDaybookPreferences();
+      await _pumpDaybookWidget(
+        tester,
+        Theme(
+          data: ThemeData(platform: TargetPlatform.android),
+          child: DaybookDirectionsAction(
+            place: DaybookPlace(
+              savedName: 'Alexander Library',
+              routingText: '169 College Ave, New Brunswick, NJ',
+            ),
+            launcher: launcher,
+            preferences: preferences,
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('GET DIRECTIONS'));
+
+      expect(preferences.loadCalls, 0);
+      expect(launcher.calls, [(MapProvider.google, 'Alexander Library')]);
+    },
+  );
+
   testWidgets('directions launch failure keeps the action and offers copy', (
     tester,
   ) async {
@@ -616,6 +644,46 @@ void main() {
     await tester.pump();
     expect(copiedText, '169 College Ave, New Brunswick, NJ');
   });
+
+  testWidgets(
+    'directions failure keeps copy reachable with a long label at 320x568 and 200%',
+    (tester) async {
+      const savedName =
+          'Alexander Library Special Collections and University Archives Reading Room';
+      await _pumpDaybookWidget(
+        tester,
+        Theme(
+          data: ThemeData(platform: TargetPlatform.iOS),
+          child: DaybookDirectionsAction(
+            place: DaybookPlace(
+              savedName: savedName,
+              routingText: '169 College Ave, New Brunswick, NJ',
+            ),
+            launcher: _RecordingDirectionsLauncher(succeeds: false),
+            preferences: InMemoryDaybookPreferences(),
+          ),
+        ),
+        size: const Size(320, 568),
+        textScale: 2,
+      );
+
+      await tester.tap(find.text('GET DIRECTIONS'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('GOOGLE MAPS'));
+      await tester.pump();
+      await tester.tap(find.text('GOOGLE MAPS'));
+      await tester.pumpAndSettle();
+
+      final copy = find.text('COPY LOCATION');
+      expect(copy, findsOneWidget);
+      await tester.ensureVisible(copy);
+      await tester.pump();
+      expect(tester.getCenter(copy).dy, inInclusiveRange(0, 568));
+      await tester.tap(copy);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('directions remember and clear an iOS map provider', (
     tester,
@@ -3078,4 +3146,18 @@ final class _RecordingDirectionsLauncher implements DirectionsLauncher {
     calls.add((provider, place.savedName));
     return succeeds;
   }
+}
+
+final class _BlockingDaybookPreferences implements DaybookPreferences {
+  final Completer<MapProvider?> _load = Completer<MapProvider?>();
+  int loadCalls = 0;
+
+  @override
+  Future<MapProvider?> loadPreferredMapProvider() {
+    loadCalls += 1;
+    return _load.future;
+  }
+
+  @override
+  Future<void> savePreferredMapProvider(MapProvider? provider) async {}
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -62,10 +63,18 @@ class _DaybookDirectionsActionState extends State<DaybookDirectionsAction> {
   bool get _hasBothDestinations =>
       widget.place.hasGoogleDestination && widget.place.hasAppleDestination;
 
+  bool _preferenceRequested = false;
+
   @override
-  void initState() {
-    super.initState();
-    unawaited(_loadPreference());
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_preferenceRequested &&
+        !kIsWeb &&
+        Theme.of(context).platform == TargetPlatform.iOS &&
+        _hasBothDestinations) {
+      _preferenceRequested = true;
+      unawaited(_loadPreference());
+    }
   }
 
   Future<void> _loadPreference() async {
@@ -77,7 +86,7 @@ class _DaybookDirectionsActionState extends State<DaybookDirectionsAction> {
   @override
   Widget build(BuildContext context) {
     if (!_hasDestination) return const SizedBox.shrink();
-    final isIos = Theme.of(context).platform == TargetPlatform.iOS;
+    final isIos = !kIsWeb && Theme.of(context).platform == TargetPlatform.iOS;
     final canChangeProvider =
         isIos && _hasBothDestinations && _preferredProvider != null;
     return Column(
@@ -107,6 +116,13 @@ class _DaybookDirectionsActionState extends State<DaybookDirectionsAction> {
   }
 
   Future<void> _openDirections({required bool isIos}) async {
+    if (!isIos || !_hasBothDestinations) {
+      final provider = widget.place.hasGoogleDestination
+          ? MapProvider.google
+          : MapProvider.apple;
+      await _launchProvider(provider);
+      return;
+    }
     final latestPreference = await widget.preferences
         .loadPreferredMapProvider();
     if (!mounted) return;
@@ -117,24 +133,15 @@ class _DaybookDirectionsActionState extends State<DaybookDirectionsAction> {
       await _showProviderChooser();
       return;
     }
-    final usablePreference =
-        latestPreference != null && _providerAvailable(latestPreference)
-        ? latestPreference
-        : null;
-    final provider = isIos && usablePreference != null
-        ? usablePreference
-        : widget.place.hasGoogleDestination
-        ? MapProvider.google
-        : MapProvider.apple;
+    final provider = latestPreference!;
+    await _launchProvider(provider);
+  }
+
+  Future<void> _launchProvider(MapProvider provider) async {
     final opened = await widget.launcher.open(widget.place, provider);
     if (!mounted || opened) return;
     await _showCopyFallback();
   }
-
-  bool _providerAvailable(MapProvider provider) => switch (provider) {
-    MapProvider.apple => widget.place.hasAppleDestination,
-    MapProvider.google => widget.place.hasGoogleDestination,
-  };
 
   Future<void> _clearPreference() async {
     await widget.preferences.savePreferredMapProvider(null);
@@ -301,30 +308,43 @@ class _DirectionsSheet extends StatelessWidget {
     top: false,
     child: Padding(
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
-        decoration: facetedDecoration(
-          cut: 13,
-          color: Palette.card,
-          borderColor: Palette.brass.withValues(alpha: 0.64),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height - 24,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: Type.display.copyWith(fontSize: 18, color: Palette.textHi),
+        child: Container(
+          width: double.infinity,
+          decoration: facetedDecoration(
+            cut: 13,
+            color: Palette.card,
+            borderColor: Palette.brass.withValues(alpha: 0.64),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 15, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Type.display.copyWith(
+                    fontSize: 18,
+                    color: Palette.textHi,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    color: Palette.textMid,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(spacing: 8, runSpacing: 8, children: actions),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              message,
-              style: Type.body.copyWith(fontSize: 13, color: Palette.textMid),
-            ),
-            const SizedBox(height: 12),
-            Wrap(spacing: 8, runSpacing: 8, children: actions),
-          ],
+          ),
         ),
       ),
     ),
@@ -362,11 +382,13 @@ class _DirectionsSheetAction extends StatelessWidget {
           children: [
             Icon(icon, size: 17, color: Palette.xpLight),
             const SizedBox(width: 7),
-            Text(
-              label,
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                color: Palette.xpLight,
+            Flexible(
+              child: Text(
+                label,
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: Palette.xpLight,
+                ),
               ),
             ),
           ],

@@ -257,6 +257,7 @@ void main() {
     testWidgets('directions surfaces ${configuration.name} visual', (
       tester,
     ) async {
+      final isNarrow = configuration.name == 'narrow_200';
       tester.view.devicePixelRatio = 1;
       tester.platformDispatcher.textScaleFactorTestValue =
           configuration.textScale;
@@ -283,7 +284,9 @@ void main() {
             body: Center(
               child: DaybookDirectionsAction(
                 place: DaybookPlace(
-                  savedName: 'Alexander Library',
+                  savedName: isNarrow
+                      ? 'Alexander Library Special Collections and University Archives Reading Room'
+                      : 'Alexander Library',
                   routingText: '169 College Ave, New Brunswick, NJ',
                 ),
                 launcher: _UnavailableDirectionsLauncher(),
@@ -299,6 +302,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('APPLE MAPS'), findsOneWidget);
       expect(find.text('GOOGLE MAPS'), findsOneWidget);
+      await tester.ensureVisible(find.text('GOOGLE MAPS'));
+      await tester.pump();
       expect(tester.takeException(), isNull);
       await expectLater(
         find.byType(MaterialApp),
@@ -311,6 +316,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('COPY LOCATION'), findsOneWidget);
       expect(find.text('GOOGLE MAPS'), findsOneWidget);
+      await tester.ensureVisible(find.text('COPY LOCATION'));
+      await tester.pump();
       expect(tester.takeException(), isNull);
       await expectLater(
         find.byType(MaterialApp),
