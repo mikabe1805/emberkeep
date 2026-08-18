@@ -766,6 +766,7 @@ class DaybookAgendaEntries extends StatelessWidget {
               (DaybookSection.allDay, 'ALL DAY'),
               (DaybookSection.timed, 'SCHEDULE'),
               (DaybookSection.due, 'DUE'),
+              (DaybookSection.focus, 'TODAY’S FOCUS'),
               (DaybookSection.stillOpen, 'STILL OPEN'),
             ]
             .where(
@@ -1364,6 +1365,7 @@ String _projectedEntryTiming(DaybookEntry entry) => switch (entry.section) {
     entry.startMinute == null
         ? 'DUE'
         : 'DUE ${_projectedTime(entry.startMinute!)}',
+  DaybookSection.focus => 'CHOSEN FOR TODAY',
   DaybookSection.stillOpen =>
     entry.startMinute == null
         ? 'DUE'
@@ -1377,6 +1379,7 @@ String _projectedEntrySemantics(DaybookEntry entry) {
       DaybookSection.allDay => 'all day',
       DaybookSection.timed => 'schedule',
       DaybookSection.due => 'due',
+      DaybookSection.focus => 'today’s focus',
       DaybookSection.stillOpen => 'still open',
     },
     if (entry.section == DaybookSection.timed)

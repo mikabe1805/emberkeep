@@ -2486,6 +2486,38 @@ void main() {
     },
   );
 
+  testWidgets('dated Quest focus renders in its own accessible section', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.day,
+          selectedDate: '2026-08-11',
+        ),
+      ),
+      quests: [
+        Quest(
+          title: 'Choose my anchor',
+          stat: Stat.foc,
+          difficulty: 2,
+          priorityDay: '2026-08-11',
+        ),
+      ],
+    );
+
+    expect(find.text('TODAY’S FOCUS'), findsOneWidget);
+    expect(find.text('Choose my anchor'), findsOneWidget);
+    expect(find.text('CHOSEN FOR TODAY'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Choose my anchor, today’s focus'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('projected occurrence renders moved state and moved local time', (
     tester,
   ) async {
