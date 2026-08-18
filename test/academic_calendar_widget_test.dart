@@ -1,3 +1,5 @@
+import 'dart:ui' show SemanticsAction, Tristate;
+
 import 'package:emberkeep/academic_calendar/data/academic_calendar_preferences.dart';
 import 'package:emberkeep/academic_calendar/data/academic_schedule_repository.dart';
 import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
@@ -246,6 +248,149 @@ void main() {
   });
 
   testWidgets(
+    'Daybook weekday controls stay 44 px and expose unambiguous semantics',
+    (tester) async {
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          onSave: (_) async => true,
+        ),
+        size: const Size(320, 568),
+        textScale: 2,
+      );
+
+      final weeklyToggle = find.byKey(const ValueKey('daybook-event-weekly'));
+      await tester.ensureVisible(weeklyToggle);
+      await tester.tap(weeklyToggle);
+      await tester.pump();
+
+      for (var weekday = 1; weekday <= 7; weekday++) {
+        final target = find.byKey(ValueKey('daybook-event-weekday-$weekday'));
+        final size = tester.getSize(target);
+        expect(size.width, greaterThanOrEqualTo(44));
+        expect(size.height, greaterThanOrEqualTo(44));
+      }
+      expect(find.bySemanticsLabel('Tuesday'), findsOneWidget);
+      expect(find.bySemanticsLabel('Thursday'), findsOneWidget);
+      expect(find.bySemanticsLabel('Saturday'), findsOneWidget);
+      expect(find.bySemanticsLabel('Sunday'), findsOneWidget);
+      expect(
+        tester
+            .getSemantics(find.bySemanticsLabel('Tuesday'))
+            .flagsCollection
+            .isSelected,
+        Tristate.isTrue,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Daybook timed event correction names the next-day limit', (
+    tester,
+  ) async {
+    final event = DaybookEvent(
+      eventId: 'event_overnight',
+      title: 'Overnight vigil',
+      startDate: CivilDate(2026, 8, 11),
+      endDate: CivilDate(2026, 8, 11),
+      timeZoneId: 'America/New_York',
+      allDay: false,
+      startMinute: 21 * 60,
+      endMinute: 23 * 60,
+      createdAt: DateTime.utc(2026, 8, 11),
+      updatedAt: DateTime.utc(2026, 8, 11),
+    );
+    final occurrence = DaybookEventOccurrence(
+      eventId: event.eventId,
+      occurrenceKey: '${event.eventId}/2026-08-11',
+      originalDate: CivilDate(2026, 8, 11),
+      startDate: CivilDate(2026, 8, 11),
+      endDate: CivilDate(2026, 8, 13),
+      allDay: false,
+      startMinute: 21 * 60,
+      endMinute: 1 * 60,
+      state: DaybookEventOccurrenceState.scheduled,
+    );
+    DaybookEvent? saved;
+    await _pumpDaybookWidget(
+      tester,
+      DaybookEventEditor(
+        selectedDay: CivilDate(2026, 8, 11),
+        initialEvent: event,
+        initialOccurrence: occurrence,
+        onSave: (value) async {
+          saved = value;
+          return true;
+        },
+      ),
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('daybook-event-save')),
+    );
+    await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+    await tester.pump();
+
+    expect(
+      find.text(
+        'Choose the same day or the following day for a timed event’s end.',
+      ),
+      findsOneWidget,
+    );
+    expect(saved, isNull);
+    expect(find.byType(DaybookEventEditor), findsOneWidget);
+  });
+
+  testWidgets('Daybook timed event correction names an invalid end time', (
+    tester,
+  ) async {
+    final event = DaybookEvent(
+      eventId: 'event_same_day',
+      title: 'Evening meeting',
+      startDate: CivilDate(2026, 8, 11),
+      endDate: CivilDate(2026, 8, 11),
+      timeZoneId: 'America/New_York',
+      allDay: false,
+      startMinute: 18 * 60,
+      endMinute: 19 * 60,
+      createdAt: DateTime.utc(2026, 8, 11),
+      updatedAt: DateTime.utc(2026, 8, 11),
+    );
+    final occurrence = DaybookEventOccurrence(
+      eventId: event.eventId,
+      occurrenceKey: '${event.eventId}/2026-08-11',
+      originalDate: CivilDate(2026, 8, 11),
+      startDate: CivilDate(2026, 8, 11),
+      endDate: CivilDate(2026, 8, 11),
+      allDay: false,
+      startMinute: 18 * 60,
+      endMinute: 17 * 60,
+      state: DaybookEventOccurrenceState.scheduled,
+    );
+    await _pumpDaybookWidget(
+      tester,
+      DaybookEventEditor(
+        selectedDay: CivilDate(2026, 8, 11),
+        initialEvent: event,
+        initialOccurrence: occurrence,
+        onSave: (_) async => true,
+      ),
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('daybook-event-save')),
+    );
+    await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+    await tester.pump();
+
+    expect(
+      find.text('Choose an end time after the start time.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
     'Daybook task editor saves one-off due details without Quest state',
     (tester) async {
       DaybookTask? saved;
@@ -354,6 +499,37 @@ void main() {
     },
   );
 
+  testWidgets(
+    'Daybook read-only task row does not announce a completion button',
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      final task = DaybookTask(
+        taskId: 'task_read_only',
+        title: 'Read-only task',
+        dueDate: CivilDate(2026, 8, 11),
+        createdAt: DateTime.utc(2026, 8, 11),
+        updatedAt: DateTime.utc(2026, 8, 11),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: DaybookTaskRow(task: task)),
+        ),
+      );
+
+      final toggle = find.byKey(
+        const ValueKey('daybook-task-toggle-task_read_only'),
+      );
+      final toggleSemantics = tester.getSemantics(toggle);
+      expect(toggleSemantics.flagsCollection.isButton, isFalse);
+      expect(
+        toggleSemantics.getSemanticsData().hasAction(SemanticsAction.tap),
+        isFalse,
+      );
+      semantics.dispose();
+    },
+  );
+
   testWidgets('Daybook class place edits preserve legacy-only campus fields', (
     tester,
   ) async {
@@ -432,6 +608,80 @@ void main() {
     expect(savedPlace!.placeId, original.placeId);
     expect(savedPlace!.campusCode, original.campusCode);
   });
+
+  testWidgets(
+    'Daybook class place clearing removes neutral fields but keeps legacy data',
+    (tester) async {
+      final original = CampusPlace(
+        label: 'Hill Center 114',
+        building: 'Hill Center',
+        room: '114',
+        address: '110 Frelinghuysen Rd, Piscataway, NJ',
+        latitude: 40.5211,
+        longitude: -74.4622,
+        mapsProvider: 'google',
+        placeId: 'google-hill-center',
+        campusCode: 'BUSCH',
+      );
+      CampusPlace? savedPlace;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => AddAcademicMeetingDialog(
+                    schedule: AcademicSchedule.empty(),
+                    selectedDay: DateTime(2026, 8, 11),
+                    initialPlace: original,
+                    onSave: (_, _, series) async {
+                      savedPlace = series.place;
+                      return true;
+                    },
+                  ),
+                ),
+                child: const Text('OPEN CLEARING EDITOR'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('OPEN CLEARING EDITOR'));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('academic-course-code')),
+        'BIO 101',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('academic-course-title')),
+        'Foundations of Biology',
+      );
+      for (final key in const [
+        'academic-saved-name',
+        'academic-routing-text',
+        'academic-building',
+        'academic-room',
+      ]) {
+        await tester.enterText(find.byKey(ValueKey(key)), '');
+      }
+      await tester.ensureVisible(find.text('KEEP THIS CLASS'));
+      await tester.tap(find.text('KEEP THIS CLASS'));
+      await tester.pump();
+
+      expect(savedPlace, isNotNull);
+      expect(savedPlace!.label, 'Location not set');
+      expect(savedPlace!.address, isNull);
+      expect(savedPlace!.building, isNull);
+      expect(savedPlace!.room, isNull);
+      expect(savedPlace!.latitude, original.latitude);
+      expect(savedPlace!.longitude, original.longitude);
+      expect(savedPlace!.mapsProvider, original.mapsProvider);
+      expect(savedPlace!.placeId, original.placeId);
+      expect(savedPlace!.campusCode, original.campusCode);
+    },
+  );
 
   testWidgets('Plans shows Now, room, time, and the stable notebook doorway', (
     tester,

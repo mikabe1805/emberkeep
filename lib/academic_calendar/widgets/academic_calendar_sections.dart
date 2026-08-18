@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../../audio.dart';
 import '../../clock.dart';
 import '../../daybook/adapters/campus_place_adapter.dart';
+import '../../daybook/domain/daybook_place.dart';
 import '../../daybook/widgets/daybook_place_fields.dart';
 import '../../tokens.dart';
 import '../../widgets/facets.dart';
@@ -2028,7 +2029,7 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
     final editedPlace = _placeFields.toPlace(fallbackSavedName: fallbackName);
     final place = editedPlace == null
         ? CampusPlaceDaybookAdapter.toCampusPlace(
-            CampusPlaceDaybookAdapter.fromCampusPlace(_originalPlace),
+            DaybookPlace(savedName: 'Location not set'),
             original: _originalPlace,
           )
         : CampusPlaceDaybookAdapter.toCampusPlace(

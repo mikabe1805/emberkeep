@@ -68,6 +68,26 @@ class DaybookTaskRow extends StatelessWidget {
     final due = task.dueMinute == null
         ? 'DUE'
         : 'DUE ${_formatMinute(task.dueMinute!)}';
+    final completionMark = Center(
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: task.completed
+              ? Palette.xp.withValues(alpha: 0.13)
+              : Palette.glassFill,
+          border: Border.all(
+            color: task.completed
+                ? Palette.xpLight.withValues(alpha: 0.62)
+                : Palette.brass.withValues(alpha: 0.52),
+          ),
+        ),
+        child: task.completed
+            ? const Icon(Icons.check_rounded, size: 19, color: Palette.xpLight)
+            : null,
+      ),
+    );
     return _DaybookRowSurface(
       semanticLabel: '${task.title}, $due${_placeSuffix(task.place)}',
       onTap: onTap,
@@ -75,43 +95,20 @@ class DaybookTaskRow extends StatelessWidget {
         key: ValueKey('daybook-task-toggle-${task.taskId}'),
         width: 44,
         height: 44,
-        child: Semantics(
-          button: true,
-          checked: task.completed,
-          label: task.completed
-              ? 'Mark ${task.title} open'
-              : 'Mark ${task.title} complete',
-          child: InkWell(
-            onTap: onCompletedChanged == null
-                ? null
-                : () => onCompletedChanged!(!task.completed),
-            customBorder: const CircleBorder(),
-            child: Center(
-              child: Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: task.completed
-                      ? Palette.xp.withValues(alpha: 0.13)
-                      : Palette.glassFill,
-                  border: Border.all(
-                    color: task.completed
-                        ? Palette.xpLight.withValues(alpha: 0.62)
-                        : Palette.brass.withValues(alpha: 0.52),
-                  ),
+        child: onCompletedChanged == null
+            ? ExcludeSemantics(child: completionMark)
+            : Semantics(
+                button: true,
+                checked: task.completed,
+                label: task.completed
+                    ? 'Mark ${task.title} open'
+                    : 'Mark ${task.title} complete',
+                child: InkWell(
+                  onTap: () => onCompletedChanged!(!task.completed),
+                  customBorder: const CircleBorder(),
+                  child: completionMark,
                 ),
-                child: task.completed
-                    ? const Icon(
-                        Icons.check_rounded,
-                        size: 19,
-                        color: Palette.xpLight,
-                      )
-                    : null,
               ),
-            ),
-          ),
-        ),
       ),
       title: task.title,
       metadata: due,

@@ -176,9 +176,15 @@ class _DaybookEventEditorState extends State<DaybookEventEditor> {
     final endMinute = _minuteOf(_endTime);
     if (!_allDay &&
         (_endDate.compareTo(_startDate) < 0 ||
-            _endDate.compareTo(_startDate.addDays(1)) > 0 ||
-            (_endDate == _startDate && endMinute <= startMinute))) {
-      setState(() => _error = 'Event end needs to be after its start.');
+            _endDate.compareTo(_startDate.addDays(1)) > 0)) {
+      setState(
+        () => _error =
+            'Choose the same day or the following day for a timed event’s end.',
+      );
+      return;
+    }
+    if (!_allDay && _endDate == _startDate && endMinute <= startMinute) {
+      setState(() => _error = 'Choose an end time after the start time.');
       return;
     }
     if (_weekly &&
@@ -336,23 +342,25 @@ class _DaybookEventEditorState extends State<DaybookEventEditor> {
               ),
               if (_weekly) ...[
                 const SizedBox(height: 8),
-                Row(
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
                   children: [
                     for (var weekday = 1; weekday <= 7; weekday++)
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: weekday == 7 ? 0 : 4),
-                          child: _WeekdayChip(
-                            key: ValueKey('daybook-event-weekday-$weekday'),
-                            label: _weekdayLabels[weekday - 1],
-                            selected: _weekdays.contains(weekday),
-                            onTap: () => setState(() {
-                              _weekdays.contains(weekday)
-                                  ? _weekdays.remove(weekday)
-                                  : _weekdays.add(weekday);
-                              _error = null;
-                            }),
-                          ),
+                      SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: _WeekdayChip(
+                          key: ValueKey('daybook-event-weekday-$weekday'),
+                          label: _weekdayLabels[weekday - 1],
+                          semanticLabel: _weekdayNames[weekday - 1],
+                          selected: _weekdays.contains(weekday),
+                          onTap: () => setState(() {
+                            _weekdays.contains(weekday)
+                                ? _weekdays.remove(weekday)
+                                : _weekdays.add(weekday);
+                            _error = null;
+                          }),
                         ),
                       ),
                   ],
@@ -486,11 +494,13 @@ class _WeekdayChip extends StatelessWidget {
   const _WeekdayChip({
     super.key,
     required this.label,
+    required this.semanticLabel,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
+  final String semanticLabel;
   final bool selected;
   final VoidCallback onTap;
 
@@ -498,12 +508,13 @@ class _WeekdayChip extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     button: true,
     selected: selected,
-    label: label,
+    label: semanticLabel,
+    excludeSemantics: true,
     child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        constraints: const BoxConstraints(minHeight: 44, minWidth: 38),
+        constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
         alignment: Alignment.center,
         decoration: facetedDecoration(
           cut: 7,
@@ -687,6 +698,15 @@ InputDecoration _fieldDecoration(String label) => InputDecoration(
 final _inputStyle = Type.body.copyWith(fontSize: 14, color: Palette.textHi);
 
 const _weekdayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const _weekdayNames = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
 const _monthNames = [
   'January',
   'February',
