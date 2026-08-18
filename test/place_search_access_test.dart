@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:emberkeep/daybook/data/daybook_preferences.dart';
 import 'package:emberkeep/daybook/services/directions_launcher.dart';
 import 'package:emberkeep/daybook/services/place_search_access.dart';
+import 'package:emberkeep/daybook/services/place_search_authorization.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
 
@@ -11,6 +12,60 @@ const _replacementInstallId = '0987d452-8fd5-4de8-9401-530f73a577f8';
 
 void main() {
   group('PlaceSearchAccess', () {
+    test(
+      'shared revocation invalidates cached readiness and an in-flight bootstrap',
+      () async {
+        final authorization = PlaceSearchAuthorization();
+        final preferences = _RecordingPreferences(
+          log: <String>[],
+          consent: PlaceSearchConsent.acceptedV1,
+          installId: _stableInstallId,
+        );
+        final firstIdentity = _RecordingIdentity(
+          log: preferences.log,
+          signedIn: true,
+        );
+        final cachedAccess = PlaceSearchAccess(
+          enabled: true,
+          preferences: preferences,
+          identity: firstIdentity,
+          appCheck: _RecordingAppCheck(log: preferences.log),
+          requestConsent: () async => PlaceSearchConsentDecision.decline,
+          authorization: authorization,
+        );
+
+        final ready = await cachedAccess.ensureReady() as PlaceSearchReady;
+        expect(ready.authorization.isValid, isTrue);
+
+        final authGate = Completer<void>();
+        final inFlightIdentity = _RecordingIdentity(
+          log: preferences.log,
+          authGate: authGate.future,
+        );
+        final inFlightAccess = PlaceSearchAccess(
+          enabled: true,
+          preferences: preferences,
+          identity: inFlightIdentity,
+          appCheck: _RecordingAppCheck(log: preferences.log),
+          requestConsent: () async => PlaceSearchConsentDecision.accept,
+          authorization: authorization,
+        );
+        final inFlight = inFlightAccess.ensureReady();
+        while (inFlightIdentity.signInCalls == 0) {
+          await Future<void>.delayed(Duration.zero);
+        }
+
+        expect(await cachedAccess.withdrawConsent(), isTrue);
+        expect(ready.authorization.isValid, isFalse);
+        authGate.complete();
+        expect(await inFlight, isA<PlaceSearchUnavailable>());
+
+        expect(await cachedAccess.ensureReady(), isA<PlaceSearchDeclined>());
+        expect(firstIdentity.coreCalls, 1);
+        expect(preferences.consent, isNull);
+      },
+    );
+
     test(
       'disabled access performs no reads, prompt, or bootstrap work',
       () async {

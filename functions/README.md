@@ -16,7 +16,7 @@ No test in this repository makes a live Google request.
 ## Hard stop
 
 `PLACE_SEARCH_ENABLED` defaults to `false`. Checked and public builds must stay
-false until all nine owner gates below are complete in order. Do not treat a
+false until all ten owner gates below are complete in order. Do not treat a
 passing Functions build as deployment approval. This runbook does not authorize
 Codex or CI to attach billing, create credentials, set secrets, deploy, publish
 policies, or enable the client flag.
@@ -65,10 +65,10 @@ budget alerts warn but do not cap spending. Confirm both controls are active in
 the owner-selected project and record their values before continuing.
 
 Then create a Firestore TTL policy for collection group `_placesCostGuards`
-using timestamp field `expiresAt`. The code sets expiry 35 days after each
-counter update. Verify the policy is active before deployment. Firestore TTL
-deletion is asynchronous, typically occurs after expiry, and incurs document
-delete operations.
+using timestamp field `expiresAt`. Each counter is marked to expire 35 days
+after its last update. Verify the policy is active before deployment. Firestore
+deletes expired documents asynchronously afterward; TTL deletion is not an
+exact retention deadline and incurs document delete operations.
 
 Also confirm the source-level guards are active:
 
@@ -79,7 +79,39 @@ Also confirm the source-level guards are active:
 
 Primary references: [Manage Google Maps Platform costs](https://developers.google.com/maps/billing-and-pricing/manage-costs) and [Firestore TTL policies](https://firebase.google.com/docs/firestore/ttl).
 
-## 5. Perform the first monitor-mode deploy
+## 5. Deploy and verify the owner-only room cleanup rules
+
+Before any place-search-enabled client exists, deploy the checked
+`firestore.rules` containing the owner-only room cleanup rules and the private
+`roomDeletionLocks` collection. This gate does not change ordinary sharing:
+clients can still create, update, or stop sharing a room when no deletion lock
+exists. Once a strong deletion lock exists for a room, room updates, new Spark
+or Circle receipts, and old-client deletion attempts must fail until the owner
+finishes the atomic cleanup or retries it.
+
+Verify with authenticated rule tests against a disposable project or emulator:
+
+- an authenticated owner query for its own owner UID with a limit of 100 is
+  allowed and finds public, private, and legacy rooms carrying that UID;
+- unauthenticated, unfiltered, other-UID, missing-limit, and over-100 queries
+  are denied, while existing exact-code public and private `get` behavior is
+  unchanged;
+- only the room owner can create or refresh its deletion lock;
+- an acknowledged lock blocks room create/update and new private `sparks` and
+  `circleAdds` documents;
+- the owner can delete the room and `roomDeletionLocks/{code}` document only in
+  the same acknowledged batch, and a crash after lock creation can retry; and
+- any query, lock, child cleanup, batch, or Auth-identity ambiguity fails closed
+  and retains the anonymous identity.
+
+Record the ruleset version and evidence before continuing. The anonymous
+private-service-identity control is coupled to `PLACE_SEARCH_ENABLED`; default
+builds do not show it. A checked source file is not proof that these rules are
+deployed.
+
+Primary reference: [Securely query data](https://firebase.google.com/docs/firestore/security/rules-query) and [Atomic operations](https://firebase.google.com/docs/firestore/manage-data/transactions).
+
+## 6. Perform the first monitor-mode deploy
 
 Only after the provider quota caps, budget alerts, and Firestore TTL policy are
 confirmed, set the Functions deployment parameter
@@ -95,7 +127,7 @@ require Firebase Authentication. Keep every Flutter build at
 
 Primary reference: [Deploy Cloud Functions](https://firebase.google.com/docs/functions/manage-functions#deploy_functions).
 
-## 6. Validate App Check monitor metrics
+## 7. Validate App Check monitor metrics
 
 Use controlled internal builds with real production attestation providers. For
 web, configure its public reCAPTCHA v3 App Check site key. Exercise both
@@ -106,7 +138,7 @@ traffic before enforcement.
 
 Primary reference: [Monitor App Check request metrics for Cloud Functions](https://firebase.google.com/docs/app-check/monitor-functions-metrics).
 
-## 7. Enforce App Check on both callables and redeploy
+## 8. Enforce App Check on both callables and redeploy
 
 Set `PLACES_ENFORCE_APP_CHECK=true` and redeploy both functions together:
 
@@ -120,7 +152,7 @@ Checking only one callable is not sufficient.
 
 Primary reference: [Enable App Check enforcement for Cloud Functions](https://firebase.google.com/docs/app-check/cloud-functions).
 
-## 8. Publish and verify the public policies
+## 9. Publish and verify the public policies
 
 Publish the repository's `web/privacy.html` and `web/terms.html`. From a fresh
 browser, verify the live canonical pages at `https://roomofdays.com/privacy` and
@@ -132,9 +164,9 @@ place-search disclosure, and these current primary links:
 
 Do not proceed from checked files alone; the public pages must be live.
 
-## 9. Build the opt-in candidate
+## 10. Build the opt-in candidate
 
-Only after gates 1-8 are recorded complete, build a candidate with:
+Only after gates 1-9 are recorded complete, build a candidate with:
 
 ```sh
 flutter build apk --release --dart-define=PLACE_SEARCH_ENABLED=true

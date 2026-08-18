@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../cloud.dart';
 import '../../release_features.dart';
 import '../data/daybook_preferences.dart';
+import 'place_search_authorization.dart';
 
 export '../data/daybook_preferences.dart' show PlaceSearchConsent;
 
@@ -21,11 +22,15 @@ sealed class PlaceSearchAccessResult {
 }
 
 final class PlaceSearchReady extends PlaceSearchAccessResult {
-  const PlaceSearchReady({required this.installId});
+  const PlaceSearchReady({
+    required this.installId,
+    required this.authorization,
+  });
 
   /// Random app-install state used for server-side abuse limits. It is not a
   /// hardware identifier and is created only after accepted consent/readiness.
   final String installId;
+  final PlaceSearchAuthorizationLease authorization;
 }
 
 final class PlaceSearchDisabled extends PlaceSearchAccessResult {
@@ -271,6 +276,7 @@ final class PlaceSearchAccess {
     required PlaceSearchAppCheck appCheck,
     required PlaceSearchConsentRequest requestConsent,
     PlaceSearchInstallIdFactory? createInstallId,
+    PlaceSearchAuthorization? authorization,
   }) => PlaceSearchAccess._(
     enabled,
     preferences,
@@ -278,6 +284,7 @@ final class PlaceSearchAccess {
     appCheck,
     requestConsent,
     createInstallId ?? const Uuid().v4,
+    authorization ?? PlaceSearchAuthorization(),
   );
 
   PlaceSearchAccess._(
@@ -287,11 +294,13 @@ final class PlaceSearchAccess {
     this._appCheck,
     this._requestConsent,
     this._createInstallId,
+    this._authorization,
   );
 
   factory PlaceSearchAccess.production({
     required PlaceSearchConsentRequest requestConsent,
     PlaceSearchPreferences? preferences,
+    PlaceSearchAuthorization? authorization,
   }) {
     return PlaceSearchAccess(
       enabled: kPlaceSearchEnabled,
@@ -299,6 +308,7 @@ final class PlaceSearchAccess {
       identity: CloudPlaceSearchIdentity(),
       appCheck: FirebasePlaceSearchAppCheck(),
       requestConsent: requestConsent,
+      authorization: authorization ?? PlaceSearchAuthorization.shared,
     );
   }
 
@@ -308,13 +318,17 @@ final class PlaceSearchAccess {
   final PlaceSearchAppCheck _appCheck;
   final PlaceSearchConsentRequest _requestConsent;
   final PlaceSearchInstallIdFactory _createInstallId;
+  final PlaceSearchAuthorization _authorization;
   Future<PlaceSearchAccessResult>? _ensureFuture;
   PlaceSearchReady? _ready;
 
   Future<PlaceSearchAccessResult> ensureReady() {
     if (!_enabled) return Future.value(const PlaceSearchDisabled());
     final ready = _ready;
-    if (ready != null) return Future.value(ready);
+    if (ready != null && ready.authorization.isValid) {
+      return Future.value(ready);
+    }
+    _ready = null;
     final active = _ensureFuture;
     if (active != null) return active;
     late final Future<PlaceSearchAccessResult> attempt;
@@ -326,44 +340,67 @@ final class PlaceSearchAccess {
   }
 
   Future<PlaceSearchAccessResult> _ensureReadyOnce() async {
+    final attempt = _authorization.beginConsentAttempt();
     final consent = await _preferences.loadPlaceSearchConsent();
     if (consent != PlaceSearchConsent.acceptedV1) {
       final decision = await _requestConsent();
       if (decision != PlaceSearchConsentDecision.accept) {
         return const PlaceSearchDeclined();
       }
-      try {
-        final persisted = await _preferences.savePlaceSearchConsent(
-          PlaceSearchConsent.acceptedV1,
-        );
-        if (!persisted) return const PlaceSearchUnavailable();
-      } catch (error) {
-        debugPrint('Place search consent could not be saved: $error');
-        return const PlaceSearchUnavailable();
-      }
+    }
+
+    late final PlaceSearchAuthorizationLease? authorization;
+    try {
+      authorization = await _authorization.authorize(
+        attempt: attempt,
+        persistConsent: consent == PlaceSearchConsent.acceptedV1
+            ? null
+            : () => _preferences.savePlaceSearchConsent(
+                PlaceSearchConsent.acceptedV1,
+              ),
+      );
+    } catch (error) {
+      debugPrint('Place search consent could not be saved: $error');
+      return const PlaceSearchUnavailable();
+    }
+    if (authorization == null || !authorization.isValid) {
+      return const PlaceSearchUnavailable();
     }
 
     try {
-      if (!await _identity.ensureCoreAvailable()) {
+      if (!authorization.isValid ||
+          !await _identity.ensureCoreAvailable() ||
+          !authorization.isValid) {
         return const PlaceSearchUnavailable();
       }
-      if (!await _appCheck.activate()) {
+      if (!await _appCheck.activate() || !authorization.isValid) {
         return const PlaceSearchUnavailable();
       }
-      if (!_identity.signedIn && !await _identity.signInAnonymously()) {
+      if (!_identity.signedIn &&
+          (!authorization.isValid ||
+              !await _identity.signInAnonymously() ||
+              !authorization.isValid)) {
         return const PlaceSearchUnavailable();
       }
 
+      if (!authorization.isValid) return const PlaceSearchUnavailable();
       var installId = await _preferences.loadPlaceSearchInstallId();
+      if (!authorization.isValid) return const PlaceSearchUnavailable();
       if (!_isUuidV4(installId)) {
         final generated = _createInstallId();
         if (!_isUuidV4(generated)) return const PlaceSearchUnavailable();
-        if (!await _preferences.savePlaceSearchInstallId(generated)) {
+        if (!authorization.isValid ||
+            !await _preferences.savePlaceSearchInstallId(generated) ||
+            !authorization.isValid) {
           return const PlaceSearchUnavailable();
         }
         installId = generated;
       }
-      final result = PlaceSearchReady(installId: installId!);
+      if (!authorization.isValid) return const PlaceSearchUnavailable();
+      final result = PlaceSearchReady(
+        installId: installId!,
+        authorization: authorization,
+      );
       _ready = result;
       return result;
     } catch (error) {
@@ -373,10 +410,12 @@ final class PlaceSearchAccess {
   }
 
   Future<bool> withdrawConsent() async {
-    final active = _ensureFuture;
-    if (active != null) await active;
     try {
-      if (!await _preferences.savePlaceSearchConsent(null)) return false;
+      if (!await _authorization.revoke(
+        () => _preferences.savePlaceSearchConsent(null),
+      )) {
+        return false;
+      }
     } catch (error) {
       debugPrint('Place search consent could not be withdrawn: $error');
       return false;

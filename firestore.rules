@@ -189,23 +189,37 @@ service cloud.firestore {
     // create, replace, or delete a room document.
     match /rooms/{code} {
       // A code is the bearer key. Single-room reads work without forcing a
-      // visitor to enable cloud backup; enumeration remains impossible.
+      // visitor to enable cloud backup. The only list shape is a bounded query
+      // for the signed-in owner's own uid, used to prove anonymous deletion.
       // Legacy pre-release profile documents remain stored for their owners,
       // but code bearers cannot read them. Only the generated-only v5 shape is
       // visible in the first store release.
       allow get: if resource.data.v == 5
                  && resource.data.profileVisible == false;
-      allow list: if false;
+      allow list: if request.auth != null
+                  && resource.data.uid == request.auth.uid
+                  && request.query.limit != null
+                  && request.query.limit <= 100;
       allow create: if request.auth != null
                     && request.resource.data.v == 5
+                    && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
                     && validRoom(code);
       allow update: if request.auth != null
                     && resource.data.uid == request.auth.uid
                     && request.resource.data.v == 5
                     && request.resource.data.v >= resource.data.v
+                    && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
                     && validRoom(code);
       allow delete: if request.auth != null
-                    && resource.data.uid == request.auth.uid;
+                    && resource.data.uid == request.auth.uid
+                    && (
+                      !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
+                      || (
+                        get(/databases/$(database)/documents/roomDeletionLocks/$(code)).data.uid
+                          == request.auth.uid
+                        && !existsAfter(/databases/$(database)/documents/roomDeletionLocks/$(code))
+                      )
+                    );
 
       // Text-free encouragement only. A sender has one pending document,
       // keyed by their uid; only the room owner can see or collect it. There
@@ -216,6 +230,7 @@ service cloud.firestore {
         allow create: if request.auth != null
                       && senderId == request.auth.uid
                       && exists(/databases/$(database)/documents/rooms/$(code))
+                      && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
                       && get(/databases/$(database)/documents/rooms/$(code)).data.uid
                          != request.auth.uid
                       && request.resource.data.keys().hasOnly([
@@ -238,6 +253,7 @@ service cloud.firestore {
         allow create: if request.auth != null
                       && senderId == request.auth.uid
                       && exists(/databases/$(database)/documents/rooms/$(code))
+                      && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
                       && get(/databases/$(database)/documents/rooms/$(code)).data.uid
                          != request.auth.uid
                       && request.resource.data.keys().hasOnly([
@@ -251,6 +267,27 @@ service cloud.firestore {
                                == request.auth.uid;
         allow update: if false;
       }
+    }
+    match /roomDeletionLocks/{code} {
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.createdAt == request.time
+                    && exists(/databases/$(database)/documents/rooms/$(code))
+                    && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                       == request.auth.uid;
+      allow update: if request.auth != null
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.createdAt == request.time
+                    && exists(/databases/$(database)/documents/rooms/$(code))
+                    && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                       == request.auth.uid;
+      allow delete: if request.auth != null
+                    && resource.data.uid == request.auth.uid
+                    && !existsAfter(/databases/$(database)/documents/rooms/$(code));
+      allow get, list: if false;
     }
     match /{document=**} {
       allow read, write: if false;

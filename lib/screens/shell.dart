@@ -13,6 +13,7 @@ import '../content/quest_desk_styles.dart';
 import '../content/release_notes.dart';
 import '../content/routines.dart';
 import '../daybook/data/daybook_preferences.dart';
+import '../daybook/services/place_search_access.dart';
 import '../daybook/services/place_search_identity_removal.dart';
 import '../engine.dart';
 import '../haptics.dart';
@@ -1206,6 +1207,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     return null;
   }
 
+  Future<String?> _withdrawPlaceSearchConsent() async {
+    final access = PlaceSearchAccess.production(
+      requestConsent: () async => PlaceSearchConsentDecision.decline,
+    );
+    if (await access.withdrawConsent()) return null;
+    return 'Couldn’t turn off place search on this device. Try again.';
+  }
+
   void _removeQuest(Quest q) {
     final s = _state;
     // remember if this was a default, so refresh won't bring it back
@@ -1432,6 +1441,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           onDeleteAccount: _deleteAccount,
                                           onRemovePrivateServiceIdentity:
                                               _removePrivateServiceIdentity,
+                                          onWithdrawPlaceSearchConsent:
+                                              _withdrawPlaceSearchConsent,
                                           cloudAccountView: CloudSync.instance,
                                           onSelectTab: _selectTab,
                                           parallax: cameraFor(0),

@@ -75,10 +75,9 @@
   <p>Accepted place search creates or reuses a Firebase identity and uses a
     retained random installation ID for service abuse and cost controls. The
     installation ID is app-generated and is not a hardware or device ID.
-    The per-identity and per-installation abuse counters are retained for up to
-    35 days for security and abuse prevention and cost control. Firestore TTL
-    schedules expired counters for deletion; that deletion is asynchronous and
-    may not happen immediately.</p>
+    The per-identity and per-installation abuse counters are marked to expire
+    35 days after the last update for security and abuse prevention and cost
+    control. Firestore deletes expired documents asynchronously afterward.</p>
 
   <p>Firebase App Check also protects these requests. It uses Play Integrity on
     Android, App Attest with DeviceCheck fallback on Apple platforms, and
@@ -94,17 +93,32 @@
     write yourself. Room of Days does not use place-search queries for
     advertising or analytics.</p>
 
-  <p>Withdrawing place-search consent on this device stops future place-search
-    requests unless you accept again. It clears the local consent choice, but
+  <p>Use <em>Me → Your account → Turn off place search</em> to withdraw
+    place-search consent on this device, including while using linked-account
+    or cloud-backup features. This stops future place-search requests unless
+    you accept again. It clears the local consent choice, but
     does not delete your Firebase account or retained installation ID, and it
-    does not immediately delete existing abuse counters. If backup is off and
-    the current identity is anonymous, the separate <em>remove private service
-    identity</em> control under <em>Me → Your account</em> deletes that Firebase
-    Auth identity, its save document, and any shared room it owns without
-    deleting your on-device Daybook, progress, manual or saved locations, map
-    preference, or journal media. The retained installation ID stays on your
-    device. Abuse counters associated with that ID age out separately and are
-    scheduled to expire within the retention period above.</p>
+    does not immediately delete existing abuse counters.</p>
+
+  <p>In a place-search-enabled installed build, after the owner-only room
+    cleanup rules are active, a separate <em>remove private service identity</em>
+    control appears under <em>Me → Your account</em> when backup is off and the
+    current identity is anonymous. Before deleting that Firebase Auth identity
+    or its save document, the app uses an owner-only server lookup to find
+    shared rooms carrying that immutable identity. For each confirmed room, a
+    server deletion lock prevents new room updates and new private Spark and
+    Circle receipts while the existing receipts are cleared; the room and lock
+    are then deleted together. The app repeats the server lookup until no owned
+    room remains. If the lookup, server deletion lock, cleanup, or identity
+    check cannot be confirmed, the identity is kept so you can retry while
+    place search stays off. This removes only rooms the server lookup can
+    authoritatively identify as owned by that identity.</p>
+
+  <p>This separate removal does not delete your on-device Daybook, progress,
+    manual or saved locations, map preference, or journal media. The retained
+    installation ID stays on your device. Abuse counters associated with that
+    ID remain marked for expiration based on their last update and Firestore
+    deletes them asynchronously.</p>
 
   <h2>Shared spaces</h2>
   <p>Sharing is optional. A shared space contains your level, an app-generated
@@ -133,10 +147,10 @@
     opaque room code only long enough to retry, rather than leaving shared data
     behind with no owner able to remove it. Signed-in users can permanently
     delete their account from <em>Me → Your account → Delete account</em>.
-    Linked-account deletion removes the Firebase sign-in, cloud save, and owned
-    shared room, clears on-device app data as the confirmation warns, turns
-    cloud backup off, and leaves the app device-only. If you cannot access the
-    app, the
+    Linked-account deletion removes the Firebase sign-in, cloud save, and the
+    currently known shared room, clears on-device app data as the confirmation
+    warns, turns cloud backup off, and leaves the app device-only. If you cannot
+    access the app, the
     <a href="/delete-account">account deletion guide</a> provides a direct
     email request path.</p>
 

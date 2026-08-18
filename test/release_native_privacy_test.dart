@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 import 'package:emberkeep/academic_calendar/widgets/academic_calendar_sections.dart';
 import 'package:emberkeep/daybook/widgets/daybook_event_editor.dart';
+import 'package:emberkeep/daybook/services/place_search_authorization.dart';
 import 'package:emberkeep/daybook/widgets/daybook_place_fields.dart';
 import 'package:emberkeep/daybook/widgets/daybook_task_editor.dart';
 import 'package:emberkeep/release_features.dart';
@@ -294,10 +295,16 @@ void main() {
       'reCAPTCHA v3',
       'security and abuse prevention',
       'per-identity and per-installation abuse counters',
-      'up to 35 days',
+      'marked to expire 35 days after the last update',
+      'Firestore deletes expired documents asynchronously afterward',
       'remove private service identity',
+      'place-search-enabled installed build',
+      'owner-only server lookup',
+      'server deletion lock',
+      'private Spark and Circle receipts',
+      'identity is kept so you can retry',
       'retained installation ID stays on your device',
-      'Abuse counters associated with that ID age out',
+      'Abuse counters associated with that ID remain marked for expiration',
     ]) {
       expect(privacy, contains(disclosure));
     }
@@ -309,8 +316,22 @@ void main() {
     );
     expect(deletion, contains('remove private service identity'));
     expect(deletion, contains('installed app'));
+    expect(deletion, contains('owner-only server lookup'));
+    expect(deletion, contains('server deletion lock'));
+    expect(deletion, contains('identity is kept so you can retry'));
+    expect(deletion, contains('currently known published shared space'));
+    expect(deletion, isNot(contains('any shared room it owns')));
     expect(deletion, contains('retained random installation ID'));
-    expect(deletion, contains('up to 35 days'));
+    expect(
+      deletion,
+      contains('marked to expire 35 days after the last update'),
+    );
+    expect(
+      deletion,
+      contains('Firestore deletes expired documents asynchronously afterward'),
+    );
+    expect(privacy, isNot(contains('up to 35 days')));
+    expect(deletion, isNot(contains('up to 35 days')));
   });
 
   test('place search review hard cost stops precede monitor deployment', () {
@@ -325,14 +346,18 @@ void main() {
       final quota = document.indexOf('provider quota caps');
       final budget = document.indexOf('budget alerts');
       final ttl = document.indexOf('Firestore TTL');
+      final roomRules = document.indexOf('owner-only room cleanup rules');
       final deploy = document.indexOf('monitor-mode deploy');
       expect(quota, greaterThanOrEqualTo(0));
       expect(budget, greaterThan(quota));
       expect(ttl, greaterThan(budget));
-      expect(deploy, greaterThan(ttl));
+      expect(roomRules, greaterThan(ttl));
+      expect(deploy, greaterThan(roomRules));
     }
     expect(functions, contains('hard upstream stop'));
     expect(functions, contains('budget alerts warn but do not cap spending'));
+    expect(functions, contains('roomDeletionLocks'));
+    expect(checklist, contains('owner UID with a limit of 100'));
   });
 
   test('v1 visitor UGC capabilities are compile-time and default off', () {
@@ -343,6 +368,7 @@ void main() {
     expect(feature, contains("'VISITOR_PROFILE_SHARING'"));
     expect(kVisitorPhotoSharingEnabled, isFalse);
     expect(kVisitorProfileSharingEnabled, isFalse);
+    expect(kAnonymousServiceIdentityRemovalEnabled, isFalse);
     expect(feature, contains('timely human moderation'));
     expect(plist, contains('They stay on this device.'));
     expect(plist, isNot(contains('shared space')));
@@ -355,9 +381,17 @@ void main() {
       expect(kPlaceSearchEnabled, isFalse);
       expect(factory.enabled, isFalse);
 
+      final authorization = PlaceSearchAuthorization();
+      final lease = await authorization.authorize(
+        attempt: authorization.beginConsentAttempt(),
+        persistConsent: () async => true,
+      );
+      expect(lease, isNotNull);
+
       final controller = factory.createController(
         installId: '5e7628f4-d16e-4f8d-a419-9da78655e54a',
         locale: 'en-US',
+        authorization: lease!,
       );
       addTearDown(controller.dispose);
       controller.updateQuery('Alexander Library');

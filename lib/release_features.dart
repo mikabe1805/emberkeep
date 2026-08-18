@@ -28,6 +28,13 @@ const bool kPlaceSearchEnabled = bool.fromEnvironment(
   defaultValue: false,
 );
 
+/// The scoped anonymous-service deletion control relies on the deployed
+/// owner-only Firestore room query and deletion-tombstone rules. Coupling it to
+/// the explicit place-search opt-in keeps default/off builds' existing Share
+/// path unchanged and prevents the control from appearing before that server
+/// capability is verified.
+const bool kAnonymousServiceIdentityRemovalEnabled = kPlaceSearchEnabled;
+
 /// Public reCAPTCHA v3 site key used only by App Check in web builds. This is
 /// not a Google Places credential. An enabled web build remains unavailable
 /// when the key is absent rather than making unattested callable requests.

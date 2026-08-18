@@ -31,20 +31,27 @@
   <p>If the installed app shows an anonymous private service identity while
     cloud backup is off, use <strong>Me → Your account → remove private service
     identity</strong>. After confirmation, the app first turns off future place
-    search requests, then removes that anonymous Firebase Auth identity, any
-    save document, and any shared room it owns. A failed remote step can be
-    retried with place-search consent still off.</p>
+    search requests. In a place-search-enabled installed build, this control is
+    available only after the owner-only room cleanup rules are active. The app
+    uses an owner-only server lookup to find rooms carrying the immutable
+    anonymous identity. A server deletion lock blocks room updates and new
+    private Spark and Circle receipts while existing receipts are cleared; the
+    room and lock are deleted together. Only after a final server lookup finds
+    no owned room does the app remove the save document and Firebase Auth
+    identity. If the lookup, server deletion lock, cleanup, or identity check
+    cannot be confirmed, the identity is kept so you can retry with place-search
+    consent still off.</p>
   <p>This separate control does not erase your on-device Daybook, progress,
     manual or saved locations, journal media, or map preference. It also keeps
     the retained random installation ID, which is app-generated and is not a
     hardware or device ID. Per-identity and per-installation abuse counters are
-    kept for security and cost control for up to 35 days, then scheduled to age
-    out through Firestore TTL.</p>
+    marked to expire 35 days after the last update for security and cost
+    control. Firestore deletes expired documents asynchronously afterward.</p>
   <p>In-app deletion is immediate and permanent. It removes:</p>
   <ul>
     <li>your Firebase sign-in and email association;</li>
     <li>your cloud save backup; and</li>
-    <li>your published shared space, if any.</li>
+    <li>your currently known published shared space, if any.</li>
   </ul>
   <p>The in-app deletion also removes local progress, preferences, usage logs,
     and journal photos from that device, turns cloud backup off, and leaves a
@@ -60,8 +67,9 @@
       href="mailto:support@roomofdays.com?subject=Room%20of%20Days%20account%20deletion%20request">REQUEST ACCOUNT DELETION</a>
   </div>
   <p>Never send your password or a journal export. The request removes the same
-    Firebase sign-in, cloud save, and published shared space listed above. Room
-    of Days does not retain the deleted Firebase account or its cloud save.
+    Firebase sign-in, cloud save, and currently known published shared space
+    listed above. Room of Days does not retain the deleted Firebase account or
+    its cloud save.
     Separate abuse counters follow the limited retention above, and an
     installation ID stored only in an installed app is not an account.</p>
   <p><a href="/privacy">Read the privacy notice</a> or

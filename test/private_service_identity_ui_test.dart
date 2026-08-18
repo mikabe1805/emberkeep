@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/screens/me.dart';
+import 'package:emberkeep/daybook/services/place_search_identity_removal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -41,6 +44,8 @@ final class _FakeCloudAccountView extends ChangeNotifier
 Widget _page({
   required CloudAccountView account,
   required Future<String?> Function() removeIdentity,
+  Future<String?> Function()? withdrawPlaceSearch,
+  bool placeSearchEnabled = false,
 }) {
   final state = GameState()..reduceMotion = true;
   return MaterialApp(
@@ -62,6 +67,8 @@ Widget _page({
         onSignOut: () async {},
         onDeleteAccount: (_) async => null,
         onRemovePrivateServiceIdentity: removeIdentity,
+        onWithdrawPlaceSearchConsent: withdrawPlaceSearch,
+        placeSearchEnabled: placeSearchEnabled,
         cloudAccountView: account,
       ),
     ),
@@ -81,11 +88,84 @@ Future<void> _showRemovalControl(WidgetTester tester) async {
 
 void main() {
   testWidgets(
+    'enabled consent withdrawal is available to linked and backup identities',
+    (tester) async {
+      for (final account in <CloudAccountView>[
+        _FakeCloudAccountView(
+          accountEmail: 'keeper@example.com',
+          ready: true,
+          optedIn: true,
+          canDeleteAnonymousServiceIdentity: false,
+        ),
+        _FakeCloudAccountView(
+          ready: true,
+          optedIn: true,
+          canDeleteAnonymousServiceIdentity: false,
+        ),
+      ]) {
+        var withdrawals = 0;
+        await tester.pumpWidget(
+          _page(
+            account: account,
+            removeIdentity: () async => null,
+            withdrawPlaceSearch: () async {
+              withdrawals += 1;
+              return null;
+            },
+            placeSearchEnabled: true,
+          ),
+        );
+        final control = find.byKey(
+          const ValueKey('withdraw-place-search-consent'),
+        );
+        await tester.scrollUntilVisible(
+          control,
+          360,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.drag(find.byType(Scrollable).first, const Offset(0, -220));
+        await tester.pumpAndSettle();
+        expect(control, findsOneWidget);
+        expect(tester.getSize(control).height, greaterThanOrEqualTo(44));
+        await tester.tap(control);
+        await tester.pumpAndSettle();
+        expect(withdrawals, 1);
+        expect(
+          find.textContaining('Future place searches are off'),
+          findsOneWidget,
+        );
+      }
+    },
+  );
+
+  testWidgets('default-off build hides consent withdrawal', (tester) async {
+    await tester.pumpWidget(
+      _page(
+        account: _FakeCloudAccountView(),
+        removeIdentity: () async => null,
+        withdrawPlaceSearch: () async => null,
+      ),
+    );
+    expect(
+      find.byKey(const ValueKey('withdraw-place-search-consent')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('remove-private-service-identity')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
     'private identity control is visible only for anonymous backup-off service state',
     (tester) async {
       final anonymous = _FakeCloudAccountView();
       await tester.pumpWidget(
-        _page(account: anonymous, removeIdentity: () async => null),
+        _page(
+          account: anonymous,
+          removeIdentity: () async => null,
+          placeSearchEnabled: true,
+        ),
       );
       await _showRemovalControl(tester);
       expect(find.text('YOUR ACCOUNT'), findsOneWidget);
@@ -97,7 +177,11 @@ void main() {
         canDeleteAnonymousServiceIdentity: false,
       );
       await tester.pumpWidget(
-        _page(account: linked, removeIdentity: () async => null),
+        _page(
+          account: linked,
+          removeIdentity: () async => null,
+          placeSearchEnabled: true,
+        ),
       );
       await tester.pump();
       expect(
@@ -111,7 +195,11 @@ void main() {
         canDeleteAnonymousServiceIdentity: false,
       );
       await tester.pumpWidget(
-        _page(account: backup, removeIdentity: () async => null),
+        _page(
+          account: backup,
+          removeIdentity: () async => null,
+          placeSearchEnabled: true,
+        ),
       );
       await tester.pump();
       expect(
@@ -133,6 +221,7 @@ void main() {
           calls++;
           return null;
         },
+        placeSearchEnabled: true,
       ),
     );
     await _showRemovalControl(tester);
@@ -144,6 +233,11 @@ void main() {
     expect(find.text('Remove private service identity?'), findsOneWidget);
     expect(
       find.textContaining('Daybook, progress, and saved locations stay'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('owner-only server lookup'), findsOneWidget);
+    expect(
+      find.textContaining('identity stays so you can retry'),
       findsOneWidget,
     );
 
@@ -167,6 +261,7 @@ void main() {
           account.markDeleted();
           return null;
         },
+        placeSearchEnabled: true,
       ),
     );
     await _showRemovalControl(tester);
@@ -193,6 +288,66 @@ void main() {
       find.byKey(const ValueKey('remove-private-service-identity')),
       findsNothing,
     );
+  });
+
+  testWidgets(
+    'destructive work cannot be dismissed and errors use a live region',
+    (tester) async {
+      final gate = Completer<String?>();
+      await tester.pumpWidget(
+        _page(
+          account: _FakeCloudAccountView(),
+          removeIdentity: () => gate.future,
+          placeSearchEnabled: true,
+        ),
+      );
+      await _showRemovalControl(tester);
+      await tester.tap(
+        find.byKey(const ValueKey('remove-private-service-identity')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('REMOVE IDENTITY'));
+      await tester.pump();
+
+      await tester.tapAt(const Offset(2, 2));
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.text('Remove private service identity?'), findsOneWidget);
+
+      gate.complete('Remote deletion failed.');
+      await tester.pumpAndSettle();
+      final error = find.byKey(
+        const ValueKey('remove-private-service-identity-error'),
+      );
+      expect(error, findsOneWidget);
+      expect(tester.getSemantics(error).flagsCollection.isLiveRegion, isTrue);
+    },
+  );
+
+  testWidgets('unsettled Auth deletion disables same-session retry', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _page(
+        account: _FakeCloudAccountView(),
+        removeIdentity: () async => identityRemovalStillFinishingMessage,
+        placeSearchEnabled: true,
+      ),
+    );
+    await _showRemovalControl(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('remove-private-service-identity')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('REMOVE IDENTITY'));
+    await tester.pumpAndSettle();
+
+    expect(find.text(identityRemovalStillFinishingMessage), findsOneWidget);
+    final confirm = tester.widget<FilledButton>(
+      find.byKey(const ValueKey('confirm-remove-private-service-identity')),
+    );
+    expect(confirm.onPressed, isNull);
+    expect(find.text('REOPEN APP TO CHECK'), findsOneWidget);
   });
 
   testWidgets('removal remains reachable at 320x568 and 200% text', (

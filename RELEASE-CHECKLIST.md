@@ -115,6 +115,14 @@ provider UI coverage do not make the public feature enabled.
   autocomplete calls/minute and 300/day per UID and install, 10 details/minute
   and 100/day, with global daily closures at 5,000 autocomplete and 1,000
   details calls. Complete all three cost/retention controls before deployment.
+- [ ] Deploy and verify the owner-only room cleanup rules before any enabled
+  client build. Prove an authenticated query for the caller's owner UID with a
+  limit of 100 finds its public, private, and legacy rooms; prove unauthenticated,
+  unfiltered, other-UID, missing-limit, and over-limit queries fail. Verify an
+  owner-only `roomDeletionLocks/{code}` document blocks room updates and new
+  Spark/Circle receipts, room plus lock delete atomically, crash retry works,
+  exact-code public/private reads remain unchanged, and every ambiguous remote
+  result keeps the identity. Record the deployed ruleset and test evidence.
 - [ ] Perform the first monitor-mode deploy of `placesAutocomplete` and
   `placesDetails` with `PLACES_ENFORCE_APP_CHECK=false`. Do not opt any app
   build into search yet.

@@ -620,7 +620,7 @@ void main() {
     expect(circleAddNoticeText(3), contains('3 people'));
   });
 
-  test('room codes expose generated v5 only and never allow listing', () {
+  test('rule source shapes a bounded immutable-owner cleanup query', () {
     final rules = _firestoreRules();
     final roomsStart = rules.indexOf(r'match /rooms/{code}');
     final sparksStart = rules.indexOf(r'match /sparks/{senderId}', roomsStart);
@@ -637,8 +637,55 @@ void main() {
         ),
       ),
     );
-    expect(roomRules, matches(RegExp(r'allow\s+list:\s*if\s+false;')));
+    expect(
+      roomRules,
+      matches(
+        RegExp(
+          r'allow\s+list:\s*if\s+request\.auth\s*!=\s*null\s*'
+          r'&&\s*resource\.data\.uid\s*==\s*request\.auth\.uid\s*'
+          r'&&\s*request\.query\.limit\s*!=\s*null\s*'
+          r'&&\s*request\.query\.limit\s*<=\s*100;',
+        ),
+      ),
+    );
     expect(roomRules, isNot(matches(RegExp(r'allow\s+list:\s*if\s+true;'))));
+
+    final cloud = File('lib/cloud.dart').readAsStringSync();
+    expect(
+      cloud,
+      matches(
+        RegExp(
+          r"\.where\(\s*'uid',\s*isEqualTo:\s*ownerUid\s*\)\s*"
+          r'\.limit\(100\)\s*\.get\(\s*const\s+GetOptions\('
+          r'source:\s*Source\.server\s*\)\s*\)',
+        ),
+      ),
+    );
+  });
+
+  test('rule source requires deletion tombstones around receipts', () {
+    final rules = _firestoreRules();
+    expect(rules, contains(r'match /roomDeletionLocks/{code}'));
+    expect(
+      RegExp(
+        r'match /(?:sparks|circleAdds)/\{senderId\}.*?allow create: if.*?'
+        r'!exists\(/databases/\$\(database\)/documents/'
+        r'roomDeletionLocks/\$\(code\)\)',
+        dotAll: true,
+      ).allMatches(rules),
+      hasLength(2),
+    );
+    expect(
+      rules,
+      matches(
+        RegExp(
+          r'match /roomDeletionLocks/\{code\}.*?allow delete: if.*?'
+          r'!existsAfter\(/databases/\$\(database\)/documents/'
+          r'rooms/\$\(code\)\)',
+          dotAll: true,
+        ),
+      ),
+    );
   });
 
   test(
@@ -676,26 +723,33 @@ void main() {
     final helper = cloud.substring(
       cloud.indexOf('_deleteOwnedRoom(String code)'),
     );
+    final privateChildrenStart = helper.indexOf(
+      'Future<void> _deleteRoomPrivateChildren',
+    );
+    final ownerDelete = helper.substring(0, privateChildrenStart);
+    final privateChildren = helper.substring(privateChildrenStart);
 
     expect(
       helper,
       contains('if (clean == null) return _OwnedRoomDeleteResult.invalid;'),
     );
     expect(helper, contains("parent.data()?['uid'] != _uid"));
-    expect(helper, contains("const ['sparks', 'circleAdds']"));
-    expect(helper, contains('batch.delete(doc.reference)'));
+    expect(privateChildren, contains("const ['sparks', 'circleAdds']"));
+    expect(privateChildren, contains('batch.delete(doc.reference)'));
     expect(
-      helper.indexOf('final parent ='),
-      lessThan(helper.indexOf("const ['sparks', 'circleAdds']")),
+      ownerDelete.indexOf('room.get()'),
+      lessThan(ownerDelete.indexOf('_deleteRoomPrivateChildren(room)')),
     );
     expect(
-      helper.indexOf('batch.commit()'),
-      lessThan(helper.indexOf('room.delete()')),
+      ownerDelete.indexOf('_deleteRoomPrivateChildren(room)'),
+      lessThan(ownerDelete.indexOf('room.delete()')),
     );
-    expect(
-      cloud,
-      contains('() => _cloud._retryPendingRoomCleanup(preferences)'),
-    );
+    expect(privateChildren, contains('batch.commit()'));
+    expect(cloud, contains('deleteAllOwnedRoomsAndConfirmEmpty('));
+    expect(cloud, contains('createServerDeletionFence()'));
+    expect(cloud, contains('deleteParentAndFenceAtomically()'));
+    expect(cloud, contains('..delete(room.reference)'));
+    expect(cloud, contains('..delete(_lock)'));
     expect(cloud, contains('await _deleteOwnedRoom(cleanRoomCode);'));
     expect(cloud, contains('await _deleteOwnedRoom(code);'));
     expect(cloud, contains('removed == _OwnedRoomDeleteResult.deleted ||'));
@@ -816,7 +870,7 @@ void main() {
     );
     expect(
       cloud,
-      contains(r'CloudSync pending room cleanup was not confirmed: $result'),
+      contains(r'CloudSync dropped stale pending room cleanup: $result'),
     );
     expect(
       cloud,

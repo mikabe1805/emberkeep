@@ -21,6 +21,7 @@ import '../content/memories.dart';
 import '../content/room_styles.dart';
 import '../content/stat_ranks.dart';
 import '../content/themes.dart';
+import '../daybook/services/place_search_identity_removal.dart';
 import '../engine.dart';
 import '../notifications.dart';
 import '../release_features.dart';
@@ -1686,11 +1687,13 @@ class MePage extends StatelessWidget {
     required this.onSignOut,
     required this.onDeleteAccount,
     required this.onRemovePrivateServiceIdentity,
+    this.onWithdrawPlaceSearchConsent,
     this.cloudAccountView,
     this.onSelectTab,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
     this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
+    this.placeSearchEnabled = kPlaceSearchEnabled,
   });
 
   final GameState state;
@@ -1740,6 +1743,10 @@ class MePage extends StatelessWidget {
   /// identity used by optional protected services. Local save data is kept.
   final Future<String?> Function() onRemovePrivateServiceIdentity;
 
+  /// Clears only this installation's place-search consent and revokes every
+  /// live search lease. Firebase identity and the random install ID remain.
+  final Future<String?> Function()? onWithdrawPlaceSearchConsent;
+
   /// Injectable account state keeps the privacy control independently
   /// testable; production supplies [CloudSync.instance].
   final CloudAccountView? cloudAccountView;
@@ -1753,6 +1760,7 @@ class MePage extends StatelessWidget {
   final ValueListenable<Offset> parallax;
   final bool visitorPhotoSharingEnabled;
   final bool visitorProfileSharingEnabled;
+  final bool placeSearchEnabled;
 
   static final _privacyUrl = Uri.parse(PublicLinks.privacy);
   static final _deletionUrl = Uri.parse(PublicLinks.deleteAccount);
@@ -2366,6 +2374,8 @@ class MePage extends StatelessWidget {
             onSignOut: onSignOut,
             onDeleteAccount: onDeleteAccount,
             onRemovePrivateServiceIdentity: onRemovePrivateServiceIdentity,
+            onWithdrawPlaceSearchConsent: onWithdrawPlaceSearchConsent,
+            placeSearchEnabled: placeSearchEnabled,
           ),
           const SizedBox(height: 14),
 
@@ -5713,6 +5723,8 @@ class _AccountPanel extends StatelessWidget {
     required this.onSignOut,
     required this.onDeleteAccount,
     required this.onRemovePrivateServiceIdentity,
+    required this.onWithdrawPlaceSearchConsent,
+    required this.placeSearchEnabled,
   });
 
   final CloudAccountView accountView;
@@ -5722,6 +5734,8 @@ class _AccountPanel extends StatelessWidget {
   final Future<void> Function() onSignOut;
   final Future<String?> Function(String) onDeleteAccount;
   final Future<String?> Function() onRemovePrivateServiceIdentity;
+  final Future<String?> Function()? onWithdrawPlaceSearchConsent;
+  final bool placeSearchEnabled;
 
   Future<void> _enableBackup(BuildContext context) async {
     Sfx.instance.play('tick');
@@ -5851,7 +5865,7 @@ class _AccountPanel extends StatelessWidget {
         final cloudReady = accountView.ready;
         final cloudAvailable = accountView.available;
         final canRemovePrivateIdentity =
-            accountView.canDeleteAnonymousServiceIdentity;
+            placeSearchEnabled && accountView.canDeleteAnonymousServiceIdentity;
         return GlassPanel(
           glow: !signedIn && cloudReady,
           child: Column(
@@ -5984,10 +5998,74 @@ class _AccountPanel extends StatelessWidget {
                   ),
                 ],
               ],
+              if (placeSearchEnabled &&
+                  onWithdrawPlaceSearchConsent != null) ...[
+                const SizedBox(height: 8),
+                PlaceSearchConsentWithdrawalControl(
+                  action: onWithdrawPlaceSearchConsent!,
+                ),
+              ],
             ],
           ),
         );
       },
+    );
+  }
+}
+
+/// Non-destructive local opt-out shown for anonymous and linked identities.
+/// It retains Firebase identity, backup state, and the random installation ID.
+class PlaceSearchConsentWithdrawalControl extends StatefulWidget {
+  const PlaceSearchConsentWithdrawalControl({super.key, required this.action});
+
+  final Future<String?> Function() action;
+
+  @override
+  State<PlaceSearchConsentWithdrawalControl> createState() =>
+      _PlaceSearchConsentWithdrawalControlState();
+}
+
+class _PlaceSearchConsentWithdrawalControlState
+    extends State<PlaceSearchConsentWithdrawalControl> {
+  bool _busy = false;
+
+  Future<void> _withdraw() async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    final error = await widget.action();
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        content: Text(
+          error ??
+              'Future place searches are off. Your account, backup, and '
+                  'installation ID were kept.',
+          style: Type.body.copyWith(color: Palette.textHi),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      key: const ValueKey('withdraw-place-search-consent'),
+      style: TextButton.styleFrom(
+        foregroundColor: Palette.textMid,
+        minimumSize: const Size(44, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        tapTargetSize: MaterialTapTargetSize.padded,
+      ),
+      onPressed: _busy ? null : _withdraw,
+      icon: const Icon(Icons.location_off_outlined, size: 18),
+      label: Text(
+        _busy ? 'TURNING OFF…' : 'TURN OFF PLACE SEARCH',
+        textAlign: TextAlign.center,
+        style: Type.label.copyWith(fontSize: 11),
+      ),
     );
   }
 }
@@ -6013,6 +6091,7 @@ class PrivateServiceIdentityControl extends StatelessWidget {
         Sfx.instance.play('tick');
         showDialog<void>(
           context: context,
+          barrierDismissible: false,
           barrierColor: Palette.dialogBarrier,
           builder: (_) => _RemovePrivateServiceIdentityDialog(action: action),
         );
@@ -6040,6 +6119,7 @@ class _RemovePrivateServiceIdentityDialogState
     extends State<_RemovePrivateServiceIdentityDialog> {
   String? _error;
   bool _busy = false;
+  bool _requiresRestart = false;
 
   Future<void> _remove() async {
     if (_busy) return;
@@ -6053,6 +6133,7 @@ class _RemovePrivateServiceIdentityDialogState
       setState(() {
         _busy = false;
         _error = error;
+        _requiresRestart = error == identityRemovalStillFinishingMessage;
       });
       return;
     }
@@ -6071,90 +6152,108 @@ class _RemovePrivateServiceIdentityDialogState
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(20),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height - 40,
-        ),
-        child: SingleChildScrollView(
-          child: GlassPanel(
-            tint: Palette.dialogSurface,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Remove private service identity?',
-                  style: Type.display.copyWith(fontSize: 20),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Room of Days will first turn off place search on this '
-                  'device, then remove the anonymous Firebase identity, its '
-                  'cloud save document, and any shared room it owns.',
-                  style: Type.body.copyWith(
-                    fontSize: 13,
-                    color: Palette.textMid,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Your on-device Daybook, progress, and saved locations stay. '
-                  'Manual location details, your map preference, and the '
-                  'retained random installation ID also stay. Security and '
-                  'cost-control counters are retained for up to 35 days, then '
-                  'scheduled for deletion through Firestore TTL; deletion '
-                  'may not be immediate.',
-                  style: Type.body.copyWith(
-                    fontSize: 13,
-                    color: Palette.textMid,
-                  ),
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 10),
+    return PopScope(
+      canPop: !_busy && !_requiresRestart,
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(20),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height - 40,
+          ),
+          child: SingleChildScrollView(
+            child: GlassPanel(
+              tint: Palette.dialogSurface,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    _error!,
-                    key: const ValueKey(
-                      'remove-private-service-identity-error',
-                    ),
+                    'Remove private service identity?',
+                    style: Type.display.copyWith(fontSize: 20),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Room of Days will first turn off place search on this '
+                    'device. An owner-only server lookup then finds shared '
+                    'rooms it can confirm belong to this anonymous Firebase '
+                    'identity. A server deletion lock blocks new private Spark '
+                    'and Circle receipts while those rooms are cleared before '
+                    'the cloud save and identity are removed.',
                     style: Type.body.copyWith(
-                      fontSize: 12,
-                      color: Palette.danger,
+                      fontSize: 13,
+                      color: Palette.textMid,
                     ),
                   ),
-                ],
-                const SizedBox(height: 16),
-                Wrap(
-                  alignment: WrapAlignment.end,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    TextButton(
-                      style: TextButton.styleFrom(
-                        minimumSize: const Size(44, 44),
-                      ),
-                      onPressed: _busy
-                          ? null
-                          : () => Navigator.of(context).pop(),
-                      child: const Text('KEEP IDENTITY'),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Your on-device Daybook, progress, and saved locations stay. '
+                    'Manual location details, your map preference, and the '
+                    'retained random installation ID also stay. Security and '
+                    'cost-control counters are marked to expire 35 days after '
+                    'the last update. Firestore deletes expired documents '
+                    'asynchronously afterward. If the server lookup, deletion '
+                    'lock, cleanup, or identity check cannot be confirmed, the '
+                    'identity stays so you can retry with place search off.',
+                    style: Type.body.copyWith(
+                      fontSize: 13,
+                      color: Palette.textMid,
                     ),
-                    FilledButton(
-                      key: const ValueKey(
-                        'confirm-remove-private-service-identity',
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 10),
+                    Semantics(
+                      liveRegion: true,
+                      container: true,
+                      child: Text(
+                        _error!,
+                        key: const ValueKey(
+                          'remove-private-service-identity-error',
+                        ),
+                        style: Type.body.copyWith(
+                          fontSize: 12,
+                          color: Palette.danger,
+                        ),
                       ),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(44, 44),
-                        backgroundColor: Palette.danger,
-                      ),
-                      onPressed: _busy ? null : _remove,
-                      child: Text(_busy ? 'REMOVING…' : 'REMOVE IDENTITY'),
                     ),
                   ],
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(44, 44),
+                        ),
+                        onPressed: _busy || _requiresRestart
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        child: const Text('KEEP IDENTITY'),
+                      ),
+                      FilledButton(
+                        key: const ValueKey(
+                          'confirm-remove-private-service-identity',
+                        ),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(44, 44),
+                          backgroundColor: Palette.danger,
+                        ),
+                        onPressed: _busy || _requiresRestart ? null : _remove,
+                        child: Text(
+                          _busy
+                              ? 'REMOVING…'
+                              : _requiresRestart
+                              ? 'REOPEN APP TO CHECK'
+                              : 'REMOVE IDENTITY',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

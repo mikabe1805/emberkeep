@@ -5,6 +5,7 @@ import '../../tokens.dart';
 import '../domain/daybook_place.dart';
 import '../services/firebase_place_search_service.dart';
 import '../services/place_search_access.dart';
+import '../services/place_search_authorization.dart';
 import '../services/place_search_controller.dart';
 import '../services/place_search_service.dart' hide PlaceSearchUnavailable;
 import 'place_search_consent_dialog.dart';
@@ -19,6 +20,7 @@ abstract interface class DaybookPlaceSearchFactory {
   PlaceSearchController createController({
     required String installId,
     required String locale,
+    required PlaceSearchAuthorizationLease authorization,
   });
 }
 
@@ -40,12 +42,17 @@ final class ProductionDaybookPlaceSearchFactory
   PlaceSearchController createController({
     required String installId,
     required String locale,
+    required PlaceSearchAuthorizationLease authorization,
   }) => PlaceSearchController(
     service: kPlaceSearchEnabled
-        ? FirebasePlaceSearchService()
+        ? AuthorizedPlaceSearchService(
+            delegate: FirebasePlaceSearchService(),
+            authorization: authorization,
+          )
         : const DisabledPlaceSearchService(),
     installId: installId,
     locale: locale,
+    authorization: authorization,
   );
 }
 
@@ -510,11 +517,15 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
       );
       final result = await access.ensureReady();
       if (!mounted || accessGeneration != _accessGeneration) return;
-      if (result case PlaceSearchReady(:final installId)) {
+      if (result case PlaceSearchReady(
+        :final installId,
+        :final authorization,
+      )) {
         final locale = Localizations.localeOf(context).toLanguageTag();
         final controller = widget.placeSearchFactory.createController(
           installId: installId,
           locale: locale,
+          authorization: authorization,
         );
         _searchController = controller..addListener(_onSearchChanged);
         setState(() {

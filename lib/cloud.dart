@@ -147,6 +147,18 @@ class RoomPublishQueue {
     return result;
   }
 
+  /// Gives the caller bounded feedback without shortening queue ownership.
+  /// Firebase writes cannot be cancelled: the recovered tail therefore keeps
+  /// tracking the original action after this wrapper reports a timeout.
+  Future<T?> runWriteWithFeedbackTimeout<T>(
+    Future<T> Function() action, {
+    required Duration timeout,
+    required T Function() onTimeout,
+  }) {
+    final operation = runWrite(action);
+    return operation.timeout(timeout, onTimeout: onTimeout);
+  }
+
   Future<T> run<T>(Future<T> Function() action) {
     final result = _tail.then((_) => action());
     _tail = result.then<void>((_) {}, onError: (_, _) {});
@@ -406,6 +418,7 @@ class CloudSync extends ChangeNotifier
     return _identityMutationQueue.ensureServiceIdentity(
       hasIdentity: () => socialReady,
       startIdentity: _startSocialSession,
+      feedbackTimeout: const Duration(seconds: 8),
     );
   }
 
@@ -423,9 +436,7 @@ class CloudSync extends ChangeNotifier
       if (existing != null) {
         _uid = existing.uid;
       } else {
-        final cred = await FirebaseAuth.instance.signInAnonymously().timeout(
-          const Duration(seconds: 8),
-        );
+        final cred = await FirebaseAuth.instance.signInAnonymously();
         _uid = cred.user?.uid;
       }
       _refreshAccountEmail();
@@ -450,6 +461,7 @@ class CloudSync extends ChangeNotifier
 
   @override
   bool get canDeleteAnonymousServiceIdentity {
+    if (!kAnonymousServiceIdentityRemovalEnabled) return false;
     if (!socialReady || ready || optedIn || _accountEmail != null) return false;
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -656,19 +668,29 @@ class CloudSync extends ChangeNotifier
   /// from Start over and linked-account deletion and never signs in a
   /// replacement user.
   @override
-  Future<String?> deleteAnonymousServiceIdentity({String? roomCode}) =>
-      _anonymousIdentityDeletion.run(
-        start: () => _runAuthChange(
-          () => _deleteAnonymousServiceIdentity(roomCode: roomCode),
-        ),
-        acceptLateSuccess: () {
-          try {
-            return _uid == null && FirebaseAuth.instance.currentUser == null;
-          } catch (_) {
-            return _uid == null;
-          }
-        },
+  Future<String?> deleteAnonymousServiceIdentity({String? roomCode}) {
+    if (!kAnonymousServiceIdentityRemovalEnabled) {
+      return Future.value(
+        'Private service identity removal is not available in this build.',
       );
+    }
+    return _anonymousIdentityDeletion.run(
+      start: () {
+        final identityCreationHold = _identityMutationQueue
+            .holdServiceIdentityCreation();
+        return _runAuthChange(
+          () => _deleteAnonymousServiceIdentity(roomCode: roomCode),
+        ).whenComplete(identityCreationHold.release);
+      },
+      acceptLateSuccess: () {
+        try {
+          return _uid == null && FirebaseAuth.instance.currentUser == null;
+        } catch (_) {
+          return _uid == null;
+        }
+      },
+    );
+  }
 
   Future<String?> _deleteAnonymousServiceIdentity({String? roomCode}) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -680,6 +702,24 @@ class CloudSync extends ChangeNotifier
       debugPrint('deleteAnonymousServiceIdentity did not complete: $result');
     }
     return result;
+  }
+
+  void _verifyAnonymousCleanupIdentity({
+    required String ownerUid,
+    required User expectedUser,
+  }) {
+    final current = FirebaseAuth.instance.currentUser;
+    if (!expectedUser.isAnonymous ||
+        expectedUser.uid != ownerUid ||
+        current == null ||
+        !current.isAnonymous ||
+        current.uid != ownerUid ||
+        _uid != ownerUid ||
+        ready ||
+        optedIn ||
+        _accountEmail != null) {
+      throw StateError('The anonymous cleanup identity changed.');
+    }
   }
 
   void _clearAnonymousServiceIdentityCache() {
@@ -802,6 +842,9 @@ class CloudSync extends ChangeNotifier
   CollectionReference<Map<String, dynamic>> get _rooms =>
       FirebaseFirestore.instance.collection('rooms');
 
+  CollectionReference<Map<String, dynamic>> get _roomDeletionLocks =>
+      FirebaseFirestore.instance.collection('roomDeletionLocks');
+
   /// Keep an already-published appearance card fresh without writing on every
   /// tap. Saves remain the source of truth; this is a separate, privacy-safe
   /// five-second debounce for Circle presence and room progress only.
@@ -853,13 +896,19 @@ class CloudSync extends ChangeNotifier
     bool skipCurrentVersion = false,
   }) async {
     final snapshot = Map<String, dynamic>.from(display);
-    final result = await _roomPublishQueue.runWrite(
+    final result = await _roomPublishQueue.runWriteWithFeedbackTimeout(
       () => _publishRoomNow(
         snapshot,
         code: code,
         skipCurrentVersion: skipCurrentVersion,
       ),
+      timeout: const Duration(seconds: 8),
+      onTimeout: () =>
+          const RoomPublishResult.failed(RoomPublishFailure.timedOut),
     );
+    if (_roomPublishQueue.writesHeld) {
+      return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
+    }
     return result ??
         const RoomPublishResult.failed(RoomPublishFailure.unavailable);
   }
@@ -895,10 +944,7 @@ class CloudSync extends ChangeNotifier
                   existingData?['v'] == display['v']) {
                 return RoomPublishResult.success(clean);
               }
-              await _rooms
-                  .doc(clean)
-                  .set(data)
-                  .timeout(const Duration(seconds: 8));
+              await _rooms.doc(clean).set(data);
               return RoomPublishResult.success(clean);
             }
           } on FirebaseException catch (error) {
@@ -927,10 +973,7 @@ class CloudSync extends ChangeNotifier
           if (newRoomData.containsKey('seasonPhotoPath')) {
             newRoomData['seasonPhotoPath'] = '';
           }
-          await _rooms
-              .doc(candidateCode)
-              .set(newRoomData)
-              .timeout(const Duration(seconds: 8));
+          await _rooms.doc(candidateCode).set(newRoomData);
         },
         shouldRetry: (error) =>
             error is FirebaseException && error.code == 'permission-denied',
@@ -1015,7 +1058,18 @@ class CloudSync extends ChangeNotifier
     final clean = _cleanRoomCode(code);
     if (clean == null) return _OwnedRoomDeleteResult.invalid;
     final room = _rooms.doc(clean);
-    final parent = await room.get().timeout(const Duration(seconds: 8));
+    late final DocumentSnapshot<Map<String, dynamic>> parent;
+    try {
+      parent = await room.get().timeout(const Duration(seconds: 8));
+    } on FirebaseException catch (error) {
+      if (error.code != 'permission-denied') rethrow;
+      // Legacy/private parents cannot be read through the bearer-get rule.
+      // Attempt the owner-only destructive path, but propagate every denial:
+      // permission failure is not proof that this identity did not own it.
+      await _deleteRoomPrivateChildren(room);
+      await room.delete().timeout(const Duration(seconds: 8));
+      return _OwnedRoomDeleteResult.deleted;
+    }
     if (!parent.exists) return _OwnedRoomDeleteResult.absent;
     if (parent.data()?['uid'] != _uid) {
       return _OwnedRoomDeleteResult.notOwned;
@@ -1030,24 +1084,43 @@ class CloudSync extends ChangeNotifier
     if (kVisitorPhotoSharingEnabled && mediaPaths.isNotEmpty) {
       await SharedRoomMediaService.instance.deleteObjectPaths(mediaPaths);
     }
+    await _deleteRoomPrivateChildren(room);
+    await room.delete().timeout(const Duration(seconds: 8));
+    return _OwnedRoomDeleteResult.deleted;
+  }
+
+  Future<void> _deleteRoomPrivateChildren(
+    DocumentReference<Map<String, dynamic>> room, {
+    Future<void> Function()? verifyIdentity,
+  }) async {
     for (final collectionName in const ['sparks', 'circleAdds']) {
       while (true) {
+        if (verifyIdentity != null) await verifyIdentity();
         final page = await room
             .collection(collectionName)
             .limit(400)
             .get()
             .timeout(const Duration(seconds: 8));
+        if (verifyIdentity != null) await verifyIdentity();
         if (page.docs.isEmpty) break;
         final batch = FirebaseFirestore.instance.batch();
         for (final doc in page.docs) {
           batch.delete(doc.reference);
         }
-        await batch.commit().timeout(const Duration(seconds: 8));
+        if (verifyIdentity != null) await verifyIdentity();
+        final deletion = batch.commit();
+        if (verifyIdentity == null) {
+          await deletion.timeout(const Duration(seconds: 8));
+        } else {
+          // The strong anonymous-identity path cannot abandon an
+          // uncancellable destructive commit. Its outer operation provides
+          // bounded UI feedback while this queue stays fenced until settle.
+          await deletion;
+        }
+        if (verifyIdentity != null) await verifyIdentity();
         if (page.docs.length < 400) break;
       }
     }
-    await room.delete().timeout(const Duration(seconds: 8));
-    return _OwnedRoomDeleteResult.deleted;
   }
 
   /// A reset may lose connectivity after it has already cleared local state.
@@ -1066,7 +1139,11 @@ class CloudSync extends ChangeNotifier
     final records = <_PendingRoomCleanup>[];
     for (final value in raw) {
       final record = _PendingRoomCleanup.decode(value);
-      if (record != null) records.add(record);
+      if (record == null) continue;
+      final clean = _cleanRoomCode(record.code);
+      if (clean != null) {
+        records.add(_PendingRoomCleanup(owner: record.owner, code: clean));
+      }
     }
     return records;
   }
@@ -1125,15 +1202,11 @@ class CloudSync extends ChangeNotifier
       }
       try {
         final result = await _deleteOwnedRoom(record.code);
-        if (result != _OwnedRoomDeleteResult.deleted &&
-            result != _OwnedRoomDeleteResult.absent) {
-          // Never discard the only evidence of a room that could still be
-          // public. This identity cannot remove it, so a later auth change
-          // must stop rather than falsely calling cleanup complete.
-          remaining.add(record);
-          debugPrint(
-            'CloudSync pending room cleanup was not confirmed: $result',
-          );
+        if (result == _OwnedRoomDeleteResult.notOwned ||
+            result == _OwnedRoomDeleteResult.invalid) {
+          // A malformed handle or room owned by another uid is stale local
+          // state, not work this credential can ever complete.
+          debugPrint('CloudSync dropped stale pending room cleanup: $result');
         }
       } catch (e) {
         remaining.add(record);
@@ -1403,7 +1476,7 @@ final class _CloudAnonymousIdentityDeletionDelegate
 
   final CloudSync _cloud;
   final User? _user;
-  SharedPreferences? _cleanupPreferences;
+  String? _ownerUid;
   bool? _saveWritesWereHeld;
   bool? _roomWritesWereHeld;
 
@@ -1424,15 +1497,22 @@ final class _CloudAnonymousIdentityDeletionDelegate
 
   @override
   Future<bool> preparePendingRoomCleanup({String? roomCode}) async {
+    final user = _user;
+    final ownerUid = user?.uid;
+    if (user == null || ownerUid == null || !user.isAnonymous) return false;
     final preferences = await SharedPreferences.getInstance();
-    _cleanupPreferences = preferences;
-    if (!await preferences.setBool(CloudSync._cloudEnabledKey, false)) {
-      return false;
-    }
-    if (roomCode == null) return true;
-    final clean = _cloud._cleanRoomCode(roomCode);
-    if (clean == null) return false;
-    return _cloud._rememberPendingRoomCleanup(preferences, clean);
+    final directory = _CloudOwnedRoomCleanupDirectory(_cloud, user);
+    // This destructive queue action runs after every already-active publish.
+    // The following server-only owner query therefore discovers even a room
+    // whose publish callback never persisted its bearer code locally.
+    return _cloud._roomPublishQueue.run(() async {
+      await directory.verifyIdentity(ownerUid: ownerUid);
+      if (!await preferences.setBool(CloudSync._cloudEnabledKey, false)) {
+        return false;
+      }
+      _ownerUid = ownerUid;
+      return true;
+    });
   }
 
   @override
@@ -1456,13 +1536,19 @@ final class _CloudAnonymousIdentityDeletionDelegate
 
   @override
   Future<bool> deletePreparedRooms() {
-    final preferences = _cleanupPreferences;
-    if (preferences == null) {
-      throw StateError('Pending room cleanup was not prepared.');
+    final ownerUid = _ownerUid;
+    final user = _user;
+    if (ownerUid == null || user == null) {
+      throw StateError('Owned-room cleanup was not prepared.');
     }
-    return _cloud._roomPublishQueue.run(
-      () => _cloud._retryPendingRoomCleanup(preferences),
-    );
+    final directory = _CloudOwnedRoomCleanupDirectory(_cloud, user);
+    return _cloud._roomPublishQueue.run(() async {
+      await deleteAllOwnedRoomsAndConfirmEmpty(
+        ownerUid: ownerUid,
+        directory: directory,
+      );
+      return true;
+    });
   }
 
   @override
@@ -1489,4 +1575,118 @@ final class _CloudAnonymousIdentityDeletionDelegate
 
   @override
   void clearCachedIdentity() => _cloud._clearAnonymousServiceIdentityCache();
+}
+
+final class _CloudOwnedRoomCleanupDirectory
+    implements
+        OwnedRoomCleanupDirectory<DocumentSnapshot<Map<String, dynamic>>> {
+  const _CloudOwnedRoomCleanupDirectory(this._cloud, this._expectedUser);
+
+  final CloudSync _cloud;
+  final User _expectedUser;
+
+  @override
+  Future<void> verifyIdentity({required String ownerUid}) async {
+    _cloud._verifyAnonymousCleanupIdentity(
+      ownerUid: ownerUid,
+      expectedUser: _expectedUser,
+    );
+  }
+
+  @override
+  Future<List<DocumentSnapshot<Map<String, dynamic>>>> listOwnedRooms({
+    required String ownerUid,
+  }) async {
+    final page = await _cloud._rooms
+        .where('uid', isEqualTo: ownerUid)
+        .limit(100)
+        .get(const GetOptions(source: Source.server))
+        .timeout(const Duration(seconds: 8));
+    for (final room in page.docs) {
+      if (room.data()['uid'] != ownerUid) {
+        throw StateError('Owner query returned a room for another identity.');
+      }
+    }
+    return List<DocumentSnapshot<Map<String, dynamic>>>.unmodifiable(page.docs);
+  }
+
+  @override
+  Future<void> deleteOwnedRoom({
+    required String ownerUid,
+    required DocumentSnapshot<Map<String, dynamic>> room,
+  }) => deleteOwnedRoomWithServerFence(
+    _CloudOwnedRoomDeletionSteps(
+      _cloud,
+      _expectedUser,
+      ownerUid: ownerUid,
+      room: room,
+    ),
+  );
+}
+
+final class _CloudOwnedRoomDeletionSteps implements OwnedRoomDeletionSteps {
+  const _CloudOwnedRoomDeletionSteps(
+    this._cloud,
+    this._expectedUser, {
+    required this.ownerUid,
+    required this.room,
+  });
+
+  final CloudSync _cloud;
+  final User _expectedUser;
+  final String ownerUid;
+  final DocumentSnapshot<Map<String, dynamic>> room;
+
+  DocumentReference<Map<String, dynamic>> get _lock =>
+      _cloud._roomDeletionLocks.doc(room.id);
+
+  Future<void> _verify() async {
+    _cloud._verifyAnonymousCleanupIdentity(
+      ownerUid: ownerUid,
+      expectedUser: _expectedUser,
+    );
+    if (room.data()?['uid'] != ownerUid) {
+      throw StateError('The room owner changed during identity cleanup.');
+    }
+  }
+
+  @override
+  Future<void> createServerDeletionFence() async {
+    await _verify();
+    await _lock.set({
+      'uid': ownerUid,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    await _verify();
+  }
+
+  @override
+  Future<void> drainPrivateChildren() async {
+    await _verify();
+    final roomData = room.data();
+    final mediaPaths = <String>[
+      for (final key in const ['profilePhotoPath', 'seasonPhotoPath'])
+        if (roomData?[key] is String && (roomData![key] as String).isNotEmpty)
+          roomData[key] as String,
+    ];
+    if (kVisitorPhotoSharingEnabled && mediaPaths.isNotEmpty) {
+      await SharedRoomMediaService.instance.deleteObjectPaths(mediaPaths);
+      await _verify();
+    }
+    await _cloud._deleteRoomPrivateChildren(
+      room.reference,
+      verifyIdentity: _verify,
+    );
+    await _verify();
+  }
+
+  @override
+  Future<void> deleteParentAndFenceAtomically() async {
+    await _verify();
+    final batch = FirebaseFirestore.instance.batch()
+      ..delete(room.reference)
+      ..delete(_lock);
+    await batch.commit();
+    await _verify();
+  }
 }

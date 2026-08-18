@@ -15,6 +15,7 @@ import 'package:emberkeep/daybook/domain/daybook_task.dart';
 import 'package:emberkeep/daybook/services/directions_launcher.dart';
 import 'package:emberkeep/daybook/services/place_search_access.dart'
     hide PlaceSearchUnavailable;
+import 'package:emberkeep/daybook/services/place_search_authorization.dart';
 import 'package:emberkeep/daybook/services/place_search_controller.dart';
 import 'package:emberkeep/daybook/services/place_search_service.dart';
 import 'package:emberkeep/daybook/widgets/daybook_add_choice_dialog.dart';
@@ -4770,6 +4771,7 @@ final class _TestPlaceSearchFactory implements DaybookPlaceSearchFactory {
   PlaceSearchController createController({
     required String installId,
     required String locale,
+    required PlaceSearchAuthorizationLease authorization,
   }) {
     controllerCreateCalls += 1;
     locales.add(locale);
@@ -4777,6 +4779,7 @@ final class _TestPlaceSearchFactory implements DaybookPlaceSearchFactory {
       service: service,
       installId: installId,
       locale: locale,
+      authorization: authorization,
       createSessionToken: () =>
           '00000000-0000-4000-8000-${controllerCreateCalls.toString().padLeft(12, '0')}',
     );

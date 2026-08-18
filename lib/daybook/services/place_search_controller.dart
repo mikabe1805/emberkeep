@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
 import 'place_search_service.dart';
+import 'place_search_authorization.dart';
 
 const placeSearchUnavailableMessage =
     'Search unavailable — type the location instead.';
@@ -36,12 +37,14 @@ final class PlaceSearchController extends ChangeNotifier {
     required String locale,
     Duration debounce = const Duration(milliseconds: 300),
     PlaceSearchUuidFactory? createSessionToken,
+    PlaceSearchAuthorizationLease? authorization,
   }) => PlaceSearchController._(
     service,
     installId,
     locale,
     debounce,
     createSessionToken ?? const Uuid().v4,
+    authorization,
   );
 
   PlaceSearchController._(
@@ -50,13 +53,17 @@ final class PlaceSearchController extends ChangeNotifier {
     this._locale,
     this._debounce,
     this._createSessionToken,
-  );
+    this._authorization,
+  ) {
+    _authorization?.addRevocationListener(_onAuthorizationRevoked);
+  }
 
   final PlaceSearchService _service;
   final String _installId;
   final String _locale;
   final Duration _debounce;
   final PlaceSearchUuidFactory _createSessionToken;
+  final PlaceSearchAuthorizationLease? _authorization;
 
   PlaceSearchState _state = PlaceSearchState();
   PlaceSearchState get state => _state;
@@ -75,6 +82,16 @@ final class PlaceSearchController extends ChangeNotifier {
     _generation += 1;
     _clearSuggestionContexts();
     _selectionInFlight = false;
+    if (!_isAuthorized) {
+      _sessionToken = null;
+      _setState(
+        PlaceSearchState(
+          query: rawQuery,
+          errorMessage: placeSearchUnavailableMessage,
+        ),
+      );
+      return;
+    }
     final trimmed = rawQuery.trim();
     if (_nonWhitespaceCharacter.allMatches(trimmed).length < 3) {
       _sessionToken = null;
@@ -86,6 +103,15 @@ final class PlaceSearchController extends ChangeNotifier {
     final requestGeneration = _generation;
     _setState(PlaceSearchState(query: rawQuery, isLoading: true));
     _debounceTimer = Timer(_debounce, () {
+      if (!_isAuthorized) {
+        _setState(
+          PlaceSearchState(
+            query: rawQuery,
+            errorMessage: placeSearchUnavailableMessage,
+          ),
+        );
+        return;
+      }
       _autocomplete(
         query: trimmed,
         token: token,
@@ -101,6 +127,15 @@ final class PlaceSearchController extends ChangeNotifier {
 
   Future<PlaceSelection?> selectSuggestion(PlaceSuggestion suggestion) async {
     if (_disposed || _selectionInFlight) return null;
+    if (!_isAuthorized) {
+      _setState(
+        PlaceSearchState(
+          query: _state.query,
+          errorMessage: placeSearchUnavailableMessage,
+        ),
+      );
+      return null;
+    }
     final context = _suggestionContexts[suggestion];
     if (context == null ||
         context.generation != _generation ||
@@ -124,12 +159,12 @@ final class PlaceSearchController extends ChangeNotifier {
         installId: _installId,
         locale: _locale,
       );
-      if (!_isCurrent(requestGeneration)) return null;
+      if (!_isCurrent(requestGeneration) || !_isAuthorized) return null;
       _selectionInFlight = false;
       _setState(PlaceSearchState(query: originalQuery, selection: selection));
       return selection;
     } catch (_) {
-      if (!_isCurrent(requestGeneration)) return null;
+      if (!_isCurrent(requestGeneration) || !_isAuthorized) return null;
       _selectionInFlight = false;
       _setState(
         PlaceSearchState(
@@ -153,7 +188,11 @@ final class PlaceSearchController extends ChangeNotifier {
         installId: _installId,
         locale: _locale,
       );
-      if (!_isCurrent(requestGeneration) || _sessionToken != token) return;
+      if (!_isCurrent(requestGeneration) ||
+          !_isAuthorized ||
+          _sessionToken != token) {
+        return;
+      }
       final visibleSuggestions = List<PlaceSuggestion>.unmodifiable(
         suggestions.take(5),
       );
@@ -169,7 +208,11 @@ final class PlaceSearchController extends ChangeNotifier {
         PlaceSearchState(query: _state.query, suggestions: visibleSuggestions),
       );
     } catch (_) {
-      if (!_isCurrent(requestGeneration) || _sessionToken != token) return;
+      if (!_isCurrent(requestGeneration) ||
+          !_isAuthorized ||
+          _sessionToken != token) {
+        return;
+      }
       _setState(
         PlaceSearchState(
           query: _state.query,
@@ -182,6 +225,24 @@ final class PlaceSearchController extends ChangeNotifier {
   bool _isCurrent(int requestGeneration) =>
       !_disposed && requestGeneration == _generation;
 
+  bool get _isAuthorized => _authorization?.isValid ?? true;
+
+  void _onAuthorizationRevoked() {
+    if (_disposed) return;
+    _debounceTimer?.cancel();
+    _debounceTimer = null;
+    _generation += 1;
+    _selectionInFlight = false;
+    _sessionToken = null;
+    _clearSuggestionContexts();
+    _setState(
+      PlaceSearchState(
+        query: _state.query,
+        errorMessage: placeSearchUnavailableMessage,
+      ),
+    );
+  }
+
   void _clearSuggestionContexts() => _suggestionContexts.clear();
 
   void _setState(PlaceSearchState next) {
@@ -193,6 +254,7 @@ final class PlaceSearchController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _authorization?.removeRevocationListener(_onAuthorizationRevoked);
     _generation += 1;
     _debounceTimer?.cancel();
     _debounceTimer = null;

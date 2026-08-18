@@ -4,9 +4,106 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:emberkeep/daybook/services/firebase_place_search_service.dart';
 import 'package:emberkeep/daybook/services/place_search_controller.dart';
 import 'package:emberkeep/daybook/services/place_search_service.dart';
+import 'package:emberkeep/daybook/services/place_search_authorization.dart';
 
 void main() {
   const installId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
+
+  test(
+    'revocation blocks an existing controller and ignores an in-flight result',
+    () async {
+      final authorization = PlaceSearchAuthorization();
+      final lease = await _authorizeForTest(authorization);
+      final service = _RecordingService(deferAutocomplete: true);
+      final controller = PlaceSearchController(
+        service: service,
+        installId: installId,
+        locale: 'en-US',
+        debounce: Duration.zero,
+        authorization: lease,
+        createSessionToken: () => '11111111-1111-4111-8111-111111111111',
+      );
+      addTearDown(controller.dispose);
+
+      controller.updateQuery('first');
+      await _flush();
+      expect(service.autocompleteCalls, hasLength(1));
+
+      expect(await authorization.revoke(() async => true), isTrue);
+      service.completeAutocomplete(0);
+      await _flush();
+      expect(controller.state.suggestions, isEmpty);
+
+      controller.updateQuery('second');
+      await _flush();
+      expect(service.autocompleteCalls, hasLength(1));
+      expect(controller.state.errorMessage, placeSearchUnavailableMessage);
+    },
+  );
+
+  test(
+    'revocation clears provider content from an idle live controller',
+    () async {
+      final authorization = PlaceSearchAuthorization();
+      final lease = await _authorizeForTest(authorization);
+      final service = _RecordingService();
+      final controller = PlaceSearchController(
+        service: service,
+        installId: installId,
+        locale: 'en-US',
+        debounce: Duration.zero,
+        authorization: lease,
+        createSessionToken: () => '11111111-1111-4111-8111-111111111111',
+      );
+      addTearDown(controller.dispose);
+
+      controller.updateQuery('library');
+      await _flush();
+      expect(controller.state.suggestions, isNotEmpty);
+
+      expect(await authorization.revoke(() async => true), isTrue);
+      expect(controller.state.suggestions, isEmpty);
+      expect(controller.state.selection, isNull);
+      expect(controller.state.errorMessage, placeSearchUnavailableMessage);
+    },
+  );
+
+  test(
+    'authorized service rejects a callable result completed after revoke',
+    () async {
+      final authorization = PlaceSearchAuthorization();
+      final lease = await _authorizeForTest(authorization);
+      final client = _DeferredCallableClient();
+      final service = AuthorizedPlaceSearchService(
+        delegate: FirebasePlaceSearchService(client: client),
+        authorization: lease,
+      );
+
+      final request = service.autocomplete(
+        query: 'Rutgers',
+        sessionToken: '11111111-1111-4111-8111-111111111111',
+        installId: installId,
+        locale: 'en-US',
+      );
+      await _flush();
+      expect(client.calls, 1);
+
+      expect(await authorization.revoke(() async => true), isTrue);
+      client.complete(<Object?>[_payload('place-id')]);
+      await expectLater(request, throwsA(isA<PlaceSearchUnavailable>()));
+
+      await expectLater(
+        service.autocomplete(
+          query: 'Library',
+          sessionToken: '22222222-2222-4222-8222-222222222222',
+          installId: installId,
+          locale: 'en-US',
+        ),
+        throwsA(isA<PlaceSearchUnavailable>()),
+      );
+      expect(client.calls, 1);
+    },
+  );
 
   test('place selections persist only user-authored place fields', () {
     const selection = PlaceSelection(
@@ -459,6 +556,17 @@ void main() {
 
 Future<void> _flush() => Future<void>.delayed(const Duration(milliseconds: 1));
 
+Future<PlaceSearchAuthorizationLease> _authorizeForTest(
+  PlaceSearchAuthorization authorization,
+) async {
+  final lease = await authorization.authorize(
+    attempt: authorization.beginConsentAttempt(),
+    persistConsent: () async => true,
+  );
+  if (lease == null) throw StateError('test authorization was rejected');
+  return lease;
+}
+
 final class _Call {
   const _Call(this.query, this.sessionToken);
   final String query;
@@ -512,6 +620,23 @@ final class _HangingCallableClient implements PlaceCallableClient {
     Map<String, Object?> data, {
     required Duration timeout,
   }) => Completer<Object?>().future;
+}
+
+final class _DeferredCallableClient implements PlaceCallableClient {
+  final Completer<Object?> _result = Completer<Object?>();
+  int calls = 0;
+
+  @override
+  Future<Object?> call(
+    String name,
+    Map<String, Object?> data, {
+    required Duration timeout,
+  }) {
+    calls += 1;
+    return _result.future;
+  }
+
+  void complete(Object? value) => _result.complete(value);
 }
 
 final class _RecordingService implements PlaceSearchService {
