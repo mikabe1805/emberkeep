@@ -1685,6 +1685,8 @@ class MePage extends StatelessWidget {
     required this.onSignIn,
     required this.onSignOut,
     required this.onDeleteAccount,
+    required this.onRemovePrivateServiceIdentity,
+    this.cloudAccountView,
     this.onSelectTab,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
@@ -1733,6 +1735,14 @@ class MePage extends StatelessWidget {
 
   /// Permanently deletes the linked cloud account; null = success.
   final Future<String?> Function(String password) onDeleteAccount;
+
+  /// Turns off Places consent, then removes only the anonymous Firebase
+  /// identity used by optional protected services. Local save data is kept.
+  final Future<String?> Function() onRemovePrivateServiceIdentity;
+
+  /// Injectable account state keeps the privacy control independently
+  /// testable; production supplies [CloudSync.instance].
+  final CloudAccountView? cloudAccountView;
 
   /// Switches the five-room shell after the Room Guide closes. Optional for
   /// directly constructed test/demo pages; the production shell always sets it.
@@ -2349,11 +2359,13 @@ class MePage extends StatelessWidget {
 
           // ── account (sync across devices) ─────────────────────────
           _AccountPanel(
+            accountView: cloudAccountView ?? CloudSync.instance,
             onEnableCloud: onEnableCloud,
             onLink: onLinkAccount,
             onSignIn: onSignIn,
             onSignOut: onSignOut,
             onDeleteAccount: onDeleteAccount,
+            onRemovePrivateServiceIdentity: onRemovePrivateServiceIdentity,
           ),
           const SizedBox(height: 14),
 
@@ -5694,18 +5706,22 @@ class _RestoreDialogState extends State<_RestoreDialog> {
 /// create/sign-in; signed-in users see their email and a sign-out.
 class _AccountPanel extends StatelessWidget {
   const _AccountPanel({
+    required this.accountView,
     required this.onEnableCloud,
     required this.onLink,
     required this.onSignIn,
     required this.onSignOut,
     required this.onDeleteAccount,
+    required this.onRemovePrivateServiceIdentity,
   });
 
+  final CloudAccountView accountView;
   final Future<String?> Function() onEnableCloud;
   final Future<String?> Function(String, String) onLink;
   final Future<String?> Function(String, String) onSignIn;
   final Future<void> Function() onSignOut;
   final Future<String?> Function(String) onDeleteAccount;
+  final Future<String?> Function() onRemovePrivateServiceIdentity;
 
   Future<void> _enableBackup(BuildContext context) async {
     Sfx.instance.play('tick');
@@ -5828,14 +5844,16 @@ class _AccountPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: CloudSync.instance,
+      listenable: accountView,
       builder: (context, _) {
-        final email = CloudSync.instance.accountEmail;
+        final email = accountView.accountEmail;
         final signedIn = email != null;
-        final cloudReady = CloudSync.instance.ready;
-        final cloudAvailable = CloudSync.instance.available;
+        final cloudReady = accountView.ready;
+        final cloudAvailable = accountView.available;
+        final canRemovePrivateIdentity =
+            accountView.canDeleteAnonymousServiceIdentity;
         return GlassPanel(
-          glow: !signedIn && CloudSync.instance.ready,
+          glow: !signedIn && cloudReady,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -5844,6 +5862,8 @@ class _AccountPanel extends StatelessWidget {
                   Icon(
                     signedIn
                         ? Icons.verified_user
+                        : canRemovePrivateIdentity
+                        ? Icons.person_remove_outlined
                         : cloudReady
                         ? Icons.devices
                         : Icons.phonelink_lock_outlined,
@@ -5853,6 +5873,8 @@ class _AccountPanel extends StatelessWidget {
                   const SizedBox(width: 6),
                   Text(
                     signedIn
+                        ? 'YOUR ACCOUNT'
+                        : canRemovePrivateIdentity
                         ? 'YOUR ACCOUNT'
                         : cloudReady
                         ? 'BACKUP ON'
@@ -5904,7 +5926,10 @@ class _AccountPanel extends StatelessWidget {
                 ),
               ] else ...[
                 Text(
-                  cloudReady
+                  canRemovePrivateIdentity
+                      ? 'A private anonymous service identity exists while '
+                            'your save and backup remain device-only.'
+                      : cloudReady
                       ? 'Cloud backup is on. Create a free account so your '
                             'space can follow you to another device.'
                       : cloudAvailable
@@ -5952,11 +5977,188 @@ class _AccountPanel extends StatelessWidget {
                     style: Type.label.copyWith(fontSize: 11),
                   ),
                 ],
+                if (canRemovePrivateIdentity) ...[
+                  const SizedBox(height: 8),
+                  PrivateServiceIdentityControl(
+                    action: onRemovePrivateServiceIdentity,
+                  ),
+                ],
               ],
             ],
           ),
         );
       },
+    );
+  }
+}
+
+/// The exact destructive control rendered under Me → Your account. Public so
+/// its 200%-text layout can be checked without pumping unrelated Me sections.
+class PrivateServiceIdentityControl extends StatelessWidget {
+  const PrivateServiceIdentityControl({super.key, required this.action});
+
+  final Future<String?> Function() action;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      key: const ValueKey('remove-private-service-identity'),
+      style: TextButton.styleFrom(
+        foregroundColor: Palette.danger,
+        minimumSize: const Size(44, 44),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        tapTargetSize: MaterialTapTargetSize.padded,
+      ),
+      onPressed: () {
+        Sfx.instance.play('tick');
+        showDialog<void>(
+          context: context,
+          barrierColor: Palette.dialogBarrier,
+          builder: (_) => _RemovePrivateServiceIdentityDialog(action: action),
+        );
+      },
+      child: Text(
+        'REMOVE PRIVATE SERVICE IDENTITY',
+        textAlign: TextAlign.center,
+        style: Type.label.copyWith(fontSize: 11, color: Palette.danger),
+      ),
+    );
+  }
+}
+
+class _RemovePrivateServiceIdentityDialog extends StatefulWidget {
+  const _RemovePrivateServiceIdentityDialog({required this.action});
+
+  final Future<String?> Function() action;
+
+  @override
+  State<_RemovePrivateServiceIdentityDialog> createState() =>
+      _RemovePrivateServiceIdentityDialogState();
+}
+
+class _RemovePrivateServiceIdentityDialogState
+    extends State<_RemovePrivateServiceIdentityDialog> {
+  String? _error;
+  bool _busy = false;
+
+  Future<void> _remove() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final error = await widget.action();
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _busy = false;
+        _error = error;
+      });
+      return;
+    }
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    messenger.showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        content: Text(
+          'Private service identity removed. On-device Daybook and progress were kept.',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(20),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height - 40,
+        ),
+        child: SingleChildScrollView(
+          child: GlassPanel(
+            tint: Palette.dialogSurface,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Remove private service identity?',
+                  style: Type.display.copyWith(fontSize: 20),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Room of Days will first turn off place search on this '
+                  'device, then remove the anonymous Firebase identity, its '
+                  'cloud save document, and any shared room it owns.',
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    color: Palette.textMid,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Your on-device Daybook, progress, and saved locations stay. '
+                  'Manual location details, your map preference, and the '
+                  'retained random installation ID also stay. Security and '
+                  'cost-control counters are retained for up to 35 days, then '
+                  'scheduled for deletion through Firestore TTL; deletion '
+                  'may not be immediate.',
+                  style: Type.body.copyWith(
+                    fontSize: 13,
+                    color: Palette.textMid,
+                  ),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _error!,
+                    key: const ValueKey(
+                      'remove-private-service-identity-error',
+                    ),
+                    style: Type.body.copyWith(
+                      fontSize: 12,
+                      color: Palette.danger,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(44, 44),
+                      ),
+                      onPressed: _busy
+                          ? null
+                          : () => Navigator.of(context).pop(),
+                      child: const Text('KEEP IDENTITY'),
+                    ),
+                    FilledButton(
+                      key: const ValueKey(
+                        'confirm-remove-private-service-identity',
+                      ),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(44, 44),
+                        backgroundColor: Palette.danger,
+                      ),
+                      onPressed: _busy ? null : _remove,
+                      child: Text(_busy ? 'REMOVING…' : 'REMOVE IDENTITY'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

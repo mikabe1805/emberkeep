@@ -28,6 +28,18 @@
     profile.</p>
   <p>In Room of Days, open <strong>Me</strong>, scroll to <strong>Your account</strong>,
     choose <strong>Delete account</strong>, and confirm with your password.</p>
+  <p>If the installed app shows an anonymous private service identity while
+    cloud backup is off, use <strong>Me → Your account → remove private service
+    identity</strong>. After confirmation, the app first turns off future place
+    search requests, then removes that anonymous Firebase Auth identity, any
+    save document, and any shared room it owns. A failed remote step can be
+    retried with place-search consent still off.</p>
+  <p>This separate control does not erase your on-device Daybook, progress,
+    manual or saved locations, journal media, or map preference. It also keeps
+    the retained random installation ID, which is app-generated and is not a
+    hardware or device ID. Per-identity and per-installation abuse counters are
+    kept for security and cost control for up to 35 days, then scheduled to age
+    out through Firestore TTL.</p>
   <p>In-app deletion is immediate and permanent. It removes:</p>
   <ul>
     <li>your Firebase sign-in and email association;</li>
@@ -49,7 +61,9 @@
   </div>
   <p>Never send your password or a journal export. The request removes the same
     Firebase sign-in, cloud save, and published shared space listed above. Room
-    of Days does not retain the deleted Firebase account or app data.</p>
+    of Days does not retain the deleted Firebase account or its cloud save.
+    Separate abuse counters follow the limited retention above, and an
+    installation ID stored only in an installed app is not an account.</p>
   <p><a href="/privacy">Read the privacy notice</a> or
     <a href="/support">contact support</a>.</p>
 </main>

@@ -265,9 +265,12 @@ void main() {
     expect(compact, contains('turns on full-save backup'));
   });
 
-  test('public policies disclose the protected place-search boundary', () {
+  test('place search review policies cover end-user terms and retention', () {
     final privacy = _source('web/privacy.html').replaceAll(RegExp(r'\s+'), ' ');
     final terms = _source('web/terms.html').replaceAll(RegExp(r'\s+'), ' ');
+    final deletion = _source(
+      'web/delete-account.html',
+    ).replaceAll(RegExp(r'\s+'), ' ');
 
     for (final disclosure in const [
       'does not request or access your current location',
@@ -283,11 +286,53 @@ void main() {
       'not persisted',
       'does not use place-search queries for advertising or analytics',
       'does not delete your Firebase account or retained installation ID',
+      'Firebase App Check',
+      'attestation token',
+      'Play Integrity',
+      'App Attest',
+      'DeviceCheck',
+      'reCAPTCHA v3',
+      'security and abuse prevention',
+      'per-identity and per-installation abuse counters',
+      'up to 35 days',
+      'remove private service identity',
+      'retained installation ID stays on your device',
+      'Abuse counters associated with that ID age out',
     ]) {
       expect(privacy, contains(disclosure));
     }
-    expect(terms, contains('https://cloud.google.com/maps-platform/terms'));
+    expect(terms, contains('https://maps.google.com/help/terms_maps/'));
     expect(terms, contains('https://policies.google.com/privacy'));
+    expect(
+      terms,
+      isNot(contains('https://cloud.google.com/maps-platform/terms')),
+    );
+    expect(deletion, contains('remove private service identity'));
+    expect(deletion, contains('installed app'));
+    expect(deletion, contains('retained random installation ID'));
+    expect(deletion, contains('up to 35 days'));
+  });
+
+  test('place search review hard cost stops precede monitor deployment', () {
+    final functions = _source(
+      'functions/README.md',
+    ).replaceAll(RegExp(r'\s+'), ' ');
+    final checklist = _source(
+      'RELEASE-CHECKLIST.md',
+    ).replaceAll(RegExp(r'\s+'), ' ');
+
+    for (final document in [functions, checklist]) {
+      final quota = document.indexOf('provider quota caps');
+      final budget = document.indexOf('budget alerts');
+      final ttl = document.indexOf('Firestore TTL');
+      final deploy = document.indexOf('monitor-mode deploy');
+      expect(quota, greaterThanOrEqualTo(0));
+      expect(budget, greaterThan(quota));
+      expect(ttl, greaterThan(budget));
+      expect(deploy, greaterThan(ttl));
+    }
+    expect(functions, contains('hard upstream stop'));
+    expect(functions, contains('budget alerts warn but do not cap spending'));
   });
 
   test('v1 visitor UGC capabilities are compile-time and default off', () {

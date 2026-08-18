@@ -34,6 +34,7 @@ Widget _mePage(GameState state) => MaterialApp(
       onSignIn: (_, _) async => null,
       onSignOut: () async {},
       onDeleteAccount: (_) async => null,
+      onRemovePrivateServiceIdentity: () async => null,
     ),
   ),
 );

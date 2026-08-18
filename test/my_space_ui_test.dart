@@ -44,6 +44,7 @@ Widget _mePage(
     onSignIn: (_, _) async => null,
     onSignOut: () async {},
     onDeleteAccount: (_) async => null,
+    onRemovePrivateServiceIdentity: () async => null,
     visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
     visitorProfileSharingEnabled: visitorProfileSharingEnabled,
   ),

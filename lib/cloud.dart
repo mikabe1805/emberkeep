@@ -7,6 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'daybook/services/place_search_identity_removal.dart';
 import 'firebase_options.dart';
 import 'platform/test_environment_stub.dart'
     if (dart.library.io) 'platform/test_environment_io.dart';
@@ -64,6 +65,17 @@ class RoomPublishResult {
   bool get ok => code != null;
 }
 
+/// The small account-state surface rendered by Me. Keeping it injectable makes
+/// privacy controls testable without booting Firebase or changing app data.
+abstract interface class CloudAccountView implements Listenable {
+  String? get accountEmail;
+  bool get ready;
+  bool get available;
+  bool get optedIn;
+  bool get socialReady;
+  bool get canDeleteAnonymousServiceIdentity;
+}
+
 /// Reserves a fresh bearer code by attempting the create directly. Firestore
 /// rules deliberately hide missing/private room documents, so probing with a
 /// read first cannot distinguish an available code from a forbidden one.
@@ -103,6 +115,37 @@ Future<String> reserveFreshRoomCode({
 @visibleForTesting
 class RoomPublishQueue {
   Future<void> _tail = Future.value();
+  bool _writesHeld = false;
+  int _writeFenceEpoch = 0;
+
+  bool get writesHeld => _writesHeld;
+
+  void holdWrites() {
+    if (_writesHeld) return;
+    _writesHeld = true;
+    _writeFenceEpoch++;
+  }
+
+  void releaseWrites() => _writesHeld = false;
+
+  /// Queues an ordinary write and checks the deletion fence only when the
+  /// write reaches the head. Work queued just before a deletion is therefore
+  /// blocked unless it had already started; already-started work finishes
+  /// before the queued destructive operation runs.
+  Future<T?> runWrite<T>(Future<T> Function() action) {
+    final enqueuedWhileHeld = _writesHeld;
+    final enqueueEpoch = _writeFenceEpoch;
+    final result = _tail.then<T?>((_) async {
+      if (enqueuedWhileHeld ||
+          enqueueEpoch != _writeFenceEpoch ||
+          _writesHeld) {
+        return null;
+      }
+      return action();
+    });
+    _tail = result.then<void>((_) {}, onError: (_, _) {});
+    return result;
+  }
 
   Future<T> run<T>(Future<T> Function() action) {
     final result = _tail.then((_) => action());
@@ -122,15 +165,18 @@ class RoomPublishQueue {
 /// "synced" status never lies about data sitting in a local cache. We keep
 /// our own shared_preferences copy, so Firestore's cache would be redundant
 /// anyway.
-class CloudSync extends ChangeNotifier {
+class CloudSync extends ChangeNotifier
+    implements CloudAccountView, AnonymousServiceIdentityDeletion {
   CloudSync._();
   static final CloudSync instance = CloudSync._();
 
+  @override
   bool ready = false;
 
   /// A lightweight anonymous Firebase session may exist for explicitly-used
   /// social features while backup remains off. This distinction keeps
   /// visiting and sharing from silently opting a device into cloud saves.
+  @override
   bool get socialReady => _uid != null;
 
   /// The anonymous owner ID is exposed only at the validated sharing boundary.
@@ -139,7 +185,9 @@ class CloudSync extends ChangeNotifier {
 
   /// Firebase initialized successfully, even if this device is intentionally
   /// staying local-only. This lets the UI distinguish an opt-out from offline.
+  @override
   bool available = false;
+  @override
   bool optedIn = false;
   static const _cloudEnabledKey = 'emberkeep_cloud_enabled';
   static const _pendingRoomCleanupKey = 'emberkeep_pending_room_cleanup';
@@ -151,10 +199,13 @@ class CloudSync extends ChangeNotifier {
   String? _uid;
   Future<void>? _initFuture;
   Future<FirebaseApp>? _firebaseBootstrapFuture;
-  Future<bool>? _socialSessionFuture;
-  Future<void>? _authChangeFuture;
+  final FirebaseIdentityMutationQueue _identityMutationQueue =
+      FirebaseIdentityMutationQueue();
+  final CoalescedIdentityDeletionOperation _anonymousIdentityDeletion =
+      CoalescedIdentityDeletionOperation();
   Timer? _debounce;
   Timer? _roomDebounce;
+  final RoomPublishQueue _savePushQueue = RoomPublishQueue();
   final RoomPublishQueue _roomPublishQueue = RoomPublishQueue();
   bool _savePushHeld = false;
 
@@ -352,52 +403,17 @@ class CloudSync extends ChangeNotifier {
   }
 
   Future<bool> _ensureSerializedServiceIdentity() async {
-    while (true) {
-      final authChange = _authChangeFuture;
-      if (authChange != null) {
-        await authChange;
-        continue;
-      }
-      if (socialReady) return true;
-      final active = _socialSessionFuture;
-      if (active != null) return active;
-      final attempt = _startSocialSession();
-      _socialSessionFuture = attempt;
-      try {
-        return await attempt;
-      } finally {
-        if (identical(_socialSessionFuture, attempt)) {
-          _socialSessionFuture = null;
-        }
-      }
-    }
+    return _identityMutationQueue.ensureServiceIdentity(
+      hasIdentity: () => socialReady,
+      startIdentity: _startSocialSession,
+    );
   }
 
   /// Serializes every Firebase identity mutation with anonymous social-session
   /// startup. This keeps FirebaseAuth.currentUser and [_uid] from ever being
   /// assigned by two competing sign-in completions.
   Future<T> _runAuthChange<T>(Future<T> Function() action) async {
-    while (true) {
-      final authChange = _authChangeFuture;
-      if (authChange != null) {
-        await authChange;
-        continue;
-      }
-      final socialSession = _socialSessionFuture;
-      if (socialSession != null) {
-        await socialSession;
-        continue;
-      }
-      final completer = Completer<void>();
-      final lock = completer.future;
-      _authChangeFuture = lock;
-      try {
-        return await action();
-      } finally {
-        completer.complete();
-        if (identical(_authChangeFuture, lock)) _authChangeFuture = null;
-      }
-    }
+    return _identityMutationQueue.runAuthChange(action);
   }
 
   Future<bool> _startSocialSession() async {
@@ -427,9 +443,21 @@ class CloudSync extends ChangeNotifier {
   // ── account state ────────────────────────────────────────────────
   /// The signed-in account email, or null if still anonymous. Reads a cached
   /// value (safe before Firebase init / in tests).
+  @override
   String? get accountEmail => _accountEmail;
 
   bool get isSignedIn => _accountEmail != null;
+
+  @override
+  bool get canDeleteAnonymousServiceIdentity {
+    if (!socialReady || ready || optedIn || _accountEmail != null) return false;
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      return user != null && user.isAnonymous && user.uid == _uid;
+    } catch (_) {
+      return false;
+    }
+  }
 
   String _statusForUser() => isSignedIn ? 'synced · $_accountEmail' : 'on';
 
@@ -622,6 +650,51 @@ class CloudSync extends ChangeNotifier {
     }
   }
 
+  /// Removes an anonymous identity used by optional protected services while
+  /// leaving the on-device Room of Days save, place fields, preferences, and
+  /// retained random installation ID untouched. It is deliberately separate
+  /// from Start over and linked-account deletion and never signs in a
+  /// replacement user.
+  @override
+  Future<String?> deleteAnonymousServiceIdentity({String? roomCode}) =>
+      _anonymousIdentityDeletion.run(
+        start: () => _runAuthChange(
+          () => _deleteAnonymousServiceIdentity(roomCode: roomCode),
+        ),
+        acceptLateSuccess: () {
+          try {
+            return _uid == null && FirebaseAuth.instance.currentUser == null;
+          } catch (_) {
+            return _uid == null;
+          }
+        },
+      );
+
+  Future<String?> _deleteAnonymousServiceIdentity({String? roomCode}) async {
+    final user = FirebaseAuth.instance.currentUser;
+    final delegate = _CloudAnonymousIdentityDeletionDelegate(this, user);
+    final result = await AnonymousServiceIdentityDeletionCoordinator(
+      delegate: delegate,
+    ).delete(roomCode: roomCode);
+    if (result != null) {
+      debugPrint('deleteAnonymousServiceIdentity did not complete: $result');
+    }
+    return result;
+  }
+
+  void _clearAnonymousServiceIdentityCache() {
+    _uid = null;
+    _accountEmail = null;
+    _savePushHeld = false;
+    ready = false;
+    optedIn = false;
+    lastSynced = null;
+    status = 'off · device only';
+    _savePushQueue.releaseWrites();
+    _roomPublishQueue.releaseWrites();
+    notifyListeners();
+  }
+
   static String _friendlyAuth(FirebaseAuthException e) {
     switch (e.code) {
       case 'email-already-in-use':
@@ -672,6 +745,10 @@ class CloudSync extends ChangeNotifier {
   }
 
   Future<void> _pushNow() async {
+    await _savePushQueue.runWrite(_pushNowQueued);
+  }
+
+  Future<void> _pushNowQueued() async {
     if (!ready || _savePushHeld) return;
     try {
       final raw = await Storage.exportRaw();
@@ -729,7 +806,12 @@ class CloudSync extends ChangeNotifier {
   /// tap. Saves remain the source of truth; this is a separate, privacy-safe
   /// five-second debounce for Circle presence and room progress only.
   void queueRoomUpdate(Map<String, dynamic> display, {required String? code}) {
-    if (!socialReady || code == null || code.isEmpty) return;
+    if (_roomPublishQueue.writesHeld ||
+        !socialReady ||
+        code == null ||
+        code.isEmpty) {
+      return;
+    }
     final clean = _cleanRoomCode(code);
     if (clean == null) return;
     _roomDebounce?.cancel();
@@ -741,7 +823,12 @@ class CloudSync extends ChangeNotifier {
   }
 
   void flushRoom(Map<String, dynamic> display, {required String? code}) {
-    if (!socialReady || code == null || code.isEmpty) return;
+    if (_roomPublishQueue.writesHeld ||
+        !socialReady ||
+        code == null ||
+        code.isEmpty) {
+      return;
+    }
     final clean = _cleanRoomCode(code);
     if (clean == null) return;
     _roomDebounce?.cancel();
@@ -764,15 +851,17 @@ class CloudSync extends ChangeNotifier {
     Map<String, dynamic> display, {
     String? code,
     bool skipCurrentVersion = false,
-  }) {
+  }) async {
     final snapshot = Map<String, dynamic>.from(display);
-    return _roomPublishQueue.run(
+    final result = await _roomPublishQueue.runWrite(
       () => _publishRoomNow(
         snapshot,
         code: code,
         skipCurrentVersion: skipCurrentVersion,
       ),
     );
+    return result ??
+        const RoomPublishResult.failed(RoomPublishFailure.unavailable);
   }
 
   Future<RoomPublishResult> _publishRoomNow(
@@ -982,35 +1071,35 @@ class CloudSync extends ChangeNotifier {
     return records;
   }
 
-  Future<void> _writePendingRoomCleanups(
+  Future<bool> _writePendingRoomCleanups(
     SharedPreferences prefs,
     List<_PendingRoomCleanup> records,
   ) async {
     if (records.isEmpty) {
-      await prefs.remove(_pendingRoomCleanupKey);
-      return;
+      return prefs.remove(_pendingRoomCleanupKey);
     }
-    await prefs.setStringList(_pendingRoomCleanupKey, [
+    return prefs.setStringList(_pendingRoomCleanupKey, [
       for (final record in records) record.encoded,
     ]);
   }
 
-  Future<void> _rememberPendingRoomCleanup(
+  Future<bool> _rememberPendingRoomCleanup(
     SharedPreferences prefs,
     String code,
   ) async {
     final owner = _uid;
-    if (owner == null) return;
+    if (owner == null) return false;
     final records = _pendingRoomCleanups(prefs);
     if (!records.any(
       (record) => record.owner == owner && record.code == code,
     )) {
       records.add(_PendingRoomCleanup(owner: owner, code: code));
-      await _writePendingRoomCleanups(prefs, records);
+      return _writePendingRoomCleanups(prefs, records);
     }
+    return true;
   }
 
-  Future<void> _forgetPendingRoomCleanup(
+  Future<bool> _forgetPendingRoomCleanup(
     SharedPreferences prefs,
     String code,
   ) async {
@@ -1018,7 +1107,7 @@ class CloudSync extends ChangeNotifier {
     final records = _pendingRoomCleanups(
       prefs,
     ).where((record) => record.owner != owner || record.code != code).toList();
-    await _writePendingRoomCleanups(prefs, records);
+    return _writePendingRoomCleanups(prefs, records);
   }
 
   /// Returns whether every pending room owned by the current identity is now
@@ -1036,20 +1125,23 @@ class CloudSync extends ChangeNotifier {
       }
       try {
         final result = await _deleteOwnedRoom(record.code);
-        if (result == _OwnedRoomDeleteResult.notOwned) {
+        if (result != _OwnedRoomDeleteResult.deleted &&
+            result != _OwnedRoomDeleteResult.absent) {
           // Never discard the only evidence of a room that could still be
           // public. This identity cannot remove it, so a later auth change
           // must stop rather than falsely calling cleanup complete.
           remaining.add(record);
-          debugPrint('CloudSync pending room cleanup is owned by another uid');
+          debugPrint(
+            'CloudSync pending room cleanup was not confirmed: $result',
+          );
         }
       } catch (e) {
         remaining.add(record);
         debugPrint('CloudSync pending room cleanup will retry: $e');
       }
     }
-    await _writePendingRoomCleanups(prefs, remaining);
-    return !remaining.any((record) => record.owner == owner);
+    final acknowledged = await _writePendingRoomCleanups(prefs, remaining);
+    return acknowledged && !remaining.any((record) => record.owner == owner);
   }
 
   Future<bool> _prepareIdentityChange() async {
@@ -1223,13 +1315,17 @@ class CloudSync extends ChangeNotifier {
         // Write the retry record first. It is removed only after the server
         // confirms the room and its private receipt collections are gone.
         if (cleanupPrefs != null) {
-          await _rememberPendingRoomCleanup(cleanupPrefs, cleanRoomCode);
+          if (!await _rememberPendingRoomCleanup(cleanupPrefs, cleanRoomCode)) {
+            fullyErased = false;
+          }
         }
         final removed = await _deleteOwnedRoom(cleanRoomCode);
         if (removed == _OwnedRoomDeleteResult.deleted ||
             removed == _OwnedRoomDeleteResult.absent) {
           if (cleanupPrefs != null) {
-            await _forgetPendingRoomCleanup(cleanupPrefs, cleanRoomCode);
+            if (!await _forgetPendingRoomCleanup(cleanupPrefs, cleanRoomCode)) {
+              fullyErased = false;
+            }
           } else {
             // The room is gone, but without durable local preferences this
             // session must keep its identity rather than claim a complete reset.
@@ -1299,4 +1395,98 @@ class CloudSync extends ChangeNotifier {
       return (ok: false, data: null);
     }
   }
+}
+
+final class _CloudAnonymousIdentityDeletionDelegate
+    implements AnonymousServiceIdentityDeletionDelegate {
+  _CloudAnonymousIdentityDeletionDelegate(this._cloud, this._user);
+
+  final CloudSync _cloud;
+  final User? _user;
+  SharedPreferences? _cleanupPreferences;
+  bool? _saveWritesWereHeld;
+  bool? _roomWritesWereHeld;
+
+  @override
+  ServiceIdentityKind get identityKind {
+    final user = _user;
+    final cachedUid = _cloud._uid;
+    if (user == null || cachedUid == null || user.uid != cachedUid) {
+      return ServiceIdentityKind.none;
+    }
+    return user.isAnonymous
+        ? ServiceIdentityKind.anonymous
+        : ServiceIdentityKind.linked;
+  }
+
+  @override
+  bool get backupEnabled => _cloud.ready || _cloud.optedIn;
+
+  @override
+  Future<bool> preparePendingRoomCleanup({String? roomCode}) async {
+    final preferences = await SharedPreferences.getInstance();
+    _cleanupPreferences = preferences;
+    if (!await preferences.setBool(CloudSync._cloudEnabledKey, false)) {
+      return false;
+    }
+    if (roomCode == null) return true;
+    final clean = _cloud._cleanRoomCode(roomCode);
+    if (clean == null) return false;
+    return _cloud._rememberPendingRoomCleanup(preferences, clean);
+  }
+
+  @override
+  void cancelPendingWork() {
+    _saveWritesWereHeld = _cloud._savePushQueue.writesHeld;
+    _roomWritesWereHeld = _cloud._roomPublishQueue.writesHeld;
+    _cloud._savePushQueue.holdWrites();
+    _cloud._roomPublishQueue.holdWrites();
+    _cloud.cancelPending();
+  }
+
+  @override
+  void releasePendingWorkFence() {
+    if (_saveWritesWereHeld == false) _cloud._savePushQueue.releaseWrites();
+    if (_roomWritesWereHeld == false) {
+      _cloud._roomPublishQueue.releaseWrites();
+    }
+    _saveWritesWereHeld = null;
+    _roomWritesWereHeld = null;
+  }
+
+  @override
+  Future<bool> deletePreparedRooms() {
+    final preferences = _cleanupPreferences;
+    if (preferences == null) {
+      throw StateError('Pending room cleanup was not prepared.');
+    }
+    return _cloud._roomPublishQueue.run(
+      () => _cloud._retryPendingRoomCleanup(preferences),
+    );
+  }
+
+  @override
+  Future<void> deleteSaveDocument() =>
+      _cloud._savePushQueue.run(() => _cloud._doc.delete());
+
+  @override
+  Future<void> deleteAuthIdentity() async {
+    final user = _user;
+    final current = FirebaseAuth.instance.currentUser;
+    if (user == null || current == null || current.uid != user.uid) {
+      throw StateError('The current Firebase identity changed.');
+    }
+    final deletion = user.delete();
+    try {
+      await deletion.timeout(const Duration(seconds: 8));
+    } on TimeoutException {
+      // Future.timeout cannot cancel Auth deletion. Keep the identity mutation
+      // lock until the SDK operation settles so late success is reconciled
+      // before another sign-in or Auth change can begin.
+      await deletion;
+    }
+  }
+
+  @override
+  void clearCachedIdentity() => _cloud._clearAnonymousServiceIdentityCache();
 }

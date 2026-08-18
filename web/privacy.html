@@ -73,19 +73,38 @@
     current location with these requests.</p>
 
   <p>Accepted place search creates or reuses a Firebase identity and uses a
-    retained random installation ID for service abuse and cost controls. The installation
-    ID is app-generated and is not a hardware or device ID. Google’s returned
-    display name and address are transient, are shown only while you are using
-    the editor, and are not persisted by Room of Days. A saved selection keeps
-    only the provider, provider place ID, your exact typed query as its saved
-    name, and any routing, building, or room text you write yourself. Room of
-    Days does not use place-search queries for advertising or analytics.</p>
+    retained random installation ID for service abuse and cost controls. The
+    installation ID is app-generated and is not a hardware or device ID.
+    The per-identity and per-installation abuse counters are retained for up to
+    35 days for security and abuse prevention and cost control. Firestore TTL
+    schedules expired counters for deletion; that deletion is asynchronous and
+    may not happen immediately.</p>
+
+  <p>Firebase App Check also protects these requests. It uses Play Integrity on
+    Android, App Attest with DeviceCheck fallback on Apple platforms, and
+    reCAPTCHA v3 on the web. The platform provider and Firebase process app or
+    device attestation material to issue an App Check attestation token. The
+    app sends that token with the callable request for security and abuse
+    prevention, not advertising or analytics.</p>
+
+  <p>Google’s returned display name and address are transient, are shown only
+    while you are using the editor, and are not persisted by Room of Days. A
+    saved selection keeps only the provider, provider place ID, your exact
+    typed query as its saved name, and any routing, building, or room text you
+    write yourself. Room of Days does not use place-search queries for
+    advertising or analytics.</p>
 
   <p>Withdrawing place-search consent on this device stops future place-search
     requests unless you accept again. It clears the local consent choice, but
-    does not delete your Firebase account or retained installation ID. Use the
-    account controls described below if you also want to delete a Firebase
-    account.</p>
+    does not delete your Firebase account or retained installation ID, and it
+    does not immediately delete existing abuse counters. If backup is off and
+    the current identity is anonymous, the separate <em>remove private service
+    identity</em> control under <em>Me → Your account</em> deletes that Firebase
+    Auth identity, its save document, and any shared room it owns without
+    deleting your on-device Daybook, progress, manual or saved locations, map
+    preference, or journal media. The retained installation ID stays on your
+    device. Abuse counters associated with that ID age out separately and are
+    scheduled to expire within the retention period above.</p>
 
   <h2>Shared spaces</h2>
   <p>Sharing is optional. A shared space contains your level, an app-generated
@@ -114,8 +133,10 @@
     opaque room code only long enough to retry, rather than leaving shared data
     behind with no owner able to remove it. Signed-in users can permanently
     delete their account from <em>Me → Your account → Delete account</em>.
-    Account deletion turns cloud backup off and leaves the app device-only. If
-    you cannot access the app, the
+    Linked-account deletion removes the Firebase sign-in, cloud save, and owned
+    shared room, clears on-device app data as the confirmation warns, turns
+    cloud backup off, and leaves the app device-only. If you cannot access the
+    app, the
     <a href="/delete-account">account deletion guide</a> provides a direct
     email request path.</p>
 

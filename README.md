@@ -53,10 +53,12 @@ Open the PNGs in `test/goldens/` after any visual change.
 ## Protected place search
 
 Manual event, task, and class locations remain device-local and work without
-Firebase or Google. Optional Google place search is compiled out of ordinary
-builds because `PLACE_SEARCH_ENABLED` defaults to `false`. Its client sends
-requests only through the authenticated Firebase callables; the Google server
-key never belongs in Flutter, a Dart define, web output, or repository text.
+Firebase or Google. In ordinary builds, the optional Google place-search UI and
+callable construction path are disabled because `PLACE_SEARCH_ENABLED`
+defaults to `false`; the platform plugin dependency may still be registered.
+When explicitly enabled, its client sends requests only through authenticated
+Firebase callables. The Google server key never belongs in Flutter, a Dart
+define, web output, or repository text.
 
 The owner-only activation sequence, cost guards, App Check rollout, and stop
 conditions are in [`functions/README.md`](functions/README.md). Checked and

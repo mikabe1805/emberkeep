@@ -12,6 +12,8 @@ import '../content/ladders.dart';
 import '../content/quest_desk_styles.dart';
 import '../content/release_notes.dart';
 import '../content/routines.dart';
+import '../daybook/data/daybook_preferences.dart';
+import '../daybook/services/place_search_identity_removal.dart';
 import '../engine.dart';
 import '../haptics.dart';
 import '../journal_media.dart' as media;
@@ -1184,6 +1186,26 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     return null;
   }
 
+  Future<String?> _removePrivateServiceIdentity() async {
+    final s = _state;
+    if (s == null) return 'Your space is still loading — try again.';
+    final error = await PlaceSearchIdentityRemoval(
+      preferences: LocalDaybookPreferences(),
+      remote: CloudSync.instance,
+    ).remove(roomCode: s.roomCode);
+    if (error != null) return error;
+
+    // The remote room is gone with its anonymous owner, so forget only that
+    // obsolete bearer code. Daybook, progress, preferences, and local media
+    // remain untouched.
+    if (s.roomCode != null) {
+      s.setRoomCode(null);
+      _persist();
+    }
+    if (mounted) setState(() {});
+    return null;
+  }
+
   void _removeQuest(Quest q) {
     final s = _state;
     // remember if this was a default, so refresh won't bring it back
@@ -1408,6 +1430,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           onSignIn: _signIn,
                                           onSignOut: _signOut,
                                           onDeleteAccount: _deleteAccount,
+                                          onRemovePrivateServiceIdentity:
+                                              _removePrivateServiceIdentity,
+                                          cloudAccountView: CloudSync.instance,
                                           onSelectTab: _selectTab,
                                           parallax: cameraFor(0),
                                         )

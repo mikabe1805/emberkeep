@@ -692,14 +692,17 @@ void main() {
       helper.indexOf('batch.commit()'),
       lessThan(helper.indexOf('room.delete()')),
     );
-    expect(RegExp(r'_deleteOwnedRoom\(roomCode\)').allMatches(cloud).length, 1);
+    expect(
+      cloud,
+      contains('() => _cloud._retryPendingRoomCleanup(preferences)'),
+    );
     expect(cloud, contains('await _deleteOwnedRoom(cleanRoomCode);'));
     expect(cloud, contains('await _deleteOwnedRoom(code);'));
     expect(cloud, contains('removed == _OwnedRoomDeleteResult.deleted ||'));
     expect(cloud, contains(r'CloudSync room reset not confirmed: $removed'));
   });
 
-  test('social requests validate codes and serialize guest sign-in', () {
+  test('social requests validate codes and share the identity serializer', () {
     final cloud = File('lib/cloud.dart').readAsStringSync();
     final shell = File('lib/screens/shell.dart').readAsStringSync();
 
@@ -707,14 +710,15 @@ void main() {
       RegExp(r'_cleanRoomCode\(').allMatches(cloud).length,
       greaterThan(9),
     );
-    expect(cloud, contains('Future<bool>? _socialSessionFuture'));
     expect(cloud, contains('Future<void>? _initFuture'));
     expect(cloud, contains('Future<bool> ensureAvailable()'));
-    expect(cloud, contains('Future<void>? _authChangeFuture'));
     expect(cloud, contains('if (active != null) return active;'));
     expect(cloud, contains('FirebaseAuth.instance.currentUser'));
     expect(cloud, contains('if (!await ensureSocialSession())'));
     expect(cloud, contains('Future<T> _runAuthChange<T>'));
+    expect(cloud, contains('FirebaseIdentityMutationQueue'));
+    expect(cloud, contains('_identityMutationQueue.ensureServiceIdentity'));
+    expect(cloud, contains('_identityMutationQueue.runAuthChange(action)'));
     expect(
       RegExp(r'_runAuthChange\(').allMatches(cloud).length,
       greaterThanOrEqualTo(5),
@@ -812,7 +816,7 @@ void main() {
     );
     expect(
       cloud,
-      contains('CloudSync pending room cleanup is owned by another uid'),
+      contains(r'CloudSync pending room cleanup was not confirmed: $result'),
     );
     expect(
       cloud,

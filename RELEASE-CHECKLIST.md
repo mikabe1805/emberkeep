@@ -108,14 +108,16 @@ provider UI coverage do not make the public feature enabled.
   server application restriction where fixed egress makes it valid, store it as
   the `GOOGLE_PLACES_API_KEY` Functions secret, and verify the value is absent
   from source, Flutter defines, and web/native artifacts.
-- [ ] Deploy `placesAutocomplete` and `placesDetails` with
-  `PLACES_ENFORCE_APP_CHECK=false` for monitor mode. Do not opt any app build
-  into search yet.
-- [ ] Configure billing-budget alerts and conservative provider quota caps;
-  create the Firestore TTL policy for collection group `_placesCostGuards` on
-  timestamp field `expiresAt`; verify the server guards remain 30 autocomplete
-  calls/minute and 300/day per UID and install, 10 details/minute and 100/day,
-  with global daily closures at 5,000 autocomplete and 1,000 details calls.
+- [ ] Configure conservative provider quota caps first as the hard upstream
+  stop; then configure budget alerts, which warn but do not cap spending; then
+  activate the Firestore TTL policy for collection group `_placesCostGuards`
+  on timestamp field `expiresAt`. Verify the server guards remain 30
+  autocomplete calls/minute and 300/day per UID and install, 10 details/minute
+  and 100/day, with global daily closures at 5,000 autocomplete and 1,000
+  details calls. Complete all three cost/retention controls before deployment.
+- [ ] Perform the first monitor-mode deploy of `placesAutocomplete` and
+  `placesDetails` with `PLACES_ENFORCE_APP_CHECK=false`. Do not opt any app
+  build into search yet.
 - [ ] Exercise both callables only with controlled internal builds, then inspect
   App Check callable-request metrics for `placesAutocomplete` and
   `placesDetails`. Record enough valid-token evidence to explain every

@@ -56,10 +56,34 @@ or add it to Flutter/web/native assets. Confirm both callables bind the secret.
 
 Primary references: [Google Maps Platform security guidance](https://developers.google.com/maps/api-security-best-practices) and [Firebase secret parameters](https://firebase.google.com/docs/functions/config-env#secret_parameters).
 
-## 4. Deploy in App Check monitor mode
+## 4. Configure provider quota caps, budget alerts, and Firestore TTL
 
-Set the Functions deployment parameter `PLACES_ENFORCE_APP_CHECK=false`, then
-deploy only the two callables:
+Before the first public callable deployment, set conservative Places API
+provider quota caps below the owner's maximum affordable exposure. Provider
+quota caps are the hard upstream stop. Next, create billing budget alerts;
+budget alerts warn but do not cap spending. Confirm both controls are active in
+the owner-selected project and record their values before continuing.
+
+Then create a Firestore TTL policy for collection group `_placesCostGuards`
+using timestamp field `expiresAt`. The code sets expiry 35 days after each
+counter update. Verify the policy is active before deployment. Firestore TTL
+deletion is asynchronous, typically occurs after expiry, and incurs document
+delete operations.
+
+Also confirm the source-level guards are active:
+
+- autocomplete: 30/minute and 300/day per Firebase UID and installation ID;
+  global close at 5,000/day;
+- details: 10/minute and 100/day per Firebase UID and installation ID; global
+  close at 1,000/day.
+
+Primary references: [Manage Google Maps Platform costs](https://developers.google.com/maps/billing-and-pricing/manage-costs) and [Firestore TTL policies](https://firebase.google.com/docs/firestore/ttl).
+
+## 5. Perform the first monitor-mode deploy
+
+Only after the provider quota caps, budget alerts, and Firestore TTL policy are
+confirmed, set the Functions deployment parameter
+`PLACES_ENFORCE_APP_CHECK=false`, then deploy only the two callables:
 
 ```sh
 firebase deploy --only functions:placesAutocomplete,functions:placesDetails
@@ -67,27 +91,9 @@ firebase deploy --only functions:placesAutocomplete,functions:placesDetails
 
 Confirm both deployed functions use Node 20, bind `GOOGLE_PLACES_API_KEY`, and
 require Firebase Authentication. Keep every Flutter build at
-`PLACE_SEARCH_ENABLED=false` during this monitor deployment.
+`PLACE_SEARCH_ENABLED=false` during this monitor-mode deploy.
 
 Primary reference: [Deploy Cloud Functions](https://firebase.google.com/docs/functions/manage-functions#deploy_functions).
-
-## 5. Configure cost limits and Firestore TTL
-
-Create billing-budget alerts and conservative Places API quota caps lower than
-the owner's maximum affordable exposure. Billing budgets alert; provider quotas
-are the hard upstream ceiling. Confirm the source-level guards are also active:
-
-- autocomplete: 30/minute and 300/day per Firebase UID and installation ID;
-  global close at 5,000/day;
-- details: 10/minute and 100/day per Firebase UID and installation ID; global
-  close at 1,000/day.
-
-Create a Firestore TTL policy for collection group `_placesCostGuards` using
-the timestamp field `expiresAt`. The code writes expiry 35 days after each
-counter update. Verify TTL is enabled and remember that deletion is not
-instantaneous and incurs document-delete operations.
-
-Primary references: [Manage Google Maps Platform costs](https://developers.google.com/maps/billing-and-pricing/manage-costs) and [Firestore TTL policies](https://firebase.google.com/docs/firestore/ttl).
 
 ## 6. Validate App Check monitor metrics
 
@@ -121,7 +127,7 @@ browser, verify the live canonical pages at `https://roomofdays.com/privacy` and
 `https://roomofdays.com/terms`, including their status, cache behavior, exact
 place-search disclosure, and these current primary links:
 
-- [Google Maps Platform Terms of Service](https://cloud.google.com/maps-platform/terms)
+- [Google Maps Additional Terms of Service](https://maps.google.com/help/terms_maps/)
 - [Google Privacy Policy](https://policies.google.com/privacy)
 
 Do not proceed from checked files alone; the public pages must be live.
