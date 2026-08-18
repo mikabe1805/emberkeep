@@ -1075,21 +1075,33 @@ final class AcademicSchedule {
 
     var droppedNeutralRecords = 0;
     final events = <DaybookEvent>[];
+    final eventIds = <String>{};
     for (final rawEvent in json['events'] as List? ?? const []) {
       try {
-        events.add(
-          DaybookEvent.fromJson((rawEvent as Map).cast<String, dynamic>()),
+        final event = DaybookEvent.fromJson(
+          (rawEvent as Map).cast<String, dynamic>(),
         );
+        if (!eventIds.add(event.eventId)) {
+          droppedNeutralRecords += 1;
+          continue;
+        }
+        events.add(event);
       } catch (_) {
         droppedNeutralRecords += 1;
       }
     }
     final tasks = <DaybookTask>[];
+    final taskIds = <String>{};
     for (final rawTask in json['tasks'] as List? ?? const []) {
       try {
-        tasks.add(
-          DaybookTask.fromJson((rawTask as Map).cast<String, dynamic>()),
+        final task = DaybookTask.fromJson(
+          (rawTask as Map).cast<String, dynamic>(),
         );
+        if (!taskIds.add(task.taskId)) {
+          droppedNeutralRecords += 1;
+          continue;
+        }
+        tasks.add(task);
       } catch (_) {
         droppedNeutralRecords += 1;
       }
@@ -2027,6 +2039,8 @@ final class AcademicSchedule {
     final workIds = workItems.map((item) => item.workId).toSet();
     final studyPlanWorkIds = studyPlans.map((item) => item.workId).toSet();
     final studyBlockIds = studyBlocks.map((item) => item.studyBlockId).toSet();
+    final eventIds = events.map((item) => item.eventId).toSet();
+    final taskIds = tasks.map((item) => item.taskId).toSet();
     if (termIds.length != terms.length ||
         courseIds.length != courses.length ||
         seriesIds.length != meetingSeries.length ||
@@ -2036,6 +2050,9 @@ final class AcademicSchedule {
         occurrences.map((item) => item.occurrenceKey).toSet().length !=
             occurrences.length) {
       throw const FormatException('Academic schedule IDs must be unique');
+    }
+    if (eventIds.length != events.length || taskIds.length != tasks.length) {
+      throw const FormatException('General schedule IDs must be unique');
     }
     for (final course in courses) {
       if (!termIds.contains(course.termId) ||

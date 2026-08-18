@@ -676,6 +676,66 @@ void main() {
     expect(restored.tasks.single.taskId, 'task_submit');
   });
 
+  test('schema 5 drops later duplicate event and task identities', () {
+    final firstEvent = _generalEvent();
+    final firstTask = _generalTask();
+    final root = _fixtureSchedule(
+      weekdays: const {DateTime.tuesday},
+    ).putEvent(firstEvent).putTask(firstTask).toJson();
+    root['events'] = [
+      firstEvent.toJson(),
+      firstEvent.copyWith(title: 'Duplicate event').toJson(),
+    ];
+    root['tasks'] = [
+      firstTask.toJson(),
+      firstTask.copyWith(title: 'Duplicate task').toJson(),
+    ];
+
+    final result = AcademicSchedule.decode(root);
+
+    expect(result.droppedNeutralRecords, 2);
+    expect(result.schedule.events.single.title, 'Team sync');
+    expect(result.schedule.tasks.single.title, 'Submit form');
+  });
+
+  test('direct construction rejects duplicate event identities', () {
+    final base = _fixtureSchedule(weekdays: const {DateTime.tuesday});
+    final event = _generalEvent();
+
+    expect(
+      () => AcademicSchedule(
+        terms: base.terms,
+        courses: base.courses,
+        meetingSeries: base.meetingSeries,
+        occurrences: base.occurrences,
+        events: [
+          event,
+          event.copyWith(title: 'Duplicate event'),
+        ],
+      ),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
+  test('direct construction rejects duplicate task identities', () {
+    final base = _fixtureSchedule(weekdays: const {DateTime.tuesday});
+    final task = _generalTask();
+
+    expect(
+      () => AcademicSchedule(
+        terms: base.terms,
+        courses: base.courses,
+        meetingSeries: base.meetingSeries,
+        occurrences: base.occurrences,
+        tasks: [
+          task,
+          task.copyWith(title: 'Duplicate task'),
+        ],
+      ),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
   test('general event mutations preserve moved and cancelled exceptions', () {
     final changedAt = DateTime.utc(2026, 8, 20, 15);
     var schedule = AcademicSchedule.empty()
@@ -952,6 +1012,38 @@ void main() {
       );
     },
   );
+
+  test('local repository backs up duplicate neutral records', () async {
+    final event = _generalEvent();
+    final task = _generalTask();
+    final root = _fixtureSchedule(
+      weekdays: const {DateTime.tuesday},
+    ).putEvent(event).putTask(task).toJson();
+    root['events'] = [
+      event.toJson(),
+      event.copyWith(title: 'Duplicate event').toJson(),
+    ];
+    root['tasks'] = [
+      task.toJson(),
+      task.copyWith(title: 'Duplicate task').toJson(),
+    ];
+    final raw = jsonEncode(root);
+    SharedPreferences.setMockInitialValues({
+      LocalAcademicScheduleRepository.storageKey: raw,
+    });
+    final repository = LocalAcademicScheduleRepository();
+
+    final restored = await repository.load();
+    final preferences = await SharedPreferences.getInstance();
+
+    expect(restored.events.single.title, 'Team sync');
+    expect(restored.tasks.single.title, 'Submit form');
+    expect(repository.lastRecoveredRecordCount, 2);
+    expect(
+      preferences.getString(LocalAcademicScheduleRepository.corruptBackupKey),
+      raw,
+    );
+  });
 
   test('neutral recovery never hides an invalid academic graph', () async {
     final root = _fixtureSchedule(
