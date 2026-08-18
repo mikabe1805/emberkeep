@@ -6,8 +6,12 @@ import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 import 'package:emberkeep/academic_calendar/services/notebook_handoff.dart';
 import 'package:emberkeep/academic_calendar/widgets/academic_calendar_sections.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/daybook/data/daybook_preferences.dart';
 import 'package:emberkeep/daybook/domain/daybook_event.dart';
+import 'package:emberkeep/daybook/domain/daybook_place.dart';
 import 'package:emberkeep/daybook/domain/daybook_task.dart';
+import 'package:emberkeep/daybook/services/directions_launcher.dart';
+import 'package:emberkeep/daybook/widgets/daybook_rows.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/calendar.dart';
@@ -241,8 +245,77 @@ void main() {
       expect(tester.takeException(), isNull);
       await expectLater(
         find.byType(MaterialApp),
+        matchesGoldenFile('goldens/daybook_general_${configuration.name}.png'),
+      );
+    });
+  }
+
+  for (final configuration in const [
+    (name: 'normal', size: Size(430, 932), textScale: 1.0),
+    (name: 'narrow_200', size: Size(320, 568), textScale: 2.0),
+  ]) {
+    testWidgets('directions surfaces ${configuration.name} visual', (
+      tester,
+    ) async {
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue =
+          configuration.textScale;
+      await tester.binding.setSurfaceSize(configuration.size);
+      addTearDown(() {
+        tester.view.resetDevicePixelRatio();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+        tester.binding.setSurfaceSize(null);
+      });
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            platform: TargetPlatform.iOS,
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: Palette.parchment,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Palette.xp,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+          home: Scaffold(
+            body: Center(
+              child: DaybookDirectionsAction(
+                place: DaybookPlace(
+                  savedName: 'Alexander Library',
+                  routingText: '169 College Ave, New Brunswick, NJ',
+                ),
+                launcher: _UnavailableDirectionsLauncher(),
+                preferences: InMemoryDaybookPreferences(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('GET DIRECTIONS'));
+      await tester.pumpAndSettle();
+      expect(find.text('APPLE MAPS'), findsOneWidget);
+      expect(find.text('GOOGLE MAPS'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await expectLater(
+        find.byType(MaterialApp),
         matchesGoldenFile(
-          'goldens/daybook_general_${configuration.name}.png',
+          'goldens/daybook_directions_provider_${configuration.name}.png',
+        ),
+      );
+
+      await tester.tap(find.text('GOOGLE MAPS'));
+      await tester.pumpAndSettle();
+      expect(find.text('COPY LOCATION'), findsOneWidget);
+      expect(find.text('GOOGLE MAPS'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/daybook_directions_failure_${configuration.name}.png',
         ),
       );
     });
@@ -789,4 +862,9 @@ final class _NoopHandoff implements NotebookHandoff {
   @override
   Future<NotebookHandoffResult> open(NotebookHandoffIntent intent) async =>
       NotebookHandoffResult.opened;
+}
+
+final class _UnavailableDirectionsLauncher implements DirectionsLauncher {
+  @override
+  Future<bool> open(DaybookPlace place, MapProvider provider) async => false;
 }

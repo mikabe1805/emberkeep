@@ -6,9 +6,11 @@ import 'package:flutter/services.dart';
 import '../../audio.dart';
 import '../../clock.dart';
 import '../../daybook/adapters/campus_place_adapter.dart';
+import '../../daybook/data/daybook_preferences.dart';
 import '../../daybook/domain/daybook_place.dart';
 import '../../daybook/domain/daybook_task.dart';
 import '../../daybook/presentation/daybook_range_projection.dart';
+import '../../daybook/services/directions_launcher.dart';
 import '../../daybook/widgets/daybook_place_fields.dart';
 import '../../daybook/widgets/daybook_rows.dart';
 import '../../tokens.dart';
@@ -441,6 +443,8 @@ class DaybookSpanPanel extends StatelessWidget {
     required this.onToggleStudyBlock,
     required this.onUpdateTransitionBuffer,
     required this.onOpenOccurrenceAdjuster,
+    required this.directionsLauncher,
+    required this.daybookPreferences,
   });
 
   final AcademicCalendarMode mode;
@@ -460,6 +464,8 @@ class DaybookSpanPanel extends StatelessWidget {
   final ToggleAcademicStudyBlock onToggleStudyBlock;
   final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
+  final DirectionsLauncher directionsLauncher;
+  final DaybookPreferences daybookPreferences;
 
   @override
   Widget build(BuildContext context) {
@@ -545,6 +551,8 @@ class DaybookSpanPanel extends StatelessWidget {
               onToggleStudyBlock: onToggleStudyBlock,
               onUpdateTransitionBuffer: onUpdateTransitionBuffer,
               onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
+              directionsLauncher: directionsLauncher,
+              daybookPreferences: daybookPreferences,
             ),
             if (index != count - 1) const _AcademicRule(strength: 0.42),
           ],
@@ -570,6 +578,8 @@ class DaybookAgendaDay extends StatelessWidget {
     required this.onToggleStudyBlock,
     required this.onUpdateTransitionBuffer,
     required this.onOpenOccurrenceAdjuster,
+    required this.directionsLauncher,
+    required this.daybookPreferences,
     this.compact = false,
   });
 
@@ -586,6 +596,8 @@ class DaybookAgendaDay extends StatelessWidget {
   final ToggleAcademicStudyBlock onToggleStudyBlock;
   final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
+  final DirectionsLauncher directionsLauncher;
+  final DaybookPreferences daybookPreferences;
   final bool compact;
 
   @override
@@ -685,6 +697,8 @@ class DaybookAgendaDay extends StatelessWidget {
               onToggleStudyBlock: onToggleStudyBlock,
               onUpdateTransitionBuffer: onUpdateTransitionBuffer,
               onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
+              directionsLauncher: directionsLauncher,
+              daybookPreferences: daybookPreferences,
             ),
         ],
       ),
@@ -705,6 +719,8 @@ class DaybookAgendaEntries extends StatelessWidget {
     required this.onToggleStudyBlock,
     required this.onUpdateTransitionBuffer,
     required this.onOpenOccurrenceAdjuster,
+    required this.directionsLauncher,
+    required this.daybookPreferences,
     this.showNotices = true,
   });
 
@@ -718,6 +734,8 @@ class DaybookAgendaEntries extends StatelessWidget {
   final ToggleAcademicStudyBlock onToggleStudyBlock;
   final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
+  final DirectionsLauncher directionsLauncher;
+  final DaybookPreferences daybookPreferences;
   final bool showNotices;
 
   @override
@@ -808,6 +826,8 @@ class DaybookAgendaEntries extends StatelessWidget {
                 onToggleStudyBlock: onToggleStudyBlock,
                 onUpdateTransitionBuffer: onUpdateTransitionBuffer,
                 onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
+                directionsLauncher: directionsLauncher,
+                daybookPreferences: daybookPreferences,
               ),
         ],
       ],
@@ -829,6 +849,8 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
     required this.onToggleStudyBlock,
     required this.onUpdateTransitionBuffer,
     required this.onOpenOccurrenceAdjuster,
+    required this.directionsLauncher,
+    required this.daybookPreferences,
   });
 
   final DaybookEntry entry;
@@ -842,6 +864,8 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
   final ToggleAcademicStudyBlock onToggleStudyBlock;
   final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
+  final DirectionsLauncher directionsLauncher;
+  final DaybookPreferences daybookPreferences;
 
   @override
   Widget build(BuildContext context) {
@@ -872,6 +896,28 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
       ),
       _ => null,
     };
+    final sourceActions = classActions ?? daybookActions;
+    final directionsAction = switch (entry.place) {
+      final place?
+          when place.hasGoogleDestination || place.hasAppleDestination =>
+        DaybookDirectionsAction(
+          place: place,
+          launcher: directionsLauncher,
+          preferences: daybookPreferences,
+        ),
+      _ => null,
+    };
+    final actions = sourceActions == null && directionsAction == null
+        ? null
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ?sourceActions,
+              if (sourceActions != null && directionsAction != null)
+                const SizedBox(height: 2),
+              ?directionsAction,
+            ],
+          );
     final footer = switch (entry.action) {
       AcademicOccurrenceAction() when entry.transitionPressure => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -934,7 +980,7 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
       entry: entry,
       conflict: conflict,
       leading: toggle,
-      actions: classActions ?? daybookActions,
+      actions: actions,
       footer: footer,
     );
   }

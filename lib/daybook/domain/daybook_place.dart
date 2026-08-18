@@ -37,8 +37,9 @@ final class DaybookPlace {
   final DaybookPlaceProvider? provider;
 
   bool get hasGoogleDestination =>
-      provider == DaybookPlaceProvider.google && providerPlaceId != null;
-  bool get hasAppleDestination => false;
+      routingText != null ||
+      (provider == DaybookPlaceProvider.google && providerPlaceId != null);
+  bool get hasAppleDestination => routingText != null;
 
   DaybookPlace copyWith({
     String? savedName,

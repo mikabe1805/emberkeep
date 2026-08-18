@@ -27,7 +27,7 @@ void main() {
     );
 
     expect(place.hasGoogleDestination, isTrue);
-    expect(place.hasAppleDestination, isFalse);
+    expect(place.hasAppleDestination, isTrue);
     expect(place.toJson(), {
       'savedName': 'Busch Student Center',
       'routingText': '604 Bartholomew Road, Piscataway, NJ',

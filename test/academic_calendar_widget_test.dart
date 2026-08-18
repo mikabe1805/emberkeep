@@ -6,8 +6,11 @@ import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 import 'package:emberkeep/academic_calendar/services/notebook_handoff.dart';
 import 'package:emberkeep/academic_calendar/widgets/academic_calendar_sections.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/daybook/data/daybook_preferences.dart';
 import 'package:emberkeep/daybook/domain/daybook_event.dart';
+import 'package:emberkeep/daybook/domain/daybook_place.dart';
 import 'package:emberkeep/daybook/domain/daybook_task.dart';
+import 'package:emberkeep/daybook/services/directions_launcher.dart';
 import 'package:emberkeep/daybook/widgets/daybook_add_choice_dialog.dart';
 import 'package:emberkeep/daybook/widgets/daybook_event_editor.dart';
 import 'package:emberkeep/daybook/widgets/daybook_rows.dart';
@@ -17,6 +20,7 @@ import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/calendar.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -529,6 +533,269 @@ void main() {
       semantics.dispose();
     },
   );
+
+  testWidgets('directions stay hidden without a durable destination', (
+    tester,
+  ) async {
+    await _pumpDaybookWidget(
+      tester,
+      DaybookDirectionsAction(
+        place: DaybookPlace(savedName: 'Meet by the old oak'),
+        launcher: _RecordingDirectionsLauncher(),
+        preferences: InMemoryDaybookPreferences(),
+      ),
+    );
+
+    expect(find.text('GET DIRECTIONS'), findsNothing);
+  });
+
+  testWidgets('directions expose the saved label as their semantic name', (
+    tester,
+  ) async {
+    await _pumpDaybookWidget(
+      tester,
+      DaybookDirectionsAction(
+        place: DaybookPlace(
+          savedName: 'Alexander Library',
+          routingText: '169 College Ave, New Brunswick, NJ',
+        ),
+        launcher: _RecordingDirectionsLauncher(),
+        preferences: InMemoryDaybookPreferences(),
+      ),
+    );
+
+    expect(find.text('GET DIRECTIONS'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Get directions to Alexander Library'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('directions launch failure keeps the action and offers copy', (
+    tester,
+  ) async {
+    String? copiedText;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copiedText =
+              (call.arguments as Map<Object?, Object?>)['text'] as String?;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    final launcher = _RecordingDirectionsLauncher(succeeds: false);
+    await _pumpDaybookWidget(
+      tester,
+      DaybookDirectionsAction(
+        place: DaybookPlace(
+          savedName: 'Alexander Library',
+          routingText: '169 College Ave, New Brunswick, NJ',
+        ),
+        launcher: launcher,
+        preferences: InMemoryDaybookPreferences(),
+      ),
+    );
+
+    await tester.tap(
+      find.bySemanticsLabel('Get directions to Alexander Library'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(launcher.calls, [(MapProvider.google, 'Alexander Library')]);
+    expect(find.text('GET DIRECTIONS'), findsOneWidget);
+    expect(find.text('COPY LOCATION'), findsOneWidget);
+    await tester.tap(find.text('COPY LOCATION'));
+    await tester.pump();
+    expect(copiedText, '169 College Ave, New Brunswick, NJ');
+  });
+
+  testWidgets('directions remember and clear an iOS map provider', (
+    tester,
+  ) async {
+    final launcher = _RecordingDirectionsLauncher();
+    final preferences = InMemoryDaybookPreferences();
+    await _pumpDaybookWidget(
+      tester,
+      Theme(
+        data: ThemeData(platform: TargetPlatform.iOS),
+        child: DaybookDirectionsAction(
+          place: DaybookPlace(
+            savedName: 'Alexander Library',
+            routingText: '169 College Ave, New Brunswick, NJ',
+          ),
+          launcher: launcher,
+          preferences: preferences,
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('GET DIRECTIONS'));
+    await tester.pumpAndSettle();
+    expect(find.text('APPLE MAPS'), findsOneWidget);
+    expect(find.text('GOOGLE MAPS'), findsOneWidget);
+    expect(launcher.calls, isEmpty);
+
+    await tester.tap(find.text('GOOGLE MAPS'));
+    await tester.pumpAndSettle();
+    expect(launcher.calls, [(MapProvider.google, 'Alexander Library')]);
+    expect(preferences.preferredMapProvider, MapProvider.google);
+    expect(find.text('CHANGE MAP APP'), findsOneWidget);
+
+    await tester.tap(find.text('CHANGE MAP APP'));
+    await tester.pumpAndSettle();
+    expect(preferences.preferredMapProvider, isNull);
+
+    await tester.tap(find.text('GET DIRECTIONS'));
+    await tester.pumpAndSettle();
+    expect(find.text('APPLE MAPS'), findsOneWidget);
+    expect(find.text('GOOGLE MAPS'), findsOneWidget);
+  });
+
+  testWidgets('directions ignore a remembered provider unavailable here', (
+    tester,
+  ) async {
+    final launcher = _RecordingDirectionsLauncher();
+    await _pumpDaybookWidget(
+      tester,
+      Theme(
+        data: ThemeData(platform: TargetPlatform.iOS),
+        child: DaybookDirectionsAction(
+          place: DaybookPlace(
+            savedName: 'Busch Student Center',
+            provider: DaybookPlaceProvider.google,
+            providerPlaceId: 'ChIJBUSCH',
+          ),
+          launcher: launcher,
+          preferences: InMemoryDaybookPreferences(
+            preferredMapProvider: MapProvider.apple,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('GET DIRECTIONS'));
+    await tester.pumpAndSettle();
+
+    expect(launcher.calls, [(MapProvider.google, 'Busch Student Center')]);
+    expect(find.text('APPLE MAPS'), findsNothing);
+  });
+
+  testWidgets('directions actions use projected general and class places', (
+    tester,
+  ) async {
+    final createdAt = DateTime.utc(2026, 8, 8);
+    final event = DaybookEvent(
+      eventId: 'event_library',
+      title: 'Library pickup',
+      startDate: CivilDate(2026, 8, 11),
+      endDate: CivilDate(2026, 8, 11),
+      timeZoneId: 'America/New_York',
+      allDay: false,
+      startMinute: 9 * 60,
+      endMinute: 10 * 60,
+      place: DaybookPlace(
+        savedName: 'Alexander Library',
+        routingText: '169 College Ave, New Brunswick, NJ',
+      ),
+      createdAt: createdAt,
+      updatedAt: createdAt,
+    );
+    final schedule = _scheduleFixture(
+      place: CampusPlace(
+        label: 'Hill Center 114',
+        building: 'Hill Center',
+        room: '114',
+        address: '110 Frelinghuysen Rd, Piscataway, NJ',
+      ),
+    ).putEvent(event);
+    final launcher = _RecordingDirectionsLauncher();
+
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(schedule),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.day,
+          selectedDate: '2026-08-11',
+        ),
+      ),
+      directionsLauncher: launcher,
+      daybookPreferences: InMemoryDaybookPreferences(),
+    );
+
+    expect(
+      find.bySemanticsLabel('Get directions to Alexander Library'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('Get directions to Hill Center 114'),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.bySemanticsLabel('Get directions to Alexander Library'),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.bySemanticsLabel('Get directions to Hill Center 114'),
+    );
+    await tester.pumpAndSettle();
+    expect(launcher.calls, [
+      (MapProvider.google, 'Alexander Library'),
+      (MapProvider.google, 'Hill Center 114'),
+    ]);
+  });
+
+  testWidgets('directions class action reflows at 320x568 and 200% text', (
+    tester,
+  ) async {
+    final schedule = _scheduleFixture(
+      place: CampusPlace(
+        label: 'Hill Center 114',
+        building: 'Hill Center',
+        room: '114',
+        address: '110 Frelinghuysen Rd, Piscataway, NJ',
+      ),
+    );
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(schedule),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.day,
+          selectedDate: '2026-08-11',
+        ),
+      ),
+      directionsLauncher: _RecordingDirectionsLauncher(),
+      daybookPreferences: InMemoryDaybookPreferences(),
+      size: const Size(320, 568),
+      textScale: 2,
+    );
+
+    final directions = find.bySemanticsLabel(
+      'Get directions to Hill Center 114',
+    );
+    for (var drag = 0; drag < 8 && directions.evaluate().isEmpty; drag++) {
+      await tester.dragFrom(const Offset(160, 500), const Offset(0, -220));
+      await tester.pump();
+    }
+    expect(directions, findsOneWidget);
+    expect(
+      tester.getSize(find.text('GET DIRECTIONS')).height,
+      greaterThanOrEqualTo(20),
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('Daybook class place edits preserve legacy-only campus fields', (
     tester,
@@ -2433,6 +2700,8 @@ Future<void> _pumpCalendar(
   required InMemoryAcademicScheduleRepository repository,
   required NotebookHandoff handoff,
   AcademicCalendarPreferences? preferences,
+  DirectionsLauncher? directionsLauncher,
+  DaybookPreferences? daybookPreferences,
   Key? calendarKey,
   List<Quest> quests = const [],
   Size size = const Size(430, 932),
@@ -2462,6 +2731,8 @@ Future<void> _pumpCalendar(
           calendarPreferences:
               preferences ?? InMemoryAcademicCalendarPreferences(),
           notebookHandoff: handoff,
+          directionsLauncher: directionsLauncher,
+          daybookPreferences: daybookPreferences,
         ),
       ),
     ),
@@ -2474,6 +2745,7 @@ AcademicSchedule _scheduleFixture({
   int startMinute = 10 * 60 + 20,
   int endMinute = 11 * 60 + 40,
   int transitionBufferMinutes = 10,
+  CampusPlace? place,
 }) {
   final term = AcademicTerm(
     termId: 'term_fall_2026',
@@ -2501,11 +2773,13 @@ AcademicSchedule _scheduleFixture({
     firstDate: term.startDate,
     lastDate: term.endDate,
     timeZoneId: term.timeZoneId,
-    place: CampusPlace(
-      label: 'Hill Center 114',
-      building: 'Hill Center',
-      room: '114',
-    ),
+    place:
+        place ??
+        CampusPlace(
+          label: 'Hill Center 114',
+          building: 'Hill Center',
+          room: '114',
+        ),
     reminders: [
       AcademicReminder(reminderId: 'reminder_ece_345_10m', offsetMinutes: 10),
     ],
@@ -2790,5 +3064,18 @@ final class _RecordingHandoff implements NotebookHandoff {
   Future<NotebookHandoffResult> open(NotebookHandoffIntent intent) async {
     intents.add(intent);
     return NotebookHandoffResult.opened;
+  }
+}
+
+final class _RecordingDirectionsLauncher implements DirectionsLauncher {
+  _RecordingDirectionsLauncher({this.succeeds = true});
+
+  final bool succeeds;
+  final List<(MapProvider, String)> calls = [];
+
+  @override
+  Future<bool> open(DaybookPlace place, MapProvider provider) async {
+    calls.add((provider, place.savedName));
+    return succeeds;
   }
 }

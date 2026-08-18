@@ -11,9 +11,11 @@ import '../academic_calendar/services/notebook_handoff.dart';
 import '../academic_calendar/widgets/academic_calendar_sections.dart';
 import '../audio.dart';
 import '../clock.dart';
+import '../daybook/data/daybook_preferences.dart';
 import '../daybook/domain/daybook_event.dart';
 import '../daybook/domain/daybook_task.dart';
 import '../daybook/presentation/daybook_range_projection.dart';
+import '../daybook/services/directions_launcher.dart';
 import '../daybook/widgets/daybook_add_choice_dialog.dart';
 import '../daybook/widgets/daybook_event_actions.dart';
 import '../daybook/widgets/daybook_event_editor.dart';
@@ -69,6 +71,8 @@ class CalendarPage extends StatefulWidget {
     this.scheduleRepository,
     this.calendarPreferences,
     this.notebookHandoff,
+    this.directionsLauncher,
+    this.daybookPreferences,
   });
 
   final GameState state;
@@ -79,6 +83,8 @@ class CalendarPage extends StatefulWidget {
   final AcademicScheduleRepository? scheduleRepository;
   final AcademicCalendarPreferences? calendarPreferences;
   final NotebookHandoff? notebookHandoff;
+  final DirectionsLauncher? directionsLauncher;
+  final DaybookPreferences? daybookPreferences;
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -90,6 +96,8 @@ class _CalendarPageState extends State<CalendarPage> {
   late final AcademicScheduleRepository _scheduleRepository;
   late final AcademicCalendarPreferences _calendarPreferences;
   late final NotebookHandoff _notebookHandoff;
+  late final DirectionsLauncher _directionsLauncher;
+  late final DaybookPreferences _daybookPreferences;
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
   AcademicCalendarMode _academicMode = AcademicCalendarMode.month;
   bool _academicLoading = true;
@@ -106,6 +114,10 @@ class _CalendarPageState extends State<CalendarPage> {
         widget.calendarPreferences ?? LocalAcademicCalendarPreferences();
     _notebookHandoff =
         widget.notebookHandoff ?? UrlLauncherNotebookHandoff.configured();
+    _directionsLauncher =
+        widget.directionsLauncher ?? const ExternalDirectionsLauncher();
+    _daybookPreferences =
+        widget.daybookPreferences ?? LocalDaybookPreferences();
     unawaited(_loadAcademicCalendar());
   }
 
@@ -792,6 +804,8 @@ class _CalendarPageState extends State<CalendarPage> {
                 onToggleStudyBlock: _toggleAcademicStudyBlock,
                 onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
                 onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
+                directionsLauncher: _directionsLauncher,
+                daybookPreferences: _daybookPreferences,
               ),
             ],
             const SizedBox(height: 14),
@@ -816,6 +830,8 @@ class _CalendarPageState extends State<CalendarPage> {
               onToggleStudyBlock: _toggleAcademicStudyBlock,
               onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
               onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
+              directionsLauncher: _directionsLauncher,
+              daybookPreferences: _daybookPreferences,
               lightDirection: widget.lightDirection ?? widget.parallax,
             ),
           ],
@@ -1520,6 +1536,8 @@ class _DayPanel extends StatelessWidget {
     required this.onToggleStudyBlock,
     required this.onUpdateTransitionBuffer,
     required this.onOpenOccurrenceAdjuster,
+    required this.directionsLauncher,
+    required this.daybookPreferences,
     required this.lightDirection,
   });
 
@@ -1541,6 +1559,8 @@ class _DayPanel extends StatelessWidget {
   final ToggleAcademicStudyBlock onToggleStudyBlock;
   final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
+  final DirectionsLauncher directionsLauncher;
+  final DaybookPreferences daybookPreferences;
   final ValueListenable<Offset> lightDirection;
 
   @override
@@ -1615,6 +1635,8 @@ class _DayPanel extends StatelessWidget {
               onToggleStudyBlock: onToggleStudyBlock,
               onUpdateTransitionBuffer: onUpdateTransitionBuffer,
               onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
+              directionsLauncher: directionsLauncher,
+              daybookPreferences: daybookPreferences,
             ),
           if (showDaybookEntries &&
               daybookDay.entries.isNotEmpty &&
