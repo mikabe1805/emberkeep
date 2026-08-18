@@ -175,7 +175,7 @@ void main() {
 
       if (mode == AcademicCalendarMode.day) {
         await Scrollable.ensureVisible(
-          tester.element(find.text('ALL DAY').first),
+          tester.element(find.text('DAY SHAPE')),
           alignment: 0.02,
         );
         await tester.pump();
@@ -363,19 +363,15 @@ void main() {
         expect(find.text('3D'), findsOneWidget);
         expect(find.text('DAY'), findsOneWidget);
       }
-      for (
-        var drag = 0;
-        drag < 5 && find.text('Library closed').evaluate().isEmpty;
-        drag++
-      ) {
-        await tester.dragFrom(
-          Offset(configuration.size.width / 2, configuration.size.height - 70),
-          const Offset(0, -260),
-        );
-        await tester.pump();
-      }
-      await tester.ensureVisible(find.text('Library closed'));
+      await tester.scrollUntilVisible(
+        find.text('DAY SHAPE'),
+        260,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.text('DAY SHAPE'));
       await tester.pump();
+      expect(find.text('DAY SHAPE'), findsOneWidget);
+      expect(find.text('ALL DAY'), findsWidgets);
       expect(find.text('Library closed'), findsOneWidget);
       expect(find.text('Project meeting'), findsOneWidget);
       expect(find.text('Return library book'), findsOneWidget);

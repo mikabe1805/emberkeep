@@ -448,6 +448,7 @@ class DaybookSpanPanel extends StatelessWidget {
     required this.onOpenOccurrenceAdjuster,
     required this.directionsLauncher,
     required this.daybookPreferences,
+    this.selectedDaySummaryBuilder,
   });
 
   final AcademicCalendarMode mode;
@@ -469,6 +470,7 @@ class DaybookSpanPanel extends StatelessWidget {
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
   final DirectionsLauncher directionsLauncher;
   final DaybookPreferences daybookPreferences;
+  final Widget Function(DaybookDay day)? selectedDaySummaryBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -556,6 +558,11 @@ class DaybookSpanPanel extends StatelessWidget {
               onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
               directionsLauncher: directionsLauncher,
               daybookPreferences: daybookPreferences,
+              beforeEntries: first.addDays(index) == selected
+                  ? selectedDaySummaryBuilder?.call(
+                      daybook.dayOn(first.addDays(index)),
+                    )
+                  : null,
             ),
             if (index != count - 1) const _AcademicRule(strength: 0.42),
           ],
@@ -583,6 +590,7 @@ class DaybookAgendaDay extends StatelessWidget {
     required this.onOpenOccurrenceAdjuster,
     required this.directionsLauncher,
     required this.daybookPreferences,
+    this.beforeEntries,
     this.compact = false,
   });
 
@@ -601,6 +609,7 @@ class DaybookAgendaDay extends StatelessWidget {
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
   final DirectionsLauncher directionsLauncher;
   final DaybookPreferences daybookPreferences;
+  final Widget? beforeEntries;
   final bool compact;
 
   @override
@@ -676,6 +685,11 @@ class DaybookAgendaDay extends StatelessWidget {
               ),
             ),
           ),
+          if (beforeEntries != null) ...[
+            const SizedBox(height: 2),
+            beforeEntries!,
+            const SizedBox(height: 8),
+          ],
           if (day.entries.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),

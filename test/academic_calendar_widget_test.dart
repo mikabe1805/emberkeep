@@ -1988,13 +1988,17 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(
-      find.bySemanticsLabel('Get directions to Alexander Library'),
+    final libraryDirections = find.bySemanticsLabel(
+      'Get directions to Alexander Library',
     );
+    final classDirections = find.bySemanticsLabel(
+      'Get directions to Hill Center 114',
+    );
+    await tester.ensureVisible(libraryDirections);
+    await tester.tap(libraryDirections);
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.bySemanticsLabel('Get directions to Hill Center 114'),
-    );
+    await tester.ensureVisible(classDirections);
+    await tester.tap(classDirections);
     await tester.pumpAndSettle();
     expect(launcher.calls, [
       (MapProvider.google, 'Alexander Library'),
@@ -2344,6 +2348,10 @@ void main() {
       find.text('2 fixed plans · first at 9:00 AM · 1 deadline · 1 focus'),
       findsOneWidget,
     );
+    expect(
+      tester.getTopLeft(find.text('DAY SHAPE')).dy,
+      lessThan(tester.getTopLeft(find.text('ALL DAY').first).dy),
+    );
   });
 
   testWidgets('Day Shape uses factual singular, plural, and empty copy', (
@@ -2573,6 +2581,10 @@ void main() {
       final paragraph = tester.renderObject<RenderParagraph>(find.text(body));
       expect(label.didExceedMaxLines, isFalse);
       expect(paragraph.didExceedMaxLines, isFalse);
+      expect(
+        tester.getTopLeft(find.text('DAY SHAPE')).dy,
+        lessThan(tester.getTopLeft(find.text('ALL DAY').first).dy),
+      );
       expect(tester.getTopLeft(find.text(body)).dy, greaterThanOrEqualTo(0));
       expect(tester.getBottomLeft(find.text(body)).dy, lessThanOrEqualTo(568));
       expect(tester.takeException(), isNull);

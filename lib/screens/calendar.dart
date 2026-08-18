@@ -812,6 +812,14 @@ class _CalendarPageState extends State<CalendarPage> {
                 onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
                 directionsLauncher: _directionsLauncher,
                 daybookPreferences: _daybookPreferences,
+                selectedDaySummaryBuilder: (day) => _DayShapeSummary(
+                  summary: day.summary,
+                  isPast: DateTime(
+                    day.date.year,
+                    day.date.month,
+                    day.date.day,
+                  ).isBefore(DateTime(now.year, now.month, now.day)),
+                ),
               ),
             ],
             const SizedBox(height: 14),
@@ -824,6 +832,7 @@ class _CalendarPageState extends State<CalendarPage> {
               journalEntries: _journalOn(_selected),
               daybookDay: daybook.dayOn(CivilDate.fromDateTime(_selected)),
               showDaybookEntries: _academicMode == AcademicCalendarMode.month,
+              showDayShape: _academicMode == AcademicCalendarMode.month,
               academicSchedule: _academicSchedule,
               now: now,
               onPlan: () => _showAddEvent(context),
@@ -1564,6 +1573,7 @@ class _DayPanel extends StatelessWidget {
     required this.journalEntries,
     required this.daybookDay,
     required this.showDaybookEntries,
+    required this.showDayShape,
     required this.academicSchedule,
     required this.now,
     required this.onPlan,
@@ -1587,6 +1597,7 @@ class _DayPanel extends StatelessWidget {
   final List<Note> journalEntries;
   final DaybookDay daybookDay;
   final bool showDaybookEntries;
+  final bool showDayShape;
   final AcademicSchedule academicSchedule;
   final DateTime now;
   final VoidCallback onPlan;
@@ -1673,8 +1684,10 @@ class _DayPanel extends StatelessWidget {
               ],
             ),
           const SizedBox(height: 9),
-          _DayShapeSummary(summary: daybookDay.summary, isPast: isPast),
-          const SizedBox(height: 12),
+          if (showDayShape) ...[
+            _DayShapeSummary(summary: daybookDay.summary, isPast: isPast),
+            const SizedBox(height: 12),
+          ],
           if (showDaybookEntries && daybookDay.entries.isNotEmpty)
             DaybookAgendaEntries(
               day: daybookDay,
