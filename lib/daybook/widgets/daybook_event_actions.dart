@@ -44,12 +44,12 @@ class DaybookEventActionsDialog extends StatelessWidget {
     super.key,
     required this.title,
     required this.scope,
-    this.cancelled = false,
+    this.restorable = false,
   });
 
   final String title;
   final DaybookEventScope? scope;
-  final bool cancelled;
+  final bool restorable;
 
   @override
   Widget build(BuildContext context) {
@@ -97,16 +97,18 @@ class DaybookEventActionsDialog extends StatelessWidget {
         else
           _ActionTile(
             key: ValueKey(
-              cancelled ? 'daybook-event-restore' : 'daybook-event-cancel',
+              restorable ? 'daybook-event-restore' : 'daybook-event-cancel',
             ),
-            label: cancelled ? 'RESTORE EVENT' : 'CANCEL EVENT',
-            supporting: cancelled
+            label: restorable ? 'RESTORE EVENT' : 'CANCEL EVENT',
+            supporting: restorable
                 ? 'Remove the override and return this occurrence.'
                 : 'Keep the series and mark only this occurrence cancelled.',
-            icon: cancelled ? Icons.restore_rounded : Icons.event_busy_outlined,
-            danger: !cancelled,
+            icon: restorable
+                ? Icons.restore_rounded
+                : Icons.event_busy_outlined,
+            danger: !restorable,
             onTap: () => Navigator.of(context).pop(
-              cancelled
+              restorable
                   ? DaybookEventCommand.restore
                   : DaybookEventCommand.cancel,
             ),

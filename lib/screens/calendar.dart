@@ -1111,7 +1111,7 @@ class _CalendarPageState extends State<CalendarPage> {
       builder: (_) => DaybookEventActionsDialog(
         title: event.title,
         scope: scope,
-        cancelled: occurrence.state == DaybookEventOccurrenceState.cancelled,
+        restorable: occurrence.state != DaybookEventOccurrenceState.scheduled,
       ),
     );
     if (!mounted || command == null) return;

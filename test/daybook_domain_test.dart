@@ -426,6 +426,20 @@ void main() {
         ]),
       );
 
+      final restoredMove = moved.restoreEventOccurrence(
+        eventId: event.eventId,
+        occurrenceKey: 'event_actions@2026-08-11',
+        updatedAt: updatedAt.add(const Duration(minutes: 30)),
+      );
+      expect(restoredMove.events.single.exceptions, isEmpty);
+      final baseOccurrences = restoredMove.eventOccurrencesBetween(
+        CivilDate(2026, 8, 11),
+        CivilDate(2026, 8, 25),
+      );
+      expect(baseOccurrences.first.startDate, CivilDate(2026, 8, 11));
+      expect(baseOccurrences.first.startMinute, 9 * 60);
+      expect(baseOccurrences.first.endMinute, 10 * 60);
+
       final cancelled = moved.cancelEventOccurrence(
         eventId: event.eventId,
         occurrenceKey: 'event_actions@2026-08-11',

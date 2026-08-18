@@ -1271,7 +1271,7 @@ void main() {
   );
 
   testWidgets(
-    'weekly event this-event edit writes one moved exception and preserves siblings',
+    'weekly event move reopens as restorable and retries without changing siblings',
     (tester) async {
       final event = _weeklyDaybookEvent();
       final repository = InMemoryAcademicScheduleRepository(
@@ -1339,6 +1339,56 @@ void main() {
         siblings.map((item) => item.originalDate),
         containsAll([CivilDate(2026, 8, 18), CivilDate(2026, 8, 25)]),
       );
+
+      await tester.tap(find.bySemanticsLabel('Next day'));
+      await tester.pumpAndSettle();
+      expect(find.text('MOVED'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-event-actions-event_studio')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('THIS EVENT'), findsOneWidget);
+      expect(find.text('ENTIRE SERIES'), findsOneWidget);
+      expect(find.text('THIS AND FUTURE EVENTS'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('daybook-scope-this-event')));
+      await tester.pumpAndSettle();
+      expect(find.text('RESTORE EVENT'), findsOneWidget);
+      expect(find.text('CANCEL EVENT'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('daybook-event-restore')));
+      await tester.pumpAndSettle();
+
+      repository.allowWrites = false;
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-confirm-restore-event')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.schedule.events.single.exceptions, hasLength(1));
+      expect(find.text('MOVED'), findsOneWidget);
+      expect(
+        find.text("Couldn’t restore this event locally. Try again."),
+        findsOneWidget,
+      );
+
+      repository.allowWrites = true;
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-confirm-restore-event')),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.schedule.events.single.exceptions, isEmpty);
+      expect(find.text('MOVED'), findsNothing);
+      final restored = repository.schedule.eventOccurrencesBetween(
+        CivilDate(2026, 8, 11),
+        CivilDate(2026, 8, 25),
+      );
+      expect(restored.map((item) => item.originalDate), [
+        CivilDate(2026, 8, 11),
+        CivilDate(2026, 8, 18),
+        CivilDate(2026, 8, 25),
+      ]);
+      expect(restored.first.startDate, CivilDate(2026, 8, 11));
+      expect(restored.first.startMinute, 9 * 60);
+      expect(restored.first.endMinute, 10 * 60);
+      expect(repository.saveCount, 3);
     },
   );
 
