@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 
 import '../../audio.dart';
 import '../../clock.dart';
+import '../../daybook/adapters/campus_place_adapter.dart';
+import '../../daybook/widgets/daybook_place_fields.dart';
 import '../../tokens.dart';
 import '../../widgets/facets.dart';
 import '../../widgets/glass.dart';
@@ -82,7 +84,7 @@ class AcademicCalendarHeader extends StatelessWidget {
                   borderColor: Palette.brass.withValues(alpha: 0.46),
                 ),
                 child: const Icon(
-                  Icons.school_outlined,
+                  Icons.calendar_month_outlined,
                   size: 17,
                   color: Palette.xpLight,
                 ),
@@ -93,7 +95,7 @@ class AcademicCalendarHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ACADEMIC DAYBOOK',
+                      'DAYBOOK',
                       style: Type.label.copyWith(
                         fontSize: Type.minLabel,
                         letterSpacing: 1.5,
@@ -105,7 +107,7 @@ class AcademicCalendarHeader extends StatelessWidget {
                       loading
                           ? 'Opening your schedule…'
                           : termName ??
-                                'Classes, rooms, and notes in one place',
+                                'Events, tasks, classes, and places in one view',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Type.body.copyWith(
@@ -120,7 +122,7 @@ class AcademicCalendarHeader extends StatelessWidget {
               _BrassAction(
                 key: const ValueKey('academic-add-class'),
                 label: 'ADD',
-                semanticLabel: 'Add a class, assignment, or exam',
+                semanticLabel: 'Add an event, task, class, assignment, or exam',
                 icon: Icons.add_rounded,
                 onTap: onAddAcademic,
               ),
@@ -1812,11 +1814,13 @@ class AddAcademicMeetingDialog extends StatefulWidget {
     super.key,
     required this.schedule,
     required this.selectedDay,
+    this.initialPlace,
     required this.onSave,
   });
 
   final AcademicSchedule schedule;
   final DateTime selectedDay;
+  final CampusPlace? initialPlace;
   final SaveAcademicMeeting onSave;
 
   @override
@@ -1828,8 +1832,8 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
   final _termName = TextEditingController();
   final _courseCode = TextEditingController();
   final _courseTitle = TextEditingController();
-  final _building = TextEditingController();
-  final _room = TextEditingController();
+  late final CampusPlace _originalPlace;
+  late final DaybookPlaceFieldsController _placeFields;
 
   late AcademicTerm _term;
   late bool _newTerm;
@@ -1911,6 +1915,13 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
     _termEnd = _term.endDate;
     _weekdays = {selected.weekday};
     _colorIndex = widget.schedule.courses.length % _courseColors.length;
+    _originalPlace =
+        widget.initialPlace ?? CampusPlace(label: 'Location not set');
+    _placeFields = DaybookPlaceFieldsController(
+      initialPlace: widget.initialPlace == null
+          ? null
+          : CampusPlaceDaybookAdapter.fromCampusPlace(_originalPlace),
+    );
   }
 
   @override
@@ -1918,8 +1929,6 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
     _termName.dispose();
     _courseCode.dispose();
     _courseTitle.dispose();
-    _building.dispose();
-    _room.dispose();
     super.dispose();
   }
 
@@ -2009,14 +2018,23 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
           colorValue: color.value,
           colorLabel: color.label,
         );
-    final building = _clean(_building.text);
-    final room = _clean(_room.text);
+    final building = _clean(_placeFields.building);
+    final room = _clean(_placeFields.room);
     final placeParts = <String>[?building, ?room];
-    final place = CampusPlace(
-      label: placeParts.isEmpty ? 'Location not set' : placeParts.join(' '),
-      building: building,
-      room: room,
-    );
+    final routingText = _clean(_placeFields.routingText);
+    final fallbackName = placeParts.isNotEmpty
+        ? placeParts.join(' ')
+        : routingText;
+    final editedPlace = _placeFields.toPlace(fallbackSavedName: fallbackName);
+    final place = editedPlace == null
+        ? CampusPlaceDaybookAdapter.toCampusPlace(
+            CampusPlaceDaybookAdapter.fromCampusPlace(_originalPlace),
+            original: _originalPlace,
+          )
+        : CampusPlaceDaybookAdapter.toCampusPlace(
+            editedPlace,
+            original: _originalPlace,
+          );
     final series = MeetingSeries(
       meetingSeriesId: AcademicIds.create('series'),
       courseId: course.courseId,
@@ -2294,33 +2312,17 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
                 const SizedBox(height: 13),
                 _SectionLabel('PLACE'),
                 const SizedBox(height: 7),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        key: const ValueKey('academic-building'),
-                        controller: _building,
-                        textCapitalization: TextCapitalization.words,
-                        style: _inputStyle,
-                        decoration: _fieldDecoration('Building'),
-                      ),
-                    ),
-                    const SizedBox(width: 7),
-                    SizedBox(
-                      width: 104,
-                      child: TextField(
-                        key: const ValueKey('academic-room'),
-                        controller: _room,
-                        textCapitalization: TextCapitalization.characters,
-                        style: _inputStyle,
-                        decoration: _fieldDecoration('Room'),
-                      ),
-                    ),
-                  ],
+                DaybookPlaceFields(
+                  controller: _placeFields,
+                  keyPrefix: 'academic-place',
+                  savedNameKey: const ValueKey('academic-saved-name'),
+                  routingTextKey: const ValueKey('academic-routing-text'),
+                  buildingKey: const ValueKey('academic-building'),
+                  roomKey: const ValueKey('academic-room'),
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  'Leave both blank to keep this as “Location not set.”',
+                  'Leave every place field blank to keep this as “Location not set.”',
                   style: Type.body.copyWith(
                     fontSize: 11.5,
                     color: Palette.textLo,
@@ -3518,6 +3520,7 @@ class _BrassAction extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     button: true,
     label: semanticLabel,
+    excludeSemantics: true,
     child: InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),

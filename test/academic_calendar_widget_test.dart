@@ -4,6 +4,12 @@ import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 import 'package:emberkeep/academic_calendar/services/notebook_handoff.dart';
 import 'package:emberkeep/academic_calendar/widgets/academic_calendar_sections.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/daybook/domain/daybook_event.dart';
+import 'package:emberkeep/daybook/domain/daybook_task.dart';
+import 'package:emberkeep/daybook/widgets/daybook_add_choice_dialog.dart';
+import 'package:emberkeep/daybook/widgets/daybook_event_editor.dart';
+import 'package:emberkeep/daybook/widgets/daybook_rows.dart';
+import 'package:emberkeep/daybook/widgets/daybook_task_editor.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/calendar.dart';
@@ -18,6 +24,415 @@ void main() {
 
   tearDown(Clock.reset);
 
+  testWidgets('Daybook header is neutral and keeps the active term secondary', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(),
+      handoff: _RecordingHandoff(),
+    );
+
+    expect(find.text('DAYBOOK'), findsOneWidget);
+    expect(
+      find.text('Events, tasks, classes, and places in one view'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('Add an event, task, class, assignment, or exam'),
+      findsOneWidget,
+    );
+
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      calendarKey: const ValueKey('daybook-term-header'),
+    );
+
+    expect(find.text('DAYBOOK'), findsOneWidget);
+    expect(find.text('Fall 2026'), findsOneWidget);
+    expect(
+      find.text('Events, tasks, classes, and places in one view'),
+      findsNothing,
+    );
+  });
+
+  testWidgets('Daybook add chooser keeps general choices before School', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: DaybookAddChoiceDialog())),
+    );
+
+    expect(find.text('ADD TO YOUR DAYBOOK'), findsOneWidget);
+    expect(
+      find.text('Keep events, tasks, and school together.'),
+      findsOneWidget,
+    );
+    expect(find.text('SCHOOL'), findsOneWidget);
+
+    final labels = ['EVENT', 'TASK', 'SCHOOL', 'CLASS', 'ASSIGNMENT', 'EXAM'];
+    final tops = [
+      for (final label in labels) tester.getTopLeft(find.text(label)).dy,
+    ];
+    expect(tops, orderedEquals(tops.toList()..sort()));
+
+    for (final key in const [
+      'daybook-add-choice-event',
+      'daybook-add-choice-task',
+      'academic-add-choice-class',
+      'academic-add-choice-assignment',
+      'academic-add-choice-exam',
+    ]) {
+      expect(
+        tester.getSize(find.byKey(ValueKey(key))).height,
+        greaterThanOrEqualTo(44),
+      );
+    }
+  });
+
+  testWidgets(
+    'Daybook event editor validates title and keeps failed saves open',
+    (tester) async {
+      var saveCalls = 0;
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          onSave: (_) async {
+            saveCalls += 1;
+            return false;
+          },
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pump();
+      expect(
+        find.text('Add a title before keeping this event.'),
+        findsOneWidget,
+      );
+      expect(saveCalls, 0);
+      expect(find.byType(DaybookEventEditor), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-title')),
+        'Library hours',
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pump();
+      expect(saveCalls, 1);
+      expect(
+        find.text('Couldn’t save this event locally. Try again.'),
+        findsOneWidget,
+      );
+      expect(find.byType(DaybookEventEditor), findsOneWidget);
+    },
+  );
+
+  testWidgets('Daybook event editor saves an all-day event and manual place', (
+    tester,
+  ) async {
+    DaybookEvent? saved;
+    await _pumpDaybookWidget(
+      tester,
+      DaybookEventEditor(
+        selectedDay: CivilDate(2026, 8, 11),
+        onSave: (event) async {
+          saved = event;
+          return true;
+        },
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('daybook-event-title')),
+      'Library hours',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('daybook-event-notes')),
+      'Bring the borrowed book',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('daybook-event-place-saved-name')),
+      'Alexander Library',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('daybook-event-place-routing-text')),
+      '169 College Ave, New Brunswick, NJ',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('daybook-event-place-building')),
+      'Alexander',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('daybook-event-place-room')),
+      'East Wing',
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('daybook-event-save')),
+    );
+    await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+    await tester.pump();
+
+    expect(saved, isNotNull);
+    expect(saved!.title, 'Library hours');
+    expect(saved!.notes, 'Bring the borrowed book');
+    expect(saved!.startDate, CivilDate(2026, 8, 11));
+    expect(saved!.endDate, CivilDate(2026, 8, 12));
+    expect(saved!.allDay, isTrue);
+    expect(saved!.startMinute, isNull);
+    expect(saved!.endMinute, isNull);
+    expect(saved!.weeklyRule, isNull);
+    expect(saved!.place!.savedName, 'Alexander Library');
+    expect(saved!.place!.routingText, '169 College Ave, New Brunswick, NJ');
+    expect(saved!.place!.building, 'Alexander');
+    expect(saved!.place!.room, 'East Wing');
+  });
+
+  testWidgets('Daybook event editor saves timed and valid weekly payloads', (
+    tester,
+  ) async {
+    DaybookEvent? saved;
+    await _pumpDaybookWidget(
+      tester,
+      DaybookEventEditor(
+        selectedDay: CivilDate(2026, 8, 11),
+        onSave: (event) async {
+          saved = event;
+          return true;
+        },
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('daybook-event-title')),
+      'Team check-in',
+    );
+    await tester.tap(find.byKey(const ValueKey('daybook-event-all-day')));
+    await tester.tap(find.byKey(const ValueKey('daybook-event-weekly')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('daybook-event-weekday-2')));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('daybook-event-save')),
+    );
+    await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+    await tester.pump();
+
+    expect(
+      find.text('Choose at least one weekday for a weekly event.'),
+      findsOneWidget,
+    );
+    expect(saved, isNull);
+    expect(find.byType(DaybookEventEditor), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('daybook-event-weekday-3')));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('daybook-event-save')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+    await tester.pump();
+
+    expect(saved, isNotNull);
+    expect(saved!.allDay, isFalse);
+    expect(saved!.startDate, CivilDate(2026, 8, 11));
+    expect(saved!.endDate, CivilDate(2026, 8, 11));
+    expect(saved!.startMinute, 9 * 60);
+    expect(saved!.endMinute, 10 * 60);
+    expect(saved!.weeklyRule!.weekdays, {DateTime.wednesday});
+    expect(saved!.weeklyRule!.intervalWeeks, 1);
+  });
+
+  testWidgets(
+    'Daybook task editor saves one-off due details without Quest state',
+    (tester) async {
+      DaybookTask? saved;
+      await _pumpDaybookWidget(
+        tester,
+        DaybookTaskEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          onSave: (task) async {
+            saved = task;
+            return true;
+          },
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('daybook-task-save')));
+      await tester.pump();
+      expect(
+        find.text('Add a title before keeping this task.'),
+        findsOneWidget,
+      );
+      expect(saved, isNull);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-title')),
+        'Return library book',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-notes')),
+        'Use the College Avenue drop box',
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-task-has-time')));
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-place-saved-name')),
+        'Alexander Library',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-place-routing-text')),
+        '169 College Ave, New Brunswick, NJ',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-task-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-task-save')));
+      await tester.pump();
+
+      expect(saved, isNotNull);
+      expect(saved!.title, 'Return library book');
+      expect(saved!.notes, 'Use the College Avenue drop box');
+      expect(saved!.dueDate, CivilDate(2026, 8, 11));
+      expect(saved!.dueMinute, 17 * 60);
+      expect(saved!.completed, isFalse);
+      expect(saved!.place!.savedName, 'Alexander Library');
+      expect(saved!.place!.routingText, '169 College Ave, New Brunswick, NJ');
+    },
+  );
+
+  testWidgets(
+    'Daybook rows keep time, place, and completion actions readable',
+    (tester) async {
+      final event = DaybookEvent(
+        eventId: 'event_meeting',
+        title: 'Project meeting',
+        startDate: CivilDate(2026, 8, 11),
+        endDate: CivilDate(2026, 8, 11),
+        timeZoneId: 'America/New_York',
+        allDay: false,
+        startMinute: 9 * 60,
+        endMinute: 10 * 60,
+        createdAt: DateTime.utc(2026, 8, 11),
+        updatedAt: DateTime.utc(2026, 8, 11),
+      );
+      final task = DaybookTask(
+        taskId: 'task_book',
+        title: 'Return library book',
+        dueDate: CivilDate(2026, 8, 11),
+        createdAt: DateTime.utc(2026, 8, 11),
+        updatedAt: DateTime.utc(2026, 8, 11),
+      );
+      bool? completed;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                DaybookEventRow(event: event),
+                DaybookTaskRow(
+                  task: task,
+                  onCompletedChanged: (value) => completed = value,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Project meeting'), findsOneWidget);
+      expect(find.text('9:00 AM–10:00 AM'), findsOneWidget);
+      expect(find.text('Return library book'), findsOneWidget);
+      final toggle = find.byKey(
+        const ValueKey('daybook-task-toggle-task_book'),
+      );
+      expect(tester.getSize(toggle).height, greaterThanOrEqualTo(44));
+      await tester.tap(toggle);
+      expect(completed, isTrue);
+    },
+  );
+
+  testWidgets('Daybook class place edits preserve legacy-only campus fields', (
+    tester,
+  ) async {
+    final original = CampusPlace(
+      label: 'Hill Center 114',
+      building: 'Hill Center',
+      room: '114',
+      address: '110 Frelinghuysen Rd, Piscataway, NJ',
+      latitude: 40.5211,
+      longitude: -74.4622,
+      mapsProvider: 'google',
+      placeId: 'google-hill-center',
+      campusCode: 'BUSCH',
+    );
+    CampusPlace? savedPlace;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => AddAcademicMeetingDialog(
+                  schedule: AcademicSchedule.empty(),
+                  selectedDay: DateTime(2026, 8, 11),
+                  initialPlace: original,
+                  onSave: (_, _, series) async {
+                    savedPlace = series.place;
+                    return true;
+                  },
+                ),
+              ),
+              child: const Text('OPEN CLASS EDITOR'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('OPEN CLASS EDITOR'));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('academic-course-code')),
+      'BIO 101',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('academic-course-title')),
+      'Foundations of Biology',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('academic-saved-name')),
+      'Life Sciences 204',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('academic-routing-text')),
+      '123 Bevier Rd, Piscataway, NJ',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('academic-building')),
+      'Life Sciences',
+    );
+    await tester.enterText(find.byKey(const ValueKey('academic-room')), '204');
+    await tester.ensureVisible(find.text('KEEP THIS CLASS'));
+    await tester.pump();
+    await tester.tap(find.text('KEEP THIS CLASS'));
+    await tester.pump();
+
+    expect(savedPlace, isNotNull);
+    expect(savedPlace!.label, 'Life Sciences 204');
+    expect(savedPlace!.address, '123 Bevier Rd, Piscataway, NJ');
+    expect(savedPlace!.building, 'Life Sciences');
+    expect(savedPlace!.room, '204');
+    expect(savedPlace!.latitude, original.latitude);
+    expect(savedPlace!.longitude, original.longitude);
+    expect(savedPlace!.mapsProvider, original.mapsProvider);
+    expect(savedPlace!.placeId, original.placeId);
+    expect(savedPlace!.campusCode, original.campusCode);
+  });
+
   testWidgets('Plans shows Now, room, time, and the stable notebook doorway', (
     tester,
   ) async {
@@ -26,7 +441,7 @@ void main() {
     final handoff = _RecordingHandoff();
     await _pumpCalendar(tester, repository: repository, handoff: handoff);
 
-    expect(find.text('ACADEMIC DAYBOOK'), findsOneWidget);
+    expect(find.text('DAYBOOK'), findsOneWidget);
     expect(find.text('Fall 2026'), findsOneWidget);
     expect(find.text('READY IN 5 MIN'), findsOneWidget);
     expect(find.text('ECE 345 · Lecture'), findsOneWidget);
@@ -985,6 +1400,26 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+}
+
+Future<void> _pumpDaybookWidget(
+  WidgetTester tester,
+  Widget child, {
+  Size size = const Size(430, 932),
+  double textScale = 1,
+}) async {
+  tester.view.devicePixelRatio = 1;
+  tester.platformDispatcher.textScaleFactorTestValue = textScale;
+  await tester.binding.setSurfaceSize(size);
+  addTearDown(() {
+    tester.view.resetDevicePixelRatio();
+    tester.platformDispatcher.clearTextScaleFactorTestValue();
+    tester.binding.setSurfaceSize(null);
+  });
+  await tester.pumpWidget(
+    MaterialApp(debugShowCheckedModeBanner: false, home: Scaffold(body: child)),
+  );
+  await tester.pump();
 }
 
 Future<void> _pumpCalendar(
