@@ -284,9 +284,13 @@ final class DaybookEvent {
       throw ArgumentError('A weekly event cannot end before it begins');
     }
     final keys = <String>{};
+    final originalDates = <CivilDate>{};
     for (final exception in this.exceptions) {
       if (!keys.add(exception.occurrenceKey)) {
         throw ArgumentError('Event exception keys must be unique');
+      }
+      if (!originalDates.add(exception.originalDate)) {
+        throw ArgumentError('Event exceptions must have unique original dates');
       }
       _validateException(exception);
     }

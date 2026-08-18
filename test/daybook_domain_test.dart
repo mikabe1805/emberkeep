@@ -169,4 +169,77 @@ void main() {
       legacy.toJson(),
     );
   });
+
+  test(
+    'CampusPlace adapter preserves unknown legacy maps metadata until Google replaces it',
+    () {
+      final legacy = CampusPlace(
+        label: 'Engineering Building',
+        building: 'Engineering Building',
+        room: '201',
+        address: '98 Brett Road, Piscataway, NJ',
+        latitude: 40.5224,
+        longitude: -74.4639,
+        mapsProvider: 'rutgers-campus-map',
+        placeId: 'legacy-campus-place-201',
+        campusCode: 'BUSCH',
+      );
+      final neutral = CampusPlaceDaybookAdapter.fromCampusPlace(legacy);
+
+      expect(
+        CampusPlaceDaybookAdapter.toCampusPlace(
+          neutral,
+          original: legacy,
+        ).toJson(),
+        legacy.toJson(),
+      );
+      expect(
+        CampusPlaceDaybookAdapter.toCampusPlace(
+          neutral.copyWith(
+            provider: DaybookPlaceProvider.google,
+            providerPlaceId: 'ChIJREPLACED',
+          ),
+          original: legacy,
+        ).toJson(),
+        containsPair('mapsProvider', 'google'),
+      );
+    },
+  );
+
+  test(
+    'DaybookEvent rejects multiple exceptions for one original occurrence',
+    () {
+      final exception = DaybookEventException(
+        occurrenceKey: 'event-5/2026-08-24/a',
+        originalDate: CivilDate(2026, 8, 24),
+        state: DaybookEventOccurrenceState.moved,
+        movedStartDate: CivilDate(2026, 8, 25),
+        movedEndDate: CivilDate(2026, 8, 25),
+        movedStartMinute: 11 * 60,
+        movedEndMinute: 12 * 60,
+        updatedAt: updatedAt,
+      );
+
+      expect(
+        () => DaybookEvent(
+          eventId: 'event-5',
+          title: 'Studio',
+          startDate: CivilDate(2026, 8, 17),
+          endDate: CivilDate(2026, 8, 17),
+          timeZoneId: 'America/New_York',
+          allDay: false,
+          startMinute: 9 * 60,
+          endMinute: 10 * 60,
+          weeklyRule: WeeklyEventRule(weekdays: {DateTime.monday}),
+          exceptions: [
+            exception,
+            exception.copyWith(occurrenceKey: 'event-5/2026-08-24/b'),
+          ],
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+        ),
+        throwsArgumentError,
+      );
+    },
+  );
 }

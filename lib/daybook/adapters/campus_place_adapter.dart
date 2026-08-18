@@ -25,8 +25,10 @@ abstract final class CampusPlaceDaybookAdapter {
     address: source.routingText,
     latitude: original.latitude,
     longitude: original.longitude,
-    mapsProvider: source.provider?.name,
-    placeId: source.providerPlaceId,
+    mapsProvider: source.provider?.name ?? original.mapsProvider,
+    placeId: source.provider == null
+        ? original.placeId
+        : source.providerPlaceId,
     campusCode: original.campusCode,
   );
 }
