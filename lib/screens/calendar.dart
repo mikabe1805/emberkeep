@@ -68,6 +68,7 @@ class CalendarPage extends StatefulWidget {
     required this.state,
     required this.quests,
     required this.onAdd,
+    this.onCompleteQuest,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
     this.lightDirection,
     this.scheduleRepository,
@@ -82,6 +83,7 @@ class CalendarPage extends StatefulWidget {
   final GameState state;
   final List<Quest> quests;
   final bool Function(Quest) onAdd;
+  final void Function(Quest quest, Offset anchor)? onCompleteQuest;
   final ValueListenable<Offset> parallax;
   final ValueListenable<Offset>? lightDirection;
   final AcademicScheduleRepository? scheduleRepository;
@@ -720,6 +722,21 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
+  void _completeQuestPlan(String questTitle, Offset anchor) {
+    final complete = widget.onCompleteQuest;
+    if (complete == null) return;
+    Quest? quest;
+    for (final candidate in widget.quests) {
+      if (candidate.title == questTitle) {
+        quest = candidate;
+        break;
+      }
+    }
+    if (quest == null || quest.doneFor(Clock.now())) return;
+    complete(quest, anchor);
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -747,6 +764,14 @@ class _CalendarPageState extends State<CalendarPage> {
         final selectedTerm =
             _academicSchedule.termFor(selectedCivil) ??
             _academicSchedule.latestTerm;
+        final selectedCompletions =
+            widget.state.history[Days.key(_selected)] ?? 0;
+        final selectedReflections = _reflectionsOn(_selected);
+        final selectedJournalEntries = _journalOn(_selected);
+        final selectedHasHistory =
+            selectedCompletions > 0 ||
+            selectedReflections > 0 ||
+            selectedJournalEntries.isNotEmpty;
 
         return LuxePageList(
           assetPath: 'assets/pages/plans-desk-v2.webp',
@@ -812,43 +837,56 @@ class _CalendarPageState extends State<CalendarPage> {
                 onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
                 directionsLauncher: _directionsLauncher,
                 daybookPreferences: _daybookPreferences,
-                selectedDaySummaryBuilder: (day) => _DayShapeSummary(
-                  summary: day.summary,
-                  isPast: DateTime(
-                    day.date.year,
-                    day.date.month,
-                    day.date.day,
-                  ).isBefore(DateTime(now.year, now.month, now.day)),
+                onCompleteQuestPlan: widget.onCompleteQuest == null
+                    ? null
+                    : _completeQuestPlan,
+                selectedDayHeaderBuilder: (day) => _SelectedDayHeader(
+                  day: DateTime(day.date.year, day.date.month, day.date.day),
+                  now: now,
+                  onPlan: () => _showAddEvent(context),
+                  lightDirection: widget.lightDirection ?? widget.parallax,
+                  spanStyle: true,
                 ),
+                selectedDaySummaryBuilder: (day) =>
+                    _DayShapeSummary(summary: day.summary),
               ),
             ],
-            const SizedBox(height: 14),
+            if (_academicMode == AcademicCalendarMode.month ||
+                selectedHasHistory) ...[
+              const SizedBox(height: 14),
 
-            // ── selected day panel ───────────────────────────────
-            _DayPanel(
-              day: _selected,
-              completions: widget.state.history[Days.key(_selected)] ?? 0,
-              reflections: _reflectionsOn(_selected),
-              journalEntries: _journalOn(_selected),
-              daybookDay: daybook.dayOn(CivilDate.fromDateTime(_selected)),
-              showDaybookEntries: _academicMode == AcademicCalendarMode.month,
-              showDayShape: _academicMode == AcademicCalendarMode.month,
-              academicSchedule: _academicSchedule,
-              now: now,
-              onPlan: () => _showAddEvent(context),
-              onOpenJournal: _openJournal,
-              onOpenNotebook: _openNotebook,
-              onOpenDaybookActions: _showDaybookActions,
-              onToggleTask: _toggleDaybookTask,
-              onToggleWork: _toggleAcademicWork,
-              onOpenStudyPlanner: _showAcademicStudyPlanner,
-              onToggleStudyBlock: _toggleAcademicStudyBlock,
-              onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
-              onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
-              directionsLauncher: _directionsLauncher,
-              daybookPreferences: _daybookPreferences,
-              lightDirection: widget.lightDirection ?? widget.parallax,
-            ),
+              // Month owns the complete selected-day folio. Span modes already
+              // keep the date, plan action, Day Shape, and agenda together;
+              // this continuation carries only history and journal material.
+              _DayPanel(
+                day: _selected,
+                completions: selectedCompletions,
+                reflections: selectedReflections,
+                journalEntries: selectedJournalEntries,
+                daybookDay: daybook.dayOn(CivilDate.fromDateTime(_selected)),
+                showDaybookEntries: _academicMode == AcademicCalendarMode.month,
+                showDayShape: _academicMode == AcademicCalendarMode.month,
+                showHeader: _academicMode == AcademicCalendarMode.month,
+                academicSchedule: _academicSchedule,
+                now: now,
+                onPlan: () => _showAddEvent(context),
+                onOpenJournal: _openJournal,
+                onOpenNotebook: _openNotebook,
+                onOpenDaybookActions: _showDaybookActions,
+                onToggleTask: _toggleDaybookTask,
+                onToggleWork: _toggleAcademicWork,
+                onOpenStudyPlanner: _showAcademicStudyPlanner,
+                onToggleStudyBlock: _toggleAcademicStudyBlock,
+                onCompleteQuestPlan: widget.onCompleteQuest == null
+                    ? null
+                    : _completeQuestPlan,
+                onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
+                onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
+                directionsLauncher: _directionsLauncher,
+                daybookPreferences: _daybookPreferences,
+                lightDirection: widget.lightDirection ?? widget.parallax,
+              ),
+            ],
           ],
         );
       },
@@ -872,11 +910,8 @@ class _CalendarPageState extends State<CalendarPage> {
     final journalEntries = _journalOn(date);
 
     final spoken = StringBuffer(
-      '${_monthNames[date.month - 1]} ${date.day}, ${date.year}',
+      _monthDaySemanticLabel(date, daybookDay.summary, isToday: isToday),
     );
-    if (isToday) spoken.write(', today');
-    spoken.write(', ${_spokenDayWeight(daybookDay.summary.weight)}');
-    spoken.write(', ${daybookDay.summary.semanticLabel}');
     if (done > 0) {
       spoken.write(', $done quest${done == 1 ? '' : 's'} completed');
     }
@@ -897,6 +932,7 @@ class _CalendarPageState extends State<CalendarPage> {
       button: true,
       selected: isSelected,
       label: spoken.toString(),
+      excludeSemantics: true,
       onTap: () => _selectDay(date),
       child: GestureDetector(
         excludeFromSemantics: true,
@@ -1270,12 +1306,41 @@ class _CalendarPageState extends State<CalendarPage> {
   );
 }
 
-String _spokenDayWeight(DaybookDayWeight weight) => switch (weight) {
-  DaybookDayWeight.none => 'open day',
-  DaybookDayWeight.light => 'lightly scheduled day',
-  DaybookDayWeight.moderate => 'moderately scheduled day',
-  DaybookDayWeight.full => 'heavily scheduled day',
-};
+String _monthDaySemanticLabel(
+  DateTime date,
+  DaybookDaySummary summary, {
+  required bool isToday,
+}) {
+  final facts = <String>[
+    '${_monthNames[date.month - 1]} ${date.day}, ${date.year}',
+    if (isToday) 'today',
+    summary.scheduledMinutes == 0
+        ? 'no timed plans'
+        : '${summary.scheduledMinutes} scheduled minutes',
+  ];
+  if (summary.fixedPlanCount == 0) {
+    facts.add('no fixed plans');
+  } else if (summary.scheduledMinutes == 0) {
+    facts.add(
+      '${summary.fixedPlanCount} all-day plan${summary.fixedPlanCount == 1 ? '' : 's'}',
+    );
+  } else {
+    facts.add(
+      '${summary.fixedPlanCount} fixed plan${summary.fixedPlanCount == 1 ? '' : 's'}',
+    );
+  }
+  facts.add(
+    summary.deadlineCount == 0
+        ? 'no active deadlines'
+        : '${summary.deadlineCount} active deadline${summary.deadlineCount == 1 ? '' : 's'}',
+  );
+  facts.add(
+    summary.focusCount == 0
+        ? 'no active focus choices'
+        : '${summary.focusCount} active focus choice${summary.focusCount == 1 ? '' : 's'}',
+  );
+  return facts.join(', ');
+}
 
 /// The month deliberately carries only one visual sentence per date. Height
 /// means scheduled weight; the small diamond at the tick's crown means that
@@ -1565,6 +1630,131 @@ class _Chevron extends StatelessWidget {
   }
 }
 
+class _SelectedDayHeader extends StatelessWidget {
+  const _SelectedDayHeader({
+    required this.day,
+    required this.now,
+    required this.onPlan,
+    required this.lightDirection,
+    this.spanStyle = false,
+  });
+
+  final DateTime day;
+  final DateTime now;
+  final VoidCallback onPlan;
+  final ValueListenable<Offset> lightDirection;
+  final bool spanStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final isToday = Days.sameDay(day, now);
+    final isPast = day.isBefore(DateTime(now.year, now.month, now.day));
+    final largeText = MediaQuery.textScalerOf(context).scale(11.5) >= 17.25;
+    final labelStyle = Type.label.copyWith(
+      fontSize: 11.5,
+      letterSpacing: 1.5,
+      color: isToday ? Palette.xpLight : Palette.textMid,
+    );
+    final spoken =
+        '${_weekdayNames[day.weekday - 1]} ${day.day}'
+        '${isToday ? ', today' : ''}';
+    final dayLabel = Semantics(
+      header: true,
+      label: spoken,
+      excludeSemantics: true,
+      child: spanStyle
+          ? Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 6,
+              runSpacing: 2,
+              children: [
+                Text(
+                  '${_weekdayNames[day.weekday - 1]} ${day.day}',
+                  style: labelStyle,
+                ),
+                if (isToday)
+                  Text(
+                    'TODAY',
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      color: Palette.xp,
+                    ),
+                  ),
+              ],
+            )
+          : Text(
+              '${_weekdayNames[day.weekday - 1]} ${day.day}'
+              '${isToday ? " · TODAY" : " · ${_monthNames[day.month - 1].toUpperCase()}"}',
+              maxLines: largeText ? 2 : 1,
+              overflow: largeText ? TextOverflow.clip : TextOverflow.ellipsis,
+              style: labelStyle,
+            ),
+    );
+    final planAction = isPast
+        ? null
+        : Semantics(
+            button: true,
+            label: 'Add a plan for $spoken',
+            onTap: onPlan,
+            child: GestureDetector(
+              excludeFromSemantics: true,
+              behavior: HitTestBehavior.opaque,
+              onTap: onPlan,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                child: Center(
+                  child: GoldSurface(
+                    cut: 7,
+                    glow: false,
+                    textured: false,
+                    light: lightDirection,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        '+ PLAN',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          letterSpacing: 1.2,
+                          color: Palette.onHoney,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x59FFEBBE),
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+
+    if (largeText) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          dayLabel,
+          if (planAction != null) ...[
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerRight, child: planAction),
+          ],
+        ],
+      );
+    }
+    return Row(
+      children: [
+        Expanded(child: dayLabel),
+        ?planAction,
+      ],
+    );
+  }
+}
+
 class _DayPanel extends StatelessWidget {
   const _DayPanel({
     required this.day,
@@ -1574,6 +1764,7 @@ class _DayPanel extends StatelessWidget {
     required this.daybookDay,
     required this.showDaybookEntries,
     required this.showDayShape,
+    required this.showHeader,
     required this.academicSchedule,
     required this.now,
     required this.onPlan,
@@ -1584,6 +1775,7 @@ class _DayPanel extends StatelessWidget {
     required this.onToggleWork,
     required this.onOpenStudyPlanner,
     required this.onToggleStudyBlock,
+    required this.onCompleteQuestPlan,
     required this.onUpdateTransitionBuffer,
     required this.onOpenOccurrenceAdjuster,
     required this.directionsLauncher,
@@ -1598,6 +1790,7 @@ class _DayPanel extends StatelessWidget {
   final DaybookDay daybookDay;
   final bool showDaybookEntries;
   final bool showDayShape;
+  final bool showHeader;
   final AcademicSchedule academicSchedule;
   final DateTime now;
   final VoidCallback onPlan;
@@ -1608,6 +1801,7 @@ class _DayPanel extends StatelessWidget {
   final ToggleAcademicWork onToggleWork;
   final OpenAcademicStudyPlanner onOpenStudyPlanner;
   final ToggleAcademicStudyBlock onToggleStudyBlock;
+  final CompleteQuestPlan? onCompleteQuestPlan;
   final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
   final DirectionsLauncher directionsLauncher;
@@ -1616,76 +1810,27 @@ class _DayPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPast = day.isBefore(DateTime(now.year, now.month, now.day));
-    final largeText = MediaQuery.textScalerOf(context).scale(11.5) >= 17.25;
-    final dayLabel = Text(
-      '${_weekdayNames[day.weekday - 1]} ${day.day}'
-      '${Days.sameDay(day, now) ? " · TODAY" : " · ${_monthNames[day.month - 1].toUpperCase()}"}',
-      maxLines: largeText ? 2 : 1,
-      overflow: largeText ? TextOverflow.clip : TextOverflow.ellipsis,
-      style: Type.label.copyWith(
-        fontSize: 11.5,
-        letterSpacing: 1.5,
-        color: Days.sameDay(day, now) ? Palette.xpLight : Palette.textMid,
-      ),
-    );
-    final planAction = isPast
-        ? null
-        : GestureDetector(
-            onTap: onPlan,
-            child: GoldSurface(
-              cut: 7,
-              glow: false,
-              textured: false,
-              light: lightDirection,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 8,
-                ),
-                child: Text(
-                  '+ PLAN',
-                  style: Type.label.copyWith(
-                    fontSize: 11,
-                    letterSpacing: 1.2,
-                    color: Palette.onHoney,
-                    shadows: const [
-                      Shadow(color: Color(0x59FFEBBE), offset: Offset(0, 1)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
+    final hasContentBeforeJournal =
+        showHeader ||
+        showDayShape ||
+        (showDaybookEntries && daybookDay.entries.isNotEmpty) ||
+        completions > 0 ||
+        reflections > 0;
     return GlassPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // "26.7.2026" was a raw numeric locale dump in the one place the
-          // design speaks a date out loud. The approved target reads
-          // THURSDAY 30 · TODAY. At large text, keep that sentence intact and
-          // move the action below it instead of truncating either one.
-          if (largeText)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                dayLabel,
-                if (planAction != null) ...[
-                  const SizedBox(height: 8),
-                  Align(alignment: Alignment.centerRight, child: planAction),
-                ],
-              ],
-            )
-          else
-            Row(
-              children: [
-                Expanded(child: dayLabel),
-                ?planAction,
-              ],
+          if (showHeader) ...[
+            _SelectedDayHeader(
+              day: day,
+              now: now,
+              onPlan: onPlan,
+              lightDirection: lightDirection,
             ),
-          const SizedBox(height: 9),
+            const SizedBox(height: 9),
+          ],
           if (showDayShape) ...[
-            _DayShapeSummary(summary: daybookDay.summary, isPast: isPast),
+            _DayShapeSummary(summary: daybookDay.summary),
             const SizedBox(height: 12),
           ],
           if (showDaybookEntries && daybookDay.entries.isNotEmpty)
@@ -1698,6 +1843,7 @@ class _DayPanel extends StatelessWidget {
               onToggleWork: onToggleWork,
               onOpenStudyPlanner: onOpenStudyPlanner,
               onToggleStudyBlock: onToggleStudyBlock,
+              onCompleteQuestPlan: onCompleteQuestPlan,
               onUpdateTransitionBuffer: onUpdateTransitionBuffer,
               onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
               directionsLauncher: directionsLauncher,
@@ -1754,7 +1900,8 @@ class _DayPanel extends StatelessWidget {
               ),
             ),
           if (journalEntries.isNotEmpty) ...[
-            const Divider(height: 18, color: Color(0x2EE7C47E)),
+            if (hasContentBeforeJournal)
+              const Divider(height: 18, color: Color(0x2EE7C47E)),
             Text(
               'JOURNAL',
               style: Type.label.copyWith(
@@ -1777,10 +1924,9 @@ class _DayPanel extends StatelessWidget {
 }
 
 class _DayShapeSummary extends StatelessWidget {
-  const _DayShapeSummary({required this.summary, required this.isPast});
+  const _DayShapeSummary({required this.summary});
 
   final DaybookDaySummary summary;
-  final bool isPast;
 
   @override
   Widget build(BuildContext context) {
@@ -1813,9 +1959,7 @@ class _DayShapeSummary extends StatelessWidget {
             : '${summary.focusCount} focus choices',
       );
     }
-    final body = facts.isEmpty
-        ? (isPast ? 'A quiet day.' : 'No fixed plans yet.')
-        : facts.join(' · ');
+    final body = facts.isEmpty ? 'No fixed plans.' : facts.join(' · ');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

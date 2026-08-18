@@ -175,7 +175,7 @@ void main() {
 
       if (mode == AcademicCalendarMode.day) {
         await Scrollable.ensureVisible(
-          tester.element(find.text('DAY SHAPE')),
+          tester.element(find.text('TUESDAY 11')),
           alignment: 0.02,
         );
         await tester.pump();
@@ -277,16 +277,32 @@ void main() {
               .didExceedMaxLines,
           isFalse,
         );
+        final selectedDayLabel = mode == AcademicCalendarMode.month
+            ? 'TUESDAY 11 · TODAY'
+            : 'TUESDAY 11';
         expect(
           tester
-              .renderObject<RenderParagraph>(find.text('TUESDAY 11 · TODAY'))
+              .renderObject<RenderParagraph>(find.text(selectedDayLabel))
               .didExceedMaxLines,
           isFalse,
         );
-        expect(
-          tester.getBottomLeft(find.text('TUESDAY 11 · TODAY')).dy,
-          lessThan(tester.getTopLeft(find.text('+ PLAN')).dy),
-        );
+        if (mode == AcademicCalendarMode.month) {
+          expect(
+            tester.getBottomLeft(find.text(selectedDayLabel)).dy,
+            lessThan(tester.getTopLeft(find.text('+ PLAN')).dy),
+          );
+        } else {
+          expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
+          expect(find.text('+ PLAN'), findsOneWidget);
+          expect(
+            tester.getBottomLeft(find.text(selectedDayLabel)).dy,
+            lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
+          );
+          expect(
+            tester.getBottomLeft(find.text('+ PLAN')).dy,
+            lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
+          );
+        }
         expect(tester.takeException(), isNull);
       },
     );

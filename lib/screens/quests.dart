@@ -73,6 +73,7 @@ class QuestsPage extends StatefulWidget {
     required this.onSnapshot,
     required this.onRestore,
     this.onBindFlush,
+    this.onBindComplete,
     this.onNightClosed,
     this.parallax,
     this.lightDirection,
@@ -101,6 +102,11 @@ class QuestsPage extends StatefulWidget {
 
   /// Lets the shell flush a pending deferred commit before pause-path saves.
   final void Function(VoidCallback flush)? onBindFlush;
+
+  /// Lets another kept-alive surface invoke this page's one canonical Quest
+  /// completion pipeline without copying reward or persistence logic.
+  final void Function(void Function(Quest quest, Offset anchor) complete)?
+  onBindComplete;
 
   /// Lets the shell push an enabled night reminder to tomorrow immediately
   /// after this evening's ledger closes.
@@ -464,6 +470,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _syncLocalMotion();
     // bind flush so the shell can settle rewards before a pause-path save
     widget.onBindFlush?.call(_flushCommit);
+    widget.onBindComplete?.call(_completeQuest);
     Haptics.reduceMotion = _state.reduceMotion;
   }
 
@@ -479,6 +486,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     }
     if (old.onBindFlush != widget.onBindFlush) {
       widget.onBindFlush?.call(_flushCommit);
+    }
+    if (old.onBindComplete != widget.onBindComplete) {
+      widget.onBindComplete?.call(_completeQuest);
     }
     _syncLocalMotion();
     Haptics.reduceMotion = _state.reduceMotion;

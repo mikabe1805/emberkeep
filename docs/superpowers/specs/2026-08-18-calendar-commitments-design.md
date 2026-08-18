@@ -131,7 +131,9 @@ The body is composed from summary facts:
 - active deadlines: `1 deadline` / `2 deadlines`;
 - active focus: `1 focus` / `2 focus choices`;
 - multiple facts join with ` · `;
-- if no fact exists: `No fixed plans yet.` for today/future or `A quiet day.`
+- if no fact exists: `No fixed plans.` — this states only what the Daybook
+  projection knows and never implies that the person had no routines or that
+  the day was available.
   for the past.
 
 The line wraps naturally. At large text, the existing date/action reflow remains
