@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui show ImageByteFormat;
 import 'dart:ui' show SemanticsAction, Tristate;
 
 import 'package:emberkeep/academic_calendar/data/academic_calendar_preferences.dart';
@@ -26,9 +27,9 @@ import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/calendar.dart';
 import 'package:emberkeep/tokens.dart';
-import 'package:emberkeep/widgets/glass.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show RenderParagraph;
+import 'package:flutter/rendering.dart'
+    show RenderParagraph, RenderRepaintBoundary;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -552,7 +553,7 @@ void main() {
         const ValueKey('daybook-event-place-search-suggestion-0'),
       );
       expect(
-        _placeSearchSecondaryContrast(
+        await _renderedPlaceSearchSecondaryContrast(
           tester,
           card: suggestion,
           secondaryText: 'Provider address for Alexander Library',
@@ -563,7 +564,7 @@ void main() {
       await tester.tap(suggestion);
       await tester.pumpAndSettle();
       expect(
-        _placeSearchSecondaryContrast(
+        await _renderedPlaceSearchSecondaryContrast(
           tester,
           card: find.byKey(
             const ValueKey('daybook-event-place-search-selection'),
@@ -1030,6 +1031,105 @@ void main() {
       expect(_focusIsWithin(keepManual), isTrue);
       expect(_focusIsWithin(searchAffordance), isFalse);
       await _capturePlaceSearchFrame(tester, 'keyboard_focus_trap_320x568_2x');
+    },
+  );
+
+  testWidgets(
+    'place search keyboard Enter accepts consent and activates search',
+    (tester) async {
+      final service = _RecordingPlaceSearchService();
+      final identity = _TestPlaceSearchIdentity();
+      final factory = _TestPlaceSearchFactory(
+        service: service,
+        identity: identity,
+      );
+      await _pumpDaybookWidget(
+        tester,
+        DaybookPlaceFields(
+          controller: DaybookPlaceFieldsController(),
+          keyPrefix: 'keyboard-accept-place',
+          placeSearchFactory: factory,
+        ),
+      );
+      await _openPlaceSearchConsentWithKeyboard(tester);
+
+      final useSearch = find
+          .ancestor(
+            of: find.text('USE PLACE SEARCH'),
+            matching: find.byType(InkWell),
+          )
+          .first;
+      if (!_focusIsWithin(useSearch)) await _pressTab(tester);
+      expect(_focusIsWithin(useSearch), isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      expect(find.text('USE PLACE SEARCH'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('keyboard-accept-place-search-query')),
+        findsOneWidget,
+      );
+      expect(identity.ensureCoreCalls, 1);
+      expect(identity.signInCalls, 1);
+      expect(factory.appCheck.activateCalls, 1);
+      expect(factory.controllerCreateCalls, 1);
+      expect(service.autocompleteQueries, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'place search keyboard Enter declines consent with manual mode untouched',
+    (tester) async {
+      final service = _RecordingPlaceSearchService();
+      final identity = _TestPlaceSearchIdentity();
+      final controller = DaybookPlaceFieldsController(
+        initialPlace: DaybookPlace(savedName: 'Manual library'),
+      );
+      final factory = _TestPlaceSearchFactory(
+        service: service,
+        identity: identity,
+      );
+      await _pumpDaybookWidget(
+        tester,
+        DaybookPlaceFields(
+          controller: controller,
+          keyPrefix: 'keyboard-decline-place',
+          placeSearchFactory: factory,
+        ),
+      );
+      await _openPlaceSearchConsentWithKeyboard(tester);
+
+      final keepManual = find.widgetWithText(
+        TextButton,
+        'KEEP TYPING MANUALLY',
+      );
+      for (var tabs = 0; tabs < 2 && !_focusIsWithin(keepManual); tabs++) {
+        await _pressTab(tester);
+      }
+      expect(_focusIsWithin(keepManual), isTrue);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      expect(find.text('KEEP TYPING MANUALLY'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('keyboard-decline-place-search-query')),
+        findsNothing,
+      );
+      expect(identity.ensureCoreCalls, 0);
+      expect(identity.signInCalls, 0);
+      expect(factory.appCheck.activateCalls, 0);
+      expect(factory.controllerCreateCalls, 0);
+      expect(service.autocompleteQueries, isEmpty);
+
+      final savedName = find.byKey(
+        const ValueKey('keyboard-decline-place-saved-name'),
+      );
+      expect(
+        tester.widget<TextField>(savedName).controller!.text,
+        'Manual library',
+      );
+      await tester.enterText(savedName, 'Busch Student Center');
+      expect(controller.savedName, 'Busch Student Center');
     },
   );
 
@@ -4063,28 +4163,113 @@ Future<void> _expectDeferredAccessCannotActivateReplacement(
   }
 }
 
-double _placeSearchSecondaryContrast(
+Future<double> _renderedPlaceSearchSecondaryContrast(
   WidgetTester tester, {
   required Finder card,
   required String secondaryText,
-}) {
-  final textColor = tester.widget<Text>(find.text(secondaryText)).style!.color!;
-  final cardWidget = tester.widget(card);
-  final container = cardWidget is Container
-      ? cardWidget
-      : tester.widget<Container>(
-          find.descendant(of: card, matching: find.byType(Container)).first,
-        );
-  final cardColor = (container.decoration! as BoxDecoration).color!;
-  final panel = tester.widget<GlassPanel>(
-    find.ancestor(of: card, matching: find.byType(GlassPanel)).first,
+}) async {
+  const pixelRatio = 3.0;
+  final boundaryFinder = find.byKey(_daybookWidgetCaptureKey);
+  final boundary = tester.renderObject<RenderRepaintBoundary>(boundaryFinder);
+  final capture = (await tester.runAsync(() async {
+    final image = await boundary.toImage(pixelRatio: pixelRatio);
+    try {
+      final rgba = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      return (rgba: rgba!, width: image.width);
+    } finally {
+      image.dispose();
+    }
+  }))!;
+  final paragraph = tester.renderObject<RenderParagraph>(
+    find.text(secondaryText),
   );
-  final panelBackground = Color.alphaBlend(panel.tint!, Palette.parchment);
-  final cardBackground = Color.alphaBlend(cardColor, panelBackground);
-  final renderedText = Color.alphaBlend(textColor, cardBackground);
-  final lighter = renderedText.computeLuminance();
-  final darker = cardBackground.computeLuminance();
+  final boundaryOrigin = tester.getTopLeft(boundaryFinder);
+  final cardRect = tester.getRect(card);
+  var lowestGlyphContrast = double.infinity;
+
+  for (var index = 0; index < secondaryText.length; index++) {
+    if (secondaryText[index].trim().isEmpty) continue;
+    final boxes = paragraph.getBoxesForSelection(
+      TextSelection(baseOffset: index, extentOffset: index + 1),
+    );
+    for (final box in boxes) {
+      final globalRect = Rect.fromPoints(
+        paragraph.localToGlobal(Offset(box.left, box.top)),
+        paragraph.localToGlobal(Offset(box.right, box.bottom)),
+      );
+      final backgroundPoint = Offset(
+        globalRect.center.dx,
+        (globalRect.bottom + 2).clamp(cardRect.top + 1, cardRect.bottom - 1),
+      );
+      final background = _renderedPixel(
+        capture.rgba,
+        imageWidth: capture.width,
+        pixelRatio: pixelRatio,
+        logicalPoint: backgroundPoint - boundaryOrigin,
+      );
+      var glyphContrast = 0.0;
+      final localRect = globalRect.shift(-boundaryOrigin);
+      final left = (localRect.left * pixelRatio).floor();
+      final top = (localRect.top * pixelRatio).floor();
+      final right = (localRect.right * pixelRatio).ceil();
+      final bottom = (localRect.bottom * pixelRatio).ceil();
+      for (var y = top; y < bottom; y++) {
+        for (var x = left; x < right; x++) {
+          final pixel = _renderedPixelAt(capture.rgba, capture.width, x, y);
+          final contrast = _contrastRatio(pixel, background);
+          if (contrast > glyphContrast) glyphContrast = contrast;
+        }
+      }
+      if (glyphContrast < lowestGlyphContrast) {
+        lowestGlyphContrast = glyphContrast;
+      }
+    }
+  }
+  return lowestGlyphContrast;
+}
+
+Color _renderedPixel(
+  ByteData rgba, {
+  required int imageWidth,
+  required double pixelRatio,
+  required Offset logicalPoint,
+}) => _renderedPixelAt(
+  rgba,
+  imageWidth,
+  (logicalPoint.dx * pixelRatio).round(),
+  (logicalPoint.dy * pixelRatio).round(),
+);
+
+Color _renderedPixelAt(ByteData rgba, int imageWidth, int x, int y) {
+  final offset = (y * imageWidth + x) * 4;
+  return Color.fromARGB(
+    rgba.getUint8(offset + 3),
+    rgba.getUint8(offset),
+    rgba.getUint8(offset + 1),
+    rgba.getUint8(offset + 2),
+  );
+}
+
+double _contrastRatio(Color first, Color second) {
+  final firstLuminance = first.computeLuminance();
+  final secondLuminance = second.computeLuminance();
+  final lighter = firstLuminance > secondLuminance
+      ? firstLuminance
+      : secondLuminance;
+  final darker = firstLuminance > secondLuminance
+      ? secondLuminance
+      : firstLuminance;
   return (lighter + 0.05) / (darker + 0.05);
+}
+
+Future<void> _openPlaceSearchConsentWithKeyboard(WidgetTester tester) async {
+  for (var index = 0; index < 5; index++) {
+    await _pressTab(tester);
+  }
+  expect(_focusIsWithin(find.text('SEARCH PLACES WITH GOOGLE')), isTrue);
+  await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+  await tester.pumpAndSettle();
+  expect(find.text('USE PLACE SEARCH'), findsOneWidget);
 }
 
 Future<void> _pressTab(WidgetTester tester) async {
