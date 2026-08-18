@@ -7,7 +7,11 @@ import '../../audio.dart';
 import '../../clock.dart';
 import '../../daybook/adapters/campus_place_adapter.dart';
 import '../../daybook/domain/daybook_place.dart';
+import '../../daybook/domain/daybook_event.dart';
+import '../../daybook/domain/daybook_task.dart';
+import '../../daybook/presentation/daybook_range_projection.dart';
 import '../../daybook/widgets/daybook_place_fields.dart';
+import '../../daybook/widgets/daybook_rows.dart';
 import '../../tokens.dart';
 import '../../widgets/facets.dart';
 import '../../widgets/glass.dart';
@@ -48,6 +52,8 @@ typedef ChangeAcademicOccurrence =
     Future<bool> Function(ClassOccurrence occurrence);
 typedef OpenAcademicOccurrenceAdjuster =
     Future<void> Function(ClassOccurrence occurrence);
+typedef ToggleDaybookTask =
+    Future<void> Function(DaybookTask task, bool completed);
 
 enum AcademicAddTarget { classMeeting, assignment, exam }
 
@@ -415,11 +421,12 @@ class AcademicDoorway extends StatelessWidget {
   }
 }
 
-class AcademicSpanPanel extends StatelessWidget {
-  const AcademicSpanPanel({
+class DaybookSpanPanel extends StatelessWidget {
+  const DaybookSpanPanel({
     super.key,
     required this.mode,
     required this.selectedDay,
+    required this.daybook,
     required this.schedule,
     required this.now,
     required this.onPrevious,
@@ -427,6 +434,7 @@ class AcademicSpanPanel extends StatelessWidget {
     required this.onToday,
     required this.onSelectDay,
     required this.onOpenNotebook,
+    required this.onToggleTask,
     required this.onToggleWork,
     required this.onOpenStudyPlanner,
     required this.onToggleStudyBlock,
@@ -436,6 +444,7 @@ class AcademicSpanPanel extends StatelessWidget {
 
   final AcademicCalendarMode mode;
   final DateTime selectedDay;
+  final DaybookRange daybook;
   final AcademicSchedule schedule;
   final DateTime now;
   final VoidCallback onPrevious;
@@ -443,6 +452,7 @@ class AcademicSpanPanel extends StatelessWidget {
   final VoidCallback onToday;
   final ValueChanged<DateTime> onSelectDay;
   final OpenAcademicNotebook onOpenNotebook;
+  final ToggleDaybookTask onToggleTask;
   final ToggleAcademicWork onToggleWork;
   final OpenAcademicStudyPlanner onOpenStudyPlanner;
   final ToggleAcademicStudyBlock onToggleStudyBlock;
@@ -453,15 +463,9 @@ class AcademicSpanPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final selected = CivilDate.fromDateTime(selectedDay);
     final term = schedule.termFor(selected) ?? schedule.latestTerm;
-    final first = switch (mode) {
-      AcademicCalendarMode.week => selected.startOfWeek(
-        term?.weekStartsOn ?? DateTime.monday,
-      ),
-      AcademicCalendarMode.threeDay || AcademicCalendarMode.day => selected,
-      AcademicCalendarMode.month => selected,
-    };
-    final count = mode.spanDays;
-    final last = first.addDays(count - 1);
+    final first = daybook.first;
+    final last = daybook.last;
+    final count = daybook.days.length;
 
     return GlassPanel(
       key: ValueKey('academic-${mode.name}-view'),
@@ -525,13 +529,14 @@ class AcademicSpanPanel extends StatelessWidget {
           const SizedBox(height: 4),
           const _AcademicRule(),
           for (var index = 0; index < count; index++) ...[
-            AcademicAgendaDay(
-              date: first.addDays(index),
+            DaybookAgendaDay(
+              day: daybook.dayOn(first.addDays(index)),
               selected: first.addDays(index) == selected,
               today: first.addDays(index) == CivilDate.fromDateTime(now),
               schedule: schedule,
               onSelectDay: onSelectDay,
               onOpenNotebook: onOpenNotebook,
+              onToggleTask: onToggleTask,
               onToggleWork: onToggleWork,
               onOpenStudyPlanner: onOpenStudyPlanner,
               onToggleStudyBlock: onToggleStudyBlock,
@@ -546,15 +551,16 @@ class AcademicSpanPanel extends StatelessWidget {
   }
 }
 
-class AcademicAgendaDay extends StatelessWidget {
-  const AcademicAgendaDay({
+class DaybookAgendaDay extends StatelessWidget {
+  const DaybookAgendaDay({
     super.key,
-    required this.date,
+    required this.day,
     required this.selected,
     required this.today,
     required this.schedule,
     required this.onSelectDay,
     required this.onOpenNotebook,
+    required this.onToggleTask,
     required this.onToggleWork,
     required this.onOpenStudyPlanner,
     required this.onToggleStudyBlock,
@@ -563,12 +569,13 @@ class AcademicAgendaDay extends StatelessWidget {
     this.compact = false,
   });
 
-  final CivilDate date;
+  final DaybookDay day;
   final bool selected;
   final bool today;
   final AcademicSchedule schedule;
   final ValueChanged<DateTime> onSelectDay;
   final OpenAcademicNotebook onOpenNotebook;
+  final ToggleDaybookTask onToggleTask;
   final ToggleAcademicWork onToggleWork;
   final OpenAcademicStudyPlanner onOpenStudyPlanner;
   final ToggleAcademicStudyBlock onToggleStudyBlock;
@@ -578,11 +585,7 @@ class AcademicAgendaDay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final occurrences = schedule.occurrencesOn(date);
-    final workItems = schedule.workItemsOn(date);
-    final studyBlocks = schedule.studyBlocksOn(date);
-    final conflicts = schedule.meetingConflictsOn(date);
-    final transitionPressures = schedule.transitionPressuresOn(date);
+    final date = day.date;
     return Padding(
       padding: EdgeInsets.symmetric(vertical: compact ? 6 : 8),
       child: Column(
@@ -637,7 +640,7 @@ class AcademicAgendaDay extends StatelessWidget {
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
-                          _dayCountLabel(occurrences.length, workItems.length),
+                          _dayCountLabel(day.entries),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.end,
@@ -653,11 +656,11 @@ class AcademicAgendaDay extends StatelessWidget {
               ),
             ),
           ),
-          if (occurrences.isEmpty && workItems.isEmpty && studyBlocks.isEmpty)
+          if (day.entries.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
               child: Text(
-                'No classes, course work, or study blocks.',
+                'Nothing held for this day yet.',
                 style: Type.body.copyWith(
                   fontSize: 12.5,
                   fontStyle: FontStyle.italic,
@@ -665,70 +668,397 @@ class AcademicAgendaDay extends StatelessWidget {
                 ),
               ),
             )
-          else ...[
-            if (conflicts.isNotEmpty) ...[
-              AcademicConflictNotice(conflicts: conflicts, schedule: schedule),
-              const SizedBox(height: 7),
-            ],
-            if (transitionPressures.isNotEmpty) ...[
-              AcademicTransitionNotice(
-                pressures: transitionPressures,
-                schedule: schedule,
-              ),
-              const SizedBox(height: 7),
-            ],
-            for (final occurrence in occurrences)
-              AcademicOccurrenceRow(
-                occurrence: occurrence,
-                course: schedule.courseById(occurrence.courseId),
-                transitionBufferMinutes:
-                    schedule
-                        .meetingSeriesById(occurrence.meetingSeriesId)
-                        ?.transitionBufferMinutes ??
-                    10,
-                conflict: conflicts.any(
-                  (item) => item.includes(occurrence.occurrenceKey),
-                ),
-                transitionPressure: transitionPressures.any(
-                  (item) => item.includes(occurrence.occurrenceKey),
-                ),
-                onOpenNotebook: () => onOpenNotebook(occurrence),
-                onSetTransitionBuffer: (minutes) =>
-                    onUpdateTransitionBuffer(occurrence, minutes),
-                onAdjust: occurrence.canAdjust
-                    ? () => onOpenOccurrenceAdjuster(occurrence)
-                    : null,
-              ),
-            for (final item in workItems)
-              AcademicWorkRow(
-                item: item,
-                course: schedule.courseById(item.courseId),
-                studyPlan: schedule.studyPlanFor(item.workId),
-                plannedStudyMinutes: schedule.plannedStudyMinutesFor(
-                  item.workId,
-                ),
-                onToggle: () => onToggleWork(item),
-                onPlanStudy: () => onOpenStudyPlanner(item),
-              ),
-            for (final block in studyBlocks)
-              AcademicStudyBlockRow(
-                block: block,
-                item: schedule.workItems
-                    .where((item) => item.workId == block.workId)
-                    .firstOrNull,
-                course: schedule.courseById(
-                  schedule.workItems
-                          .where((item) => item.workId == block.workId)
-                          .firstOrNull
-                          ?.courseId ??
-                      '',
-                ),
-                onToggle: () => onToggleStudyBlock(block),
-              ),
-          ],
+          else
+            DaybookAgendaEntries(
+              day: day,
+              schedule: schedule,
+              onOpenNotebook: onOpenNotebook,
+              onToggleTask: onToggleTask,
+              onToggleWork: onToggleWork,
+              onOpenStudyPlanner: onOpenStudyPlanner,
+              onToggleStudyBlock: onToggleStudyBlock,
+              onUpdateTransitionBuffer: onUpdateTransitionBuffer,
+              onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
+            ),
         ],
       ),
     );
+  }
+}
+
+class DaybookAgendaEntries extends StatelessWidget {
+  const DaybookAgendaEntries({
+    super.key,
+    required this.day,
+    required this.schedule,
+    required this.onOpenNotebook,
+    required this.onToggleTask,
+    required this.onToggleWork,
+    required this.onOpenStudyPlanner,
+    required this.onToggleStudyBlock,
+    required this.onUpdateTransitionBuffer,
+    required this.onOpenOccurrenceAdjuster,
+    this.showNotices = true,
+  });
+
+  final DaybookDay day;
+  final AcademicSchedule schedule;
+  final OpenAcademicNotebook onOpenNotebook;
+  final ToggleDaybookTask onToggleTask;
+  final ToggleAcademicWork onToggleWork;
+  final OpenAcademicStudyPlanner onOpenStudyPlanner;
+  final ToggleAcademicStudyBlock onToggleStudyBlock;
+  final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
+  final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
+  final bool showNotices;
+
+  @override
+  Widget build(BuildContext context) {
+    final academicConflicts = _academicConflicts(day, schedule);
+    final otherConflicts = [
+      for (final conflict in day.summary.conflicts)
+        if (!conflict.leftDisplayKey.startsWith('class:') ||
+            !conflict.rightDisplayKey.startsWith('class:'))
+          conflict,
+    ];
+    final transitionPressures = schedule.transitionPressuresOn(day.date);
+    final sections =
+        <(DaybookSection, String)>[
+              (DaybookSection.allDay, 'ALL DAY'),
+              (DaybookSection.timed, 'SCHEDULE'),
+              (DaybookSection.due, 'DUE'),
+              (DaybookSection.stillOpen, 'STILL OPEN'),
+            ]
+            .where(
+              (section) =>
+                  day.entries.any((entry) => entry.section == section.$1),
+            )
+            .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showNotices && academicConflicts.isNotEmpty) ...[
+          AcademicConflictNotice(
+            conflicts: academicConflicts,
+            schedule: schedule,
+          ),
+          const SizedBox(height: 7),
+        ],
+        if (showNotices && otherConflicts.isNotEmpty) ...[
+          _DaybookConflictNotice(date: day.date, conflicts: otherConflicts),
+          const SizedBox(height: 7),
+        ],
+        if (showNotices && transitionPressures.isNotEmpty) ...[
+          AcademicTransitionNotice(
+            pressures: transitionPressures,
+            schedule: schedule,
+          ),
+          const SizedBox(height: 7),
+        ],
+        for (
+          var sectionIndex = 0;
+          sectionIndex < sections.length;
+          sectionIndex++
+        ) ...[
+          if (sectionIndex > 0)
+            const Divider(height: 17, color: Color(0x2EE7C47E)),
+          Text(
+            sections[sectionIndex].$2,
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              letterSpacing: 1.7,
+              color: sections[sectionIndex].$1 == DaybookSection.stillOpen
+                  ? Palette.xp
+                  : Palette.xpLight,
+            ),
+          ),
+          const SizedBox(height: 7),
+          for (final entry in day.entries)
+            if (entry.section == sections[sectionIndex].$1)
+              _DaybookProjectionEntryRow(
+                key: ValueKey('daybook-entry-${entry.displayKey}'),
+                entry: entry,
+                day: day,
+                schedule: schedule,
+                transitionPressures: transitionPressures,
+                onOpenNotebook: onOpenNotebook,
+                onToggleTask: onToggleTask,
+                onToggleWork: onToggleWork,
+                onOpenStudyPlanner: onOpenStudyPlanner,
+                onToggleStudyBlock: onToggleStudyBlock,
+                onUpdateTransitionBuffer: onUpdateTransitionBuffer,
+                onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
+              ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DaybookProjectionEntryRow extends StatelessWidget {
+  const _DaybookProjectionEntryRow({
+    super.key,
+    required this.entry,
+    required this.day,
+    required this.schedule,
+    required this.transitionPressures,
+    required this.onOpenNotebook,
+    required this.onToggleTask,
+    required this.onToggleWork,
+    required this.onOpenStudyPlanner,
+    required this.onToggleStudyBlock,
+    required this.onUpdateTransitionBuffer,
+    required this.onOpenOccurrenceAdjuster,
+  });
+
+  final DaybookEntry entry;
+  final DaybookDay day;
+  final AcademicSchedule schedule;
+  final List<AcademicTransitionPressure> transitionPressures;
+  final OpenAcademicNotebook onOpenNotebook;
+  final ToggleDaybookTask onToggleTask;
+  final ToggleAcademicWork onToggleWork;
+  final OpenAcademicStudyPlanner onOpenStudyPlanner;
+  final ToggleAcademicStudyBlock onToggleStudyBlock;
+  final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
+  final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (entry.action) {
+      case DaybookEventAction(:final eventId, :final occurrenceKey):
+        final event = schedule.events
+            .where((item) => item.eventId == eventId)
+            .firstOrNull;
+        if (event == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: DaybookEventRow(
+            event: event,
+            occurrence: _eventOccurrence(event, occurrenceKey),
+          ),
+        );
+      case DaybookTaskAction(:final taskId):
+        final task = schedule.tasks
+            .where((item) => item.taskId == taskId)
+            .firstOrNull;
+        if (task == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: DaybookTaskRow(
+            task: task,
+            onCompletedChanged: (completed) => onToggleTask(task, completed),
+          ),
+        );
+      case AcademicOccurrenceAction(:final occurrenceKey):
+        final occurrence = schedule.occurrenceByKey(occurrenceKey);
+        if (occurrence == null) return const SizedBox.shrink();
+        final displayKey = 'class:$occurrenceKey';
+        final conflict = day.summary.conflicts.any(
+          (item) =>
+              item.leftDisplayKey == displayKey ||
+              item.rightDisplayKey == displayKey,
+        );
+        return AcademicOccurrenceRow(
+          occurrence: occurrence,
+          course: schedule.courseById(occurrence.courseId),
+          transitionBufferMinutes:
+              schedule
+                  .meetingSeriesById(occurrence.meetingSeriesId)
+                  ?.transitionBufferMinutes ??
+              10,
+          conflict: conflict,
+          transitionPressure: transitionPressures.any(
+            (item) => item.includes(occurrenceKey),
+          ),
+          onOpenNotebook: () => onOpenNotebook(occurrence),
+          onSetTransitionBuffer: (minutes) =>
+              onUpdateTransitionBuffer(occurrence, minutes),
+          onAdjust: occurrence.canAdjust
+              ? () => onOpenOccurrenceAdjuster(occurrence)
+              : null,
+        );
+      case AcademicWorkAction(:final workId):
+        final item = schedule.workItems
+            .where((item) => item.workId == workId)
+            .firstOrNull;
+        if (item == null) return const SizedBox.shrink();
+        return AcademicWorkRow(
+          item: item,
+          course: schedule.courseById(item.courseId),
+          studyPlan: schedule.studyPlanFor(item.workId),
+          plannedStudyMinutes: schedule.plannedStudyMinutesFor(item.workId),
+          onToggle: () => onToggleWork(item),
+          onPlanStudy: () => onOpenStudyPlanner(item),
+        );
+      case AcademicStudyAction(:final studyBlockId):
+        final block = schedule.studyBlocks
+            .where((item) => item.studyBlockId == studyBlockId)
+            .firstOrNull;
+        if (block == null) return const SizedBox.shrink();
+        final item = schedule.workItems
+            .where((item) => item.workId == block.workId)
+            .firstOrNull;
+        return AcademicStudyBlockRow(
+          block: block,
+          item: item,
+          course: schedule.courseById(item?.courseId ?? ''),
+          onToggle: () => onToggleStudyBlock(block),
+        );
+      case QuestPlanAction():
+        return _DaybookNeutralEntryRow(entry: entry);
+    }
+  }
+}
+
+class _DaybookNeutralEntryRow extends StatelessWidget {
+  const _DaybookNeutralEntryRow({required this.entry});
+
+  final DaybookEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    final metadata = entry.section == DaybookSection.allDay
+        ? 'ALL DAY'
+        : entry.startMinute == null
+        ? 'QUEST PLAN'
+        : 'DUE ${formatAcademicTime(entry.startMinute!)}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 58),
+        padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
+        decoration: facetedDecoration(
+          cut: 9,
+          color: Palette.glassFill,
+          borderColor: Palette.brass.withValues(alpha: 0.34),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              entry.completed
+                  ? Icons.check_rounded
+                  : Icons.auto_awesome_mosaic_outlined,
+              size: 19,
+              color: entry.completed ? Palette.xp : Palette.xpLight,
+            ),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Type.body.copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: entry.completed ? Palette.textMid : Palette.textHi,
+                      decoration: entry.completed
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    metadata,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DaybookConflictNotice extends StatelessWidget {
+  const _DaybookConflictNotice({required this.date, required this.conflicts});
+
+  final CivilDate date;
+  final List<DaybookConflict> conflicts;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: ValueKey('daybook-conflicts-$date'),
+    width: double.infinity,
+    padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+    decoration: facetedDecoration(
+      cut: 9,
+      color: Palette.danger.withValues(alpha: 0.055),
+      borderColor: Palette.danger.withValues(alpha: 0.42),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.call_split_rounded, size: 18, color: Palette.danger),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                conflicts.length == 1
+                    ? 'TWO PLANS SHARE THIS TIME'
+                    : 'PLANS SHARE THIS TIME',
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: Palette.danger,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                conflicts.length == 1
+                    ? '${conflicts.first.message}. Both are still kept.'
+                    : '${conflicts.length} overlaps are sharing this day. Everything is still kept.',
+                style: Type.body.copyWith(
+                  fontSize: 12.5,
+                  color: Palette.textMid,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+List<AcademicMeetingConflict> _academicConflicts(
+  DaybookDay day,
+  AcademicSchedule schedule,
+) => [
+  for (final conflict in day.summary.conflicts)
+    if (conflict.leftDisplayKey.startsWith('class:') &&
+        conflict.rightDisplayKey.startsWith('class:'))
+      if (schedule.occurrenceByKey(conflict.leftDisplayKey.substring(6))
+          case final left?)
+        if (schedule.occurrenceByKey(conflict.rightDisplayKey.substring(6))
+            case final right?)
+          AcademicMeetingConflict(left, right),
+];
+
+DaybookEventOccurrence? _eventOccurrence(
+  DaybookEvent event,
+  String occurrenceKey,
+) {
+  final prefix = '${event.eventId}@';
+  if (!occurrenceKey.startsWith(prefix)) return null;
+  try {
+    return event.occurrenceFor(
+      CivilDate.parse(occurrenceKey.substring(prefix.length)),
+    );
+  } on ArgumentError {
+    return null;
+  } on FormatException {
+    return null;
   }
 }
 
@@ -779,6 +1109,34 @@ class AcademicOccurrenceRow extends StatelessWidget {
         '${conflict ? ', overlaps another class' : ''}'
         '${transitionPressure ? ', has a tight transition' : ''}, '
         '${transitionBufferMinutes == 0 ? 'no transition buffer' : '$transitionBufferMinutes minute transition buffer'}';
+    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 14 * 1.5;
+    final mark = Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: _CourseMark(
+        kind: occurrence.kind,
+        color: occurrence.state == OccurrenceState.cancelled
+            ? Palette.textLo
+            : accent,
+        size: 25,
+      ),
+    );
+    final details = _AcademicOccurrenceDetails(
+      occurrence: occurrence,
+      code: code,
+      accent: accent,
+      stateLabel: stateLabel,
+      enabledReminders: enabledReminders,
+      conflict: conflict,
+      transitionPressure: transitionPressure,
+      transitionBufferMinutes: transitionBufferMinutes,
+      onSetTransitionBuffer: onSetTransitionBuffer,
+    );
+    final actions = _OccurrenceActions(
+      occurrenceKey: occurrence.occurrenceKey,
+      courseCode: code,
+      onOpenNotebook: onOpenNotebook,
+      onAdjust: onAdjust,
+    );
 
     return Semantics(
       label: semantics,
@@ -797,122 +1155,142 @@ class AcademicOccurrenceRow extends StatelessWidget {
               ? Palette.textLo.withValues(alpha: 0.30)
               : accent.withValues(alpha: 0.30),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: _CourseMark(
-                kind: occurrence.kind,
-                color: occurrence.state == OccurrenceState.cancelled
-                    ? Palette.textLo
-                    : accent,
-                size: 25,
-              ),
-            ),
-            const SizedBox(width: 9),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: largeText
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Wrap(
-                    spacing: 7,
-                    runSpacing: 3,
-                    crossAxisAlignment: WrapCrossAlignment.center,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        '$code · ${occurrence.kind.shortLabel}',
-                        style: Type.label.copyWith(
-                          fontSize: Type.minLabel,
-                          color: occurrence.state == OccurrenceState.cancelled
-                              ? Palette.textLo
-                              : accent,
-                        ),
-                      ),
-                      if (stateLabel != null)
-                        Text(
-                          stateLabel,
-                          style: Type.label.copyWith(
-                            fontSize: Type.minLabel,
-                            color: occurrence.state == OccurrenceState.cancelled
-                                ? Palette.textLo
-                                : Palette.xpLight,
-                          ),
-                        ),
-                      if (conflict)
-                        Text(
-                          'OVERLAP',
-                          key: ValueKey(
-                            'academic-overlap-${occurrence.occurrenceKey}',
-                          ),
-                          style: Type.label.copyWith(
-                            fontSize: Type.minLabel,
-                            color: Palette.danger,
-                          ),
-                        ),
-                      if (transitionPressure)
-                        Text(
-                          'TIGHT TURNAROUND',
-                          key: ValueKey(
-                            'academic-transition-${occurrence.occurrenceKey}',
-                          ),
-                          style: Type.label.copyWith(
-                            fontSize: Type.minLabel,
-                            color: Palette.xp,
-                          ),
-                        ),
+                      mark,
+                      const SizedBox(width: 9),
+                      Expanded(child: details),
                     ],
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    '${formatAcademicTime(occurrence.localStartMinute)}–'
-                    '${formatAcademicTime(occurrence.localEndMinute)}',
-                    style: Type.body.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: occurrence.state == OccurrenceState.cancelled
-                          ? Palette.textLo
-                          : Palette.textHi,
-                      decoration: occurrence.state == OccurrenceState.cancelled
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${occurrence.place.shortLabel} · '
-                    '${enabledReminders.isEmpty ? 'reminders off' : '${enabledReminders.first.offsetMinutes} min reminder'}',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Type.body.copyWith(
-                      fontSize: 12.5,
-                      color: Palette.textMid,
-                    ),
-                  ),
-                  if (transitionPressure) ...[
-                    const SizedBox(height: 7),
-                    _TransitionBufferButton(
-                      occurrenceKey: occurrence.occurrenceKey,
-                      courseCode: code,
-                      transitionBufferMinutes: transitionBufferMinutes,
-                      onSetTransitionBuffer: onSetTransitionBuffer,
-                    ),
-                  ],
+                  const SizedBox(height: 6),
+                  Align(alignment: Alignment.centerRight, child: actions),
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  mark,
+                  const SizedBox(width: 9),
+                  Expanded(child: details),
+                  const SizedBox(width: 6),
+                  actions,
                 ],
               ),
-            ),
-            const SizedBox(width: 6),
-            _OccurrenceActions(
-              occurrenceKey: occurrence.occurrenceKey,
-              courseCode: code,
-              onOpenNotebook: onOpenNotebook,
-              onAdjust: onAdjust,
-            ),
-          ],
-        ),
       ),
     );
   }
+}
+
+class _AcademicOccurrenceDetails extends StatelessWidget {
+  const _AcademicOccurrenceDetails({
+    required this.occurrence,
+    required this.code,
+    required this.accent,
+    required this.stateLabel,
+    required this.enabledReminders,
+    required this.conflict,
+    required this.transitionPressure,
+    required this.transitionBufferMinutes,
+    required this.onSetTransitionBuffer,
+  });
+
+  final ClassOccurrence occurrence;
+  final String code;
+  final Color accent;
+  final String? stateLabel;
+  final List<AcademicReminder> enabledReminders;
+  final bool conflict;
+  final bool transitionPressure;
+  final int transitionBufferMinutes;
+  final ValueChanged<int> onSetTransitionBuffer;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Wrap(
+        spacing: 7,
+        runSpacing: 3,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(
+            '$code · ${occurrence.kind.shortLabel}',
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              color: occurrence.state == OccurrenceState.cancelled
+                  ? Palette.textLo
+                  : accent,
+            ),
+          ),
+          if (stateLabel != null)
+            Text(
+              stateLabel!,
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: occurrence.state == OccurrenceState.cancelled
+                    ? Palette.textLo
+                    : Palette.xpLight,
+              ),
+            ),
+          if (conflict)
+            Text(
+              'OVERLAP',
+              key: ValueKey('academic-overlap-${occurrence.occurrenceKey}'),
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: Palette.danger,
+              ),
+            ),
+          if (transitionPressure)
+            Text(
+              'TIGHT TURNAROUND',
+              key: ValueKey('academic-transition-${occurrence.occurrenceKey}'),
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: Palette.xp,
+              ),
+            ),
+        ],
+      ),
+      const SizedBox(height: 3),
+      Text(
+        '${formatAcademicTime(occurrence.localStartMinute)}–'
+        '${formatAcademicTime(occurrence.localEndMinute)}',
+        style: Type.body.copyWith(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: occurrence.state == OccurrenceState.cancelled
+              ? Palette.textLo
+              : Palette.textHi,
+          decoration: occurrence.state == OccurrenceState.cancelled
+              ? TextDecoration.lineThrough
+              : null,
+        ),
+      ),
+      const SizedBox(height: 2),
+      Text(
+        '${occurrence.place.shortLabel} · '
+        '${enabledReminders.isEmpty ? 'reminders off' : '${enabledReminders.first.offsetMinutes} min reminder'}',
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: Type.body.copyWith(fontSize: 12.5, color: Palette.textMid),
+      ),
+      if (transitionPressure) ...[
+        const SizedBox(height: 7),
+        _TransitionBufferButton(
+          occurrenceKey: occurrence.occurrenceKey,
+          courseCode: code,
+          transitionBufferMinutes: transitionBufferMinutes,
+          onSetTransitionBuffer: onSetTransitionBuffer,
+        ),
+      ],
+    ],
+  );
 }
 
 class AcademicConflictNotice extends StatelessWidget {
@@ -3266,38 +3644,51 @@ class _ModeCell extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    selected: selected,
-    label: '${mode.label} calendar view',
-    child: InkWell(
-      key: ValueKey('academic-mode-${mode.name}'),
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 44),
-        alignment: Alignment.center,
-        decoration: facetedDecoration(
-          cut: 7,
-          color: selected
-              ? Palette.xp.withValues(alpha: 0.13)
-              : Colors.transparent,
-          borderColor: selected
-              ? Palette.xpLight.withValues(alpha: 0.54)
-              : Palette.glassEdge,
-        ),
-        child: Text(
-          mode.label,
-          maxLines: 1,
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            letterSpacing: 0.7,
-            color: selected ? Palette.xpLight : Palette.textLo,
+  Widget build(BuildContext context) {
+    final compact =
+        MediaQuery.textScalerOf(context).scale(Type.minLabel) >=
+        Type.minLabel * 1.5;
+    final visibleLabel = compact
+        ? switch (mode) {
+            AcademicCalendarMode.month => 'MON',
+            AcademicCalendarMode.week => 'WK',
+            AcademicCalendarMode.threeDay => '3D',
+            AcademicCalendarMode.day => 'DAY',
+          }
+        : mode.label;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${mode.label} calendar view',
+      child: InkWell(
+        key: ValueKey('academic-mode-${mode.name}'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          alignment: Alignment.center,
+          decoration: facetedDecoration(
+            cut: 7,
+            color: selected
+                ? Palette.xp.withValues(alpha: 0.13)
+                : Colors.transparent,
+            borderColor: selected
+                ? Palette.xpLight.withValues(alpha: 0.54)
+                : Palette.glassEdge,
+          ),
+          child: Text(
+            visibleLabel,
+            maxLines: 1,
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              letterSpacing: 0.7,
+              color: selected ? Palette.xpLight : Palette.textLo,
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _OccurrenceActions extends StatelessWidget {
@@ -3940,12 +4331,26 @@ String formatAcademicTime(int minute) {
   return '$hour12:$minutes $suffix';
 }
 
-String _dayCountLabel(int classes, int workItems) {
+String _dayCountLabel(List<DaybookEntry> entries) {
+  final scheduled = entries
+      .where(
+        (entry) =>
+            entry.section == DaybookSection.allDay ||
+            entry.section == DaybookSection.timed,
+      )
+      .length;
+  final due = entries
+      .where(
+        (entry) =>
+            entry.section == DaybookSection.due ||
+            entry.section == DaybookSection.stillOpen,
+      )
+      .length;
   final parts = <String>[];
-  if (classes > 0) {
-    parts.add('$classes ${classes == 1 ? 'CLASS' : 'CLS'}');
+  if (scheduled > 0) {
+    parts.add('$scheduled ${scheduled == 1 ? 'PLAN' : 'PLANS'}');
   }
-  if (workItems > 0) parts.add('$workItems DUE');
+  if (due > 0) parts.add('$due DUE');
   return parts.isEmpty ? 'QUIET DAY' : parts.join(' · ');
 }
 
@@ -3970,7 +4375,7 @@ String _relativeDate(CivilDate date, DateTime now) {
 }
 
 String _timeZoneLabel(String? timeZoneId) {
-  if (timeZoneId == null || timeZoneId.trim().isEmpty) return 'CAMPUS TIME';
+  if (timeZoneId == null || timeZoneId.trim().isEmpty) return 'LOCAL TIME';
   final city = timeZoneId.split('/').last.replaceAll('_', ' ').toUpperCase();
   return '$city · CAMPUS TIME';
 }

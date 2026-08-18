@@ -755,6 +755,242 @@ void main() {
     }
   });
 
+  testWidgets(
+    'general daybook coexistence uses one source order in month and span views',
+    (tester) async {
+      final schedule = _generalDaybookSchedule();
+      final quest = Quest(
+        title: 'Quest board check-in',
+        stat: Stat.foc,
+        difficulty: 3,
+        schedule: QuestSchedule.once,
+        dueDate: DateTime(2026, 8, 11),
+      );
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(schedule),
+        handoff: _RecordingHandoff(),
+        quests: [quest],
+      );
+
+      expect(
+        find.bySemanticsLabel(
+          RegExp(
+            r'2 events.*2 tasks.*1 class.*1 academic work item.*1 study block.*1 quest plan',
+          ),
+        ),
+        findsOneWidget,
+      );
+      await tester.scrollUntilVisible(
+        find.text('Library closed'),
+        260,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Library closed'), findsOneWidget);
+      expect(find.text('Project meeting'), findsOneWidget);
+      expect(find.text('Return library book'), findsOneWidget);
+      expect(find.text('Quest board check-in'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('ALL DAY').first).dy,
+        lessThan(tester.getTopLeft(find.text('SCHEDULE')).dy),
+      );
+
+      for (final mode in const [
+        AcademicCalendarMode.week,
+        AcademicCalendarMode.threeDay,
+        AcademicCalendarMode.day,
+      ]) {
+        final modeButton = find.byKey(ValueKey('academic-mode-${mode.name}'));
+        await tester.scrollUntilVisible(
+          modeButton,
+          -260,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.tap(modeButton);
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(
+          find.byKey(ValueKey('academic-${mode.name}-view')),
+          findsOneWidget,
+        );
+        expect(find.text('Library closed'), findsWidgets);
+        expect(find.text('Project meeting'), findsWidgets);
+        expect(find.text('Return library book'), findsWidgets);
+        expect(find.text('Quest board check-in'), findsWidgets);
+        expect(find.text('STILL OPEN'), findsOneWidget);
+        expect(
+          tester.getTopLeft(find.text('ALL DAY').first).dy,
+          lessThan(tester.getTopLeft(find.text('SCHEDULE').first).dy),
+        );
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
+
+  testWidgets(
+    'general daybook task completion and undo persist without game rewards',
+    (tester) async {
+      final task = DaybookTask(
+        taskId: 'task_return_book',
+        title: 'Return library book',
+        dueDate: CivilDate(2026, 8, 11),
+        dueMinute: 17 * 60,
+        createdAt: DateTime.utc(2026, 8, 9),
+        updatedAt: DateTime.utc(2026, 8, 9),
+      );
+      final repository = InMemoryAcademicScheduleRepository(
+        AcademicSchedule.empty().putTask(task),
+      );
+      final state = GameState()
+        ..xp = 17
+        ..totalXp = 41
+        ..streakDays = 3;
+      final quest = Quest(
+        title: 'Keep the Quest untouched',
+        stat: Stat.foc,
+        difficulty: 2,
+        schedule: QuestSchedule.once,
+        dueDate: DateTime(2026, 8, 11),
+      );
+      final historyBefore = Map<String, int>.of(state.history);
+
+      await _pumpCalendar(
+        tester,
+        repository: repository,
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-11',
+          ),
+        ),
+        quests: [quest],
+        state: state,
+      );
+
+      final toggle = find.byKey(
+        const ValueKey('daybook-task-toggle-task_return_book'),
+      );
+      await tester.tap(toggle.first);
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(repository.schedule.tasks.single.completed, isTrue);
+      expect(repository.schedule.tasks.single.dueDate, CivilDate(2026, 8, 11));
+      expect(repository.schedule.tasks.single.dueMinute, 17 * 60);
+      expect(state.xp, 17);
+      expect(state.totalXp, 41);
+      expect(state.streakDays, 3);
+      expect(state.history, historyBefore);
+      expect(quest.doneFor(DateTime(2026, 8, 11)), isFalse);
+
+      await tester.tap(toggle.first);
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(repository.schedule.tasks.single.completed, isFalse);
+      expect(repository.schedule.tasks.single.dueDate, CivilDate(2026, 8, 11));
+      expect(repository.schedule.tasks.single.dueMinute, 17 * 60);
+      expect(repository.saveCount, 2);
+      expect(state.xp, 17);
+      expect(state.totalXp, 41);
+      expect(state.streakDays, 3);
+      expect(state.history, historyBefore);
+      expect(quest.doneFor(DateTime(2026, 8, 11)), isFalse);
+    },
+  );
+
+  testWidgets('general daybook keeps overdue tasks open only on today', (
+    tester,
+  ) async {
+    final schedule = AcademicSchedule.empty().putTask(
+      DaybookTask(
+        taskId: 'task_open',
+        title: 'Return library book',
+        dueDate: CivilDate(2026, 8, 10),
+        createdAt: DateTime.utc(2026, 8, 8),
+        updatedAt: DateTime.utc(2026, 8, 8),
+      ),
+    );
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(schedule),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.day,
+          selectedDate: '2026-08-11',
+        ),
+      ),
+    );
+    expect(find.text('STILL OPEN'), findsOneWidget);
+    expect(find.text('Return library book'), findsWidgets);
+
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(schedule),
+      handoff: _RecordingHandoff(),
+      calendarKey: const ValueKey('general-daybook-past'),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.day,
+          selectedDate: '2026-08-10',
+        ),
+      ),
+    );
+    expect(find.text('STILL OPEN'), findsNothing);
+    expect(find.text('Return library book'), findsWidgets);
+  });
+
+  testWidgets(
+    'general daybook empty schedule adds a task without School setup',
+    (tester) async {
+      final repository = InMemoryAcademicScheduleRepository();
+      await _pumpCalendar(
+        tester,
+        repository: repository,
+        handoff: _RecordingHandoff(),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('academic-add-class')));
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(find.byKey(const ValueKey('daybook-add-choice-task')));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(find.byType(DaybookTaskEditor), findsOneWidget);
+      expect(find.byKey(const ValueKey('academic-term-name')), findsNothing);
+      expect(find.byKey(const ValueKey('academic-course-code')), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-title')),
+        'Renew library card',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-task-save')),
+      );
+      repository.allowWrites = false;
+      await tester.tap(find.byKey(const ValueKey('daybook-task-save')));
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(repository.schedule.tasks, isEmpty);
+      expect(find.byType(DaybookTaskEditor), findsOneWidget);
+      expect(
+        find.text('Couldn’t save this task locally. Try again.'),
+        findsOneWidget,
+      );
+
+      repository.allowWrites = true;
+      await tester.tap(find.byKey(const ValueKey('daybook-task-save')));
+      await tester.pumpAndSettle();
+      expect(repository.schedule.terms, isEmpty);
+      expect(repository.schedule.courses, isEmpty);
+      expect(repository.schedule.tasks.single.title, 'Renew library card');
+      expect(repository.saveCount, 2);
+      expect(find.byType(DaybookTaskEditor), findsNothing);
+
+      await tester.tap(
+        find.byKey(const ValueKey('academic-mode-week')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('LOCAL TIME'), findsOneWidget);
+      expect(find.text('CAMPUS TIME'), findsNothing);
+    },
+  );
+
   testWidgets('six-week month keeps an even readable folio rhythm', (
     tester,
   ) async {
@@ -956,7 +1192,7 @@ void main() {
     );
   });
 
-  testWidgets('completed plan keeps day weight but clears its deadline', (
+  testWidgets('completed plan clears projected weight and its deadline', (
     tester,
   ) async {
     final cancelled = _scheduleFixture().cancelOccurrence(
@@ -980,7 +1216,7 @@ void main() {
 
     expect(
       find.byKey(const ValueKey('academic-month-weight-2026-08-11')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.byKey(const ValueKey('academic-month-deadline-2026-08-11')),
@@ -1681,6 +1917,7 @@ Future<void> _pumpCalendar(
   List<Quest> quests = const [],
   Size size = const Size(430, 932),
   double textScale = 1,
+  GameState? state,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
@@ -1690,14 +1927,15 @@ Future<void> _pumpCalendar(
     tester.platformDispatcher.clearTextScaleFactorTestValue();
     tester.binding.setSurfaceSize(null);
   });
-  final state = GameState()..reduceMotion = true;
+  final calendarState = state ?? GameState();
+  calendarState.reduceMotion = true;
   await tester.pumpWidget(
     MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: CalendarPage(
           key: calendarKey,
-          state: state,
+          state: calendarState,
           quests: quests,
           onAdd: (_) => true,
           scheduleRepository: repository,
@@ -1759,6 +1997,87 @@ AcademicSchedule _scheduleFixture({
     series: series,
     updatedAt: DateTime.utc(2026, 8, 11),
     idFactory: (_) => 'occurrence_ece_345_aug_11',
+  );
+}
+
+AcademicSchedule _generalDaybookSchedule() {
+  final createdAt = DateTime.utc(2026, 8, 8);
+  final schedule = _scheduleFixture()
+      .putEvent(
+        DaybookEvent(
+          eventId: 'event_library_closed',
+          title: 'Library closed',
+          startDate: CivilDate(2026, 8, 11),
+          endDate: CivilDate(2026, 8, 12),
+          timeZoneId: 'America/New_York',
+          allDay: true,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      )
+      .putEvent(
+        DaybookEvent(
+          eventId: 'event_project_meeting',
+          title: 'Project meeting',
+          startDate: CivilDate(2026, 8, 11),
+          endDate: CivilDate(2026, 8, 11),
+          timeZoneId: 'America/New_York',
+          allDay: false,
+          startMinute: 9 * 60,
+          endMinute: 10 * 60,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      )
+      .putTask(
+        DaybookTask(
+          taskId: 'task_send_form',
+          title: 'Send the form',
+          dueDate: CivilDate(2026, 8, 11),
+          dueMinute: 16 * 60,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      )
+      .putTask(
+        DaybookTask(
+          taskId: 'task_return_book',
+          title: 'Return library book',
+          dueDate: CivilDate(2026, 8, 10),
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      )
+      .putWorkItem(
+        AcademicWorkItem(
+          workId: 'work_daybook_problem_set',
+          courseId: 'course_ece_345',
+          kind: AcademicWorkKind.assignment,
+          title: 'Problem set 4',
+          dueDate: CivilDate(2026, 8, 11),
+          dueMinute: 18 * 60,
+          updatedAt: createdAt,
+        ),
+      );
+  return schedule.putStudyPlan(
+    plan: AcademicStudyPlan(
+      workId: 'work_daybook_problem_set',
+      totalMinutes: 45,
+      sessionMinutes: 45,
+      dailyStartMinute: 8 * 60,
+      dailyEndMinute: 20 * 60,
+      updatedAt: createdAt,
+    ),
+    blocks: [
+      AcademicStudyBlock(
+        studyBlockId: 'study_daybook_problem_set',
+        workId: 'work_daybook_problem_set',
+        date: CivilDate(2026, 8, 11),
+        startMinute: 15 * 60,
+        endMinute: 15 * 60 + 45,
+        updatedAt: createdAt,
+      ),
+    ],
   );
 }
 

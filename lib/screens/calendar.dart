@@ -11,6 +11,12 @@ import '../academic_calendar/services/notebook_handoff.dart';
 import '../academic_calendar/widgets/academic_calendar_sections.dart';
 import '../audio.dart';
 import '../clock.dart';
+import '../daybook/domain/daybook_event.dart';
+import '../daybook/domain/daybook_task.dart';
+import '../daybook/presentation/daybook_range_projection.dart';
+import '../daybook/widgets/daybook_add_choice_dialog.dart';
+import '../daybook/widgets/daybook_event_editor.dart';
+import '../daybook/widgets/daybook_task_editor.dart';
 import '../engine.dart';
 import '../journal_media.dart' as media;
 import '../models.dart';
@@ -47,22 +53,6 @@ const _weekdayNames = [
   'SATURDAY',
   'SUNDAY',
 ];
-
-enum _MonthDayWeight { none, light, moderate, full }
-
-final class _MonthDayLoad {
-  const _MonthDayLoad({required this.weight, required this.hasDeadline});
-
-  final _MonthDayWeight weight;
-  final bool hasDeadline;
-
-  String get spokenLabel => switch (weight) {
-    _MonthDayWeight.none => 'open day',
-    _MonthDayWeight.light => 'lightly scheduled day',
-    _MonthDayWeight.moderate => 'moderately scheduled day',
-    _MonthDayWeight.full => 'heavily scheduled day',
-  };
-}
 
 /// The Plans page: a warm month calendar. One brass day-weight mark answers
 /// the month view's useful question at a glance: how much of this day is
@@ -207,55 +197,82 @@ class _CalendarPageState extends State<CalendarPage> {
     _persistAcademicView();
   }
 
-  List<ClassOccurrence> _classesOn(DateTime day) =>
-      _academicSchedule.occurrencesOn(CivilDate.fromDateTime(day));
-
-  List<AcademicWorkItem> _academicWorkOn(DateTime day) =>
-      _academicSchedule.workItemsOn(CivilDate.fromDateTime(day));
-
-  List<AcademicStudyBlock> _academicStudyOn(DateTime day) =>
-      _academicSchedule.studyBlocksOn(CivilDate.fromDateTime(day));
-
-  _MonthDayLoad _monthDayLoad({
-    required DateTime day,
-    required List<Quest> plans,
-    required List<ClassOccurrence> classes,
-    required List<AcademicWorkItem> work,
-    required List<AcademicStudyBlock> study,
-  }) {
-    var scheduledMinutes = 0;
-    for (final occurrence in classes) {
-      if (occurrence.state == OccurrenceState.cancelled) continue;
-      scheduledMinutes +=
-          occurrence.localEndMinute - occurrence.localStartMinute;
-      scheduledMinutes +=
-          _academicSchedule
-              .meetingSeriesById(occurrence.meetingSeriesId)
-              ?.transitionBufferMinutes ??
-          0;
+  (CivilDate, CivilDate) _visibleDaybookBounds() {
+    final selected = CivilDate.fromDateTime(_selected);
+    if (_academicMode == AcademicCalendarMode.month) {
+      return (
+        CivilDate(_month.year, _month.month, 1),
+        CivilDate(
+          _month.year,
+          _month.month,
+          DateTime(_month.year, _month.month + 1, 0).day,
+        ),
+      );
     }
-    for (final block in study) {
-      scheduledMinutes += block.durationMinutes;
-    }
-    for (final plan in plans) {
-      // Calendar plans currently have a due day rather than start/end times.
-      // Their timer is the best estimate when present; otherwise one neutral
-      // hour keeps an untimed plan visible without pretending XP difficulty
-      // is a duration.
-      scheduledMinutes += plan.timerMinutes > 0 ? plan.timerMinutes : 60;
-    }
+    final first = _academicMode == AcademicCalendarMode.week
+        ? selected.startOfWeek(
+            (_academicSchedule.termFor(selected) ??
+                        _academicSchedule.latestTerm)
+                    ?.weekStartsOn ??
+                DateTime.monday,
+          )
+        : selected;
+    return (first, first.addDays(_academicMode.spanDays - 1));
+  }
 
-    final hasDeadline =
-        plans.any((plan) => !plan.doneFor(day)) ||
-        work.any((item) => !item.completed);
-    final weight = switch (scheduledMinutes) {
-      0 when hasDeadline => _MonthDayWeight.light,
-      0 => _MonthDayWeight.none,
-      < 120 => _MonthDayWeight.light,
-      < 240 => _MonthDayWeight.moderate,
-      _ => _MonthDayWeight.full,
-    };
-    return _MonthDayLoad(weight: weight, hasDeadline: hasDeadline);
+  Future<bool> _saveDaybookEvent(DaybookEvent event) async {
+    late final AcademicSchedule next;
+    try {
+      next = _academicSchedule.putEvent(event);
+    } on ArgumentError {
+      return false;
+    }
+    if (!await _scheduleRepository.save(next)) return false;
+    if (mounted) setState(() => _academicSchedule = next);
+    return true;
+  }
+
+  Future<bool> _saveDaybookTask(DaybookTask task) async {
+    late final AcademicSchedule next;
+    try {
+      next = _academicSchedule.putTask(task);
+    } on ArgumentError {
+      return false;
+    }
+    if (!await _scheduleRepository.save(next)) return false;
+    if (mounted) setState(() => _academicSchedule = next);
+    return true;
+  }
+
+  Future<void> _toggleDaybookTask(DaybookTask task, bool completed) async {
+    final updatedAt = Clock.now().toUtc();
+    late final AcademicSchedule next;
+    try {
+      next = _academicSchedule.putTask(
+        completed
+            ? task.complete(at: updatedAt)
+            : task.undoCompletion(at: updatedAt),
+      );
+    } on ArgumentError {
+      return;
+    }
+    if (!await _scheduleRepository.save(next)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Palette.card,
+          content: Text(
+            "Couldn't update this task locally. Try again.",
+            style: Type.body.copyWith(color: Palette.textHi),
+          ),
+        ),
+      );
+      return;
+    }
+    if (!mounted) return;
+    Sfx.instance.play('tick');
+    setState(() => _academicSchedule = next);
   }
 
   Future<bool> _saveAcademicMeeting(
@@ -538,38 +555,6 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  List<Quest> _eventsOn(DateTime day) => [
-    for (final q in widget.quests)
-      if (q.dueDate != null && Days.sameDay(q.dueDate!, day)) q,
-  ];
-
-  List<Quest> _questsOn(DateTime day) {
-    final dayKey = Days.key(day);
-    final isToday = Days.sameDay(day, Clock.now());
-    final quests = <Quest>[
-      for (final q in widget.quests)
-        if (q.snoozedDay != dayKey &&
-            (q.dueDate != null
-                ? Days.sameDay(q.dueDate!, day)
-                : q.schedule != QuestSchedule.once
-                ? q.scheduledOn(day)
-                : isToday))
-          q,
-    ];
-    quests.sort((a, b) {
-      final priority = (b.priorityOn(day) ? 1 : 0).compareTo(
-        a.priorityOn(day) ? 1 : 0,
-      );
-      if (priority != 0) return priority;
-      final completion = (a.doneFor(day) ? 1 : 0).compareTo(
-        b.doneFor(day) ? 1 : 0,
-      );
-      if (completion != 0) return completion;
-      return b.difficulty.compareTo(a.difficulty);
-    });
-    return quests;
-  }
-
   int _reflectionsOn(DateTime day) {
     var count = widget.state.journal
         .where((n) => Days.sameDay(n.at, day))
@@ -666,6 +651,14 @@ class _CalendarPageState extends State<CalendarPage> {
         final now = Clock.now();
         final firstWeekday = DateTime(_month.year, _month.month, 1).weekday;
         final daysInMonth = DateTime(_month.year, _month.month + 1, 0).day;
+        final bounds = _visibleDaybookBounds();
+        final daybook = DaybookRangeProjection.build(
+          schedule: _academicSchedule,
+          quests: widget.quests,
+          first: bounds.$1,
+          last: bounds.$2,
+          now: now,
+        );
         final activeClasses = _academicSchedule.doorwayOccurrences(now);
         final nextClass = _academicSchedule.nextOccurrence(now);
         final doorwayClasses = activeClasses.isNotEmpty
@@ -691,7 +684,7 @@ class _CalendarPageState extends State<CalendarPage> {
               termName: selectedTerm?.name,
               loading: _academicLoading,
               onModeChanged: _setAcademicMode,
-              onAddAcademic: () => _showAddAcademic(context),
+              onAddAcademic: () => _showAddDaybook(context),
             ),
             if (doorwayClasses.isNotEmpty) ...[
               const SizedBox(height: 10),
@@ -719,12 +712,13 @@ class _CalendarPageState extends State<CalendarPage> {
                 onPrevious: () => _moveMonth(-1),
                 onNext: () => _moveMonth(1),
                 onToday: _goToday,
-                dayCell: (day) => _dayCell(day, daysInMonth, now),
+                dayCell: (day) => _dayCell(day, daysInMonth, now, daybook),
               ),
             ] else ...[
-              AcademicSpanPanel(
+              DaybookSpanPanel(
                 mode: _academicMode,
                 selectedDay: _selected,
+                daybook: daybook,
                 schedule: _academicSchedule,
                 now: now,
                 onPrevious: () => _moveAcademicSpan(-1),
@@ -732,6 +726,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 onToday: _goToday,
                 onSelectDay: _selectDay,
                 onOpenNotebook: _openNotebook,
+                onToggleTask: _toggleDaybookTask,
                 onToggleWork: _toggleAcademicWork,
                 onOpenStudyPlanner: _showAcademicStudyPlanner,
                 onToggleStudyBlock: _toggleAcademicStudyBlock,
@@ -747,25 +742,14 @@ class _CalendarPageState extends State<CalendarPage> {
               completions: widget.state.history[Days.key(_selected)] ?? 0,
               reflections: _reflectionsOn(_selected),
               journalEntries: _journalOn(_selected),
-              quests: _questsOn(_selected),
+              daybookDay: daybook.dayOn(CivilDate.fromDateTime(_selected)),
+              showDaybookEntries: _academicMode == AcademicCalendarMode.month,
               academicSchedule: _academicSchedule,
-              academicOccurrences: _academicMode == AcademicCalendarMode.month
-                  ? _classesOn(_selected)
-                  : const <ClassOccurrence>[],
-              academicWorkItems: _academicMode == AcademicCalendarMode.month
-                  ? _academicWorkOn(_selected)
-                  : const <AcademicWorkItem>[],
-              academicStudyBlocks: _academicMode == AcademicCalendarMode.month
-                  ? _academicStudyOn(_selected)
-                  : const <AcademicStudyBlock>[],
-              hasAcademicItems:
-                  _classesOn(_selected).isNotEmpty ||
-                  _academicWorkOn(_selected).isNotEmpty ||
-                  _academicStudyOn(_selected).isNotEmpty,
               now: now,
               onPlan: () => _showAddEvent(context),
               onOpenJournal: _openJournal,
               onOpenNotebook: _openNotebook,
+              onToggleTask: _toggleDaybookTask,
               onToggleWork: _toggleAcademicWork,
               onOpenStudyPlanner: _showAcademicStudyPlanner,
               onToggleStudyBlock: _toggleAcademicStudyBlock,
@@ -779,74 +763,30 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  Widget _dayCell(int day, int daysInMonth, DateTime now) {
+  Widget _dayCell(
+    int day,
+    int daysInMonth,
+    DateTime now,
+    DaybookRange daybook,
+  ) {
     if (day < 1 || day > daysInMonth) {
       return const SizedBox.expand();
     }
     final date = DateTime(_month.year, _month.month, day);
+    final daybookDay = daybook.dayOn(CivilDate.fromDateTime(date));
     final isToday = Days.sameDay(date, now);
     final isSelected = Days.sameDay(date, _selected);
     final done = widget.state.history[Days.key(date)] ?? 0;
-    final events = _eventsOn(date);
-    final classes = _classesOn(date);
-    final academicWork = _academicWorkOn(date);
-    final academicStudy = _academicStudyOn(date);
     final journalEntries = _journalOn(date);
-    final load = _monthDayLoad(
-      day: date,
-      plans: events,
-      classes: classes,
-      work: academicWork,
-      study: academicStudy,
-    );
 
     final spoken = StringBuffer(
       '${_monthNames[date.month - 1]} ${date.day}, ${date.year}',
     );
     if (isToday) spoken.write(', today');
-    spoken.write(', ${load.spokenLabel}');
-    if (load.hasDeadline) spoken.write(', deadline due');
+    spoken.write(', ${_spokenDayWeight(daybookDay.summary.weight)}');
+    spoken.write(', ${daybookDay.summary.semanticLabel}');
     if (done > 0) {
       spoken.write(', $done quest${done == 1 ? '' : 's'} completed');
-    }
-    if (events.isNotEmpty) {
-      spoken.write(', ${events.length} plan${events.length == 1 ? '' : 's'}');
-    }
-    if (classes.isNotEmpty) {
-      spoken.write(
-        ', ${classes.length} class${classes.length == 1 ? '' : 'es'}',
-      );
-      for (final occurrence in classes.take(2)) {
-        final course = _academicSchedule.courseById(occurrence.courseId);
-        spoken.write(
-          ', ${course?.code ?? 'class'} ${occurrence.kind.label} at '
-          '${formatAcademicTime(occurrence.localStartMinute)}',
-        );
-      }
-    }
-    if (academicWork.isNotEmpty) {
-      spoken.write(
-        ', ${academicWork.length} course item${academicWork.length == 1 ? '' : 's'} due',
-      );
-      for (final item in academicWork.take(2)) {
-        final course = _academicSchedule.courseById(item.courseId);
-        spoken.write(
-          ', ${course?.code ?? 'course'} ${item.kind.label}: ${item.title}',
-        );
-      }
-    }
-    if (academicStudy.isNotEmpty) {
-      spoken.write(
-        ', ${academicStudy.length} study block${academicStudy.length == 1 ? '' : 's'}',
-      );
-    }
-    final conflicts = _academicSchedule.meetingConflictsOn(
-      CivilDate.fromDateTime(date),
-    );
-    if (conflicts.isNotEmpty) {
-      spoken.write(
-        ', ${conflicts.length} class overlap${conflicts.length == 1 ? '' : 's'}',
-      );
     }
     final transitionPressures = _academicSchedule.transitionPressuresOn(
       CivilDate.fromDateTime(date),
@@ -875,7 +815,7 @@ class _CalendarPageState extends State<CalendarPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _dayPlate(day, date, isToday, isSelected, load),
+            _dayPlate(day, date, isToday, isSelected, daybookDay.summary),
             // The folio names today under its date, the way the target does —
             // the honey plate alone doesn't say WHICH kind of mark it is.
             SizedBox(
@@ -915,7 +855,7 @@ class _CalendarPageState extends State<CalendarPage> {
     DateTime date,
     bool isToday,
     bool isSelected,
-    _MonthDayLoad load,
+    DaybookDaySummary summary,
   ) {
     final keyDate = CivilDate.fromDateTime(date).toString();
     return Container(
@@ -980,13 +920,15 @@ class _CalendarPageState extends State<CalendarPage> {
               ),
               SizedBox(
                 height: 13,
-                child: load.weight == _MonthDayWeight.none
+                child:
+                    summary.weight == DaybookDayWeight.none &&
+                        !summary.hasDeadline
                     ? null
                     : Center(
                         child: _MonthDayWeightMark(
                           key: ValueKey('academic-month-weight-$keyDate'),
-                          weight: load.weight,
-                          hasDeadline: load.hasDeadline,
+                          weight: summary.weight,
+                          hasDeadline: summary.hasDeadline,
                           deadlineKey: ValueKey(
                             'academic-month-deadline-$keyDate',
                           ),
@@ -1009,41 +951,67 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
-  Future<void> _showAddAcademic(BuildContext context) async {
+  Future<void> _showAddDaybook(BuildContext context) async {
     Sfx.instance.play('tick');
-    final target = await showDialog<AcademicAddTarget>(
+    final target = await showDialog<DaybookAddTarget>(
       context: context,
       barrierColor: Palette.dialogBarrier,
-      builder: (_) => const AcademicAddChoiceDialog(),
+      builder: (_) => const DaybookAddChoiceDialog(),
     );
     if (!mounted || !context.mounted || target == null) return;
     Sfx.instance.play('tick');
-    if (target == AcademicAddTarget.classMeeting) {
-      await showDialog<void>(
-        context: context,
-        barrierColor: Palette.dialogBarrier,
-        builder: (_) => AddAcademicMeetingDialog(
-          schedule: _academicSchedule,
-          selectedDay: _selected,
-          onSave: _saveAcademicMeeting,
-        ),
-      );
-      return;
+    switch (target) {
+      case DaybookAddTarget.event:
+        await showDialog<void>(
+          context: context,
+          barrierColor: Palette.dialogBarrier,
+          builder: (_) => DaybookEventEditor(
+            selectedDay: CivilDate.fromDateTime(_selected),
+            onSave: _saveDaybookEvent,
+          ),
+        );
+      case DaybookAddTarget.task:
+        await showDialog<void>(
+          context: context,
+          barrierColor: Palette.dialogBarrier,
+          builder: (_) => DaybookTaskEditor(
+            selectedDay: CivilDate.fromDateTime(_selected),
+            onSave: _saveDaybookTask,
+          ),
+        );
+      case DaybookAddTarget.classMeeting:
+        await showDialog<void>(
+          context: context,
+          barrierColor: Palette.dialogBarrier,
+          builder: (_) => AddAcademicMeetingDialog(
+            schedule: _academicSchedule,
+            selectedDay: _selected,
+            onSave: _saveAcademicMeeting,
+          ),
+        );
+      case DaybookAddTarget.assignment || DaybookAddTarget.exam:
+        await showDialog<void>(
+          context: context,
+          barrierColor: Palette.dialogBarrier,
+          builder: (_) => AddAcademicWorkDialog(
+            schedule: _academicSchedule,
+            selectedDay: _selected,
+            initialKind: target == DaybookAddTarget.exam
+                ? AcademicWorkKind.exam
+                : AcademicWorkKind.assignment,
+            onSave: _saveAcademicWork,
+          ),
+        );
     }
-    await showDialog<void>(
-      context: context,
-      barrierColor: Palette.dialogBarrier,
-      builder: (_) => AddAcademicWorkDialog(
-        schedule: _academicSchedule,
-        selectedDay: _selected,
-        initialKind: target == AcademicAddTarget.exam
-            ? AcademicWorkKind.exam
-            : AcademicWorkKind.assignment,
-        onSave: _saveAcademicWork,
-      ),
-    );
   }
 }
+
+String _spokenDayWeight(DaybookDayWeight weight) => switch (weight) {
+  DaybookDayWeight.none => 'open day',
+  DaybookDayWeight.light => 'lightly scheduled day',
+  DaybookDayWeight.moderate => 'moderately scheduled day',
+  DaybookDayWeight.full => 'heavily scheduled day',
+};
 
 /// The month deliberately carries only one visual sentence per date. Height
 /// means scheduled weight; the small diamond at the tick's crown means that
@@ -1056,23 +1024,23 @@ class _MonthDayWeightMark extends StatelessWidget {
     required this.deadlineKey,
   });
 
-  final _MonthDayWeight weight;
+  final DaybookDayWeight weight;
   final bool hasDeadline;
   final Key deadlineKey;
 
   @override
   Widget build(BuildContext context) {
     final tickHeight = switch (weight) {
-      _MonthDayWeight.none => 0.0,
-      _MonthDayWeight.light => 6.0,
-      _MonthDayWeight.moderate => 8.0,
-      _MonthDayWeight.full => 10.0,
+      DaybookDayWeight.none => 0.0,
+      DaybookDayWeight.light => 6.0,
+      DaybookDayWeight.moderate => 8.0,
+      DaybookDayWeight.full => 10.0,
     };
     final ink = switch (weight) {
-      _MonthDayWeight.none => Colors.transparent,
-      _MonthDayWeight.light => Palette.xp.withValues(alpha: 0.65),
-      _MonthDayWeight.moderate => Palette.xp.withValues(alpha: 0.82),
-      _MonthDayWeight.full => Palette.xp.withValues(alpha: 0.96),
+      DaybookDayWeight.none => Colors.transparent,
+      DaybookDayWeight.light => Palette.xp.withValues(alpha: 0.65),
+      DaybookDayWeight.moderate => Palette.xp.withValues(alpha: 0.82),
+      DaybookDayWeight.full => Palette.xp.withValues(alpha: 0.96),
     };
 
     return SizedBox(
@@ -1319,16 +1287,14 @@ class _DayPanel extends StatelessWidget {
     required this.completions,
     required this.reflections,
     required this.journalEntries,
-    required this.quests,
+    required this.daybookDay,
+    required this.showDaybookEntries,
     required this.academicSchedule,
-    required this.academicOccurrences,
-    required this.academicWorkItems,
-    required this.academicStudyBlocks,
-    required this.hasAcademicItems,
     required this.now,
     required this.onPlan,
     required this.onOpenJournal,
     required this.onOpenNotebook,
+    required this.onToggleTask,
     required this.onToggleWork,
     required this.onOpenStudyPlanner,
     required this.onToggleStudyBlock,
@@ -1341,16 +1307,14 @@ class _DayPanel extends StatelessWidget {
   final int completions;
   final int reflections;
   final List<Note> journalEntries;
-  final List<Quest> quests;
+  final DaybookDay daybookDay;
+  final bool showDaybookEntries;
   final AcademicSchedule academicSchedule;
-  final List<ClassOccurrence> academicOccurrences;
-  final List<AcademicWorkItem> academicWorkItems;
-  final List<AcademicStudyBlock> academicStudyBlocks;
-  final bool hasAcademicItems;
   final DateTime now;
   final VoidCallback onPlan;
   final ValueChanged<Note> onOpenJournal;
   final OpenAcademicNotebook onOpenNotebook;
+  final ToggleDaybookTask onToggleTask;
   final ToggleAcademicWork onToggleWork;
   final OpenAcademicStudyPlanner onOpenStudyPlanner;
   final ToggleAcademicStudyBlock onToggleStudyBlock;
@@ -1418,98 +1382,21 @@ class _DayPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          if (academicOccurrences.isNotEmpty) ...[
-            Text(
-              'CLASSES',
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                letterSpacing: 1.7,
-                color: Palette.xpLight,
-              ),
+          if (showDaybookEntries && daybookDay.entries.isNotEmpty)
+            DaybookAgendaEntries(
+              day: daybookDay,
+              schedule: academicSchedule,
+              onOpenNotebook: onOpenNotebook,
+              onToggleTask: onToggleTask,
+              onToggleWork: onToggleWork,
+              onOpenStudyPlanner: onOpenStudyPlanner,
+              onToggleStudyBlock: onToggleStudyBlock,
+              onUpdateTransitionBuffer: onUpdateTransitionBuffer,
+              onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
             ),
-            const SizedBox(height: 7),
-            for (final occurrence in academicOccurrences)
-              AcademicOccurrenceRow(
-                occurrence: occurrence,
-                course: academicSchedule.courseById(occurrence.courseId),
-                transitionBufferMinutes:
-                    academicSchedule
-                        .meetingSeriesById(occurrence.meetingSeriesId)
-                        ?.transitionBufferMinutes ??
-                    10,
-                conflict: academicSchedule
-                    .meetingConflictsOn(CivilDate.fromDateTime(day))
-                    .any((item) => item.includes(occurrence.occurrenceKey)),
-                transitionPressure: academicSchedule
-                    .transitionPressuresOn(CivilDate.fromDateTime(day))
-                    .any((item) => item.includes(occurrence.occurrenceKey)),
-                onOpenNotebook: () => onOpenNotebook(occurrence),
-                onSetTransitionBuffer: (minutes) =>
-                    onUpdateTransitionBuffer(occurrence, minutes),
-                onAdjust: occurrence.canAdjust
-                    ? () => onOpenOccurrenceAdjuster(occurrence)
-                    : null,
-              ),
-          ],
-          if (academicWorkItems.isNotEmpty) ...[
-            if (academicOccurrences.isNotEmpty)
-              const Divider(height: 17, color: Color(0x2EE7C47E)),
-            Text(
-              'COURSE WORK',
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                letterSpacing: 1.7,
-                color: Palette.xpLight,
-              ),
-            ),
-            const SizedBox(height: 7),
-            for (final item in academicWorkItems)
-              AcademicWorkRow(
-                item: item,
-                course: academicSchedule.courseById(item.courseId),
-                studyPlan: academicSchedule.studyPlanFor(item.workId),
-                plannedStudyMinutes: academicSchedule.plannedStudyMinutesFor(
-                  item.workId,
-                ),
-                onToggle: () => onToggleWork(item),
-                onPlanStudy: () => onOpenStudyPlanner(item),
-              ),
-          ],
-          if (academicStudyBlocks.isNotEmpty) ...[
-            if (academicOccurrences.isNotEmpty || academicWorkItems.isNotEmpty)
-              const Divider(height: 17, color: Color(0x2EE7C47E)),
-            Text(
-              'STUDY BLOCKS',
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                letterSpacing: 1.7,
-                color: Palette.xpLight,
-              ),
-            ),
-            const SizedBox(height: 7),
-            for (final block in academicStudyBlocks)
-              AcademicStudyBlockRow(
-                block: block,
-                item: academicSchedule.workItems
-                    .where((item) => item.workId == block.workId)
-                    .firstOrNull,
-                course: academicSchedule.courseById(
-                  academicSchedule.workItems
-                          .where((item) => item.workId == block.workId)
-                          .firstOrNull
-                          ?.courseId ??
-                      '',
-                ),
-                onToggle: () => onToggleStudyBlock(block),
-              ),
-          ],
-          if ((academicOccurrences.isNotEmpty ||
-                  academicWorkItems.isNotEmpty ||
-                  academicStudyBlocks.isNotEmpty) &&
-              (completions > 0 ||
-                  reflections > 0 ||
-                  journalEntries.isNotEmpty ||
-                  quests.isNotEmpty))
+          if (showDaybookEntries &&
+              daybookDay.entries.isNotEmpty &&
+              (completions > 0 || reflections > 0 || journalEntries.isNotEmpty))
             const Divider(height: 17, color: Color(0x2EE7C47E)),
           if (completions > 0)
             Padding(
@@ -1574,10 +1461,10 @@ class _DayPanel extends StatelessWidget {
               onOpenJournal: onOpenJournal,
             ),
           ],
-          if (quests.isEmpty &&
+          if (daybookDay.entries.isEmpty &&
               completions == 0 &&
               reflections == 0 &&
-              !hasAcademicItems)
+              journalEntries.isEmpty)
             Text(
               isPast ? 'A quiet day.' : 'Nothing planned for this day yet.',
               style: Type.body.copyWith(
@@ -1586,23 +1473,6 @@ class _DayPanel extends StatelessWidget {
                 color: Palette.textLo,
               ),
             ),
-          if (quests.isNotEmpty) ...[
-            if (completions > 0 || reflections > 0 || journalEntries.isNotEmpty)
-              const Divider(height: 17, color: Color(0x2EE7C47E)),
-            for (final quest in quests.take(4))
-              _PlannedQuestRow(quest: quest, day: day),
-            if (quests.length > 4)
-              Padding(
-                padding: const EdgeInsets.only(top: 4, left: 44),
-                child: Text(
-                  '+ ${quests.length - 4} MORE ON THE QUEST BOARD',
-                  style: Type.label.copyWith(
-                    fontSize: Type.minLabel,
-                    color: Palette.textLo,
-                  ),
-                ),
-              ),
-          ],
         ],
       ),
     );
@@ -1764,96 +1634,6 @@ class _JournalDayEntry extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _PlannedQuestRow extends StatelessWidget {
-  const _PlannedQuestRow({required this.quest, required this.day});
-
-  final Quest quest;
-  final DateTime day;
-
-  @override
-  Widget build(BuildContext context) {
-    final done = quest.doneFor(day);
-    final timing = quest.dueDate != null
-        ? 'PLANNED FOR THIS DAY'
-        : quest.schedule.label;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: done
-                  ? const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFFF4D99E),
-                        Color(0xFFC28B47),
-                        Color(0xFF70502D),
-                      ],
-                    )
-                  : null,
-              color: done ? null : const Color(0x3A120E0C),
-              border: Border.all(
-                color: done ? const Color(0xFFF3D49A) : const Color(0x997E705E),
-                width: 1.2,
-              ),
-              boxShadow: done
-                  ? const [
-                      BoxShadow(
-                        color: Color(0x3DE8B865),
-                        blurRadius: 10,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                  : null,
-            ),
-            child: done
-                ? const Icon(
-                    Icons.check_rounded,
-                    size: 19,
-                    color: Color(0xFF3B2916),
-                  )
-                : Icon(quest.stat.icon, size: 15, color: quest.stat.color),
-          ),
-          const SizedBox(width: 11),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  quest.displayTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Type.body.copyWith(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: done ? Palette.textMid : Palette.textHi,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  '${quest.stat.abbr}  ·  $timing',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Type.label.copyWith(
-                    fontSize: Type.minLabel,
-                    color: quest.stat.color.withValues(alpha: 0.82),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

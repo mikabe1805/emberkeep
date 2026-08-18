@@ -6,6 +6,8 @@ import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 import 'package:emberkeep/academic_calendar/services/notebook_handoff.dart';
 import 'package:emberkeep/academic_calendar/widgets/academic_calendar_sections.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/daybook/domain/daybook_event.dart';
+import 'package:emberkeep/daybook/domain/daybook_task.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/calendar.dart';
@@ -23,6 +25,7 @@ const _captureStudyPlanner = bool.fromEnvironment(
 const _captureOccurrenceAdjust = bool.fromEnvironment(
   'CAPTURE_ACADEMIC_OCCURRENCE_ADJUST',
 );
+const _captureGeneralDaybook = bool.fromEnvironment('CAPTURE_DAYBOOK_GENERAL');
 
 void main() {
   setUpAll(() async {
@@ -138,6 +141,117 @@ void main() {
     });
   }
 
+  for (final configuration in const [
+    (name: 'normal', size: Size(430, 932), textScale: 1.0),
+    (name: 'narrow_200', size: Size(320, 568), textScale: 2.0),
+  ]) {
+    testWidgets('general daybook ${configuration.name} visual', (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.platformDispatcher.textScaleFactorTestValue =
+          configuration.textScale;
+      await tester.binding.setSurfaceSize(configuration.size);
+      addTearDown(() {
+        tester.view.resetDevicePixelRatio();
+        tester.platformDispatcher.clearTextScaleFactorTestValue();
+        tester.binding.setSurfaceSize(null);
+      });
+      final state = GameState()..reduceMotion = true;
+      final quest = Quest(
+        title: 'Quest board check-in',
+        stat: Stat.foc,
+        difficulty: 3,
+        schedule: QuestSchedule.once,
+        dueDate: DateTime(2026, 8, 11),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: Palette.parchment,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Palette.xp,
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+          home: Scaffold(
+            body: CalendarPage(
+              state: state,
+              quests: [quest],
+              onAdd: (_) => true,
+              scheduleRepository: InMemoryAcademicScheduleRepository(
+                _visualDaybookSchedule(),
+              ),
+              calendarPreferences: InMemoryAcademicCalendarPreferences(
+                state: const AcademicCalendarViewState(
+                  mode: AcademicCalendarMode.day,
+                  selectedDate: '2026-08-11',
+                ),
+              ),
+              notebookHandoff: _NoopHandoff(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      final context = tester.element(find.byType(MaterialApp));
+      await tester.runAsync(
+        () => precacheImage(
+          const AssetImage('assets/pages/plans-desk-v2.webp'),
+          context,
+        ),
+      );
+      for (var frame = 0; frame < 5; frame++) {
+        await tester.pump(const Duration(milliseconds: 120));
+      }
+
+      if (configuration.textScale == 2) {
+        expect(find.text('MON'), findsOneWidget);
+        expect(find.text('WK'), findsOneWidget);
+        expect(find.text('3D'), findsOneWidget);
+        expect(find.text('DAY'), findsOneWidget);
+      }
+      for (
+        var drag = 0;
+        drag < 5 && find.text('Library closed').evaluate().isEmpty;
+        drag++
+      ) {
+        await tester.dragFrom(
+          Offset(configuration.size.width / 2, configuration.size.height - 70),
+          const Offset(0, -260),
+        );
+        await tester.pump();
+      }
+      await tester.ensureVisible(find.text('Library closed'));
+      await tester.pump();
+      expect(find.text('Library closed'), findsOneWidget);
+      expect(find.text('Project meeting'), findsOneWidget);
+      expect(find.text('Return library book'), findsOneWidget);
+      expect(find.text('STILL OPEN'), findsOneWidget);
+      if (configuration.textScale == 2) {
+        expect(
+          tester
+              .getTopLeft(
+                find.byKey(const ValueKey('open-notebook-occurrence_visual_1')),
+              )
+              .dy,
+          greaterThan(tester.getBottomLeft(find.text('ECE 345 · LEC')).dy),
+        );
+      }
+      expect(tester.takeException(), isNull);
+      if (_captureGeneralDaybook) {
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile(
+            '../.superpowers/sdd/2026-08-17-general-daybook/visual/'
+            'daybook_general_${configuration.name}.png',
+          ),
+        );
+      }
+    });
+  }
+
   testWidgets('daybook today marker visual', (tester) async {
     Clock.freeze(DateTime.utc(2026, 8, 17, 12));
     tester.view.devicePixelRatio = 1;
@@ -198,10 +312,12 @@ void main() {
       await tester.pump(const Duration(milliseconds: 120));
     }
     expect(tester.takeException(), isNull);
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/daybook_today_marker_430x932.png'),
-    );
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/daybook_today_marker_430x932.png'),
+      );
+    }
   });
 
   testWidgets('academic conflict visual', (tester) async {
@@ -623,6 +739,56 @@ AcademicSchedule _visualSchedule({
     ),
   );
   return schedule;
+}
+
+AcademicSchedule _visualDaybookSchedule() {
+  final createdAt = DateTime.utc(2026, 8, 8);
+  return _visualSchedule()
+      .putEvent(
+        DaybookEvent(
+          eventId: 'event_visual_library_closed',
+          title: 'Library closed',
+          startDate: CivilDate(2026, 8, 11),
+          endDate: CivilDate(2026, 8, 12),
+          timeZoneId: 'America/New_York',
+          allDay: true,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      )
+      .putEvent(
+        DaybookEvent(
+          eventId: 'event_visual_project_meeting',
+          title: 'Project meeting',
+          startDate: CivilDate(2026, 8, 11),
+          endDate: CivilDate(2026, 8, 11),
+          timeZoneId: 'America/New_York',
+          allDay: false,
+          startMinute: 8 * 60 + 30,
+          endMinute: 9 * 60 + 30,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      )
+      .putTask(
+        DaybookTask(
+          taskId: 'task_visual_return_book',
+          title: 'Return library book',
+          dueDate: CivilDate(2026, 8, 10),
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      )
+      .putTask(
+        DaybookTask(
+          taskId: 'task_visual_send_form',
+          title: 'Send the form',
+          dueDate: CivilDate(2026, 8, 11),
+          dueMinute: 16 * 60,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      );
 }
 
 final class _NoopHandoff implements NotebookHandoff {
