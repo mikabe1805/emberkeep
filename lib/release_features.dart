@@ -19,3 +19,26 @@ const bool kVisitorProfileSharingEnabled = bool.fromEnvironment(
   'VISITOR_PROFILE_SHARING',
   defaultValue: false,
 );
+
+/// Protected Google place search stays absent unless every external release
+/// gate (billing, server secret, quotas, policy pages, and App Check
+/// enforcement) has been completed and the build opts in explicitly.
+const bool kPlaceSearchEnabled = bool.fromEnvironment(
+  'PLACE_SEARCH_ENABLED',
+  defaultValue: false,
+);
+
+/// Public reCAPTCHA v3 site key used only by App Check in web builds. This is
+/// not a Google Places credential. An enabled web build remains unavailable
+/// when the key is absent rather than making unattested callable requests.
+const String kPlaceSearchAppCheckWebSiteKey = String.fromEnvironment(
+  'PLACE_SEARCH_APP_CHECK_WEB_SITE_KEY',
+  defaultValue: '',
+);
+
+/// Debug attestation must be an explicit build choice. Store candidates use
+/// real Play Integrity/App Attest providers even when compiled in debug mode.
+const bool kPlaceSearchAppCheckDebug = bool.fromEnvironment(
+  'PLACE_SEARCH_APP_CHECK_DEBUG',
+  defaultValue: false,
+);
