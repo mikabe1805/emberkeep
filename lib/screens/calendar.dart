@@ -1005,16 +1005,23 @@ class _CalendarPageState extends State<CalendarPage> {
                 height: 13,
                 child:
                     summary.weight == DaybookDayWeight.none &&
-                        !summary.hasDeadline
+                        !summary.hasDeadline &&
+                        summary.focusCount == 0
                     ? null
                     : Center(
                         child: _MonthDayWeightMark(
-                          key: ValueKey('academic-month-weight-$keyDate'),
+                          key:
+                              summary.weight == DaybookDayWeight.none &&
+                                  !summary.hasDeadline
+                              ? null
+                              : ValueKey('academic-month-weight-$keyDate'),
                           weight: summary.weight,
                           hasDeadline: summary.hasDeadline,
                           deadlineKey: ValueKey(
                             'academic-month-deadline-$keyDate',
                           ),
+                          hasFocus: summary.focusCount > 0,
+                          focusKey: ValueKey('academic-month-focus-$keyDate'),
                         ),
                       ),
               ),
@@ -1263,18 +1270,23 @@ String _spokenDayWeight(DaybookDayWeight weight) => switch (weight) {
 
 /// The month deliberately carries only one visual sentence per date. Height
 /// means scheduled weight; the small diamond at the tick's crown means that
-/// something is due. Specific categories belong in the selected-day panel.
+/// something is due; the quiet unlock point names an intentional focus. Specific
+/// categories belong in the selected-day panel.
 class _MonthDayWeightMark extends StatelessWidget {
   const _MonthDayWeightMark({
     super.key,
     required this.weight,
     required this.hasDeadline,
     required this.deadlineKey,
+    required this.hasFocus,
+    required this.focusKey,
   });
 
   final DaybookDayWeight weight;
   final bool hasDeadline;
   final Key deadlineKey;
+  final bool hasFocus;
+  final Key focusKey;
 
   @override
   Widget build(BuildContext context) {
@@ -1321,6 +1333,21 @@ class _MonthDayWeightMark extends StatelessWidget {
                       color: Palette.brassLit.withValues(alpha: 0.94),
                     ),
                   ),
+                ),
+              ),
+            ),
+          if (hasFocus)
+            Positioned(
+              bottom: 0,
+              left: tickHeight > 0 ? null : 3,
+              right: tickHeight > 0 ? 0 : null,
+              child: Container(
+                key: focusKey,
+                width: 3,
+                height: 3,
+                decoration: const BoxDecoration(
+                  color: Palette.unlock,
+                  shape: BoxShape.circle,
                 ),
               ),
             ),

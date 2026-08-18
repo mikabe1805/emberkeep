@@ -4793,11 +4793,15 @@ String _dayCountLabel(List<DaybookEntry> entries) {
             entry.section == DaybookSection.stillOpen,
       )
       .length;
+  final focus = entries
+      .where((entry) => entry.section == DaybookSection.focus)
+      .length;
   final parts = <String>[];
   if (scheduled > 0) {
     parts.add('$scheduled ${scheduled == 1 ? 'PLAN' : 'PLANS'}');
   }
   if (due > 0) parts.add('$due DUE');
+  if (focus > 0) parts.add('$focus FOCUS');
   return parts.isEmpty ? 'QUIET DAY' : parts.join(' · ');
 }
 

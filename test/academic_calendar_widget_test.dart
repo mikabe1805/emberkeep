@@ -2518,6 +2518,153 @@ void main() {
     );
   });
 
+  testWidgets('Quest calendar intent renders focus separately from due work', (
+    tester,
+  ) async {
+    final date = CivilDate(2026, 8, 18);
+    final createdAt = DateTime.utc(2026, 8, 17);
+    final timedEvent = DaybookEvent(
+      eventId: 'event_focus_day',
+      title: 'Real timed Daybook event',
+      startDate: date,
+      endDate: date,
+      timeZoneId: 'America/New_York',
+      allDay: false,
+      startMinute: 9 * 60,
+      endMinute: 10 * 60,
+      createdAt: createdAt,
+      updatedAt: createdAt,
+    );
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(
+        AcademicSchedule.empty().putEvent(timedEvent),
+      ),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.day,
+          selectedDate: '2026-08-18',
+        ),
+      ),
+      quests: [
+        Quest(
+          title: 'Daily routine',
+          stat: Stat.foc,
+          difficulty: 1,
+          schedule: QuestSchedule.daily,
+        ),
+        Quest(
+          title: 'Chosen today',
+          stat: Stat.foc,
+          difficulty: 2,
+          priorityDay: '2026-08-18',
+        ),
+        Quest(
+          title: 'Explicit one-time due Quest',
+          stat: Stat.foc,
+          difficulty: 3,
+          schedule: QuestSchedule.once,
+          dueDate: DateTime(2026, 8, 18),
+        ),
+      ],
+      size: const Size(320, 568),
+      textScale: 2,
+    );
+
+    expect(find.text('Daily routine'), findsNothing);
+    expect(find.text('TODAY’S FOCUS'), findsOneWidget);
+    expect(find.text('Chosen today'), findsOneWidget);
+    expect(find.text('CHOSEN FOR TODAY'), findsOneWidget);
+    expect(find.text('DUE'), findsWidgets);
+
+    await tester.tap(find.byKey(const ValueKey('academic-mode-month')));
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(
+      find.byKey(const ValueKey('academic-month-focus-2026-08-18')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('academic-month-deadline-2026-08-18')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Quest calendar intent leaves routine-only month days unmarked', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.month,
+          selectedDate: '2026-08-18',
+        ),
+      ),
+      quests: [
+        Quest(
+          title: 'Daily routine',
+          stat: Stat.foc,
+          difficulty: 1,
+          schedule: QuestSchedule.daily,
+        ),
+      ],
+    );
+
+    expect(
+      find.byKey(const ValueKey('academic-month-weight-2026-08-18')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('academic-month-deadline-2026-08-18')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('academic-month-focus-2026-08-18')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('Quest calendar intent gives focus its own quiet month mark', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.month,
+          selectedDate: '2026-08-18',
+        ),
+      ),
+      quests: [
+        Quest(
+          title: 'Chosen today',
+          stat: Stat.foc,
+          difficulty: 2,
+          priorityDay: '2026-08-18',
+        ),
+      ],
+    );
+
+    expect(
+      find.byKey(const ValueKey('academic-month-focus-2026-08-18')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('academic-month-deadline-2026-08-18')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('academic-month-weight-2026-08-18')),
+      findsNothing,
+    );
+  });
+
   testWidgets('projected occurrence renders moved state and moved local time', (
     tester,
   ) async {
