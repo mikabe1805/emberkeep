@@ -52,6 +52,9 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/functions/lib/
+/functions/node_modules/
+/functions/coverage/
 .playwright-cli/
 /output/
 /tmp/
