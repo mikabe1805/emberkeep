@@ -262,6 +262,80 @@ void main() {
     expect(day.summary.hasDeadline, isTrue);
   });
 
+  test('Daybook fixed plan summary counts active all-day commitments', () {
+    final date = CivilDate(2026, 8, 18);
+    final timestamp = DateTime.utc(2026, 8, 1);
+    DaybookEvent allDayEvent(String eventId) => DaybookEvent(
+      eventId: eventId,
+      title: eventId,
+      startDate: date,
+      endDate: date.addDays(1),
+      timeZoneId: 'America/New_York',
+      allDay: true,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    );
+
+    final allDayOnly = DaybookRangeProjection.build(
+      schedule: AcademicSchedule.empty().putEvent(allDayEvent('all-day')),
+      quests: const [],
+      first: date,
+      last: date,
+      now: DateTime(2026, 8, 18, 12),
+    ).dayOn(date);
+    expect(allDayOnly.summary.fixedPlanCount, 1);
+
+    final cancelledAllDay = DaybookEvent(
+      eventId: 'cancelled-all-day',
+      title: 'Cancelled all-day',
+      startDate: date,
+      endDate: date.addDays(1),
+      timeZoneId: 'America/New_York',
+      allDay: true,
+      exceptions: [
+        DaybookEventException(
+          occurrenceKey: 'cancelled-all-day/${date.toString()}',
+          originalDate: date,
+          state: DaybookEventOccurrenceState.cancelled,
+          updatedAt: timestamp,
+        ),
+      ],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    );
+    final mixed = DaybookRangeProjection.build(
+      schedule: AcademicSchedule.empty()
+          .putEvent(allDayEvent('active-all-day'))
+          .putEvent(
+            DaybookEvent(
+              eventId: 'timed',
+              title: 'Timed',
+              startDate: date,
+              endDate: date,
+              timeZoneId: 'America/New_York',
+              allDay: false,
+              startMinute: 9 * 60,
+              endMinute: 10 * 60,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            ),
+          )
+          .putEvent(cancelledAllDay),
+      quests: const [],
+      first: date,
+      last: date,
+      now: DateTime(2026, 8, 18, 12),
+    ).dayOn(date);
+
+    expect(mixed.summary.fixedPlanCount, 2);
+    expect(
+      mixed.entries
+          .singleWhere((entry) => entry.title == 'Cancelled all-day')
+          .cancelled,
+      isTrue,
+    );
+  });
+
   test('clips overnight events to each projected day', () {
     final previous = date.addDays(-1);
     final schedule = AcademicSchedule.empty().putEvent(

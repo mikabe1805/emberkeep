@@ -527,7 +527,14 @@ abstract final class DaybookRangeProjection {
       }
     }
     final conflicts = _conflicts(timed);
-    final fixedPlanCount = timed.length;
+    final fixedPlanCount = entries
+        .where(
+          (entry) =>
+              (entry.section == DaybookSection.allDay ||
+                  entry.section == DaybookSection.timed) &&
+              !entry.cancelled,
+        )
+        .length;
     final deadlineCount = entries
         .where(
           (entry) =>
