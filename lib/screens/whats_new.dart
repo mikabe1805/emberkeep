@@ -271,6 +271,7 @@ class _HighlightRow extends StatelessWidget {
     ReleaseHighlightKind.academicDaybook => Icons.calendar_month_outlined,
     ReleaseHighlightKind.courseWork => Icons.assignment_outlined,
     ReleaseHighlightKind.calendarViews => Icons.view_week_outlined,
+    ReleaseHighlightKind.locationDirections => Icons.directions_outlined,
     ReleaseHighlightKind.flexiblePlans => Icons.event_repeat_rounded,
     ReleaseHighlightKind.streakSafety => Icons.shield_outlined,
     ReleaseHighlightKind.roomGuide => Icons.explore_outlined,

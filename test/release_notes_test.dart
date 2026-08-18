@@ -8,6 +8,8 @@ void main() {
   test('current release agrees with the source version', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
+    expect(currentRoomReleaseNotes.id, '1.0.3+21');
+    expect(currentRoomReleaseNotes.title, 'Plans are for your whole life.');
     expect(pubspec, contains('version: ${currentRoomReleaseNotes.id}'));
   });
 
@@ -16,12 +18,18 @@ void main() {
     final gate = ReleaseNotesGate(store);
 
     expect(
-      await gate.claim(releaseId: '1.0.2+20', freshInstall: false),
+      await gate.claim(
+        releaseId: currentRoomReleaseNotes.id,
+        freshInstall: false,
+      ),
       isTrue,
     );
-    expect(store.seen, '1.0.2+20');
+    expect(store.seen, currentRoomReleaseNotes.id);
     expect(
-      await gate.claim(releaseId: '1.0.2+20', freshInstall: false),
+      await gate.claim(
+        releaseId: currentRoomReleaseNotes.id,
+        freshInstall: false,
+      ),
       isFalse,
     );
     expect(store.writes, 1);
@@ -32,10 +40,13 @@ void main() {
     final gate = ReleaseNotesGate(store);
 
     expect(
-      await gate.claim(releaseId: '1.0.2+20', freshInstall: true),
+      await gate.claim(
+        releaseId: currentRoomReleaseNotes.id,
+        freshInstall: true,
+      ),
       isFalse,
     );
-    expect(store.seen, '1.0.2+20');
+    expect(store.seen, currentRoomReleaseNotes.id);
     expect(store.writes, 1);
   });
 
@@ -44,7 +55,10 @@ void main() {
     final gate = ReleaseNotesGate(store);
 
     expect(
-      await gate.claim(releaseId: '1.0.2+20', freshInstall: false),
+      await gate.claim(
+        releaseId: currentRoomReleaseNotes.id,
+        freshInstall: false,
+      ),
       isFalse,
     );
     expect(store.seen, isNull);
@@ -54,7 +68,10 @@ void main() {
     final gate = ReleaseNotesGate(_MemoryReleaseSeenStore(throwOnRead: true));
 
     expect(
-      await gate.claim(releaseId: '1.0.2+20', freshInstall: false),
+      await gate.claim(
+        releaseId: currentRoomReleaseNotes.id,
+        freshInstall: false,
+      ),
       isFalse,
     );
   });

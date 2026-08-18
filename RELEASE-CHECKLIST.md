@@ -1,7 +1,26 @@
 # Room of Days Release Checklist
 
-Updated August 17, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 18, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
+
+## 1.0.3+21 internal TestFlight candidate
+
+- [x] Give the post-1.0.2 Daybook work a new release identity instead of
+  reusing the frozen 1.0.2+20 Android/web record.
+- [x] Put the general Daybook, optional School lane, unified calendar views,
+  manual locations, and Get Directions in the newest-first What's New record.
+- [x] Keep protected Google place search off. The candidate is built without a
+  `PLACE_SEARCH_ENABLED=true` define; manual location entry and map handoff
+  remain available.
+- [ ] Push the verified release-prep commit to `origin/main`, then start exactly
+  one manual Codemagic `ios-testflight` run for that displayed commit.
+- [ ] Save the emitted IPA, dSYM, and `release-evidence.txt`; verify the source
+  commit, marketing version, build number, signature, and TestFlight upload.
+- [ ] After Apple finishes processing, add the build to the intended internal
+  tester group and install it over Build 19 on a physical iPhone.
+- [ ] Complete the focused Daybook, persistence, accessibility, offline, and map
+  handoff checks in `DEVICE-ACCEPTANCE-RUNBOOK.md` before any public App Store
+  submission change.
 
 ## 1.0.2+20 release record
 

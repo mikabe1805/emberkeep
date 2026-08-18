@@ -4,6 +4,7 @@ enum ReleaseHighlightKind {
   academicDaybook,
   courseWork,
   calendarViews,
+  locationDirections,
   flexiblePlans,
   streakSafety,
   roomGuide,
@@ -46,6 +47,34 @@ class RoomReleaseNotes {
 /// Newest first. A user-facing build is not ready to release until its record
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
+  RoomReleaseNotes(
+    id: '1.0.3+21',
+    versionLabel: 'VERSION 1.0.3 · BUILD 21',
+    dateLabel: 'AUGUST 2026',
+    title: 'Plans are for your whole life.',
+    introduction:
+        'Events, tasks, classes, and the places you need to be can now share one calm Daybook.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'YOUR WHOLE DAYBOOK',
+        body:
+            'Add events and tasks without setting up a term or course. School stays there when you need it.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.calendarViews,
+        title: 'ONE CALENDAR, FOUR VIEWS',
+        body:
+            'Month, week, three-day, and day views keep personal plans, classes, and quests together.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.locationDirections,
+        title: 'GET THERE',
+        body:
+            'Save a location and open directions in Apple Maps or Google Maps when it is time to go.',
+      ),
+    ],
+  ),
   RoomReleaseNotes(
     id: '1.0.2+20',
     versionLabel: 'VERSION 1.0.2 · BUILD 20',

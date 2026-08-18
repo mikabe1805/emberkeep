@@ -584,8 +584,19 @@ void main() {
       expect(workflow, isNot(contains('PURE SPM')));
       expect(workflow, contains('Verify signed IPA contents'));
       expect(workflow, contains('PUBSPEC_BUILD'));
-      expect(workflow, contains('Build 20 for 1.0.2'));
+      expect(workflow, contains('PUBSPEC_VERSION'));
+      expect(workflow, contains('Build 21 for 1.0.3'));
       expect(workflow, contains(r'NEXT_BUILD=$PUBSPEC_BUILD'));
+      expect(
+        workflow,
+        contains(r'if [ "$LATEST" -ge "$PUBSPEC_BUILD" ]; then'),
+      );
+      expect(workflow, contains('bump pubspec before starting another run'));
+      expect(workflow, isNot(contains(r'NEXT_BUILD=$((LATEST + 1))')));
+      expect(workflow, contains(r'--build-name="$PUBSPEC_VERSION"'));
+      expect(workflow, contains(r'marketing_version=$MARKETING_VERSION'));
+      expect(workflow, isNot(contains('marketing_version=1.0.2')));
+      expect(workflow, contains(r'test "$BUILD_NUMBER" = "$PUBSPEC_BUILD"'));
       expect(workflow, isNot(contains('2>/dev/null || echo 0')));
       expect(workflow, contains('codesign --verify --deep --strict'));
       expect(workflow, contains('PrivacyInfo.xcprivacy'));
@@ -674,7 +685,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.2+20'));
+    expect(pubspec, contains('version: 1.0.3+21'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

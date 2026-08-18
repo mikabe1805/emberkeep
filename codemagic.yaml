@@ -115,13 +115,16 @@ workflows:
       - name: Flutter build ipa
         script: |
           set -euo pipefail
-          # Keep the checked-in pubspec build as the floor (Build 20 for 1.0.2),
-          # then exceed any TestFlight build already uploaded for this app. An
-          # authentication/API failure must stop the paid build instead of being
-          # hidden as "no prior build" and producing a duplicate Build 1.
+          # Keep the checked-in version+build exact (Build 21 for 1.0.3). A live
+          # high-water or authentication/API problem must stop before archive so
+          # the binary cannot drift from its in-app release record.
+          PUBSPEC_VERSION=$(sed -nE \
+            's/^version:[[:space:]]*([^+]+)\+[0-9]+[[:space:]]*$/\1/p' \
+            pubspec.yaml)
           PUBSPEC_BUILD=$(sed -nE \
             's/^version:[[:space:]]*[^+]+\+([0-9]+)[[:space:]]*$/\1/p' \
             pubspec.yaml)
+          test -n "$PUBSPEC_VERSION"
           case "$PUBSPEC_BUILD" in
             ''|*[!0-9]*) echo "Invalid pubspec build number: $PUBSPEC_BUILD" >&2; exit 1 ;;
           esac
@@ -135,12 +138,14 @@ workflows:
           case "$LATEST" in
             *[!0-9]*) echo "Invalid TestFlight build number: $LATEST" >&2; exit 1 ;;
           esac
-          NEXT_BUILD=$PUBSPEC_BUILD
-          if [ "$LATEST" -ge "$NEXT_BUILD" ]; then
-            NEXT_BUILD=$((LATEST + 1))
+          if [ "$LATEST" -ge "$PUBSPEC_BUILD" ]; then
+            echo "TestFlight already contains build $LATEST; bump pubspec before starting another run" >&2
+            exit 1
           fi
-          echo "Building Room of Days 1.0.2 ($NEXT_BUILD); pubspec floor $PUBSPEC_BUILD, latest TestFlight $LATEST"
+          NEXT_BUILD=$PUBSPEC_BUILD
+          echo "Building Room of Days $PUBSPEC_VERSION ($NEXT_BUILD); pubspec floor $PUBSPEC_BUILD, latest TestFlight $LATEST"
           flutter build ipa --release \
+            --build-name="$PUBSPEC_VERSION" \
             --build-number="$NEXT_BUILD" \
             --dart-define=COFFEE_URL= \
             --export-options-plist="$HOME/export_options.plist"
@@ -156,12 +161,16 @@ workflows:
           test -n "$APP"
 
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = "$BUNDLE_ID"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")" = "1.0.2"
+          PUBSPEC_VERSION=$(sed -nE \
+            's/^version:[[:space:]]*([^+]+)\+[0-9]+[[:space:]]*$/\1/p' \
+            pubspec.yaml)
+          MARKETING_VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")
+          test "$MARKETING_VERSION" = "$PUBSPEC_VERSION"
           BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")
           PUBSPEC_BUILD=$(sed -nE \
             's/^version:[[:space:]]*[^+]+\+([0-9]+)[[:space:]]*$/\1/p' \
             pubspec.yaml)
-          test "$BUILD_NUMBER" -ge "$PUBSPEC_BUILD"
+          test "$BUILD_NUMBER" = "$PUBSPEC_BUILD"
           test "$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$APP/Info.plist")" = "false"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist")" = "Room of Days"
           test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist")" = "15.0"
@@ -244,7 +253,7 @@ workflows:
             echo "source_commit=${CM_COMMIT:-$(git rev-parse HEAD)}"
             echo "ipa_sha256=$IPA_SHA256"
             echo "bundle_id=$BUNDLE_ID"
-            echo "marketing_version=1.0.2"
+            echo "marketing_version=$MARKETING_VERSION"
             echo "build_number=$BUILD_NUMBER"
             echo "sdk_name=$SDK_NAME"
             echo "xcode_build=$XCODE_BUILD"
