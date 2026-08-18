@@ -15,11 +15,13 @@ class DaybookTaskEditor extends StatefulWidget {
     super.key,
     required this.selectedDay,
     this.initialTask,
+    this.placeSearchFactory = const ProductionDaybookPlaceSearchFactory(),
     required this.onSave,
   });
 
   final CivilDate selectedDay;
   final DaybookTask? initialTask;
+  final DaybookPlaceSearchFactory placeSearchFactory;
   final Future<bool> Function(DaybookTask task) onSave;
 
   @override
@@ -246,6 +248,7 @@ class _DaybookTaskEditorState extends State<DaybookTaskEditor> {
               DaybookPlaceFields(
                 controller: _place,
                 keyPrefix: 'daybook-task-place',
+                placeSearchFactory: widget.placeSearchFactory,
               ),
               if (_error != null) ...[
                 const SizedBox(height: 10),

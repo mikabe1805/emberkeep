@@ -2633,12 +2633,14 @@ class AddAcademicMeetingDialog extends StatefulWidget {
     required this.schedule,
     required this.selectedDay,
     this.initialPlace,
+    this.placeSearchFactory = const ProductionDaybookPlaceSearchFactory(),
     required this.onSave,
   });
 
   final AcademicSchedule schedule;
   final DateTime selectedDay;
   final CampusPlace? initialPlace;
+  final DaybookPlaceSearchFactory placeSearchFactory;
   final SaveAcademicMeeting onSave;
 
   @override
@@ -2848,10 +2850,12 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
         ? CampusPlaceDaybookAdapter.toCampusPlace(
             DaybookPlace(savedName: 'Location not set'),
             original: _originalPlace,
+            destinationIntent: _placeFields.destinationIntent,
           )
         : CampusPlaceDaybookAdapter.toCampusPlace(
             editedPlace,
             original: _originalPlace,
+            destinationIntent: _placeFields.destinationIntent,
           );
     final series = MeetingSeries(
       meetingSeriesId: AcademicIds.create('series'),
@@ -3137,6 +3141,7 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
                   routingTextKey: const ValueKey('academic-routing-text'),
                   buildingKey: const ValueKey('academic-building'),
                   roomKey: const ValueKey('academic-room'),
+                  placeSearchFactory: widget.placeSearchFactory,
                 ),
                 const SizedBox(height: 5),
                 Text(

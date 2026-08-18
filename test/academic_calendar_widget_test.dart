@@ -12,9 +12,14 @@ import 'package:emberkeep/daybook/domain/daybook_event.dart';
 import 'package:emberkeep/daybook/domain/daybook_place.dart';
 import 'package:emberkeep/daybook/domain/daybook_task.dart';
 import 'package:emberkeep/daybook/services/directions_launcher.dart';
+import 'package:emberkeep/daybook/services/place_search_access.dart'
+    hide PlaceSearchUnavailable;
+import 'package:emberkeep/daybook/services/place_search_controller.dart';
+import 'package:emberkeep/daybook/services/place_search_service.dart';
 import 'package:emberkeep/daybook/widgets/daybook_add_choice_dialog.dart';
 import 'package:emberkeep/daybook/widgets/daybook_event_actions.dart';
 import 'package:emberkeep/daybook/widgets/daybook_event_editor.dart';
+import 'package:emberkeep/daybook/widgets/daybook_place_fields.dart';
 import 'package:emberkeep/daybook/widgets/daybook_rows.dart';
 import 'package:emberkeep/daybook/widgets/daybook_task_editor.dart';
 import 'package:emberkeep/engine.dart';
@@ -26,7 +31,35 @@ import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+const _capturePlaceSearch = bool.fromEnvironment('CAPTURE_PLACE_SEARCH');
+const _daybookWidgetCaptureKey = ValueKey('daybook-widget-capture');
+
 void main() {
+  setUpAll(() async {
+    if (!_capturePlaceSearch) return;
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final icons = FontLoader('MaterialIcons')
+      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+    final fraunces = FontLoader('Fraunces')
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-SemiBold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-Bold.ttf'));
+    final inter = FontLoader('Inter')
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Regular.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Medium.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-SemiBold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Bold.ttf'));
+    final mono = FontLoader('JetBrainsMono')
+      ..addFont(
+        rootBundle.load('assets/google_fonts/JetBrainsMono-SemiBold.ttf'),
+      );
+    await Future.wait([
+      icons.load(),
+      fraunces.load(),
+      inter.load(),
+      mono.load(),
+    ]);
+  });
+
   setUp(() {
     Clock.freeze(DateTime.utc(2026, 8, 11, 14, 15));
   });
@@ -109,6 +142,39 @@ void main() {
       );
     }
   });
+
+  testWidgets(
+    'place search factory is threaded through CalendarPage event task and class paths',
+    (tester) async {
+      final factory = _TestPlaceSearchFactory(
+        service: _RecordingPlaceSearchService(),
+      );
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(),
+        handoff: _RecordingHandoff(),
+        placeSearchFactory: factory,
+      );
+
+      Future<void> expectEditorUsesSearch(String targetKey) async {
+        await tester.tap(
+          find.bySemanticsLabel(
+            'Add an event, task, class, assignment, or exam',
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey(targetKey)));
+        await tester.pumpAndSettle();
+        expect(find.text('SEARCH PLACES WITH GOOGLE'), findsOneWidget);
+        await tester.tap(find.byTooltip('Close').last);
+        await tester.pumpAndSettle();
+      }
+
+      await expectEditorUsesSearch('daybook-add-choice-event');
+      await expectEditorUsesSearch('daybook-add-choice-task');
+      await expectEditorUsesSearch('academic-add-choice-class');
+    },
+  );
 
   testWidgets(
     'Daybook event editor validates title and keeps failed saves open',
@@ -210,6 +276,593 @@ void main() {
     expect(saved!.place!.building, 'Alexander');
     expect(saved!.place!.room, 'East Wing');
   });
+
+  testWidgets(
+    'place search stays dormant while manual SAVED NAME is being typed',
+    (tester) async {
+      final service = _RecordingPlaceSearchService();
+      final factory = _TestPlaceSearchFactory(service: service);
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          placeSearchFactory: factory,
+          timeZoneIdProvider: () async => 'Etc/UTC',
+          onSave: (_) async => true,
+        ),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-place-saved-name')),
+        'Alexander Library',
+      );
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(service.autocompleteQueries, isEmpty);
+      expect(factory.controllerCreateCalls, 0);
+      expect(
+        find.byKey(const ValueKey('daybook-event-place-search-query')),
+        findsNothing,
+      );
+      expect(find.text('SEARCH PLACES WITH GOOGLE'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'place search disclosure decline performs no auth and manual event save stays available',
+    (tester) async {
+      DaybookEvent? saved;
+      final service = _RecordingPlaceSearchService();
+      final identity = _TestPlaceSearchIdentity();
+      final factory = _TestPlaceSearchFactory(
+        service: service,
+        identity: identity,
+      );
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          placeSearchFactory: factory,
+          timeZoneIdProvider: () async => 'Etc/UTC',
+          onSave: (event) async {
+            saved = event;
+            return true;
+          },
+        ),
+      );
+
+      await tester.tap(find.text('SEARCH PLACES WITH GOOGLE'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Place search sends only the query you type to Google through Room of Days.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Your current device location is not requested or used.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Room of Days creates or reuses a private Firebase identity for authenticated service access and abuse controls.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'A private random install identifier is retained for abuse and cost limits.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('USE PLACE SEARCH'), findsOneWidget);
+
+      await tester.tap(find.text('KEEP TYPING MANUALLY'));
+      await tester.pumpAndSettle();
+      expect(identity.ensureCoreCalls, 0);
+      expect(identity.signInCalls, 0);
+      expect(factory.appCheck.activateCalls, 0);
+      expect(factory.controllerCreateCalls, 0);
+      expect(service.autocompleteQueries, isEmpty);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-title')),
+        'Library hours',
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pump();
+      expect(saved?.title, 'Library hours');
+    },
+  );
+
+  testWidgets(
+    'place search waits for three characters and 300 ms then shows attributed 44px suggestions',
+    (tester) async {
+      final service = _RecordingPlaceSearchService();
+      final factory = _TestPlaceSearchFactory(service: service);
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          placeSearchFactory: factory,
+          timeZoneIdProvider: () async => 'Etc/UTC',
+          onSave: (_) async => true,
+        ),
+        locale: const Locale('en', 'GB'),
+      );
+      await _acceptPlaceSearch(tester);
+
+      final search = find.byKey(
+        const ValueKey('daybook-event-place-search-query'),
+      );
+      await tester.enterText(search, 'ab');
+      await tester.pump(const Duration(seconds: 1));
+      expect(service.autocompleteQueries, isEmpty);
+
+      await tester.enterText(search, 'abc');
+      await tester.pump(const Duration(milliseconds: 299));
+      expect(service.autocompleteQueries, isEmpty);
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pump();
+
+      expect(service.autocompleteQueries, ['abc']);
+      expect(factory.locales, ['en-GB']);
+      expect(find.text('Provider abc'), findsOneWidget);
+      expect(find.text('Google Maps'), findsOneWidget);
+      expect(
+        tester
+            .getSize(
+              find.byKey(
+                const ValueKey('daybook-event-place-search-suggestion-0'),
+              ),
+            )
+            .height,
+        greaterThanOrEqualTo(44),
+      );
+    },
+  );
+
+  testWidgets(
+    'place search selection saves the exact typed query and label edits retain its provider ID',
+    (tester) async {
+      DaybookEvent? saved;
+      final service = _RecordingPlaceSearchService();
+      final factory = _TestPlaceSearchFactory(service: service);
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          placeSearchFactory: factory,
+          timeZoneIdProvider: () async => 'Etc/UTC',
+          onSave: (event) async {
+            saved = event;
+            return true;
+          },
+        ),
+      );
+      await _acceptPlaceSearch(tester);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-place-search-query')),
+        '  Alex Library  ',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-event-place-search-suggestion-0')),
+      );
+      await tester.pumpAndSettle();
+
+      final savedName = tester.widget<TextField>(
+        find.byKey(const ValueKey('daybook-event-place-saved-name')),
+      );
+      final routing = tester.widget<TextField>(
+        find.byKey(const ValueKey('daybook-event-place-routing-text')),
+      );
+      expect(savedName.controller!.text, '  Alex Library  ');
+      expect(routing.controller!.text, isEmpty);
+      expect(find.text('Confirmed Provider Alex Library'), findsOneWidget);
+      expect(find.text('Google Maps'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-place-saved-name')),
+        'My study library',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-title')),
+        'Study block',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-event-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pump();
+
+      expect(saved?.place?.savedName, 'My study library');
+      expect(saved?.place?.routingText, isNull);
+      expect(saved?.place?.provider, DaybookPlaceProvider.google);
+      expect(saved?.place?.providerPlaceId, 'place-Alex-Library');
+    },
+  );
+
+  testWidgets(
+    'place search explicit manual replacement clears task provider content and ID',
+    (tester) async {
+      DaybookTask? saved;
+      final service = _RecordingPlaceSearchService();
+      final factory = _TestPlaceSearchFactory(service: service);
+      await _pumpDaybookWidget(
+        tester,
+        DaybookTaskEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          placeSearchFactory: factory,
+          onSave: (task) async {
+            saved = task;
+            return true;
+          },
+        ),
+      );
+      await _acceptPlaceSearch(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-place-search-query')),
+        'Student Center',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('daybook-task-place-search-suggestion-0')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Confirmed Provider Student Center'), findsOneWidget);
+
+      await tester.tap(find.text('USE MANUAL LOCATION INSTEAD'));
+      await tester.pump();
+      expect(find.text('Confirmed Provider Student Center'), findsNothing);
+      expect(find.text('Google Maps'), findsNothing);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-title')),
+        'Pick up forms',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-task-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-task-save')));
+      await tester.pump();
+
+      expect(saved?.place?.savedName, 'Student Center');
+      expect(saved?.place?.provider, isNull);
+      expect(saved?.place?.providerPlaceId, isNull);
+    },
+  );
+
+  testWidgets(
+    'place search ignores stale editor results and keeps the newer provider list',
+    (tester) async {
+      final service = _RecordingPlaceSearchService(blockAutocomplete: true);
+      final factory = _TestPlaceSearchFactory(service: service);
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          placeSearchFactory: factory,
+          timeZoneIdProvider: () async => 'Etc/UTC',
+          onSave: (_) async => true,
+        ),
+      );
+      await _acceptPlaceSearch(tester);
+      final search = find.byKey(
+        const ValueKey('daybook-event-place-search-query'),
+      );
+
+      await tester.enterText(search, 'first');
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.enterText(search, 'second');
+      await tester.pump(const Duration(milliseconds: 300));
+      service.completeAutocomplete('second');
+      await tester.pump();
+      expect(find.text('Provider second'), findsOneWidget);
+
+      service.completeAutocomplete('first');
+      await tester.pump();
+      expect(find.text('Provider second'), findsOneWidget);
+      expect(find.text('Provider first'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'place search failure shows the exact fallback while manual task save remains enabled',
+    (tester) async {
+      DaybookTask? saved;
+      final service = _RecordingPlaceSearchService(failAutocomplete: true);
+      final factory = _TestPlaceSearchFactory(service: service);
+      await _pumpDaybookWidget(
+        tester,
+        DaybookTaskEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          placeSearchFactory: factory,
+          onSave: (task) async {
+            saved = task;
+            return true;
+          },
+        ),
+      );
+      await _acceptPlaceSearch(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-place-search-query')),
+        'Library',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+
+      expect(
+        find.text('Search unavailable — type the location instead.'),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-title')),
+        'Return book',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-place-saved-name')),
+        'Alexander Library',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-task-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-task-save')));
+      await tester.pump();
+      expect(saved?.place?.savedName, 'Alexander Library');
+    },
+  );
+
+  testWidgets(
+    'place search access unavailability shows fallback and keeps manual event save enabled',
+    (tester) async {
+      DaybookEvent? saved;
+      final factory = _TestPlaceSearchFactory(
+        service: _RecordingPlaceSearchService(),
+        appCheck: _TestPlaceSearchAppCheck(succeeds: false),
+      );
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          placeSearchFactory: factory,
+          timeZoneIdProvider: () async => 'Etc/UTC',
+          onSave: (event) async {
+            saved = event;
+            return true;
+          },
+        ),
+      );
+
+      await _acceptPlaceSearch(tester);
+      expect(
+        find.text('Search unavailable — type the location instead.'),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-title')),
+        'Study block',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-place-saved-name')),
+        'My library',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('daybook-event-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('daybook-event-save')));
+      await tester.pump();
+
+      expect(saved?.place?.savedName, 'My library');
+      expect(factory.controllerCreateCalls, 0);
+    },
+  );
+
+  testWidgets(
+    'place search controller replacement clears transient provider content',
+    (tester) async {
+      final factory = _TestPlaceSearchFactory(
+        service: _RecordingPlaceSearchService(),
+      );
+      var controller = DaybookPlaceFieldsController();
+      late StateSetter rebuild;
+      await _pumpDaybookWidget(
+        tester,
+        StatefulBuilder(
+          builder: (context, setState) {
+            rebuild = setState;
+            return DaybookPlaceFields(
+              controller: controller,
+              keyPrefix: 'review-place',
+              placeSearchFactory: factory,
+            );
+          },
+        ),
+      );
+      await _acceptPlaceSearch(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('review-place-search-query')),
+        'Alexander Library',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('review-place-search-suggestion-0')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Confirmed Provider Alexander Library'), findsOneWidget);
+
+      rebuild(() {
+        controller = DaybookPlaceFieldsController(
+          initialPlace: DaybookPlace(savedName: 'Manual replacement'),
+        );
+      });
+      await tester.pump();
+
+      expect(find.text('Confirmed Provider Alexander Library'), findsNothing);
+      expect(find.text('Google Maps'), findsNothing);
+      final savedName = tester.widget<TextField>(
+        find.byKey(const ValueKey('review-place-saved-name')),
+      );
+      expect(savedName.controller!.text, 'Manual replacement');
+    },
+  );
+
+  testWidgets(
+    'place search visual consent remains complete at 430x932 and 200% text',
+    (tester) async {
+      final factory = _TestPlaceSearchFactory(
+        service: _RecordingPlaceSearchService(),
+      );
+      await _pumpDaybookWidget(
+        tester,
+        DaybookEventEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          placeSearchFactory: factory,
+          timeZoneIdProvider: () async => 'Etc/UTC',
+          onSave: (_) async => true,
+        ),
+        textScale: 2,
+      );
+      await tester.ensureVisible(find.text('SEARCH PLACES WITH GOOGLE'));
+      await tester.tap(find.text('SEARCH PLACES WITH GOOGLE'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Place search sends only the query you type to Google through Room of Days.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Your current device location is not requested or used.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Room of Days creates or reuses a private Firebase identity for authenticated service access and abuse controls.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'A private random install identifier is retained for abuse and cost limits.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .getSize(
+              find
+                  .ancestor(
+                    of: find.text('USE PLACE SEARCH'),
+                    matching: find.byType(InkWell),
+                  )
+                  .first,
+            )
+            .height,
+        greaterThanOrEqualTo(44),
+      );
+      expect(tester.takeException(), isNull);
+      await _capturePlaceSearchFrame(tester, 'consent_430x932_2x');
+
+      await tester.ensureVisible(find.text('USE PLACE SEARCH'));
+      await tester.pump();
+      await tester.tap(find.text('USE PLACE SEARCH'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-event-place-search-query')),
+        'Alexander Library',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      final suggestion = find.byKey(
+        const ValueKey('daybook-event-place-search-suggestion-0'),
+      );
+      await tester.ensureVisible(suggestion);
+      await tester.pump();
+      expect(find.text('Google Maps'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await _capturePlaceSearchFrame(tester, 'search_430x932_2x');
+    },
+  );
+
+  testWidgets(
+    'place search visual remains scroll and keyboard reachable at 320x568 and 200% text',
+    (tester) async {
+      final factory = _TestPlaceSearchFactory(
+        service: _RecordingPlaceSearchService(),
+      );
+      await _pumpDaybookWidget(
+        tester,
+        DaybookTaskEditor(
+          selectedDay: CivilDate(2026, 8, 11),
+          placeSearchFactory: factory,
+          onSave: (_) async => true,
+        ),
+        size: const Size(320, 568),
+        textScale: 2,
+      );
+      await tester.ensureVisible(find.text('SEARCH PLACES WITH GOOGLE'));
+      await tester.tap(find.text('SEARCH PLACES WITH GOOGLE'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Your current device location is not requested or used.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'A private random install identifier is retained for abuse and cost limits.',
+        ),
+        findsOneWidget,
+      );
+      await tester.ensureVisible(find.text('USE PLACE SEARCH'));
+      await tester.pump();
+      expect(find.text('USE PLACE SEARCH').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await _capturePlaceSearchFrame(tester, 'consent_320x568_2x');
+      await tester.tap(find.text('USE PLACE SEARCH'));
+      await tester.pumpAndSettle();
+      tester.view.viewInsets = const FakeViewPadding(bottom: 240);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('daybook-task-place-search-query')),
+        'Alexander Library',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      final suggestion = find.byKey(
+        const ValueKey('daybook-task-place-search-suggestion-0'),
+      );
+      await tester.ensureVisible(suggestion);
+      await tester.pump();
+      expect(suggestion.hitTestable(), findsOneWidget);
+      expect(tester.getSize(suggestion).height, greaterThanOrEqualTo(44));
+      expect(find.text('Google Maps'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await _capturePlaceSearchFrame(tester, 'search_320x568_2x_keyboard');
+
+      final save = find.byKey(const ValueKey('daybook-task-save'));
+      await tester.ensureVisible(save);
+      await tester.pump();
+      expect(save.hitTestable(), findsOneWidget);
+      expect(tester.getSize(save).height, greaterThanOrEqualTo(44));
+      expect(tester.getRect(save).top, greaterThanOrEqualTo(0));
+      expect(tester.getRect(save).bottom, lessThanOrEqualTo(328));
+      expect(tester.takeException(), isNull);
+      await _capturePlaceSearchFrame(
+        tester,
+        'save_reachable_320x568_2x_keyboard',
+      );
+    },
+  );
 
   testWidgets('Daybook event editor saves timed and valid weekly payloads', (
     tester,
@@ -1271,6 +1924,83 @@ void main() {
       expect(savedPlace!.mapsProvider, original.mapsProvider);
       expect(savedPlace!.placeId, original.placeId);
       expect(savedPlace!.campusCode, original.campusCode);
+    },
+  );
+
+  testWidgets(
+    'place search class selection reuses the shared editor without persisting Google address or coordinates',
+    (tester) async {
+      CampusPlace? savedPlace;
+      final factory = _TestPlaceSearchFactory(
+        service: _RecordingPlaceSearchService(),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => AddAcademicMeetingDialog(
+                    schedule: AcademicSchedule.empty(),
+                    selectedDay: DateTime(2026, 8, 11),
+                    placeSearchFactory: factory,
+                    onSave: (_, _, series) async {
+                      savedPlace = series.place;
+                      return true;
+                    },
+                  ),
+                ),
+                child: const Text('OPEN SEARCH CLASS EDITOR'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('OPEN SEARCH CLASS EDITOR'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('academic-course-code')),
+        'ECE 345',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('academic-course-title')),
+        'Linear Systems',
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('academic-place-search-affordance')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('academic-place-search-affordance')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('USE PLACE SEARCH'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('academic-place-search-query')),
+        'Hill Center',
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('academic-place-search-suggestion-0')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('academic-place-search-suggestion-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('KEEP THIS CLASS'));
+      await tester.tap(find.text('KEEP THIS CLASS'));
+      await tester.pump();
+
+      expect(savedPlace?.label, 'Hill Center');
+      expect(savedPlace?.address, isNull);
+      expect(savedPlace?.latitude, isNull);
+      expect(savedPlace?.longitude, isNull);
+      expect(savedPlace?.mapsProvider, 'google');
+      expect(savedPlace?.placeId, 'place-Hill-Center');
+      expect(savedPlace?.campusCode, isNull);
     },
   );
 
@@ -3094,11 +3824,27 @@ void main() {
   });
 }
 
+Future<void> _acceptPlaceSearch(WidgetTester tester) async {
+  await tester.tap(find.text('SEARCH PLACES WITH GOOGLE'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('USE PLACE SEARCH'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _capturePlaceSearchFrame(WidgetTester tester, String name) async {
+  if (!_capturePlaceSearch) return;
+  await expectLater(
+    find.byKey(_daybookWidgetCaptureKey),
+    matchesGoldenFile('goldens/task_4_place_search_$name.png'),
+  );
+}
+
 Future<void> _pumpDaybookWidget(
   WidgetTester tester,
   Widget child, {
   Size size = const Size(430, 932),
   double textScale = 1,
+  Locale? locale,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
@@ -3109,7 +3855,17 @@ Future<void> _pumpDaybookWidget(
     tester.binding.setSurfaceSize(null);
   });
   await tester.pumpWidget(
-    MaterialApp(debugShowCheckedModeBanner: false, home: Scaffold(body: child)),
+    RepaintBoundary(
+      key: _daybookWidgetCaptureKey,
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        locale: locale,
+        supportedLocales: locale == null
+            ? const [Locale('en', 'US')]
+            : [locale],
+        home: Scaffold(body: child),
+      ),
+    ),
   );
   await tester.pump();
 }
@@ -3121,6 +3877,7 @@ Future<void> _pumpCalendar(
   AcademicCalendarPreferences? preferences,
   DirectionsLauncher? directionsLauncher,
   DaybookPreferences? daybookPreferences,
+  DaybookPlaceSearchFactory? placeSearchFactory,
   Future<String> Function()? timeZoneIdProvider,
   Key? calendarKey,
   List<Quest> quests = const [],
@@ -3153,6 +3910,8 @@ Future<void> _pumpCalendar(
           notebookHandoff: handoff,
           directionsLauncher: directionsLauncher,
           daybookPreferences: daybookPreferences,
+          placeSearchFactory:
+              placeSearchFactory ?? const ProductionDaybookPlaceSearchFactory(),
           timeZoneIdProvider: timeZoneIdProvider,
         ),
       ),
@@ -3498,6 +4257,154 @@ final class _RecordingDirectionsLauncher implements DirectionsLauncher {
   Future<bool> open(DaybookPlace place, MapProvider provider) async {
     calls.add((provider, place.savedName));
     return succeeds;
+  }
+}
+
+final class _TestPlaceSearchFactory implements DaybookPlaceSearchFactory {
+  _TestPlaceSearchFactory({
+    required this.service,
+    _TestPlaceSearchIdentity? identity,
+    _TestPlaceSearchAppCheck? appCheck,
+    InMemoryDaybookPreferences? preferences,
+  }) : identity = identity ?? _TestPlaceSearchIdentity(),
+       appCheck = appCheck ?? _TestPlaceSearchAppCheck(),
+       preferences = preferences ?? InMemoryDaybookPreferences();
+
+  final _RecordingPlaceSearchService service;
+  final _TestPlaceSearchIdentity identity;
+  final _TestPlaceSearchAppCheck appCheck;
+  final InMemoryDaybookPreferences preferences;
+  int controllerCreateCalls = 0;
+  final List<String> locales = [];
+
+  @override
+  bool get enabled => true;
+
+  @override
+  PlaceSearchAccess createAccess({
+    required PlaceSearchConsentRequest requestConsent,
+  }) => PlaceSearchAccess(
+    enabled: true,
+    preferences: preferences,
+    identity: identity,
+    appCheck: appCheck,
+    requestConsent: requestConsent,
+    createInstallId: () => '00000000-0000-4000-8000-000000000001',
+  );
+
+  @override
+  PlaceSearchController createController({
+    required String installId,
+    required String locale,
+  }) {
+    controllerCreateCalls += 1;
+    locales.add(locale);
+    return PlaceSearchController(
+      service: service,
+      installId: installId,
+      locale: locale,
+      createSessionToken: () =>
+          '00000000-0000-4000-8000-${controllerCreateCalls.toString().padLeft(12, '0')}',
+    );
+  }
+}
+
+final class _TestPlaceSearchIdentity implements PlaceSearchIdentity {
+  bool _signedIn = false;
+  int ensureCoreCalls = 0;
+  int signInCalls = 0;
+
+  @override
+  bool get signedIn => _signedIn;
+
+  @override
+  Future<bool> ensureCoreAvailable() async {
+    ensureCoreCalls += 1;
+    return true;
+  }
+
+  @override
+  Future<bool> signInAnonymously() async {
+    signInCalls += 1;
+    _signedIn = true;
+    return true;
+  }
+}
+
+final class _TestPlaceSearchAppCheck implements PlaceSearchAppCheck {
+  _TestPlaceSearchAppCheck({this.succeeds = true});
+
+  final bool succeeds;
+  int activateCalls = 0;
+
+  @override
+  Future<bool> activate() async {
+    activateCalls += 1;
+    return succeeds;
+  }
+}
+
+final class _RecordingPlaceSearchService implements PlaceSearchService {
+  _RecordingPlaceSearchService({
+    this.failAutocomplete = false,
+    this.blockAutocomplete = false,
+  });
+
+  final bool failAutocomplete;
+  final bool blockAutocomplete;
+  final List<String> autocompleteQueries = [];
+  final List<String> detailPlaceIds = [];
+  final Map<String, Completer<List<PlaceSuggestion>>> _pending = {};
+
+  @override
+  Future<List<PlaceSuggestion>> autocomplete({
+    required String query,
+    required String sessionToken,
+    required String installId,
+    required String locale,
+  }) {
+    autocompleteQueries.add(query);
+    if (failAutocomplete) {
+      return Future<List<PlaceSuggestion>>.error(
+        const PlaceSearchUnavailable(),
+      );
+    }
+    if (blockAutocomplete) {
+      return (_pending[query] ??= Completer<List<PlaceSuggestion>>()).future;
+    }
+    return Future.value([_suggestion(query)]);
+  }
+
+  void completeAutocomplete(String query) {
+    _pending[query]!.complete([_suggestion(query)]);
+  }
+
+  @override
+  Future<PlaceSelection> details({
+    required PlaceSuggestion suggestion,
+    required String originalQuery,
+    required String sessionToken,
+    required String installId,
+    required String locale,
+  }) async {
+    detailPlaceIds.add(suggestion.placeId);
+    return PlaceSelection(
+      provider: suggestion.provider,
+      placeId: suggestion.placeId,
+      originalQuery: originalQuery,
+      primaryText: 'Confirmed ${suggestion.primaryText}',
+      secondaryText: suggestion.secondaryText,
+    );
+  }
+
+  PlaceSuggestion _suggestion(String query) {
+    final clean = query.trim();
+    return PlaceSuggestion(
+      provider: 'google',
+      placeId: 'place-${clean.replaceAll(' ', '-')}',
+      primaryText: 'Provider $clean',
+      secondaryText: 'Provider address for $clean',
+    );
   }
 }
 

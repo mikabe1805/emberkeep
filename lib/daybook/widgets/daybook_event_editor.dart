@@ -20,6 +20,7 @@ class DaybookEventEditor extends StatefulWidget {
     this.initialOccurrence,
     this.occurrenceMoveOnly = false,
     this.timeZoneIdProvider,
+    this.placeSearchFactory = const ProductionDaybookPlaceSearchFactory(),
     required this.onSave,
   });
 
@@ -28,6 +29,7 @@ class DaybookEventEditor extends StatefulWidget {
   final DaybookEventOccurrence? initialOccurrence;
   final bool occurrenceMoveOnly;
   final TimeZoneIdProvider? timeZoneIdProvider;
+  final DaybookPlaceSearchFactory placeSearchFactory;
   final Future<bool> Function(DaybookEvent event) onSave;
 
   @override
@@ -442,6 +444,7 @@ class _DaybookEventEditorState extends State<DaybookEventEditor> {
                 DaybookPlaceFields(
                   controller: _place,
                   keyPrefix: 'daybook-event-place',
+                  placeSearchFactory: widget.placeSearchFactory,
                 ),
               ],
               if (_error != null) ...[

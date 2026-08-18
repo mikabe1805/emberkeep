@@ -20,6 +20,7 @@ import '../daybook/services/directions_launcher.dart';
 import '../daybook/widgets/daybook_add_choice_dialog.dart';
 import '../daybook/widgets/daybook_event_actions.dart';
 import '../daybook/widgets/daybook_event_editor.dart';
+import '../daybook/widgets/daybook_place_fields.dart';
 import '../daybook/widgets/daybook_task_editor.dart';
 import '../engine.dart';
 import '../journal_media.dart' as media;
@@ -75,6 +76,7 @@ class CalendarPage extends StatefulWidget {
     this.directionsLauncher,
     this.daybookPreferences,
     this.timeZoneIdProvider,
+    this.placeSearchFactory = const ProductionDaybookPlaceSearchFactory(),
   });
 
   final GameState state;
@@ -88,6 +90,7 @@ class CalendarPage extends StatefulWidget {
   final DirectionsLauncher? directionsLauncher;
   final DaybookPreferences? daybookPreferences;
   final TimeZoneIdProvider? timeZoneIdProvider;
+  final DaybookPlaceSearchFactory placeSearchFactory;
 
   @override
   State<CalendarPage> createState() => _CalendarPageState();
@@ -1048,6 +1051,7 @@ class _CalendarPageState extends State<CalendarPage> {
           builder: (_) => DaybookEventEditor(
             selectedDay: CivilDate.fromDateTime(_selected),
             timeZoneIdProvider: widget.timeZoneIdProvider,
+            placeSearchFactory: widget.placeSearchFactory,
             onSave: _saveDaybookEvent,
           ),
         );
@@ -1057,6 +1061,7 @@ class _CalendarPageState extends State<CalendarPage> {
           barrierColor: Palette.dialogBarrier,
           builder: (_) => DaybookTaskEditor(
             selectedDay: CivilDate.fromDateTime(_selected),
+            placeSearchFactory: widget.placeSearchFactory,
             onSave: _saveDaybookTask,
           ),
         );
@@ -1067,6 +1072,7 @@ class _CalendarPageState extends State<CalendarPage> {
           builder: (_) => AddAcademicMeetingDialog(
             schedule: _academicSchedule,
             selectedDay: _selected,
+            placeSearchFactory: widget.placeSearchFactory,
             onSave: _saveAcademicMeeting,
           ),
         );
@@ -1150,6 +1156,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 : null,
             occurrenceMoveOnly: scope == DaybookEventScope.thisEvent,
             timeZoneIdProvider: widget.timeZoneIdProvider,
+            placeSearchFactory: widget.placeSearchFactory,
             onSave: scope == DaybookEventScope.thisEvent
                 ? (candidate) =>
                       _moveDaybookEventOccurrence(event, occurrence, candidate)
@@ -1208,6 +1215,7 @@ class _CalendarPageState extends State<CalendarPage> {
           builder: (_) => DaybookTaskEditor(
             selectedDay: task.dueDate,
             initialTask: task,
+            placeSearchFactory: widget.placeSearchFactory,
             onSave: _saveDaybookTask,
           ),
         );

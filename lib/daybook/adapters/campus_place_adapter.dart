@@ -18,17 +18,33 @@ abstract final class CampusPlaceDaybookAdapter {
   static CampusPlace toCampusPlace(
     DaybookPlace source, {
     required CampusPlace original,
+    required DaybookPlaceDestinationIntent destinationIntent,
   }) => CampusPlace(
     label: source.savedName,
     building: source.building,
     room: source.room,
     address: source.routingText,
-    latitude: original.latitude,
-    longitude: original.longitude,
-    mapsProvider: source.provider?.name ?? original.mapsProvider,
-    placeId: source.provider == null
-        ? original.placeId
-        : source.providerPlaceId,
-    campusCode: original.campusCode,
+    latitude: destinationIntent == DaybookPlaceDestinationIntent.preserve
+        ? original.latitude
+        : null,
+    longitude: destinationIntent == DaybookPlaceDestinationIntent.preserve
+        ? original.longitude
+        : null,
+    mapsProvider: switch (destinationIntent) {
+      DaybookPlaceDestinationIntent.preserve =>
+        source.provider?.name ?? original.mapsProvider,
+      DaybookPlaceDestinationIntent.googleSelection =>
+        DaybookPlaceProvider.google.name,
+      DaybookPlaceDestinationIntent.manualReplacement => null,
+    },
+    placeId: switch (destinationIntent) {
+      DaybookPlaceDestinationIntent.preserve =>
+        source.provider == null ? original.placeId : source.providerPlaceId,
+      DaybookPlaceDestinationIntent.googleSelection => source.providerPlaceId,
+      DaybookPlaceDestinationIntent.manualReplacement => null,
+    },
+    campusCode: destinationIntent == DaybookPlaceDestinationIntent.preserve
+        ? original.campusCode
+        : null,
   );
 }

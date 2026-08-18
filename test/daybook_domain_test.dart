@@ -180,6 +180,7 @@ void main() {
       CampusPlaceDaybookAdapter.toCampusPlace(
         CampusPlaceDaybookAdapter.fromCampusPlace(legacy),
         original: legacy,
+        destinationIntent: DaybookPlaceDestinationIntent.preserve,
       ).toJson(),
       legacy.toJson(),
     );
@@ -205,6 +206,7 @@ void main() {
         CampusPlaceDaybookAdapter.toCampusPlace(
           neutral,
           original: legacy,
+          destinationIntent: DaybookPlaceDestinationIntent.preserve,
         ).toJson(),
         legacy.toJson(),
       );
@@ -215,6 +217,7 @@ void main() {
             providerPlaceId: 'ChIJREPLACED',
           ),
           original: legacy,
+          destinationIntent: DaybookPlaceDestinationIntent.googleSelection,
         ).toJson(),
         containsPair('mapsProvider', 'google'),
       );

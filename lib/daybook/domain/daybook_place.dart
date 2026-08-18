@@ -1,5 +1,11 @@
 enum DaybookPlaceProvider { google }
 
+enum DaybookPlaceDestinationIntent {
+  preserve,
+  googleSelection,
+  manualReplacement,
+}
+
 final class DaybookPlace {
   DaybookPlace({
     required String savedName,
