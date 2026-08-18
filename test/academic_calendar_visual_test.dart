@@ -190,6 +190,8 @@ void main() {
           ),
           findsOneWidget,
         );
+        expect(find.text('Choose references for the cover'), findsOneWidget);
+        expect(find.text('Clear the sink'), findsNothing);
         expect(
           tester.getTopLeft(find.text('Museum tickets release')).dy,
           greaterThanOrEqualTo(16),
@@ -891,12 +893,24 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
   });
 
   final state = GameState()..reduceMotion = true;
-  final quest = Quest(
+  final dueQuest = Quest(
     title: 'Clear the kitchen table and put every borrowed thing back',
     stat: Stat.dis,
     difficulty: 2,
     schedule: QuestSchedule.once,
     dueDate: DateTime(2026, 8, 11),
+  );
+  final focusQuest = Quest(
+    title: 'Choose references for the cover',
+    stat: Stat.foc,
+    difficulty: 3,
+    priorityDay: Days.key(DateTime(2026, 8, 11)),
+  );
+  final routineQuest = Quest(
+    title: 'Clear the sink',
+    stat: Stat.dis,
+    difficulty: 1,
+    schedule: QuestSchedule.daily,
   );
   await tester.pumpWidget(
     MaterialApp(
@@ -913,7 +927,7 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
       home: Scaffold(
         body: CalendarPage(
           state: state,
-          quests: [quest],
+          quests: [dueQuest, focusQuest, routineQuest],
           onAdd: (_) => true,
           scheduleRepository: InMemoryAcademicScheduleRepository(
             _generalDaybookReleaseSchedule(

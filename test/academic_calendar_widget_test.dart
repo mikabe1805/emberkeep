@@ -2274,6 +2274,311 @@ void main() {
     },
   );
 
+  testWidgets('Day Shape states the fixed plans, deadline, and focus facts', (
+    tester,
+  ) async {
+    final createdAt = DateTime.utc(2026, 8, 8);
+    final schedule = AcademicSchedule.empty()
+        .putEvent(
+          DaybookEvent(
+            eventId: 'day_shape_all_day',
+            title: 'Museum visit',
+            startDate: CivilDate(2026, 8, 11),
+            endDate: CivilDate(2026, 8, 12),
+            timeZoneId: 'America/New_York',
+            allDay: true,
+            createdAt: createdAt,
+            updatedAt: createdAt,
+          ),
+        )
+        .putEvent(
+          DaybookEvent(
+            eventId: 'day_shape_timed',
+            title: 'Portfolio review',
+            startDate: CivilDate(2026, 8, 11),
+            endDate: CivilDate(2026, 8, 11),
+            timeZoneId: 'America/New_York',
+            allDay: false,
+            startMinute: 9 * 60,
+            endMinute: 10 * 60,
+            createdAt: createdAt,
+            updatedAt: createdAt,
+          ),
+        )
+        .putTask(
+          DaybookTask(
+            taskId: 'day_shape_deadline',
+            title: 'Send references',
+            dueDate: CivilDate(2026, 8, 11),
+            createdAt: createdAt,
+            updatedAt: createdAt,
+          ),
+        );
+    final focus = Quest(
+      title: 'Choose cover references',
+      stat: Stat.foc,
+      difficulty: 2,
+      priorityDay: Days.key(DateTime(2026, 8, 11)),
+    );
+
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(schedule),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.day,
+          selectedDate: '2026-08-11',
+        ),
+      ),
+      quests: [focus],
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('DAY SHAPE'),
+      260,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('DAY SHAPE'), findsOneWidget);
+    expect(
+      find.text('2 fixed plans · first at 9:00 AM · 1 deadline · 1 focus'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Day Shape uses factual singular, plural, and empty copy', (
+    tester,
+  ) async {
+    final createdAt = DateTime.utc(2026, 8, 8);
+    final preferences = InMemoryAcademicCalendarPreferences(
+      state: const AcademicCalendarViewState(
+        mode: AcademicCalendarMode.day,
+        selectedDate: '2026-08-11',
+      ),
+    );
+
+    Future<void> expectShape({
+      required AcademicSchedule schedule,
+      List<Quest> quests = const [],
+      required String copy,
+      DateTime? now,
+    }) async {
+      Clock.freeze(now ?? DateTime(2026, 8, 11));
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(schedule),
+        handoff: _RecordingHandoff(),
+        preferences: preferences,
+        quests: quests,
+        calendarKey: ValueKey('day-shape-$copy'),
+      );
+      await tester.scrollUntilVisible(
+        find.text('DAY SHAPE'),
+        260,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('DAY SHAPE'), findsOneWidget);
+      expect(find.text(copy), findsOneWidget);
+    }
+
+    await expectShape(
+      schedule: AcademicSchedule.empty().putEvent(
+        DaybookEvent(
+          eventId: 'day_shape_one_timed',
+          title: 'Call advisor',
+          startDate: CivilDate(2026, 8, 11),
+          endDate: CivilDate(2026, 8, 11),
+          timeZoneId: 'America/New_York',
+          allDay: false,
+          startMinute: 10 * 60,
+          endMinute: 11 * 60,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      ),
+      copy: '1 fixed plan · 10:00 AM',
+    );
+    await expectShape(
+      schedule: AcademicSchedule.empty()
+          .putEvent(
+            DaybookEvent(
+              eventId: 'day_shape_first_timed',
+              title: 'Call advisor',
+              startDate: CivilDate(2026, 8, 11),
+              endDate: CivilDate(2026, 8, 11),
+              timeZoneId: 'America/New_York',
+              allDay: false,
+              startMinute: 10 * 60,
+              endMinute: 11 * 60,
+              createdAt: createdAt,
+              updatedAt: createdAt,
+            ),
+          )
+          .putEvent(
+            DaybookEvent(
+              eventId: 'day_shape_second_timed',
+              title: 'Studio circle',
+              startDate: CivilDate(2026, 8, 11),
+              endDate: CivilDate(2026, 8, 11),
+              timeZoneId: 'America/New_York',
+              allDay: false,
+              startMinute: 16 * 60,
+              endMinute: 17 * 60,
+              createdAt: createdAt,
+              updatedAt: createdAt,
+            ),
+          ),
+      copy: '2 fixed plans · first at 10:00 AM',
+    );
+    await expectShape(
+      schedule: AcademicSchedule.empty().putEvent(
+        DaybookEvent(
+          eventId: 'day_shape_all_day_only',
+          title: 'Museum visit',
+          startDate: CivilDate(2026, 8, 11),
+          endDate: CivilDate(2026, 8, 12),
+          timeZoneId: 'America/New_York',
+          allDay: true,
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      ),
+      copy: '1 all-day plan',
+    );
+    await expectShape(
+      schedule: AcademicSchedule.empty().putTask(
+        DaybookTask(
+          taskId: 'day_shape_deadline_only',
+          title: 'Send references',
+          dueDate: CivilDate(2026, 8, 11),
+          createdAt: createdAt,
+          updatedAt: createdAt,
+        ),
+      ),
+      copy: '1 deadline',
+    );
+    await expectShape(
+      schedule: AcademicSchedule.empty(),
+      quests: [
+        Quest(
+          title: 'Choose cover references',
+          stat: Stat.foc,
+          difficulty: 2,
+          priorityDay: Days.key(DateTime(2026, 8, 11)),
+        ),
+      ],
+      copy: '1 focus',
+    );
+    await expectShape(
+      schedule: AcademicSchedule.empty(),
+      quests: [
+        Quest(
+          title: 'Choose cover references',
+          stat: Stat.foc,
+          difficulty: 2,
+          priorityDay: Days.key(DateTime(2026, 8, 11)),
+        ),
+        Quest(
+          title: 'Outline the presentation',
+          stat: Stat.foc,
+          difficulty: 2,
+          priorityDay: Days.key(DateTime(2026, 8, 11)),
+        ),
+      ],
+      copy: '2 focus choices',
+    );
+    await expectShape(
+      schedule: AcademicSchedule.empty(),
+      copy: 'No fixed plans yet.',
+    );
+    await expectShape(
+      schedule: AcademicSchedule.empty(),
+      copy: 'A quiet day.',
+      now: DateTime(2026, 8, 12),
+    );
+  });
+
+  testWidgets(
+    'Day Shape wraps inside the day folio at 320 by 568 and 200% text',
+    (tester) async {
+      final createdAt = DateTime.utc(2026, 8, 8);
+      final schedule = AcademicSchedule.empty()
+          .putEvent(
+            DaybookEvent(
+              eventId: 'day_shape_large_all_day',
+              title: 'Museum visit',
+              startDate: CivilDate(2026, 8, 11),
+              endDate: CivilDate(2026, 8, 12),
+              timeZoneId: 'America/New_York',
+              allDay: true,
+              createdAt: createdAt,
+              updatedAt: createdAt,
+            ),
+          )
+          .putEvent(
+            DaybookEvent(
+              eventId: 'day_shape_large_timed',
+              title: 'Portfolio review',
+              startDate: CivilDate(2026, 8, 11),
+              endDate: CivilDate(2026, 8, 11),
+              timeZoneId: 'America/New_York',
+              allDay: false,
+              startMinute: 9 * 60,
+              endMinute: 10 * 60,
+              createdAt: createdAt,
+              updatedAt: createdAt,
+            ),
+          )
+          .putTask(
+            DaybookTask(
+              taskId: 'day_shape_large_deadline',
+              title: 'Send references',
+              dueDate: CivilDate(2026, 8, 11),
+              createdAt: createdAt,
+              updatedAt: createdAt,
+            ),
+          );
+      const body = '2 fixed plans · first at 9:00 AM · 1 deadline · 1 focus';
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(schedule),
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-11',
+          ),
+        ),
+        quests: [
+          Quest(
+            title: 'Choose cover references',
+            stat: Stat.foc,
+            difficulty: 2,
+            priorityDay: Days.key(DateTime(2026, 8, 11)),
+          ),
+        ],
+        size: const Size(320, 568),
+        textScale: 2,
+      );
+
+      await tester.scrollUntilVisible(
+        find.text('DAY SHAPE'),
+        260,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
+      final label = tester.renderObject<RenderParagraph>(
+        find.text('DAY SHAPE'),
+      );
+      final paragraph = tester.renderObject<RenderParagraph>(find.text(body));
+      expect(label.didExceedMaxLines, isFalse);
+      expect(paragraph.didExceedMaxLines, isFalse);
+      expect(tester.getTopLeft(find.text(body)).dy, greaterThanOrEqualTo(0));
+      expect(tester.getBottomLeft(find.text(body)).dy, lessThanOrEqualTo(568));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('Plans shows Now, room, time, and the stable notebook doorway', (
     tester,
   ) async {

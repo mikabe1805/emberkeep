@@ -1672,7 +1672,9 @@ class _DayPanel extends StatelessWidget {
                 ?planAction,
               ],
             ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 9),
+          _DayShapeSummary(summary: daybookDay.summary, isPast: isPast),
+          const SizedBox(height: 12),
           if (showDaybookEntries && daybookDay.entries.isNotEmpty)
             DaybookAgendaEntries(
               day: daybookDay,
@@ -1755,20 +1757,72 @@ class _DayPanel extends StatelessWidget {
               onOpenJournal: onOpenJournal,
             ),
           ],
-          if (daybookDay.entries.isEmpty &&
-              completions == 0 &&
-              reflections == 0 &&
-              journalEntries.isEmpty)
-            Text(
-              isPast ? 'A quiet day.' : 'Nothing planned for this day yet.',
-              style: Type.body.copyWith(
-                fontSize: 13.5,
-                fontStyle: FontStyle.italic,
-                color: Palette.textLo,
-              ),
-            ),
         ],
       ),
+    );
+  }
+}
+
+class _DayShapeSummary extends StatelessWidget {
+  const _DayShapeSummary({required this.summary, required this.isPast});
+
+  final DaybookDaySummary summary;
+  final bool isPast;
+
+  @override
+  Widget build(BuildContext context) {
+    final facts = <String>[];
+    if (summary.fixedPlanCount > 0) {
+      if (summary.firstTimedStartMinute == null &&
+          summary.fixedPlanCount == 1) {
+        facts.add('1 all-day plan');
+      } else if (summary.fixedPlanCount == 1) {
+        facts.add(
+          '1 fixed plan · ${formatAcademicTime(summary.firstTimedStartMinute!)}',
+        );
+      } else if (summary.firstTimedStartMinute != null) {
+        facts.add(
+          '${summary.fixedPlanCount} fixed plans · first at ${formatAcademicTime(summary.firstTimedStartMinute!)}',
+        );
+      } else {
+        facts.add('${summary.fixedPlanCount} fixed plans');
+      }
+    }
+    if (summary.deadlineCount > 0) {
+      facts.add(
+        '${summary.deadlineCount} deadline${summary.deadlineCount == 1 ? '' : 's'}',
+      );
+    }
+    if (summary.focusCount > 0) {
+      facts.add(
+        summary.focusCount == 1
+            ? '1 focus'
+            : '${summary.focusCount} focus choices',
+      );
+    }
+    final body = facts.isEmpty
+        ? (isPast ? 'A quiet day.' : 'No fixed plans yet.')
+        : facts.join(' · ');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 1, thickness: 1, color: Color(0x46E7C47E)),
+        const SizedBox(height: 8),
+        Text(
+          'DAY SHAPE',
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            letterSpacing: 1.7,
+            color: Palette.xpLight,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          body,
+          style: Type.body.copyWith(fontSize: 13.5, color: Palette.textMid),
+        ),
+      ],
     );
   }
 }
