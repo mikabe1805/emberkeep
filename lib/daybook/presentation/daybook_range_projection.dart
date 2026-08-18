@@ -537,14 +537,7 @@ abstract final class DaybookRangeProjection {
               !entry.completed,
         )
         .length;
-    final focusCount = entries
-        .where(
-          (entry) =>
-              entry.section == DaybookSection.focus &&
-              !entry.cancelled &&
-              !entry.completed,
-        )
-        .length;
+    final focusCount = entries.where(_isActiveFocus).length;
     final hasDeadline = deadlineCount > 0;
     final summary = DaybookDaySummary(
       scheduledMinutes: scheduledMinutes,
@@ -569,6 +562,11 @@ abstract final class DaybookRangeProjection {
       summary: summary,
     );
   }
+
+  static bool _isActiveFocus(DaybookEntry entry) =>
+      entry.section == DaybookSection.focus &&
+      !entry.cancelled &&
+      !entry.completed;
 
   static List<DaybookConflict> _conflicts(List<DaybookEntry> timed) {
     final conflicts = <DaybookConflict>[];
@@ -636,18 +634,12 @@ abstract final class DaybookRangeProjection {
     final labels = <String>[];
     for (final kind in DaybookSourceKind.values) {
       final count = entries
-          .where(
-            (entry) =>
-                entry.sourceKind == kind &&
-                entry.section != DaybookSection.focus,
-          )
+          .where((entry) => entry.sourceKind == kind && !_isActiveFocus(entry))
           .length;
       if (count == 0) continue;
       labels.add(_sourceCountLabel(kind, count));
     }
-    final focusCount = entries
-        .where((entry) => entry.section == DaybookSection.focus)
-        .length;
+    final focusCount = entries.where(_isActiveFocus).length;
     if (focusCount > 0) {
       labels.add('$focusCount focus ${focusCount == 1 ? 'choice' : 'choices'}');
     }

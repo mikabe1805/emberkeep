@@ -2671,6 +2671,43 @@ void main() {
     );
   });
 
+  testWidgets('completed focus remains history, not an active month choice', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.month,
+          selectedDate: '2026-08-18',
+        ),
+      ),
+      quests: [
+        Quest(
+          title: 'Chosen today',
+          stat: Stat.foc,
+          difficulty: 2,
+          priorityDay: '2026-08-18',
+          lastDoneDay: '2026-08-18',
+        ),
+      ],
+    );
+
+    expect(
+      find.byKey(const ValueKey('academic-month-focus-2026-08-18')),
+      findsNothing,
+    );
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'August 18, 2026, open day, 2026-08-18: 1 quest plan'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel(RegExp(r'focus choice')), findsNothing);
+  });
+
   testWidgets('projected occurrence renders moved state and moved local time', (
     tester,
   ) async {
