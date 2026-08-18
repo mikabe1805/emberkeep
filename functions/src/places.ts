@@ -243,6 +243,10 @@ type LimitPolicy = {
   globalPerDay: number;
 };
 
+const GLOBAL_SHARD_COUNT = 20;
+const UPSTREAM_TIMEOUT_MS = 8_000;
+const COUNTER_TTL_MS = 35 * 24 * 60 * 60 * 1_000;
+
 // These limits deliberately close well below a public search product's normal
 // volume until billing alerts, provider quotas, and App Check are proven.
 const LIMITS: Record<PlaceOperation, LimitPolicy> = {
@@ -257,20 +261,56 @@ type CounterState = {
   minuteCount: number;
 };
 
-const readCount = (value: unknown): number =>
-  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
+const malformedCounter = (): never => {
+  throw new Error("Malformed Places cost counter.");
+};
+
+const readCount = (value: unknown): number => {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    return malformedCounter();
+  }
+  return value;
+};
 
 const readCounter = (
+  exists: boolean,
   value: Record<string, unknown> | undefined,
   dayBucket: string,
   minuteBucket: string,
-): CounterState => ({
-  dayBucket,
-  dayCount: value?.dayBucket === dayBucket ? readCount(value.dayCount) : 0,
-  minuteBucket,
-  minuteCount: value?.minuteBucket === minuteBucket ?
-    readCount(value.minuteCount) : 0,
-});
+): CounterState => {
+  if (!exists) {
+    return {dayBucket, dayCount: 0, minuteBucket, minuteCount: 0};
+  }
+  if (!value || value.dayBucket !== dayBucket) return malformedCounter();
+  const storedMinuteBucket = value.minuteBucket;
+  if (
+    typeof storedMinuteBucket !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}T(?:[01]\d|2[0-3]):[0-5]\d$/.test(storedMinuteBucket) ||
+    !storedMinuteBucket.startsWith(`${dayBucket}T`) ||
+    storedMinuteBucket > minuteBucket
+  ) {
+    return malformedCounter();
+  }
+  const storedMinuteCount = readCount(value.minuteCount);
+  return {
+    dayBucket,
+    dayCount: readCount(value.dayCount),
+    minuteBucket,
+    minuteCount: storedMinuteBucket === minuteBucket ?
+      storedMinuteCount : 0,
+  };
+};
+
+const globalShard = (request: CostGuardRequest): number => {
+  const digest = createHash("sha256")
+    .update(request.operation)
+    .update("\0")
+    .update(request.uid)
+    .update("\0")
+    .update(request.installId)
+    .digest();
+  return digest.readUInt32BE(0) % GLOBAL_SHARD_COUNT;
+};
 
 export class FirestoreCostGuard implements CostGuard {
   constructor(
@@ -284,9 +324,10 @@ export class FirestoreCostGuard implements CostGuard {
     const dayBucket = iso.slice(0, 10);
     const minuteBucket = iso.slice(0, 16);
     const uidHash = createHash("sha256").update(request.uid).digest("hex");
+    const shard = globalShard(request);
     const counters = this.db.collection("_placesCostGuards");
     const refs = [
-      counters.doc(`global_${request.operation}_${dayBucket}`),
+      counters.doc(`global_${request.operation}_${shard}_${dayBucket}`),
       counters.doc(`uid_${request.operation}_${uidHash}_${dayBucket}`),
       counters.doc(`install_${request.operation}_${request.installId}_${dayBucket}`),
     ];
@@ -295,17 +336,21 @@ export class FirestoreCostGuard implements CostGuard {
     return this.db.runTransaction(async (transaction) => {
       const snapshots = await Promise.all(refs.map((ref) => transaction.get(ref)));
       const states = snapshots.map((snapshot) =>
-        readCounter(snapshot.data(), dayBucket, minuteBucket));
+        readCounter(snapshot.exists, snapshot.data(), dayBucket, minuteBucket));
       const globalState = states[0]!;
       const uidState = states[1]!;
       const installState = states[2]!;
-      const globalClosed = globalState.dayCount >= policy.globalPerDay;
+      const globalPerShard = policy.globalPerDay / GLOBAL_SHARD_COUNT;
+      const globalClosed = globalState.dayCount >= globalPerShard;
       const uidClosed = uidState.dayCount >= policy.perDay ||
         uidState.minuteCount >= policy.perMinute;
       const installClosed = installState.dayCount >= policy.perDay ||
         installState.minuteCount >= policy.perMinute;
       if (globalClosed || uidClosed || installClosed) return false;
 
+      // Owner setup gate: enable a Firestore TTL policy on
+      // _placesCostGuards.expiresAt before public Places enablement.
+      const expiresAt = new Date(instant.getTime() + COUNTER_TTL_MS);
       states.forEach((state, index) => {
         transaction.set(refs[index]!, {
           dayBucket,
@@ -313,6 +358,7 @@ export class FirestoreCostGuard implements CostGuard {
           minuteBucket,
           minuteCount: state.minuteCount + 1,
           updatedAt: iso,
+          expiresAt,
         });
       });
       return true;
@@ -350,20 +396,39 @@ const fetchJson = async (
   request: FixedUpstreamRequest,
   fetchImpl: typeof globalThis.fetch,
 ): Promise<unknown> => {
-  let response: Response;
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timeout = setTimeout(() => {
+      controller.abort();
+      reject(new Error("Places upstream deadline exceeded."));
+    }, UPSTREAM_TIMEOUT_MS);
+  });
   try {
-    response = await fetchImpl(request.url, request.init);
-  } catch {
+    return await Promise.race([
+      (async () => {
+        const response = await fetchImpl(request.url, {
+          ...request.init,
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          const code = response.status === 429 ?
+            "resource-exhausted" : "unavailable";
+          throw new HttpsError(code, "Place search is temporarily unavailable.");
+        }
+        try {
+          return await response.json() as unknown;
+        } catch {
+          throw new HttpsError("unavailable", "The Places response was malformed.");
+        }
+      })(),
+      deadline,
+    ]);
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
     throw new HttpsError("unavailable", "Place search is temporarily unavailable.");
-  }
-  if (!response.ok) {
-    const code = response.status === 429 ? "resource-exhausted" : "unavailable";
-    throw new HttpsError(code, "Place search is temporarily unavailable.");
-  }
-  try {
-    return await response.json() as unknown;
-  } catch {
-    throw new HttpsError("unavailable", "The Places response was malformed.");
+  } finally {
+    if (timeout !== undefined) clearTimeout(timeout);
   }
 };
 

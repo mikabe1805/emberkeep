@@ -26,6 +26,7 @@ export const placesAutocomplete = onCall(
   {
     secrets: [googlePlacesApiKey],
     enforceAppCheck: enforcePlacesAppCheck,
+    timeoutSeconds: 15,
   },
   async (request) => autocompleteHandler(request, productionDependencies),
 );
@@ -34,6 +35,7 @@ export const placesDetails = onCall(
   {
     secrets: [googlePlacesApiKey],
     enforceAppCheck: enforcePlacesAppCheck,
+    timeoutSeconds: 15,
   },
   async (request) => detailsHandler(request, productionDependencies),
 );

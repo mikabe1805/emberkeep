@@ -222,10 +222,11 @@ const jsonResponse = (body: unknown, status = 200): Response => new Response(
 const dependencies = (
   guard: CostGuard,
   fetchImpl: typeof fetch,
+  apiKey: () => string = () => "server-key",
 ): PlacesDependencies => ({
   guard,
   fetch: fetchImpl,
-  apiKey: () => "server-key",
+  apiKey,
 });
 
 describe("callable handlers", () => {
@@ -243,6 +244,7 @@ describe("callable handlers", () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     expect(forbiddenNetwork).not.toHaveBeenCalled();
   });
 
@@ -265,13 +267,14 @@ describe("callable handlers", () => {
   test("rejects a rate-limited request before upstream fetch", async () => {
     const guard = new StubGuard(false);
     const fetchMock = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>();
+    const apiKey = jest.fn(() => "server-key");
 
     await expect(autocompleteHandler(callable({
       query: "Rutgers",
       sessionToken,
       installId,
       locale: "en-US",
-    }, "uid-1"), dependencies(guard, fetchMock))).rejects.toMatchObject({
+    }, "uid-1"), dependencies(guard, fetchMock, apiKey))).rejects.toMatchObject({
       code: "resource-exhausted",
     });
     expect(guard.requests).toEqual([{
@@ -280,6 +283,7 @@ describe("callable handlers", () => {
       installId,
     }]);
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(apiKey).not.toHaveBeenCalled();
   });
 
   test("fails closed when cost storage errors", async () => {
@@ -359,12 +363,138 @@ describe("callable handlers", () => {
     expect(url.searchParams.get("sessionToken")).toBe(sessionToken);
     expect(url.searchParams.get("languageCode")).toBe("en-US");
   });
+
+  test("rejects a missing server secret before fetch", async () => {
+    const guard = new StubGuard(true);
+    const fetchMock = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>();
+
+    await expect(detailsHandler(callable({
+      placeId: "ChIJabc",
+      sessionToken,
+      installId,
+      locale: "en-US",
+    }, "uid-1"), dependencies(guard, fetchMock, () => "")))
+      .rejects.toMatchObject({code: "failed-precondition"});
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  test("maps an upstream fetch rejection to unavailable", async () => {
+    const fetchMock = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>()
+      .mockRejectedValue(new Error("connection failed"));
+
+    await expect(autocompleteHandler(callable({
+      query: "Rutgers",
+      sessionToken,
+      installId,
+      locale: "en-US",
+    }, "uid-1"), dependencies(new StubGuard(true), fetchMock)))
+      .rejects.toMatchObject({code: "unavailable"});
+  });
+
+  test.each([
+    [429, "resource-exhausted"],
+    [500, "unavailable"],
+    [503, "unavailable"],
+  ])("maps upstream HTTP %i without exposing its body", async (status, code) => {
+    const fetchMock = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>()
+      .mockResolvedValue(jsonResponse({secretProviderError: "do not expose"}, status));
+
+    await expect(autocompleteHandler(callable({
+      query: "Rutgers",
+      sessionToken,
+      installId,
+      locale: "en-US",
+    }, "uid-1"), dependencies(new StubGuard(true), fetchMock)))
+      .rejects.toMatchObject({
+        code,
+        message: "Place search is temporarily unavailable.",
+      });
+  });
+
+  test("maps malformed upstream JSON to unavailable", async () => {
+    const fetchMock = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>()
+      .mockResolvedValue(new Response("not-json", {status: 200}));
+
+    await expect(detailsHandler(callable({
+      placeId: "ChIJabc",
+      sessionToken,
+      installId,
+      locale: "en-US",
+    }, "uid-1"), dependencies(new StubGuard(true), fetchMock)))
+      .rejects.toMatchObject({code: "unavailable"});
+  });
+
+  test("aborts a connection that exceeds the eight-second upstream deadline", async () => {
+    jest.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const fetchMock = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>()
+      .mockImplementation(async (_url, init) => {
+        signal = init?.signal ?? undefined;
+        if (!signal) throw new Error("missing AbortSignal");
+        return new Promise<Response>((_resolve, reject) => {
+          signal?.addEventListener("abort", () => reject(new DOMException(
+            "aborted",
+            "AbortError",
+          )));
+        });
+      });
+
+    const result = autocompleteHandler(callable({
+      query: "Rutgers",
+      sessionToken,
+      installId,
+      locale: "en-US",
+    }, "uid-1"), dependencies(new StubGuard(true), fetchMock));
+    const rejection = expect(result).rejects.toMatchObject({code: "unavailable"});
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(7_999);
+    expect(signal?.aborted).toBe(false);
+    await jest.advanceTimersByTimeAsync(1);
+    await rejection;
+    expect(signal?.aborted).toBe(true);
+  });
+
+  test("keeps the eight-second deadline active while reading the body", async () => {
+    jest.useFakeTimers();
+    let signal: AbortSignal | undefined;
+    const fetchMock = jest.fn<ReturnType<typeof fetch>, Parameters<typeof fetch>>()
+      .mockImplementation(async (_url, init) => {
+        signal = init?.signal ?? undefined;
+        return {
+          ok: true,
+          status: 200,
+          json: async () => {
+            if (!signal) throw new Error("missing AbortSignal");
+            return new Promise<unknown>((_resolve, reject) => {
+              signal?.addEventListener("abort", () => reject(new DOMException(
+                "aborted",
+                "AbortError",
+              )));
+            });
+          },
+        } as Response;
+      });
+
+    const result = detailsHandler(callable({
+      placeId: "ChIJabc",
+      sessionToken,
+      installId,
+      locale: "en-US",
+    }, "uid-1"), dependencies(new StubGuard(true), fetchMock));
+    const rejection = expect(result).rejects.toMatchObject({code: "unavailable"});
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(8_000);
+    await rejection;
+    expect(signal?.aborted).toBe(true);
+  });
 });
 
 type FakeDocument = {path: string};
 
 class FakeFirestore {
   readonly writes: Array<{path: string; data: unknown}> = [];
+  private readonly committed = new Map<string, Record<string, unknown>>();
+  private transactionQueue: Promise<unknown> = Promise.resolve();
 
   constructor(
     private readonly dataForPath: (path: string) => Record<string, unknown> | undefined,
@@ -376,36 +506,68 @@ class FakeFirestore {
 
   async runTransaction<T>(
     update: (transaction: {
-      get: (ref: FakeDocument) => Promise<{data: () => Record<string, unknown> | undefined}>;
+      get: (ref: FakeDocument) => Promise<{
+        exists: boolean;
+        data: () => Record<string, unknown> | undefined;
+      }>;
       set: (ref: FakeDocument, data: unknown) => void;
     }) => Promise<T>,
   ): Promise<T> {
-    return update({
-      get: async (ref) => ({data: () => this.dataForPath(ref.path)}),
-      set: (ref, data) => this.writes.push({path: ref.path, data}),
+    const run = this.transactionQueue.then(async () => {
+      const staged: Array<{path: string; data: Record<string, unknown>}> = [];
+      const result = await update({
+        get: async (ref) => {
+          const data = this.committed.get(ref.path) ?? this.dataForPath(ref.path);
+          return {exists: data !== undefined, data: () => data};
+        },
+        set: (ref, data) => staged.push({
+          path: ref.path,
+          data: data as Record<string, unknown>,
+        }),
+      });
+      for (const write of staged) {
+        this.committed.set(write.path, write.data);
+        this.writes.push(write);
+      }
+      return result;
     });
+    this.transactionQueue = run.then(() => undefined, () => undefined);
+    return run;
   }
 }
 
 describe("production cost guard policy", () => {
   const now = () => new Date("2026-08-18T15:42:10.000Z");
+  const currentCounter = (overrides: Record<string, unknown> = {}) => ({
+    dayBucket: "2026-08-18",
+    dayCount: 0,
+    minuteBucket: "2026-08-18T15:42",
+    minuteCount: 0,
+    ...overrides,
+  });
 
-  test("closes autocomplete when the global daily budget is exhausted", async () => {
-    const db = new FakeFirestore((path) => path.includes("global_autocomplete") ? {
+  test.each([
+    ["autocomplete", 250],
+    ["details", 50],
+  ] as const)(
+    "closes %s when its exact global shard budget of %i is exhausted",
+    async (operation, shardLimit) => {
+    const db = new FakeFirestore((path) => path.includes(`global_${operation}`) ? {
       dayBucket: "2026-08-18",
-      dayCount: 5_000,
+      dayCount: shardLimit,
       minuteBucket: "2026-08-18T15:42",
       minuteCount: 0,
     } : undefined);
     const guard = new FirestoreCostGuard(db as never, now);
 
     await expect(guard.consume({
-      operation: "autocomplete",
+      operation,
       uid: "uid-1",
       installId,
     })).resolves.toBe(false);
     expect(db.writes).toEqual([]);
-  });
+    },
+  );
 
   test("closes details at the per-UID minute limit", async () => {
     const db = new FakeFirestore((path) => path.includes("uid_details") ? {
@@ -441,6 +603,7 @@ describe("production cost guard policy", () => {
         minuteBucket: "2026-08-18T15:42",
         minuteCount: 1,
         updatedAt: "2026-08-18T15:42:10.000Z",
+        expiresAt: new Date("2026-09-22T15:42:10.000Z"),
       },
       {
         dayBucket: "2026-08-18",
@@ -448,6 +611,7 @@ describe("production cost guard policy", () => {
         minuteBucket: "2026-08-18T15:42",
         minuteCount: 1,
         updatedAt: "2026-08-18T15:42:10.000Z",
+        expiresAt: new Date("2026-09-22T15:42:10.000Z"),
       },
       {
         dayBucket: "2026-08-18",
@@ -455,7 +619,117 @@ describe("production cost guard policy", () => {
         minuteBucket: "2026-08-18T15:42",
         minuteCount: 1,
         updatedAt: "2026-08-18T15:42:10.000Z",
+        expiresAt: new Date("2026-09-22T15:42:10.000Z"),
       },
     ]);
+    const globalPath = db.writes[0]?.path ?? "";
+    const shard = Number(globalPath.match(/global_details_(\d+)_/)?.[1]);
+    expect(Number.isInteger(shard)).toBe(true);
+    expect(shard).toBeGreaterThanOrEqual(0);
+    expect(shard).toBeLessThan(20);
+  });
+
+  test.each([
+    ["autocomplete", "uid_autocomplete", {minuteCount: 30}],
+    ["autocomplete", "uid_autocomplete", {dayCount: 300}],
+    ["autocomplete", "install_autocomplete", {minuteCount: 30}],
+    ["autocomplete", "install_autocomplete", {dayCount: 300}],
+    ["details", "uid_details", {minuteCount: 10}],
+    ["details", "uid_details", {dayCount: 100}],
+    ["details", "install_details", {minuteCount: 10}],
+    ["details", "install_details", {dayCount: 100}],
+  ] as const)(
+    "closes %s at the %s boundary",
+    async (operation, pathMarker, overrides) => {
+      const db = new FakeFirestore((path) => path.includes(pathMarker) ?
+        currentCounter(overrides) : undefined);
+      const guard = new FirestoreCostGuard(db as never, now);
+
+      await expect(guard.consume({
+        operation,
+        uid: "uid-1",
+        installId,
+      })).resolves.toBe(false);
+      expect(db.writes).toEqual([]);
+    },
+  );
+
+  test("resets an expired minute bucket while preserving the daily count", async () => {
+    const db = new FakeFirestore(() => currentCounter({
+      dayCount: 7,
+      minuteBucket: "2026-08-18T15:41",
+      minuteCount: 999,
+    }));
+    const guard = new FirestoreCostGuard(db as never, now);
+
+    await expect(guard.consume({
+      operation: "details",
+      uid: "uid-1",
+      installId,
+    })).resolves.toBe(true);
+    expect(db.writes).toHaveLength(3);
+    expect(db.writes.map(({data}) => data)).toEqual(Array.from({length: 3}, () => ({
+      dayBucket: "2026-08-18",
+      dayCount: 8,
+      minuteBucket: "2026-08-18T15:42",
+      minuteCount: 1,
+      updatedAt: "2026-08-18T15:42:10.000Z",
+      expiresAt: new Date("2026-09-22T15:42:10.000Z"),
+    })));
+  });
+
+  test("initializes missing documents for a new day", async () => {
+    const db = new FakeFirestore(() => undefined);
+    const guard = new FirestoreCostGuard(db as never, now);
+
+    await expect(guard.consume({
+      operation: "autocomplete",
+      uid: "uid-new-day",
+      installId,
+    })).resolves.toBe(true);
+    expect(db.writes).toHaveLength(3);
+    expect(db.writes.every(({data}) =>
+      (data as {dayCount: number}).dayCount === 1)).toBe(true);
+  });
+
+  test.each([
+    {dayBucket: "2026-08-17"},
+    {dayCount: "1"},
+    {minuteBucket: "not-a-minute"},
+    {minuteBucket: "2026-08-18T14:99"},
+    {minuteBucket: "2026-08-18T15:43"},
+    {minuteCount: -1},
+    {minuteBucket: "2026-08-18T15:41", minuteCount: "stale-but-invalid"},
+  ])("fails closed for malformed existing counter state: %p", async (override) => {
+    const db = new FakeFirestore(() => currentCounter(override));
+    const guard = new FirestoreCostGuard(db as never, now);
+
+    await expect(guard.consume({
+      operation: "autocomplete",
+      uid: "uid-1",
+      installId,
+    })).rejects.toThrow("Malformed Places cost counter");
+    expect(db.writes).toEqual([]);
+  });
+
+  test("serialized concurrent transactions stop at the shard boundary", async () => {
+    const db = new FakeFirestore((path) => path.includes("global_autocomplete") ?
+      currentCounter({dayCount: 249}) : undefined);
+    const guard = new FirestoreCostGuard(db as never, now);
+    const request = {
+      operation: "autocomplete" as const,
+      uid: "uid-contention",
+      installId,
+    };
+
+    const results = await Promise.all([
+      guard.consume(request),
+      guard.consume(request),
+    ]);
+    expect(results.sort()).toEqual([false, true]);
+    const globalWrites = db.writes.filter(({path}) =>
+      path.includes("global_autocomplete"));
+    expect(globalWrites).toHaveLength(1);
+    expect((globalWrites[0]?.data as {dayCount: number}).dayCount).toBe(250);
   });
 });
