@@ -186,7 +186,12 @@ void main() {
         expect(find.text('Portfolio review'), findsOneWidget);
         expect(find.text('Studio circle'), findsOneWidget);
         expect(find.text('DES 210 · STU'), findsOneWidget);
-        expect(find.text('Refill the bird feeder'), findsOneWidget);
+        expect(
+          find.text(
+            'Clear the kitchen table and put every borrowed thing back',
+          ),
+          findsOneWidget,
+        );
         expect(tester.takeException(), isNull);
       }
 
@@ -235,7 +240,22 @@ void main() {
         expect(find.text('Portfolio review'), findsOneWidget);
         expect(find.text('Studio circle'), findsOneWidget);
         expect(find.text('DES 210 · STU'), findsOneWidget);
-        expect(find.text('Refill the bird feeder'), findsOneWidget);
+        expect(
+          find.text(
+            'Clear the kitchen table and put every borrowed thing back',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          tester
+              .renderObject<RenderParagraph>(
+                find.text(
+                  'Clear the kitchen table and put every borrowed thing back',
+                ),
+              )
+              .didExceedMaxLines,
+          isFalse,
+        );
         expect(
           tester
               .renderObject<RenderParagraph>(
@@ -804,7 +824,7 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
 
   final state = GameState()..reduceMotion = true;
   final quest = Quest(
-    title: 'Refill the bird feeder',
+    title: 'Clear the kitchen table and put every borrowed thing back',
     stat: Stat.dis,
     difficulty: 2,
     schedule: QuestSchedule.once,

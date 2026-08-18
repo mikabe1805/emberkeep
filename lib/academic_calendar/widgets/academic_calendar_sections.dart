@@ -1065,6 +1065,8 @@ class _ProjectedDaybookEntryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = _entryAccent(entry);
     final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    final expandQuestTitle =
+        largeText && entry.sourceKind == DaybookSourceKind.questPlan;
     final details = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1084,7 +1086,7 @@ class _ProjectedDaybookEntryRow extends StatelessWidget {
           if (entry.sourceLabel != null) const SizedBox(height: 2),
           Text(
             entry.title,
-            maxLines: largeText ? 3 : 2,
+            maxLines: expandQuestTitle ? null : (largeText ? 3 : 2),
             overflow: largeText ? TextOverflow.clip : TextOverflow.ellipsis,
             style: Type.body.copyWith(
               fontSize: 14,
