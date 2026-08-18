@@ -1,7 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
+import 'package:emberkeep/academic_calendar/widgets/academic_calendar_sections.dart';
+import 'package:emberkeep/daybook/widgets/daybook_event_editor.dart';
+import 'package:emberkeep/daybook/widgets/daybook_place_fields.dart';
+import 'package:emberkeep/daybook/widgets/daybook_task_editor.dart';
+import 'package:emberkeep/release_features.dart';
 
 String _source(String path) {
   final file = File(path);
@@ -258,18 +265,111 @@ void main() {
     expect(compact, contains('turns on full-save backup'));
   });
 
+  test('public policies disclose the protected place-search boundary', () {
+    final privacy = _source('web/privacy.html').replaceAll(RegExp(r'\s+'), ' ');
+    final terms = _source('web/terms.html').replaceAll(RegExp(r'\s+'), ' ');
+
+    for (final disclosure in const [
+      'does not request or access your current location',
+      'Manual schedule and location details stay on your device',
+      'outside Cloud Firestore',
+      'typed search query, a random search-session token, the app language',
+      'selected Google provider place ID',
+      'through a protected Room of Days service',
+      'Firebase identity',
+      'retained random installation ID',
+      'not a hardware or device ID',
+      'display name and address are transient',
+      'not persisted',
+      'does not use place-search queries for advertising or analytics',
+      'does not delete your Firebase account or retained installation ID',
+    ]) {
+      expect(privacy, contains(disclosure));
+    }
+    expect(terms, contains('https://cloud.google.com/maps-platform/terms'));
+    expect(terms, contains('https://policies.google.com/privacy'));
+  });
+
   test('v1 visitor UGC capabilities are compile-time and default off', () {
     final feature = _source('lib/release_features.dart');
     final plist = _source('ios/Runner/Info.plist');
 
     expect(feature, contains("'VISITOR_PHOTO_SHARING'"));
     expect(feature, contains("'VISITOR_PROFILE_SHARING'"));
-    expect(RegExp(r'defaultValue:\s*false').allMatches(feature), hasLength(2));
+    expect(kVisitorPhotoSharingEnabled, isFalse);
+    expect(kVisitorProfileSharingEnabled, isFalse);
     expect(feature, contains('timely human moderation'));
-    expect(feature, contains('defaultValue: false'));
     expect(plist, contains('They stay on this device.'));
     expect(plist, isNot(contains('shared space')));
   });
+
+  testWidgets(
+    'default release uses the disabled service without constructing Firebase callables',
+    (tester) async {
+      const factory = ProductionDaybookPlaceSearchFactory();
+      expect(kPlaceSearchEnabled, isFalse);
+      expect(factory.enabled, isFalse);
+
+      final controller = factory.createController(
+        installId: '5e7628f4-d16e-4f8d-a419-9da78655e54a',
+        locale: 'en-US',
+      );
+      addTearDown(controller.dispose);
+      controller.updateQuery('Alexander Library');
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+
+      expect(controller.state.suggestions, isEmpty);
+      expect(controller.state.isLoading, isFalse);
+      expect(controller.state.errorMessage, isNull);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'default-disabled event task and class editors keep manual location entry available',
+    (tester) async {
+      final flows = <({Widget editor, Key locationKey, String value})>[
+        (
+          editor: DaybookEventEditor(
+            selectedDay: CivilDate(2026, 8, 18),
+            onSave: (_) async => true,
+          ),
+          locationKey: const ValueKey('daybook-event-place-saved-name'),
+          value: 'Event room',
+        ),
+        (
+          editor: DaybookTaskEditor(
+            selectedDay: CivilDate(2026, 8, 18),
+            onSave: (_) async => true,
+          ),
+          locationKey: const ValueKey('daybook-task-place-saved-name'),
+          value: 'Task room',
+        ),
+        (
+          editor: AddAcademicMeetingDialog(
+            schedule: AcademicSchedule.empty(),
+            selectedDay: DateTime(2026, 8, 18),
+            onSave: (_, _, _) async => true,
+          ),
+          locationKey: const ValueKey('academic-saved-name'),
+          value: 'Class room',
+        ),
+      ];
+
+      for (final flow in flows) {
+        await _pumpReleaseLocationFlow(tester, flow.editor);
+        final location = find.byKey(flow.locationKey);
+        expect(location, findsOneWidget);
+        expect(tester.widget<TextField>(location).enabled, isNot(false));
+        expect(find.text('SEARCH PLACES WITH GOOGLE'), findsNothing);
+
+        await tester.enterText(location, flow.value);
+        expect(tester.widget<TextField>(location).controller!.text, flow.value);
+        expect(tester.takeException(), isNull);
+      }
+    },
+  );
 
   test('canonical policy and support routes are clean and deployable', () {
     final hosting = _source('firebase.json');
@@ -514,4 +614,19 @@ void main() {
       );
     },
   );
+}
+
+Future<void> _pumpReleaseLocationFlow(
+  WidgetTester tester,
+  Widget editor,
+) async {
+  await tester.binding.setSurfaceSize(const Size(430, 932));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.pumpWidget(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(body: editor),
+    ),
+  );
+  await tester.pump();
 }

@@ -50,6 +50,21 @@ flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true test/screenshot
 
 Open the PNGs in `test/goldens/` after any visual change.
 
+## Protected place search
+
+Manual event, task, and class locations remain device-local and work without
+Firebase or Google. Optional Google place search is compiled out of ordinary
+builds because `PLACE_SEARCH_ENABLED` defaults to `false`. Its client sends
+requests only through the authenticated Firebase callables; the Google server
+key never belongs in Flutter, a Dart define, web output, or repository text.
+
+The owner-only activation sequence, cost guards, App Check rollout, and stop
+conditions are in [`functions/README.md`](functions/README.md). Checked and
+public builds must remain at the default `false` until every gate in that
+runbook and [`RELEASE-CHECKLIST.md`](RELEASE-CHECKLIST.md) is complete. Source
+readiness is not permission to deploy Functions, attach billing, create a
+secret, or enable the flag.
+
 ## Structure
 
 - `lib/engine.dart` — XP, stats, streaks, rewards, achievements, and rollover
@@ -59,6 +74,7 @@ Open the PNGs in `test/goldens/` after any visual change.
 - `lib/screens/` — the five primary destinations and detail flows
 - `lib/widgets/` — the room, tapestry, quest cards, glass, and celebrations
 - `lib/content/` — offline quest, evidence, cosmetic, and progression catalogs
+- `functions/` — protected callable boundary for optional Google place search
 
 ## Release setup still requiring owner credentials
 

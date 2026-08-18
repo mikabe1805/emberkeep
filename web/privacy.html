@@ -22,7 +22,7 @@
 <body>
 <main>
   <h1>Privacy at Room of Days</h1>
-  <p>Last updated August 8, 2026</p>
+  <p>Last updated August 18, 2026</p>
   <div class="card"><strong>Your device is the source of truth.</strong>
     Room of Days works without an account, advertising, or analytics.</div>
 
@@ -57,6 +57,35 @@
     when available, only changes visual depth and is not stored or uploaded.
     Consult a qualified healthcare professional for medical advice, diagnosis,
     or treatment.</p>
+
+  <h2>Schedule, locations, and optional Google place search</h2>
+  <p>Room of Days does not request or access your current location. Manual
+    schedule and location details stay on your device and remain outside Cloud
+    Firestore, including saved names, routing text, buildings, and room
+    numbers.</p>
+
+  <p>Place search is optional, off by default, and starts only after you choose
+    <em>Search places with Google</em> and accept its local consent prompt. For
+    an active search, Room of Days sends your typed search query, a random
+    search-session token, the app language, and, after you choose a result, the
+    selected Google provider place ID to Google through a protected Room of
+    Days service. Room of Days does not send your manual schedule fields or
+    current location with these requests.</p>
+
+  <p>Accepted place search creates or reuses a Firebase identity and uses a
+    retained random installation ID for service abuse and cost controls. The installation
+    ID is app-generated and is not a hardware or device ID. Google’s returned
+    display name and address are transient, are shown only while you are using
+    the editor, and are not persisted by Room of Days. A saved selection keeps
+    only the provider, provider place ID, your exact typed query as its saved
+    name, and any routing, building, or room text you write yourself. Room of
+    Days does not use place-search queries for advertising or analytics.</p>
+
+  <p>Withdrawing place-search consent on this device stops future place-search
+    requests unless you accept again. It clears the local consent choice, but
+    does not delete your Firebase account or retained installation ID. Use the
+    account controls described below if you also want to delete a Firebase
+    account.</p>
 
   <h2>Shared spaces</h2>
   <p>Sharing is optional. A shared space contains your level, an app-generated
@@ -96,6 +125,7 @@
     reminders. Room of Days does not track you across apps or websites.</p>
 
   <p><a href="/support">Get support</a>.</p>
+  <p><a href="/terms">Terms of use</a>.</p>
 </main>
 </body>
 </html>

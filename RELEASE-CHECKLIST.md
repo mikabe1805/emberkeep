@@ -95,6 +95,47 @@ not replace a signed device build or store-console review.
 - [x] `DEVICE-ACCEPTANCE-RUNBOOK.md` turns the remaining physical-phone gate
   into an artifact-bound pass with stop conditions and a durable result record.
 
+## Protected place search remains off
+
+Checked and public builds remain `PLACE_SEARCH_ENABLED=false` until every item
+below is complete, in this order. Repository tests, Functions builds, and fake
+provider UI coverage do not make the public feature enabled.
+
+- [ ] Attach billing to the owner-confirmed Firebase/Google Cloud project.
+- [ ] Enable **Places API (New)** in that same project; do not enable a legacy
+  substitute by mistake.
+- [ ] Create a dedicated server key restricted to **Places API (New)**, apply a
+  server application restriction where fixed egress makes it valid, store it as
+  the `GOOGLE_PLACES_API_KEY` Functions secret, and verify the value is absent
+  from source, Flutter defines, and web/native artifacts.
+- [ ] Deploy `placesAutocomplete` and `placesDetails` with
+  `PLACES_ENFORCE_APP_CHECK=false` for monitor mode. Do not opt any app build
+  into search yet.
+- [ ] Configure billing-budget alerts and conservative provider quota caps;
+  create the Firestore TTL policy for collection group `_placesCostGuards` on
+  timestamp field `expiresAt`; verify the server guards remain 30 autocomplete
+  calls/minute and 300/day per UID and install, 10 details/minute and 100/day,
+  with global daily closures at 5,000 autocomplete and 1,000 details calls.
+- [ ] Exercise both callables only with controlled internal builds, then inspect
+  App Check callable-request metrics for `placesAutocomplete` and
+  `placesDetails`. Record enough valid-token evidence to explain every
+  legitimate platform before enforcement.
+- [ ] Set `PLACES_ENFORCE_APP_CHECK=true` and redeploy both callables. Verify
+  invalid/missing attestation is rejected on each endpoint and legitimate
+  Android, Apple, and web requests still work.
+- [ ] Publish `web/privacy.html` and `web/terms.html`, then verify the live
+  canonical `/privacy` and `/terms` pages, Google Maps terms link, Google
+  privacy link, content, status, and cache behavior.
+- [ ] Only after every earlier gate, produce an opt-in candidate with
+  `--dart-define=PLACE_SEARCH_ENABLED=true`. Web additionally requires
+  `--dart-define=PLACE_SEARCH_APP_CHECK_WEB_SITE_KEY=<public-site-key>`. Run the
+  complete release verification again and perform the physical iPhone provider
+  handoff before calling place search public.
+
+The detailed command-level owner runbook and primary documentation links are in
+[`functions/README.md`](functions/README.md). No gate above is completed by the
+Task 5 documentation commit itself.
+
 ## Verify before every candidate
 
 - [ ] Add the shipped build to `lib/content/release_notes.dart`, keep the
