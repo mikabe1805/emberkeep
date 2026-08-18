@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/content/momentum_kits.dart';
@@ -9,6 +11,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'support/golden_platform_policy.dart';
+
+const _verifyExactGoldens = bool.fromEnvironment('VERIFY_EXACT_GOLDENS');
 
 void main() {
   setUpAll(() async {
@@ -148,7 +154,9 @@ void main() {
     }
   });
 
-  testWidgets('Help for Today keeps its composed resting frame', (tester) async {
+  testWidgets('Help for Today keeps its composed resting frame', (
+    tester,
+  ) async {
     tester.view.devicePixelRatio = 1;
     await tester.binding.setSurfaceSize(const Size(430, 932));
     addTearDown(() {
@@ -168,9 +176,14 @@ void main() {
     );
     await tester.pump();
 
-    await expectLater(
-      find.byType(MomentumKitsPage),
-      matchesGoldenFile('goldens/help_for_today_430x932.png'),
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(MomentumKitsPage),
+        matchesGoldenFile('goldens/help_for_today_430x932.png'),
+      ),
     );
   });
 

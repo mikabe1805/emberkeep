@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:emberkeep/academic_calendar/data/academic_calendar_preferences.dart';
 import 'package:emberkeep/academic_calendar/data/academic_schedule_repository.dart';
@@ -21,7 +22,10 @@ import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/golden_platform_policy.dart';
+
 const _capture = bool.fromEnvironment('CAPTURE_ACADEMIC');
+const _verifyExactGoldens = bool.fromEnvironment('VERIFY_EXACT_GOLDENS');
 const _captureConflict = bool.fromEnvironment('CAPTURE_ACADEMIC_CONFLICT');
 const _captureTransition = bool.fromEnvironment('CAPTURE_ACADEMIC_TRANSITION');
 const _captureStudyPlanner = bool.fromEnvironment(
@@ -197,9 +201,14 @@ void main() {
         expect(tester.takeException(), isNull);
       }
 
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/daybook_general_${mode.name}_430x932.png'),
+      await runExactGoldenCheck(
+        operatingSystem: Platform.operatingSystem,
+        explicitlyEnabled: _verifyExactGoldens,
+        updatingGoldens: autoUpdateGoldenFiles,
+        compare: () => expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile('goldens/daybook_general_${mode.name}_430x932.png'),
+        ),
       );
     });
 
@@ -380,9 +389,16 @@ void main() {
         );
       }
       expect(tester.takeException(), isNull);
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/daybook_general_${configuration.name}.png'),
+      await runExactGoldenCheck(
+        operatingSystem: Platform.operatingSystem,
+        explicitlyEnabled: _verifyExactGoldens,
+        updatingGoldens: autoUpdateGoldenFiles,
+        compare: () => expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile(
+            'goldens/daybook_general_${configuration.name}.png',
+          ),
+        ),
       );
     });
   }
@@ -410,9 +426,14 @@ void main() {
       greaterThan(tester.getBottomLeft(eventTitle).dy),
     );
     expect(tester.takeException(), isNull);
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/daybook_directions_integrated_430x932.png'),
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/daybook_directions_integrated_430x932.png'),
+      ),
     );
   });
 
@@ -471,10 +492,15 @@ void main() {
       await tester.ensureVisible(find.text('GOOGLE MAPS'));
       await tester.pump();
       expect(tester.takeException(), isNull);
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile(
-          'goldens/daybook_directions_provider_${configuration.name}.png',
+      await runExactGoldenCheck(
+        operatingSystem: Platform.operatingSystem,
+        explicitlyEnabled: _verifyExactGoldens,
+        updatingGoldens: autoUpdateGoldenFiles,
+        compare: () => expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile(
+            'goldens/daybook_directions_provider_${configuration.name}.png',
+          ),
         ),
       );
 
@@ -485,10 +511,15 @@ void main() {
       await tester.ensureVisible(find.text('COPY LOCATION'));
       await tester.pump();
       expect(tester.takeException(), isNull);
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile(
-          'goldens/daybook_directions_failure_${configuration.name}.png',
+      await runExactGoldenCheck(
+        operatingSystem: Platform.operatingSystem,
+        explicitlyEnabled: _verifyExactGoldens,
+        updatingGoldens: autoUpdateGoldenFiles,
+        compare: () => expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile(
+            'goldens/daybook_directions_failure_${configuration.name}.png',
+          ),
         ),
       );
     });
@@ -554,9 +585,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 120));
     }
     expect(tester.takeException(), isNull);
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/daybook_today_marker_430x932.png'),
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/daybook_today_marker_430x932.png'),
+      ),
     );
   });
 

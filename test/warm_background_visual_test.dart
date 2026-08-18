@@ -7,12 +7,21 @@ import 'package:emberkeep/widgets/glass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/golden_platform_policy.dart';
+
+const _verifyExactGoldens = bool.fromEnvironment('VERIFY_EXACT_GOLDENS');
+
 void main() {
   testWidgets('warm background has no hard ambient planes', (tester) async {
     await _pumpWarmBackground(tester);
-    await expectLater(
-      find.byType(WarmBackground),
-      matchesGoldenFile('goldens/warm_background_no_planes_430x932.png'),
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(WarmBackground),
+        matchesGoldenFile('goldens/warm_background_no_planes_430x932.png'),
+      ),
     );
   });
 

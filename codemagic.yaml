@@ -65,8 +65,9 @@ workflows:
             .flutter-plugins-dependencies
       - name: Analyze and test (a broken commit must not ride into TestFlight)
         script: |
-          flutter analyze
-          flutter test
+          set -euo pipefail
+          flutter analyze --no-pub
+          flutter test --no-pub
       - name: Set up code signing (fetch + create App Store profile, key-safe)
         script: |
           set -euo pipefail
