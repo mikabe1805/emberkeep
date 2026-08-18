@@ -23,6 +23,7 @@ service firebase.storage {
     function validWrite(ownerUid, roomCode, slot) {
       return request.auth != null
         && request.auth.uid == ownerUid
+        && !firestore.exists(/databases/(default)/documents/serviceIdentityDeletionTombstones/$(ownerUid))
         && validOwnerUid(ownerUid)
         && validRoomCode(roomCode)
         && validSlot(slot)

@@ -1193,6 +1193,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     final error = await PlaceSearchIdentityRemoval(
       preferences: LocalDaybookPreferences(),
       remote: CloudSync.instance,
+      prepareSecureRemoval: () async {
+        if (!await CloudSync.instance.ensureCoreAvailable()) return false;
+        return FirebasePlaceSearchAppCheck().activate();
+      },
     ).remove(roomCode: s.roomCode);
     if (error != null) return error;
 

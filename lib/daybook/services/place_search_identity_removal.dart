@@ -6,6 +6,31 @@ import 'place_search_authorization.dart';
 /// The Firebase identity currently cached by the service layer.
 enum ServiceIdentityKind { none, anonymous, linked }
 
+const serviceIdentityDeletionBlocksIdentityChangeMessage =
+    'Secure identity removal is still pending. Place search is off; retry '
+    'removal before changing this private Firebase identity.';
+
+final class ServiceIdentityTransitionGuard {
+  const ServiceIdentityTransitionGuard();
+
+  Future<T> run<T>({
+    required String? ownerUid,
+    required Future<bool> Function(String ownerUid) isDeletionStarted,
+    required T blockedValue,
+    required Future<T> Function() transition,
+  }) async {
+    final uid = ownerUid;
+    if (uid != null) {
+      try {
+        if (await isDeletionStarted(uid)) return blockedValue;
+      } catch (_) {
+        return blockedValue;
+      }
+    }
+    return transition();
+  }
+}
+
 /// Server-backed room discovery used only by the scoped anonymous-identity
 /// removal path. Implementations must query with the immutable owner uid and
 /// must not return cached results.
@@ -168,6 +193,32 @@ const identityRemovalStillFinishingMessage =
     'Removal is still finishing securely. Place search is off. Close and '
     'reopen Room of Days to check the identity before trying again.';
 
+abstract interface class AnonymousAuthDeletionSteps {
+  Future<void> reloadAndVerifyAnonymous();
+  Future<void> deleteIdentity();
+  Future<bool> confirmAuthoritativeAbsence(Object failure);
+}
+
+/// Treats a lost deletion response as success only when Firebase can
+/// authoritatively confirm that the identity no longer exists. Unknown
+/// network/storage failures retain the cached identity and remain retryable.
+Future<void> deleteAnonymousAuthIdentitySafely(
+  AnonymousAuthDeletionSteps steps,
+) async {
+  await steps.reloadAndVerifyAnonymous();
+  try {
+    await steps.deleteIdentity();
+  } catch (error, stackTrace) {
+    var absent = false;
+    try {
+      absent = await steps.confirmAuthoritativeAbsence(error);
+    } catch (_) {
+      absent = false;
+    }
+    if (!absent) Error.throwWithStackTrace(error, stackTrace);
+  }
+}
+
 /// Gives the UI bounded feedback without abandoning a destructive Auth
 /// mutation. The underlying operation stays coalesced and keeps its queue lock
 /// until it settles, so a late successful delete can clear cached identity
@@ -230,6 +281,7 @@ abstract interface class AnonymousServiceIdentityDeletionDelegate {
   ServiceIdentityKind get identityKind;
   bool get backupEnabled;
 
+  Future<bool> createUidDeletionTombstone();
   Future<bool> preparePendingRoomCleanup({String? roomCode});
   void cancelPendingWork();
   void releasePendingWorkFence();
@@ -268,6 +320,10 @@ final class AnonymousServiceIdentityDeletionCoordinator {
     try {
       delegate.cancelPendingWork();
       pendingWorkFenced = true;
+      if (!await delegate.createUidDeletionTombstone()) {
+        return 'Couldn’t start secure identity removal. Your private service '
+            'identity was kept so you can retry.';
+      }
       final prepared = await delegate.preparePendingRoomCleanup(
         roomCode: requestedRoom,
       );
@@ -310,13 +366,22 @@ final class PlaceSearchIdentityRemoval {
     required this.preferences,
     required this.remote,
     PlaceSearchAuthorization? authorization,
+    this.prepareSecureRemoval,
   }) : authorization = authorization ?? PlaceSearchAuthorization.shared;
 
   final PlaceSearchPreferences preferences;
   final AnonymousServiceIdentityDeletion remote;
   final PlaceSearchAuthorization authorization;
+  final Future<bool> Function()? prepareSecureRemoval;
 
   Future<String?> remove({String? roomCode}) async {
+    var secureRemovalReady = true;
+    try {
+      secureRemovalReady = await prepareSecureRemoval?.call() ?? true;
+    } catch (_) {
+      secureRemovalReady = false;
+    }
+
     try {
       final consentCleared = await authorization.revoke(
         () => preferences.savePlaceSearchConsent(null),
@@ -328,6 +393,11 @@ final class PlaceSearchIdentityRemoval {
     } catch (_) {
       return 'Couldn’t turn off place search on this device. The private '
           'service identity was not removed; try again.';
+    }
+
+    if (!secureRemovalReady) {
+      return 'Couldn’t prepare the protected service connection for identity '
+          'removal. Place search is off; stay online and try again.';
     }
 
     try {

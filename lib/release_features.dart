@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 /// Capabilities that are complete in source but deliberately absent from the
 /// first store candidate.
 ///
@@ -33,7 +35,8 @@ const bool kPlaceSearchEnabled = bool.fromEnvironment(
 /// the explicit place-search opt-in keeps default/off builds' existing Share
 /// path unchanged and prevents the control from appearing before that server
 /// capability is verified.
-const bool kAnonymousServiceIdentityRemovalEnabled = kPlaceSearchEnabled;
+const bool kAnonymousServiceIdentityRemovalEnabled =
+    kPlaceSearchEnabled && !kIsWeb;
 
 /// Public reCAPTCHA v3 site key used only by App Check in web builds. This is
 /// not a Google Places credential. An enabled web build remains unavailable

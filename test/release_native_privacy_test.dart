@@ -287,6 +287,7 @@ void main() {
       'not persisted',
       'does not use place-search queries for advertising or analytics',
       'does not delete your Firebase account or retained installation ID',
+      'future requests from another open browser tab',
       'Firebase App Check',
       'attestation token',
       'Play Integrity',
@@ -299,6 +300,10 @@ void main() {
       'Firestore deletes expired documents asynchronously afterward',
       'remove private service identity',
       'place-search-enabled installed build',
+      'not shown in the web app',
+      'service identity deletion tombstone',
+      'late Firebase tokens',
+      'marked to expire 35 days after it is created or refreshed',
       'owner-only server lookup',
       'server deletion lock',
       'private Spark and Circle receipts',
@@ -316,6 +321,9 @@ void main() {
     );
     expect(deletion, contains('remove private service identity'));
     expect(deletion, contains('installed app'));
+    expect(deletion, contains('not shown in the web app'));
+    expect(deletion, contains('service identity deletion tombstone'));
+    expect(deletion, contains('late Firebase tokens'));
     expect(deletion, contains('owner-only server lookup'));
     expect(deletion, contains('server deletion lock'));
     expect(deletion, contains('identity is kept so you can retry'));
@@ -357,11 +365,20 @@ void main() {
     expect(functions, contains('hard upstream stop'));
     expect(functions, contains('budget alerts warn but do not cap spending'));
     expect(functions, contains('roomDeletionLocks'));
+    expect(functions, contains('serviceIdentityDeletionTombstones'));
+    expect(functions, contains('beginServiceIdentityDeletion'));
+    expect(functions, contains('all three callables'));
+    expect(functions, contains('storage.rules'));
     expect(checklist, contains('owner UID with a limit of 100'));
+    expect(checklist, contains('serviceIdentityDeletionTombstones'));
+    expect(checklist, contains('beginServiceIdentityDeletion'));
+    expect(checklist, contains('all three callables'));
+    expect(checklist, contains('storage.rules'));
   });
 
   test('v1 visitor UGC capabilities are compile-time and default off', () {
     final feature = _source('lib/release_features.dart');
+    final cloud = _source('lib/cloud.dart');
     final plist = _source('ios/Runner/Info.plist');
 
     expect(feature, contains("'VISITOR_PHOTO_SHARING'"));
@@ -369,6 +386,24 @@ void main() {
     expect(kVisitorPhotoSharingEnabled, isFalse);
     expect(kVisitorProfileSharingEnabled, isFalse);
     expect(kAnonymousServiceIdentityRemovalEnabled, isFalse);
+    expect(
+      RegExp(
+        r'kAnonymousServiceIdentityRemovalEnabled\s*=\s*'
+        r'kPlaceSearchEnabled\s*&&\s*!kIsWeb',
+      ).hasMatch(feature),
+      isTrue,
+      reason:
+          'web must not expose the destructive CloudSync capability even in an opt-in place-search build',
+    );
+    expect(
+      RegExp(
+        r'Future<String\?> deleteAnonymousServiceIdentity\('
+        r'[\s\S]*?if \(!kAnonymousServiceIdentityRemovalEnabled\)',
+      ).hasMatch(cloud),
+      isTrue,
+      reason:
+          'CloudSync must reject the destructive call at its own public boundary',
+    );
     expect(feature, contains('timely human moderation'));
     expect(plist, contains('They stay on this device.'));
     expect(plist, isNot(contains('shared space')));

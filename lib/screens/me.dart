@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -1694,6 +1694,7 @@ class MePage extends StatelessWidget {
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
     this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
     this.placeSearchEnabled = kPlaceSearchEnabled,
+    this.supportsPrivateServiceIdentityRemoval = !kIsWeb,
   });
 
   final GameState state;
@@ -1761,6 +1762,7 @@ class MePage extends StatelessWidget {
   final bool visitorPhotoSharingEnabled;
   final bool visitorProfileSharingEnabled;
   final bool placeSearchEnabled;
+  final bool supportsPrivateServiceIdentityRemoval;
 
   static final _privacyUrl = Uri.parse(PublicLinks.privacy);
   static final _deletionUrl = Uri.parse(PublicLinks.deleteAccount);
@@ -2376,6 +2378,8 @@ class MePage extends StatelessWidget {
             onRemovePrivateServiceIdentity: onRemovePrivateServiceIdentity,
             onWithdrawPlaceSearchConsent: onWithdrawPlaceSearchConsent,
             placeSearchEnabled: placeSearchEnabled,
+            supportsPrivateServiceIdentityRemoval:
+                supportsPrivateServiceIdentityRemoval,
           ),
           const SizedBox(height: 14),
 
@@ -5725,6 +5729,7 @@ class _AccountPanel extends StatelessWidget {
     required this.onRemovePrivateServiceIdentity,
     required this.onWithdrawPlaceSearchConsent,
     required this.placeSearchEnabled,
+    required this.supportsPrivateServiceIdentityRemoval,
   });
 
   final CloudAccountView accountView;
@@ -5736,6 +5741,7 @@ class _AccountPanel extends StatelessWidget {
   final Future<String?> Function() onRemovePrivateServiceIdentity;
   final Future<String?> Function()? onWithdrawPlaceSearchConsent;
   final bool placeSearchEnabled;
+  final bool supportsPrivateServiceIdentityRemoval;
 
   Future<void> _enableBackup(BuildContext context) async {
     Sfx.instance.play('tick');
@@ -5865,7 +5871,9 @@ class _AccountPanel extends StatelessWidget {
         final cloudReady = accountView.ready;
         final cloudAvailable = accountView.available;
         final canRemovePrivateIdentity =
-            placeSearchEnabled && accountView.canDeleteAnonymousServiceIdentity;
+            supportsPrivateServiceIdentityRemoval &&
+            placeSearchEnabled &&
+            accountView.canDeleteAnonymousServiceIdentity;
         return GlassPanel(
           glow: !signedIn && cloudReady,
           child: Column(
@@ -6225,13 +6233,20 @@ class _RemovePrivateServiceIdentityDialogState
                     runSpacing: 8,
                     children: [
                       TextButton(
+                        key: _requiresRestart
+                            ? const ValueKey(
+                                'close-private-service-identity-timeout',
+                              )
+                            : null,
                         style: TextButton.styleFrom(
                           minimumSize: const Size(44, 44),
                         ),
-                        onPressed: _busy || _requiresRestart
+                        onPressed: _busy
                             ? null
                             : () => Navigator.of(context).pop(),
-                        child: const Text('KEEP IDENTITY'),
+                        child: Text(
+                          _requiresRestart ? 'CLOSE FOR NOW' : 'KEEP IDENTITY',
+                        ),
                       ),
                       FilledButton(
                         key: const ValueKey(

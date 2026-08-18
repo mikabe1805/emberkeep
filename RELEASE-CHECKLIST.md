@@ -110,29 +110,46 @@ provider UI coverage do not make the public feature enabled.
   from source, Flutter defines, and web/native artifacts.
 - [ ] Configure conservative provider quota caps first as the hard upstream
   stop; then configure budget alerts, which warn but do not cap spending; then
-  activate the Firestore TTL policy for collection group `_placesCostGuards`
-  on timestamp field `expiresAt`. Verify the server guards remain 30
+  activate Firestore TTL policies on timestamp field `expiresAt` for collection
+  group `_placesCostGuards` and collection
+  `serviceIdentityDeletionTombstones`. Cost counters are marked to expire 35
+  days after their last update; deletion tombstones are marked to expire 35
+  days after creation or refresh. Firestore deletes expired documents
+  asynchronously afterward. Verify the server guards remain 30
   autocomplete calls/minute and 300/day per UID and install, 10 details/minute
   and 100/day, with global daily closures at 5,000 autocomplete and 1,000
   details calls. Complete all three cost/retention controls before deployment.
 - [ ] Deploy and verify the owner-only room cleanup rules before any enabled
   client build. Prove an authenticated query for the caller's owner UID with a
   limit of 100 finds its public, private, and legacy rooms; prove unauthenticated,
-  unfiltered, other-UID, missing-limit, and over-limit queries fail. Verify an
-  owner-only `roomDeletionLocks/{code}` document blocks room updates and new
-  Spark/Circle receipts, room plus lock delete atomically, crash retry works,
+  unfiltered, other-UID, missing-limit, and over-limit queries fail. Verify
+  private `serviceIdentityDeletionTombstones/{uid}` documents can be read only
+  by that UID and cannot be listed or mutated by clients. Prove a tombstone
+  blocks same-UID save and room create/update across app instances and late
+  Firebase tokens. Verify an owner-only `roomDeletionLocks/{code}` document
+  blocks room updates and new Spark/Circle receipts, every private child cleanup
+  read is server-only, room plus lock delete atomically, crash retry works,
   exact-code public/private reads remain unchanged, and every ambiguous remote
-  result keeps the identity. Record the deployed ruleset and test evidence.
-- [ ] Perform the first monitor-mode deploy of `placesAutocomplete` and
-  `placesDetails` with `PLACES_ENFORCE_APP_CHECK=false`. Do not opt any app
-  build into search yet.
-- [ ] Exercise both callables only with controlled internal builds, then inspect
-  App Check callable-request metrics for `placesAutocomplete` and
-  `placesDetails`. Record enough valid-token evidence to explain every
-  legitimate platform before enforcement.
-- [ ] Set `PLACES_ENFORCE_APP_CHECK=true` and redeploy both callables. Verify
-  invalid/missing attestation is rejected on each endpoint and legitimate
-  Android, Apple, and web requests still work.
+  result keeps the identity. Deploy and prove `storage.rules` also blocks
+  shared-room media create/update for a tombstoned owner while allowing cleanup
+  deletes; visitor-photo sharing remains false. Record both deployed rulesets
+  and emulator/live allow/deny evidence; source-shape tests alone are not proof.
+- [ ] Perform the first monitor-mode deploy of `placesAutocomplete`,
+  `placesDetails`, and `beginServiceIdentityDeletion` with
+  `PLACES_ENFORCE_APP_CHECK=false`. Confirm the deletion callable accepts only
+  an authenticated anonymous Firebase provider, creates or refreshes the UID
+  tombstone, and does not bind the Places secret. Do not opt any app build into
+  search yet.
+- [ ] Exercise all three callables only with controlled internal builds,
+  including a cold-session deletion bootstrap that initializes Firebase Core
+  and App Check without a prior search. Inspect App Check callable-request
+  metrics separately for `placesAutocomplete`, `placesDetails`, and
+  `beginServiceIdentityDeletion`. Record enough valid-token evidence to explain
+  every legitimate platform before enforcement.
+- [ ] Set `PLACES_ENFORCE_APP_CHECK=true` and redeploy all three callables.
+  Verify invalid/missing attestation is rejected on each endpoint, legitimate
+  Android, Apple, and web place requests still work, and the deletion endpoint
+  continues to reject linked or missing-provider identities.
 - [ ] Publish `web/privacy.html` and `web/terms.html`, then verify the live
   canonical `/privacy` and `/terms` pages, Google Maps terms link, Google
   privacy link, content, status, and cache behavior.
@@ -140,7 +157,8 @@ provider UI coverage do not make the public feature enabled.
   `--dart-define=PLACE_SEARCH_ENABLED=true`. Web additionally requires
   `--dart-define=PLACE_SEARCH_APP_CHECK_WEB_SITE_KEY=<public-site-key>`. Run the
   complete release verification again and perform the physical iPhone provider
-  handoff before calling place search public.
+  handoff before calling place search public. The private-service-identity
+  removal control remains unavailable in web builds.
 
 The detailed command-level owner runbook and primary documentation links are in
 [`functions/README.md`](functions/README.md). No gate above is completed by the

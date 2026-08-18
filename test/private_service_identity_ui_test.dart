@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show Tristate;
 
 import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/engine.dart';
@@ -46,6 +47,7 @@ Widget _page({
   required Future<String?> Function() removeIdentity,
   Future<String?> Function()? withdrawPlaceSearch,
   bool placeSearchEnabled = false,
+  bool supportsPrivateServiceIdentityRemoval = true,
 }) {
   final state = GameState()..reduceMotion = true;
   return MaterialApp(
@@ -69,6 +71,8 @@ Widget _page({
         onRemovePrivateServiceIdentity: removeIdentity,
         onWithdrawPlaceSearchConsent: withdrawPlaceSearch,
         placeSearchEnabled: placeSearchEnabled,
+        supportsPrivateServiceIdentityRemoval:
+            supportsPrivateServiceIdentityRemoval,
         cloudAccountView: account,
       ),
     ),
@@ -209,6 +213,35 @@ void main() {
     },
   );
 
+  testWidgets(
+    'web capability hides identity removal but keeps consent withdrawal',
+    (tester) async {
+      await tester.pumpWidget(
+        _page(
+          account: _FakeCloudAccountView(),
+          removeIdentity: () async => null,
+          withdrawPlaceSearch: () async => null,
+          placeSearchEnabled: true,
+          supportsPrivateServiceIdentityRemoval: false,
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey('remove-private-service-identity')),
+        findsNothing,
+      );
+      final withdrawal = find.byKey(
+        const ValueKey('withdraw-place-search-consent'),
+      );
+      await tester.scrollUntilVisible(
+        withdrawal,
+        360,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(withdrawal, findsOneWidget);
+    },
+  );
+
   testWidgets('removal requires confirmation and cancel does nothing', (
     tester,
   ) async {
@@ -327,10 +360,14 @@ void main() {
   testWidgets('unsettled Auth deletion disables same-session retry', (
     tester,
   ) async {
+    var calls = 0;
     await tester.pumpWidget(
       _page(
         account: _FakeCloudAccountView(),
-        removeIdentity: () async => identityRemovalStillFinishingMessage,
+        removeIdentity: () async {
+          calls++;
+          return identityRemovalStillFinishingMessage;
+        },
         placeSearchEnabled: true,
       ),
     );
@@ -348,6 +385,26 @@ void main() {
     );
     expect(confirm.onPressed, isNull);
     expect(find.text('REOPEN APP TO CHECK'), findsOneWidget);
+    final close = find.byKey(
+      const ValueKey('close-private-service-identity-timeout'),
+    );
+    expect(close, findsOneWidget);
+    expect(tester.getSize(close).height, greaterThanOrEqualTo(44));
+    final closeSemantics = tester.getSemantics(close).flagsCollection;
+    expect(closeSemantics.isButton, isTrue);
+    expect(closeSemantics.isEnabled, Tristate.isTrue);
+
+    await tester.tap(close);
+    await tester.pumpAndSettle();
+    expect(find.text('Remove private service identity?'), findsNothing);
+    expect(calls, 1);
+
+    await _showRemovalControl(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('remove-private-service-identity')),
+    );
+    await tester.pumpAndSettle();
+    expect(calls, 1);
   });
 
   testWidgets('removal remains reachable at 320x568 and 200% text', (

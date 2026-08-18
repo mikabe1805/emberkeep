@@ -688,6 +688,62 @@ void main() {
     );
   });
 
+  test('rule source fences every UID write after identity deletion starts', () {
+    final rules = _firestoreRules();
+    expect(rules, contains(r'match /serviceIdentityDeletionTombstones/{uid}'));
+    expect(rules, contains('function serviceIdentityDeletionStarted(uid)'));
+
+    final savesStart = rules.indexOf(r'match /saves/{uid}');
+    final roomsStart = rules.indexOf(r'match /rooms/{code}');
+    final locksStart = rules.indexOf(r'match /roomDeletionLocks/{code}');
+    expect(savesStart, greaterThanOrEqualTo(0));
+    expect(roomsStart, greaterThan(savesStart));
+    expect(locksStart, greaterThan(roomsStart));
+    final saveRules = rules.substring(savesStart, roomsStart);
+    final roomRules = rules.substring(roomsStart, locksStart);
+    final roomWriteRules = roomRules.substring(
+      0,
+      roomRules.indexOf('allow delete:'),
+    );
+
+    expect(saveRules, contains('!serviceIdentityDeletionStarted(uid)'));
+    expect(
+      RegExp(
+        r'allow (?:create|update):.*?'
+        r'!serviceIdentityDeletionStarted\(request\.auth\.uid\)',
+        dotAll: true,
+      ).allMatches(roomWriteRules),
+      hasLength(2),
+    );
+    for (final marker in const [
+      r'match /sparks/{senderId}',
+      r'match /circleAdds/{senderId}',
+    ]) {
+      final start = roomRules.indexOf(marker);
+      expect(start, greaterThanOrEqualTo(0));
+      final nextMatch = roomRules.indexOf(
+        '\n      match /',
+        start + marker.length,
+      );
+      final block = roomRules.substring(
+        start,
+        nextMatch < 0 ? roomRules.length : nextMatch,
+      );
+      expect(
+        block,
+        contains('!serviceIdentityDeletionStarted(request.auth.uid)'),
+      );
+      expect(
+        RegExp(
+          r'!serviceIdentityDeletionStarted\(',
+          dotAll: true,
+        ).allMatches(block),
+        hasLength(2),
+      );
+      expect(block, contains('.data.uid'));
+    }
+  });
+
   test(
     'fresh room codes reserve by write because missing rooms are private',
     () {
@@ -728,6 +784,11 @@ void main() {
     );
     final ownerDelete = helper.substring(0, privateChildrenStart);
     final privateChildren = helper.substring(privateChildrenStart);
+    final privateChildrenEnd = privateChildren.indexOf('\n  ///');
+    final privateChildrenMethod = privateChildren.substring(
+      0,
+      privateChildrenEnd,
+    );
 
     expect(
       helper,
@@ -744,7 +805,11 @@ void main() {
       ownerDelete.indexOf('_deleteRoomPrivateChildren(room)'),
       lessThan(ownerDelete.indexOf('room.delete()')),
     );
-    expect(privateChildren, contains('batch.commit()'));
+    expect(
+      privateChildrenMethod,
+      contains('.get(const GetOptions(source: Source.server))'),
+    );
+    expect(privateChildrenMethod, contains('batch.commit()'));
     expect(cloud, contains('deleteAllOwnedRoomsAndConfirmEmpty('));
     expect(cloud, contains('createServerDeletionFence()'));
     expect(cloud, contains('deleteParentAndFenceAtomically()'));

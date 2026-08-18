@@ -3,6 +3,7 @@ import 'dart:async';
 import 'place_search_service.dart';
 
 typedef PlaceSearchRevocationListener = void Function();
+typedef DurablePlaceSearchConsentValidator = Future<bool> Function();
 
 /// Process-wide consent authorization for every live place-search object.
 ///
@@ -25,34 +26,51 @@ final class PlaceSearchAuthorization {
   Future<PlaceSearchAuthorizationLease?> authorize({
     required PlaceSearchConsentAttempt attempt,
     Future<bool> Function()? persistConsent,
+    DurablePlaceSearchConsentValidator? validateDurableConsent,
   }) => _serialize(() async {
     if (!_acceptsAttempt(attempt)) return null;
     if (persistConsent != null && !await persistConsent()) return null;
     if (!_acceptsAttempt(attempt)) return null;
+    final validator = validateDurableConsent ?? () async => true;
+    try {
+      if (!await validator()) return null;
+    } catch (_) {
+      return null;
+    }
+    if (!_acceptsAttempt(attempt)) return null;
     _authorized = true;
-    return PlaceSearchAuthorizationLease._(this, _generation);
+    return PlaceSearchAuthorizationLease._(this, _generation, validator);
   });
 
   /// Revokes only after the caller confirms the local consent write.
   Future<bool> revoke(Future<bool> Function() persistWithdrawal) =>
       _serialize(() async {
         if (!await persistWithdrawal()) return false;
-        _authorized = false;
-        _generation += 1;
-        final listeners = List<PlaceSearchRevocationListener>.of(
-          _revocationListeners,
-        );
-        _revocationListeners.clear();
-        for (final listener in listeners) {
-          try {
-            listener();
-          } catch (_) {
-            // One disposed/broken observer must not make durable withdrawal
-            // appear to fail after the consent write already succeeded.
-          }
-        }
+        _revokeCurrentGeneration();
         return true;
       });
+
+  Future<void> _invalidateLease(PlaceSearchAuthorizationLease lease) =>
+      _serialize(() async {
+        if (_acceptsLease(lease)) _revokeCurrentGeneration();
+      });
+
+  void _revokeCurrentGeneration() {
+    _authorized = false;
+    _generation += 1;
+    final listeners = List<PlaceSearchRevocationListener>.of(
+      _revocationListeners,
+    );
+    _revocationListeners.clear();
+    for (final listener in listeners) {
+      try {
+        listener();
+      } catch (_) {
+        // One disposed/broken observer must not make durable withdrawal or a
+        // cacheless consent failure appear to leave other objects authorized.
+      }
+    }
+  }
 
   bool _acceptsAttempt(PlaceSearchConsentAttempt attempt) =>
       identical(attempt._authorization, this) &&
@@ -92,10 +110,15 @@ final class PlaceSearchConsentAttempt {
 }
 
 final class PlaceSearchAuthorizationLease {
-  const PlaceSearchAuthorizationLease._(this._authorization, this._generation);
+  const PlaceSearchAuthorizationLease._(
+    this._authorization,
+    this._generation,
+    this._validateDurableConsent,
+  );
 
   final PlaceSearchAuthorization _authorization;
   final int _generation;
+  final DurablePlaceSearchConsentValidator _validateDurableConsent;
 
   bool get isValid => _authorization._acceptsLease(this);
 
@@ -104,6 +127,19 @@ final class PlaceSearchAuthorizationLease {
 
   void removeRevocationListener(PlaceSearchRevocationListener listener) =>
       _authorization._removeRevocationListener(listener);
+
+  Future<bool> validateDurableConsent() async {
+    if (!isValid) return false;
+    var durable = false;
+    try {
+      durable = await _validateDurableConsent();
+    } catch (_) {
+      durable = false;
+    }
+    if (durable && isValid) return true;
+    await _authorization._invalidateLease(this);
+    return false;
+  }
 }
 
 /// Enforces the same consent lease before and after each protected request.
@@ -125,14 +161,14 @@ final class AuthorizedPlaceSearchService implements PlaceSearchService {
     required String installId,
     required String locale,
   }) async {
-    _requireAuthorization();
+    await _requireAuthorization();
     final result = await delegate.autocomplete(
       query: query,
       sessionToken: sessionToken,
       installId: installId,
       locale: locale,
     );
-    _requireAuthorization();
+    await _requireAuthorization();
     return result;
   }
 
@@ -144,7 +180,7 @@ final class AuthorizedPlaceSearchService implements PlaceSearchService {
     required String installId,
     required String locale,
   }) async {
-    _requireAuthorization();
+    await _requireAuthorization();
     final result = await delegate.details(
       suggestion: suggestion,
       originalQuery: originalQuery,
@@ -152,11 +188,15 @@ final class AuthorizedPlaceSearchService implements PlaceSearchService {
       installId: installId,
       locale: locale,
     );
-    _requireAuthorization();
+    await _requireAuthorization();
     return result;
   }
 
-  void _requireAuthorization() {
-    if (!authorization.isValid) throw const PlaceSearchUnavailable();
+  Future<void> _requireAuthorization() async {
+    if (!authorization.isValid ||
+        !await authorization.validateDurableConsent() ||
+        !authorization.isValid) {
+      throw const PlaceSearchUnavailable();
+    }
   }
 }

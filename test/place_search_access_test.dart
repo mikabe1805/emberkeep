@@ -13,6 +13,40 @@ const _replacementInstallId = '0987d452-8fd5-4de8-9401-530f73a577f8';
 void main() {
   group('PlaceSearchAccess', () {
     test(
+      'a second tab withdrawal invalidates stale cached readiness',
+      () async {
+        final preferences = _RecordingPreferences(
+          log: <String>[],
+          consent: PlaceSearchConsent.acceptedV1,
+          installId: _stableInstallId,
+        );
+        final firstAuthorization = PlaceSearchAuthorization();
+        final firstTab = PlaceSearchAccess(
+          enabled: true,
+          preferences: preferences,
+          identity: _RecordingIdentity(log: preferences.log, signedIn: true),
+          appCheck: _RecordingAppCheck(log: preferences.log),
+          requestConsent: () async => PlaceSearchConsentDecision.decline,
+          authorization: firstAuthorization,
+        );
+        final ready = await firstTab.ensureReady() as PlaceSearchReady;
+
+        final secondTab = PlaceSearchAccess(
+          enabled: true,
+          preferences: preferences,
+          identity: _RecordingIdentity(log: preferences.log, signedIn: true),
+          appCheck: _RecordingAppCheck(log: preferences.log),
+          requestConsent: () async => PlaceSearchConsentDecision.decline,
+          authorization: PlaceSearchAuthorization(),
+        );
+        expect(await secondTab.withdrawConsent(), isTrue);
+
+        expect(await firstTab.ensureReady(), isA<PlaceSearchDeclined>());
+        expect(ready.authorization.isValid, isFalse);
+      },
+    );
+
+    test(
       'shared revocation invalidates cached readiness and an in-flight bootstrap',
       () async {
         final authorization = PlaceSearchAuthorization();
@@ -156,7 +190,14 @@ void main() {
         expect((result as PlaceSearchReady).installId, _stableInstallId);
         expect(prompts, 0);
         expect(identity.signInCalls, 0);
-        expect(log, ['consent.read', 'core', 'appcheck', 'install.read']);
+        expect(log, [
+          'consent.read',
+          'consent.read',
+          'core',
+          'appcheck',
+          'consent.read',
+          'install.read',
+        ]);
       },
     );
 
@@ -188,9 +229,11 @@ void main() {
           'consent.read',
           'prompt',
           'consent.write:acceptedV1',
+          'consent.read',
           'core',
           'appcheck',
           'auth',
+          'consent.read',
           'install.read',
           'install.create',
           'install.write:$_stableInstallId',

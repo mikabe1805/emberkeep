@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -213,6 +214,8 @@ class CloudSync extends ChangeNotifier
   Future<FirebaseApp>? _firebaseBootstrapFuture;
   final FirebaseIdentityMutationQueue _identityMutationQueue =
       FirebaseIdentityMutationQueue();
+  static const ServiceIdentityTransitionGuard _identityTransitionGuard =
+      ServiceIdentityTransitionGuard();
   final CoalescedIdentityDeletionOperation _anonymousIdentityDeletion =
       CoalescedIdentityDeletionOperation();
   Timer? _debounce;
@@ -363,7 +366,12 @@ class CloudSync extends ChangeNotifier
   /// Explicitly start optional cloud backup for the current local keep.
   /// Fresh installs never create a Firebase identity until this is called (or
   /// the person signs into an existing account).
-  Future<String?> enable() async {
+  Future<String?> enable() => _runUnlessServiceIdentityDeletionStarted(
+    blockedValue: serviceIdentityDeletionBlocksIdentityChangeMessage,
+    transition: _enable,
+  );
+
+  Future<String?> _enable() async {
     if (!available && !await ensureAvailable()) {
       return 'Cloud is out of reach right now.';
     }
@@ -429,6 +437,28 @@ class CloudSync extends ChangeNotifier
     return _identityMutationQueue.runAuthChange(action);
   }
 
+  Future<T> _runUnlessServiceIdentityDeletionStarted<T>({
+    required T blockedValue,
+    required Future<T> Function() transition,
+  }) => _identityTransitionGuard.run(
+    ownerUid: _uid,
+    isDeletionStarted: _serviceIdentityDeletionStarted,
+    blockedValue: blockedValue,
+    transition: transition,
+  );
+
+  Future<bool> _serviceIdentityDeletionStarted(String ownerUid) async {
+    final current = FirebaseAuth.instance.currentUser;
+    if (current == null || current.uid != ownerUid) {
+      throw StateError('The current Firebase identity changed.');
+    }
+    final snapshot = await _serviceIdentityDeletionTombstones
+        .doc(ownerUid)
+        .get(const GetOptions(source: Source.server))
+        .timeout(const Duration(seconds: 8));
+    return snapshot.exists;
+  }
+
   Future<bool> _startSocialSession() async {
     if (socialReady) return true;
     try {
@@ -487,8 +517,12 @@ class CloudSync extends ChangeNotifier
   /// Link an email+password to the CURRENT (anonymous) session — keeps the
   /// same uid, so all existing data stays attached. Returns null on success
   /// or a friendly error string.
-  Future<String?> linkAccount(String email, String password) =>
-      _runAuthChange(() => _linkAccount(email, password));
+  Future<String?> linkAccount(String email, String password) => _runAuthChange(
+    () => _runUnlessServiceIdentityDeletionStarted(
+      blockedValue: serviceIdentityDeletionBlocksIdentityChangeMessage,
+      transition: () => _linkAccount(email, password),
+    ),
+  );
 
   Future<String?> _linkAccount(String email, String password) async {
     if (!ready) return 'Cloud is offline right now.';
@@ -515,8 +549,12 @@ class CloudSync extends ChangeNotifier
   /// Sign in to an existing account on this device. Swaps the uid to the
   /// account's; the caller then adopts the account's cloud save. Returns
   /// null on success or a friendly error.
-  Future<String?> signIn(String email, String password) =>
-      _runAuthChange(() => _signIn(email, password));
+  Future<String?> signIn(String email, String password) => _runAuthChange(
+    () => _runUnlessServiceIdentityDeletionStarted(
+      blockedValue: serviceIdentityDeletionBlocksIdentityChangeMessage,
+      transition: () => _signIn(email, password),
+    ),
+  );
 
   Future<String?> _signIn(String email, String password) async {
     if (!available) return 'Cloud is offline right now.';
@@ -555,8 +593,12 @@ class CloudSync extends ChangeNotifier
   /// device (now detached from the account until signed in again). Flushes
   /// the final state to the ACCOUNT'S doc first, so a just-completed quest
   /// reaches the account before the uid swaps away.
-  Future<bool> signOut({bool saveAccount = true}) =>
-      _runAuthChange(() => _signOut(saveAccount: saveAccount));
+  Future<bool> signOut({bool saveAccount = true}) => _runAuthChange(
+    () => _runUnlessServiceIdentityDeletionStarted(
+      blockedValue: false,
+      transition: () => _signOut(saveAccount: saveAccount),
+    ),
+  );
 
   Future<bool> _signOut({required bool saveAccount}) async {
     if (!await _prepareIdentityChange()) return false;
@@ -596,7 +638,12 @@ class CloudSync extends ChangeNotifier
   /// Spark, or explicit backup action can create a new anonymous session, but
   /// account deletion itself must not silently opt the person back into cloud.
   Future<String?> deleteAccount(String password, {String? roomCode}) =>
-      _runAuthChange(() => _deleteAccount(password, roomCode: roomCode));
+      _runAuthChange(
+        () => _runUnlessServiceIdentityDeletionStarted(
+          blockedValue: serviceIdentityDeletionBlocksIdentityChangeMessage,
+          transition: () => _deleteAccount(password, roomCode: roomCode),
+        ),
+      );
 
   Future<String?> _deleteAccount(String password, {String? roomCode}) async {
     if (!ready) return 'Cloud is offline right now.';
@@ -844,6 +891,10 @@ class CloudSync extends ChangeNotifier
 
   CollectionReference<Map<String, dynamic>> get _roomDeletionLocks =>
       FirebaseFirestore.instance.collection('roomDeletionLocks');
+
+  CollectionReference<Map<String, dynamic>>
+  get _serviceIdentityDeletionTombstones => FirebaseFirestore.instance
+      .collection('serviceIdentityDeletionTombstones');
 
   /// Keep an already-published appearance card fresh without writing on every
   /// tap. Saves remain the source of truth; this is a separate, privacy-safe
@@ -1099,7 +1150,7 @@ class CloudSync extends ChangeNotifier
         final page = await room
             .collection(collectionName)
             .limit(400)
-            .get()
+            .get(const GetOptions(source: Source.server))
             .timeout(const Duration(seconds: 8));
         if (verifyIdentity != null) await verifyIdentity();
         if (page.docs.isEmpty) break;
@@ -1364,8 +1415,12 @@ class CloudSync extends ChangeNotifier
   /// Returns whether every requested remote deletion succeeded. The caller
   /// still completes the local reset when offline; the fresh local save will
   /// replace the cloud copy when connectivity returns.
-  Future<bool> resetProfile({String? roomCode}) =>
-      _runAuthChange(() => _resetProfile(roomCode: roomCode));
+  Future<bool> resetProfile({String? roomCode}) => _runAuthChange(
+    () => _runUnlessServiceIdentityDeletionStarted(
+      blockedValue: false,
+      transition: () => _resetProfile(roomCode: roomCode),
+    ),
+  );
 
   Future<bool> _resetProfile({String? roomCode}) async {
     if (!ready) return false;
@@ -1496,6 +1551,44 @@ final class _CloudAnonymousIdentityDeletionDelegate
   bool get backupEnabled => _cloud.ready || _cloud.optedIn;
 
   @override
+  Future<bool> createUidDeletionTombstone() async {
+    final user = _user;
+    final ownerUid = user?.uid;
+    if (user == null || ownerUid == null || !user.isAnonymous) return false;
+    try {
+      _cloud._verifyAnonymousCleanupIdentity(
+        ownerUid: ownerUid,
+        expectedUser: user,
+      );
+      try {
+        final callable = FirebaseFunctions.instance.httpsCallable(
+          'beginServiceIdentityDeletion',
+          options: HttpsCallableOptions(timeout: const Duration(seconds: 8)),
+        );
+        await callable.call<void>(const <String, Object?>{});
+      } catch (_) {
+        // A lost callable response may follow a committed tombstone. The
+        // server-only read below is the authoritative reconciliation path.
+      }
+      final snapshot = await _cloud._serviceIdentityDeletionTombstones
+          .doc(ownerUid)
+          .get(const GetOptions(source: Source.server))
+          .timeout(const Duration(seconds: 8));
+      _cloud._verifyAnonymousCleanupIdentity(
+        ownerUid: ownerUid,
+        expectedUser: user,
+      );
+      final data = snapshot.data();
+      return snapshot.exists &&
+          data?['uid'] == ownerUid &&
+          data?['state'] == 'deleting' &&
+          data?['expiresAt'] is Timestamp;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
   Future<bool> preparePendingRoomCleanup({String? roomCode}) async {
     final user = _user;
     final ownerUid = user?.uid;
@@ -1556,25 +1649,73 @@ final class _CloudAnonymousIdentityDeletionDelegate
       _cloud._savePushQueue.run(() => _cloud._doc.delete());
 
   @override
-  Future<void> deleteAuthIdentity() async {
-    final user = _user;
-    final current = FirebaseAuth.instance.currentUser;
-    if (user == null || current == null || current.uid != user.uid) {
+  Future<void> deleteAuthIdentity() => deleteAnonymousAuthIdentitySafely(
+    _CloudAnonymousAuthDeletionSteps(_user),
+  );
+
+  @override
+  void clearCachedIdentity() => _cloud._clearAnonymousServiceIdentityCache();
+}
+
+final class _CloudAnonymousAuthDeletionSteps
+    implements AnonymousAuthDeletionSteps {
+  _CloudAnonymousAuthDeletionSteps(this._expectedUser);
+
+  final User? _expectedUser;
+  User? _verifiedUser;
+
+  @override
+  Future<void> reloadAndVerifyAnonymous() async {
+    final expected = _expectedUser;
+    var current = FirebaseAuth.instance.currentUser;
+    if (expected == null || current == null || current.uid != expected.uid) {
       throw StateError('The current Firebase identity changed.');
+    }
+    await current.reload();
+    current = FirebaseAuth.instance.currentUser;
+    if (current == null ||
+        current.uid != expected.uid ||
+        !current.isAnonymous) {
+      throw StateError('The current Firebase identity is no longer anonymous.');
+    }
+    _verifiedUser = current;
+  }
+
+  @override
+  Future<void> deleteIdentity() async {
+    final user = _verifiedUser;
+    if (user == null) {
+      throw StateError('The anonymous Firebase identity was not verified.');
     }
     final deletion = user.delete();
     try {
       await deletion.timeout(const Duration(seconds: 8));
     } on TimeoutException {
-      // Future.timeout cannot cancel Auth deletion. Keep the identity mutation
-      // lock until the SDK operation settles so late success is reconciled
-      // before another sign-in or Auth change can begin.
+      // Future.timeout cannot cancel Auth deletion. Keep the Auth actor locked
+      // until the SDK future settles, then reconcile its real outcome.
       await deletion;
     }
   }
 
   @override
-  void clearCachedIdentity() => _cloud._clearAnonymousServiceIdentityCache();
+  Future<bool> confirmAuthoritativeAbsence(Object failure) async {
+    if (failure is FirebaseAuthException && failure.code == 'user-not-found') {
+      return true;
+    }
+    final expectedUid = _expectedUser?.uid;
+    var current = FirebaseAuth.instance.currentUser;
+    if (current == null) return true;
+    if (expectedUid == null || current.uid != expectedUid) return false;
+    try {
+      await current.reload();
+    } on FirebaseAuthException catch (error) {
+      return error.code == 'user-not-found';
+    } catch (_) {
+      return false;
+    }
+    current = FirebaseAuth.instance.currentUser;
+    return current == null;
+  }
 }
 
 final class _CloudOwnedRoomCleanupDirectory

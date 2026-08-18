@@ -10,6 +10,139 @@ void main() {
   const installId = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
 
   test(
+    'durable consent read failure blocks before provider dispatch',
+    () async {
+      var reads = 0;
+      final authorization = PlaceSearchAuthorization();
+      final lease = await authorization.authorize(
+        attempt: authorization.beginConsentAttempt(),
+        persistConsent: () async => true,
+        validateDurableConsent: () async {
+          reads++;
+          if (reads == 1) return true;
+          throw StateError('cacheless consent read unavailable');
+        },
+      );
+      if (lease == null) throw StateError('test authorization was rejected');
+      final delegate = _RecordingService();
+      final service = AuthorizedPlaceSearchService(
+        delegate: delegate,
+        authorization: lease,
+      );
+
+      await expectLater(
+        service.autocomplete(
+          query: 'Rutgers',
+          sessionToken: '11111111-1111-4111-8111-111111111111',
+          installId: installId,
+          locale: 'en-US',
+        ),
+        throwsA(isA<PlaceSearchUnavailable>()),
+      );
+      expect(delegate.autocompleteCalls, isEmpty);
+      expect(lease.isValid, isFalse);
+    },
+  );
+
+  test(
+    'withdraw then reaccept never revives a stale sibling-tab lease',
+    () async {
+      var durableGrant = 'grant-1';
+      final oldAuthorization = PlaceSearchAuthorization();
+      final oldLease = await oldAuthorization.authorize(
+        attempt: oldAuthorization.beginConsentAttempt(),
+        persistConsent: () async => true,
+        validateDurableConsent: () async => durableGrant == 'grant-1',
+      );
+      if (oldLease == null) throw StateError('old authorization was rejected');
+
+      durableGrant = 'grant-2';
+      final newAuthorization = PlaceSearchAuthorization();
+      final newLease = await newAuthorization.authorize(
+        attempt: newAuthorization.beginConsentAttempt(),
+        persistConsent: () async => true,
+        validateDurableConsent: () async => durableGrant == 'grant-2',
+      );
+      if (newLease == null) throw StateError('new authorization was rejected');
+
+      final oldDelegate = _RecordingService();
+      await expectLater(
+        AuthorizedPlaceSearchService(
+          delegate: oldDelegate,
+          authorization: oldLease,
+        ).autocomplete(
+          query: 'Rutgers',
+          sessionToken: '11111111-1111-4111-8111-111111111111',
+          installId: installId,
+          locale: 'en-US',
+        ),
+        throwsA(isA<PlaceSearchUnavailable>()),
+      );
+      expect(oldDelegate.autocompleteCalls, isEmpty);
+      expect(oldLease.isValid, isFalse);
+
+      final newDelegate = _RecordingService();
+      await expectLater(
+        AuthorizedPlaceSearchService(
+          delegate: newDelegate,
+          authorization: newLease,
+        ).autocomplete(
+          query: 'Library',
+          sessionToken: '22222222-2222-4222-8222-222222222222',
+          installId: installId,
+          locale: 'en-US',
+        ),
+        completes,
+      );
+      expect(newDelegate.autocompleteCalls, hasLength(1));
+    },
+  );
+
+  test(
+    'a second tab durable withdrawal discards an in-flight provider result',
+    () async {
+      var durableConsent = true;
+      final authorization = PlaceSearchAuthorization();
+      final lease = await authorization.authorize(
+        attempt: authorization.beginConsentAttempt(),
+        persistConsent: () async => true,
+        validateDurableConsent: () async => durableConsent,
+      );
+      if (lease == null) throw StateError('test authorization was rejected');
+      final delegate = _RecordingService(deferAutocomplete: true);
+      final service = AuthorizedPlaceSearchService(
+        delegate: delegate,
+        authorization: lease,
+      );
+
+      final request = service.autocomplete(
+        query: 'Rutgers',
+        sessionToken: '11111111-1111-4111-8111-111111111111',
+        installId: installId,
+        locale: 'en-US',
+      );
+      await _flush();
+      expect(delegate.autocompleteCalls, hasLength(1));
+
+      durableConsent = false;
+      delegate.completeAutocomplete(0);
+      await expectLater(request, throwsA(isA<PlaceSearchUnavailable>()));
+      expect(lease.isValid, isFalse);
+
+      await expectLater(
+        service.autocomplete(
+          query: 'Library',
+          sessionToken: '22222222-2222-4222-8222-222222222222',
+          installId: installId,
+          locale: 'en-US',
+        ),
+        throwsA(isA<PlaceSearchUnavailable>()),
+      );
+      expect(delegate.autocompleteCalls, hasLength(1));
+    },
+  );
+
+  test(
     'revocation blocks an existing controller and ignores an in-flight result',
     () async {
       final authorization = PlaceSearchAuthorization();

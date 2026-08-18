@@ -95,29 +95,41 @@
 
   <p>Use <em>Me → Your account → Turn off place search</em> to withdraw
     place-search consent on this device, including while using linked-account
-    or cloud-backup features. This stops future place-search requests unless
-    you accept again. It clears the local consent choice, but
-    does not delete your Firebase account or retained installation ID, and it
-    does not immediately delete existing abuse counters.</p>
+    or cloud-backup features. The app checks the cacheless consent record before
+    and after every provider request, so this stops future requests from another
+    open browser tab and discards a provider result if consent is withdrawn
+    while that request is in flight. Another tab may continue to show a
+    previously rendered transient result until you next interact with it. You
+    can accept again later. Withdrawing consent clears the local consent choice,
+    but does not delete your Firebase account or retained installation ID, and
+    it does not immediately delete existing abuse counters.</p>
 
   <p>In a place-search-enabled installed build, after the owner-only room
     cleanup rules are active, a separate <em>remove private service identity</em>
     control appears under <em>Me → Your account</em> when backup is off and the
-    current identity is anonymous. Before deleting that Firebase Auth identity
-    or its save document, the app uses an owner-only server lookup to find
-    shared rooms carrying that immutable identity. For each confirmed room, a
-    server deletion lock prevents new room updates and new private Spark and
-    Circle receipts while the existing receipts are cleared; the room and lock
-    are then deleted together. The app repeats the server lookup until no owned
-    room remains. If the lookup, server deletion lock, cleanup, or identity
+    current identity is anonymous. It is not shown in the web app. Before
+    deleting that Firebase Auth identity or its save document, a protected
+    callable creates or refreshes a service identity deletion tombstone for the
+    Firebase UID. Firestore and Storage rules use that tombstone to block new
+    save, shared-room, media, Spark, and Circle writes from other open app
+    instances and late Firebase tokens. The app then uses an owner-only server
+    lookup to find shared rooms carrying that immutable identity. For each
+    confirmed room, a server deletion lock prevents new room updates and new
+    private Spark and Circle receipts while the existing receipts are cleared
+    from the server; the room and lock are then deleted together. The app
+    repeats the server lookup until no owned room remains. If App Check,
+    tombstone creation, the lookup, server deletion lock, cleanup, or identity
     check cannot be confirmed, the identity is kept so you can retry while
     place search stays off. This removes only rooms the server lookup can
     authoritatively identify as owned by that identity.</p>
 
   <p>This separate removal does not delete your on-device Daybook, progress,
     manual or saved locations, map preference, or journal media. The retained
-    installation ID stays on your device. Abuse counters associated with that
-    ID remain marked for expiration based on their last update and Firestore
+    installation ID stays on your device. The service identity deletion
+    tombstone remains after Auth deletion and is marked to expire 35 days after
+    it is created or refreshed; Firestore deletes the expired document
+    asynchronously afterward. Abuse counters associated with that ID
+    remain marked for expiration based on their last update and Firestore
     deletes them asynchronously.</p>
 
   <h2>Shared spaces</h2>

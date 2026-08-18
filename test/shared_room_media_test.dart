@@ -607,6 +607,13 @@ void main() {
     expect(rules, contains('allow get:'));
     expect(rules, contains('allow list: if false;'));
     expect(rules, contains('request.auth.uid == ownerUid'));
+    expect(
+      rules,
+      contains(
+        r'!firestore.exists(/databases/(default)/documents/'
+        r'serviceIdentityDeletionTombstones/$(ownerUid))',
+      ),
+    );
     expect(rules, contains('request.resource.size <= 3 * 1024 * 1024'));
     expect(
       rules,

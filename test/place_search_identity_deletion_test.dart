@@ -23,11 +23,22 @@ final class _DeletionDelegate
   bool backupEnabled;
 
   bool roomsDeleted;
+  bool tombstoneConfirmed = true;
+  Future<bool> Function()? tombstoneAction;
   Future<bool> Function()? roomsAction;
   bool prepareResult = true;
   Object? authFailure;
   Future<void>? authFuture;
+  AnonymousAuthDeletionSteps? authSteps;
   final operations = <String>[];
+
+  @override
+  Future<bool> createUidDeletionTombstone() async {
+    operations.add('tombstone');
+    final action = tombstoneAction;
+    if (action != null) return action();
+    return tombstoneConfirmed;
+  }
 
   @override
   Future<bool> preparePendingRoomCleanup({String? roomCode}) async {
@@ -55,6 +66,11 @@ final class _DeletionDelegate
   @override
   Future<void> deleteAuthIdentity() async {
     operations.add('auth');
+    final steps = authSteps;
+    if (steps != null) {
+      await deleteAnonymousAuthIdentitySafely(steps);
+      return;
+    }
     final pending = authFuture;
     if (pending != null) await pending;
     final failure = authFailure;
@@ -69,7 +85,9 @@ final class _DeletionDelegate
 }
 
 final class _Preferences implements PlaceSearchPreferences {
-  _Preferences();
+  _Preferences({this.events});
+
+  final List<String>? events;
 
   PlaceSearchConsent? consent = PlaceSearchConsent.acceptedV1;
   String? installId = 'stable-install-id';
@@ -84,6 +102,7 @@ final class _Preferences implements PlaceSearchPreferences {
 
   @override
   Future<bool> savePlaceSearchConsent(PlaceSearchConsent? value) async {
+    events?.add('consent:${value?.name ?? 'off'}');
     consentWrites++;
     if (throwOnConsentWrite) throw StateError('preferences unavailable');
     if (!allowConsentWrite) return false;
@@ -102,12 +121,16 @@ final class _Preferences implements PlaceSearchPreferences {
 }
 
 final class _RemoteDeletion implements AnonymousServiceIdentityDeletion {
+  _RemoteDeletion({this.events});
+
+  final List<String>? events;
   final outcomes = <String?>[];
   int deletions = 0;
   int replacementSignIns = 0;
 
   @override
   Future<String?> deleteAnonymousServiceIdentity({String? roomCode}) async {
+    events?.add('remote');
     deletions++;
     return outcomes.isEmpty ? null : outcomes.removeAt(0);
   }
@@ -196,8 +219,88 @@ final class _RoomDeletionRace implements OwnedRoomDeletionSteps {
   }
 }
 
+final class _UidWriteSurface {
+  bool deletionStarted = false;
+
+  bool tryRewriteSave() => !deletionStarted;
+  bool tryCreateRoom() => !deletionStarted;
+  bool tryCreateReceipt() => !deletionStarted;
+}
+
+final class _AuthDeletionSteps implements AnonymousAuthDeletionSteps {
+  Object? reloadFailure;
+  Object? deleteFailure;
+  bool authoritativelyAbsent = false;
+  int reloads = 0;
+  int deletes = 0;
+  int reconciliations = 0;
+
+  @override
+  Future<void> reloadAndVerifyAnonymous() async {
+    reloads++;
+    final failure = reloadFailure;
+    if (failure != null) throw failure;
+  }
+
+  @override
+  Future<void> deleteIdentity() async {
+    deletes++;
+    final failure = deleteFailure;
+    if (failure != null) throw failure;
+  }
+
+  @override
+  Future<bool> confirmAuthoritativeAbsence(Object failure) async {
+    reconciliations++;
+    return authoritativelyAbsent;
+  }
+}
+
 void main() {
   group('anonymous service identity deletion', () {
+    test(
+      'restart tombstone blocks enable link sign-in and reset mutations',
+      () async {
+        for (final actionName in const ['enable', 'link', 'sign-in', 'reset']) {
+          var authMutations = 0;
+          final result = await const ServiceIdentityTransitionGuard().run(
+            ownerUid: 'U1',
+            isDeletionStarted: (uid) async {
+              expect(uid, 'U1');
+              return true;
+            },
+            blockedValue: 'blocked:$actionName',
+            transition: () async {
+              authMutations++;
+              return 'mutated:$actionName';
+            },
+          );
+
+          expect(result, 'blocked:$actionName');
+          expect(authMutations, 0);
+        }
+      },
+    );
+
+    test(
+      'restart tombstone read ambiguity also preserves the credential',
+      () async {
+        var authMutations = 0;
+        final result = await const ServiceIdentityTransitionGuard().run(
+          ownerUid: 'U1',
+          isDeletionStarted: (_) async => throw StateError('offline'),
+          blockedValue: false,
+          transition: () async {
+            authMutations++;
+            return true;
+          },
+        );
+
+        expect(result, isFalse);
+        expect(authMutations, 0);
+      },
+    );
+
     test(
       'write fences drain active work and block stale queued writes',
       () async {
@@ -330,6 +433,7 @@ void main() {
         expect(delegate.identityKind, ServiceIdentityKind.none);
         expect(delegate.operations, [
           'cancel',
+          'tombstone',
           'prepare:ABC234',
           'rooms',
           'save',
@@ -351,6 +455,7 @@ void main() {
       expect(delegate.identityKind, ServiceIdentityKind.anonymous);
       expect(delegate.operations, [
         'cancel',
+        'tombstone',
         'prepare:-',
         'rooms',
         'save',
@@ -358,6 +463,67 @@ void main() {
         'release',
       ]);
     });
+
+    test(
+      'late Auth delete error with authoritative absence clears stale cache',
+      () async {
+        final steps = _AuthDeletionSteps()
+          ..deleteFailure = StateError('lost delete response')
+          ..authoritativelyAbsent = true;
+        final delegate = _DeletionDelegate()..authSteps = steps;
+
+        expect(
+          await AnonymousServiceIdentityDeletionCoordinator(
+            delegate: delegate,
+          ).delete(),
+          isNull,
+        );
+        expect(delegate.identityKind, ServiceIdentityKind.none);
+        expect(steps.reloads, 1);
+        expect(steps.deletes, 1);
+        expect(steps.reconciliations, 1);
+        expect(delegate.operations, contains('clear'));
+      },
+    );
+
+    test(
+      'unknown Auth delete error remains retryable with cache intact',
+      () async {
+        final steps = _AuthDeletionSteps()
+          ..deleteFailure = StateError('network unavailable');
+        final delegate = _DeletionDelegate()..authSteps = steps;
+
+        expect(
+          await AnonymousServiceIdentityDeletionCoordinator(
+            delegate: delegate,
+          ).delete(),
+          isNotNull,
+        );
+        expect(delegate.identityKind, ServiceIdentityKind.anonymous);
+        expect(steps.reconciliations, 1);
+        expect(delegate.operations, isNot(contains('clear')));
+        expect(delegate.operations.last, 'release');
+      },
+    );
+
+    test(
+      'linked transition discovered by reload never calls Auth delete',
+      () async {
+        final steps = _AuthDeletionSteps()
+          ..reloadFailure = StateError('identity is no longer anonymous');
+        final delegate = _DeletionDelegate()..authSteps = steps;
+
+        expect(
+          await AnonymousServiceIdentityDeletionCoordinator(
+            delegate: delegate,
+          ).delete(),
+          isNotNull,
+        );
+        expect(steps.reloads, 1);
+        expect(steps.deletes, 0);
+        expect(delegate.identityKind, ServiceIdentityKind.anonymous);
+      },
+    );
 
     test('unconfirmed prepared rooms keep the identity for retry', () async {
       final delegate = _DeletionDelegate(roomsDeleted: false);
@@ -368,6 +534,7 @@ void main() {
       expect(result, isNotNull);
       expect(delegate.operations, [
         'cancel',
+        'tombstone',
         'prepare:ABC234',
         'rooms',
         'release',
@@ -436,9 +603,58 @@ void main() {
       ).delete(roomCode: 'ABC234');
 
       expect(result, isNotNull);
-      expect(delegate.operations, ['cancel', 'prepare:ABC234', 'release']);
+      expect(delegate.operations, [
+        'cancel',
+        'tombstone',
+        'prepare:ABC234',
+        'release',
+      ]);
       expect(delegate.identityKind, ServiceIdentityKind.anonymous);
     });
+
+    test(
+      'ambiguous UID tombstone creation stops before remote cleanup',
+      () async {
+        final delegate = _DeletionDelegate()..tombstoneConfirmed = false;
+
+        expect(
+          await AnonymousServiceIdentityDeletionCoordinator(
+            delegate: delegate,
+          ).delete(),
+          isNotNull,
+        );
+        expect(delegate.operations, ['cancel', 'tombstone', 'release']);
+      },
+    );
+
+    test(
+      'UID tombstone precedes enumeration and blocks a raw second writer',
+      () async {
+        final rawServer = _UidWriteSurface();
+        final delegate = _DeletionDelegate()
+          ..tombstoneAction = () async {
+            rawServer.deletionStarted = true;
+            return true;
+          }
+          ..roomsAction = () async {
+            expect(rawServer.tryRewriteSave(), isFalse);
+            expect(rawServer.tryCreateRoom(), isFalse);
+            expect(rawServer.tryCreateReceipt(), isFalse);
+            return true;
+          };
+
+        expect(
+          await AnonymousServiceIdentityDeletionCoordinator(
+            delegate: delegate,
+          ).delete(),
+          isNull,
+        );
+        expect(
+          delegate.operations.indexOf('tombstone'),
+          lessThan(delegate.operations.indexOf('rooms')),
+        );
+      },
+    );
 
     test('auth deletion waits behind an in-flight anonymous sign-in', () async {
       final serializer = FirebaseIdentityMutationQueue();
@@ -547,6 +763,7 @@ void main() {
           );
           expect(delegate.operations, [
             'cancel',
+            'tombstone',
             'prepare:-',
             'rooms',
             'release',
@@ -737,6 +954,51 @@ void main() {
   });
 
   group('place-search removal coordinator', () {
+    test(
+      'cold secure bootstrap precedes consent revocation and cleanup',
+      () async {
+        final events = <String>[];
+        final preferences = _Preferences(events: events);
+        final remote = _RemoteDeletion(events: events);
+
+        expect(
+          await PlaceSearchIdentityRemoval(
+            preferences: preferences,
+            remote: remote,
+            prepareSecureRemoval: () async {
+              events.add('core+appcheck');
+              return true;
+            },
+          ).remove(),
+          isNull,
+        );
+        expect(events, ['core+appcheck', 'consent:off', 'remote']);
+      },
+    );
+
+    test(
+      'App Check bootstrap failure leaves consent off without remote cleanup and retries',
+      () async {
+        final preferences = _Preferences();
+        final remote = _RemoteDeletion();
+        var secureBootstrapAvailable = false;
+        final removal = PlaceSearchIdentityRemoval(
+          preferences: preferences,
+          remote: remote,
+          prepareSecureRemoval: () async => secureBootstrapAvailable,
+        );
+
+        expect(await removal.remove(), isNotNull);
+        expect(preferences.consent, isNull);
+        expect(remote.deletions, 0);
+
+        secureBootstrapAvailable = true;
+        expect(await removal.remove(), isNull);
+        expect(preferences.consent, isNull);
+        expect(remote.deletions, 1);
+      },
+    );
+
     test('consent write failure prevents remote Auth deletion', () async {
       final preferences = _Preferences()..allowConsentWrite = false;
       final remote = _RemoteDeletion();

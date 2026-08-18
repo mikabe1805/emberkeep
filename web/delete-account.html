@@ -32,21 +32,28 @@
     cloud backup is off, use <strong>Me → Your account → remove private service
     identity</strong>. After confirmation, the app first turns off future place
     search requests. In a place-search-enabled installed build, this control is
-    available only after the owner-only room cleanup rules are active. The app
-    uses an owner-only server lookup to find rooms carrying the immutable
+    available only after the protected deletion service and owner-only room
+    cleanup rules are active; it is not shown in the web app. Before cleanup, a
+    protected callable creates or refreshes a service identity deletion
+    tombstone for the anonymous Firebase UID. Firestore and Storage rules use
+    the tombstone to block new save, shared-room, media, Spark, and Circle writes
+    from other open app instances and late Firebase tokens. The installed app
+    then uses an owner-only server lookup to find rooms carrying the immutable
     anonymous identity. A server deletion lock blocks room updates and new
-    private Spark and Circle receipts while existing receipts are cleared; the
-    room and lock are deleted together. Only after a final server lookup finds
-    no owned room does the app remove the save document and Firebase Auth
-    identity. If the lookup, server deletion lock, cleanup, or identity check
-    cannot be confirmed, the identity is kept so you can retry with place-search
-    consent still off.</p>
+    private Spark and Circle receipts while existing receipts are cleared from
+    the server; the room and lock are deleted together. Only after a final
+    server lookup finds no owned room does the app remove the save document and
+    Firebase Auth identity. If App Check, tombstone creation, the lookup, server
+    deletion lock, cleanup, or identity check cannot be confirmed, the identity
+    is kept so you can retry with place-search consent still off.</p>
   <p>This separate control does not erase your on-device Daybook, progress,
     manual or saved locations, journal media, or map preference. It also keeps
     the retained random installation ID, which is app-generated and is not a
     hardware or device ID. Per-identity and per-installation abuse counters are
     marked to expire 35 days after the last update for security and cost
-    control. Firestore deletes expired documents asynchronously afterward.</p>
+    control. The service identity deletion tombstone remains after Auth deletion
+    and is marked to expire 35 days after it is created or refreshed. Firestore
+    deletes expired documents asynchronously afterward.</p>
   <p>In-app deletion is immediate and permanent. It removes:</p>
   <ul>
     <li>your Firebase sign-in and email association;</li>

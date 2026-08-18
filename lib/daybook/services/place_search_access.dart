@@ -324,11 +324,6 @@ final class PlaceSearchAccess {
 
   Future<PlaceSearchAccessResult> ensureReady() {
     if (!_enabled) return Future.value(const PlaceSearchDisabled());
-    final ready = _ready;
-    if (ready != null && ready.authorization.isValid) {
-      return Future.value(ready);
-    }
-    _ready = null;
     final active = _ensureFuture;
     if (active != null) return active;
     late final Future<PlaceSearchAccessResult> attempt;
@@ -340,8 +335,26 @@ final class PlaceSearchAccess {
   }
 
   Future<PlaceSearchAccessResult> _ensureReadyOnce() async {
+    final ready = _ready;
+    if (ready != null &&
+        ready.authorization.isValid &&
+        await ready.authorization.validateDurableConsent() &&
+        ready.authorization.isValid) {
+      return ready;
+    }
+    _ready = null;
+
     final attempt = _authorization.beginConsentAttempt();
-    final consent = await _preferences.loadPlaceSearchConsent();
+    final durablePreferences =
+        _preferences is DurablePlaceSearchConsentPreferences
+        ? _preferences as DurablePlaceSearchConsentPreferences
+        : null;
+    var durableGrant = await durablePreferences?.loadPlaceSearchConsentGrant();
+    final consent = durablePreferences == null
+        ? await _preferences.loadPlaceSearchConsent()
+        : durableGrant == null
+        ? null
+        : PlaceSearchConsent.acceptedV1;
     if (consent != PlaceSearchConsent.acceptedV1) {
       final decision = await _requestConsent();
       if (decision != PlaceSearchConsentDecision.accept) {
@@ -355,9 +368,26 @@ final class PlaceSearchAccess {
         attempt: attempt,
         persistConsent: consent == PlaceSearchConsent.acceptedV1
             ? null
-            : () => _preferences.savePlaceSearchConsent(
+            : durablePreferences == null
+            ? () => _preferences.savePlaceSearchConsent(
                 PlaceSearchConsent.acceptedV1,
-              ),
+              )
+            : () async {
+                durableGrant = await durablePreferences
+                    .acceptPlaceSearchConsent();
+                return durableGrant != null;
+              },
+        validateDurableConsent: durablePreferences == null
+            ? () async =>
+                  await _preferences.loadPlaceSearchConsent() ==
+                  PlaceSearchConsent.acceptedV1
+            : () async {
+                final expected = durableGrant;
+                if (expected == null) return false;
+                return (await durablePreferences.loadPlaceSearchConsentGrant())
+                        ?.raw ==
+                    expected.raw;
+              },
       );
     } catch (error) {
       debugPrint('Place search consent could not be saved: $error');
@@ -383,7 +413,11 @@ final class PlaceSearchAccess {
         return const PlaceSearchUnavailable();
       }
 
-      if (!authorization.isValid) return const PlaceSearchUnavailable();
+      if (!authorization.isValid ||
+          !await authorization.validateDurableConsent() ||
+          !authorization.isValid) {
+        return const PlaceSearchUnavailable();
+      }
       var installId = await _preferences.loadPlaceSearchInstallId();
       if (!authorization.isValid) return const PlaceSearchUnavailable();
       if (!_isUuidV4(installId)) {
@@ -412,7 +446,10 @@ final class PlaceSearchAccess {
   Future<bool> withdrawConsent() async {
     try {
       if (!await _authorization.revoke(
-        () => _preferences.savePlaceSearchConsent(null),
+        () => _preferences is DurablePlaceSearchConsentPreferences
+            ? (_preferences as DurablePlaceSearchConsentPreferences)
+                  .withdrawPlaceSearchConsent()
+            : _preferences.savePlaceSearchConsent(null),
       )) {
         return false;
       }

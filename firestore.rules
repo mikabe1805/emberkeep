@@ -177,9 +177,18 @@ service cloud.firestore {
         && d.updatedAt == request.time;
     }
 
+    function serviceIdentityDeletionStarted(uid) {
+      return exists(
+        /databases/$(database)/documents/serviceIdentityDeletionTombstones/$(uid)
+      );
+    }
+
     // Each anonymous user may touch exactly one document: their own save.
     match /saves/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null
+                            && request.auth.uid == uid
+                            && !serviceIdentityDeletionStarted(uid);
     }
     // Shared "spaces" (round-52, social): a public, read-only-to-others room
     // card keyed by a short bearer code. The v1 store service accepts only v5
@@ -201,11 +210,13 @@ service cloud.firestore {
                   && request.query.limit != null
                   && request.query.limit <= 100;
       allow create: if request.auth != null
+                    && !serviceIdentityDeletionStarted(request.auth.uid)
                     && request.resource.data.v == 5
                     && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
                     && validRoom(code);
       allow update: if request.auth != null
                     && resource.data.uid == request.auth.uid
+                    && !serviceIdentityDeletionStarted(request.auth.uid)
                     && request.resource.data.v == 5
                     && request.resource.data.v >= resource.data.v
                     && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
@@ -213,7 +224,10 @@ service cloud.firestore {
       allow delete: if request.auth != null
                     && resource.data.uid == request.auth.uid
                     && (
-                      !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
+                      (
+                        !serviceIdentityDeletionStarted(request.auth.uid)
+                        && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
+                      )
                       || (
                         get(/databases/$(database)/documents/roomDeletionLocks/$(code)).data.uid
                           == request.auth.uid
@@ -229,7 +243,11 @@ service cloud.firestore {
         // inbox can never be self-inflated through the raw API.
         allow create: if request.auth != null
                       && senderId == request.auth.uid
+                      && !serviceIdentityDeletionStarted(request.auth.uid)
                       && exists(/databases/$(database)/documents/rooms/$(code))
+                      && !serviceIdentityDeletionStarted(
+                        get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                      )
                       && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
                       && get(/databases/$(database)/documents/rooms/$(code)).data.uid
                          != request.auth.uid
@@ -252,7 +270,11 @@ service cloud.firestore {
       match /circleAdds/{senderId} {
         allow create: if request.auth != null
                       && senderId == request.auth.uid
+                      && !serviceIdentityDeletionStarted(request.auth.uid)
                       && exists(/databases/$(database)/documents/rooms/$(code))
+                      && !serviceIdentityDeletionStarted(
+                        get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                      )
                       && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
                       && get(/databases/$(database)/documents/rooms/$(code)).data.uid
                          != request.auth.uid
@@ -288,6 +310,10 @@ service cloud.firestore {
                     && resource.data.uid == request.auth.uid
                     && !existsAfter(/databases/$(database)/documents/rooms/$(code));
       allow get, list: if false;
+    }
+    match /serviceIdentityDeletionTombstones/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, create, update, delete: if false;
     }
     match /{document=**} {
       allow read, write: if false;

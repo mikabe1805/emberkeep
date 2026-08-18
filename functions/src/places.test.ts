@@ -14,9 +14,16 @@ import {
   validateAutocompleteRequest,
   validateDetailsRequest,
   type CostGuard,
+  type CostGuardDecision,
   type CostGuardRequest,
+  type IdentityDeletionGuard,
   type PlacesDependencies,
 } from "./places";
+import {
+  beginServiceIdentityDeletionHandler,
+  buildServiceIdentityDeletionTombstone,
+  type ServiceIdentityDeletionTombstoneStore,
+} from "./service_identity_deletion";
 
 const sessionToken = "b7eb2f58-4ac9-4f62-8c93-8ef5a7e8d0c1";
 const installId = "36c62113-6c21-4e9a-964b-03ad7404942f";
@@ -198,20 +205,54 @@ class StubGuard implements CostGuard {
   readonly requests: CostGuardRequest[] = [];
 
   constructor(
-    private readonly allowed: boolean,
+    private readonly result: boolean | CostGuardDecision,
     private readonly failure?: Error,
   ) {}
 
-  async consume(request: CostGuardRequest): Promise<boolean> {
+  async consume(request: CostGuardRequest): Promise<CostGuardDecision> {
     this.requests.push(request);
     if (this.failure) throw this.failure;
-    return this.allowed;
+    if (typeof this.result === "boolean") {
+      return this.result ? "allowed" : "limited";
+    }
+    return this.result;
   }
 }
 
-const callable = (data: unknown, uid?: string) => ({
+class StubIdentityDeletionGuard implements IdentityDeletionGuard {
+  readonly checkedUids: string[] = [];
+
+  constructor(
+    private readonly deleting = false,
+    private readonly failure?: Error,
+  ) {}
+
+  async isDeleting(uid: string): Promise<boolean> {
+    this.checkedUids.push(uid);
+    if (this.failure) throw this.failure;
+    return this.deleting;
+  }
+}
+
+class StubTombstoneStore implements ServiceIdentityDeletionTombstoneStore {
+  readonly uids: string[] = [];
+
+  constructor(private readonly failure?: Error) {}
+
+  async begin(uid: string): Promise<void> {
+    this.uids.push(uid);
+    if (this.failure) throw this.failure;
+  }
+}
+
+const callable = (data: unknown, uid?: string, provider?: string) => ({
   data,
-  auth: uid ? {uid, token: {}} : undefined,
+  auth: uid ? {
+    uid,
+    token: provider === undefined ? {} : {
+      firebase: {sign_in_provider: provider},
+    },
+  } : undefined,
 });
 
 const jsonResponse = (body: unknown, status = 200): Response => new Response(
@@ -223,8 +264,10 @@ const dependencies = (
   guard: CostGuard,
   fetchImpl: typeof fetch,
   apiKey: () => string = () => "server-key",
+  identityDeletion: IdentityDeletionGuard = new StubIdentityDeletionGuard(),
 ): PlacesDependencies => ({
   guard,
+  identityDeletion,
   fetch: fetchImpl,
   apiKey,
 });
@@ -284,6 +327,58 @@ describe("callable handlers", () => {
     }]);
     expect(fetchMock).not.toHaveBeenCalled();
     expect(apiKey).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["autocomplete", autocompleteHandler, {
+      query: "Rutgers",
+      sessionToken,
+      installId,
+      locale: "en-US",
+    }],
+    ["details", detailsHandler, {
+      placeId: "ChIJabc",
+      sessionToken,
+      installId,
+      locale: "en-US",
+    }],
+  ] as const)(
+    "rejects a tombstoned identity before %s provider work",
+    async (_operation, handler, data) => {
+      const guard = new StubGuard(true);
+      const identityDeletion = new StubIdentityDeletionGuard(true);
+      const fetchMock = jest.fn<
+        ReturnType<typeof fetch>,
+        Parameters<typeof fetch>
+      >();
+
+      await expect(handler(
+        callable(data, "uid-1"),
+        dependencies(guard, fetchMock, () => "server-key", identityDeletion),
+      )).rejects.toMatchObject({code: "failed-precondition"});
+      expect(identityDeletion.checkedUids).toEqual(["uid-1"]);
+      expect(guard.requests).toEqual([]);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  test("fails closed before validation when tombstone storage is unavailable", async () => {
+    const guard = new StubGuard(true);
+    const identityDeletion = new StubIdentityDeletionGuard(
+      false,
+      new Error("Firestore unavailable"),
+    );
+    const fetchMock = jest.fn<
+      ReturnType<typeof fetch>,
+      Parameters<typeof fetch>
+    >();
+
+    await expect(autocompleteHandler(
+      callable({}, "uid-1"),
+      dependencies(guard, fetchMock, () => "server-key", identityDeletion),
+    )).rejects.toMatchObject({code: "failed-precondition"});
+    expect(guard.requests).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   test("fails closed when cost storage errors", async () => {
@@ -489,6 +584,55 @@ describe("callable handlers", () => {
   });
 });
 
+describe("service identity deletion tombstone", () => {
+  test("requires Auth and returns only after the server store acknowledges", async () => {
+    const store = new StubTombstoneStore();
+    await expect(beginServiceIdentityDeletionHandler(
+      callable(null),
+      {store},
+    )).rejects.toMatchObject({code: "unauthenticated"});
+    expect(store.uids).toEqual([]);
+
+    await expect(beginServiceIdentityDeletionHandler(
+      callable(null, "uid-1", "anonymous"),
+      {store},
+    )).resolves.toEqual({state: "deleting"});
+    expect(store.uids).toEqual(["uid-1"]);
+  });
+
+  test.each([
+    ["a linked identity", "password"],
+    ["an absent provider claim", undefined],
+  ])("rejects %s before writing a tombstone", async (_case, provider) => {
+    const store = new StubTombstoneStore();
+
+    await expect(beginServiceIdentityDeletionHandler(
+      callable(null, "uid-1", provider),
+      {store},
+    )).rejects.toMatchObject({code: "failed-precondition"});
+    expect(store.uids).toEqual([]);
+  });
+
+  test("fails closed when the tombstone cannot be acknowledged", async () => {
+    const store = new StubTombstoneStore(new Error("Firestore unavailable"));
+
+    await expect(beginServiceIdentityDeletionHandler(
+      callable(null, "uid-1", "anonymous"),
+      {store},
+    )).rejects.toMatchObject({code: "unavailable"});
+  });
+
+  test("server tombstones retain the UID fence for 35 days", () => {
+    const now = new Date("2026-08-18T12:00:00.000Z");
+    expect(buildServiceIdentityDeletionTombstone("uid-1", now)).toEqual({
+      uid: "uid-1",
+      state: "deleting",
+      updatedAt: now,
+      expiresAt: new Date("2026-09-22T12:00:00.000Z"),
+    });
+  });
+});
+
 type FakeDocument = {path: string};
 
 class FakeFirestore {
@@ -536,6 +680,43 @@ class FakeFirestore {
   }
 }
 
+class RetriedTombstoneFirestore {
+  readonly writes: Array<{path: string; data: unknown}> = [];
+  attempts = 0;
+
+  collection(name: string): {doc: (id: string) => FakeDocument} {
+    return {doc: (id) => ({path: `${name}/${id}`})};
+  }
+
+  async runTransaction<T>(
+    update: (transaction: {
+      get: (ref: FakeDocument) => Promise<{
+        exists: boolean;
+        data: () => Record<string, unknown> | undefined;
+      }>;
+      set: (ref: FakeDocument, data: unknown) => void;
+    }) => Promise<T>,
+  ): Promise<T> {
+    const runAttempt = async (deleting: boolean, commit: boolean) => {
+      this.attempts++;
+      const staged: Array<{path: string; data: unknown}> = [];
+      const result = await update({
+        get: async (ref) => ({
+          exists: deleting && ref.path ===
+            "serviceIdentityDeletionTombstones/uid-race",
+          data: () => undefined,
+        }),
+        set: (ref, data) => staged.push({path: ref.path, data}),
+      });
+      if (commit) this.writes.push(...staged);
+      return result;
+    };
+
+    await runAttempt(false, false);
+    return runAttempt(true, true);
+  }
+}
+
 describe("production cost guard policy", () => {
   const now = () => new Date("2026-08-18T15:42:10.000Z");
   const currentCounter = (overrides: Record<string, unknown> = {}) => ({
@@ -544,6 +725,46 @@ describe("production cost guard policy", () => {
     minuteBucket: "2026-08-18T15:42",
     minuteCount: 0,
     ...overrides,
+  });
+
+  test(
+    "transaction retry observes a concurrent identity tombstone before admission",
+    async () => {
+      const db = new RetriedTombstoneFirestore();
+      const guard = new FirestoreCostGuard(db as never, now);
+
+      await expect(guard.consume({
+        operation: "autocomplete",
+        uid: "uid-race",
+        installId,
+      })).resolves.toBe("identity-deleting");
+      expect(db.attempts).toBe(2);
+      expect(db.writes).toEqual([]);
+    },
+  );
+
+  test("tombstone read failure blocks provider work", async () => {
+    const db = new FakeFirestore((path) => {
+      if (path === "serviceIdentityDeletionTombstones/uid-1") {
+        throw new Error("tombstone read unavailable");
+      }
+      return undefined;
+    });
+    const guard = new FirestoreCostGuard(db as never, now);
+    const fetchMock = jest.fn<
+      ReturnType<typeof fetch>,
+      Parameters<typeof fetch>
+    >();
+
+    await expect(autocompleteHandler(callable({
+      query: "Rutgers",
+      sessionToken,
+      installId,
+      locale: "en-US",
+    }, "uid-1"), dependencies(guard, fetchMock)))
+      .rejects.toMatchObject({code: "resource-exhausted"});
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(db.writes).toEqual([]);
   });
 
   test.each([
@@ -564,7 +785,7 @@ describe("production cost guard policy", () => {
       operation,
       uid: "uid-1",
       installId,
-    })).resolves.toBe(false);
+    })).resolves.toBe("limited");
     expect(db.writes).toEqual([]);
     },
   );
@@ -582,7 +803,7 @@ describe("production cost guard policy", () => {
       operation: "details",
       uid: "uid-1",
       installId,
-    })).resolves.toBe(false);
+    })).resolves.toBe("limited");
     expect(db.writes).toEqual([]);
   });
 
@@ -594,7 +815,7 @@ describe("production cost guard policy", () => {
       operation: "details",
       uid: "uid-1",
       installId,
-    })).resolves.toBe(true);
+    })).resolves.toBe("allowed");
     expect(db.writes).toHaveLength(3);
     expect(db.writes.map((write) => write.data)).toEqual([
       {
@@ -649,24 +870,25 @@ describe("production cost guard policy", () => {
         operation,
         uid: "uid-1",
         installId,
-      })).resolves.toBe(false);
+      })).resolves.toBe("limited");
       expect(db.writes).toEqual([]);
     },
   );
 
   test("resets an expired minute bucket while preserving the daily count", async () => {
-    const db = new FakeFirestore(() => currentCounter({
-      dayCount: 7,
-      minuteBucket: "2026-08-18T15:41",
-      minuteCount: 999,
-    }));
+    const db = new FakeFirestore((path) =>
+      path.startsWith("_placesCostGuards/") ? currentCounter({
+        dayCount: 7,
+        minuteBucket: "2026-08-18T15:41",
+        minuteCount: 999,
+      }) : undefined);
     const guard = new FirestoreCostGuard(db as never, now);
 
     await expect(guard.consume({
       operation: "details",
       uid: "uid-1",
       installId,
-    })).resolves.toBe(true);
+    })).resolves.toBe("allowed");
     expect(db.writes).toHaveLength(3);
     expect(db.writes.map(({data}) => data)).toEqual(Array.from({length: 3}, () => ({
       dayBucket: "2026-08-18",
@@ -686,7 +908,7 @@ describe("production cost guard policy", () => {
       operation: "autocomplete",
       uid: "uid-new-day",
       installId,
-    })).resolves.toBe(true);
+    })).resolves.toBe("allowed");
     expect(db.writes).toHaveLength(3);
     expect(db.writes.every(({data}) =>
       (data as {dayCount: number}).dayCount === 1)).toBe(true);
@@ -701,7 +923,9 @@ describe("production cost guard policy", () => {
     {minuteCount: -1},
     {minuteBucket: "2026-08-18T15:41", minuteCount: "stale-but-invalid"},
   ])("fails closed for malformed existing counter state: %p", async (override) => {
-    const db = new FakeFirestore(() => currentCounter(override));
+    const db = new FakeFirestore((path) =>
+      path.startsWith("_placesCostGuards/") ?
+        currentCounter(override) : undefined);
     const guard = new FirestoreCostGuard(db as never, now);
 
     await expect(guard.consume({
@@ -726,7 +950,7 @@ describe("production cost guard policy", () => {
       guard.consume(request),
       guard.consume(request),
     ]);
-    expect(results.sort()).toEqual([false, true]);
+    expect(results.sort()).toEqual(["allowed", "limited"]);
     const globalWrites = db.writes.filter(({path}) =>
       path.includes("global_autocomplete"));
     expect(globalWrites).toHaveLength(1);

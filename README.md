@@ -76,7 +76,8 @@ secret, or enable the flag.
 - `lib/screens/` — the five primary destinations and detail flows
 - `lib/widgets/` — the room, tapestry, quest cards, glass, and celebrations
 - `lib/content/` — offline quest, evidence, cosmetic, and progression catalogs
-- `functions/` — protected callable boundary for optional Google place search
+- `functions/` — protected callable boundaries for optional Google place search
+  and scoped anonymous service-identity removal
 
 ## Release setup still requiring owner credentials
 

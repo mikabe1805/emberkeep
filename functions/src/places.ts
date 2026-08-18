@@ -37,12 +37,19 @@ export type CostGuardRequest = {
   installId: string;
 };
 
+export type CostGuardDecision = "allowed" | "limited" | "identity-deleting";
+
 export interface CostGuard {
-  consume(request: CostGuardRequest): Promise<boolean>;
+  consume(request: CostGuardRequest): Promise<CostGuardDecision>;
+}
+
+export interface IdentityDeletionGuard {
+  isDeleting(uid: string): Promise<boolean>;
 }
 
 export type PlacesDependencies = {
   guard: CostGuard;
+  identityDeletion: IdentityDeletionGuard;
   fetch: typeof globalThis.fetch;
   apiKey: () => string;
 };
@@ -318,7 +325,7 @@ export class FirestoreCostGuard implements CostGuard {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  async consume(request: CostGuardRequest): Promise<boolean> {
+  async consume(request: CostGuardRequest): Promise<CostGuardDecision> {
     const instant = this.now();
     const iso = instant.toISOString();
     const dayBucket = iso.slice(0, 10);
@@ -326,6 +333,9 @@ export class FirestoreCostGuard implements CostGuard {
     const uidHash = createHash("sha256").update(request.uid).digest("hex");
     const shard = globalShard(request);
     const counters = this.db.collection("_placesCostGuards");
+    const deletionTombstone = this.db
+      .collection("serviceIdentityDeletionTombstones")
+      .doc(request.uid);
     const refs = [
       counters.doc(`global_${request.operation}_${shard}_${dayBucket}`),
       counters.doc(`uid_${request.operation}_${uidHash}_${dayBucket}`),
@@ -334,7 +344,11 @@ export class FirestoreCostGuard implements CostGuard {
     const policy = LIMITS[request.operation];
 
     return this.db.runTransaction(async (transaction) => {
-      const snapshots = await Promise.all(refs.map((ref) => transaction.get(ref)));
+      const [deletionSnapshot, ...snapshots] = await Promise.all([
+        transaction.get(deletionTombstone),
+        ...refs.map((ref) => transaction.get(ref)),
+      ]);
+      if (deletionSnapshot.exists) return "identity-deleting";
       const states = snapshots.map((snapshot) =>
         readCounter(snapshot.exists, snapshot.data(), dayBucket, minuteBucket));
       const globalState = states[0]!;
@@ -346,7 +360,7 @@ export class FirestoreCostGuard implements CostGuard {
         uidState.minuteCount >= policy.perMinute;
       const installClosed = installState.dayCount >= policy.perDay ||
         installState.minuteCount >= policy.perMinute;
-      if (globalClosed || uidClosed || installClosed) return false;
+      if (globalClosed || uidClosed || installClosed) return "limited";
 
       // Owner setup gate: enable a Firestore TTL policy on
       // _placesCostGuards.expiresAt before public Places enablement.
@@ -361,8 +375,20 @@ export class FirestoreCostGuard implements CostGuard {
           expiresAt,
         });
       });
-      return true;
+      return "allowed";
     });
+  }
+}
+
+export class FirestoreIdentityDeletionGuard
+implements IdentityDeletionGuard {
+  constructor(private readonly db: Firestore) {}
+
+  async isDeleting(uid: string): Promise<boolean> {
+    return (await this.db
+      .collection("serviceIdentityDeletionTombstones")
+      .doc(uid)
+      .get()).exists;
   }
 }
 
@@ -378,18 +404,39 @@ const consumeGuard = async (
   guard: CostGuard,
   request: CostGuardRequest,
 ): Promise<void> => {
-  let allowed = false;
+  let decision: CostGuardDecision = "limited";
   try {
-    allowed = await guard.consume(request);
+    decision = await guard.consume(request);
   } catch {
-    allowed = false;
+    decision = "limited";
   }
-  if (!allowed) {
+  if (decision === "identity-deleting") {
+    throw new HttpsError(
+      "failed-precondition",
+      "This private service identity is being removed.",
+    );
+  }
+  if (decision !== "allowed") {
     throw new HttpsError(
       "resource-exhausted",
       "Place search is temporarily unavailable.",
     );
   }
+};
+
+const requireActiveServiceIdentity = async (
+  guard: IdentityDeletionGuard,
+  uid: string,
+): Promise<void> => {
+  try {
+    if (!await guard.isDeleting(uid)) return;
+  } catch {
+    // A storage ambiguity cannot authorize validation, counters, or upstream.
+  }
+  throw new HttpsError(
+    "failed-precondition",
+    "This private service identity is being removed.",
+  );
 };
 
 const fetchJson = async (
@@ -445,6 +492,7 @@ export const autocompleteHandler = async (
   dependencies: PlacesDependencies,
 ): Promise<PlacePrediction[]> => {
   const uid = requireAuth(request);
+  await requireActiveServiceIdentity(dependencies.identityDeletion, uid);
   const input = validateAutocompleteRequest(request.data);
   await consumeGuard(dependencies.guard, {
     operation: "autocomplete",
@@ -460,6 +508,7 @@ export const detailsHandler = async (
   dependencies: PlacesDependencies,
 ): Promise<PlaceDetails> => {
   const uid = requireAuth(request);
+  await requireActiveServiceIdentity(dependencies.identityDeletion, uid);
   const input = validateDetailsRequest(request.data);
   await consumeGuard(dependencies.guard, {
     operation: "details",
