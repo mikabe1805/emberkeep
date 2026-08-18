@@ -38,6 +38,20 @@ void main() {
     });
   });
 
+  test(
+    'DaybookPlace retains a nonblank authored saved name exactly in JSON',
+    () {
+      final place = DaybookPlace(savedName: '  the thing i typed  ');
+
+      expect(place.savedName, '  the thing i typed  ');
+      expect(
+        DaybookPlace.fromJson(place.toJson()).savedName,
+        '  the thing i typed  ',
+      );
+      expect(() => DaybookPlace(savedName: ' \t '), throwsArgumentError);
+    },
+  );
+
   test('DaybookEvent serializes a valid overnight timed event', () {
     final event = DaybookEvent(
       eventId: 'event-1',

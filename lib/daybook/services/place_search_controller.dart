@@ -63,6 +63,7 @@ final class PlaceSearchController extends ChangeNotifier {
   Timer? _debounceTimer;
   String? _sessionToken;
   int _generation = 0;
+  final Map<PlaceSuggestion, _SuggestionContext> _suggestionContexts = {};
   bool _selectionInFlight = false;
   bool _disposed = false;
 
@@ -71,6 +72,7 @@ final class PlaceSearchController extends ChangeNotifier {
     if (_disposed) return;
     _debounceTimer?.cancel();
     _generation += 1;
+    _clearSuggestionContexts();
     _selectionInFlight = false;
     final trimmed = rawQuery.trim();
     if (trimmed.length < 3) {
@@ -98,13 +100,19 @@ final class PlaceSearchController extends ChangeNotifier {
 
   Future<PlaceSelection?> selectSuggestion(PlaceSuggestion suggestion) async {
     if (_disposed || _selectionInFlight) return null;
-    final token = _sessionToken;
-    if (token == null) return null;
+    final context = _suggestionContexts[suggestion];
+    if (context == null ||
+        context.generation != _generation ||
+        context.sessionToken != _sessionToken) {
+      return null;
+    }
 
     _selectionInFlight = true;
     _debounceTimer?.cancel();
     final requestGeneration = ++_generation;
-    final originalQuery = _state.query;
+    final originalQuery = context.originalQuery;
+    final token = context.sessionToken;
+    _clearSuggestionContexts();
     _sessionToken = null;
     _setState(PlaceSearchState(query: originalQuery, isLoading: true));
     try {
@@ -145,11 +153,19 @@ final class PlaceSearchController extends ChangeNotifier {
         locale: _locale,
       );
       if (!_isCurrent(requestGeneration) || _sessionToken != token) return;
+      final visibleSuggestions = List<PlaceSuggestion>.unmodifiable(
+        suggestions.take(5),
+      );
+      _clearSuggestionContexts();
+      for (final suggestion in visibleSuggestions) {
+        _suggestionContexts[suggestion] = _SuggestionContext(
+          generation: requestGeneration,
+          sessionToken: token,
+          originalQuery: _state.query,
+        );
+      }
       _setState(
-        PlaceSearchState(
-          query: _state.query,
-          suggestions: List<PlaceSuggestion>.unmodifiable(suggestions.take(5)),
-        ),
+        PlaceSearchState(query: _state.query, suggestions: visibleSuggestions),
       );
     } catch (_) {
       if (!_isCurrent(requestGeneration) || _sessionToken != token) return;
@@ -165,6 +181,8 @@ final class PlaceSearchController extends ChangeNotifier {
   bool _isCurrent(int requestGeneration) =>
       !_disposed && requestGeneration == _generation;
 
+  void _clearSuggestionContexts() => _suggestionContexts.clear();
+
   void _setState(PlaceSearchState next) {
     if (_disposed) return;
     _state = next;
@@ -178,6 +196,19 @@ final class PlaceSearchController extends ChangeNotifier {
     _debounceTimer?.cancel();
     _debounceTimer = null;
     _sessionToken = null;
+    _clearSuggestionContexts();
     super.dispose();
   }
+}
+
+final class _SuggestionContext {
+  const _SuggestionContext({
+    required this.generation,
+    required this.sessionToken,
+    required this.originalQuery,
+  });
+
+  final int generation;
+  final String sessionToken;
+  final String originalQuery;
 }

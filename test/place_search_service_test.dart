@@ -12,7 +12,7 @@ void main() {
     const selection = PlaceSelection(
       provider: 'google',
       placeId: 'place-id',
-      originalQuery: 'The exact thing I typed',
+      originalQuery: '  The exact thing I typed  ',
       primaryText: 'Google supplied name',
       secondaryText: 'Google supplied address',
     );
@@ -23,7 +23,7 @@ void main() {
       room: 'My room',
     );
 
-    expect(place.savedName, 'The exact thing I typed');
+    expect(place.savedName, '  The exact thing I typed  ');
     expect(place.providerPlaceId, 'place-id');
     expect(place.routingText, 'My routing note');
     expect(place.building, 'My building');
@@ -59,6 +59,13 @@ void main() {
       expect(
         service.autocompleteCalls.single.sessionToken,
         '11111111-1111-4111-8111-111111111111',
+      );
+      controller.updateQuery('  abcd ');
+      await Future<void>.delayed(const Duration(milliseconds: 8));
+      expect(service.autocompleteCalls, hasLength(2));
+      expect(
+        service.autocompleteCalls.last.sessionToken,
+        service.autocompleteCalls.first.sessionToken,
       );
     },
   );
@@ -248,6 +255,167 @@ void main() {
     },
   );
 
+  test('an old suggestion cannot call Details after a new query', () async {
+    final service = _RecordingService();
+    final controller = PlaceSearchController(
+      service: service,
+      installId: installId,
+      locale: 'en-US',
+      debounce: Duration.zero,
+      createSessionToken: () => '11111111-1111-4111-8111-111111111111',
+    );
+    addTearDown(controller.dispose);
+
+    controller.updateQuery('first');
+    await _flush();
+    final oldSuggestion = controller.state.suggestions.single;
+    controller.updateQuery('second');
+    await _flush();
+
+    expect(await controller.selectSuggestion(oldSuggestion), isNull);
+    expect(service.detailsCalls, isEmpty);
+  });
+
+  test(
+    'controller caps a valid service response at five suggestions',
+    () async {
+      final service = _RecordingService(resultCount: 6);
+      final controller = PlaceSearchController(
+        service: service,
+        installId: installId,
+        locale: 'en-US',
+        debounce: Duration.zero,
+        createSessionToken: () => '11111111-1111-4111-8111-111111111111',
+      );
+      addTearDown(controller.dispose);
+
+      controller.updateQuery('library');
+      await _flush();
+
+      expect(controller.state.suggestions, hasLength(5));
+    },
+  );
+
+  test('stale Details completion and disposal cannot update state', () async {
+    final service = _RecordingService(deferDetails: true);
+    final controller = PlaceSearchController(
+      service: service,
+      installId: installId,
+      locale: 'en-US',
+      debounce: Duration.zero,
+      createSessionToken: () => '11111111-1111-4111-8111-111111111111',
+    );
+
+    controller.updateQuery('first');
+    await _flush();
+    final firstSelection = controller.selectSuggestion(
+      controller.state.suggestions.single,
+    );
+    controller.updateQuery('second');
+    await _flush();
+    service.completeDetails(0);
+    expect(await firstSelection, isNull);
+    expect(controller.state.selection, isNull);
+
+    final secondSelection = controller.selectSuggestion(
+      controller.state.suggestions.single,
+    );
+    controller.dispose();
+    service.completeDetails(1);
+    expect(await secondSelection, isNull);
+  });
+
+  test(
+    'callable response maps reject unknown keys and invalid values',
+    () async {
+      const token = '11111111-1111-4111-8111-111111111111';
+      final invalidAutocompleteItems = <Object?>[
+        {'placeId': 'place-id', 'primaryText': 'Name', 'provider': 'google'},
+        {'placeId': 'place-id', 'primaryText': 'Name', 'extra': 'nope'},
+        {'placeId': 'invalid place id', 'primaryText': 'Name'},
+        {'placeId': 'x' * 256, 'primaryText': 'Name'},
+        {'placeId': 'place-id', 'primaryText': '   '},
+        {'placeId': 'place-id', 'primaryText': 'Name', 'secondaryText': '  '},
+      ];
+      for (final item in invalidAutocompleteItems) {
+        final service = FirebasePlaceSearchService(
+          client: _RecordingCallableClient(
+            results: [
+              <Object?>[item],
+            ],
+          ),
+        );
+        await expectLater(
+          service.autocomplete(
+            query: 'Rutgers',
+            sessionToken: token,
+            installId: installId,
+            locale: 'en-US',
+          ),
+          throwsA(isA<PlaceSearchUnavailable>()),
+        );
+      }
+
+      final details = FirebasePlaceSearchService(
+        client: _RecordingCallableClient(
+          results: [
+            {'placeId': 'place-id', 'primaryText': 'Name', 'unexpected': true},
+          ],
+        ),
+      );
+      await expectLater(
+        details.details(
+          suggestion: const PlaceSuggestion(
+            provider: 'google',
+            placeId: 'place-id',
+            primaryText: 'Suggestion',
+          ),
+          originalQuery: 'Rutgers',
+          sessionToken: token,
+          installId: installId,
+          locale: 'en-US',
+        ),
+        throwsA(isA<PlaceSearchUnavailable>()),
+      );
+
+      final mismatchedDetails = FirebasePlaceSearchService(
+        client: _RecordingCallableClient(
+          results: [_payload('different-place')],
+        ),
+      );
+      await expectLater(
+        mismatchedDetails.details(
+          suggestion: const PlaceSuggestion(
+            provider: 'google',
+            placeId: 'place-id',
+            primaryText: 'Suggestion',
+          ),
+          originalQuery: 'Rutgers',
+          sessionToken: token,
+          installId: installId,
+          locale: 'en-US',
+        ),
+        throwsA(isA<PlaceSearchUnavailable>()),
+      );
+    },
+  );
+
+  test('a hanging callable is bounded by the injected timeout', () async {
+    final service = FirebasePlaceSearchService(
+      client: _HangingCallableClient(),
+      timeout: const Duration(milliseconds: 5),
+    );
+    await expectLater(
+      service.autocomplete(
+        query: 'Rutgers',
+        sessionToken: '11111111-1111-4111-8111-111111111111',
+        installId: installId,
+        locale: 'en-US',
+      ),
+      throwsA(isA<PlaceSearchUnavailable>()),
+    );
+  });
+
   test(
     'disabled service returns no suggestions without callable work',
     () async {
@@ -265,7 +433,7 @@ void main() {
   );
 }
 
-Future<void> _flush() => Future<void>.delayed(Duration.zero);
+Future<void> _flush() => Future<void>.delayed(const Duration(milliseconds: 1));
 
 final class _Call {
   const _Call(this.query, this.sessionToken);
@@ -313,13 +481,29 @@ final class _RecordingCallableClient implements PlaceCallableClient {
   }
 }
 
+final class _HangingCallableClient implements PlaceCallableClient {
+  @override
+  Future<Object?> call(
+    String name,
+    Map<String, Object?> data, {
+    required Duration timeout,
+  }) => Completer<Object?>().future;
+}
+
 final class _RecordingService implements PlaceSearchService {
-  _RecordingService({this.deferAutocomplete = false});
+  _RecordingService({
+    this.deferAutocomplete = false,
+    this.deferDetails = false,
+    this.resultCount = 1,
+  });
 
   final bool deferAutocomplete;
+  final bool deferDetails;
+  final int resultCount;
   final List<_Call> autocompleteCalls = [];
   final List<_DetailsCall> detailsCalls = [];
   final List<Completer<List<PlaceSuggestion>>> _autocompleteCompleters = [];
+  final List<Completer<PlaceSelection>> _detailsCompleters = [];
   bool failDetails = false;
 
   @override
@@ -330,7 +514,11 @@ final class _RecordingService implements PlaceSearchService {
     required String locale,
   }) {
     autocompleteCalls.add(_Call(query, sessionToken));
-    if (!deferAutocomplete) return Future.value([_suggestion(query)]);
+    if (!deferAutocomplete) {
+      return Future.value(
+        List.generate(resultCount, (index) => _suggestion('$query-$index')),
+      );
+    }
     final completer = Completer<List<PlaceSuggestion>>();
     _autocompleteCompleters.add(completer);
     return completer.future;
@@ -352,14 +540,27 @@ final class _RecordingService implements PlaceSearchService {
   }) async {
     detailsCalls.add(_DetailsCall(originalQuery, sessionToken));
     if (failDetails) throw const PlaceSearchUnavailable();
-    return PlaceSelection(
+    final selection = PlaceSelection(
       provider: suggestion.provider,
       placeId: suggestion.placeId,
       originalQuery: originalQuery,
       primaryText: suggestion.primaryText,
       secondaryText: suggestion.secondaryText,
     );
+    if (!deferDetails) return selection;
+    final completer = Completer<PlaceSelection>();
+    _detailsCompleters.add(completer);
+    return completer.future;
   }
+
+  void completeDetails(int index) => _detailsCompleters[index].complete(
+    PlaceSelection(
+      provider: 'google',
+      placeId: 'place-details-$index',
+      originalQuery: 'details $index',
+      primaryText: 'details $index',
+    ),
+  );
 
   PlaceSuggestion _suggestion(String query) => PlaceSuggestion(
     provider: 'google',

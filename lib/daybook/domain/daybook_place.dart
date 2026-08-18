@@ -89,7 +89,7 @@ String _requiredText(String value, String name) {
   if (clean.isEmpty) {
     throw ArgumentError.value(value, name, 'Must not be blank');
   }
-  return clean;
+  return value;
 }
 
 String? _optionalText(String? value) {

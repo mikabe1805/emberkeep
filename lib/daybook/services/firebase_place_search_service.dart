@@ -3,6 +3,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'place_search_service.dart';
 
 const _callableTimeout = Duration(seconds: 8);
+final _placeId = RegExp(r'^[A-Za-z0-9_-]{1,255}$');
+const _responseKeys = {'placeId', 'primaryText', 'secondaryText'};
 
 /// A thin injectable boundary around FlutterFire so service tests never need
 /// Firebase initialization or an external callable.
@@ -51,12 +53,14 @@ final class FirebasePlaceSearchService implements PlaceSearchService {
     required String locale,
   }) async {
     try {
-      final payload = await _client.call('placesAutocomplete', {
-        'query': query,
-        'sessionToken': sessionToken,
-        'installId': installId,
-        'locale': locale,
-      }, timeout: _timeout);
+      final payload = await _client
+          .call('placesAutocomplete', {
+            'query': query,
+            'sessionToken': sessionToken,
+            'installId': installId,
+            'locale': locale,
+          }, timeout: _timeout)
+          .timeout(_timeout);
       if (payload is! List) throw const PlaceSearchUnavailable();
       return List<PlaceSuggestion>.unmodifiable(
         payload.take(5).map(_suggestionFromPayload),
@@ -75,12 +79,14 @@ final class FirebasePlaceSearchService implements PlaceSearchService {
     required String locale,
   }) async {
     try {
-      final payload = await _client.call('placesDetails', {
-        'placeId': suggestion.placeId,
-        'sessionToken': sessionToken,
-        'installId': installId,
-        'locale': locale,
-      }, timeout: _timeout);
+      final payload = await _client
+          .call('placesDetails', {
+            'placeId': suggestion.placeId,
+            'sessionToken': sessionToken,
+            'installId': installId,
+            'locale': locale,
+          }, timeout: _timeout)
+          .timeout(_timeout);
       final confirmed = _suggestionFromPayload(payload);
       if (confirmed.placeId != suggestion.placeId) {
         throw const PlaceSearchUnavailable();
@@ -99,16 +105,18 @@ final class FirebasePlaceSearchService implements PlaceSearchService {
 
   PlaceSuggestion _suggestionFromPayload(Object? payload) {
     if (payload is! Map) throw const PlaceSearchUnavailable();
-    final provider = payload['provider'];
+    if (payload.keys.any(
+      (key) => key is! String || !_responseKeys.contains(key),
+    )) {
+      throw const PlaceSearchUnavailable();
+    }
     final placeId = payload['placeId'];
     final primaryText = payload['primaryText'];
     final secondaryText = payload['secondaryText'];
-    if (provider != null && provider != 'google' ||
-        placeId is! String ||
-        placeId.trim().isEmpty ||
-        primaryText is! String ||
-        primaryText.trim().isEmpty ||
-        secondaryText != null && secondaryText is! String) {
+    if (placeId is! String ||
+        !_placeId.hasMatch(placeId) ||
+        !_nonblankText(primaryText) ||
+        secondaryText != null && !_nonblankText(secondaryText)) {
       throw const PlaceSearchUnavailable();
     }
     return PlaceSuggestion(
@@ -118,4 +126,7 @@ final class FirebasePlaceSearchService implements PlaceSearchService {
       secondaryText: secondaryText as String?,
     );
   }
+
+  bool _nonblankText(Object? value) =>
+      value is String && value.trim().isNotEmpty;
 }
