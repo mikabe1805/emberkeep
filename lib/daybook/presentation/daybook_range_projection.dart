@@ -635,9 +635,21 @@ abstract final class DaybookRangeProjection {
   ) {
     final labels = <String>[];
     for (final kind in DaybookSourceKind.values) {
-      final count = entries.where((entry) => entry.sourceKind == kind).length;
+      final count = entries
+          .where(
+            (entry) =>
+                entry.sourceKind == kind &&
+                entry.section != DaybookSection.focus,
+          )
+          .length;
       if (count == 0) continue;
       labels.add(_sourceCountLabel(kind, count));
+    }
+    final focusCount = entries
+        .where((entry) => entry.section == DaybookSection.focus)
+        .length;
+    if (focusCount > 0) {
+      labels.add('$focusCount focus ${focusCount == 1 ? 'choice' : 'choices'}');
     }
     if (hasDeadline) labels.add('deadline');
     if (scheduledMinutes > 0) labels.add('$scheduledMinutes scheduled minutes');

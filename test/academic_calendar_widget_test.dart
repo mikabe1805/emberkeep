@@ -2663,6 +2663,12 @@ void main() {
       find.byKey(const ValueKey('academic-month-weight-2026-08-18')),
       findsNothing,
     );
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'August 18, 2026, open day, 2026-08-18: 1 focus choice'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('projected occurrence renders moved state and moved local time', (
