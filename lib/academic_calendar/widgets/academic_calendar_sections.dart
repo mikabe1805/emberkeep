@@ -7,11 +7,9 @@ import '../../audio.dart';
 import '../../clock.dart';
 import '../../daybook/adapters/campus_place_adapter.dart';
 import '../../daybook/domain/daybook_place.dart';
-import '../../daybook/domain/daybook_event.dart';
 import '../../daybook/domain/daybook_task.dart';
 import '../../daybook/presentation/daybook_range_projection.dart';
 import '../../daybook/widgets/daybook_place_fields.dart';
-import '../../daybook/widgets/daybook_rows.dart';
 import '../../tokens.dart';
 import '../../widgets/facets.dart';
 import '../../widgets/glass.dart';
@@ -714,14 +712,24 @@ class DaybookAgendaEntries extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final academicConflicts = _academicConflicts(day, schedule);
+    final academicConflicts = [
+      for (final conflict in day.summary.conflicts)
+        if (conflict.leftDisplayKey.startsWith('class:') &&
+            conflict.rightDisplayKey.startsWith('class:'))
+          conflict,
+    ];
     final otherConflicts = [
       for (final conflict in day.summary.conflicts)
         if (!conflict.leftDisplayKey.startsWith('class:') ||
             !conflict.rightDisplayKey.startsWith('class:'))
           conflict,
     ];
-    final transitionPressures = schedule.transitionPressuresOn(day.date);
+    final transitionEntries = [
+      for (final entry in day.entries)
+        if (entry.sourceKind == DaybookSourceKind.classOccurrence &&
+            entry.transitionPressure)
+          entry,
+    ];
     final sections =
         <(DaybookSection, String)>[
               (DaybookSection.allDay, 'ALL DAY'),
@@ -739,9 +747,10 @@ class DaybookAgendaEntries extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (showNotices && academicConflicts.isNotEmpty) ...[
-          AcademicConflictNotice(
+          _DaybookConflictNotice(
+            date: day.date,
             conflicts: academicConflicts,
-            schedule: schedule,
+            academic: true,
           ),
           const SizedBox(height: 7),
         ],
@@ -749,10 +758,10 @@ class DaybookAgendaEntries extends StatelessWidget {
           _DaybookConflictNotice(date: day.date, conflicts: otherConflicts),
           const SizedBox(height: 7),
         ],
-        if (showNotices && transitionPressures.isNotEmpty) ...[
-          AcademicTransitionNotice(
-            pressures: transitionPressures,
-            schedule: schedule,
+        if (showNotices && transitionEntries.isNotEmpty) ...[
+          _ProjectedTransitionNotice(
+            date: day.date,
+            entries: transitionEntries,
           ),
           const SizedBox(height: 7),
         ],
@@ -781,7 +790,6 @@ class DaybookAgendaEntries extends StatelessWidget {
                 entry: entry,
                 day: day,
                 schedule: schedule,
-                transitionPressures: transitionPressures,
                 onOpenNotebook: onOpenNotebook,
                 onToggleTask: onToggleTask,
                 onToggleWork: onToggleWork,
@@ -802,7 +810,6 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
     required this.entry,
     required this.day,
     required this.schedule,
-    required this.transitionPressures,
     required this.onOpenNotebook,
     required this.onToggleTask,
     required this.onToggleWork,
@@ -815,7 +822,6 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
   final DaybookEntry entry;
   final DaybookDay day;
   final AcademicSchedule schedule;
-  final List<AcademicTransitionPressure> transitionPressures;
   final OpenAcademicNotebook onOpenNotebook;
   final ToggleDaybookTask onToggleTask;
   final ToggleAcademicWork onToggleWork;
@@ -826,168 +832,503 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    switch (entry.action) {
-      case DaybookEventAction(:final eventId, :final occurrenceKey):
-        final event = schedule.events
-            .where((item) => item.eventId == eventId)
-            .firstOrNull;
-        if (event == null) return const SizedBox.shrink();
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: DaybookEventRow(
-            event: event,
-            occurrence: _eventOccurrence(event, occurrenceKey),
+    final conflict = day.summary.conflicts.any(
+      (item) =>
+          item.leftDisplayKey == entry.displayKey ||
+          item.rightDisplayKey == entry.displayKey,
+    );
+    final classAction = entry.action is AcademicOccurrenceAction;
+    final classActions = classAction
+        ? _OccurrenceActions(
+            occurrenceKey: entry.sourceId,
+            courseCode: entry.title,
+            onOpenNotebook: _openNotebook,
+            onAdjust: entry.adjustable ? _openOccurrenceAdjuster : null,
+          )
+        : null;
+    final footer = switch (entry.action) {
+      AcademicOccurrenceAction() when entry.transitionPressure => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'TIGHT TURNAROUND',
+            key: ValueKey('academic-transition-${entry.sourceId}'),
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              color: Palette.xp,
+            ),
           ),
-        );
-      case DaybookTaskAction(:final taskId):
-        final task = schedule.tasks
-            .where((item) => item.taskId == taskId)
-            .firstOrNull;
-        if (task == null) return const SizedBox.shrink();
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 6),
-          child: DaybookTaskRow(
-            task: task,
-            onCompletedChanged: (completed) => onToggleTask(task, completed),
+          const SizedBox(height: 7),
+          _TransitionBufferButton(
+            occurrenceKey: entry.sourceId,
+            courseCode: entry.title,
+            transitionBufferMinutes: entry.transitionBufferMinutes ?? 10,
+            onSetTransitionBuffer: _setTransitionBuffer,
           ),
-        );
-      case AcademicOccurrenceAction(:final occurrenceKey):
-        final occurrence = schedule.occurrenceByKey(occurrenceKey);
-        if (occurrence == null) return const SizedBox.shrink();
-        final displayKey = 'class:$occurrenceKey';
-        final conflict = day.summary.conflicts.any(
-          (item) =>
-              item.leftDisplayKey == displayKey ||
-              item.rightDisplayKey == displayKey,
-        );
-        return AcademicOccurrenceRow(
-          occurrence: occurrence,
-          course: schedule.courseById(occurrence.courseId),
-          transitionBufferMinutes:
-              schedule
-                  .meetingSeriesById(occurrence.meetingSeriesId)
-                  ?.transitionBufferMinutes ??
-              10,
-          conflict: conflict,
-          transitionPressure: transitionPressures.any(
-            (item) => item.includes(occurrenceKey),
-          ),
-          onOpenNotebook: () => onOpenNotebook(occurrence),
-          onSetTransitionBuffer: (minutes) =>
-              onUpdateTransitionBuffer(occurrence, minutes),
-          onAdjust: occurrence.canAdjust
-              ? () => onOpenOccurrenceAdjuster(occurrence)
-              : null,
-        );
-      case AcademicWorkAction(:final workId):
-        final item = schedule.workItems
-            .where((item) => item.workId == workId)
-            .firstOrNull;
-        if (item == null) return const SizedBox.shrink();
-        return AcademicWorkRow(
-          item: item,
-          course: schedule.courseById(item.courseId),
-          studyPlan: schedule.studyPlanFor(item.workId),
-          plannedStudyMinutes: schedule.plannedStudyMinutesFor(item.workId),
-          onToggle: () => onToggleWork(item),
-          onPlanStudy: () => onOpenStudyPlanner(item),
-        );
-      case AcademicStudyAction(:final studyBlockId):
-        final block = schedule.studyBlocks
-            .where((item) => item.studyBlockId == studyBlockId)
-            .firstOrNull;
-        if (block == null) return const SizedBox.shrink();
-        final item = schedule.workItems
-            .where((item) => item.workId == block.workId)
-            .firstOrNull;
-        return AcademicStudyBlockRow(
-          block: block,
-          item: item,
-          course: schedule.courseById(item?.courseId ?? ''),
-          onToggle: () => onToggleStudyBlock(block),
-        );
-      case QuestPlanAction():
-        return _DaybookNeutralEntryRow(entry: entry);
+        ],
+      ),
+      AcademicWorkAction() when !entry.completed => _ProjectedStudyPlanAction(
+        workId: entry.sourceId,
+        title: entry.title,
+        plannedMinutes: entry.plannedStudyMinutes,
+        targetMinutes: entry.targetStudyMinutes,
+        onTap: _openStudyPlanner,
+      ),
+      _ => null,
+    };
+    final toggle = switch (entry.action) {
+      DaybookTaskAction() => _ProjectedCompletionButton(
+        key: ValueKey('daybook-task-toggle-${entry.sourceId}'),
+        title: entry.title,
+        completed: entry.completed,
+        accent: _entryAccent(entry),
+        icon: Icons.check_rounded,
+        onTap: _toggleTask,
+      ),
+      AcademicWorkAction() => _ProjectedCompletionButton(
+        key: ValueKey('academic-work-toggle-${entry.sourceId}'),
+        title: entry.title,
+        completed: entry.completed,
+        accent: _entryAccent(entry),
+        icon: Icons.assignment_outlined,
+        onTap: _toggleWork,
+      ),
+      AcademicStudyAction() => _ProjectedCompletionButton(
+        key: ValueKey('academic-study-toggle-${entry.sourceId}'),
+        title: 'study ${entry.title}',
+        completed: entry.completed,
+        accent: _entryAccent(entry),
+        icon: Icons.menu_book_rounded,
+        onTap: _toggleStudyBlock,
+      ),
+      _ => null,
+    };
+    return _ProjectedDaybookEntryRow(
+      key: _sourceRowKey(entry),
+      entry: entry,
+      conflict: conflict,
+      leading: toggle,
+      actions: classActions,
+      footer: footer,
+    );
+  }
+
+  Future<void> _toggleTask() async {
+    final action = entry.action as DaybookTaskAction;
+    final task = schedule.tasks
+        .where((item) => item.taskId == action.taskId)
+        .firstOrNull;
+    if (task != null) await onToggleTask(task, !entry.completed);
+  }
+
+  Future<void> _toggleWork() async {
+    final action = entry.action as AcademicWorkAction;
+    final item = schedule.workItems
+        .where((candidate) => candidate.workId == action.workId)
+        .firstOrNull;
+    if (item != null) await onToggleWork(item);
+  }
+
+  Future<void> _openStudyPlanner() async {
+    final action = entry.action as AcademicWorkAction;
+    final item = schedule.workItems
+        .where((candidate) => candidate.workId == action.workId)
+        .firstOrNull;
+    if (item != null) await onOpenStudyPlanner(item);
+  }
+
+  Future<void> _toggleStudyBlock() async {
+    final action = entry.action as AcademicStudyAction;
+    final block = schedule.studyBlocks
+        .where((candidate) => candidate.studyBlockId == action.studyBlockId)
+        .firstOrNull;
+    if (block != null) await onToggleStudyBlock(block);
+  }
+
+  Future<void> _openNotebook() async {
+    final occurrence = _actionOccurrence();
+    if (occurrence != null) await onOpenNotebook(occurrence);
+  }
+
+  Future<void> _openOccurrenceAdjuster() async {
+    final occurrence = _actionOccurrence();
+    if (occurrence != null) await onOpenOccurrenceAdjuster(occurrence);
+  }
+
+  Future<void> _setTransitionBuffer(int minutes) async {
+    final occurrence = _actionOccurrence();
+    if (occurrence != null) {
+      await onUpdateTransitionBuffer(occurrence, minutes);
     }
+  }
+
+  ClassOccurrence? _actionOccurrence() {
+    final action = entry.action as AcademicOccurrenceAction;
+    return schedule.occurrenceByKey(action.occurrenceKey);
   }
 }
 
-class _DaybookNeutralEntryRow extends StatelessWidget {
-  const _DaybookNeutralEntryRow({required this.entry});
+class _ProjectedDaybookEntryRow extends StatelessWidget {
+  const _ProjectedDaybookEntryRow({
+    super.key,
+    required this.entry,
+    required this.conflict,
+    required this.leading,
+    required this.actions,
+    required this.footer,
+  });
 
   final DaybookEntry entry;
+  final bool conflict;
+  final Widget? leading;
+  final Widget? actions;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
-    final metadata = entry.section == DaybookSection.allDay
-        ? 'ALL DAY'
-        : entry.startMinute == null
-        ? 'QUEST PLAN'
-        : 'DUE ${formatAcademicTime(entry.startMinute!)}';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 58),
-        padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
-        decoration: facetedDecoration(
-          cut: 9,
-          color: Palette.glassFill,
-          borderColor: Palette.brass.withValues(alpha: 0.34),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              entry.completed
-                  ? Icons.check_rounded
-                  : Icons.auto_awesome_mosaic_outlined,
-              size: 19,
-              color: entry.completed ? Palette.xp : Palette.xpLight,
+    final accent = _entryAccent(entry);
+    final largeText = MediaQuery.textScalerOf(context).scale(14) >= 21;
+    final details = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (entry.sourceLabel != null)
+          Text(
+            entry.sourceLabel!,
+            style: Type.label.copyWith(
+              fontSize: Type.minLabel,
+              letterSpacing: 0.8,
+              color: entry.completed || entry.cancelled
+                  ? Palette.textLo
+                  : accent,
             ),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Type.body.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: entry.completed ? Palette.textMid : Palette.textHi,
-                      decoration: entry.completed
-                          ? TextDecoration.lineThrough
-                          : null,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    metadata,
-                    style: Type.label.copyWith(
-                      fontSize: Type.minLabel,
-                      color: Palette.textLo,
-                    ),
-                  ),
-                ],
+          ),
+        if (entry.sourceLabel == null ||
+            !entry.sourceLabel!.startsWith(entry.title)) ...[
+          if (entry.sourceLabel != null) const SizedBox(height: 2),
+          Text(
+            entry.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Type.body.copyWith(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: entry.completed || entry.cancelled
+                  ? Palette.textLo
+                  : Palette.textHi,
+              decoration: entry.completed || entry.cancelled
+                  ? TextDecoration.lineThrough
+                  : null,
+            ),
+          ),
+        ],
+        const SizedBox(height: 2),
+        Wrap(
+          spacing: 7,
+          runSpacing: 3,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              _projectedEntryTiming(entry),
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: entry.cancelled ? Palette.textLo : Palette.xpLight,
               ),
             ),
+            if (entry.moved)
+              Text(
+                'MOVED',
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: Palette.xpLight,
+                ),
+              ),
+            if (entry.cancelled)
+              Text(
+                'CANCELLED',
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: Palette.textLo,
+                ),
+              ),
+            if (conflict)
+              Text(
+                'OVERLAP',
+                key: ValueKey('academic-overlap-${entry.sourceId}'),
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: Palette.danger,
+                ),
+              ),
           ],
+        ),
+        if (entry.place != null ||
+            (entry.supportingText != null &&
+                entry.sourceKind != DaybookSourceKind.studyBlock)) ...[
+          const SizedBox(height: 2),
+          Text(
+            [
+              if (entry.place != null) entry.place!.savedName,
+              if (entry.supportingText != null &&
+                  entry.sourceKind != DaybookSourceKind.studyBlock)
+                entry.supportingText!,
+            ].join(' · '),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Type.body.copyWith(fontSize: 12.5, color: Palette.textMid),
+          ),
+        ],
+        if (footer != null) ...[const SizedBox(height: 7), footer!],
+      ],
+    );
+    final icon = Icon(
+      _entryIcon(entry),
+      size: 20,
+      color: entry.completed || entry.cancelled ? Palette.textLo : accent,
+    );
+    final content = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        leading ?? Padding(padding: const EdgeInsets.all(12), child: icon),
+        const SizedBox(width: 5),
+        Expanded(child: details),
+        if (!largeText && actions != null) ...[
+          const SizedBox(width: 6),
+          actions!,
+        ],
+      ],
+    );
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      label: _projectedEntrySemantics(entry),
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 7),
+        padding: const EdgeInsets.fromLTRB(9, 8, 10, 8),
+        decoration: facetedDecoration(
+          cut: 9,
+          color: accent.withValues(
+            alpha: entry.completed || entry.cancelled ? 0.03 : 0.06,
+          ),
+          borderColor: accent.withValues(
+            alpha: entry.completed || entry.cancelled ? 0.17 : 0.34,
+          ),
+        ),
+        child: largeText && actions != null
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  content,
+                  const SizedBox(height: 6),
+                  Align(alignment: Alignment.centerRight, child: actions!),
+                ],
+              )
+            : content,
+      ),
+    );
+  }
+}
+
+class _ProjectedCompletionButton extends StatelessWidget {
+  const _ProjectedCompletionButton({
+    super.key,
+    required this.title,
+    required this.completed,
+    required this.accent,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final bool completed;
+  final Color accent;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    checked: completed,
+    label: completed ? 'Mark $title open' : 'Mark $title complete',
+    child: InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: SizedBox.square(
+        dimension: 44,
+        child: Center(
+          child: Container(
+            width: 27,
+            height: 27,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: completed
+                  ? accent.withValues(alpha: 0.82)
+                  : Colors.transparent,
+              border: Border.all(color: completed ? accent : Palette.textLo),
+            ),
+            child: Icon(
+              completed ? Icons.check_rounded : icon,
+              size: 16,
+              color: completed ? const Color(0xFF17100C) : accent,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _ProjectedStudyPlanAction extends StatelessWidget {
+  const _ProjectedStudyPlanAction({
+    required this.workId,
+    required this.title,
+    required this.plannedMinutes,
+    required this.targetMinutes,
+    required this.onTap,
+  });
+
+  final String workId;
+  final String title;
+  final int? plannedMinutes;
+  final int? targetMinutes;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPlan = targetMinutes != null;
+    return Semantics(
+      button: true,
+      label: hasPlan
+          ? 'Review study plan for $title'
+          : 'Plan study time for $title',
+      child: InkWell(
+        key: ValueKey('academic-plan-study-$workId'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.symmetric(horizontal: 9),
+          decoration: facetedDecoration(
+            cut: 7,
+            color: Palette.xp.withValues(alpha: 0.06),
+            borderColor: Palette.brass.withValues(alpha: 0.44),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.schedule_rounded, size: 16, color: Palette.xp),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  hasPlan
+                      ? '${plannedMinutes ?? 0} / $targetMinutes MIN PLANNED'
+                      : 'PLAN STUDY TIME',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    letterSpacing: 0.55,
+                    color: Palette.xpLight,
+                  ),
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 17,
+                color: Palette.xpLight,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
+Key? _sourceRowKey(DaybookEntry entry) => switch (entry.sourceKind) {
+  DaybookSourceKind.classOccurrence => ValueKey(
+    'academic-occurrence-${entry.sourceId}',
+  ),
+  DaybookSourceKind.academicWork => ValueKey('academic-work-${entry.sourceId}'),
+  DaybookSourceKind.studyBlock => ValueKey(
+    'academic-study-block-${entry.sourceId}',
+  ),
+  _ => null,
+};
+
+Color _entryAccent(DaybookEntry entry) => Color(
+  entry.accentColorValue ??
+      switch (entry.sourceKind) {
+        DaybookSourceKind.event => 0xFFE7C47E,
+        DaybookSourceKind.task => 0xFFCFA766,
+        DaybookSourceKind.classOccurrence ||
+        DaybookSourceKind.academicWork ||
+        DaybookSourceKind.studyBlock => 0xFF8AAFC6,
+        DaybookSourceKind.questPlan => 0xFFE0B763,
+      },
+);
+
+IconData _entryIcon(DaybookEntry entry) => switch (entry.sourceKind) {
+  DaybookSourceKind.event => Icons.event_outlined,
+  DaybookSourceKind.task => Icons.check_circle_outline_rounded,
+  DaybookSourceKind.classOccurrence => Icons.school_outlined,
+  DaybookSourceKind.academicWork => Icons.assignment_outlined,
+  DaybookSourceKind.studyBlock => Icons.menu_book_rounded,
+  DaybookSourceKind.questPlan => Icons.auto_awesome_mosaic_outlined,
+};
+
+String _projectedEntryTiming(DaybookEntry entry) => switch (entry.section) {
+  DaybookSection.allDay => 'ALL DAY',
+  DaybookSection.timed =>
+    '${_projectedTime(entry.startMinute!)}–${_projectedTime(entry.endMinute!)}'
+        '${entry.sourceKind == DaybookSourceKind.studyBlock && entry.supportingText != null ? ' · ${entry.supportingText}' : ''}',
+  DaybookSection.due =>
+    entry.startMinute == null
+        ? 'DUE'
+        : 'DUE ${_projectedTime(entry.startMinute!)}',
+  DaybookSection.stillOpen =>
+    entry.startMinute == null
+        ? 'DUE'
+        : 'DUE ${_projectedTime(entry.startMinute!)}',
+};
+
+String _projectedEntrySemantics(DaybookEntry entry) {
+  final parts = <String>[
+    entry.title,
+    switch (entry.section) {
+      DaybookSection.allDay => 'all day',
+      DaybookSection.timed => 'schedule',
+      DaybookSection.due => 'due',
+      DaybookSection.stillOpen => 'still open',
+    },
+    if (entry.section == DaybookSection.timed)
+      '${_projectedTime(entry.startMinute!)} to ${_projectedTime(entry.endMinute!)}'
+    else if (entry.startMinute != null)
+      _projectedTime(entry.startMinute!),
+    if (entry.moved) 'moved',
+    if (entry.cancelled) 'cancelled',
+    if (entry.completed) 'completed',
+    if (entry.place != null) entry.place!.savedName,
+  ];
+  return parts.join(', ');
+}
+
+String _projectedTime(int minute) =>
+    minute == 24 * 60 ? '12:00 AM' : formatAcademicTime(minute);
+
 class _DaybookConflictNotice extends StatelessWidget {
-  const _DaybookConflictNotice({required this.date, required this.conflicts});
+  const _DaybookConflictNotice({
+    required this.date,
+    required this.conflicts,
+    this.academic = false,
+  });
 
   final CivilDate date;
   final List<DaybookConflict> conflicts;
+  final bool academic;
 
   @override
   Widget build(BuildContext context) => Container(
-    key: ValueKey('daybook-conflicts-$date'),
+    key: ValueKey('${academic ? 'academic' : 'daybook'}-conflicts-$date'),
     width: double.infinity,
     padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
     decoration: facetedDecoration(
@@ -1006,7 +1347,9 @@ class _DaybookConflictNotice extends StatelessWidget {
             children: [
               Text(
                 conflicts.length == 1
-                    ? 'TWO PLANS SHARE THIS TIME'
+                    ? academic
+                          ? 'TWO CLASSES SHARE THIS TIME'
+                          : 'TWO PLANS SHARE THIS TIME'
                     : 'PLANS SHARE THIS TIME',
                 style: Type.label.copyWith(
                   fontSize: Type.minLabel,
@@ -1031,35 +1374,52 @@ class _DaybookConflictNotice extends StatelessWidget {
   );
 }
 
-List<AcademicMeetingConflict> _academicConflicts(
-  DaybookDay day,
-  AcademicSchedule schedule,
-) => [
-  for (final conflict in day.summary.conflicts)
-    if (conflict.leftDisplayKey.startsWith('class:') &&
-        conflict.rightDisplayKey.startsWith('class:'))
-      if (schedule.occurrenceByKey(conflict.leftDisplayKey.substring(6))
-          case final left?)
-        if (schedule.occurrenceByKey(conflict.rightDisplayKey.substring(6))
-            case final right?)
-          AcademicMeetingConflict(left, right),
-];
+class _ProjectedTransitionNotice extends StatelessWidget {
+  const _ProjectedTransitionNotice({required this.date, required this.entries});
 
-DaybookEventOccurrence? _eventOccurrence(
-  DaybookEvent event,
-  String occurrenceKey,
-) {
-  final prefix = '${event.eventId}@';
-  if (!occurrenceKey.startsWith(prefix)) return null;
-  try {
-    return event.occurrenceFor(
-      CivilDate.parse(occurrenceKey.substring(prefix.length)),
-    );
-  } on ArgumentError {
-    return null;
-  } on FormatException {
-    return null;
-  }
+  final CivilDate date;
+  final List<DaybookEntry> entries;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: ValueKey('academic-transitions-$date'),
+    width: double.infinity,
+    padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+    decoration: facetedDecoration(
+      cut: 9,
+      color: Palette.xp.withValues(alpha: 0.055),
+      borderColor: Palette.brass.withValues(alpha: 0.42),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(Icons.directions_walk_rounded, size: 18, color: Palette.xp),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'A TIGHT TURNAROUND',
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: Palette.xp,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${entries.map((entry) => entry.title).toSet().join(' and ')} have less transition time than requested. Both classes are still kept.',
+                style: Type.body.copyWith(
+                  fontSize: 12.5,
+                  color: Palette.textMid,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class AcademicOccurrenceRow extends StatelessWidget {

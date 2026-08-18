@@ -25,7 +25,6 @@ const _captureStudyPlanner = bool.fromEnvironment(
 const _captureOccurrenceAdjust = bool.fromEnvironment(
   'CAPTURE_ACADEMIC_OCCURRENCE_ADJUST',
 );
-const _captureGeneralDaybook = bool.fromEnvironment('CAPTURE_DAYBOOK_GENERAL');
 
 void main() {
   setUpAll(() async {
@@ -240,15 +239,12 @@ void main() {
         );
       }
       expect(tester.takeException(), isNull);
-      if (_captureGeneralDaybook) {
-        await expectLater(
-          find.byType(MaterialApp),
-          matchesGoldenFile(
-            '../.superpowers/sdd/2026-08-17-general-daybook/visual/'
-            'daybook_general_${configuration.name}.png',
-          ),
-        );
-      }
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/daybook_general_${configuration.name}.png',
+        ),
+      );
     });
   }
 
@@ -312,12 +308,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 120));
     }
     expect(tester.takeException(), isNull);
-    if (_capture) {
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/daybook_today_marker_430x932.png'),
-      );
-    }
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/daybook_today_marker_430x932.png'),
+    );
   });
 
   testWidgets('academic conflict visual', (tester) async {

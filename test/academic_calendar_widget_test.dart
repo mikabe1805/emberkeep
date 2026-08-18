@@ -895,6 +895,146 @@ void main() {
     },
   );
 
+  testWidgets('projected occurrence renders moved state and moved local time', (
+    tester,
+  ) async {
+    final event = DaybookEvent(
+      eventId: 'event_moved_clinic',
+      title: 'Planning clinic',
+      startDate: CivilDate(2026, 8, 11),
+      endDate: CivilDate(2026, 8, 11),
+      timeZoneId: 'America/New_York',
+      allDay: false,
+      startMinute: 9 * 60,
+      endMinute: 10 * 60,
+      weeklyRule: WeeklyEventRule(
+        weekdays: const {DateTime.tuesday},
+        endsOn: CivilDate(2026, 8, 18),
+      ),
+      exceptions: [
+        DaybookEventException(
+          occurrenceKey: 'event_moved_clinic/2026-08-11',
+          originalDate: CivilDate(2026, 8, 11),
+          state: DaybookEventOccurrenceState.moved,
+          movedStartDate: CivilDate(2026, 8, 12),
+          movedEndDate: CivilDate(2026, 8, 12),
+          movedStartMinute: 13 * 60 + 15,
+          movedEndMinute: 14 * 60 + 45,
+          updatedAt: DateTime.utc(2026, 8, 10),
+        ),
+      ],
+      createdAt: DateTime.utc(2026, 8, 8),
+      updatedAt: DateTime.utc(2026, 8, 10),
+    );
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(
+        AcademicSchedule.empty().putEvent(event),
+      ),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.day,
+          selectedDate: '2026-08-12',
+        ),
+      ),
+    );
+
+    expect(find.text('MOVED'), findsOneWidget);
+    expect(find.text('1:15 PM–2:45 PM'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        'Planning clinic, schedule, 1:15 PM to 2:45 PM, moved',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'projected occurrence renders cancelled state from the projection',
+    (tester) async {
+      final event = DaybookEvent(
+        eventId: 'event_cancelled_hour',
+        title: 'Cancelled office hour',
+        startDate: CivilDate(2026, 8, 11),
+        endDate: CivilDate(2026, 8, 11),
+        timeZoneId: 'America/New_York',
+        allDay: false,
+        startMinute: 9 * 60,
+        endMinute: 10 * 60,
+        exceptions: [
+          DaybookEventException(
+            occurrenceKey: 'event_cancelled_hour/2026-08-11',
+            originalDate: CivilDate(2026, 8, 11),
+            state: DaybookEventOccurrenceState.cancelled,
+            updatedAt: DateTime.utc(2026, 8, 10),
+          ),
+        ],
+        createdAt: DateTime.utc(2026, 8, 8),
+        updatedAt: DateTime.utc(2026, 8, 10),
+      );
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(
+          AcademicSchedule.empty().putEvent(event),
+        ),
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-11',
+          ),
+        ),
+      );
+
+      expect(find.text('CANCELLED'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(
+          'Cancelled office hour, schedule, 9:00 AM to 10:00 AM, cancelled',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'projected occurrence renders an overnight event clipped to this day',
+    (tester) async {
+      final event = DaybookEvent(
+        eventId: 'event_night_train',
+        title: 'Night train',
+        startDate: CivilDate(2026, 8, 11),
+        endDate: CivilDate(2026, 8, 12),
+        timeZoneId: 'America/New_York',
+        allDay: false,
+        startMinute: 23 * 60 + 30,
+        endMinute: 75,
+        createdAt: DateTime.utc(2026, 8, 8),
+        updatedAt: DateTime.utc(2026, 8, 8),
+      );
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(
+          AcademicSchedule.empty().putEvent(event),
+        ),
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.day,
+            selectedDate: '2026-08-12',
+          ),
+        ),
+      );
+
+      expect(find.text('12:00 AM–1:15 AM'), findsOneWidget);
+      expect(find.text('11:30 PM–1:15 AM'), findsNothing);
+      expect(
+        find.bySemanticsLabel('Night train, schedule, 12:00 AM to 1:15 AM'),
+        findsOneWidget,
+      );
+    },
+  );
+
   testWidgets('general daybook keeps overdue tasks open only on today', (
     tester,
   ) async {
@@ -982,9 +1122,7 @@ void main() {
       expect(repository.saveCount, 2);
       expect(find.byType(DaybookTaskEditor), findsNothing);
 
-      await tester.tap(
-        find.byKey(const ValueKey('academic-mode-week')),
-      );
+      await tester.tap(find.byKey(const ValueKey('academic-mode-week')));
       await tester.pumpAndSettle();
       expect(find.text('LOCAL TIME'), findsOneWidget);
       expect(find.text('CAMPUS TIME'), findsNothing);

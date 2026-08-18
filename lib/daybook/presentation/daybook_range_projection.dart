@@ -43,7 +43,16 @@ final class DaybookEntry {
     this.endMinute,
     this.completed = false,
     this.cancelled = false,
+    this.moved = false,
     this.place,
+    this.sourceLabel,
+    this.supportingText,
+    this.accentColorValue,
+    this.adjustable = false,
+    this.transitionPressure = false,
+    this.transitionBufferMinutes,
+    this.plannedStudyMinutes,
+    this.targetStudyMinutes,
     required this.action,
   });
 
@@ -56,7 +65,16 @@ final class DaybookEntry {
   final int? endMinute;
   final bool completed;
   final bool cancelled;
+  final bool moved;
   final DaybookPlace? place;
+  final String? sourceLabel;
+  final String? supportingText;
+  final int? accentColorValue;
+  final bool adjustable;
+  final bool transitionPressure;
+  final int? transitionBufferMinutes;
+  final int? plannedStudyMinutes;
+  final int? targetStudyMinutes;
   final DaybookActionTarget action;
 }
 
@@ -196,8 +214,8 @@ abstract final class DaybookRangeProjection {
     CivilDate last,
     Map<CivilDate, List<DaybookEntry>> byDate,
   ) {
-    final titles = {
-      for (final event in schedule.events) event.eventId: event.title,
+    final eventsById = {
+      for (final event in schedule.events) event.eventId: event,
     };
     // Timed events can cross one midnight and all-day events may span several
     // days. Widening the materialization query by the source's longest
@@ -226,7 +244,12 @@ abstract final class DaybookRangeProjection {
       }
     }
     for (final occurrence in occurrences) {
-      final eventTitle = titles[occurrence.eventId] ?? 'Event';
+      final event = eventsById[occurrence.eventId];
+      final eventTitle = event?.title ?? 'Event';
+      final sourceLabel = event?.weeklyRule == null ? 'EVENT' : 'WEEKLY EVENT';
+      final moved = occurrence.state == DaybookEventOccurrenceState.moved;
+      final cancelled =
+          occurrence.state == DaybookEventOccurrenceState.cancelled;
       if (occurrence.allDay) {
         for (
           var date = occurrence.startDate;
@@ -242,8 +265,10 @@ abstract final class DaybookRangeProjection {
               sourceId: occurrence.eventId,
               title: eventTitle,
               section: DaybookSection.allDay,
-              cancelled:
-                  occurrence.state == DaybookEventOccurrenceState.cancelled,
+              cancelled: cancelled,
+              moved: moved,
+              place: event?.place,
+              sourceLabel: sourceLabel,
               action: DaybookEventAction(
                 occurrence.eventId,
                 occurrence.occurrenceKey,
@@ -272,8 +297,10 @@ abstract final class DaybookRangeProjection {
             section: DaybookSection.timed,
             startMinute: isStart ? occurrence.startMinute : 0,
             endMinute: isEnd ? occurrence.endMinute : 24 * 60,
-            cancelled:
-                occurrence.state == DaybookEventOccurrenceState.cancelled,
+            cancelled: cancelled,
+            moved: moved,
+            place: event?.place,
+            sourceLabel: sourceLabel,
             action: DaybookEventAction(
               occurrence.eventId,
               occurrence.occurrenceKey,
@@ -322,6 +349,13 @@ abstract final class DaybookRangeProjection {
   ) {
     for (final occurrence in schedule.occurrencesBetween(first, last)) {
       final course = schedule.courseById(occurrence.courseId);
+      final series = schedule.meetingSeriesById(occurrence.meetingSeriesId);
+      final enabledReminders = occurrence.reminders
+          .where((reminder) => reminder.enabled)
+          .toList();
+      final transitionPressure = schedule
+          .transitionPressuresOn(occurrence.date)
+          .any((pressure) => pressure.includes(occurrence.occurrenceKey));
       byDate[occurrence.date]!.add(
         DaybookEntry(
           displayKey: 'class:${occurrence.occurrenceKey}',
@@ -332,7 +366,17 @@ abstract final class DaybookRangeProjection {
           startMinute: occurrence.localStartMinute,
           endMinute: occurrence.localEndMinute,
           cancelled: occurrence.state == OccurrenceState.cancelled,
+          moved: occurrence.state == OccurrenceState.moved,
           place: CampusPlaceDaybookAdapter.fromCampusPlace(occurrence.place),
+          sourceLabel:
+              '${course?.code ?? 'CLASS'} · ${occurrence.kind.shortLabel}',
+          supportingText: enabledReminders.isEmpty
+              ? 'reminders off'
+              : '${enabledReminders.first.offsetMinutes} min reminder',
+          accentColorValue: course?.colorValue,
+          adjustable: occurrence.canAdjust,
+          transitionPressure: transitionPressure,
+          transitionBufferMinutes: series?.transitionBufferMinutes ?? 10,
           action: AcademicOccurrenceAction(occurrence.occurrenceKey),
         ),
       );
@@ -348,6 +392,7 @@ abstract final class DaybookRangeProjection {
     final workById = {for (final item in schedule.workItems) item.workId: item};
     for (final block in schedule.studyBlocksBetween(first, last)) {
       final work = workById[block.workId];
+      final course = schedule.courseById(work?.courseId ?? '');
       byDate[block.date]!.add(
         DaybookEntry(
           displayKey: 'study:${block.studyBlockId}',
@@ -358,6 +403,9 @@ abstract final class DaybookRangeProjection {
           startMinute: block.startMinute,
           endMinute: block.endMinute,
           completed: block.completed,
+          sourceLabel: '${course?.code ?? 'COURSE'} · STUDY',
+          supportingText: '${block.durationMinutes} min',
+          accentColorValue: course?.colorValue,
           action: AcademicStudyAction(block.studyBlockId),
         ),
       );
@@ -379,6 +427,8 @@ abstract final class DaybookRangeProjection {
       }
     }
     for (final item in schedule.workItemsBetween(first, last)) {
+      final course = schedule.courseById(item.courseId);
+      final studyPlan = schedule.studyPlanFor(item.workId);
       byDate[item.dueDate]!.add(
         DaybookEntry(
           displayKey: 'work:${item.workId}',
@@ -388,6 +438,11 @@ abstract final class DaybookRangeProjection {
           section: DaybookSection.due,
           startMinute: item.dueMinute,
           completed: item.completed,
+          sourceLabel: '${course?.code ?? 'COURSE'} · ${item.kind.shortLabel}',
+          supportingText: item.details,
+          accentColorValue: course?.colorValue,
+          plannedStudyMinutes: schedule.plannedStudyMinutesFor(item.workId),
+          targetStudyMinutes: studyPlan?.totalMinutes,
           action: AcademicWorkAction(item.workId),
         ),
       );
@@ -404,6 +459,7 @@ abstract final class DaybookRangeProjection {
         startMinute: task.dueMinute,
         completed: task.completed,
         place: task.place,
+        sourceLabel: 'TASK',
         action: DaybookTaskAction(task.taskId),
       );
 
@@ -437,6 +493,7 @@ abstract final class DaybookRangeProjection {
             section: quest.allDay ? DaybookSection.allDay : DaybookSection.due,
             startMinute: dueMinute,
             completed: quest.doneFor(dateTime),
+            sourceLabel: 'QUEST PLAN',
             action: QuestPlanAction(quest.title),
           ),
         );
