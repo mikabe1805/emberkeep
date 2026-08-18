@@ -15,9 +15,9 @@ abstract interface class DaybookPreferences {
 /// and consumers do not acquire unrelated consent/storage responsibilities.
 abstract interface class PlaceSearchPreferences {
   Future<PlaceSearchConsent?> loadPlaceSearchConsent();
-  Future<void> savePlaceSearchConsent(PlaceSearchConsent? consent);
+  Future<bool> savePlaceSearchConsent(PlaceSearchConsent? consent);
   Future<String?> loadPlaceSearchInstallId();
-  Future<void> savePlaceSearchInstallId(String installId);
+  Future<bool> savePlaceSearchInstallId(String installId);
 }
 
 final class LocalDaybookPreferences
@@ -68,19 +68,18 @@ final class LocalDaybookPreferences
   }
 
   @override
-  Future<void> savePlaceSearchConsent(PlaceSearchConsent? consent) async {
+  Future<bool> savePlaceSearchConsent(PlaceSearchConsent? consent) async {
     try {
       final preferences = await SharedPreferences.getInstance();
       if (consent == PlaceSearchConsent.acceptedV1) {
-        await preferences.setString(
+        return await preferences.setString(
           _placeSearchConsentKey,
           PlaceSearchConsent.acceptedV1.name,
         );
-      } else {
-        await preferences.remove(_placeSearchConsentKey);
       }
+      return await preferences.remove(_placeSearchConsentKey);
     } catch (_) {
-      // Search consent is optional and never touches Daybook content.
+      return false;
     }
   }
 
@@ -95,12 +94,12 @@ final class LocalDaybookPreferences
   }
 
   @override
-  Future<void> savePlaceSearchInstallId(String installId) async {
+  Future<bool> savePlaceSearchInstallId(String installId) async {
     try {
       final preferences = await SharedPreferences.getInstance();
-      await preferences.setString(_placeSearchInstallIdKey, installId);
+      return await preferences.setString(_placeSearchInstallIdKey, installId);
     } catch (_) {
-      // The opaque install ID is best-effort local abuse-control state.
+      return false;
     }
   }
 }
@@ -130,17 +129,19 @@ final class InMemoryDaybookPreferences
       placeSearchConsent;
 
   @override
-  Future<void> savePlaceSearchConsent(PlaceSearchConsent? consent) async {
+  Future<bool> savePlaceSearchConsent(PlaceSearchConsent? consent) async {
     placeSearchConsent = consent == PlaceSearchConsent.acceptedV1
         ? consent
         : null;
+    return true;
   }
 
   @override
   Future<String?> loadPlaceSearchInstallId() async => placeSearchInstallId;
 
   @override
-  Future<void> savePlaceSearchInstallId(String installId) async {
+  Future<bool> savePlaceSearchInstallId(String installId) async {
     placeSearchInstallId = installId;
+    return true;
   }
 }

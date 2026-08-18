@@ -202,6 +202,45 @@ class CloudSync extends ChangeNotifier {
     return available;
   }
 
+  /// Initializes only the shared default Firebase app. It deliberately does
+  /// not read cloud-backup preferences, inspect FirebaseAuth, create an
+  /// identity, configure Firestore, or change CloudSync's backup state.
+  ///
+  /// Places calls this after explicit consent so App Check can activate before
+  /// Places asks the separately serialized service-identity seam for auth.
+  Future<bool> ensureCoreAvailable() async {
+    if (isFlutterTest) return false;
+    try {
+      await _ensureFirebaseCore();
+      return true;
+    } on TimeoutException {
+      debugPrint('Firebase Core bootstrap timed out');
+      return false;
+    } catch (e) {
+      debugPrint('Firebase Core bootstrap failed: $e');
+      return false;
+    }
+  }
+
+  Future<void> _ensureFirebaseCore() async {
+    if (Firebase.apps.isNotEmpty) return;
+    final bootstrap = _firebaseBootstrapFuture ??= Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    try {
+      await bootstrap.timeout(const Duration(seconds: 8));
+    } on TimeoutException {
+      // Future.timeout cannot cancel Firebase.initializeApp. Retain the same
+      // underlying future so a retry cannot race a duplicate default app.
+      rethrow;
+    } catch (_) {
+      if (identical(_firebaseBootstrapFuture, bootstrap)) {
+        _firebaseBootstrapFuture = null;
+      }
+      rethrow;
+    }
+  }
+
   Future<void> _initOnce() async {
     // Widget tests must remain deterministic and cannot service Firebase's
     // network timers. Real debug/release apps never receive FLUTTER_TEST=true.
@@ -213,24 +252,7 @@ class CloudSync extends ChangeNotifier {
       return;
     }
     try {
-      if (Firebase.apps.isEmpty) {
-        final bootstrap = _firebaseBootstrapFuture ??= Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-        try {
-          await bootstrap.timeout(const Duration(seconds: 8));
-        } on TimeoutException {
-          // Keep awaiting the same underlying initialization on a later tap;
-          // Future.timeout does not cancel it, so starting another one could
-          // race the default Firebase app into a duplicate initialization.
-          rethrow;
-        } catch (_) {
-          if (identical(_firebaseBootstrapFuture, bootstrap)) {
-            _firebaseBootstrapFuture = null;
-          }
-          rethrow;
-        }
-      }
+      await _ensureFirebaseCore();
       // Server-ack-only writes: don't let cached writes masquerade as synced.
       FirebaseFirestore.instance.settings = const Settings(
         persistenceEnabled: false,
@@ -312,6 +334,24 @@ class CloudSync extends ChangeNotifier {
   /// device-only preference.
   Future<bool> ensureSocialSession() async {
     if (!available) return false;
+    return _ensureSerializedServiceIdentity();
+  }
+
+  /// Reuses the same FirebaseAuth actor and locks as Share/Visit/account work,
+  /// but requires only an already-completed Core bootstrap. This is the auth
+  /// seam for consented services that must activate App Check before they
+  /// create or reuse an identity; it never performs full CloudSync init.
+  Future<bool> ensureServiceIdentity() async {
+    if (isFlutterTest) return false;
+    try {
+      if (Firebase.apps.isEmpty) return false;
+    } catch (_) {
+      return false;
+    }
+    return _ensureSerializedServiceIdentity();
+  }
+
+  Future<bool> _ensureSerializedServiceIdentity() async {
     while (true) {
       final authChange = _authChangeFuture;
       if (authChange != null) {

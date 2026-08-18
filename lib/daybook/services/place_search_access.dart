@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
@@ -44,22 +46,45 @@ abstract interface class PlaceSearchIdentity {
   Future<bool> signInAnonymously();
 }
 
-/// Uses CloudSync's single Core/bootstrap/auth actor. Place search must never
-/// create a competing FirebaseAuth session or initialize Firebase in main().
-final class CloudPlaceSearchIdentity implements PlaceSearchIdentity {
-  CloudPlaceSearchIdentity({CloudSync? cloud})
+abstract interface class PlaceSearchCloudCoordinator {
+  bool get serviceIdentityReady;
+  Future<bool> ensureCoreAvailable();
+  Future<bool> ensureServiceIdentity();
+}
+
+final class CloudSyncPlaceSearchCoordinator
+    implements PlaceSearchCloudCoordinator {
+  CloudSyncPlaceSearchCoordinator({CloudSync? cloud})
     : _cloud = cloud ?? CloudSync.instance;
 
   final CloudSync _cloud;
 
   @override
-  bool get signedIn => _cloud.socialReady;
+  bool get serviceIdentityReady => _cloud.socialReady;
 
   @override
-  Future<bool> ensureCoreAvailable() => _cloud.ensureAvailable();
+  Future<bool> ensureCoreAvailable() => _cloud.ensureCoreAvailable();
 
   @override
-  Future<bool> signInAnonymously() => _cloud.ensureSocialSession();
+  Future<bool> ensureServiceIdentity() => _cloud.ensureServiceIdentity();
+}
+
+/// Uses CloudSync's single Core/bootstrap/auth actor. Place search must never
+/// create a competing FirebaseAuth session or initialize Firebase in main().
+final class CloudPlaceSearchIdentity implements PlaceSearchIdentity {
+  CloudPlaceSearchIdentity({PlaceSearchCloudCoordinator? coordinator})
+    : _coordinator = coordinator ?? CloudSyncPlaceSearchCoordinator();
+
+  final PlaceSearchCloudCoordinator _coordinator;
+
+  @override
+  bool get signedIn => _coordinator.serviceIdentityReady;
+
+  @override
+  Future<bool> ensureCoreAvailable() => _coordinator.ensureCoreAvailable();
+
+  @override
+  Future<bool> signInAnonymously() => _coordinator.ensureServiceIdentity();
 }
 
 abstract interface class PlaceSearchAppCheck {
@@ -67,6 +92,52 @@ abstract interface class PlaceSearchAppCheck {
 }
 
 enum PlaceSearchAppCheckPlatform { android, apple, web, unsupported }
+
+enum PlaceSearchAppCheckProvider {
+  playIntegrity,
+  appAttestWithDeviceCheckFallback,
+  recaptchaV3,
+  debug,
+}
+
+final class PlaceSearchAppCheckConfiguration {
+  const PlaceSearchAppCheckConfiguration({
+    required this.platform,
+    required this.provider,
+    this.webSiteKey,
+  });
+
+  final PlaceSearchAppCheckPlatform platform;
+  final PlaceSearchAppCheckProvider provider;
+  final String? webSiteKey;
+}
+
+abstract interface class PlaceSearchAppCheckActivator {
+  Future<void> activate(PlaceSearchAppCheckConfiguration configuration);
+}
+
+final class FlutterFirePlaceSearchAppCheckActivator
+    implements PlaceSearchAppCheckActivator {
+  @override
+  Future<void> activate(PlaceSearchAppCheckConfiguration configuration) {
+    final debug = configuration.provider == PlaceSearchAppCheckProvider.debug;
+    return FirebaseAppCheck.instance.activate(
+      providerWeb: configuration.platform == PlaceSearchAppCheckPlatform.web
+          ? (debug
+                ? WebDebugProvider()
+                : ReCaptchaV3Provider(configuration.webSiteKey!))
+          : null,
+      providerAndroid:
+          configuration.platform == PlaceSearchAppCheckPlatform.android && debug
+          ? const AndroidDebugProvider()
+          : const AndroidPlayIntegrityProvider(),
+      providerApple:
+          configuration.platform == PlaceSearchAppCheckPlatform.apple && debug
+          ? const AppleDebugProvider()
+          : const AppleAppAttestWithDeviceCheckFallbackProvider(),
+    );
+  }
+}
 
 /// Activates attestation lazily after Firebase Core and before auth/callables.
 /// Callable enforcement remains a server deployment gate; early builds use
@@ -76,23 +147,32 @@ final class FirebasePlaceSearchAppCheck implements PlaceSearchAppCheck {
     PlaceSearchAppCheckPlatform? platform,
     String webSiteKey = kPlaceSearchAppCheckWebSiteKey,
     bool useDebugProvider = kPlaceSearchAppCheckDebug,
+    Duration timeout = const Duration(seconds: 8),
+    PlaceSearchAppCheckActivator? activator,
   }) => FirebasePlaceSearchAppCheck._(
     platform ?? _currentPlatform,
     webSiteKey.trim(),
     useDebugProvider,
+    timeout,
+    activator ?? FlutterFirePlaceSearchAppCheckActivator(),
   );
 
   FirebasePlaceSearchAppCheck._(
     this._platform,
     this._webSiteKey,
     this._useDebugProvider,
+    this._timeout,
+    this._activator,
   );
 
   final PlaceSearchAppCheckPlatform _platform;
   final String _webSiteKey;
   final bool _useDebugProvider;
+  final Duration _timeout;
+  final PlaceSearchAppCheckActivator _activator;
   bool _activated = false;
   Future<bool>? _activationFuture;
+  Future<void>? _providerActivationFuture;
 
   static PlaceSearchAppCheckPlatform get _currentPlatform {
     if (kIsWeb) return PlaceSearchAppCheckPlatform.web;
@@ -117,30 +197,69 @@ final class FirebasePlaceSearchAppCheck implements PlaceSearchAppCheck {
   }
 
   Future<bool> _activateOnce() async {
-    if (_platform == PlaceSearchAppCheckPlatform.unsupported) return false;
-    if (_platform == PlaceSearchAppCheckPlatform.web && _webSiteKey.isEmpty) {
-      return false;
-    }
+    final configuration = _configuration;
+    if (configuration == null) return false;
+    final providerActivation = _providerActivationFuture ??=
+        _startProviderActivation(configuration);
     try {
-      await FirebaseAppCheck.instance.activate(
-        providerWeb: _platform == PlaceSearchAppCheckPlatform.web
-            ? (_useDebugProvider
-                  ? WebDebugProvider()
-                  : ReCaptchaV3Provider(_webSiteKey))
-            : null,
-        providerAndroid: _useDebugProvider
-            ? const AndroidDebugProvider()
-            : const AndroidPlayIntegrityProvider(),
-        providerApple: _useDebugProvider
-            ? const AppleDebugProvider()
-            : const AppleAppAttestWithDeviceCheckFallbackProvider(),
-      );
-      _activated = true;
-      return true;
+      await providerActivation.timeout(_timeout);
+      return _activated;
+    } on TimeoutException {
+      // The provider call cannot be cancelled. Keep its underlying Future so
+      // a retry waits on the same activation instead of racing a duplicate.
+      return false;
     } catch (error) {
       debugPrint('Place search App Check unavailable: $error');
       return false;
     }
+  }
+
+  PlaceSearchAppCheckConfiguration? get _configuration {
+    if (_platform == PlaceSearchAppCheckPlatform.unsupported) return null;
+    if (_platform == PlaceSearchAppCheckPlatform.web && _webSiteKey.isEmpty) {
+      return null;
+    }
+    final provider = _useDebugProvider
+        ? PlaceSearchAppCheckProvider.debug
+        : switch (_platform) {
+            PlaceSearchAppCheckPlatform.android =>
+              PlaceSearchAppCheckProvider.playIntegrity,
+            PlaceSearchAppCheckPlatform.apple =>
+              PlaceSearchAppCheckProvider.appAttestWithDeviceCheckFallback,
+            PlaceSearchAppCheckPlatform.web =>
+              PlaceSearchAppCheckProvider.recaptchaV3,
+            PlaceSearchAppCheckPlatform.unsupported => throw StateError(
+              'Unsupported App Check platform.',
+            ),
+          };
+    return PlaceSearchAppCheckConfiguration(
+      platform: _platform,
+      provider: provider,
+      webSiteKey: provider == PlaceSearchAppCheckProvider.recaptchaV3
+          ? _webSiteKey
+          : null,
+    );
+  }
+
+  Future<void> _startProviderActivation(
+    PlaceSearchAppCheckConfiguration configuration,
+  ) {
+    late final Future<void> tracked;
+    tracked = Future<void>.sync(() => _activator.activate(configuration)).then(
+      (_) {
+        _activated = true;
+        if (identical(_providerActivationFuture, tracked)) {
+          _providerActivationFuture = null;
+        }
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (identical(_providerActivationFuture, tracked)) {
+          _providerActivationFuture = null;
+        }
+        Error.throwWithStackTrace(error, stackTrace);
+      },
+    );
+    return tracked;
   }
 }
 
@@ -213,7 +332,15 @@ final class PlaceSearchAccess {
       if (decision != PlaceSearchConsentDecision.accept) {
         return const PlaceSearchDeclined();
       }
-      await _preferences.savePlaceSearchConsent(PlaceSearchConsent.acceptedV1);
+      try {
+        final persisted = await _preferences.savePlaceSearchConsent(
+          PlaceSearchConsent.acceptedV1,
+        );
+        if (!persisted) return const PlaceSearchUnavailable();
+      } catch (error) {
+        debugPrint('Place search consent could not be saved: $error');
+        return const PlaceSearchUnavailable();
+      }
     }
 
     try {
@@ -231,7 +358,9 @@ final class PlaceSearchAccess {
       if (!_isUuidV4(installId)) {
         final generated = _createInstallId();
         if (!_isUuidV4(generated)) return const PlaceSearchUnavailable();
-        await _preferences.savePlaceSearchInstallId(generated);
+        if (!await _preferences.savePlaceSearchInstallId(generated)) {
+          return const PlaceSearchUnavailable();
+        }
         installId = generated;
       }
       final result = PlaceSearchReady(installId: installId!);
@@ -243,11 +372,17 @@ final class PlaceSearchAccess {
     }
   }
 
-  Future<void> withdrawConsent() async {
+  Future<bool> withdrawConsent() async {
     final active = _ensureFuture;
     if (active != null) await active;
-    await _preferences.savePlaceSearchConsent(null);
+    try {
+      if (!await _preferences.savePlaceSearchConsent(null)) return false;
+    } catch (error) {
+      debugPrint('Place search consent could not be withdrawn: $error');
+      return false;
+    }
     _ready = null;
+    return true;
   }
 
   static bool _isUuidV4(String? value) {

@@ -143,6 +143,33 @@ void main() {
       },
     );
 
+    for (final throws in [false, true]) {
+      test(
+        'accepted consent ${throws ? 'exception' : 'false return'} fails closed before Core',
+        () async {
+          final log = <String>[];
+          final preferences = _RecordingPreferences(
+            log: log,
+            consentWriteSucceeds: false,
+            throwOnConsentWrite: throws,
+          );
+          final identity = _RecordingIdentity(log: log);
+          final access = PlaceSearchAccess(
+            enabled: true,
+            preferences: preferences,
+            identity: identity,
+            appCheck: _RecordingAppCheck(log: log),
+            requestConsent: () async => PlaceSearchConsentDecision.accept,
+            createInstallId: () => _stableInstallId,
+          );
+
+          expect(await access.ensureReady(), isA<PlaceSearchUnavailable>());
+          expect(log, ['consent.read', 'consent.write:acceptedV1']);
+          expect(identity.coreCalls, 0);
+        },
+      );
+    }
+
     test(
       'parallel readiness calls share one auth and install operation',
       () async {
@@ -303,6 +330,39 @@ void main() {
       },
     );
 
+    for (final throws in [false, true]) {
+      test(
+        'install ID ${throws ? 'exception' : 'false return'} does not return or cache ready',
+        () async {
+          final log = <String>[];
+          final preferences = _RecordingPreferences(
+            log: log,
+            consent: PlaceSearchConsent.acceptedV1,
+            installIdWriteSucceeds: false,
+            throwOnInstallIdWrite: throws,
+          );
+          final access = PlaceSearchAccess(
+            enabled: true,
+            preferences: preferences,
+            identity: _RecordingIdentity(log: log, signedIn: true),
+            appCheck: _RecordingAppCheck(log: log),
+            requestConsent: () async => PlaceSearchConsentDecision.accept,
+            createInstallId: () => _stableInstallId,
+          );
+
+          expect(await access.ensureReady(), isA<PlaceSearchUnavailable>());
+          preferences
+            ..installIdWriteSucceeds = true
+            ..throwOnInstallIdWrite = false;
+          expect(await access.ensureReady(), isA<PlaceSearchReady>());
+          expect(preferences.installIdWrites, [
+            _stableInstallId,
+            _stableInstallId,
+          ]);
+        },
+      );
+    }
+
     test(
       'withdrawal clears consent only and retains identity, map choice, and install ID',
       () async {
@@ -334,15 +394,218 @@ void main() {
         expect(preferences.placeSearchInstallId, _stableInstallId);
       },
     );
+
+    for (final throws in [false, true]) {
+      test(
+        'withdrawal ${throws ? 'exception' : 'false return'} preserves ready and reports failure',
+        () async {
+          final log = <String>[];
+          final preferences = _RecordingPreferences(
+            log: log,
+            consent: PlaceSearchConsent.acceptedV1,
+            installId: _stableInstallId,
+          );
+          final identity = _RecordingIdentity(log: log, signedIn: true);
+          final access = PlaceSearchAccess(
+            enabled: true,
+            preferences: preferences,
+            identity: identity,
+            appCheck: _RecordingAppCheck(log: log),
+            requestConsent: () async => PlaceSearchConsentDecision.decline,
+          );
+
+          final ready = await access.ensureReady();
+          preferences
+            ..consentWriteSucceeds = false
+            ..throwOnConsentWrite = throws;
+
+          expect(await access.withdrawConsent(), isFalse);
+          expect(await access.ensureReady(), same(ready));
+          expect(preferences.consent, PlaceSearchConsent.acceptedV1);
+          expect(identity.coreCalls, 1);
+        },
+      );
+    }
   });
+
+  group('FirebasePlaceSearchAppCheck', () {
+    test(
+      'unsupported and missing web configuration fail without activation',
+      () async {
+        final activator = _RecordingAppCheckActivator();
+
+        expect(
+          await FirebasePlaceSearchAppCheck(
+            platform: PlaceSearchAppCheckPlatform.unsupported,
+            activator: activator,
+          ).activate(),
+          isFalse,
+        );
+        expect(
+          await FirebasePlaceSearchAppCheck(
+            platform: PlaceSearchAppCheckPlatform.web,
+            webSiteKey: '   ',
+            activator: activator,
+          ).activate(),
+          isFalse,
+        );
+        expect(activator.configurations, isEmpty);
+      },
+    );
+
+    test(
+      'selects production and explicitly opted-in debug providers',
+      () async {
+        final activator = _RecordingAppCheckActivator();
+        final cases = [
+          (
+            PlaceSearchAppCheckPlatform.android,
+            false,
+            PlaceSearchAppCheckProvider.playIntegrity,
+            '',
+          ),
+          (
+            PlaceSearchAppCheckPlatform.apple,
+            false,
+            PlaceSearchAppCheckProvider.appAttestWithDeviceCheckFallback,
+            '',
+          ),
+          (
+            PlaceSearchAppCheckPlatform.web,
+            false,
+            PlaceSearchAppCheckProvider.recaptchaV3,
+            'public-site-key',
+          ),
+          (
+            PlaceSearchAppCheckPlatform.android,
+            true,
+            PlaceSearchAppCheckProvider.debug,
+            '',
+          ),
+          (
+            PlaceSearchAppCheckPlatform.apple,
+            true,
+            PlaceSearchAppCheckProvider.debug,
+            '',
+          ),
+          (
+            PlaceSearchAppCheckPlatform.web,
+            true,
+            PlaceSearchAppCheckProvider.debug,
+            'public-site-key',
+          ),
+        ];
+
+        for (final entry in cases) {
+          final appCheck = FirebasePlaceSearchAppCheck(
+            platform: entry.$1,
+            useDebugProvider: entry.$2,
+            webSiteKey: entry.$4,
+            activator: activator,
+          );
+          expect(await appCheck.activate(), isTrue);
+        }
+
+        expect(
+          activator.configurations
+              .map((configuration) => configuration.provider)
+              .toList(),
+          cases.map((entry) => entry.$3).toList(),
+        );
+        expect(activator.configurations[2].webSiteKey, 'public-site-key');
+        expect(activator.configurations[5].webSiteKey, isNull);
+      },
+    );
+
+    test('coalesces parallel activation calls', () async {
+      final gate = Completer<void>();
+      final activator = _RecordingAppCheckActivator(gates: [gate.future]);
+      final appCheck = FirebasePlaceSearchAppCheck(
+        platform: PlaceSearchAppCheckPlatform.android,
+        activator: activator,
+      );
+
+      final first = appCheck.activate();
+      final second = appCheck.activate();
+      await Future<void>.delayed(Duration.zero);
+      expect(activator.configurations, hasLength(1));
+      gate.complete();
+
+      expect(await Future.wait([first, second]), [isTrue, isTrue]);
+      expect(activator.configurations, hasLength(1));
+    });
+
+    test(
+      'timeout retains the pending activation and retries without duplication',
+      () async {
+        final gate = Completer<void>();
+        final activator = _RecordingAppCheckActivator(gates: [gate.future]);
+        final appCheck = FirebasePlaceSearchAppCheck(
+          platform: PlaceSearchAppCheckPlatform.android,
+          timeout: const Duration(milliseconds: 5),
+          activator: activator,
+        );
+
+        expect(await appCheck.activate(), isFalse);
+        final retry = appCheck.activate();
+        await Future<void>.delayed(Duration.zero);
+        expect(activator.configurations, hasLength(1));
+        gate.complete();
+
+        expect(await retry, isTrue);
+        expect(activator.configurations, hasLength(1));
+      },
+    );
+
+    test('a failed provider activation is retryable', () async {
+      final activator = _RecordingAppCheckActivator(
+        gates: [Future<void>.error(StateError('attestation failed'))],
+      );
+      final appCheck = FirebasePlaceSearchAppCheck(
+        platform: PlaceSearchAppCheckPlatform.android,
+        activator: activator,
+      );
+
+      expect(await appCheck.activate(), isFalse);
+      expect(await appCheck.activate(), isTrue);
+      expect(activator.configurations, hasLength(2));
+    });
+  });
+
+  test(
+    'CloudPlaceSearchIdentity delegates Core-only then serialized service auth',
+    () async {
+      final coordinator = _RecordingCloudCoordinator();
+      final identity = CloudPlaceSearchIdentity(coordinator: coordinator);
+
+      expect(await identity.ensureCoreAvailable(), isTrue);
+      expect(coordinator.log, ['core']);
+      expect(identity.signedIn, isFalse);
+      expect(await identity.signInAnonymously(), isTrue);
+      expect(coordinator.log, ['core', 'service-auth']);
+      expect(identity.signedIn, isTrue);
+    },
+  );
 }
 
 final class _RecordingPreferences implements PlaceSearchPreferences {
-  _RecordingPreferences({required this.log, this.consent, this.installId});
+  _RecordingPreferences({
+    required this.log,
+    this.consent,
+    this.installId,
+    this.consentWriteSucceeds = true,
+    this.installIdWriteSucceeds = true,
+    this.throwOnConsentWrite = false,
+    this.throwOnInstallIdWrite = false,
+  });
 
   List<String> log;
   PlaceSearchConsent? consent;
   String? installId;
+  bool consentWriteSucceeds;
+  bool installIdWriteSucceeds;
+  bool throwOnConsentWrite;
+  bool throwOnInstallIdWrite;
   final List<PlaceSearchConsent?> consentWrites = [];
   final List<String> installIdWrites = [];
 
@@ -353,10 +616,13 @@ final class _RecordingPreferences implements PlaceSearchPreferences {
   }
 
   @override
-  Future<void> savePlaceSearchConsent(PlaceSearchConsent? value) async {
+  Future<bool> savePlaceSearchConsent(PlaceSearchConsent? value) async {
     log.add('consent.write:${value?.name ?? 'clear'}');
     consentWrites.add(value);
+    if (throwOnConsentWrite) throw StateError('consent write failed');
+    if (!consentWriteSucceeds) return false;
     consent = value;
+    return true;
   }
 
   @override
@@ -366,10 +632,13 @@ final class _RecordingPreferences implements PlaceSearchPreferences {
   }
 
   @override
-  Future<void> savePlaceSearchInstallId(String value) async {
+  Future<bool> savePlaceSearchInstallId(String value) async {
     log.add('install.write:$value');
     installIdWrites.add(value);
+    if (throwOnInstallIdWrite) throw StateError('install write failed');
+    if (!installIdWriteSucceeds) return false;
     installId = value;
+    return true;
   }
 }
 
@@ -389,10 +658,12 @@ final class _RecordingIdentity implements PlaceSearchIdentity {
   bool authAvailable;
   final Future<void>? authGate;
   int signInCalls = 0;
+  int coreCalls = 0;
 
   @override
   Future<bool> ensureCoreAvailable() async {
     log.add('core');
+    coreCalls += 1;
     return coreAvailable;
   }
 
@@ -416,5 +687,41 @@ final class _RecordingAppCheck implements PlaceSearchAppCheck {
   Future<bool> activate() async {
     log.add('appcheck');
     return available;
+  }
+}
+
+final class _RecordingAppCheckActivator
+    implements PlaceSearchAppCheckActivator {
+  _RecordingAppCheckActivator({List<Future<void>> gates = const []})
+    : _gates = List<Future<void>>.of(gates);
+
+  final List<Future<void>> _gates;
+  final List<PlaceSearchAppCheckConfiguration> configurations = [];
+
+  @override
+  Future<void> activate(PlaceSearchAppCheckConfiguration configuration) async {
+    configurations.add(configuration);
+    if (_gates.isNotEmpty) await _gates.removeAt(0);
+  }
+}
+
+final class _RecordingCloudCoordinator implements PlaceSearchCloudCoordinator {
+  final List<String> log = [];
+  bool _signedIn = false;
+
+  @override
+  bool get serviceIdentityReady => _signedIn;
+
+  @override
+  Future<bool> ensureCoreAvailable() async {
+    log.add('core');
+    return true;
+  }
+
+  @override
+  Future<bool> ensureServiceIdentity() async {
+    log.add('service-auth');
+    _signedIn = true;
+    return true;
   }
 }
