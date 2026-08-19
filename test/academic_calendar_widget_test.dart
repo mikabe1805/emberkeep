@@ -2361,7 +2361,7 @@ void main() {
     AcademicCalendarMode.week,
   ]) {
     testWidgets(
-      '${mode.label} keeps one selected-day header before Day Shape and agenda',
+      '${mode.label} keeps one selected-day control and one Day Shape',
       (tester) async {
         final createdAt = DateTime.utc(2026, 8, 8);
         final schedule = AcademicSchedule.empty().putEvent(
@@ -2417,14 +2417,28 @@ void main() {
           isTrue,
         );
         expect(find.text('DAY SHAPE'), findsOneWidget);
+        final selectedControl = find.byKey(
+          const ValueKey('daybook-day-control-2026-08-11'),
+        );
+        final selectedSemantics = tester.getSemantics(selectedControl);
         expect(
-          tester.getTopLeft(find.text('TUESDAY 11')).dy,
-          lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
+          selectedSemantics.getSemanticsData().flagsCollection.isSelected,
+          Tristate.isTrue,
         );
         expect(
-          tester.getTopLeft(find.text('+ PLAN')).dy,
-          lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
+          selectedSemantics.getSemanticsData().hasAction(SemanticsAction.tap),
+          isTrue,
         );
+        final selectedTop = tester.getTopLeft(selectedControl).dy;
+        final shapeTop = tester.getTopLeft(find.text('DAY SHAPE')).dy;
+        final planTop = tester.getTopLeft(find.text('+ PLAN')).dy;
+        if (mode == AcademicCalendarMode.day) {
+          expect(selectedTop, lessThan(shapeTop));
+          expect(planTop, lessThan(shapeTop));
+        } else {
+          expect(shapeTop, lessThan(selectedTop));
+          expect(shapeTop, lessThan(planTop));
+        }
         expect(
           tester.getTopLeft(find.text('DAY SHAPE')).dy,
           lessThan(tester.getTopLeft(find.text('ALL DAY').first).dy),
@@ -2678,14 +2692,20 @@ void main() {
       expect(paragraph.didExceedMaxLines, isFalse);
       expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
       expect(find.text('+ PLAN'), findsOneWidget);
-      expect(
-        tester.getBottomLeft(find.text('TUESDAY 11')).dy,
-        lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
-      );
-      expect(
-        tester.getBottomLeft(find.text('+ PLAN')).dy,
-        lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
-      );
+      final selectedBottom = tester
+          .getBottomLeft(
+            find.byKey(const ValueKey('daybook-day-control-2026-08-11')),
+          )
+          .dy;
+      final planBottom = tester.getBottomLeft(find.text('+ PLAN')).dy;
+      final shapeTop = tester.getTopLeft(find.text('DAY SHAPE')).dy;
+      if (mode == AcademicCalendarMode.day) {
+        expect(selectedBottom, lessThan(shapeTop));
+        expect(planBottom, lessThan(shapeTop));
+      } else {
+        expect(shapeTop, lessThan(selectedBottom));
+        expect(shapeTop, lessThan(planBottom));
+      }
       expect(
         tester.getTopLeft(find.text('DAY SHAPE')).dy,
         lessThan(tester.getTopLeft(find.text('ALL DAY').first).dy),
@@ -4932,6 +4952,328 @@ void main() {
     expect(preferences.state.selectedDate, '2026-08-11');
   });
 
+  testWidgets(
+    '3-day selection stays in its spread and chevrons advance the next spread',
+    (tester) async {
+      final preferences = InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.threeDay,
+          selectedDate: '2026-08-11',
+        ),
+      );
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+        handoff: _RecordingHandoff(),
+        preferences: preferences,
+      );
+
+      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
+      await tester.ensureVisible(find.text('WEDNESDAY 12'));
+      await tester.pump();
+      final thursdayControl = find.byKey(
+        const ValueKey('daybook-day-control-2026-08-13'),
+      );
+      final thursdayTopBeforeSelection = tester.getTopLeft(thursdayControl).dy;
+      await tester.tap(find.text('WEDNESDAY 12'));
+      await tester.pump();
+      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
+      expect(preferences.state.selectedDate, '2026-08-12');
+      expect(preferences.state.threeDayStartDate, '2026-08-11');
+      expect(
+        tester.getTopLeft(thursdayControl).dy,
+        closeTo(thursdayTopBeforeSelection, 0.01),
+      );
+      final selectedWednesday = tester.getSemantics(
+        find.byKey(const ValueKey('daybook-day-control-2026-08-12')),
+      );
+      expect(
+        selectedWednesday.getSemanticsData().flagsCollection.isSelected,
+        Tristate.isTrue,
+      );
+      expect(
+        selectedWednesday.getSemanticsData().hasAction(SemanticsAction.tap),
+        isTrue,
+      );
+
+      // Recreating Plans restores both the selected day and the spread it was
+      // selected inside instead of quietly shifting the viewport by a day.
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+        handoff: _RecordingHandoff(),
+        preferences: preferences,
+        calendarKey: const ValueKey('restored-three-day-spread'),
+      );
+      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('THURSDAY 13'));
+      await tester.pump();
+      await tester.tap(find.text('THURSDAY 13'));
+      await tester.pump();
+
+      // Choosing a visible day changes selection, not the three-day window
+      // underneath the finger.
+      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
+      await tester.ensureVisible(find.bySemanticsLabel('Next 3 days'));
+      await tester.pump();
+      await tester.tap(find.bySemanticsLabel('Next 3 days'));
+      await tester.pump();
+
+      expect(find.text('AUGUST 14–16, 2026'), findsOneWidget);
+      expect(preferences.state.selectedDate, '2026-08-14');
+      expect(preferences.state.threeDayStartDate, '2026-08-14');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'month day controls state their destination without moving scroll',
+    (tester) async {
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+        handoff: _RecordingHandoff(),
+      );
+
+      final day = find.byKey(const ValueKey('academic-month-day-2026-08-12'));
+      await tester.tap(day);
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('month-selected-wash-2026-08-12')),
+        findsOneWidget,
+      );
+      expect(find.text('WED 12 · BACK TO TODAY'), findsOneWidget);
+      final monthContext = find.byKey(
+        const ValueKey('month-selected-context-control'),
+      );
+      expect(tester.getRect(monthContext).height, greaterThanOrEqualTo(44));
+      final semantics = tester.getSemantics(
+        find.bySemanticsLabel(RegExp(r'August 12, 2026')),
+      );
+      expect(
+        semantics.getSemanticsData().hint,
+        'Showing this day below the calendar',
+      );
+      expect(tester.getTopLeft(day).dy, greaterThan(0));
+
+      await tester.tap(monthContext);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('month-selected-wash-2026-08-11')),
+        findsOneWidget,
+      );
+      expect(find.text('TUE 11 · TODAY'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'selected span row keeps Today reachable without shifting range',
+    (tester) async {
+      await _pumpCalendar(
+        tester,
+        repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+        handoff: _RecordingHandoff(),
+        preferences: InMemoryAcademicCalendarPreferences(
+          state: const AcademicCalendarViewState(
+            mode: AcademicCalendarMode.threeDay,
+            selectedDate: '2026-08-12',
+            threeDayStartDate: '2026-08-11',
+          ),
+        ),
+      );
+
+      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
+      final today = find.byKey(const ValueKey('calendar-back-to-today'));
+      expect(today, findsOneWidget);
+      await tester.tap(today);
+      await tester.pump();
+
+      expect(find.text('AUGUST 11–13, 2026'), findsOneWidget);
+      expect(today, findsNothing);
+      final selectedToday = tester.getSemantics(
+        find.byKey(const ValueKey('daybook-day-control-2026-08-11')),
+      );
+      expect(
+        selectedToday.getSemanticsData().flagsCollection.isSelected,
+        Tristate.isTrue,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('selected span Today and Plan actions reflow at 200% text', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.threeDay,
+          selectedDate: '2026-08-12',
+          threeDayStartDate: '2026-08-11',
+        ),
+      ),
+      size: const Size(320, 568),
+      textScale: 2,
+    );
+
+    final today = find.byKey(const ValueKey('calendar-back-to-today'));
+    final plan = find.byKey(const ValueKey('calendar-plan-selected-day'));
+    await tester.scrollUntilVisible(
+      today,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+
+    expect(today, findsOneWidget);
+    expect(plan, findsOneWidget);
+    expect(tester.getRect(today).width, greaterThanOrEqualTo(44));
+    expect(tester.getRect(today).height, greaterThanOrEqualTo(44));
+    expect(tester.getRect(plan).width, greaterThanOrEqualTo(44));
+    expect(tester.getRect(plan).height, greaterThanOrEqualTo(44));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Back to today appears when today leaves the visible span', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      preferences: InMemoryAcademicCalendarPreferences(
+        state: const AcademicCalendarViewState(
+          mode: AcademicCalendarMode.week,
+          selectedDate: '2026-08-19',
+        ),
+      ),
+    );
+
+    expect(find.text('BACK TO TODAY'), findsOneWidget);
+    await tester.tap(find.text('BACK TO TODAY'));
+    await tester.pump();
+    expect(find.text('BACK TO TODAY'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an early day choice wins over delayed restored preferences', (
+    tester,
+  ) async {
+    final preferences = _DelayedAcademicCalendarPreferences(
+      const AcademicCalendarViewState(
+        mode: AcademicCalendarMode.day,
+        selectedDate: '2026-08-10',
+      ),
+    );
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      preferences: preferences,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('academic-month-day-2026-08-12')),
+    );
+    await tester.pump();
+    preferences.completeLoad();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('academic-month-folio')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('month-selected-wash-2026-08-12')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an explicit early Month tap wins over delayed view restore', (
+    tester,
+  ) async {
+    final preferences = _DelayedAcademicCalendarPreferences(
+      const AcademicCalendarViewState(
+        mode: AcademicCalendarMode.day,
+        selectedDate: '2026-08-10',
+      ),
+    );
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      preferences: preferences,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('academic-mode-month')));
+    await tester.pump();
+    preferences.completeLoad();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('academic-month-folio')), findsOneWidget);
+    expect(find.byKey(const ValueKey('academic-day-view')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('rapid view saves are serialized in the order they were chosen', (
+    tester,
+  ) async {
+    final preferences = _DelayedSaveAcademicCalendarPreferences();
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+      preferences: preferences,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('academic-month-day-2026-08-12')),
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('academic-month-day-2026-08-13')),
+    );
+    await tester.pump();
+
+    expect(preferences.saves, hasLength(1));
+    expect(preferences.saves.single.selectedDate, '2026-08-12');
+    preferences.completeSave(0);
+    await tester.pump();
+
+    expect(preferences.saves, hasLength(2));
+    expect(preferences.saves.last.selectedDate, '2026-08-13');
+    preferences.completeSave(1);
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('changing calendar view returns its new view to the top', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+    );
+
+    final scrollable = find.byType(Scrollable).first;
+    await tester.dragFrom(const Offset(215, 700), const Offset(0, -100));
+    await tester.pump();
+    expect(
+      tester.state<ScrollableState>(scrollable).position.pixels,
+      greaterThan(0),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('academic-mode-week')));
+    await tester.pump();
+    expect(tester.state<ScrollableState>(scrollable).position.pixels, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('academic controls reflow on a narrow phone at 200% text', (
     tester,
   ) async {
@@ -5881,4 +6223,40 @@ final class _BlockingDaybookPreferences implements DaybookPreferences {
 
   @override
   Future<void> savePreferredMapProvider(MapProvider? provider) async {}
+}
+
+final class _DelayedAcademicCalendarPreferences
+    implements AcademicCalendarPreferences {
+  _DelayedAcademicCalendarPreferences(this.state);
+
+  final AcademicCalendarViewState state;
+  final Completer<AcademicCalendarViewState> _load = Completer();
+
+  void completeLoad() => _load.complete(state);
+
+  @override
+  Future<AcademicCalendarViewState> load() => _load.future;
+
+  @override
+  Future<void> save(AcademicCalendarViewState state) async {}
+}
+
+final class _DelayedSaveAcademicCalendarPreferences
+    implements AcademicCalendarPreferences {
+  final List<AcademicCalendarViewState> saves = [];
+  final List<Completer<void>> _saveGates = [];
+
+  void completeSave(int index) => _saveGates[index].complete();
+
+  @override
+  Future<AcademicCalendarViewState> load() async =>
+      const AcademicCalendarViewState(mode: AcademicCalendarMode.month);
+
+  @override
+  Future<void> save(AcademicCalendarViewState state) {
+    saves.add(state);
+    final gate = Completer<void>();
+    _saveGates.add(gate);
+    return gate.future;
+  }
 }

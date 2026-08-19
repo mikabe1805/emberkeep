@@ -585,7 +585,7 @@ void main() {
       expect(workflow, contains('Verify signed IPA contents'));
       expect(workflow, contains('PUBSPEC_BUILD'));
       expect(workflow, contains('PUBSPEC_VERSION'));
-      expect(workflow, contains('Build 22 for 1.0.4'));
+      expect(workflow, contains('Build 23 for 1.0.4'));
       expect(workflow, contains(r'NEXT_BUILD=$PUBSPEC_BUILD'));
       expect(
         workflow,
@@ -685,7 +685,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+22'));
+    expect(pubspec, contains('version: 1.0.4+23'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

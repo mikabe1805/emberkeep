@@ -484,6 +484,10 @@ class DaybookSpanPanel extends StatelessWidget {
     final first = daybook.first;
     final last = daybook.last;
     final count = daybook.days.length;
+    final selectedDayData = daybook.dayOn(selected);
+    final selectedHeader = selectedDayHeaderBuilder?.call(selectedDayData);
+    final selectedSummary = selectedDaySummaryBuilder?.call(selectedDayData);
+    final detailsStayWithDay = mode == AcademicCalendarMode.day;
 
     return GlassPanel(
       key: ValueKey('academic-${mode.name}-view'),
@@ -546,7 +550,16 @@ class DaybookSpanPanel extends StatelessWidget {
             ),
           const SizedBox(height: 4),
           const _AcademicRule(),
+          if (!detailsStayWithDay && selectedSummary != null) ...[
+            const SizedBox(height: 8),
+            selectedSummary,
+            const SizedBox(height: 8),
+            const _AcademicRule(strength: 0.42),
+          ],
           for (var index = 0; index < count; index++) ...[
+            // Multi-day rows keep the same 44px date control before and after
+            // selection. Their changing overview lives above the list, so a
+            // tap never swaps the control underneath the person's finger.
             DaybookAgendaDay(
               day: daybook.dayOn(first.addDays(index)),
               selected: first.addDays(index) == selected,
@@ -564,15 +577,10 @@ class DaybookSpanPanel extends StatelessWidget {
               directionsLauncher: directionsLauncher,
               daybookPreferences: daybookPreferences,
               onCompleteQuestPlan: onCompleteQuestPlan,
-              header: first.addDays(index) == selected
-                  ? selectedDayHeaderBuilder?.call(
-                      daybook.dayOn(first.addDays(index)),
-                    )
-                  : null,
-              beforeEntries: first.addDays(index) == selected
-                  ? selectedDaySummaryBuilder?.call(
-                      daybook.dayOn(first.addDays(index)),
-                    )
+              header: first.addDays(index) == selected ? selectedHeader : null,
+              beforeEntries:
+                  detailsStayWithDay && first.addDays(index) == selected
+                  ? selectedSummary
                   : null,
             ),
             if (index != count - 1) const _AcademicRule(strength: 0.42),
@@ -637,6 +645,7 @@ class DaybookAgendaDay extends StatelessWidget {
         children: [
           header ??
               Semantics(
+                key: ValueKey('daybook-day-control-$date'),
                 button: true,
                 selected: selected,
                 label:

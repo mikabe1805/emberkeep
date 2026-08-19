@@ -101,6 +101,8 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   late DateTime _month;
   late DateTime _selected;
+  late CivilDate _threeDayStart;
+  final ScrollController _calendarScroll = ScrollController();
   late final AcademicScheduleRepository _scheduleRepository;
   late final AcademicCalendarPreferences _calendarPreferences;
   late final NotebookHandoff _notebookHandoff;
@@ -109,6 +111,8 @@ class _CalendarPageState extends State<CalendarPage> {
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
   AcademicCalendarMode _academicMode = AcademicCalendarMode.month;
   bool _academicLoading = true;
+  int _viewInteractionRevision = 0;
+  Future<void> _viewSaveTail = Future<void>.value();
 
   @override
   void initState() {
@@ -116,6 +120,7 @@ class _CalendarPageState extends State<CalendarPage> {
     final now = Clock.now();
     _month = DateTime(now.year, now.month);
     _selected = DateTime(now.year, now.month, now.day);
+    _threeDayStart = CivilDate.fromDateTime(_selected);
     _scheduleRepository =
         widget.scheduleRepository ?? LocalAcademicScheduleRepository();
     _calendarPreferences =
@@ -136,6 +141,7 @@ class _CalendarPageState extends State<CalendarPage> {
     final preferences = await preferencesFuture;
     if (!mounted) return;
     DateTime? restoredDate;
+    CivilDate? restoredThreeDayStart;
     if (preferences.selectedDate case final raw?) {
       try {
         final civil = CivilDate.parse(raw);
@@ -144,47 +150,92 @@ class _CalendarPageState extends State<CalendarPage> {
         // A stale view preference never makes academic content unreadable.
       }
     }
+    if (preferences.threeDayStartDate case final raw?) {
+      try {
+        restoredThreeDayStart = CivilDate.parse(raw);
+      } on FormatException {
+        // The selected date remains a safe backwards-compatible anchor.
+      }
+    }
     setState(() {
       _academicSchedule = schedule;
-      _academicMode = preferences.mode;
-      if (restoredDate != null) {
-        _selected = restoredDate;
-        _month = DateTime(restoredDate.year, restoredDate.month);
+      // A person can touch Plans before local preferences finish loading.
+      // That immediate choice is more current than the delayed snapshot.
+      if (_viewInteractionRevision == 0) {
+        _academicMode = preferences.mode;
+        if (restoredDate != null) {
+          _selected = restoredDate;
+          _month = DateTime(restoredDate.year, restoredDate.month);
+          final restoredSelected = CivilDate.fromDateTime(restoredDate);
+          _threeDayStart =
+              restoredThreeDayStart != null &&
+                  restoredSelected.isWithin(
+                    restoredThreeDayStart,
+                    restoredThreeDayStart.addDays(
+                      AcademicCalendarMode.threeDay.spanDays - 1,
+                    ),
+                  )
+              ? restoredThreeDayStart
+              : restoredSelected;
+        }
       }
       _academicLoading = false;
     });
   }
 
   void _persistAcademicView() {
-    unawaited(
-      _calendarPreferences.save(
-        AcademicCalendarViewState(
-          mode: _academicMode,
-          selectedDate: CivilDate.fromDateTime(_selected).toString(),
-        ),
-      ),
+    final snapshot = AcademicCalendarViewState(
+      mode: _academicMode,
+      selectedDate: CivilDate.fromDateTime(_selected).toString(),
+      threeDayStartDate: _threeDayStart.toString(),
     );
+    // Preference writes are deliberately non-blocking, but serialize them so
+    // a slow earlier write cannot land after a newer day or mode choice.
+    _viewSaveTail = _viewSaveTail
+        .catchError((_) {})
+        .then<void>((_) => _calendarPreferences.save(snapshot));
   }
 
+  void _recordViewInteraction() => _viewInteractionRevision++;
+
   void _selectDay(DateTime day) {
+    _recordViewInteraction();
+    final selected = CivilDate.fromDateTime(day);
     setState(() {
       _selected = DateTime(day.year, day.month, day.day);
       _month = DateTime(day.year, day.month);
+      if (_academicMode == AcademicCalendarMode.threeDay &&
+          !selected.isWithin(
+            _threeDayStart,
+            _threeDayStart.addDays(AcademicCalendarMode.threeDay.spanDays - 1),
+          )) {
+        _threeDayStart = selected;
+      }
     });
     _persistAcademicView();
   }
 
   void _setAcademicMode(AcademicCalendarMode mode) {
+    // Even choosing the already-visible mode is an explicit preference. It
+    // must win over a delayed local restore just like a mode change does.
+    _recordViewInteraction();
     if (_academicMode == mode) return;
     Sfx.instance.play('tick');
     setState(() {
       _academicMode = mode;
       _month = DateTime(_selected.year, _selected.month);
+      if (mode == AcademicCalendarMode.threeDay) {
+        _threeDayStart = CivilDate.fromDateTime(_selected);
+      }
     });
     _persistAcademicView();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_calendarScroll.hasClients) _calendarScroll.jumpTo(0);
+    });
   }
 
   void _moveMonth(int delta) {
+    _recordViewInteraction();
     final next = DateTime(_month.year, _month.month + delta);
     final lastDay = DateTime(next.year, next.month + 1, 0).day;
     setState(() {
@@ -203,17 +254,26 @@ class _CalendarPageState extends State<CalendarPage> {
       _moveMonth(direction);
       return;
     }
-    final next = CivilDate.fromDateTime(
-      _selected,
-    ).addDays(direction * _academicMode.spanDays);
+    // A three-day spread keeps its visible window contiguous even after the
+    // person chooses its second or third day. Otherwise "Next 3 days" can
+    // overlap the current spread or skip the days immediately after it.
+    final next = _academicMode == AcademicCalendarMode.threeDay
+        ? _threeDayStart.addDays(direction * _academicMode.spanDays)
+        : CivilDate.fromDateTime(
+            _selected,
+          ).addDays(direction * _academicMode.spanDays);
     _selectDay(DateTime(next.year, next.month, next.day));
   }
 
   void _goToday() {
     final now = Clock.now();
+    _recordViewInteraction();
     setState(() {
       _month = DateTime(now.year, now.month);
       _selected = DateTime(now.year, now.month, now.day);
+      if (_academicMode == AcademicCalendarMode.threeDay) {
+        _threeDayStart = CivilDate.fromDateTime(_selected);
+      }
     });
     _persistAcademicView();
   }
@@ -230,15 +290,22 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
       );
     }
-    final first = _academicMode == AcademicCalendarMode.week
-        ? selected.startOfWeek(
-            (_academicSchedule.termFor(selected) ??
-                        _academicSchedule.latestTerm)
-                    ?.weekStartsOn ??
-                DateTime.monday,
-          )
-        : selected;
+    final first = switch (_academicMode) {
+      AcademicCalendarMode.week => selected.startOfWeek(
+        (_academicSchedule.termFor(selected) ?? _academicSchedule.latestTerm)
+                ?.weekStartsOn ??
+            DateTime.monday,
+      ),
+      AcademicCalendarMode.threeDay => _threeDayStart,
+      _ => selected,
+    };
     return (first, first.addDays(_academicMode.spanDays - 1));
+  }
+
+  @override
+  void dispose() {
+    _calendarScroll.dispose();
+    super.dispose();
   }
 
   Future<bool> _saveDaybookEvent(DaybookEvent event) async {
@@ -780,6 +847,7 @@ class _CalendarPageState extends State<CalendarPage> {
           icon: Icons.calendar_month_outlined,
           parallax: widget.parallax,
           reduceMotion: widget.state.reduceMotion,
+          scrollController: _calendarScroll,
           children: [
             AcademicCalendarHeader(
               mode: _academicMode,
@@ -808,6 +876,7 @@ class _CalendarPageState extends State<CalendarPage> {
               _MonthFolio(
                 key: const ValueKey('academic-month-folio'),
                 month: _month,
+                selected: _selected,
                 now: now,
                 firstWeekday: firstWeekday,
                 daysInMonth: daysInMonth,
@@ -844,6 +913,10 @@ class _CalendarPageState extends State<CalendarPage> {
                   day: DateTime(day.date.year, day.date.month, day.date.day),
                   now: now,
                   onPlan: () => _showAddEvent(context),
+                  onToday: _goToday,
+                  onSelect: () => _selectDay(
+                    DateTime(day.date.year, day.date.month, day.date.day),
+                  ),
                   lightDirection: widget.lightDirection ?? widget.parallax,
                   spanStyle: true,
                 ),
@@ -903,6 +976,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return const SizedBox.expand();
     }
     final date = DateTime(_month.year, _month.month, day);
+    final keyDate = CivilDate.fromDateTime(date).toString();
     final daybookDay = daybook.dayOn(CivilDate.fromDateTime(date));
     final isToday = Days.sameDay(date, now);
     final isSelected = Days.sameDay(date, _selected);
@@ -932,10 +1006,15 @@ class _CalendarPageState extends State<CalendarPage> {
       button: true,
       selected: isSelected,
       label: spoken.toString(),
+      hint: isSelected
+          ? 'Showing this day below the calendar'
+          : 'Show this day below the calendar',
       excludeSemantics: true,
       onTap: () => _selectDay(date),
       child: GestureDetector(
+        key: ValueKey('academic-month-day-$keyDate'),
         excludeFromSemantics: true,
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           Sfx.instance.play('tick');
           _selectDay(date);
@@ -1470,6 +1549,7 @@ class _MonthFolio extends StatelessWidget {
   const _MonthFolio({
     super.key,
     required this.month,
+    required this.selected,
     required this.now,
     required this.firstWeekday,
     required this.daysInMonth,
@@ -1480,6 +1560,7 @@ class _MonthFolio extends StatelessWidget {
   });
 
   final DateTime month;
+  final DateTime selected;
   final DateTime now;
   final int firstWeekday;
   final int daysInMonth;
@@ -1491,101 +1572,142 @@ class _MonthFolio extends StatelessWidget {
   int get _weekCount => ((firstWeekday - 1 + daysInMonth + 6) ~/ 7);
 
   @override
-  Widget build(BuildContext context) => GlassPanel(
-    blur: true,
-    padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
-    child: Column(
+  Widget build(BuildContext context) {
+    final selectedIsToday = Days.sameDay(selected, now);
+    final selectedContext =
+        '${_weekdayNames[selected.weekday - 1].substring(0, 3)} '
+        '${selected.day} · ${selectedIsToday ? 'TODAY' : 'BACK TO TODAY'}';
+    final monthHeading = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Row(
-          children: [
-            _Chevron(
-              icon: Icons.chevron_left,
-              label: 'Previous month',
-              onTap: onPrevious,
-            ),
-            Expanded(
-              child: Center(
-                child: Text(
-                  '${_monthNames[month.month - 1].toUpperCase()} ${month.year}',
-                  style: Type.display.copyWith(
-                    fontSize: 16,
-                    letterSpacing: 2.4,
-                    color: Palette.textHi,
-                  ),
-                ),
-              ),
-            ),
-            _Chevron(
-              icon: Icons.chevron_right,
-              label: 'Next month',
-              onTap: onNext,
-            ),
-          ],
-        ),
-        if (month.year != now.year || month.month != now.month)
-          TextButton(
-            onPressed: onToday,
-            child: Text(
-              'BACK TO TODAY',
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                color: Palette.xpLight,
-              ),
-            ),
+        Text(
+          '${_monthNames[month.month - 1].toUpperCase()} ${month.year}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Type.display.copyWith(
+            fontSize: 16,
+            letterSpacing: 2.4,
+            color: Palette.textHi,
           ),
-        const SizedBox(height: 6),
-        const _FolioRule(),
-        const SizedBox(height: 8),
-        DecoratedBox(
-          decoration: _folioPage,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(5, 10, 5, 8),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    for (var index = 0; index < 7; index++)
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index],
-                            style: Type.label.copyWith(
-                              fontSize: 11,
-                              letterSpacing: 1.4,
-                              color: index >= 5
-                                  ? Palette.brass
-                                  : Palette.textLo,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                const _FolioRule(strength: 0.55),
-                const SizedBox(height: 5),
-                for (var week = 0; week < _weekCount; week++)
-                  SizedBox(
-                    height: 62,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (var column = 0; column < 7; column++)
-                          Expanded(
-                            child: dayCell(
-                              week * 7 + column - (firstWeekday - 1) + 1,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          selectedContext,
+          key: const ValueKey('month-selected-context'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textScaler: TextScaler.noScaling,
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            letterSpacing: 1.1,
+            color: selectedIsToday ? Palette.textLo : Palette.xpLight,
           ),
         ),
       ],
-    ),
-  );
+    );
+    final monthHeadingHitArea = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 44),
+      child: Center(child: monthHeading),
+    );
+    final interactiveHeading = selectedIsToday
+        ? Semantics(
+            key: const ValueKey('month-selected-context-control'),
+            header: true,
+            label:
+                '${_monthNames[month.month - 1]} ${month.year}, $selectedContext',
+            excludeSemantics: true,
+            child: monthHeadingHitArea,
+          )
+        : Semantics(
+            key: const ValueKey('month-selected-context-control'),
+            button: true,
+            header: true,
+            label:
+                '${_monthNames[month.month - 1]} ${month.year}, '
+                '${_weekdayNames[selected.weekday - 1]} ${selected.day} selected. Back to today',
+            onTap: onToday,
+            excludeSemantics: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onToday,
+              child: monthHeadingHitArea,
+            ),
+          );
+
+    return GlassPanel(
+      blur: true,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _Chevron(
+                icon: Icons.chevron_left,
+                label: 'Previous month',
+                onTap: onPrevious,
+              ),
+              Expanded(child: interactiveHeading),
+              _Chevron(
+                icon: Icons.chevron_right,
+                label: 'Next month',
+                onTap: onNext,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const _FolioRule(),
+          const SizedBox(height: 8),
+          DecoratedBox(
+            decoration: _folioPage,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 10, 5, 8),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      for (var index = 0; index < 7; index++)
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index],
+                              style: Type.label.copyWith(
+                                fontSize: 11,
+                                letterSpacing: 1.4,
+                                color: index >= 5
+                                    ? Palette.brass
+                                    : Palette.textLo,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  const _FolioRule(strength: 0.55),
+                  const SizedBox(height: 5),
+                  for (var week = 0; week < _weekCount; week++)
+                    SizedBox(
+                      height: 62,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (var column = 0; column < 7; column++)
+                            Expanded(
+                              child: dayCell(
+                                week * 7 + column - (firstWeekday - 1) + 1,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Chevron extends StatelessWidget {
@@ -1636,6 +1758,8 @@ class _SelectedDayHeader extends StatelessWidget {
     required this.now,
     required this.onPlan,
     required this.lightDirection,
+    this.onSelect,
+    this.onToday,
     this.spanStyle = false,
   });
 
@@ -1643,6 +1767,8 @@ class _SelectedDayHeader extends StatelessWidget {
   final DateTime now;
   final VoidCallback onPlan;
   final ValueListenable<Offset> lightDirection;
+  final VoidCallback? onSelect;
+  final VoidCallback? onToday;
   final bool spanStyle;
 
   @override
@@ -1658,38 +1784,60 @@ class _SelectedDayHeader extends StatelessWidget {
     final spoken =
         '${_weekdayNames[day.weekday - 1]} ${day.day}'
         '${isToday ? ', today' : ''}';
-    final dayLabel = Semantics(
-      header: true,
-      label: spoken,
-      excludeSemantics: true,
-      child: spanStyle
-          ? Wrap(
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 6,
-              runSpacing: 2,
-              children: [
+    Widget visualDayLabel() => spanStyle
+        ? Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            runSpacing: 2,
+            children: [
+              Text(
+                '${_weekdayNames[day.weekday - 1]} ${day.day}',
+                style: labelStyle,
+              ),
+              if (isToday)
                 Text(
-                  '${_weekdayNames[day.weekday - 1]} ${day.day}',
-                  style: labelStyle,
-                ),
-                if (isToday)
-                  Text(
-                    'TODAY',
-                    style: Type.label.copyWith(
-                      fontSize: Type.minLabel,
-                      color: Palette.xp,
-                    ),
+                  'TODAY',
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    color: Palette.xp,
                   ),
-              ],
-            )
-          : Text(
-              '${_weekdayNames[day.weekday - 1]} ${day.day}'
-              '${isToday ? " · TODAY" : " · ${_monthNames[day.month - 1].toUpperCase()}"}',
-              maxLines: largeText ? 2 : 1,
-              overflow: largeText ? TextOverflow.clip : TextOverflow.ellipsis,
-              style: labelStyle,
+                ),
+            ],
+          )
+        : Text(
+            '${_weekdayNames[day.weekday - 1]} ${day.day}'
+            '${isToday ? " · TODAY" : " · ${_monthNames[day.month - 1].toUpperCase()}"}',
+            maxLines: largeText ? 2 : 1,
+            overflow: largeText ? TextOverflow.clip : TextOverflow.ellipsis,
+            style: labelStyle,
+          );
+    final dayLabel = onSelect == null
+        ? Semantics(
+            header: true,
+            label: spoken,
+            excludeSemantics: true,
+            child: visualDayLabel(),
+          )
+        : Semantics(
+            key: ValueKey('daybook-day-control-${CivilDate.fromDateTime(day)}'),
+            button: true,
+            selected: true,
+            header: true,
+            label: spoken,
+            onTap: onSelect,
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: onSelect,
+              borderRadius: BorderRadius.circular(9),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: visualDayLabel(),
+                ),
+              ),
             ),
-    );
+          );
     final planAction = isPast
         ? null
         : Semantics(
@@ -1734,15 +1882,41 @@ class _SelectedDayHeader extends StatelessWidget {
               ),
             ),
           );
+    final todayAction = isToday || onToday == null
+        ? null
+        : TextButton(
+            key: const ValueKey('calendar-back-to-today'),
+            onPressed: onToday,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'TODAY',
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                letterSpacing: 1.0,
+                color: Palette.xpLight,
+              ),
+            ),
+          );
+    final actions = Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
+      runSpacing: 4,
+      children: [?todayAction, ?planAction],
+    );
 
     if (largeText) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           dayLabel,
-          if (planAction != null) ...[
+          if (todayAction != null || planAction != null) ...[
             const SizedBox(height: 8),
-            Align(alignment: Alignment.centerRight, child: planAction),
+            Align(alignment: Alignment.centerRight, child: actions),
           ],
         ],
       );
@@ -1750,7 +1924,7 @@ class _SelectedDayHeader extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: dayLabel),
-        ?planAction,
+        if (todayAction != null || planAction != null) actions,
       ],
     );
   }

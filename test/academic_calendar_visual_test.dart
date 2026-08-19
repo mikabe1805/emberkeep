@@ -69,6 +69,8 @@ void main() {
 
   for (final mode in const [
     AcademicCalendarMode.month,
+    AcademicCalendarMode.week,
+    AcademicCalendarMode.threeDay,
     AcademicCalendarMode.day,
   ]) {
     testWidgets('academic ${mode.name} visual', (tester) async {
@@ -149,6 +151,86 @@ void main() {
       }
     });
   }
+
+  testWidgets('academic threeDay selected-away visual', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+      tester.binding.setSurfaceSize(null);
+    });
+    final state = GameState()
+      ..reduceMotion = true
+      ..history[Days.key(DateTime(2026, 8, 11))] = 2;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: CalendarPage(
+            state: state,
+            quests: const [],
+            onAdd: (_) => true,
+            scheduleRepository: InMemoryAcademicScheduleRepository(
+              _visualSchedule(),
+            ),
+            calendarPreferences: InMemoryAcademicCalendarPreferences(
+              state: const AcademicCalendarViewState(
+                mode: AcademicCalendarMode.threeDay,
+                selectedDate: '2026-08-12',
+                threeDayStartDate: '2026-08-11',
+              ),
+            ),
+            notebookHandoff: _NoopHandoff(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final context = tester.element(find.byType(MaterialApp));
+    await tester.runAsync(
+      () => precacheImage(
+        const AssetImage('assets/pages/plans-desk-v2.webp'),
+        context,
+      ),
+    );
+    for (var frame = 0; frame < 5; frame++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    final today = find.byKey(const ValueKey('calendar-back-to-today'));
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('daybook-day-control-2026-08-12')),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+
+    expect(today, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-plan-selected-day')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/academic_schedule_threeDay_selected_away_320x568_200.png',
+        ),
+      );
+    }
+  });
 
   testWidgets('App Store Daybook release visual', (tester) async {
     if (!_captureStore) return;

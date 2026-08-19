@@ -21,6 +21,36 @@ import 'journal_entry.dart';
 import 'journal_hub.dart';
 import 'weekly_chronicle.dart';
 
+/// Picks the quiet, occasional Then & Now beat without adding another piece
+/// of saved state. The day bucket is deliberately stable for a whole local
+/// day, while the three-day cadence keeps the card from becoming wallpaper.
+/// Historical entries are newest-first so each appearance moves the keeper
+/// through their past rather than repeating one fixed page.
+Note? thenAndNowEntry(List<Note> notes, {DateTime? now}) {
+  final today = now ?? Clock.now();
+  final startOfToday = DateTime(today.year, today.month, today.day);
+  final eligible =
+      notes.where((note) {
+        final entryDay = DateTime(note.at.year, note.at.month, note.at.day);
+        return entryDay.isBefore(startOfToday);
+      }).toList()..sort((a, b) {
+        final newestFirst = b.at.compareTo(a.at);
+        return newestFirst != 0 ? newestFirst : a.id.compareTo(b.id);
+      });
+  if (eligible.isEmpty) return null;
+
+  // Compare calendar midnights in UTC so a daylight-saving transition cannot
+  // make one local day look 23 hours long and shift the cadence.
+  final dayNumber = DateTime.utc(
+    startOfToday.year,
+    startOfToday.month,
+    startOfToday.day,
+  ).difference(DateTime.utc(2026, 1, 1)).inDays;
+  final appearance = dayNumber ~/ 3;
+  if (dayNumber < 0 || dayNumber % 3 != 0) return null;
+  return eligible[appearance % eligible.length];
+}
+
 /// The Insights tab: what your patterns are telling you — trends drawn
 /// from your OWN data (history, stat totals, rhythm, streaks). Replaces the
 /// old passive Sparks feed; evidence now lives where it matters (stat popups,
@@ -88,8 +118,8 @@ class InsightsPage extends StatelessWidget {
             onChronicle: () => _openChronicle(context),
           ),
           const SizedBox(height: 14),
-          if (state.journal.isNotEmpty) ...[
-            _thenAndNow(context),
+          if (thenAndNowEntry(state.journal) case final note?) ...[
+            _thenAndNow(context, note),
             const SizedBox(height: 14),
           ],
           _journalCard(context),
@@ -260,9 +290,7 @@ class InsightsPage extends StatelessWidget {
     );
   }
 
-  Widget _thenAndNow(BuildContext context) {
-    final entries = [...state.journal]..sort((a, b) => b.at.compareTo(a.at));
-    final note = entries.last;
+  Widget _thenAndNow(BuildContext context, Note note) {
     const months = [
       'JAN',
       'FEB',

@@ -237,6 +237,7 @@ class LuxePageList extends StatefulWidget {
     required this.parallax,
     required this.reduceMotion,
     required this.children,
+    this.scrollController,
     this.trailing,
     this.heroHeight = 250,
     this.heroAlignment = Alignment.center,
@@ -250,6 +251,7 @@ class LuxePageList extends StatefulWidget {
   final ValueListenable<Offset> parallax;
   final bool reduceMotion;
   final List<Widget> children;
+  final ScrollController? scrollController;
   final Widget? trailing;
   final double heroHeight;
   final Alignment heroAlignment;
@@ -398,7 +400,9 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
 }
 
 class _LuxePageListState extends State<LuxePageList> {
-  final ScrollController _scroll = ScrollController();
+  late final ScrollController _scroll =
+      widget.scrollController ?? ScrollController();
+  bool get _ownsScrollController => widget.scrollController == null;
   final ValueNotifier<double> _scrollPosition = ValueNotifier(0);
 
   @override
@@ -418,7 +422,7 @@ class _LuxePageListState extends State<LuxePageList> {
   @override
   void dispose() {
     _scroll.removeListener(_trackScroll);
-    _scroll.dispose();
+    if (_ownsScrollController) _scroll.dispose();
     _scrollPosition.dispose();
     super.dispose();
   }

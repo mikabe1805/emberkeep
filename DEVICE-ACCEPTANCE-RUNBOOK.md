@@ -20,7 +20,7 @@ journal.
 
 ### iPhone
 
-- Install only the processed Room of Days `1.0.4` (Build 22) from TestFlight.
+- Install only the processed Room of Days `1.0.4` (Build 23) from TestFlight.
   It must come from the final release commit through the manual Codemagic
   `ios-testflight` workflow; do not substitute a local debug/profile build.
 - Keep the emitted IPA, matching Runner dSYM, Codemagic log, and
@@ -63,10 +63,10 @@ Run the upgrade check before uninstalling anything:
 - [ ] Uninstall Room of Days, then install the verified Build 12 APK fresh.
   Confirm the old test data is gone and onboarding begins normally.
 
-For iPhone, first install Build 22 over processed Build 19 or Build 21 without
+For iPhone, first install Build 23 over processed Build 19 or Build 21 without
 deleting Room of Days. Confirm the save, journal, room, Daybook, settings, and
 account state remain and What's New appears once. Then delete the app, install
-Build 22 fresh, and confirm onboarding starts with no prior test data.
+Build 23 fresh, and confirm onboarding starts with no prior test data.
 
 ## 2. First launch and core story
 
