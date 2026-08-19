@@ -142,3 +142,97 @@ The ring adds a distinct internal relationship and stays visible at 60 px, with 
 ### Option 3 — Daybook / Light
 
 The folio is the clearest candidate expression of held/gathered days and has strong cloth, brass, and honey-light material coherence. It stays inside the platform masks and guide; its grayscale preview retains the page-turn silhouette. At 32 px, its diagonal cover and page relationship become a compact book/journal reading more than a distinct Room of Days mark. The central light stays visible but is partially occluded, so generic notes, reading, or education-app category confusion remains the material concern.
+
+## Task 4 owner selection and literal-object reset
+
+The first abstract exploration did not earn selection. The owner explicitly
+rejected the relationship between those marks and the product: “none of the
+icons make any sense”. The direction was reset around literal product nouns
+already present in the first session: quest ledger, today’s board, completion
+rings, and the room as a kept record.
+
+The later literal-object set is separate from the historical Option 1-3 mapping
+above. In that set, Option 2 was an open Day Ledger. The owner said, verbatim,
+“they all honestly look really good. i think 2 is the only icon that i would
+automatically recognize as room of days? but im open to your thoughts”. After
+the targeted refinement, the owner confirmed, “yeah i do enjoy it! feels like
+an app id click out of curiosity”. That is the explicit visual-selection
+checkpoint authorizing shipping propagation.
+
+The selected review master is:
+
+- Built-in output: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-6ac432e4-afd8-4e86-b8f4-6b7cff57fce7.png`
+- Workspace review copy: `candidates/day-ledger-refined.png`
+- Archived production source: `design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-source-v1.png`
+- Dimensions/mode: 1254 x 1254 opaque RGB PNG
+- SHA-256 for all three copies: `32BD78056539A66E409AC7468FC3BA6CF91F44969FFCD46234CF5ED7B094B31A`
+
+The local ImageGen event does not retain the caller-submitted prompt or exact
+reference paths. It does retain this exact revised prompt for the selected
+output:
+
+```text
+Use case: precise-object-edit
+Asset type: refined 1024 x 1024 mobile app icon master artwork for Room of Days
+Primary request: Refine Image 1 as the selected Day Ledger direction. Preserve its unmistakable open-ledger silhouette, nearly frontal viewpoint, centered scale, three broad faceted quest rows on the right page, warm handcrafted character, and simple composition. Make it feel more specifically like Room of Days and less like a generic reading or journal app.
+Input images: Image 1 is the edit target and must remain recognizably the same icon. Image 2 is the structural reference for Room of Days’ open quest-completion rings and dark quest-card geometry. Image 3 is the exact completed-quest reward state and reference for a finished circular check medallion. Image 4 is moodboard context for the app’s private record-keeping and dark warm material world.
+Targeted changes only:
+1. Change the top row’s plain gold C-ring into one unmistakably completed warm-metal medallion with a simple dark check inside, matching the completed quest language in Image 3.
+2. Change the lower two circles into the app’s distinctive unfinished open rings: a broad circular stroke that remains open at lower right and ends in a short angled check-tail, matching Image 2; they must not look like loading spinners or the letter C.
+3. Deepen the leather cover, page shadows, backdrop, and row insets toward espresso, walnut, and deep plum-brown so the warm parchment is a controlled focal plane rather than a bright beige square.
+4. Simplify loose page layers and micro-texture so the ledger, three rows, and completion states survive clearly at 32 px.
+5. Preserve the hand-painted, crisp, faceted Room of Days material language; one quiet honey highlight only.
+Constraints: change only the listed refinements; preserve the book silhouette, three-row structure, viewpoint, scale, and overall composition. No words, letters, numbers, dates, calendar grid, ruled writing, pen, extra symbols, sun, room, flame, trophy, mascot, floating sparkles, watermark, device frame, transparency, or baked platform mask.
+Avoid: generic notes or reading app, fantasy spellbook, finance ledger, glossy 3D render, loading indicators, all-gold object, excessive brightness, decorative clutter, changing the icon into a different concept.
+```
+
+The edit target was the immediately prior Day Ledger render
+`exec-e77173cd-d2b6-4714-bb81-59de78eb1392.png`. The other three references were,
+respectively, the app’s open completion-ring geometry, completed-quest reward
+state, and warm private-record material world.
+
+## Task 5 production cutout and deterministic propagation
+
+A first request for a genuine transparent foreground returned an opaque RGB
+image with a baked checkerboard (`exec-30c366b8-9250-49fc-97ee-c7331e0f499a.png`,
+SHA-256 `C576DCC735A910F5F8135DE053AF94D48763A55144DE2E64A50C2E543F5ABD4C`).
+It was rejected and never copied into a shipping path.
+
+The accepted production cutout source was generated with this exact prompt:
+
+```text
+Create a production cutout source from this exact approved Room of Days app-icon artwork. Keep the open quest ledger itself unchanged pixel-for-pixel in visual design: same square framing, same size and position, same camera angle and silhouette, same dark leather cover, warm parchment, three right-page quest rows, the gold completed medallion, and the two open circular quest controls. Remove only the near-black background around the ledger and replace that outside area with one perfectly flat, uniform, fully opaque chroma-key green color #00FF00. The green must contain no texture, checkerboard, gradient, lighting, noise, vignette, or shadows. Keep no detached cast shadow outside the ledger. Do not resize, recrop, zoom, rotate, redraw, simplify, recolor, relight, sharpen, or alter the ledger. No text, border, icon mask, rounded square, glow, halo, watermark, or added object. Square PNG.
+```
+
+The built-in result did contain small green variation, so no exact-color key was
+assumed. The deterministic exporter uses bounded green-dominance alpha
+extraction and despill, verifies credible opaque/transparent coverage, and
+rejects excessive green leakage.
+
+- Built-in cutout source: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-5cca0b12-fcff-49a4-b48f-5be5ade0de98.png`
+- Archived cutout source: `design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-chroma-v1.png`
+- Dimensions/mode: 1254 x 1254 opaque RGB PNG
+- SHA-256: `99143E48B5551A28D6DC270080162046B034A1E0D64D6DCDC86D7A9DB26BBD79`
+
+`tool/export_app_icons.dart` now generates the canonical RGB web/store master,
+web launch sizes, padded maskable icons, Apple touch icon, favicon, true-alpha
+Android foreground, luminance-weighted themed icon, Windows ICO, and the exact
+hash manifest. `flutter_launcher_icons` regenerates the iOS and Android native
+matrices. An 8 percent Android XML inset keeps the book large enough to feel
+intentional while the rectangular book corners remain inside the circular
+mask.
+
+Fresh review evidence:
+
+- `selected/contact-sheet-32-60-180-1024.png` — current versus approved source at 1024, 180, 60, and 32 px.
+- `selected/contact-sheet-platform-masks.png` — current versus approved source under square, iOS, circle, safe-area, and grayscale treatments.
+- `selected/shipping-platform-review.png` — the exact iOS, Android legacy, Android adaptive, Android themed, web maskable, and Windows outputs at normal and launcher sizes.
+
+All three sheets and the individual production outputs were opened directly.
+At 32 px the ledger remains a specific open book with one warm completed row;
+the lower rings remain secondary rather than noise. The iOS and web treatments
+fill their masks without cutting the book. The Android adaptive foreground has
+no opaque box or green halo and the 8 percent inset avoids corner clipping. The
+themed preview retains the open-book silhouette, three rows, and completion
+medallion. Exact source and derivative hashes are recorded in
+`assets/brand/room-of-days-icon-manifest-v1.json`.

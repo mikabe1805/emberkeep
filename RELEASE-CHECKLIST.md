@@ -69,7 +69,9 @@ not replace a signed device build or store-console review.
 - [x] Journal photos remain local and are excluded from cloud backup and shared
   rooms in v1.
 - [x] Cold-start backgrounds match the dark Room of Days canvas.
-- [x] Native/PWA icons use the approved lit-window Room of Days mark.
+- [x] Native/PWA icons use the owner-approved Day Ledger mark; the exact
+  iOS, Android legacy/adaptive/themed, web maskable, and Windows outputs were
+  rendered together and visually accepted on August 19, 2026.
 - [x] The web release uses a first-party, versioned offline cache now that
   Flutter's generated service worker is intentionally a no-op. It keeps
   CanvasKit on the Room of Days origin, refuses stale/incomplete deploy output,

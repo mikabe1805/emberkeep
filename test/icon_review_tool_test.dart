@@ -95,6 +95,41 @@ void main() {
     );
   });
 
+  test('renders a selected-candidate review with a custom label', () async {
+    final temporary = await Directory.systemTemp.createTemp(
+      'icon-review-selected-',
+    );
+    addTearDown(() => temporary.delete(recursive: true));
+    final paths = List<String>.generate(2, (index) {
+      final path = '${temporary.path}${Platform.pathSeparator}$index.png';
+      File(
+        path,
+      ).writeAsBytesSync(img.encodePng(img.Image(width: 1024, height: 1024)));
+      return path;
+    });
+
+    final result = review.buildIconReview(
+      currentPath: paths.first,
+      candidatePaths: <String>[paths.last],
+      candidateLabels: const <String>['Approved - Day Ledger'],
+      outputDirectoryPath: '${temporary.path}${Platform.pathSeparator}review',
+    );
+
+    expect(result.rowLabels, <String>['Current', 'Approved - Day Ledger']);
+    final small = img.decodePng(
+      File(result.outputFiles.first).readAsBytesSync(),
+    );
+    final masks = img.decodePng(
+      File(result.outputFiles.last).readAsBytesSync(),
+    );
+    expect(small, isNotNull);
+    expect(small!.width, 1756);
+    expect(small.height, 2310);
+    expect(masks, isNotNull);
+    expect(masks!.width, 2292);
+    expect(masks.height, 950);
+  });
+
   test(
     'rejects wrong input count, undersized, and non-square masters',
     () async {
@@ -113,6 +148,15 @@ void main() {
         () => review.buildIconReview(
           currentPath: valid.path,
           candidatePaths: const [],
+          outputDirectoryPath: temporary.path,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => review.buildIconReview(
+          currentPath: valid.path,
+          candidatePaths: <String>[valid.path],
+          candidateLabels: const <String>[],
           outputDirectoryPath: temporary.path,
         ),
         throwsArgumentError,

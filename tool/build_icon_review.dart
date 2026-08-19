@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:image/image.dart' as img;
 
-const _rowLabels = <String>[
+const _defaultRowLabels = <String>[
   'Current',
   'Option 1 - Inhabited Room retry',
   'Option 2 - Completion Latch / Orbit',
@@ -19,26 +19,40 @@ const smallSizeSheetDimensions = SheetDimensions(1756, 4502);
 const platformMaskSheetDimensions = SheetDimensions(2292, 1782);
 
 final class IconReviewResult {
-  const IconReviewResult(this.outputFiles);
+  const IconReviewResult(this.outputFiles, this.rowLabels);
 
   final List<String> outputFiles;
-
-  List<String> get rowLabels => _rowLabels;
+  final List<String> rowLabels;
 }
 
 IconReviewResult buildIconReview({
   required String currentPath,
   required List<String> candidatePaths,
   required String outputDirectoryPath,
+  List<String>? candidateLabels,
 }) {
-  if (candidatePaths.length != 3) {
+  if (candidatePaths.isEmpty || candidatePaths.length > 3) {
     throw ArgumentError.value(
       candidatePaths,
       'candidatePaths',
-      'Exactly three candidate masters are required.',
+      'Between one and three candidate masters are required.',
+    );
+  }
+  if (candidateLabels != null &&
+      candidateLabels.length != candidatePaths.length) {
+    throw ArgumentError.value(
+      candidateLabels,
+      'candidateLabels',
+      'Candidate labels must match the candidate master count.',
     );
   }
   validateOutputDirectory(outputDirectoryPath);
+
+  final rowLabels = <String>[
+    _defaultRowLabels.first,
+    ...(candidateLabels ??
+        _defaultRowLabels.skip(1).take(candidatePaths.length)),
+  ];
 
   final masters = <img.Image>[
     _loadMaster(currentPath),
@@ -55,9 +69,12 @@ IconReviewResult buildIconReview({
     'contact-sheet-platform-masks.png',
   );
 
-  _writeRgbPng(smallSizes, _buildSmallSizeSheet(masters));
-  _writeRgbPng(platformMasks, _buildPlatformMaskSheet(masters));
-  return IconReviewResult(<String>[smallSizes.path, platformMasks.path]);
+  _writeRgbPng(smallSizes, _buildSmallSizeSheet(masters, rowLabels));
+  _writeRgbPng(platformMasks, _buildPlatformMaskSheet(masters, rowLabels));
+  return IconReviewResult(<String>[
+    smallSizes.path,
+    platformMasks.path,
+  ], List<String>.unmodifiable(rowLabels));
 }
 
 void validateOutputDirectory(String path) {
@@ -147,7 +164,10 @@ img.Image _loadMaster(String path) {
   return decoded;
 }
 
-img.Image _buildSmallSizeSheet(List<img.Image> masters) {
+img.Image _buildSmallSizeSheet(
+  List<img.Image> masters,
+  List<String> rowLabels,
+) {
   const labelWidth = 300;
   const gap = 32;
   const titleHeight = 118;
@@ -173,7 +193,7 @@ img.Image _buildSmallSizeSheet(List<img.Image> masters) {
   }
   for (var row = 0; row < masters.length; row++) {
     final top = titleHeight + row * rowHeight;
-    _text(sheet, _rowLabels[row], 32, top + 24, img.arial24);
+    _text(sheet, rowLabels[row], 32, top + 24, img.arial24);
     _text(
       sheet,
       row == 0 ? 'Baseline' : 'Review candidate',
@@ -190,7 +210,10 @@ img.Image _buildSmallSizeSheet(List<img.Image> masters) {
   return sheet;
 }
 
-img.Image _buildPlatformMaskSheet(List<img.Image> masters) {
+img.Image _buildPlatformMaskSheet(
+  List<img.Image> masters,
+  List<String> rowLabels,
+) {
   const labelWidth = 300;
   const tileSize = 360;
   const gap = 32;
@@ -225,7 +248,7 @@ img.Image _buildPlatformMaskSheet(List<img.Image> masters) {
   }
   for (var row = 0; row < masters.length; row++) {
     final top = titleHeight + row * rowHeight;
-    _text(sheet, _rowLabels[row], 32, top + 24, img.arial24);
+    _text(sheet, rowLabels[row], 32, top + 24, img.arial24);
     final tiles = buildPlatformPreviews(_resize(masters[row], tileSize));
     for (var column = 0; column < tiles.length; column++) {
       img.compositeImage(
@@ -346,6 +369,7 @@ void main(List<String> arguments) {
       currentPath: argumentsByFlag.currentPath,
       candidatePaths: argumentsByFlag.candidatePaths,
       outputDirectoryPath: argumentsByFlag.outputDirectoryPath,
+      candidateLabels: argumentsByFlag.candidateLabels,
     );
     for (final output in result.outputFiles) {
       stdout.writeln('Wrote $output');
@@ -363,28 +387,43 @@ _Arguments _parseArguments(List<String> arguments) {
   String? current;
   String? outputDirectory;
   final candidates = <String>[];
+  final candidateLabels = <String>[];
   for (var index = 0; index < arguments.length; index++) {
-    if (index + 1 == arguments.length)
+    if (index + 1 == arguments.length) {
       throw ArgumentError('Missing value for ${arguments[index]}.');
+    }
     final value = arguments[++index];
     switch (arguments[index - 1]) {
       case '--current':
         current = value;
       case '--candidate':
         candidates.add(value);
+      case '--candidate-label':
+        candidateLabels.add(value);
       case '--output-dir':
         outputDirectory = value;
       default:
         throw ArgumentError('Unknown argument: ${arguments[index - 1]}.');
     }
   }
-  if (current == null || outputDirectory == null || candidates.length != 3) {
+  if (current == null ||
+      outputDirectory == null ||
+      candidates.isEmpty ||
+      candidates.length > 3 ||
+      (candidateLabels.isNotEmpty &&
+          candidateLabels.length != candidates.length)) {
     throw ArgumentError(
       'Usage: dart run tool/build_icon_review.dart --current <png> '
-      '--candidate <png> --candidate <png> --candidate <png> --output-dir <directory>',
+      '--candidate <png> [--candidate <png> ...] '
+      '[--candidate-label <label> ...] --output-dir <directory>',
     );
   }
-  return _Arguments(current, candidates, outputDirectory);
+  return _Arguments(
+    current,
+    candidates,
+    outputDirectory,
+    candidateLabels.isEmpty ? null : candidateLabels,
+  );
 }
 
 final class _Arguments {
@@ -392,8 +431,10 @@ final class _Arguments {
     this.currentPath,
     this.candidatePaths,
     this.outputDirectoryPath,
+    this.candidateLabels,
   );
   final String currentPath;
   final List<String> candidatePaths;
   final String outputDirectoryPath;
+  final List<String>? candidateLabels;
 }

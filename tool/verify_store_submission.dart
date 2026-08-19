@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:image/image.dart' as img;
 
-const _listingPath = '../STORE-LISTING.md';
+const _listingName = 'STORE-LISTING.md';
 
 const _appStoreScreenshots = <String>[
   '01-quests-1290x2796.png',
@@ -34,10 +34,7 @@ Future<void> main() async {
     if (!File('pubspec.yaml').existsSync()) {
       throw StateError('Run this command from the app repository root.');
     }
-    final listingFile = File(_listingPath).absolute;
-    if (!listingFile.existsSync()) {
-      throw StateError('Missing store listing: ${listingFile.path}');
-    }
+    final listingFile = _findAncestorFile(_listingName);
     final listing = await listingFile.readAsString();
 
     _section('Character-limited store fields');
@@ -307,6 +304,21 @@ Future<void> main() async {
       stderr.writeln(stackTrace);
     }
     exitCode = 1;
+  }
+}
+
+File _findAncestorFile(String name) {
+  var directory = Directory.current.absolute;
+  while (true) {
+    final candidate = File('${directory.path}${Platform.pathSeparator}$name');
+    if (candidate.existsSync()) return candidate;
+    final parent = directory.parent;
+    if (parent.path == directory.path) {
+      throw StateError(
+        'Missing $name above app root ${Directory.current.absolute.path}.',
+      );
+    }
+    directory = parent;
   }
 }
 

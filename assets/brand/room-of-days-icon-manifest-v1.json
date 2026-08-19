@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "selectionDate": "2026-08-19",
+  "identity": "Room of Days - Day Ledger",
+  "sources": [
+    {
+      "path": "design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-source-v1.png",
+      "sha256": "32BD78056539A66E409AC7468FC3BA6CF91F44969FFCD46234CF5ED7B094B31A",
+      "width": 1254,
+      "height": 1254,
+      "channels": 3,
+      "role": "selected opaque icon artwork"
+    },
+    {
+      "path": "design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-chroma-v1.png",
+      "sha256": "99143E48B5551A28D6DC270080162046B034A1E0D64D6DCDC86D7A9DB26BBD79",
+      "width": 1254,
+      "height": 1254,
+      "channels": 3,
+      "role": "ImageGen chroma-key derivative for adaptive foreground extraction"
+    }
+  ],
+  "postprocessing": {
+    "tool": "tool/export_app_icons.dart",
+    "masterResize": "cubic interpolation to opaque RGB platform sizes",
+    "adaptiveForeground": "green-dominance alpha extraction, despill, then cubic resize",
+    "androidAdaptiveInset": "8 percent XML inset applied by flutter_launcher_icons",
+    "maskableWeb": "92 percent master over the average source border color",
+    "monochrome": "white foreground with luminance-weighted alpha detail"
+  },
+  "outputs": [
+    {
+      "path": "android/app/src/main/res/drawable-hdpi/ic_launcher_foreground.png",
+      "sha256": "51D47AFC7E67BF7BCA955DD1EDA72262E12F39A0B54113A82873A19FA6A59DE6",
+      "width": 162,
+      "height": 162,
+      "channels": 4
+    },
+    {
+      "path": "android/app/src/main/res/drawable-hdpi/ic_launcher_monochrome.png",
+      "sha256": "2CEC70AC64143630E9706C08759F39455A2CEE080D31FBB1DD99466B47F759D0",
+      "width": 162,
+      "height": 162,
+      "channels": 4
+    },
+    {
+      "path": "android/app/src/main/res/drawable-mdpi/ic_launcher_foreground.png",
+      "sha256": "86BA5191C6FE549E7F5B563D5355E99CBCA17A40953D0C7B562F29C7026629B5",
+      "width": 108,
+      "height": 108,
+      "channels": 4
+    },
+    {
+      "path": "android/app/src/main/res/drawable-mdpi/ic_launcher_monochrome.png",
+      "sha256": "321FA69100DAF4888890F1BA839409AE578A58BEFB4F6540F0C0C5F019C580AD",
+      "width": 108,
+      "height": 108,
+      "channels": 4
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xhdpi/ic_launcher_foreground.png",
+      "sha256": "0B1D27C4EF20E02CD726833BC382D7B282C8CABA765204C5E9EF50FE5098BEDB",
+      "width": 216,
+      "height": 216,
+      "channels": 4
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xhdpi/ic_launcher_monochrome.png",
+      "sha256": "9F47789DFF6C40B262F6AAD57863572CB98415A2505A494E3E3D9078173A1066",
+      "width": 216,
+      "height": 216,
+      "channels": 4
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xxhdpi/ic_launcher_foreground.png",
+      "sha256": "96EF28B78EEEA6F5A58C3202014B93F7C6EFDEDF4FCD8100D7EF1EA640CDB982",
+      "width": 324,
+      "height": 324,
+      "channels": 4
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xxhdpi/ic_launcher_monochrome.png",
+      "sha256": "79E4043DB2BB8AE531BE4C72A170BFA55D21C28A8476C3F94DBD43246222FBC5",
+      "width": 324,
+      "height": 324,
+      "channels": 4
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xxxhdpi/ic_launcher_foreground.png",
+      "sha256": "28A2110A93C7D14C3C2FDB674F67FE08AA386E8331D522C33F4F5529F0AF396B",
+      "width": 432,
+      "height": 432,
+      "channels": 4
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xxxhdpi/ic_launcher_monochrome.png",
+      "sha256": "BA94FEECD096FAC17817418C44D91AA0C860E82208193B8B2A75D494329E79A3",
+      "width": 432,
+      "height": 432,
+      "channels": 4
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "sha256": "7A0B47A19302196E2023D1760062A22FCCCC3AE1A8AD879711E286F20F8EA105",
+      "width": 72,
+      "height": 72,
+      "channels": 3
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "sha256": "804C7143A4EC0970158C473A81A3175D602D4419FC51BF39FBA207152C555281",
+      "width": 48,
+      "height": 48,
+      "channels": 3
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "sha256": "E91D574B13A5ADD5AD54FFF511759287563D3B2DD047480AC61E27BA9CDAC299",
+      "width": 96,
+      "height": 96,
+      "channels": 3
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "sha256": "E0FCBCCAFB6DC99F1BDA15A636FEE1A948BD3D707DA74C70FBFDCBEAFA00F199",
+      "width": 144,
+      "height": 144,
+      "channels": 3
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "sha256": "2BA8BEB75BADA861918BB9F21FEE078CA5F847BD9F948078709D2054E06B533C",
+      "width": 192,
+      "height": 192,
+      "channels": 3
+    },
+    {
+      "path": "assets/brand/room-of-days-adaptive-foreground-v1.png",
+      "sha256": "BCBEE7BE79427BA1EA8C831401DA310E71D36C05152ACCFC49CE1950F5C5718E",
+      "width": 1024,
+      "height": 1024,
+      "channels": 4
+    },
+    {
+      "path": "assets/brand/room-of-days-monochrome-v2.png",
+      "sha256": "4E2415D534FB74EBACC570B2D6D94B79E84FD7C686FD5839D67F644D77229A14",
+      "width": 1024,
+      "height": 1024,
+      "channels": 4
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png",
+      "sha256": "0701DE5CFC52482015D66ACD3EF2A8F1019F363A74D963C4BD22F9C9C4C75BF1",
+      "width": 1024,
+      "height": 1024,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png",
+      "sha256": "BCA24C227B4B7329C831E9DA0DEB837BEEABD76DB9E296B0B82BA6A1A117009A",
+      "width": 20,
+      "height": 20,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png",
+      "sha256": "E037DDC32E663C8CD44D7C87FCADA4A3B69632386543C3DC1AEC69C664BBE495",
+      "width": 40,
+      "height": 40,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png",
+      "sha256": "2F8E2E5C717A763409DC5E5BB16493F24EC26B166D888C47369CD5C6B33C580D",
+      "width": 60,
+      "height": 60,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png",
+      "sha256": "4037ABAE7C4E3486D2743641876AC03943C3F63392F3D11987C109BA8696B175",
+      "width": 29,
+      "height": 29,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png",
+      "sha256": "0A9C47CAB51D5C4E945C279F41D009C2C120B69997BB227E7FD37859D131AD48",
+      "width": 58,
+      "height": 58,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png",
+      "sha256": "263729E3A946BD3713156AD22E5D36B3F8DC076680A97B179C12CF1512B43F7A",
+      "width": 87,
+      "height": 87,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png",
+      "sha256": "E037DDC32E663C8CD44D7C87FCADA4A3B69632386543C3DC1AEC69C664BBE495",
+      "width": 40,
+      "height": 40,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png",
+      "sha256": "DD6C60460177D7F60D51E9B1EEFA95CF0B25F41A8793E580515C268CEBD66083",
+      "width": 80,
+      "height": 80,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png",
+      "sha256": "5A92496F71D1196B7EA17BFEC4096DEF658C901023730234C5FE6448DB2DA990",
+      "width": 120,
+      "height": 120,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-50x50@1x.png",
+      "sha256": "8D0231769C47ED8220E6CDB4F79F519A3E72642BEA10809082CC9C75E272538C",
+      "width": 50,
+      "height": 50,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-50x50@2x.png",
+      "sha256": "D692186600B2B79329A4C548BE6CC7634AE72A6B1AB2B74EFD7BC72400C07C62",
+      "width": 100,
+      "height": 100,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-57x57@1x.png",
+      "sha256": "DE28B647FBC535BB1975AC92A3495357001B84BBB0458F0389E18385D21467B2",
+      "width": 57,
+      "height": 57,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-57x57@2x.png",
+      "sha256": "FAEDDAD5DEE123FEE819926DCFBDB6229310535EA129654038FBE99CA7F8D206",
+      "width": 114,
+      "height": 114,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png",
+      "sha256": "5A92496F71D1196B7EA17BFEC4096DEF658C901023730234C5FE6448DB2DA990",
+      "width": 120,
+      "height": 120,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png",
+      "sha256": "210BB70DDF9D891BA8CBC55C9BEE8B547E25C4C899A6CE405252EEE3EB5098A2",
+      "width": 180,
+      "height": 180,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-72x72@1x.png",
+      "sha256": "7A0B47A19302196E2023D1760062A22FCCCC3AE1A8AD879711E286F20F8EA105",
+      "width": 72,
+      "height": 72,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-72x72@2x.png",
+      "sha256": "E0FCBCCAFB6DC99F1BDA15A636FEE1A948BD3D707DA74C70FBFDCBEAFA00F199",
+      "width": 144,
+      "height": 144,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png",
+      "sha256": "DBDCB08E163E31EB785175BF404BD29EDF5F6B85EE2B3D742A9801E7E74E0F29",
+      "width": 76,
+      "height": 76,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png",
+      "sha256": "12263CDCB8799871034FE80FD153DD8C28ECD45A3972E26B71F33AAB07C88EB7",
+      "width": 152,
+      "height": 152,
+      "channels": 3
+    },
+    {
+      "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png",
+      "sha256": "937BC064F7DDC4055AAA8682617CCD1FF0968B4D59AB50DF0EBC91B8B25B1C33",
+      "width": 167,
+      "height": 167,
+      "channels": 3
+    },
+    {
+      "path": "web/favicon.png",
+      "sha256": "E00102EA1B38508C90CB0564253A623AB3F8A7E43041A214072D16D8E94BACC2",
+      "width": 48,
+      "height": 48,
+      "channels": 3
+    },
+    {
+      "path": "web/icons/Icon-1024.png",
+      "sha256": "AA9BE48C03094971AED2D0FACB1A98E6DB6ACF9461A4438074471F1E800F7719",
+      "width": 1024,
+      "height": 1024,
+      "channels": 3
+    },
+    {
+      "path": "web/icons/Icon-192.png",
+      "sha256": "F6D88E9D62E6753DF85576292D8B38960279B52D40DE1E3A4E71B2722C38C4AE",
+      "width": 192,
+      "height": 192,
+      "channels": 3
+    },
+    {
+      "path": "web/icons/Icon-512.png",
+      "sha256": "D70F98A88C5611B2D2B598F084E54305A85730F7496C64BB3AD4F4D61B7D409D",
+      "width": 512,
+      "height": 512,
+      "channels": 3
+    },
+    {
+      "path": "web/icons/Icon-maskable-192.png",
+      "sha256": "B7E8BA674E2CD6B07FA94A8504FF4A644BC93B469958C3818F9726517CBFC9BF",
+      "width": 192,
+      "height": 192,
+      "channels": 3
+    },
+    {
+      "path": "web/icons/Icon-maskable-512.png",
+      "sha256": "5064E250AA031EC24AE928AA3BC31DF0C7BC519F9DEB3F564C82A14FA21D2C62",
+      "width": 512,
+      "height": 512,
+      "channels": 3
+    },
+    {
+      "path": "web/icons/apple-touch-icon.png",
+      "sha256": "AC2B66F4E1896E239486BDE19AEC671C5F806D9940913BBA87CAAD5477F24ABE",
+      "width": 180,
+      "height": 180,
+      "channels": 3
+    },
+    {
+      "path": "windows/runner/resources/app_icon.ico",
+      "sha256": "F1345AC799BED63A847651922173B87DA265D8D9349C01048F46C9C55FBFFB5A",
+      "format": "ico",
+      "frames": 7
+    }
+  ]
+}
