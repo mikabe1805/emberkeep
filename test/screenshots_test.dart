@@ -392,6 +392,48 @@ void main() {
     }
   });
 
+  testWidgets('about screen narrow large text', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: AboutScreen(reduceMotion: true),
+      ),
+    );
+    for (var frame = 0; frame < 4; frame++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    expect(tester.takeException(), isNull);
+
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/about_screen_narrow_320x568_2x.png'),
+      );
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('about-share-app')),
+        360,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump(const Duration(milliseconds: 180));
+      expect(tester.takeException(), isNull);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/about_screen_narrow_scrolled_320x568_2x.png',
+        ),
+      );
+    }
+  });
+
   // the KEEP: no creature, the central hearth is the heart — fire LIT (a kept
   // streak) up top, banked to embers below.
   testWidgets('the keep', (tester) async {

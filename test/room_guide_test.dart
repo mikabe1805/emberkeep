@@ -196,13 +196,28 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Quests'), findsOneWidget);
 
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/room_guide_narrow_320x568_text_1_3x.png'),
+      );
+    }
+
     await tester.scrollUntilVisible(
-      find.text('Help for Today'),
-      180,
+      find.text('Me'),
+      420,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 180));
     expect(tester.takeException(), isNull);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/room_guide_narrow_scrolled_320x568_text_1_3x.png',
+        ),
+      );
+    }
   });
 
   testWidgets('room guide visual target', (tester) async {

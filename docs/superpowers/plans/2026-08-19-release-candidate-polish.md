@@ -15,7 +15,7 @@
 - Preserve the candlelit desk and folio system in `DESIGN-BIBLE.md`.
 - Keep Ko-fi hidden on iOS and retain all current external-action behavior.
 - Do not call live support, share, or billing services from tests.
-- Treat the existing About images as the before evidence; refresh only the affected About evidence after the focused tests pass.
+- Preserve the audit-local About files as immutable BEFORE evidence. Refresh the tracked test goldens only as AFTER evidence, then create and inspect combined before/after comparison sheets before accepting the correction.
 
 ---
 
@@ -27,11 +27,15 @@
 - Modify: `test/about_screen_test.dart:1-104`
 - Verify/refresh: `test/goldens/about_screen_430x932.png`
 - Verify/refresh: `test/goldens/about_screen_ios_430x932.png`
+- Create: `design/comparisons/2026-08-19/probe-about-android-before-after.png`
+- Create: `design/comparisons/2026-08-19/probe-about-ios-before-after.png`
 
 **Before evidence:**
 
-- `test/goldens/about_screen_430x932.png` shows both `SEND FEEDBACK` and `VISIT KO-FI` in honey gold.
-- `test/goldens/about_screen_ios_430x932.png` shows both `SEND FEEDBACK` and `SHARE ROOM OF DAYS` in honey gold.
+- `design/audits/2026-08-19/release-candidate/about-before/about_screen_android_430x932.png` shows Android's Contact action (`SEND FEEDBACK`) and later Support action (`VISIT KO-FI`) both in honey gold on the same scrollable page.
+- `design/audits/2026-08-19/release-candidate/about-before/about_screen_ios_430x932.png` shows iOS's two gold actions across the same scrollable page: Contact's `SEND FEEDBACK` and the later Support section's `SHARE ROOM OF DAYS`. Ko-fi is absent on iOS as intended.
+
+Do not overwrite or regenerate either audit-local BEFORE file.
 
 **Step 1: Add a failing hierarchy regression test**
 
@@ -110,17 +114,29 @@ Expected: all tests pass with no uncaught exception; Android still exposes Ko-fi
 
 Run: `flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true test/screenshots_test.dart --plain-name "about screen"`
 
-Open and compare:
+The refreshed tracked files are the AFTER evidence:
 
-- Before/after Android: `test/goldens/about_screen_430x932.png`
-- Before/after iOS: `test/goldens/about_screen_ios_430x932.png`
+- Android AFTER: `test/goldens/about_screen_430x932.png`
+- iOS AFTER: `test/goldens/about_screen_ios_430x932.png`
+
+Create same-input combined comparison sheets:
+
+```powershell
+python tool/visual_compare.py probe "About Android before after" design/audits/2026-08-19/release-candidate/about-before/about_screen_android_430x932.png test/goldens/about_screen_430x932.png
+python tool/visual_compare.py probe "About iOS before after" design/audits/2026-08-19/release-candidate/about-before/about_screen_ios_430x932.png test/goldens/about_screen_ios_430x932.png
+```
+
+Open and inspect both outputs before judging:
+
+- `design/comparisons/2026-08-19/probe-about-android-before-after.png`
+- `design/comparisons/2026-08-19/probe-about-ios-before-after.png`
 
 Expected: each platform shows exactly one honey-gold action (`SEND FEEDBACK`); Ko-fi/share remain legible, full-width, and reachable as quiet-glass actions with unchanged spacing and content.
 
 **Step 6: Commit the focused correction**
 
 ```powershell
-git add -- lib/screens/about.dart test/about_screen_test.dart test/goldens/about_screen_430x932.png test/goldens/about_screen_ios_430x932.png
+git add -- lib/screens/about.dart test/about_screen_test.dart test/goldens/about_screen_430x932.png test/goldens/about_screen_ios_430x932.png design/comparisons/2026-08-19/probe-about-android-before-after.png design/comparisons/2026-08-19/probe-about-ios-before-after.png
 git diff --cached --check
 git commit -m "fix: restore About action hierarchy"
 ```
