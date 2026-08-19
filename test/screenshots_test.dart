@@ -284,6 +284,7 @@ void main() {
   // does. (Same lesson as the emberGlow fallback: a golden has to render what
   // ships, not an artefact of the harness.)
   setUpAll(() async {
+    WidgetController.hitTestWarningShouldBeFatal = true;
     GameState.debugRandomFactory = () => Random(20260808);
     TestWidgetsFlutterBinding.ensureInitialized();
     final loader = FontLoader('MaterialIcons')
@@ -328,7 +329,10 @@ void main() {
     await preloadHomeRoomAssets();
     GoogleFonts.config.allowRuntimeFetching = false; // no network in tests
   });
-  tearDownAll(() => GameState.debugRandomFactory = null);
+  tearDownAll(() {
+    WidgetController.hitTestWarningShouldBeFatal = false;
+    GameState.debugRandomFactory = null;
+  });
 
   // A type specimen. Every Type style rendered with letters AND digits, so a
   // font that silently fails to resolve shows up as a row of filled boxes here
@@ -412,19 +416,34 @@ void main() {
       await tester.pump(const Duration(milliseconds: 120));
     }
     expect(tester.takeException(), isNull);
-
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/about_screen_narrow_320x568_2x.png'),
       );
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('about-share-app')),
-        360,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pump(const Duration(milliseconds: 180));
-      expect(tester.takeException(), isNull);
+    }
+
+    final coffeeAction = find.byKey(const ValueKey('about-send-coffee'));
+    final shareAction = find.byKey(const ValueKey('about-share-app'));
+    expect(coffeeAction, findsOneWidget);
+    expect(shareAction, findsOneWidget);
+    await tester.scrollUntilVisible(
+      coffeeAction,
+      360,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(coffeeAction.hitTestable(), findsOneWidget);
+    await tester.scrollUntilVisible(
+      shareAction,
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(shareAction.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
@@ -1390,11 +1409,28 @@ void main() {
     _activateDock(tester, Icons.calendar_month_outlined);
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '05_planner_1290x2796');
-    await tester.tap(find.text('+ PLAN'));
+    final planAction = find.byKey(const ValueKey('calendar-plan-selected-day'));
+    expect(planAction, findsOneWidget);
+    await tester.ensureVisible(planAction);
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(planAction.hitTestable(), findsOneWidget);
+    await tester.tap(planAction);
     await tester.pump(const Duration(milliseconds: 350));
+    expect(
+      find.text('START WITH A DAY SHAPE — OR NAME YOUR OWN'),
+      findsOneWidget,
+      reason: 'The planner-shapes capture must show the Plan creation surface.',
+    );
     await _storeShot(tester, '05b_planner_shapes_1290x2796');
-    await tester.tapAt(const Offset(12, 12));
+    Navigator.of(
+      tester.element(find.text('START WITH A DAY SHAPE — OR NAME YOUR OWN')),
+    ).pop();
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
+    expect(
+      find.text('START WITH A DAY SHAPE — OR NAME YOUR OWN'),
+      findsNothing,
+    );
 
     _activateDock(tester, Icons.menu_book_outlined);
     await tester.pump(const Duration(milliseconds: 450));

@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/engine.dart';
@@ -6,6 +8,7 @@ import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:emberkeep/widgets/routine_ledger.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -124,7 +127,7 @@ void main() {
       ..addFont(rootBundle.load('assets/google_fonts/Inter-SemiBold.ttf'))
       ..addFont(rootBundle.load('assets/google_fonts/Inter-Bold.ttf'))
       ..addFont(rootBundle.load('assets/google_fonts/Inter-Italic.ttf'));
-    final mono = FontLoader('JetBrains Mono')
+    final mono = FontLoader('JetBrainsMono')
       ..addFont(
         rootBundle.load('assets/google_fonts/JetBrainsMono-SemiBold.ttf'),
       );
@@ -150,6 +153,66 @@ void main() {
   tearDown(() {
     Clock.reset();
     Sfx.instance.soundEnabled = true;
+  });
+
+  testWidgets('routine labels render detailed JetBrains Mono glyphs', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(160, 64));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    final boundaryKey = GlobalKey();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RepaintBoundary(
+          key: boundaryKey,
+          child: const ColoredBox(
+            color: Colors.white,
+            child: Center(
+              child: Text(
+                'I.I',
+                style: TextStyle(
+                  fontFamily: 'JetBrainsMono',
+                  fontSize: 32,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final boundary =
+        boundaryKey.currentContext!.findRenderObject()!
+            as RenderRepaintBoundary;
+    final coverage = await tester.runAsync(() async {
+      final image = await boundary.toImage(pixelRatio: 1);
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      expect(bytes, isNotNull);
+      var darkPixels = 0;
+      final data = bytes!.buffer.asUint8List();
+      for (var offset = 0; offset < data.length; offset += 4) {
+        if (data[offset] < 96 &&
+            data[offset + 1] < 96 &&
+            data[offset + 2] < 96 &&
+            data[offset + 3] > 192) {
+          darkPixels++;
+        }
+      }
+      return darkPixels / (image.width * image.height);
+    });
+    expect(
+      coverage,
+      lessThan(0.20),
+      reason: 'Ahem fallback renders each missing glyph as a solid block.',
+    );
+    expect(coverage, greaterThan(0.005));
   });
 
   testWidgets('night ledger visual target', (tester) async {
@@ -239,7 +302,7 @@ void main() {
   testWidgets('both ledgers survive a narrow large-text phone', (tester) async {
     tester.view.devicePixelRatio = 1;
     await tester.binding.setSurfaceSize(const Size(320, 568));
-    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(() {
       tester.view.resetDevicePixelRatio();
       tester.binding.setSurfaceSize(null);
@@ -270,6 +333,53 @@ void main() {
       isNull,
       reason: 'Night ledger overflowed on a narrow large-text phone.',
     );
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/routine_ledger_night_narrow_320x568_text_2x.png',
+        ),
+      );
+    }
+    final nightScroll = find.byKey(const ValueKey('recap'));
+    final closeDay = find.text('CLOSE THE DAY');
+    await tester.scrollUntilVisible(
+      closeDay,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(tester.takeException(), isNull);
+    expect(closeDay.hitTestable(), findsOneWidget);
+    expect(
+      tester.renderObject<RenderParagraph>(closeDay).didExceedMaxLines,
+      isFalse,
+      reason: 'The 200% primary action must remain visually readable.',
+    );
+    expect(
+      tester.widget<SingleChildScrollView>(nightScroll).controller!.offset,
+      greaterThan(0),
+    );
+    expect(
+      tester
+          .renderObject<RenderParagraph>(
+            find.text(
+              'Finish the unusually long and detailed visual polish pass',
+            ),
+          )
+          .textScaler
+          .scale(1),
+      2,
+      reason: 'The 200% evidence must not cap its compact priority tray.',
+    );
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/routine_ledger_night_narrow_scrolled_320x568_text_2x.png',
+        ),
+      );
+    }
 
     Clock.freeze(_morning);
     await tester.pumpWidget(
@@ -281,6 +391,41 @@ void main() {
       isNull,
       reason: 'Morning ledger overflowed on a narrow large-text phone.',
     );
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/routine_ledger_morning_narrow_320x568_text_2x.png',
+        ),
+      );
+    }
+    final morningScroll = find.byKey(const ValueKey('morning-ledger'));
+    final openDay = find.text('OPEN THE DAY');
+    await tester.scrollUntilVisible(
+      openDay,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(tester.takeException(), isNull);
+    expect(openDay.hitTestable(), findsOneWidget);
+    expect(
+      tester.renderObject<RenderParagraph>(openDay).didExceedMaxLines,
+      isFalse,
+      reason: 'The 200% primary action must remain visually readable.',
+    );
+    expect(
+      tester.widget<SingleChildScrollView>(morningScroll).controller!.offset,
+      greaterThan(0),
+    );
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/routine_ledger_morning_narrow_scrolled_320x568_text_2x.png',
+        ),
+      );
+    }
   });
 
   testWidgets('projected ledger controls remain tappable at tilt extremes', (

@@ -184,7 +184,7 @@ void main() {
   ) async {
     tester.view.devicePixelRatio = 1;
     await tester.binding.setSurfaceSize(const Size(320, 568));
-    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(() {
       tester.view.resetDevicePixelRatio();
       tester.binding.setSurfaceSize(null);
@@ -194,12 +194,12 @@ void main() {
     await tester.pumpWidget(_guide());
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);
-    expect(find.text('Quests'), findsOneWidget);
+    expect(find.text('Start with one Quest.'), findsOneWidget);
 
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
-        matchesGoldenFile('goldens/room_guide_narrow_320x568_text_1_3x.png'),
+        matchesGoldenFile('goldens/room_guide_narrow_320x568_text_2x.png'),
       );
     }
 
@@ -210,11 +210,27 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 180));
     expect(tester.takeException(), isNull);
+    final meDoor = find.ancestor(
+      of: find.text('Me'),
+      matching: find.byType(GestureDetector),
+    );
+    expect(meDoor.hitTestable(), findsOneWidget);
+    final closingGuidance = find.textContaining(
+      'You never need to use everything.',
+    );
+    await tester.scrollUntilVisible(
+      closingGuidance,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(closingGuidance, findsOneWidget);
+    expect(tester.takeException(), isNull);
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          'goldens/room_guide_narrow_scrolled_320x568_text_1_3x.png',
+          'goldens/room_guide_narrow_scrolled_320x568_text_2x.png',
         ),
       );
     }

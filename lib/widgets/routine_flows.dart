@@ -216,8 +216,9 @@ class _NightFlowState extends State<NightFlow> {
 
     return LayoutBuilder(
       builder: (context, bounds) {
-        final accessibilityText =
-            MediaQuery.textScalerOf(context).scale(1) > 1.15;
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final accessibilityText = textScale > 1.15;
+        final veryLargeText = textScale >= 1.75;
         final compact = bounds.maxWidth < 300 || accessibilityText;
         final tomorrowTray = _LedgerTomorrowTray(
           selected: selected,
@@ -355,7 +356,9 @@ class _NightFlowState extends State<NightFlow> {
                     if (compact) ...[
                       const Spacer(),
                       SizedBox(
-                        height: accessibilityText ? 84 : 92,
+                        height: veryLargeText
+                            ? 180
+                            : (accessibilityText ? 84 : 92),
                         child: tomorrowTray,
                       ),
                     ],
@@ -2356,8 +2359,11 @@ class _FinishedThreadsLedger extends StatelessWidget {
     final collapsedCount = 3;
     final visible = titles.take(collapsedCount).toList();
     final remaining = titles.length - visible.length;
-    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.15;
-    final height = compact ? (largeText ? 94.0 : 82.0) : 112.0;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final largeText = textScale > 1.15;
+    final height = compact
+        ? (textScale >= 1.75 ? 132.0 : (largeText ? 94.0 : 82.0))
+        : 112.0;
 
     if (titles.isEmpty) {
       return SizedBox(
@@ -2624,9 +2630,84 @@ class _LedgerTomorrowTray extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final veryLargeText = MediaQuery.textScalerOf(context).scale(1) >= 1.75;
+    final semanticLabel =
+        'Mark tomorrow, ${selected.length} of 3 priorities selected'
+        '${selected.isEmpty ? '' : ': ${selected.map((quest) => quest.displayTitle).join(', ')}'}';
+    if (compact && veryLargeText) {
+      return Semantics(
+        button: true,
+        label: semanticLabel,
+        child: Material(
+          color: Colors.transparent,
+          shape: const FacetedBorder(
+            cut: 8,
+            side: BorderSide(color: Color(0x997B603F)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'MARK TOMORROW',
+                    textAlign: TextAlign.center,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 1.2,
+                      color: Palette.xpLight,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  for (var index = 0; index < 3; index++)
+                    Expanded(
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 18,
+                            child: Text(
+                              '${index + 1}',
+                              style: LedgerType.display.copyWith(
+                                fontSize: 16,
+                                color: index < selected.length
+                                    ? Palette.brassLit
+                                    : Palette.brass,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              index < selected.length
+                                  ? selected[index].displayTitle
+                                  : 'Choose one',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: LedgerType.body.copyWith(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: index < selected.length
+                                    ? Palette.textMid
+                                    : Palette.textLo,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Semantics(
       button: true,
-      label: 'Mark tomorrow, ${selected.length} of 3 priorities selected',
+      label: semanticLabel,
       child: Material(
         color: Colors.transparent,
         child: LayoutBuilder(

@@ -214,6 +214,14 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
               unawaited(_motion.requestBrowserMotionPermission()),
           child: LayoutBuilder(
             builder: (context, bounds) {
+              final textScale = MediaQuery.textScalerOf(context).scale(1);
+              final narrowPhone = bounds.maxWidth < 360;
+              final accessibilityPhone = narrowPhone && textScale >= 1.75;
+              final stageHeight = narrowPhone
+                  ? (bounds.maxHeight < (accessibilityPhone ? 1450 : 1080)
+                        ? (accessibilityPhone ? 1450.0 : 1080.0)
+                        : bounds.maxHeight)
+                  : (bounds.maxHeight < 900 ? 900.0 : bounds.maxHeight);
               return MouseRegion(
                 onHover: (event) =>
                     _motion.handlePointer(event, bounds.biggest),
@@ -254,13 +262,7 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
                           // folio on the narrowest phones. Give the scroll view
                           // real extent for that extra paper instead of letting
                           // the live ledger overflow inside a clipped stage.
-                          height: bounds.maxWidth < 360
-                              ? (bounds.maxHeight < 1080
-                                    ? 1080
-                                    : bounds.maxHeight)
-                              : (bounds.maxHeight < 900
-                                    ? 900
-                                    : bounds.maxHeight),
+                          height: stageHeight,
                           width: bounds.maxWidth,
                           child: Stack(
                             clipBehavior: Clip.none,
@@ -299,9 +301,9 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
                                 ),
                               ),
                               Positioned(
-                                top: 62,
-                                left: 24,
-                                right: 24,
+                                top: accessibilityPhone ? 52 : 62,
+                                left: accessibilityPhone ? 20 : 24,
+                                right: accessibilityPhone ? 20 : 24,
                                 child: FadeTransition(
                                   opacity: _entranceCurve,
                                   child: SlideTransition(
@@ -315,12 +317,16 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
                                       children: [
                                         Text(
                                           widget.title,
-                                          maxLines: 1,
+                                          maxLines: accessibilityPhone ? 2 : 1,
                                           overflow: TextOverflow.ellipsis,
                                           textAlign: TextAlign.center,
                                           style: LedgerType.display.copyWith(
-                                            fontSize: 39,
-                                            height: 1,
+                                            fontSize: accessibilityPhone
+                                                ? 32
+                                                : 39,
+                                            height: accessibilityPhone
+                                                ? 0.92
+                                                : 1,
                                             color: Palette.textHi,
                                             shadows: const [
                                               Shadow(
@@ -334,6 +340,9 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
                                         const SizedBox(height: 7),
                                         Text(
                                           widget.dateLabel,
+                                          maxLines: accessibilityPhone ? 2 : 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
                                           style: Type.label.copyWith(
                                             fontSize: 11,
                                             letterSpacing: 1.75,
@@ -355,7 +364,7 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
                                 ),
                               ),
                               Positioned(
-                                top: 154,
+                                top: accessibilityPhone ? 245 : 154,
                                 left: 0,
                                 right: 0,
                                 child: widget.builder(
@@ -611,6 +620,8 @@ class RoutineLedgerPage extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, bounds) {
         final narrow = bounds.maxWidth < 360;
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final accessibilityPhone = narrow && textScale >= 1.75;
         final width = (bounds.maxWidth * 1.22).clamp(410.0, 560.0);
         // The two bookends are visits to the same desk, so their occupied
         // frame is deliberately shared even though the morning source plate
@@ -623,7 +634,8 @@ class RoutineLedgerPage extends StatelessWidget {
         // There the book stretches rather than the type shrinking — the trade
         // the routine_ledger_visual_test guards, and the right one: a slightly
         // long book beats a day you cannot read.
-        final folioHeight = width * (narrow ? 1.84 : 1.034);
+        final folioHeight =
+            width * (narrow ? (accessibilityPhone ? 2.45 : 1.84) : 1.034);
 
         // The clasp plate is its own photograph too (1983x498, h/w 0.251), so
         // its height follows its width rather than a hand-set clamp. It sits ON
@@ -956,6 +968,7 @@ class LedgerClaspButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const shape = FacetedBorder(cut: 7);
+    final accessibilityText = MediaQuery.textScalerOf(context).scale(1) >= 1.75;
     return Pressable(
       semanticLabel: label,
       shape: shape,
@@ -1019,13 +1032,19 @@ class LedgerClaspButton extends StatelessWidget {
                 ),
                 Center(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(34, 1, 34, 4),
+                    padding: EdgeInsets.fromLTRB(
+                      accessibilityText ? 6 : 34,
+                      1,
+                      accessibilityText ? 6 : 34,
+                      4,
+                    ),
                     child: Text(
                       label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: LedgerType.button.copyWith(
-                        fontSize: 14,
+                        fontSize: accessibilityText ? 10.5 : 14,
+                        letterSpacing: accessibilityText ? 0.5 : 2,
                         color: const Color(0xFF352014),
                         shadows: const [
                           Shadow(

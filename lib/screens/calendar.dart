@@ -1594,6 +1594,7 @@ class _DayPanel extends StatelessWidget {
     final planAction = isPast
         ? null
         : GestureDetector(
+            key: const ValueKey('calendar-plan-selected-day'),
             onTap: onPlan,
             child: GoldSurface(
               cut: 7,
