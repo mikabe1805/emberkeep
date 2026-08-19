@@ -1,26 +1,51 @@
 # Room of Days Release Checklist
 
-Updated August 18, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 19, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.3+21 internal TestFlight candidate
+## 1.0.4+22 iOS App Store candidate
 
-- [x] Give the post-1.0.2 Daybook work a new release identity instead of
-  reusing the frozen 1.0.2+20 Android/web record.
+- [x] Preserve Build 21 as an internal TestFlight record and assign the next
+  planned iOS candidate `1.0.4+22`. The Codemagic workflow must still confirm
+  live that Build 22 is unused before it archives anything.
+- [x] Include the finished calendar-commitment work: Day Shape, fixed plans,
+  deadlines, and chosen Quests now read as distinct parts of the same day.
 - [x] Put the general Daybook, optional School lane, unified calendar views,
-  manual locations, and Get Directions in the newest-first What's New record.
+  manual locations, and Get Directions in the newest-first What's New record,
+  while retaining the earlier Build 21 record in the archive.
+- [x] Ship the owner-approved Day Ledger icon in the iOS asset catalog.
 - [x] Keep protected Google place search off. The candidate is built without a
   `PLACE_SEARCH_ENABLED=true` define; manual location entry and map handoff
   remain available.
-- [ ] Push the verified release-prep commit to `origin/main`, then start exactly
+- [ ] Confirm App Store Connect shows Version 1.0 in a state that permits a new
+  version, public distribution in the US, agreements in effect, and Build 22
+  unused. The public US catalog is not proof of those internal states.
+- [ ] Refresh and inspect the final App Store screenshots and paste the exact
+  1.0.4 What's New copy from the versioned `STORE-LISTING.md`.
+- [ ] Push the verified release commit to `origin/main`, then start exactly
   one manual Codemagic `ios-testflight` run for that displayed commit.
 - [ ] Save the emitted IPA, dSYM, and `release-evidence.txt`; verify the source
   commit, marketing version, build number, signature, and TestFlight upload.
 - [ ] After Apple finishes processing, add the build to the intended internal
-  tester group and install it over Build 19 on a physical iPhone.
+  tester group and install it over Build 19 or Build 21 on a physical iPhone.
 - [ ] Complete the focused Daybook, persistence, accessibility, offline, and map
   handoff checks in `DEVICE-ACCEPTANCE-RUNBOOK.md` before any public App Store
   submission change.
+- [ ] Create App Store Version 1.0.4, select processed Build 22, complete its
+  metadata, submit it to App Review, and verify the released version in Apple's
+  public catalog. Upload, TestFlight processing, and review are not publication.
+
+Android store work is intentionally deferred for this release. Its immutable
+Build 20 evidence in `release-candidate.json` remains unchanged.
+
+## 1.0.3+21 internal TestFlight record
+
+- [x] Give the post-1.0.2 Daybook work a new internal identity instead of
+  reusing the frozen 1.0.2+20 Android/web record.
+- [x] Apple processed Version 1.0.3, Build 21 and made it available in
+  TestFlight on August 18, 2026.
+- [ ] Preserve a completed physical-iPhone acceptance receipt if Build 21 was
+  installed and tested; otherwise Build 22 supersedes this unchecked gate.
 
 ## 1.0.2+20 release record
 
@@ -350,7 +375,7 @@ Task 5 documentation commit itself.
   App Store profile, uploaded Build 19, and completed its automatic TestFlight
   submission after Apple processed the binary.
 - [x] In App Store Connect TestFlight Test Information, paste the exact Beta App
-  Description and Build 19 What to Test copy from `../STORE-LISTING.md`, use
+  Description and Build 19 What to Test copy from `STORE-LISTING.md`, use
   `support@roomofdays.com` as Feedback Email, add the marketing/privacy URLs and
   beta-review notes, and verify the existing beta-review contact fields. Build
   19's saved copy includes the redesigned About page, and the build is available
@@ -384,11 +409,11 @@ Task 5 documentation commit itself.
   Codemagic compiles that URL as empty; an empty `COFFEE_URL` remains the
   rollback switch for every platform.
 - [x] Route `support@roomofdays.com` to a monitored inbox (owner confirmed).
-- [x] Complete and publish Apple App Privacy from `../STORE-LISTING.md`, including
+- [x] Complete and publish Apple App Privacy from `STORE-LISTING.md`, including
   the privacy and deletion URLs and the seven linked, app-functionality data
   types used by optional account/cloud and user-authored features.
-- [ ] Complete Google Play Data safety from `../STORE-LISTING.md`.
-- [ ] Complete Google Play's Health Apps declaration from `../STORE-LISTING.md`;
+- [ ] Complete Google Play Data safety from `STORE-LISTING.md`.
+- [ ] Complete Google Play's Health Apps declaration from `STORE-LISTING.md`;
   do not claim that the app has no health features. Confirm the declaration
   includes Activity and Fitness, Nutrition and Weight Management, Sleep
   Management, and Stress Management / Relaxation / Mental Acuity.
@@ -435,7 +460,7 @@ Task 5 documentation commit itself.
   confirm no Emberkeep/project identity appears in the received email or action
   page, and prove that a full reset preserves the review account's cloud save.
 - [ ] Complete every Google Play App content card using
-  `../STORE-LISTING.md`: Ads No; sign-in details supplied; target audience and
+  `STORE-LISTING.md`: Ads No; sign-in details supplied; target audience and
   content rating; Data safety; Health apps; Financial features None;
   Government apps No; News and Magazine No; COVID-19 No; Advertising ID No;
   and any additional card Play Console marks `Needs attention`.

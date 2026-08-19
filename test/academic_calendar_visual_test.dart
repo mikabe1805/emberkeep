@@ -25,6 +25,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/golden_platform_policy.dart';
 
 const _capture = bool.fromEnvironment('CAPTURE_ACADEMIC');
+const _captureStore = bool.fromEnvironment('CAPTURE_STORE');
 const _verifyExactGoldens = bool.fromEnvironment('VERIFY_EXACT_GOLDENS');
 const _captureConflict = bool.fromEnvironment('CAPTURE_ACADEMIC_CONFLICT');
 const _captureTransition = bool.fromEnvironment('CAPTURE_ACADEMIC_TRANSITION');
@@ -148,6 +149,27 @@ void main() {
       }
     });
   }
+
+  testWidgets('App Store Daybook release visual', (tester) async {
+    if (!_captureStore) return;
+
+    await _pumpGeneralDaybookReleaseFixture(
+      tester,
+      mode: AcademicCalendarMode.month,
+      size: const Size(430, 932),
+      textScale: 1,
+      devicePixelRatio: 3,
+    );
+
+    expect(find.text('PLANS'), findsOneWidget);
+    expect(find.text('DAYBOOK'), findsOneWidget);
+    expect(find.text('AUGUST 2026'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/store_03_daybook_1290x2796.png'),
+    );
+  });
 
   for (final mode in const [
     AcademicCalendarMode.month,
@@ -893,9 +915,10 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
   required AcademicCalendarMode mode,
   required Size size,
   required double textScale,
+  double devicePixelRatio = 1,
   bool integratedDirections = false,
 }) async {
-  tester.view.devicePixelRatio = 1;
+  tester.view.devicePixelRatio = devicePixelRatio;
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   await tester.binding.setSurfaceSize(size);
   addTearDown(() {

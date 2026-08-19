@@ -1697,6 +1697,7 @@ class _SelectedDayHeader extends StatelessWidget {
             label: 'Add a plan for $spoken',
             onTap: onPlan,
             child: GestureDetector(
+              key: const ValueKey('calendar-plan-selected-day'),
               excludeFromSemantics: true,
               behavior: HitTestBehavior.opaque,
               onTap: onPlan,

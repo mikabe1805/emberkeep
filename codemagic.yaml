@@ -63,11 +63,12 @@ workflows:
           flutter pub get
           jq -e '.swift_package_manager_enabled.ios == true' \
             .flutter-plugins-dependencies
-      - name: Analyze and test (a broken commit must not ride into TestFlight)
+      - name: Analyze, test, and verify the iOS submission packet
         script: |
           set -euo pipefail
           flutter analyze --no-pub
           flutter test --no-pub
+          dart run tool/verify_store_submission.dart --ios-only
       - name: Set up code signing (fetch + create App Store profile, key-safe)
         script: |
           set -euo pipefail
@@ -116,7 +117,7 @@ workflows:
       - name: Flutter build ipa
         script: |
           set -euo pipefail
-          # Keep the checked-in version+build exact (Build 21 for 1.0.3). A live
+          # Keep the checked-in version+build exact (Build 22 for 1.0.4). A live
           # high-water or authentication/API problem must stop before archive so
           # the binary cannot drift from its in-app release record.
           PUBSPEC_VERSION=$(sed -nE \

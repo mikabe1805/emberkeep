@@ -94,4 +94,4 @@ secret, or enable the flag.
   [`DEVICE-ACCEPTANCE-RUNBOOK.md`](DEVICE-ACCEPTANCE-RUNBOOK.md).
 - Store-console copy, privacy answers, screenshots, and remaining owner gates
   are tracked in [`RELEASE-CHECKLIST.md`](RELEASE-CHECKLIST.md) and
-  [`../STORE-LISTING.md`](../STORE-LISTING.md).
+  [`STORE-LISTING.md`](STORE-LISTING.md).

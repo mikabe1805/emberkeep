@@ -66,7 +66,7 @@ app/
 - `design-qa.md` — comparison history and superseded implementation findings.
 - `../ROADMAP.md` — build phases
 - `../RESEARCH.md` — market/science evidence
-- `../STORE-LISTING.md` — app store / TestFlight copy
+- `STORE-LISTING.md` — versioned app store / TestFlight copy
 
 ## Development Commands
 ```bash

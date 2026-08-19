@@ -8,9 +8,13 @@ void main() {
   test('current release agrees with the source version', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
-    expect(currentRoomReleaseNotes.id, '1.0.3+21');
+    expect(currentRoomReleaseNotes.id, '1.0.4+22');
     expect(currentRoomReleaseNotes.title, 'Plans are for your whole life.');
     expect(pubspec, contains('version: ${currentRoomReleaseNotes.id}'));
+    expect(
+      roomOfDaysReleaseNotes.map((release) => release.id),
+      containsAllInOrder(const ['1.0.4+22', '1.0.3+21', '1.0.2+20']),
+    );
   });
 
   test('existing install claims an unseen release exactly once', () async {

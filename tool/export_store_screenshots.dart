@@ -25,20 +25,26 @@ const _assets = <_Asset>[
     2796,
   ),
   _Asset(
+    'test/goldens/store_03_daybook_1290x2796.png',
+    'store-assets/screenshots/app-store/03-plans-1290x2796.png',
+    1290,
+    2796,
+  ),
+  _Asset(
     'test/goldens/store_02_keep_1290x2796.png',
-    'store-assets/screenshots/app-store/03-my-space-1290x2796.png',
+    'store-assets/screenshots/app-store/04-my-space-1290x2796.png',
     1290,
     2796,
   ),
   _Asset(
     'test/goldens/store_03b_conservatory_preview_1290x2796.png',
-    'store-assets/screenshots/app-store/04-change-space-1290x2796.png',
+    'store-assets/screenshots/app-store/05-change-space-1290x2796.png',
     1290,
     2796,
   ),
   _Asset(
     'test/goldens/store_06_insights_1290x2796.png',
-    'store-assets/screenshots/app-store/05-journal-1290x2796.png',
+    'store-assets/screenshots/app-store/06-journal-1290x2796.png',
     1290,
     2796,
   ),
@@ -75,6 +81,9 @@ const _assets = <_Asset>[
 ];
 
 const _legacyScreenshots = <String>[
+  'store-assets/screenshots/app-store/03-my-space-1290x2796.png',
+  'store-assets/screenshots/app-store/04-change-space-1290x2796.png',
+  'store-assets/screenshots/app-store/05-journal-1290x2796.png',
   'store-assets/screenshots/01-quests-1290x2796.png',
   'store-assets/screenshots/02-reward-1290x2796.png',
   'store-assets/screenshots/03-tapestry-room-1290x2796.png',
@@ -82,14 +91,26 @@ const _legacyScreenshots = <String>[
   'store-assets/screenshots/05-insights-1290x2796.png',
 ];
 
-void main() {
+void main(List<String> arguments) {
+  if (arguments.isNotEmpty &&
+      !(arguments.length == 1 && arguments.single == '--ios-only')) {
+    stderr.writeln(
+      'Usage: dart run tool/export_store_screenshots.dart [--ios-only]',
+    );
+    exitCode = 64;
+    return;
+  }
+  final iosOnly = arguments.isNotEmpty;
   if (!File('pubspec.yaml').existsSync()) {
     stderr.writeln('Run this command from the app repository root.');
     exitCode = 64;
     return;
   }
 
-  for (final asset in _assets) {
+  final selectedAssets = iosOnly
+      ? _assets.where((asset) => asset.destination.contains('/app-store/'))
+      : _assets;
+  for (final asset in selectedAssets) {
     final source = File(asset.source);
     if (!source.existsSync()) {
       throw StateError(
