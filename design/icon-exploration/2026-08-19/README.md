@@ -115,3 +115,30 @@ The built-in generator returned each square output as 1254 x 1254 ARGB despite t
 These are review masters only. Their small-size silhouette, category reading, platform-mask behavior, and themed-icon viability remain unaccepted until the deterministic comparison sheets are built and opened.
 
 For the three accepted review candidates and the comparison sheets, the stable option mapping is: Option 1 = accepted Inhabited Room targeted retry, Option 2 = Completion Latch / Orbit, Option 3 = Daybook and Light. The rejected first render remains in the built-in output history for provenance but is not an option.
+
+## Task 3 deterministic comparison and visual evidence
+
+The review-only tool was run against the current baseline followed by the three accepted masters in the fixed option order. It accepts exactly four square PNGs of at least 1024 px, preserving the 1254 px candidate masters as inputs and deriving cubic-downsampled 1024, 180, 60, and 32 px previews. It rejects any `--output-dir` inside `ios`, `android`, `windows`, `store-assets`, `web/icons`, or `assets/brand` path segments. It does not write candidate or shipping-icon pixels.
+
+Generated opaque RGB review sheets:
+
+- `contact-sheet-32-60-180-1024.png` — 1756 x 4502 px; current baseline, then Options 1-3 at 1024, 180, 60, and 32 px.
+- `contact-sheet-platform-masks.png` — 2292 x 1782 px; square, iOS rounded-square proxy, Android circle proxy, Android safe-area overlay, and grayscale/themed preview.
+
+Both sheets and all three candidate masters were opened directly. No selection was made in Task 3; the current icon remains the baseline and all three options remain available for the owner checkpoint.
+
+### Current baseline
+
+The centered brass room and warm disc retain the strongest immediately readable silhouette at 32 px. The form remains coherent in the iOS and circular proxies, stays inside the Android safe-area guide, and is still legible as a monochrome/themed mark. Its remaining tradeoff is the pre-existing broad category reading: it communicates a place/room more clearly than it communicates gathered days.
+
+### Option 1 — Inhabited Room retry
+
+The targeted retry is materially coherent with the app and carries the clearest candidate product connection: it reads as a threshold/room with a controlled light event rather than miniature decor. Its outer room silhouette and internal light hold at 32 px, survive both masks and the Android guide, and remain credible in grayscale. It is close to the current room language, so it has low recognition risk but does not create a radically new emblem; its category risk is still a possible interior/home-design reading.
+
+### Option 2 — Completion Latch / Orbit
+
+The ring adds a distinct internal relationship and stays visible at 60 px, with the room outline, iOS proxy, circle proxy, safe-area guide, and grayscale preview all technically intact. At 32 px, however, the orbit compresses into a small Saturn-like form around the bright disc. That makes astronomy, game-token, or decorative-orbit category confusion a substantial concern, and the added geometry is less specifically connected to Room of Days than the threshold reading. This is evidence for the owner review, not a silent rejection or selection.
+
+### Option 3 — Daybook / Light
+
+The folio is the clearest candidate expression of held/gathered days and has strong cloth, brass, and honey-light material coherence. It stays inside the platform masks and guide; its grayscale preview retains the page-turn silhouette. At 32 px, its diagonal cover and page relationship become a compact book/journal reading more than a distinct Room of Days mark. The central light stays visible but is partially occluded, so generic notes, reading, or education-app category confusion remains the material concern.
