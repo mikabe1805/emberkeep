@@ -15,7 +15,7 @@
 | `git rev-parse HEAD` | 0 | n/a | `ca483b8fe0a5496b8105399fc8593c624e0b6a3e` |
 | `git status --short` | 0 | n/a | Empty before capture; retained as the ownership baseline. |
 | `rg -n "^version:" pubspec.yaml` | 0 | n/a | `19:version: 1.0.3+21` |
-| `flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true --dart-define=CAPTURE_STORE=true --dart-define=CAPTURE_PLAY=true test/screenshots_test.dart` | Not captured: console detached before Flutter's final footer | 14 scenarios printed before the console detached; no failures printed | Deterministic widget, Apple store, and Google Play golden families. The runner process then exited; required Apple frames were present and decoded. |
+| `flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true --dart-define=CAPTURE_STORE=true --dart-define=CAPTURE_PLAY=true test/screenshots_test.dart` | 0 | 23 | `01:01 +23: All tests passed!` Deterministic widget, Apple store, and Google Play golden families refreshed. |
 | Required-frame `Test-Path` check | 0 | n/a | All seven required Apple store frames exist. |
 | Required-frame `System.Drawing.Image.FromFile` check | 0 | n/a | All seven required Apple store frames decode at 1290 x 2796. |
 | `git status --short` | 0 | n/a | Empty after capture. |
