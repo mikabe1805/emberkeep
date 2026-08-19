@@ -33,3 +33,27 @@
 - Native share-sheet invocation and completion behavior.
 - Image-picker permission and camera/photo-library behavior.
 - External directions and support links through the device URL handler.
+
+## Task 2: Accessibility, state, and motion refresh (2026-08-19)
+
+Task 2 was run from the release-final worktree at `d1d6a4ffea1237c6b208c2f7a002155dce0358af`. These are fresh deterministic captures and behavior receipts from the current source; no browser driver or live Places request was used.
+
+| Command | Exit code | Test count when printed | Receipt |
+| --- | --- | --- | --- |
+| `flutter test --update-goldens --dart-define=CAPTURE_LARGE_TEXT=true test/large_text_accessibility_test.dart` | 0 | 5 | `00:03 +5: All tests passed!` Refreshed `test/goldens/large_text_{calendar_journal,circle_empty,circle_populated,my_space,personalize_dialog,share_dialog,visit_error,visit_loading}_320x568_2x.png`. |
+| `flutter test --update-goldens --dart-define=CAPTURE_ACADEMIC=true --dart-define=CAPTURE_ACADEMIC_CONFLICT=true --dart-define=CAPTURE_ACADEMIC_TRANSITION=true --dart-define=CAPTURE_ACADEMIC_STUDY_PLANNER=true --dart-define=CAPTURE_ACADEMIC_OCCURRENCE_ADJUST=true test/academic_calendar_visual_test.dart` | 0 | 16 | `00:04 +16: All tests passed!` Refreshed `test/goldens/academic_*.png` and `test/goldens/daybook_*.png`, including normal and narrow/200% Daybook, directions, failure, conflict, transition, study-planner, and occurrence-adjustment states. |
+| `flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true test/routine_ledger_visual_test.dart` | 0 | 7 | `00:02 +7: All tests passed!` Refreshed `test/goldens/routine_ledger_{morning,night,night_many_collapsed,night_many_expanded,planner}_430x932.png`. |
+| `flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true test/room_guide_test.dart` | 0 | 6 | `00:01 +6: All tests passed!` Refreshed `test/goldens/room_guide_{430x932,scrolled_430x932}.png`. |
+| `flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true test/whats_new_screen_test.dart` | 0 | 7 | `00:01 +7: All tests passed!` Behavior receipt only: the run prints no `whats_new_*.png` capture output, so no image was invented. |
+| `flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true test/streak_freeze_visual_test.dart` | 0 | 1 | `00:00 +1: All tests passed!` Refreshed `test/goldens/streak_freeze_{details,sheet}.png`. |
+| `flutter test test/reward_motion_accessibility_test.dart test/feedback_motion_accessibility_test.dart test/luxe_motion_test.dart` | 0 | 13 | `00:01 +13: All tests passed!` Behavior receipt: reduced motion keeps the complete reward receipt immediate and parks supporting rooms while lists scroll; deterministic goldens intentionally show parked motion. |
+| `flutter test test/text_scaler_accessibility_test.dart test/semantic_action_regression_test.dart test/about_screen_test.dart` | 0 | 11 | `00:01 +11: All tests passed!` Focused text-scaling and semantic-action receipt; no uncaught layout exception was printed. |
+
+The capture refresh produced no tracked golden diff, which means this current-source run matched the committed golden baseline byte-for-byte. The separate behavior receipts above are therefore the evidence for states that are not represented by a new image.
+
+### Task 2 manual limits
+
+- Normal-motion feel and frame pacing remain physical-device checks; a parked deterministic golden is not evidence of normal-motion quality.
+- Software keyboard inset behavior and physical keyboard navigation remain manual device checks.
+- VoiceOver/TalkBack traversal order remains a manual assistive-technology check.
+- Native external handoff (directions, share sheet, support links) remains a manual device check.
