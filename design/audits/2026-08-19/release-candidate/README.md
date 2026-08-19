@@ -23,9 +23,13 @@
 
 ## Findings
 
-| ID | Severity | State | Evidence path | Shared source | Release decision |
+| ID | Severity | Finding | Opened evidence | Smallest shared source | Release decision |
 | --- | --- | --- | --- | --- | --- |
-| None recorded | n/a | Four representative core frames opened: quests, reward, goals, and insights. No issue is recorded without opened evidence. | `test/goldens/store_01_quests_1290x2796.png`; `test/goldens/store_02_reward_1290x2796.png`; `test/goldens/store_04_goals_1290x2796.png`; `test/goldens/store_06_insights_1290x2796.png` | n/a | Defer release judgment until the remaining audit tasks complete. |
+| A-01 | FINISH | About breaks the system's one-luminous-action hierarchy. Android gives both `SEND FEEDBACK` and `VISIT KO-FI` the honey-gold primary treatment; iOS gives both `SEND FEEDBACK` and `SHARE ROOM OF DAYS` that treatment. The actions are legible and reachable, so this is a material consistency finish rather than a broken flow. | `test/goldens/about_screen_430x932.png`; `test/goldens/about_screen_ios_430x932.png` | `lib/screens/about.dart`, specifically `_ContactCard`, `_SupportCard`, and the existing `gold` variant in `_AboutAction` | Accepted FINISH. It does not block release-candidate validation, but should be completed before the release tag using `docs/superpowers/plans/2026-08-19-release-candidate-polish.md`. |
+| M-01 | MANUAL | Physical keyboard traversal, software-keyboard/inset behavior, and VoiceOver/TalkBack reading order cannot be certified from deterministic desktop captures. | Task 2 focused accessibility receipts plus the current narrow captures listed below | Native device and assistive-technology environment | Keep as a required device gate. |
+| M-02 | MANUAL | Haptics, audio, native share/directions/support handoffs, and normal-motion feel/frame pacing cannot be certified from deterministic desktop captures. | Task 2 motion/semantic receipts plus current share, directions, support, and ritual captures listed below | Native OS services and physical device | Keep as a required device gate. |
+
+The Task 1 provisional `None recorded` row is superseded by this final Task 3 finding set.
 
 ## Physical-device gates
 
@@ -57,3 +61,60 @@ The `test/goldens` refresh produced no tracked golden diff, which means those cu
 - Software keyboard inset behavior and physical keyboard navigation remain manual device checks.
 - VoiceOver/TalkBack traversal order remains a manual assistive-technology check.
 - Native external handoff (directions, share sheet, support links) remains a manual device check.
+
+## Task 3: Same-input comparison and senior visual audit (2026-08-19)
+
+All twelve supported comparison modes exited 0 from current source and wrote the dated outputs below. No historical input was missing, no substitute was fabricated, and no browser driver or live Places request was used.
+
+| Command | Exit code | Dated output |
+| --- | --- | --- |
+| `python tool/visual_compare.py review` | 0 | `design/comparisons/2026-08-19/current-system-review.png` |
+| `python tool/visual_compare.py review-phone` | 0 | `design/comparisons/2026-08-19/current-system-review-phone.webp` |
+| `python tool/visual_compare.py audit-phone` | 0 | `design/comparisons/2026-08-19/first-run-me-journal-audit-phone.webp` |
+| `python tool/visual_compare.py system` | 0 | `design/comparisons/2026-08-19/system-target-vs-build.png` |
+| `python tool/visual_compare.py focus` | 0 | `design/comparisons/2026-08-19/focused-target-vs-build.png` |
+| `python tool/visual_compare.py routine` | 0 | `design/comparisons/2026-08-19/routine-ledger-target-vs-build.png` |
+| `python tool/visual_compare.py routine-detail` | 0 | `design/comparisons/2026-08-19/routine-ledger-detail-target-vs-build.png` |
+| `python tool/visual_compare.py routine-phone` | 0 | `design/comparisons/2026-08-19/routine-ledger-phone-after.webp` |
+| `python tool/visual_compare.py rooms` | 0 | `design/comparisons/2026-08-19/complete-room-target-vs-build.png` |
+| `python tool/visual_compare.py rooms-phone` | 0 | `design/comparisons/2026-08-19/complete-room-system-phone.webp` |
+| `python tool/visual_compare.py journal-performance-phone` | 0 | `design/comparisons/2026-08-19/journal-and-phone-performance-pass.webp` |
+| `python tool/visual_compare.py sharing-journal-phone` | 0 | `design/comparisons/2026-08-19/sharing-journal-privacy-pass.webp` |
+
+### Opened comparison sheets
+
+Every generated comparison sheet was opened at full-frame scale:
+
+- `design/comparisons/2026-08-19/current-system-review.png`
+- `design/comparisons/2026-08-19/current-system-review-phone.webp`
+- `design/comparisons/2026-08-19/first-run-me-journal-audit-phone.webp`
+- `design/comparisons/2026-08-19/system-target-vs-build.png`
+- `design/comparisons/2026-08-19/focused-target-vs-build.png`
+- `design/comparisons/2026-08-19/routine-ledger-target-vs-build.png`
+- `design/comparisons/2026-08-19/routine-ledger-detail-target-vs-build.png`
+- `design/comparisons/2026-08-19/routine-ledger-phone-after.webp`
+- `design/comparisons/2026-08-19/complete-room-target-vs-build.png`
+- `design/comparisons/2026-08-19/complete-room-system-phone.webp`
+- `design/comparisons/2026-08-19/journal-and-phone-performance-pass.webp`
+- `design/comparisons/2026-08-19/sharing-journal-privacy-pass.webp`
+
+### Opened individual current captures
+
+The audit also opened the required current and narrow captures individually rather than inferring from filenames or masked sheets:
+
+- Onboarding: `test/goldens/store_audit_00_welcome_1290x2796.png`, `test/goldens/store_audit_01_evening_name_1290x2796.png`, `test/goldens/store_audit_02_day_shape_1290x2796.png`, `test/goldens/store_audit_03_first_board_1290x2796.png`.
+- Quests: `test/goldens/store_01_quests_1290x2796.png`, `test/goldens/store_01a_quests_scrolled_1290x2796.png`, `test/goldens/store_02a_stitch_1290x2796.png`, `test/goldens/store_02_reward_1290x2796.png`.
+- Goals and Plans/Daybook: `test/goldens/store_04_goals_1290x2796.png`, `test/goldens/academic_schedule_month_430x932.png`, `test/goldens/academic_schedule_day_430x932.png`, `test/goldens/academic_schedule_conflict_430x932.png`, `test/goldens/daybook_general_normal.png`, `test/goldens/daybook_directions_integrated_430x932.png`, `test/goldens/daybook_directions_failure_normal.png`, `test/goldens/academic_occurrence_adjust_430x932.png`.
+- Narrow Plans/Daybook: `test/goldens/daybook_general_narrow_200.png`, `test/goldens/daybook_directions_provider_narrow_200.png`, `test/goldens/daybook_directions_failure_narrow_200.png`.
+- Narrow 200-percent system: `test/goldens/large_text_calendar_journal_320x568_2x.png`, `test/goldens/large_text_circle_empty_320x568_2x.png`, `test/goldens/large_text_circle_populated_320x568_2x.png`, `test/goldens/large_text_my_space_320x568_2x.png`, `test/goldens/large_text_personalize_dialog_320x568_2x.png`, `test/goldens/large_text_share_dialog_320x568_2x.png`, `test/goldens/large_text_visit_error_320x568_2x.png`, `test/goldens/large_text_visit_loading_320x568_2x.png`.
+- What's New: `design/audits/2026-08-19/release-candidate/whats-new/whats_new_430x932.png`, `design/audits/2026-08-19/release-candidate/whats-new/whats_new_320x568_text_2x.png`, `design/audits/2026-08-19/release-candidate/whats-new/whats_new_320x568_text_2x_scrolled.png`.
+- About and Room Guide: `test/goldens/about_screen_430x932.png`, `test/goldens/about_screen_ios_430x932.png`, `test/goldens/room_guide_430x932.png`, `test/goldens/room_guide_scrolled_430x932.png`.
+- Rooms/Me/Journal: `test/goldens/store_audit_10_fresh_me_1290x2796.png`, `test/goldens/store_02_keep_1290x2796.png`, `test/goldens/store_audit_12_fresh_journal_1290x2796.png`, `test/goldens/store_07_journal_1290x2796.png`, `test/goldens/store_14c_my_space_arranger_1290x2796.png`.
+- Rituals: `test/goldens/routine_ledger_night_430x932.png`, `test/goldens/routine_ledger_night_many_collapsed_430x932.png`, `test/goldens/routine_ledger_night_many_expanded_430x932.png`, `test/goldens/routine_ledger_planner_430x932.png`, `test/goldens/routine_ledger_morning_430x932.png`.
+- Support/account/streak: `test/goldens/store_02e_share_dialog_1290x2796.png`, `test/goldens/store_02f_support_picker_1290x2796.png`, `test/goldens/store_14d_room_guide_entry_1290x2796.png`, `test/goldens/streak_freeze_sheet.png`.
+
+There is no narrow About or Room Guide raster in the current evidence set. Their dedicated tests do exercise 320 x 568 layout behavior (`About` at 200-percent text and `Room Guide` at 130-percent text) without an uncaught layout exception, but that behavior receipt is not represented as a visual capture. The masked `large_text_*` frames were used only to judge geometry and reflow, never to infer copy or type defects.
+
+### Final release decision
+
+No BLOCKER or HIGH finding is visible in the opened evidence. The system remains cohesive across onboarding, Quests, Goals, Daybook, rooms, Journal, rituals, overlays, and accessibility geometries: hierarchy is clear, core actions remain reachable, and the candlelit desk/folio materials survive across categories. Historical targets with mature room state were treated as state context rather than current-build defects. `A-01` is an accepted FINISH with an executable one-task plan. Release-candidate validation may continue while the listed native/device conditions remain explicit gates; complete `A-01` before the release tag.
