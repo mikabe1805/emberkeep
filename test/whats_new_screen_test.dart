@@ -237,7 +237,7 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          '../design/audits/2026-08-17/whats-new/whats_new_430x932.png',
+          '../design/audits/2026-08-19/release-candidate/whats-new/whats_new_430x932.png',
         ),
       );
     }
@@ -251,7 +251,7 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          '../design/audits/2026-08-17/whats-new/whats_new_320x568_text_2x.png',
+          '../design/audits/2026-08-19/release-candidate/whats-new/whats_new_320x568_text_2x.png',
         ),
       );
       await tester.scrollUntilVisible(
@@ -263,7 +263,7 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          '../design/audits/2026-08-17/whats-new/whats_new_320x568_text_2x_scrolled.png',
+          '../design/audits/2026-08-19/release-candidate/whats-new/whats_new_320x568_text_2x_scrolled.png',
         ),
       );
     }
