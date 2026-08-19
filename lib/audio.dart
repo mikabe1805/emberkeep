@@ -6,6 +6,57 @@ import 'package:flutter/foundation.dart';
 import 'platform/audio_support_stub.dart'
     if (dart.library.js_interop) 'platform/audio_support_web.dart';
 
+/// The material a person believes they are touching. These are deliberately
+/// semantic rather than screen-specific: a calendar cell is parchment whether
+/// it lives in Plans or a future guided flow.
+enum MaterialSound { wood, stone, parchment, brass, glass }
+
+/// Deterministic, baked-variant routing for the small everyday sound family.
+///
+/// We do not pitch-shift at runtime. Tiny pitch/tone differences were authored
+/// into the source files, which keeps fast exploration tactile rather than
+/// synthetic or metallic. Keeping this separate makes the promise testable and
+/// lets future source-recorded material families drop in without touching UI.
+class MaterialSoundRouter {
+  MaterialSoundRouter();
+
+  static const _families = <MaterialSound, List<String>>{
+    MaterialSound.wood: ['tap_wood_1', 'tap_wood_2', 'tap_wood_3'],
+    MaterialSound.stone: ['tap_stone_1', 'tap_stone_2', 'tap_stone_3'],
+    MaterialSound.parchment: [
+      'tap_parchment_1',
+      'tap_parchment_2',
+      'tap_parchment_3',
+    ],
+    MaterialSound.brass: ['tap_brass_1', 'tap_brass_2', 'tap_brass_3'],
+    MaterialSound.glass: ['tap_glass_1', 'tap_glass_2', 'tap_glass_3'],
+  };
+
+  final Map<MaterialSound, int> _beats = {};
+
+  String next(MaterialSound material) {
+    final family = _families[material]!;
+    final beat = _beats[material] ?? 0;
+    _beats[material] = (beat + 1) % family.length;
+    return family[beat];
+  }
+}
+
+/// Non-persisted ownership for the room's welcome ignition. A resumed app,
+/// rebuilt page, or tab hop is still the same visit; only a fresh process gets
+/// the full fwoosh.
+class AppSessionIgnitionGate {
+  bool _claimed = false;
+
+  bool claim() {
+    if (_claimed) return false;
+    _claimed = true;
+    return true;
+  }
+
+  bool get isClaimed => _claimed;
+}
+
 /// Event-typed sound palette (DESIGN.md §8). Sounds are always paired with
 /// visuals, so every call is fire-and-forget and failure-tolerant — a muted
 /// or audio-broken device loses nothing.
@@ -28,6 +79,22 @@ class Sfx {
     'levelup',
     'boing',
     'hearth',
+    'fire_ignite',
+    'tap_wood_1',
+    'tap_wood_2',
+    'tap_wood_3',
+    'tap_stone_1',
+    'tap_stone_2',
+    'tap_stone_3',
+    'tap_parchment_1',
+    'tap_parchment_2',
+    'tap_parchment_3',
+    'tap_brass_1',
+    'tap_brass_2',
+    'tap_brass_3',
+    'tap_glass_1',
+    'tap_glass_2',
+    'tap_glass_3',
     'stat_0',
     'stat_1',
     'stat_2',
@@ -46,12 +113,30 @@ class Sfx {
   /// navigation from becoming metallic or tiring. See assets/sfx/SOURCES.md.
   static const _volume = <String, double>{
     'tick': 0.16,
+    'tick_warm': 0.16,
+    'tick_lift': 0.16,
     'complete': 0.55,
     'streak': 0.55,
     'boing': 0.4,
     // Full volume marks a genuinely revived hearth. Room navigation reuses the
     // cue once at a much quieter scale; it never starts a background loop.
     'hearth': 0.68,
+    'fire_ignite': 0.68,
+    'tap_wood_1': 0.14,
+    'tap_wood_2': 0.14,
+    'tap_wood_3': 0.14,
+    'tap_stone_1': 0.13,
+    'tap_stone_2': 0.13,
+    'tap_stone_3': 0.13,
+    'tap_parchment_1': 0.11,
+    'tap_parchment_2': 0.11,
+    'tap_parchment_3': 0.11,
+    'tap_brass_1': 0.16,
+    'tap_brass_2': 0.16,
+    'tap_brass_3': 0.16,
+    'tap_glass_1': 0.10,
+    'tap_glass_2': 0.10,
+    'tap_glass_3': 0.10,
     'stat_0': 0.45,
     'stat_1': 0.45,
     'stat_2': 0.45,
@@ -66,6 +151,7 @@ class Sfx {
 
   final Map<String, AudioPool> _pools = {};
   final Map<String, Future<AudioPool?>> _poolLoads = {};
+  final MaterialSoundRouter _materials = MaterialSoundRouter();
 
   // Everyday taps form a tiny six-beat cadence: neutral and warmer contacts
   // alternate, then the sixth interaction gets a barely brighter lift. It is
@@ -196,5 +282,12 @@ class Sfx {
     } catch (e) {
       debugPrint('Sfx "$name" failed: $e');
     }
+  }
+
+  /// Plays an authored material contact. Existing named cues remain supported
+  /// for rewards and one-off events; new surface interactions should prefer
+  /// this API so the same material has the same acoustic identity everywhere.
+  void playMaterial(MaterialSound material, {double volumeScale = 1}) {
+    play(_materials.next(material), volumeScale: volumeScale);
   }
 }

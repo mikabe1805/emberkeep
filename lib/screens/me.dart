@@ -1855,7 +1855,7 @@ class MePage extends StatelessWidget {
             embers: state.embers,
             light: state.reduceMotion ? null : parallax,
             onChangeSpace: () {
-              Sfx.instance.play('tick');
+              Sfx.instance.playMaterial(MaterialSound.wood);
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => ShopScreen(
@@ -2020,7 +2020,7 @@ class MePage extends StatelessWidget {
                   count: state.hearthCircleCodes.length,
                   active: state.quietCompanyActive,
                   onTap: () {
-                    Sfx.instance.play('tick');
+                    Sfx.instance.playMaterial(MaterialSound.wood);
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => HearthCircleScreen(
@@ -2086,7 +2086,7 @@ class MePage extends StatelessWidget {
                     value: state.stats[s] ?? 0,
                     noteCount: state.notesFor(s).length,
                     onOpen: () {
-                      Sfx.instance.play('tick');
+                      Sfx.instance.playMaterial(MaterialSound.parchment);
                       HapticFeedback.selectionClick();
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -2351,7 +2351,7 @@ class MePage extends StatelessWidget {
           const SizedBox(height: 14),
           _RoomGuidePanel(
             onTap: () {
-              Sfx.instance.play('tick');
+              Sfx.instance.playMaterial(MaterialSound.wood);
               Haptics.tap();
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -2432,7 +2432,7 @@ class MePage extends StatelessWidget {
                       label: 'RESTORE',
                       icon: Icons.download_outlined,
                       onTap: () {
-                        Sfx.instance.play('tick');
+                        Sfx.instance.playMaterial(MaterialSound.glass);
                         showDialog(
                           context: context,
                           barrierColor: const Color(0xCC140C06),
@@ -2483,7 +2483,7 @@ class MePage extends StatelessWidget {
                       label: "WHAT'S NEW",
                       icon: Icons.history_rounded,
                       onTap: () {
-                        Sfx.instance.play('tick');
+                        Sfx.instance.playMaterial(MaterialSound.parchment);
                         Haptics.tap();
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -2499,7 +2499,7 @@ class MePage extends StatelessWidget {
                       label: 'ABOUT + FEEDBACK',
                       icon: Icons.info_outline,
                       onTap: () {
-                        Sfx.instance.play('tick');
+                        Sfx.instance.playMaterial(MaterialSound.parchment);
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => AboutScreen(
@@ -2672,7 +2672,7 @@ class MePage extends StatelessWidget {
                       Sfx.instance.play('boing');
                       return;
                     }
-                    Sfx.instance.play('tick');
+                    Sfx.instance.playMaterial(MaterialSound.glass);
                     HapticFeedback.selectionClick();
                     state.setTheme(t.id);
                   },
@@ -2706,7 +2706,7 @@ class MePage extends StatelessWidget {
             onChanged: (v) {
               state.setSound(v);
               Sfx.instance.soundEnabled = v;
-              if (v) Sfx.instance.play('tick');
+              if (v) Sfx.instance.playMaterial(MaterialSound.glass);
               onPersist();
             },
           ),
@@ -3067,7 +3067,7 @@ class MePage extends StatelessWidget {
   }
 
   void _confirmReset(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -3285,7 +3285,7 @@ void _showRoomMilestoneInfo(
   final unlocked = currentLevel >= targetLevel;
   final remaining = (targetLevel - currentLevel).clamp(0, targetLevel);
   final progress = (currentLevel / targetLevel).clamp(0.0, 1.0);
-  Sfx.instance.play('tick');
+  Sfx.instance.playMaterial(MaterialSound.glass);
   showDialog(
     context: context,
     barrierColor: const Color(0xCC140C06),
@@ -3375,7 +3375,7 @@ void _showAchievementInfo(
   (int, int)? progress,
   Color flameHue,
 ) {
-  Sfx.instance.play('tick');
+  Sfx.instance.playMaterial(MaterialSound.glass);
   showDialog(
     context: context,
     barrierColor: const Color(0xCC140C06),
@@ -3445,7 +3445,7 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
   final cos = cosmeticFor(loot);
   final tint = cos?.aura ?? Palette.unlock;
   final rarity = cos?.rarity ?? Rarity.common;
-  Sfx.instance.play('tick');
+  Sfx.instance.playMaterial(MaterialSound.glass);
   showDialog(
     context: context,
     barrierColor: const Color(0xCC140C06),
@@ -4677,7 +4677,7 @@ class _ShareButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.glass);
         HapticFeedback.selectionClick();
         showDialog(
           context: context,
@@ -5744,7 +5744,7 @@ class _AccountPanel extends StatelessWidget {
   final bool supportsPrivateServiceIdentityRemoval;
 
   Future<void> _enableBackup(BuildContext context) async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     final error = await onEnableCloud();
     if (!context.mounted) return;
     Sfx.instance.play(error == null ? 'levelup' : 'boing');
@@ -5761,7 +5761,7 @@ class _AccountPanel extends StatelessWidget {
   }
 
   void _openForm(BuildContext context, {required bool signIn}) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     showDialog(
       context: context,
       barrierColor: const Color(0xCC140C06),
@@ -5771,7 +5771,7 @@ class _AccountPanel extends StatelessWidget {
   }
 
   void _confirmSignOut(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     showDialog(
       context: context,
       barrierColor: const Color(0xCC140C06),
@@ -5853,7 +5853,7 @@ class _AccountPanel extends StatelessWidget {
   }
 
   void _confirmDelete(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     showDialog<void>(
       context: context,
       barrierColor: Palette.dialogBarrier,
@@ -6096,7 +6096,7 @@ class PrivateServiceIdentityControl extends StatelessWidget {
         tapTargetSize: MaterialTapTargetSize.padded,
       ),
       onPressed: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.glass);
         showDialog<void>(
           context: context,
           barrierDismissible: false,

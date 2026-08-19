@@ -77,6 +77,8 @@ class QuestsPage extends StatefulWidget {
     this.onNightClosed,
     this.parallax,
     this.lightDirection,
+    this.roomIgniting = false,
+    this.roomHearthLit = true,
   });
 
   final GameState state;
@@ -120,6 +122,14 @@ class QuestsPage extends StatefulWidget {
   /// weightier room camera makes gold answer the hand without making the
   /// painted environment feel floaty.
   final ValueListenable<Offset>? lightDirection;
+
+  /// Owned by the shell's non-persisted app-session gate. This is not a tab
+  /// transition effect: it is only the room's first visible wake-up.
+  final bool roomIgniting;
+
+  /// Whether this app session has completed its one visible room ignition.
+  /// Direct page previews retain a lit hearth; the real shell starts dark.
+  final bool roomHearthLit;
 
   @override
   State<QuestsPage> createState() => _QuestsPageState();
@@ -638,7 +648,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     var current = _journalDraftFor(quest, openedAt);
     final trace = current?.trace ?? _journalTraceFor(quest);
     _journalRouteOpen = true;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
@@ -715,7 +725,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (q.allDay) {
       // honesty by design: an all-day line is only confirmed at night — but
       // the moment of willpower still deserves a beat, not a cold deferral.
-      Sfx.instance.play('tick');
+      Sfx.instance.playMaterial(MaterialSound.brass);
       HapticFeedback.lightImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1057,7 +1067,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// Long-press management: star as MAIN, or remove (two-tap confirm).
   void _manageQuest(Quest q) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     HapticFeedback.selectionClick();
     var armed = false;
     showDialog(
@@ -1095,7 +1105,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   // full-width, 44pt target (a11y pass) — was an 18px row
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
-                    Sfx.instance.play('tick');
+                    Sfx.instance.playMaterial(MaterialSound.brass);
                     setState(() {
                       if (q.priorityOn(Clock.now())) {
                         q.priority = false;
@@ -1137,7 +1147,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
-                    Sfx.instance.play('tick');
+                    Sfx.instance.playMaterial(MaterialSound.glass);
                     Navigator.of(ctx).pop();
                     showDialog(
                       context: context,
@@ -1178,7 +1188,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
-                    Sfx.instance.play('tick');
+                    Sfx.instance.playMaterial(MaterialSound.parchment);
                     Navigator.of(ctx).pop();
                     final last = q.lastDoneDay;
                     showNotesSheet(
@@ -1242,7 +1252,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
-                    Sfx.instance.play('tick');
+                    Sfx.instance.playMaterial(MaterialSound.brass);
                     HapticFeedback.selectionClick();
                     setState(() => q.snoozedDay = Days.key(Clock.now()));
                     Storage.logEvent('snooze', [
@@ -1284,7 +1294,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
                     if (!armed) {
-                      Sfx.instance.play('tick');
+                      Sfx.instance.playMaterial(MaterialSound.brass);
                       setDialog(() => armed = true);
                       return;
                     }
@@ -1334,7 +1344,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// banked win, the streak, or the daily baseline. The old board-shuffle
   /// lives on as a quiet footer link for the rare genuine reload.
   void _openMomentum() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     HapticFeedback.selectionClick();
     showDialog(
       context: context,
@@ -1350,7 +1360,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Quick capture for real life ("laundry, today, no schedule"): one
   /// field, smart defaults, lands at the top of today as a due event.
   void _quickAdd() async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.brass);
     HapticFeedback.selectionClick();
     final q = await showEmberSheet(
       context,
@@ -1361,7 +1371,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   void _openNight() {
     if (_nightOverlay != null) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     final s = _state;
     late final OverlayEntry e;
     e = OverlayEntry(
@@ -1392,7 +1402,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   }
 
   void _openMorning() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     final s = _state;
     late final OverlayEntry e;
     e = OverlayEntry(
@@ -1419,7 +1429,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   void _openWorkout(Quest launcher, Offset tapPos) {
     if (_workoutRunnerOpen) return; // dedupe rapid double-tap (bug-hunt §8)
     _workoutRunnerOpen = true;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.wood);
     HapticFeedback.selectionClick();
     late final OverlayEntry e;
     e = OverlayEntry(
@@ -1947,7 +1957,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       key: ValueKey('board-$dismissKey'),
       direction: DismissDirection.horizontal,
       onDismissed: (_) {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.glass);
         HapticFeedback.selectionClick();
         setState(onGone);
         widget.onPersist();
@@ -2065,7 +2075,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
-                  Sfx.instance.play('tick');
+                  Sfx.instance.playMaterial(MaterialSound.glass);
                   dismiss();
                 },
                 child: const Padding(
@@ -2143,7 +2153,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
-                  Sfx.instance.play('tick');
+                  Sfx.instance.playMaterial(MaterialSound.glass);
                   setState(() => _state.dismissWeekRecap());
                   widget.onPersist();
                 },
@@ -2269,7 +2279,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               const SizedBox(width: 6),
               GestureDetector(
                 onTap: () {
-                  Sfx.instance.play('tick');
+                  Sfx.instance.playMaterial(MaterialSound.brass);
                   HapticFeedback.selectionClick();
                   setState(() => _state.sparkSeenDay = today);
                   widget.onPersist();
@@ -2377,7 +2387,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   }
 
   void _liftRest() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.wood);
     HapticFeedback.selectionClick();
     setState(() => _state.liftRest());
     widget.onPersist();
@@ -2537,7 +2547,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   label: showingAll ? 'RETURN TO 3' : 'SHOW ALL',
                   color: Palette.xpLight,
                   onTap: () {
-                    Sfx.instance.play('tick');
+                    Sfx.instance.playMaterial(MaterialSound.glass);
                     HapticFeedback.selectionClick();
                     setState(() => _showFullLowFlame = !showingAll);
                   },
@@ -2718,6 +2728,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   height: roomHeight,
                   parallax: _activeParallax,
                   scrollPosition: _scrollLight,
+                  igniting: widget.roomIgniting,
+                  hearthLit: widget.roomHearthLit,
                 ),
                 _QuestBackdropBlur(
                   controller: _boardScroll,
@@ -3143,7 +3155,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                       Text(
                                         sheltered
                                             ? 'Enough for today'
-                                            : 'Day cleared ✨',
+                                            : 'Day cleared',
                                         style: Type.display.copyWith(
                                           fontSize: 20,
                                         ),
@@ -3313,12 +3325,16 @@ class _QuestRoomBackdrop extends StatelessWidget {
     required this.height,
     required this.parallax,
     required this.scrollPosition,
+    required this.igniting,
+    required this.hearthLit,
   });
 
   final GameState state;
   final double height;
   final ValueListenable<Offset> parallax;
   final ValueListenable<double> scrollPosition;
+  final bool igniting;
+  final bool hearthLit;
 
   @override
   Widget build(BuildContext context) {
@@ -3348,6 +3364,9 @@ class _QuestRoomBackdrop extends StatelessWidget {
                         scrollPosition: scrollPosition,
                         flameHue: flameHueFor(state),
                         lively: !still,
+                        igniting: igniting,
+                        hearthLit: hearthLit,
+                        reduceMotion: still,
                       ),
                     ),
                   ),
@@ -4380,7 +4399,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
   }
 
   void _shuffle() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.wood);
     HapticFeedback.selectionClick();
     setState(() => _shuffled = widget.onShuffle());
   }

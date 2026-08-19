@@ -15,7 +15,7 @@ Future<String?> showQuickReflectionSheet(
   required String prompt,
   String? attached,
 }) {
-  Sfx.instance.play('tick_warm');
+  Sfx.instance.playMaterial(MaterialSound.glass);
   Haptics.tap();
   return showModalBottomSheet<String>(
     context: context,

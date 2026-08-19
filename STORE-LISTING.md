@@ -27,8 +27,10 @@ course. Month, Week, 3 Days, and Day bring plans, classes, deadlines, and
 chosen quests into one calm view. Save a location and open directions in Apple
 Maps or Google Maps. Streak freezes make returning gentler after a day away.
 
-Room of Days also has a new Day Ledger icon, drawn from the daily quest ledger
-at the heart of the app.
+The room now answers with subtle wood, stone, parchment, glass, and brass
+contacts, and its hearth wakes with one small ignition when a visit begins.
+Room of Days also has a brighter Day Ledger icon, drawn from the daily quest
+ledger at the heart of the app.
 
 ## Full description
 
@@ -78,10 +80,11 @@ ads, subscriptions, or paywalls.
 This build adds a general Daybook for events and tasks, keeps School as an
 optional lane, brings personal plans and classes into the same calendar views,
 keeps fixed plans, deadlines, and chosen quests visually distinct, and opens
-directions from manually saved locations. It also introduces the new Day
-Ledger app icon. Protected Google place search remains intentionally off in
-this build; manual locations do not require an account or device-location
-permission.
+directions from manually saved locations. It also adds material-aware tap
+sounds, a one-time hearth ignition, calmer rotating Quest companion lines, and
+the brighter Day Ledger app icon. Protected Google place search remains
+intentionally off in this build; manual locations do not require an account or
+device-location permission.
 
 Feedback on clarity, warmth, performance, and anything that gets between you
 and doing what matters is especially useful.
@@ -101,6 +104,14 @@ and doing what matters is especially useful.
   behave clearly.
 - Look through Quests, Goals, Help for Today, and Plans for stray lines,
   awkward wrapping, or visible background seams.
+- Start the app from a fully stopped state and confirm the hearth ignites once
+  when Quests is first unobscured, stays lit, and does not replay on tab changes
+  or resume. Repeat with Reduce Motion and the Ring/Silent switch.
+- Tap across the dock, calendar, journal, overlays, and rewards. Listen for
+  subtle material variation with no double sound, harsh repetition, or music
+  interruption.
+- Check the Day Ledger in the Home Screen and App Library at its smallest size;
+  the completed honey mark should catch the eye without losing the book.
 - Repeat important flows offline, with Reduce Motion, Larger Text, and
   VoiceOver.
 

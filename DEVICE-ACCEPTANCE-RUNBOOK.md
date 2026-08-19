@@ -20,7 +20,7 @@ journal.
 
 ### iPhone
 
-- Install only the processed Room of Days `1.0.4` (Build 23) from TestFlight.
+- Install only the processed Room of Days `1.0.4` (Build 24) from TestFlight.
   It must come from the final release commit through the manual Codemagic
   `ios-testflight` workflow; do not substitute a local debug/profile build.
 - Keep the emitted IPA, matching Runner dSYM, Codemagic log, and
@@ -28,7 +28,7 @@ journal.
   exists; do not copy Build 19's hash into the new receipt.
 - Confirm the installed version/build match that evidence, which must name the
   final release commit and Team ID `D63Z4RBRT8`.
-- Keep processed Build 19 or Build 21 installed long enough to perform the
+- Keep processed Build 23 installed long enough to perform the
   upgrade-preservation pass before the separate fresh-install pass.
 
 Record before testing:
@@ -63,10 +63,10 @@ Run the upgrade check before uninstalling anything:
 - [ ] Uninstall Room of Days, then install the verified Build 12 APK fresh.
   Confirm the old test data is gone and onboarding begins normally.
 
-For iPhone, first install Build 23 over processed Build 19 or Build 21 without
+For iPhone, first install Build 24 over processed Build 23 without
 deleting Room of Days. Confirm the save, journal, room, Daybook, settings, and
 account state remain and What's New appears once. Then delete the app, install
-Build 23 fresh, and confirm onboarding starts with no prior test data.
+Build 24 fresh, and confirm onboarding starts with no prior test data.
 
 ## 2. First launch and core story
 
@@ -75,10 +75,23 @@ Repeat on both phones:
 - [ ] Launch from a fully stopped state. The Home Screen shows the Day Ledger,
   the app-switcher label says Room of Days, and the launch canvas stays dark and
   visually continuous with the first screen.
+- [ ] At App Library size, the Day Ledger remains recognizable and its completed
+  honey mark reads as a crisp point of light rather than a blurry halo.
+- [ ] On the first unobscured Quests view of the process, the hearth begins
+  dark, one magic ignition sound lands with one visible bloom, and the flame
+  stays lit. Switching tabs or resuming does not replay it; a fully new process
+  does. With Reduce Motion, it settles lit without the bloom.
+- [ ] With the Ring/Silent switch on, the room stays visually understandable
+  without sound. With Apple Music or Spotify already playing, Room of Days does
+  not stop or take over the person's audio.
 - [ ] Complete onboarding at a normal text size. Buttons remain reachable with
   gesture navigation/home indicators and notches in the way.
 - [ ] Complete a Quest. Confirm immediate press feedback, sound/haptic feedback,
   the reward receipt, XP/Glimmers, and the visible room/progress change.
+- [ ] Tap 20–30 controls across the room, dock, calendar, journal, overlays, and
+  rewards. Wood, stone, parchment, glass, and brass contacts feel related but
+  distinct, vary subtly within each material, never double-fire, and do not
+  become tiring. Repeat one activation with VoiceOver or a hardware keyboard.
 - [ ] Use Undo once and confirm the accidental completion and its rewards are
   actually reversed.
 - [ ] Open Quests, Me, Plans, Goals, and Journal. Switch through all five tabs

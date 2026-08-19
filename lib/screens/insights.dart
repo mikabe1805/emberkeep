@@ -151,7 +151,7 @@ class InsightsPage extends StatelessWidget {
   }
 
   void _openJournal(BuildContext context, {bool compose = false}) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => JournalHubScreen(
@@ -197,7 +197,7 @@ class InsightsPage extends StatelessWidget {
   }
 
   Future<void> _openLookingBack(BuildContext context, Note note) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     final night = note.night;
     return Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -233,14 +233,14 @@ class InsightsPage extends StatelessWidget {
   }
 
   void _openChronicle(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => WeeklyChronicleScreen(state: state)),
     );
   }
 
   void _openPatterns(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => Scaffold(
@@ -449,7 +449,7 @@ class InsightsPage extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.parchment);
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => WeeklyChronicleScreen(state: state),
@@ -519,7 +519,7 @@ class InsightsPage extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.parchment);
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => JournalHubScreen(

@@ -22,7 +22,7 @@ class GlassSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void toggle() {
-      Sfx.instance.play('tick');
+      Sfx.instance.playMaterial(MaterialSound.glass);
       Haptics.tap();
       onChanged(!value);
     }

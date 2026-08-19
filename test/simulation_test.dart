@@ -84,7 +84,7 @@ void main() {
     expect(weekly.scheduledOn(DateTime(2026, 6, 15)), isFalse); // Mon
     expect(weekly.scheduledOn(DateTime(2026, 6, 16)), isFalse); // Tue
     // anchor day through end of week: stays open — a missed Wednesday lingers
-    // as "still this week" rather than vanishing (round-21 carry-forward)
+    // as open this week rather than vanishing (round-21 carry-forward)
     expect(weekly.scheduledOn(DateTime(2026, 6, 17)), isTrue); // Wed (anchor)
     expect(weekly.scheduledOn(DateTime(2026, 6, 19)), isTrue); // Fri
     expect(weekly.scheduledOn(DateTime(2026, 6, 21)), isTrue); // Sun

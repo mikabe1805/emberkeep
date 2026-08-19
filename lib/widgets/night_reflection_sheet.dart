@@ -18,7 +18,7 @@ Future<NightJournalData?> showNightReflectionSheet(
   NightJournalData? initial,
   bool reduceMotion = false,
 }) {
-  Sfx.instance.play('tick_warm');
+  Sfx.instance.playMaterial(MaterialSound.glass);
   Haptics.tap();
   // The night flow itself lives in an OverlayEntry. A modal bottom sheet
   // launched from that entry inherits its transformed coordinate space and

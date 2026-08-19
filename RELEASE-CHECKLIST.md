@@ -3,25 +3,29 @@
 Updated August 19, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.4+23 iOS App Store candidate
+## 1.0.4+24 iOS App Store candidate
 
-Build 22 was uploaded as an internal, superseded candidate. Do not submit
-Build 22; all current TestFlight and App Store actions below target Build 23.
+Builds 22 and 23 were uploaded as internal candidates. Build 23 remains the
+processed fallback; all current TestFlight and App Store actions below target
+the fully polished Build 24.
 
-- [x] Preserve Build 21 as an internal TestFlight record and assign the next
-  planned iOS candidate `1.0.4+23`. The Codemagic workflow must still confirm
-  live that Build 23 is unused before it archives anything.
+- [x] Preserve Build 23 as an internal TestFlight fallback and assign the next
+  planned iOS candidate `1.0.4+24`. The Codemagic workflow must still confirm
+  live that Build 24 is unused before it archives anything.
 - [x] Include the finished calendar-commitment work: Day Shape, fixed plans,
   deadlines, and chosen Quests now read as distinct parts of the same day.
 - [x] Put the general Daybook, optional School lane, unified calendar views,
   manual locations, and Get Directions in the newest-first What's New record,
   while retaining the earlier Build 21 record in the archive.
 - [x] Ship the owner-approved Day Ledger icon in the iOS asset catalog.
+- [x] Give the room a restrained material sound palette, a single-session
+  hearth ignition, calmer rotating Quest companion copy, and a brighter earned
+  mark in the Day Ledger icon without adding looping ambience.
 - [x] Keep protected Google place search off. The candidate is built without a
   `PLACE_SEARCH_ENABLED=true` define; manual location entry and map handoff
   remain available.
 - [ ] Confirm the existing App Store Version 1.0.4 draft remains unsent, public
-  distribution in the US and agreements remain in effect, and Build 23 is
+  distribution in the US and agreements remain in effect, and Build 24 is
   unused. The public US catalog is not proof of those internal states.
 - [ ] Refresh and inspect the final App Store screenshots and paste the exact
   1.0.4 What's New copy from the versioned `STORE-LISTING.md`.
@@ -29,18 +33,28 @@ Build 22; all current TestFlight and App Store actions below target Build 23.
   one manual Codemagic `ios-testflight` run for that displayed commit.
 - [ ] Save the emitted IPA, dSYM, and `release-evidence.txt`; verify the source
   commit, marketing version, build number, signature, and TestFlight upload.
-- [ ] After Apple finishes processing, add Build 23 to the intended internal
-  tester group and install it over Build 19 or Build 21 on a physical iPhone.
+- [ ] After Apple finishes processing, add Build 24 to the intended internal
+  tester group and install it over Build 23 on a physical iPhone.
 - [ ] Complete the focused Daybook, persistence, accessibility, offline, and map
   handoff checks in `DEVICE-ACCEPTANCE-RUNBOOK.md` before any public App Store
   submission change.
-- [ ] In the existing App Store Version 1.0.4 draft, select processed Build 23,
+- [ ] In the existing App Store Version 1.0.4 draft, select processed Build 24,
   complete its metadata, submit it to App Review, and verify the released
   version in Apple's public catalog. Upload, TestFlight processing, and review
   are not publication.
 
 Android store work is intentionally deferred for this release. Its immutable
 Build 20 evidence in `release-candidate.json` remains unchanged.
+
+## 1.0.4+23 internal TestFlight fallback
+
+- [x] Apple processed Version 1.0.4, Build 23 and made it available to the
+  internal `Me` group on August 19, 2026.
+- [x] Keep Build 23 available as the known processed fallback while Build 24 is
+  built and auditioned; do not attach it to the App Store draft unless Build 24
+  is abandoned for a documented release blocker.
+- [ ] Preserve a completed physical-iPhone acceptance receipt if Build 23 was
+  installed and tested; otherwise Build 24 supersedes this unchecked gate.
 
 ## 1.0.3+21 internal TestFlight record
 
@@ -49,7 +63,7 @@ Build 20 evidence in `release-candidate.json` remains unchanged.
 - [x] Apple processed Version 1.0.3, Build 21 and made it available in
   TestFlight on August 18, 2026.
 - [ ] Preserve a completed physical-iPhone acceptance receipt if Build 21 was
-  installed and tested; otherwise Build 23 supersedes this unchecked gate.
+  installed and tested; otherwise Build 24 supersedes this unchecked gate.
 
 ## 1.0.2+20 release record
 

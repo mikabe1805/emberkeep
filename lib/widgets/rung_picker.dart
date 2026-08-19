@@ -51,7 +51,7 @@ class _RungSheetState extends State<_RungSheet> {
   late int _sel = widget.initial;
 
   void _choose(int rung) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     setState(() => _sel = rung);
   }
 

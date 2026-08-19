@@ -726,7 +726,7 @@ class _LeaveNoteActionState extends State<_LeaveNoteAction> {
   }
 
   Future<void> _leaveNote() async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     final kind = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,

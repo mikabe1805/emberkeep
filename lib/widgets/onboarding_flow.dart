@@ -49,7 +49,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   }
 
   void _next() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.wood);
     Haptics.tap();
     setState(() => _step++);
   }
@@ -69,7 +69,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   void _back() {
     if (_step == 0) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.wood);
     Haptics.tap();
     setState(() => _step--);
   }

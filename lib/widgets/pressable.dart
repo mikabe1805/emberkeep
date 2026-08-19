@@ -3,7 +3,6 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
-import '../haptics.dart';
 import '../tokens.dart';
 
 /// Faux-3D press: thick bottom edge that collapses as the child drops 4px,
@@ -27,6 +26,7 @@ class Pressable extends StatefulWidget {
     this.shape,
     this.enabled = true,
     this.pressDepth = 4,
+    this.material = MaterialSound.wood,
     this.semanticLabel,
     this.semanticHint,
   });
@@ -45,6 +45,7 @@ class Pressable extends StatefulWidget {
   final ShapeBorder? shape;
   final bool enabled;
   final double pressDepth;
+  final MaterialSound material;
   final String? semanticLabel;
   final String? semanticHint;
 
@@ -55,21 +56,28 @@ class Pressable extends StatefulWidget {
 class _PressableState extends State<Pressable> {
   static const _slop = 12.0;
   bool _down = false;
+  bool _pointerAcknowledged = false;
   Offset _downAt = Offset.zero;
 
   void _setDown(bool down) {
     if (!widget.enabled || _down == down) return;
     setState(() => _down = down);
     if (down) {
+      _pointerAcknowledged = true;
       HapticFeedback.selectionClick();
-      Sfx.instance.play('tick');
+      Sfx.instance.playMaterial(widget.material);
     }
   }
 
   void _activate() {
     if (!widget.enabled || widget.onTapUp == null) return;
-    Haptics.tap();
-    Sfx.instance.play('tick');
+    // Keyboard and accessibility activation have no pointer-down phase. Give
+    // them the same single physical acknowledgement without duplicating touch.
+    if (!_pointerAcknowledged) {
+      HapticFeedback.selectionClick();
+      Sfx.instance.playMaterial(widget.material);
+    }
+    _pointerAcknowledged = false;
     final box = context.findRenderObject() as RenderBox?;
     final center = box == null
         ? Offset.zero
@@ -121,16 +129,35 @@ class _PressableState extends State<Pressable> {
           },
           onPointerMove: (e) {
             // Pointer drifted into a scroll — release the visual immediately.
-            if ((e.position - _downAt).distance > _slop) _setDown(false);
+            if ((e.position - _downAt).distance > _slop) {
+              _setDown(false);
+              _pointerAcknowledged = false;
+            }
           },
-          onPointerUp: (_) => _setDown(false),
-          onPointerCancel: (_) => _setDown(false),
+          onPointerUp: (_) {
+            _setDown(false);
+            // GestureDetector's pointer path invokes the callback directly,
+            // so this may clear now even if the arena ultimately declines the
+            // tap. Never carry a stale touch ack into later keyboard/VO use.
+            _pointerAcknowledged = false;
+          },
+          onPointerCancel: (_) {
+            _setDown(false);
+            _pointerAcknowledged = false;
+          },
           child: GestureDetector(
             excludeFromSemantics: true,
             onTapUp: (d) {
-              if (widget.enabled) widget.onTapUp?.call(d.globalPosition);
+              if (!widget.enabled) return;
+              widget.onTapUp?.call(d.globalPosition);
+              _pointerAcknowledged = false;
             },
-            onLongPress: widget.onLongPress,
+            onLongPress: widget.onLongPress == null
+                ? null
+                : () {
+                    _pointerAcknowledged = false;
+                    widget.onLongPress!.call();
+                  },
             child: AnimatedContainer(
               // physical buttons depress instantly; only the release eases
               duration: _down ? Duration.zero : Motion.ack,

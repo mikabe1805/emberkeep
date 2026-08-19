@@ -137,7 +137,7 @@ class JournalPanel extends StatefulWidget {
 
 class _JournalPanelState extends State<JournalPanel> {
   void _open() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     showNotesSheet(
       context,
       kicker: 'JOURNAL',
@@ -302,7 +302,7 @@ class _NotesSheetState extends State<_NotesSheet> {
   void _submit() {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.brass);
     HapticFeedback.selectionClick();
     final editing = _editing;
     if (editing != null && widget.onEdit != null) {

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../clock.dart';
+import '../content/quest_companion_copy.dart';
 import '../models.dart';
 import '../tokens.dart';
 import 'day_picker.dart' show weekdayLabel;
@@ -482,6 +483,9 @@ class _QuestTitleBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final companion = featured
+        ? questCompanionCopy(quest: quest, day: Clock.now())
+        : null;
     final chips = <Widget>[
       if (quest.journalPrompt != null)
         const _MetaChip(Icons.menu_book_rounded, 'JOURNAL', Palette.xpLight),
@@ -590,6 +594,19 @@ class _QuestTitleBlock extends StatelessWidget {
               ],
             ],
           ),
+        ] else if (featured && companion != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            companion,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Type.body.copyWith(
+              fontSize: 12,
+              height: 1.2,
+              fontStyle: FontStyle.italic,
+              color: Palette.textLo,
+            ),
+          ),
         ],
       ],
     );
@@ -597,25 +614,29 @@ class _QuestTitleBlock extends StatelessWidget {
 
   static Widget _eventChip(Quest quest) {
     final now = Clock.now();
-    final overdue = quest.dueDate!.isBefore(
-      DateTime(now.year, now.month, now.day),
-    );
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final overdue = quest.dueDate!.isBefore(startOfToday);
     return _MetaChip(
       null,
-      overdue ? 'STILL WAITING' : 'DUE TODAY',
+      overdue
+          ? 'OPEN SINCE ${_shortWeekday(quest.dueDate!.weekday)}'
+          : 'DUE TODAY',
       overdue ? Palette.streak : Palette.xpLight,
+      maxWidth: overdue ? 108 : null,
     );
   }
+
+  static String _shortWeekday(int weekday) =>
+      const ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'][weekday - 1];
 
   static Widget _weeklyChip(Quest quest) {
     final anchor = quest.weekdays.reduce(min);
     final lingering = Clock.now().weekday > anchor;
     return _MetaChip(
       lingering ? Icons.east_rounded : null,
-      lingering
-          ? 'STILL THIS WEEK'
-          : weekdayLabel(quest.weekdays).toUpperCase(),
+      lingering ? 'OPEN THIS WEEK' : weekdayLabel(quest.weekdays).toUpperCase(),
       lingering ? Palette.info : Palette.xpLight,
+      maxWidth: lingering ? 100 : null,
     );
   }
 }
@@ -1512,15 +1533,16 @@ class _CheckRingPainter extends CustomPainter {
 }
 
 class _MetaChip extends StatelessWidget {
-  const _MetaChip(this.icon, this.text, this.color);
+  const _MetaChip(this.icon, this.text, this.color, {this.maxWidth});
 
   final IconData? icon;
   final String text;
   final Color color;
+  final double? maxWidth;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    final content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (icon != null) ...[
@@ -1536,6 +1558,18 @@ class _MetaChip extends StatelessWidget {
           ),
         ),
       ],
+    );
+    if (maxWidth == null) return content;
+    // Compact metadata is the one bounded text role allowed to shrink. Keep
+    // the truthful overdue date readable on narrow cards instead of letting a
+    // long all-caps chip force the whole Quest row past its edge.
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth!),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: content,
+      ),
     );
   }
 }

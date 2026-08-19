@@ -19,6 +19,7 @@ import 'package:emberkeep/widgets/pressable.dart';
 import 'package:emberkeep/widgets/reward_receipt.dart';
 import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -268,6 +269,29 @@ void main() {
     expect(tester.getTopLeft(target).dy, before);
     expect(tapped, isTrue);
   });
+
+  testWidgets(
+    'pressable semantic activation still completes without a pointer',
+    (tester) async {
+      var activations = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Pressable(
+              semanticLabel: 'Keyboard quest',
+              onTapUp: (_) => activations++,
+              child: const SizedBox(width: 120, height: 52),
+            ),
+          ),
+        ),
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+      expect(activations, 1);
+    },
+  );
 
   testWidgets('first trophy waits until the reward receipt clears', (
     tester,

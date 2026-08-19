@@ -188,7 +188,7 @@ class _SparkChoice extends StatelessWidget {
         excludeFromSemantics: true,
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          Sfx.instance.play('tick');
+          Sfx.instance.playMaterial(MaterialSound.glass);
           HapticFeedback.selectionClick();
           Navigator.of(context).pop(kind);
         },

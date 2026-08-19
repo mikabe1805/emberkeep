@@ -75,7 +75,7 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
   void _toggle(Quest quest) {
     if (_selected.contains(quest.title)) {
       setState(() => _selected.remove(quest.title));
-      Sfx.instance.play('tick');
+      Sfx.instance.playMaterial(MaterialSound.glass);
       HapticFeedback.selectionClick();
       return;
     }

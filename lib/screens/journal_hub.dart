@@ -191,7 +191,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
     String? starter,
     bool initiallyEditing = true,
   }) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     final night = entry?.night;
     if (entry != null && night != null && initiallyEditing) {
       return showNightReflectionSheet(
@@ -295,7 +295,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
   /// Peek a note that lives on a quest / goal / domain — with a deep-link
   /// into the editable notes sheet so the hub isn't a dead end.
   void _peek(_Entry e) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -596,7 +596,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          Sfx.instance.play('tick');
+          Sfx.instance.playMaterial(MaterialSound.wood);
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) =>

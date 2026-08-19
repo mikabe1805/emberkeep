@@ -220,7 +220,7 @@ class _CalendarPageState extends State<CalendarPage> {
     // must win over a delayed local restore just like a mode change does.
     _recordViewInteraction();
     if (_academicMode == mode) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     setState(() {
       _academicMode = mode;
       _month = DateTime(_selected.year, _selected.month);
@@ -417,7 +417,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return;
     }
     if (!mounted) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _academicSchedule = next);
   }
 
@@ -498,12 +498,12 @@ class _CalendarPageState extends State<CalendarPage> {
       return;
     }
     if (!mounted) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _academicSchedule = next);
   }
 
   Future<void> _showAcademicStudyPlanner(AcademicWorkItem item) async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     await showDialog<void>(
       context: context,
       barrierColor: Palette.dialogBarrier,
@@ -563,7 +563,7 @@ class _CalendarPageState extends State<CalendarPage> {
   Future<void> _showAcademicOccurrenceAdjuster(
     ClassOccurrence occurrence,
   ) async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     await showDialog<void>(
       context: context,
       barrierColor: Palette.dialogBarrier,
@@ -632,7 +632,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!mounted) return false;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _academicSchedule = next);
     return true;
   }
@@ -663,14 +663,14 @@ class _CalendarPageState extends State<CalendarPage> {
       return;
     }
     if (!mounted) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _academicSchedule = next);
   }
 
   Future<void> _openNotebook(ClassOccurrence occurrence) async {
     final course = _academicSchedule.courseById(occurrence.courseId);
     if (course == null) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     final result = await _notebookHandoff.open(
       NotebookHandoffIntent(
         courseId: occurrence.courseId,
@@ -739,7 +739,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _openJournal(Note entry) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     final night = entry.night;
     return Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -1016,7 +1016,7 @@ class _CalendarPageState extends State<CalendarPage> {
         excludeFromSemantics: true,
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          Sfx.instance.play('tick');
+          Sfx.instance.playMaterial(MaterialSound.parchment);
           _selectDay(date);
         },
         child: Column(
@@ -1157,7 +1157,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   void _showAddEvent(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.brass);
     showDialog(
       context: context,
       barrierColor: const Color(0xCC140C06),
@@ -1166,14 +1166,14 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _showAddDaybook(BuildContext context) async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     final target = await showDialog<DaybookAddTarget>(
       context: context,
       barrierColor: Palette.dialogBarrier,
       builder: (_) => const DaybookAddChoiceDialog(),
     );
     if (!mounted || !context.mounted || target == null) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     switch (target) {
       case DaybookAddTarget.event:
         await showDialog<void>(
@@ -1723,7 +1723,7 @@ class _Chevron extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void activate() {
-      Sfx.instance.play('tick');
+      Sfx.instance.playMaterial(MaterialSound.brass);
       onTap();
     }
 
@@ -2381,7 +2381,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     ({String label, String title, Stat stat, double difficulty, IconData icon})
     preset,
   ) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     HapticFeedback.selectionClick();
     setState(() {
       _title.text = preset.title;

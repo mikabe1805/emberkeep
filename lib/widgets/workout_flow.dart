@@ -98,7 +98,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
 
   // ── flow control ─────────────────────────────────────────────────
   void _pick(Routine r) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.wood);
     Haptics.tap();
     setState(() {
       _routine = r;
@@ -147,7 +147,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
 
   /// Skip the current move (and its rest) — no penalty, no credit.
   void _skip() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.wood);
     _next();
   }
 
@@ -175,7 +175,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
 
   void _togglePause() {
     setState(() => _paused = !_paused);
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.wood);
   }
 
   // ── build ────────────────────────────────────────────────────────
@@ -717,7 +717,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                     if (!easier)
                       _smallButton('EASIER', Palette.xpLight, () {
                         if (idx != _i) return;
-                        Sfx.instance.play('tick');
+                        Sfx.instance.playMaterial(MaterialSound.wood);
                         Haptics.tap();
                         setState(() => _easiered.add(idx));
                       }),
@@ -968,7 +968,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
         ? null
         : () {
             Haptics.tap();
-            Sfx.instance.play('tick');
+            Sfx.instance.playMaterial(MaterialSound.wood);
             setState(() => _repCount++);
           };
     return Semantics(

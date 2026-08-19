@@ -127,7 +127,7 @@ class GoalsPage extends StatelessWidget {
   final ValueListenable<Offset>? lightDirection;
 
   void _openWizard(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.brass);
     HapticFeedback.selectionClick();
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -316,7 +316,7 @@ class _ReadyMadePathsDisclosureState extends State<_ReadyMadePathsDisclosure> {
   var _expanded = false;
 
   void _toggle() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     HapticFeedback.selectionClick();
     setState(() => _expanded = !_expanded);
   }
@@ -419,7 +419,7 @@ class _MomentumKitsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void open() {
-      Sfx.instance.play('tick');
+      Sfx.instance.playMaterial(MaterialSound.parchment);
       HapticFeedback.selectionClick();
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -590,7 +590,7 @@ class _GuidedWorkoutsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.brass);
         HapticFeedback.selectionClick();
         final added = onAdd(workoutLauncherQuest());
         ScaffoldMessenger.of(context).showSnackBar(
@@ -675,7 +675,7 @@ class _YourGoals extends StatelessWidget {
   };
 
   void _openDetail(BuildContext context, Goal g) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     HapticFeedback.selectionClick();
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -692,7 +692,7 @@ class _YourGoals extends StatelessWidget {
   }
 
   void _confirmAbandon(BuildContext context, Goal g) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     HapticFeedback.selectionClick();
     var armed = false;
     showDialog(
@@ -756,7 +756,7 @@ class _YourGoals extends StatelessWidget {
                       child: GestureDetector(
                         onTap: () {
                           if (!armed) {
-                            Sfx.instance.play('tick');
+                            Sfx.instance.playMaterial(MaterialSound.brass);
                             setDialog(() => armed = true);
                             return;
                           }
@@ -976,7 +976,7 @@ class _GoalCardState extends State<_GoalCard> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              Sfx.instance.play('tick');
+              Sfx.instance.playMaterial(MaterialSound.glass);
               setState(() => _open = !_open);
             },
             child: Row(
@@ -1099,7 +1099,7 @@ class _GoalCardState extends State<_GoalCard> {
 void _showQuestWhy(BuildContext context, QuestTemplate t) {
   final why = questWhy[t.title];
   if (why == null) return;
-  Sfx.instance.play('tick');
+  Sfx.instance.playMaterial(MaterialSound.glass);
   HapticFeedback.selectionClick();
   showDialog(
     context: context,

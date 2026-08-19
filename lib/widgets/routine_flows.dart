@@ -137,7 +137,7 @@ class _NightFlowState extends State<NightFlow> {
       dateLabel: _routineDateLabel(Days.nightDate(Clock.now())),
       dismissLabel: 'NOT YET',
       onDismiss: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.glass);
         widget.onClose();
       },
       reduceMotion: _reduceMotion,
@@ -164,7 +164,7 @@ class _NightFlowState extends State<NightFlow> {
           onSecondary: _step == 0
               ? _keepNightReflection
               : () {
-                  Sfx.instance.play('tick');
+                  Sfx.instance.playMaterial(MaterialSound.glass);
                   setState(() => _step = 0);
                 },
           child: AnimatedSwitcher(
@@ -605,7 +605,7 @@ class _NightFlowState extends State<NightFlow> {
 
   /// Shame-free slip logging: no XP, no loss, no red — tomorrow is fresh.
   void _logSlip(Quest q) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _slipped.add(q));
   }
 
@@ -682,7 +682,7 @@ class _NightFlowState extends State<NightFlow> {
   }
 
   void _notYet(Quest q) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     // ask again after a couple more honest completions — never nag
     setState(() => q.risingStreak = Quest.risesAt - 2);
     widget.onPersist();
@@ -1180,7 +1180,7 @@ class _NightFlowState extends State<NightFlow> {
           child: _BigButton(
             label: 'PLAN TOMORROW →',
             onTap: () {
-              Sfx.instance.play('tick');
+              Sfx.instance.playMaterial(MaterialSound.glass);
               setState(() => _step = 1);
             },
           ),
@@ -1274,7 +1274,7 @@ class _NightFlowState extends State<NightFlow> {
                             HapticFeedback.lightImpact();
                             return;
                           }
-                          Sfx.instance.play('tick');
+                          Sfx.instance.playMaterial(MaterialSound.glass);
                           HapticFeedback.selectionClick();
                           setState(() {
                             if (selected) {
@@ -1527,7 +1527,7 @@ class _MorningFlowState extends State<MorningFlow> {
       dateLabel: _routineDateLabel(now),
       dismissLabel: 'LATER',
       onDismiss: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.glass);
         (widget.onDismiss ?? widget.onClose)();
       },
       reduceMotion: _reduceMotion,
@@ -2048,7 +2048,7 @@ class _TomorrowSelfCard extends StatelessWidget {
   final String message;
 
   void _openFullMessage(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,

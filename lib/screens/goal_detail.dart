@@ -514,7 +514,7 @@ class GoalDetailScreen extends StatelessWidget {
   }
 
   void _confirmAbandon(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     HapticFeedback.selectionClick();
     var armed = false;
     showDialog(
@@ -571,7 +571,7 @@ class GoalDetailScreen extends StatelessWidget {
                     GestureDetector(
                       onTap: () {
                         if (!armed) {
-                          Sfx.instance.play('tick');
+                          Sfx.instance.playMaterial(MaterialSound.brass);
                           setDialog(() => armed = true);
                           return;
                         }

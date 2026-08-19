@@ -28,7 +28,7 @@ class MomentumKitsPage extends StatelessWidget {
   final VoidCallback onOpenQuests;
 
   void _openKit(BuildContext context, MomentumKitSpec kit) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     HapticFeedback.selectionClick();
     showModalBottomSheet<void>(
       context: context,
@@ -945,14 +945,14 @@ class _ChoiceRow<T> extends StatelessWidget {
           button: true,
           selected: option == selected,
           onTap: () {
-            Sfx.instance.play('tick');
+            Sfx.instance.playMaterial(MaterialSound.glass);
             HapticFeedback.selectionClick();
             onChanged(option);
           },
           child: GestureDetector(
             excludeFromSemantics: true,
             onTap: () {
-              Sfx.instance.play('tick');
+              Sfx.instance.playMaterial(MaterialSound.glass);
               HapticFeedback.selectionClick();
               onChanged(option);
             },
@@ -1005,14 +1005,14 @@ class _CapacityPicker extends StatelessWidget {
             selected: i == value,
             label: '$i ${i == 1 ? 'step' : 'steps'}',
             onTap: () {
-              Sfx.instance.play('tick');
+              Sfx.instance.playMaterial(MaterialSound.glass);
               HapticFeedback.selectionClick();
               onChanged(i);
             },
             child: GestureDetector(
               excludeFromSemantics: true,
               onTap: () {
-                Sfx.instance.play('tick');
+                Sfx.instance.playMaterial(MaterialSound.glass);
                 HapticFeedback.selectionClick();
                 onChanged(i);
               },

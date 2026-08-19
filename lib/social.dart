@@ -632,7 +632,7 @@ Future<void> shareSpace(
       }
       return;
     }
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.brass);
     final published = await publishSpaceRoomState(
       state,
       current: state,
@@ -959,7 +959,7 @@ class _ShareDialogState extends State<_ShareDialog> {
                               await Clipboard.setData(
                                 ClipboardData(text: _inviteUrl),
                               );
-                              Sfx.instance.play('tick');
+                              Sfx.instance.playMaterial(MaterialSound.glass);
                               if (context.mounted) {
                                 _toast(context, 'Invite link copied');
                               }
@@ -976,7 +976,7 @@ class _ShareDialogState extends State<_ShareDialog> {
                               await Clipboard.setData(
                                 ClipboardData(text: widget.code),
                               );
-                              Sfx.instance.play('tick');
+                              Sfx.instance.playMaterial(MaterialSound.glass);
                               if (context.mounted) {
                                 _toast(context, 'Code copied');
                               }

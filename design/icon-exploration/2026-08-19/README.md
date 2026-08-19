@@ -236,3 +236,52 @@ no opaque box or green halo and the 8 percent inset avoids corner clipping. The
 themed preview retains the open-book silhouette, three rows, and completion
 medallion. Exact source and derivative hashes are recorded in
 `assets/brand/room-of-days-icon-manifest-v1.json`.
+
+## Task 6 completed-reward luminance polish
+
+After viewing the first Day Ledger in the iPhone App Library beside brighter
+consumer icons, the owner asked for one more attention-catching object while
+preserving the icon they already recognized as Room of Days. The bounded choice
+was to brighten only the semantically completed top-row medallion. The book,
+framing, materials, rows, and two unfinished states were held invariant.
+
+The production edit used the archived v1 source as its only image input and the
+following exact caller prompt:
+
+```text
+Use case: precise-object-and-lighting edit.
+Asset type: refined square mobile app icon master artwork for Room of Days.
+Image 1 is the exact approved Day Ledger edit target.
+
+Change only the already-completed top-row circular check medallion. Make it the icon's single high-luminance earned honey-gold reward. Give its upper-left rim and check a restrained near-ivory metallic catch, its face a rich hot-honey-to-amber metal gradient, and a tiny warm reflection/bloom strictly contained inside the top dark quest-row plate. At 32 px it must resolve as one crisp, distinctly brighter completed mark, not a spark or star.
+
+Preserve the entire open-book artwork unchanged in visual design: same square framing, nearly frontal camera, scale and placement, open-book silhouette, dark leather cover, warm parchment, three quest-row layout and geometry, two unfinished lower rings, textures, shadows, backdrop, and every outer book edge. The completed medallion must be the only highest-luminance object.
+
+No added star, sparkle, lens flare, radial halo, glow outside the first quest row, glow behind the book, text, icons, mask, crop, zoom, resize, rotation, extra symbols, all-gold book, or change to any other region. Keep an opaque square background; no transparency or baked platform mask.
+```
+
+The accepted chroma extraction used the new v2 master as its only input and
+this exact caller prompt:
+
+```text
+Use case: background extraction for a production adaptive-icon source.
+Image 1 is the exact approved bright-medallion Room of Days Day Ledger artwork and must remain unchanged pixel-for-pixel in visual design.
+
+Keep the open quest ledger exactly unchanged: identical square framing, size and position, camera angle, silhouette, leather cover, parchment, all three quest rows, the newly bright honey-gold completed check medallion, the two unfinished rings, all book textures, internal shadows, highlights, and every book edge.
+
+Remove only the near-black background outside the ledger and replace that outside area with one perfectly flat, uniform, fully opaque chroma-key green color #00FF00. The green must contain no texture, checkerboard, gradient, lighting, noise, vignette, or shadows. Keep no detached cast shadow outside the ledger.
+
+Do not resize, recrop, zoom, rotate, redraw, simplify, recolor, relight, sharpen, or alter the ledger. No text, border, icon mask, rounded square, extra glow, halo, watermark, or added object. Opaque square PNG, not transparency.
+```
+
+- Built-in master: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-4bd69b77-7b02-4fec-b85b-16a0754dc268.png`
+- Archived master: `design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-source-v2.png`
+- Master SHA-256: `DBB4936D2D6E4BD430C19B51E6F2E99D42F125C05AD79A16F287E4659E2F0ABB`
+- Built-in chroma source: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-52e376af-afe8-4ab1-9ad1-6200e17f6898.png`
+- Archived chroma source: `design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-chroma-v2.png`
+- Chroma SHA-256: `EEB69A16749A1AA0A8FA2AD1BB0DCD6B7A4551F5C31F679D0396D827C7091700`
+- Dimensions/mode: both 1254 x 1254 opaque RGB PNGs.
+
+The deterministic exporter and native launcher generator were rerun from these
+v2 sources. The existing v1 files remain unchanged so the selected identity and
+the later luminance refinement are independently reproducible.
