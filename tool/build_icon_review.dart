@@ -9,6 +9,15 @@ const _rowLabels = <String>[
   'Option 3 - Daybook / Light',
 ];
 
+final class SheetDimensions {
+  const SheetDimensions(this.width, this.height);
+  final int width;
+  final int height;
+}
+
+const smallSizeSheetDimensions = SheetDimensions(1756, 4502);
+const platformMaskSheetDimensions = SheetDimensions(2292, 1782);
+
 final class IconReviewResult {
   const IconReviewResult(this.outputFiles);
 
@@ -52,7 +61,12 @@ IconReviewResult buildIconReview({
 }
 
 void validateOutputDirectory(String path) {
-  final segments = _normalisedPathSegments(path);
+  _rejectProtectedPath(path, path);
+  _rejectProtectedPath(canonicalOutputDirectoryPath(path), path);
+}
+
+void _rejectProtectedPath(String pathToCheck, String originalPath) {
+  final segments = _normalisedPathSegments(pathToCheck);
   for (var index = 0; index < segments.length; index++) {
     final segment = segments[index];
     if (segment == 'ios' ||
@@ -62,12 +76,42 @@ void validateOutputDirectory(String path) {
         (segment == 'web' && _nextIs(segments, index, 'icons')) ||
         (segment == 'assets' && _nextIs(segments, index, 'brand'))) {
       throw ArgumentError.value(
-        path,
+        originalPath,
         'path',
         'Review output cannot be written inside a shipping asset path.',
       );
     }
   }
+}
+
+String canonicalOutputDirectoryPath(String path) {
+  var ancestor = Directory(path).absolute;
+  final missingTail = <String>[];
+  while (!ancestor.existsSync()) {
+    final parent = ancestor.parent;
+    if (parent.path == ancestor.path) {
+      throw ArgumentError.value(
+        path,
+        'path',
+        'Could not resolve output directory.',
+      );
+    }
+    missingTail.insert(0, _lastPathSegment(ancestor.path));
+    ancestor = parent;
+  }
+  var resolved = ancestor.resolveSymbolicLinksSync();
+  for (final segment in missingTail) {
+    resolved = '$resolved${Platform.pathSeparator}$segment';
+  }
+  return resolved;
+}
+
+String _lastPathSegment(String path) {
+  final segments = path
+      .replaceAll('\\', '/')
+      .split('/')
+      .where((it) => it.isNotEmpty);
+  return segments.last;
 }
 
 List<String> _normalisedPathSegments(String path) {
@@ -182,14 +226,7 @@ img.Image _buildPlatformMaskSheet(List<img.Image> masters) {
   for (var row = 0; row < masters.length; row++) {
     final top = titleHeight + row * rowHeight;
     _text(sheet, _rowLabels[row], 32, top + 24, img.arial24);
-    final source = _resize(masters[row], tileSize);
-    final tiles = <img.Image>[
-      source,
-      _masked(source, _Mask.roundedSquare),
-      _masked(source, _Mask.circle),
-      _safeArea(source),
-      _grayscale(source),
-    ];
+    final tiles = buildPlatformPreviews(_resize(masters[row], tileSize));
     for (var column = 0; column < tiles.length; column++) {
       img.compositeImage(
         sheet,
@@ -237,16 +274,14 @@ img.Image _masked(img.Image source, _Mask mask) {
   final radius = source.width / 2;
   for (var y = 0; y < source.height; y++) {
     for (var x = 0; x < source.width; x++) {
-      final dx = x - center;
-      final dy = y - center;
+      final dx = (x - center) / radius;
+      final dy = (y - center) / radius;
       final inside = switch (mask) {
-        _Mask.circle => dx * dx + dy * dy <= radius * radius,
-        _Mask.roundedSquare => _insideRoundedSquare(
-          x,
-          y,
-          source.width,
-          radius * .225,
-        ),
+        _Mask.circle => dx * dx + dy * dy <= 1,
+        _Mask.squircle =>
+          dx.abs() * dx.abs() * dx.abs() * dx.abs() +
+                  dy.abs() * dy.abs() * dy.abs() * dy.abs() <=
+              1,
       };
       if (inside) result.setPixel(x, y, source.getPixel(x, y));
     }
@@ -254,23 +289,17 @@ img.Image _masked(img.Image source, _Mask mask) {
   return result;
 }
 
-bool _insideRoundedSquare(int x, int y, int size, double cornerRadius) {
-  final closestX = x.clamp(cornerRadius, size - 1 - cornerRadius);
-  final closestY = y.clamp(cornerRadius, size - 1 - cornerRadius);
-  final dx = x - closestX;
-  final dy = y - closestY;
-  return dx * dx + dy * dy <= cornerRadius * cornerRadius;
-}
+List<img.Image> buildPlatformPreviews(img.Image source) => <img.Image>[
+  source.clone(),
+  _masked(source, _Mask.squircle),
+  _masked(source, _Mask.circle),
+  _safeArea(source),
+  _grayscale(source),
+];
 
 img.Image _safeArea(img.Image source) {
-  final tile = _canvas(source.width, source.height);
+  final tile = source.clone();
   final inset = (source.width * .125).round();
-  img.compositeImage(
-    tile,
-    _resize(source, source.width - inset * 2),
-    dstX: inset,
-    dstY: inset,
-  );
   img.drawCircle(
     tile,
     x: source.width ~/ 2,
@@ -297,7 +326,7 @@ img.Image _safeArea(img.Image source) {
   return tile;
 }
 
-img.Image _grayscale(img.Image source) => img.grayscale(source);
+img.Image _grayscale(img.Image source) => img.grayscale(source.clone());
 
 void _writeRgbPng(File file, img.Image image) {
   final rgb = image.convert(format: img.Format.uint8, numChannels: 3);
@@ -308,7 +337,7 @@ void _writeRgbPng(File file, img.Image image) {
   }
 }
 
-enum _Mask { roundedSquare, circle }
+enum _Mask { squircle, circle }
 
 void main(List<String> arguments) {
   try {
