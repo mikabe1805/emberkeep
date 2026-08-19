@@ -86,16 +86,21 @@ Constraints: square artwork only; no platform mask baked in; no text; no dates; 
 Avoid: generic journal app, notes app, calendar glyph, open-book education logo, religious book, fantasy spellbook, excessive glow, tapestry as the main symbol
 ```
 
-Task 2 has not started. The three prompts above are recorded for the later independent generation calls, which must use the five inspected references as moodboard inputs and must stop before any shipping-asset propagation.
+The three prompts above are the generation contract. Every call used the five inspected references as moodboard inputs, and shipping-asset propagation remains blocked on owner selection.
 
 ## Task 2 generated-output provenance
 
-The three independent built-in Image Gen calls were made in the prompt order recorded above. Every call attached the same five directly inspected reference images. No retry was made, and no shipping icon was changed.
+The three independent built-in Image Gen calls were made in the prompt order recorded above. Every call attached the same five directly inspected reference images. The first Inhabited Room result violated the explicit no-miniature-furniture constraint, so the plan's single targeted retry was used for that direction. No shipping icon was changed.
 
 1. **Inhabited Room / World**
-   - Built-in output: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-2d159c54-bfc3-4705-ba0e-4abb8495b5d9.png`
+   - Rejected initial output: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-2d159c54-bfc3-4705-ba0e-4abb8495b5d9.png` — it visibly contained miniature shelves, books, plants, lamps, seating, a desk, and other decor.
+   - Accepted targeted-retry output: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-be6c430a-0b81-42bf-8ed3-d76b0fb31a04.png`
    - Workspace review copy: `design/icon-exploration/2026-08-19/candidates/inhabited-room-world.png`
-   - Final prompt: the exact `Inhabited Room / World` prompt above; no retry or prompt change.
+   - Final prompt: the exact `Inhabited Room / World` prompt above with this single suffix appended verbatim:
+
+```text
+Targeted hard-constraint correction: replace the detailed miniature interior with a single simplified room-or-threshold silhouette and one spatial light event. Absolutely no shelves, books, plants, lamp, chair, table, cup, desk, candle, rug, wall hanging, or any other miniature furnishing or decor. Keep only bold architectural planes, the threshold, and controlled light so the mark survives at 32 pixels.
+```
 2. **Completion Latch / Orbit**
    - Built-in output: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-6b08f09b-8526-485b-8eb3-86b2daf7a0a7.png`
    - Workspace review copy: `design/icon-exploration/2026-08-19/candidates/completion-latch-orbit.png`
@@ -108,3 +113,5 @@ The three independent built-in Image Gen calls were made in the prompt order rec
 The built-in generator returned each square output as 1254 x 1254 ARGB despite the requested 1024 x 1024 asset size. The workspace copies preserve those returned pixels exactly; no unapproved resize or format edit was applied. The review-only comparison tool will accept square inputs of at least 1024 px and deterministically downsample 1024, 180, 60, and 32 px previews.
 
 These are review masters only. Their small-size silhouette, category reading, platform-mask behavior, and themed-icon viability remain unaccepted until the deterministic comparison sheets are built and opened.
+
+For the three accepted review candidates and the comparison sheets, the stable option mapping is: Option 1 = accepted Inhabited Room targeted retry, Option 2 = Completion Latch / Orbit, Option 3 = Daybook and Light. The rejected first render remains in the built-in output history for provenance but is not an option.
