@@ -51,7 +51,7 @@ void main() {
         DaybookSection.due,
         DaybookSection.due,
       ]);
-      expect(day.summary.scheduledMinutes, 190);
+      expect(day.summary.scheduledMinutes, 130);
       expect(day.summary.weight, DaybookDayWeight.moderate);
       expect(day.summary.hasDeadline, isTrue);
       expect(day.summary.semanticLabel, contains('2 events'));
@@ -72,6 +72,269 @@ void main() {
       );
     },
   );
+
+  test('Quest calendar intent separates deadlines focus and routines', () {
+    final date = CivilDate(2026, 8, 18);
+    final range = DaybookRangeProjection.build(
+      schedule: AcademicSchedule.empty(),
+      quests: <Quest>[
+        Quest(title: 'Daily care', stat: Stat.vit, difficulty: 1),
+        Quest(
+          title: 'Tuesday care',
+          stat: Stat.vit,
+          difficulty: 1,
+          weekdays: const [DateTime.tuesday],
+        ),
+        Quest(
+          title: 'Weekly care',
+          stat: Stat.vit,
+          difficulty: 1,
+          schedule: QuestSchedule.weekly,
+        ),
+        Quest(
+          title: 'Monthly care',
+          stat: Stat.vit,
+          difficulty: 1,
+          schedule: QuestSchedule.monthly,
+          monthDay: 18,
+        ),
+        Quest(
+          title: 'Until done',
+          stat: Stat.foc,
+          difficulty: 2,
+          schedule: QuestSchedule.once,
+        ),
+        Quest(
+          title: 'Standing main',
+          stat: Stat.foc,
+          difficulty: 2,
+          priority: true,
+        ),
+        Quest(
+          title: 'Chosen today',
+          stat: Stat.foc,
+          difficulty: 2,
+          priority: true,
+          priorityDay: '2026-08-18',
+        ),
+        Quest(
+          title: 'Real deadline',
+          stat: Stat.foc,
+          difficulty: 3,
+          schedule: QuestSchedule.once,
+          dueDate: DateTime(2026, 8, 18, 15),
+        ),
+        Quest(
+          title: 'Due wins',
+          stat: Stat.foc,
+          difficulty: 3,
+          schedule: QuestSchedule.once,
+          dueDate: DateTime(2026, 8, 18),
+          priority: true,
+          priorityDay: '2026-08-18',
+        ),
+      ],
+      first: date.addDays(-1),
+      last: date.addDays(1),
+      now: DateTime(2026, 8, 18, 12),
+    );
+
+    expect(
+      [
+        for (final entry in range.dayOn(date).entries)
+          (entry.title, entry.section),
+      ],
+      const [
+        ('Real deadline', DaybookSection.due),
+        ('Due wins', DaybookSection.due),
+        ('Chosen today', DaybookSection.focus),
+      ],
+    );
+    final titles = range.days.values
+        .expand((day) => day.entries)
+        .map((entry) => entry.title)
+        .toSet();
+    for (final hidden in const {
+      'Daily care',
+      'Tuesday care',
+      'Weekly care',
+      'Monthly care',
+      'Until done',
+      'Standing main',
+    }) {
+      expect(titles, isNot(contains(hidden)));
+    }
+  });
+
+  test('Quest calendar intent hides snoozed focus but keeps snoozed due', () {
+    final date = CivilDate(2026, 8, 18);
+    final range = DaybookRangeProjection.build(
+      schedule: AcademicSchedule.empty(),
+      quests: [
+        Quest(
+          title: 'Snoozed focus',
+          stat: Stat.foc,
+          difficulty: 2,
+          priorityDay: '2026-08-18',
+          snoozedDay: '2026-08-18',
+        ),
+        Quest(
+          title: 'Snoozed due',
+          stat: Stat.foc,
+          difficulty: 2,
+          schedule: QuestSchedule.once,
+          dueDate: DateTime(2026, 8, 18),
+          snoozedDay: '2026-08-18',
+        ),
+      ],
+      first: date,
+      last: date,
+      now: DateTime(2026, 8, 18, 12),
+    );
+
+    expect(range.dayOn(date).entries.map((entry) => entry.title), [
+      'Snoozed due',
+    ]);
+    expect(range.dayOn(date).entries.single.section, DaybookSection.due);
+  });
+
+  test('Quest calendar summary separates fixed plans deadlines and focus', () {
+    final date = CivilDate(2026, 8, 18);
+    final timestamp = DateTime.utc(2026, 8, 1);
+    final schedule = AcademicSchedule.empty().putEvent(
+      DaybookEvent(
+        eventId: 'morning',
+        title: 'Morning event',
+        startDate: date,
+        endDate: date,
+        timeZoneId: 'America/New_York',
+        allDay: false,
+        startMinute: 9 * 60,
+        endMinute: 10 * 60,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      ),
+    );
+    final day = DaybookRangeProjection.build(
+      schedule: schedule,
+      quests: [
+        Quest(
+          title: 'Active deadline',
+          stat: Stat.foc,
+          difficulty: 3,
+          schedule: QuestSchedule.once,
+          dueDate: DateTime(2026, 8, 18, 15),
+          timerMinutes: 240,
+        ),
+        Quest(
+          title: 'Active focus',
+          stat: Stat.foc,
+          difficulty: 2,
+          priorityDay: '2026-08-18',
+          timerMinutes: 180,
+        ),
+        Quest(
+          title: 'Completed deadline',
+          stat: Stat.foc,
+          difficulty: 3,
+          schedule: QuestSchedule.once,
+          dueDate: DateTime(2026, 8, 18),
+          lastDoneDay: '2026-08-18',
+        ),
+        Quest(
+          title: 'Completed focus',
+          stat: Stat.foc,
+          difficulty: 2,
+          priorityDay: '2026-08-18',
+          lastDoneDay: '2026-08-18',
+        ),
+      ],
+      first: date,
+      last: date,
+      now: DateTime(2026, 8, 18, 12),
+    ).dayOn(date);
+
+    expect(day.summary.scheduledMinutes, 60);
+    expect(day.summary.fixedPlanCount, 1);
+    expect(day.summary.deadlineCount, 1);
+    expect(day.summary.focusCount, 1);
+    expect(day.summary.firstTimedStartMinute, 9 * 60);
+    expect(day.summary.hasDeadline, isTrue);
+  });
+
+  test('Daybook fixed plan summary counts active all-day commitments', () {
+    final date = CivilDate(2026, 8, 18);
+    final timestamp = DateTime.utc(2026, 8, 1);
+    DaybookEvent allDayEvent(String eventId) => DaybookEvent(
+      eventId: eventId,
+      title: eventId,
+      startDate: date,
+      endDate: date.addDays(1),
+      timeZoneId: 'America/New_York',
+      allDay: true,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    );
+
+    final allDayOnly = DaybookRangeProjection.build(
+      schedule: AcademicSchedule.empty().putEvent(allDayEvent('all-day')),
+      quests: const [],
+      first: date,
+      last: date,
+      now: DateTime(2026, 8, 18, 12),
+    ).dayOn(date);
+    expect(allDayOnly.summary.fixedPlanCount, 1);
+
+    final cancelledAllDay = DaybookEvent(
+      eventId: 'cancelled-all-day',
+      title: 'Cancelled all-day',
+      startDate: date,
+      endDate: date.addDays(1),
+      timeZoneId: 'America/New_York',
+      allDay: true,
+      exceptions: [
+        DaybookEventException(
+          occurrenceKey: 'cancelled-all-day/${date.toString()}',
+          originalDate: date,
+          state: DaybookEventOccurrenceState.cancelled,
+          updatedAt: timestamp,
+        ),
+      ],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    );
+    final mixed = DaybookRangeProjection.build(
+      schedule: AcademicSchedule.empty()
+          .putEvent(allDayEvent('active-all-day'))
+          .putEvent(
+            DaybookEvent(
+              eventId: 'timed',
+              title: 'Timed',
+              startDate: date,
+              endDate: date,
+              timeZoneId: 'America/New_York',
+              allDay: false,
+              startMinute: 9 * 60,
+              endMinute: 10 * 60,
+              createdAt: timestamp,
+              updatedAt: timestamp,
+            ),
+          )
+          .putEvent(cancelledAllDay),
+      quests: const [],
+      first: date,
+      last: date,
+      now: DateTime(2026, 8, 18, 12),
+    ).dayOn(date);
+
+    expect(mixed.summary.fixedPlanCount, 2);
+    expect(
+      mixed.entries
+          .singleWhere((entry) => entry.title == 'Cancelled all-day')
+          .cancelled,
+      isTrue,
+    );
+  });
 
   test('clips overnight events to each projected day', () {
     final previous = date.addDays(-1);

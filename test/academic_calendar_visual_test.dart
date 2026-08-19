@@ -175,7 +175,7 @@ void main() {
 
       if (mode == AcademicCalendarMode.day) {
         await Scrollable.ensureVisible(
-          tester.element(find.text('ALL DAY').first),
+          tester.element(find.text('TUESDAY 11')),
           alignment: 0.02,
         );
         await tester.pump();
@@ -190,6 +190,8 @@ void main() {
           ),
           findsOneWidget,
         );
+        expect(find.text('Choose references for the cover'), findsOneWidget);
+        expect(find.text('Clear the sink'), findsNothing);
         expect(
           tester.getTopLeft(find.text('Museum tickets release')).dy,
           greaterThanOrEqualTo(16),
@@ -275,16 +277,32 @@ void main() {
               .didExceedMaxLines,
           isFalse,
         );
+        final selectedDayLabel = mode == AcademicCalendarMode.month
+            ? 'TUESDAY 11 · TODAY'
+            : 'TUESDAY 11';
         expect(
           tester
-              .renderObject<RenderParagraph>(find.text('TUESDAY 11 · TODAY'))
+              .renderObject<RenderParagraph>(find.text(selectedDayLabel))
               .didExceedMaxLines,
           isFalse,
         );
-        expect(
-          tester.getBottomLeft(find.text('TUESDAY 11 · TODAY')).dy,
-          lessThan(tester.getTopLeft(find.text('+ PLAN')).dy),
-        );
+        if (mode == AcademicCalendarMode.month) {
+          expect(
+            tester.getBottomLeft(find.text(selectedDayLabel)).dy,
+            lessThan(tester.getTopLeft(find.text('+ PLAN')).dy),
+          );
+        } else {
+          expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
+          expect(find.text('+ PLAN'), findsOneWidget);
+          expect(
+            tester.getBottomLeft(find.text(selectedDayLabel)).dy,
+            lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
+          );
+          expect(
+            tester.getBottomLeft(find.text('+ PLAN')).dy,
+            lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
+          );
+        }
         expect(tester.takeException(), isNull);
       },
     );
@@ -361,19 +379,15 @@ void main() {
         expect(find.text('3D'), findsOneWidget);
         expect(find.text('DAY'), findsOneWidget);
       }
-      for (
-        var drag = 0;
-        drag < 5 && find.text('Library closed').evaluate().isEmpty;
-        drag++
-      ) {
-        await tester.dragFrom(
-          Offset(configuration.size.width / 2, configuration.size.height - 70),
-          const Offset(0, -260),
-        );
-        await tester.pump();
-      }
-      await tester.ensureVisible(find.text('Library closed'));
+      await tester.scrollUntilVisible(
+        find.text('DAY SHAPE'),
+        260,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.text('DAY SHAPE'));
       await tester.pump();
+      expect(find.text('DAY SHAPE'), findsOneWidget);
+      expect(find.text('ALL DAY'), findsWidgets);
       expect(find.text('Library closed'), findsOneWidget);
       expect(find.text('Project meeting'), findsOneWidget);
       expect(find.text('Return library book'), findsOneWidget);
@@ -891,12 +905,24 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
   });
 
   final state = GameState()..reduceMotion = true;
-  final quest = Quest(
+  final dueQuest = Quest(
     title: 'Clear the kitchen table and put every borrowed thing back',
     stat: Stat.dis,
     difficulty: 2,
     schedule: QuestSchedule.once,
     dueDate: DateTime(2026, 8, 11),
+  );
+  final focusQuest = Quest(
+    title: 'Choose references for the cover',
+    stat: Stat.foc,
+    difficulty: 3,
+    priorityDay: Days.key(DateTime(2026, 8, 11)),
+  );
+  final routineQuest = Quest(
+    title: 'Clear the sink',
+    stat: Stat.dis,
+    difficulty: 1,
+    schedule: QuestSchedule.daily,
   );
   await tester.pumpWidget(
     MaterialApp(
@@ -913,7 +939,7 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
       home: Scaffold(
         body: CalendarPage(
           state: state,
-          quests: [quest],
+          quests: [dueQuest, focusQuest, routineQuest],
           onAdd: (_) => true,
           scheduleRepository: InMemoryAcademicScheduleRepository(
             _generalDaybookReleaseSchedule(

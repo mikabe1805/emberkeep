@@ -16,7 +16,7 @@ enum DaybookSourceKind {
   questPlan,
 }
 
-enum DaybookSection { allDay, timed, due, stillOpen }
+enum DaybookSection { allDay, timed, due, focus, stillOpen }
 
 enum DaybookDayWeight { none, light, moderate, full }
 
@@ -82,6 +82,10 @@ final class DaybookDaySummary {
   const DaybookDaySummary({
     required this.scheduledMinutes,
     required this.weight,
+    required this.fixedPlanCount,
+    required this.deadlineCount,
+    required this.focusCount,
+    required this.firstTimedStartMinute,
     required this.hasDeadline,
     required this.conflicts,
     required this.semanticLabel,
@@ -89,6 +93,10 @@ final class DaybookDaySummary {
 
   final int scheduledMinutes;
   final DaybookDayWeight weight;
+  final int fixedPlanCount;
+  final int deadlineCount;
+  final int focusCount;
+  final int? firstTimedStartMinute;
   final bool hasDeadline;
   final List<DaybookConflict> conflicts;
   final String semanticLabel;
@@ -188,22 +196,11 @@ abstract final class DaybookRangeProjection {
     _addClasses(schedule, first, last, byDate);
     _addStudyBlocks(schedule, first, last, byDate);
     _addDueItems(schedule, first, last, currentDate, byDate);
-    _addQuestPlans(quests, first, last, currentDate, byDate);
-    final questMinutesByTitle = {
-      for (final quest in quests)
-        quest.title: quest.effectiveTimerMinutes > 0
-            ? quest.effectiveTimerMinutes
-            : 60,
-    };
+    _addQuestPlans(quests, first, last, byDate);
 
     final days = <CivilDate, DaybookDay>{
       for (final entry in byDate.entries)
-        entry.key: _buildDay(
-          entry.key,
-          entry.value,
-          schedule,
-          questMinutesByTitle,
-        ),
+        entry.key: _buildDay(entry.key, entry.value, schedule),
     };
     return DaybookRange(first: first, last: last, days: Map.unmodifiable(days));
   }
@@ -468,17 +465,16 @@ abstract final class DaybookRangeProjection {
     List<Quest> quests,
     CivilDate first,
     CivilDate last,
-    CivilDate currentDate,
     Map<CivilDate, List<DaybookEntry>> byDate,
   ) {
     for (var date = first; date.compareTo(last) <= 0; date = date.addDays(1)) {
       final dateTime = DateTime(date.year, date.month, date.day);
       final dateKey = Days.key(dateTime);
       for (final quest in quests) {
-        if (quest.snoozedDay == dateKey ||
-            !_questAppearsOn(quest, dateTime, currentDate)) {
-          continue;
-        }
+        final due =
+            quest.isEvent && CivilDate.fromDateTime(quest.dueDate!) == date;
+        final focus = !due && quest.priorityDay == dateKey;
+        if (!due && (!focus || quest.snoozedDay == dateKey)) continue;
         final dueMinute =
             quest.dueDate == null ||
                 quest.allDay ||
@@ -491,10 +487,10 @@ abstract final class DaybookRangeProjection {
             sourceKind: DaybookSourceKind.questPlan,
             sourceId: quest.title,
             title: quest.displayTitle,
-            section: quest.allDay ? DaybookSection.allDay : DaybookSection.due,
-            startMinute: dueMinute,
+            section: due ? DaybookSection.due : DaybookSection.focus,
+            startMinute: due ? dueMinute : null,
             completed: quest.doneFor(dateTime),
-            sourceLabel: 'QUEST PLAN',
+            sourceLabel: 'QUEST',
             action: QuestPlanAction(quest.title),
           ),
         );
@@ -502,24 +498,10 @@ abstract final class DaybookRangeProjection {
     }
   }
 
-  static bool _questAppearsOn(
-    Quest quest,
-    DateTime date,
-    CivilDate currentDate,
-  ) {
-    if (quest.dueDate != null) {
-      return CivilDate.fromDateTime(quest.dueDate!) ==
-          CivilDate.fromDateTime(date);
-    }
-    if (quest.schedule != QuestSchedule.once) return quest.scheduledOn(date);
-    return CivilDate.fromDateTime(date) == currentDate;
-  }
-
   static DaybookDay _buildDay(
     CivilDate date,
     List<DaybookEntry> sourceEntries,
     AcademicSchedule schedule,
-    Map<String, int> questMinutesByTitle,
   ) {
     final entries = List<DaybookEntry>.of(sourceEntries)..sort(_compareEntries);
     final timed = entries
@@ -544,24 +526,33 @@ abstract final class DaybookRangeProjection {
             0;
       }
     }
-    for (final entry in entries.where(
-      (item) =>
-          item.sourceKind == DaybookSourceKind.questPlan && !item.completed,
-    )) {
-      final action = entry.action as QuestPlanAction;
-      scheduledMinutes += questMinutesByTitle[action.questTitle] ?? 60;
-    }
-
     final conflicts = _conflicts(timed);
-    final hasDeadline = entries.any(
-      (entry) =>
-          (entry.section == DaybookSection.due ||
-              entry.section == DaybookSection.stillOpen) &&
-          !entry.completed,
-    );
+    final fixedPlanCount = entries
+        .where(
+          (entry) =>
+              (entry.section == DaybookSection.allDay ||
+                  entry.section == DaybookSection.timed) &&
+              !entry.cancelled,
+        )
+        .length;
+    final deadlineCount = entries
+        .where(
+          (entry) =>
+              (entry.section == DaybookSection.due ||
+                  entry.section == DaybookSection.stillOpen) &&
+              !entry.cancelled &&
+              !entry.completed,
+        )
+        .length;
+    final focusCount = entries.where(_isActiveFocus).length;
+    final hasDeadline = deadlineCount > 0;
     final summary = DaybookDaySummary(
       scheduledMinutes: scheduledMinutes,
       weight: _weightFor(scheduledMinutes),
+      fixedPlanCount: fixedPlanCount,
+      deadlineCount: deadlineCount,
+      focusCount: focusCount,
+      firstTimedStartMinute: timed.isEmpty ? null : timed.first.startMinute,
       hasDeadline: hasDeadline,
       conflicts: List.unmodifiable(conflicts),
       semanticLabel: _semanticLabel(
@@ -578,6 +569,11 @@ abstract final class DaybookRangeProjection {
       summary: summary,
     );
   }
+
+  static bool _isActiveFocus(DaybookEntry entry) =>
+      entry.section == DaybookSection.focus &&
+      !entry.cancelled &&
+      !entry.completed;
 
   static List<DaybookConflict> _conflicts(List<DaybookEntry> timed) {
     final conflicts = <DaybookConflict>[];
@@ -644,9 +640,15 @@ abstract final class DaybookRangeProjection {
   ) {
     final labels = <String>[];
     for (final kind in DaybookSourceKind.values) {
-      final count = entries.where((entry) => entry.sourceKind == kind).length;
+      final count = entries
+          .where((entry) => entry.sourceKind == kind && !_isActiveFocus(entry))
+          .length;
       if (count == 0) continue;
       labels.add(_sourceCountLabel(kind, count));
+    }
+    final focusCount = entries.where(_isActiveFocus).length;
+    if (focusCount > 0) {
+      labels.add('$focusCount focus ${focusCount == 1 ? 'choice' : 'choices'}');
     }
     if (hasDeadline) labels.add('deadline');
     if (scheduledMinutes > 0) labels.add('$scheduledMinutes scheduled minutes');

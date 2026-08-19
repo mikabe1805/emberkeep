@@ -158,6 +158,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// deferred commit before writing (bug-hunt §1 — observer order alone
   /// is fragile across IndexedStack rebuilds).
   VoidCallback? _flushQuestsCommit;
+  void Function(Quest quest, Offset anchor)? _completeQuest;
 
   /// Serializes preference writes so a slower old write cannot land after a
   /// newer one. Export and lifecycle flushes await this same tail.
@@ -1464,6 +1465,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           onRestore: _restoreSnapshot,
                                           onBindFlush: (flush) =>
                                               _flushQuestsCommit = flush,
+                                          onBindComplete: (complete) =>
+                                              _completeQuest = complete,
                                           onNightClosed: () => unawaited(
                                             _rescheduleNotifications(),
                                           ),
@@ -1491,6 +1494,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           state: state,
                                           quests: quests,
                                           onAdd: _addQuest,
+                                          onCompleteQuest: (quest, anchor) =>
+                                              _completeQuest?.call(
+                                                quest,
+                                                anchor,
+                                              ),
                                           parallax: cameraFor(3),
                                           lightDirection: lightFor(3),
                                         )
