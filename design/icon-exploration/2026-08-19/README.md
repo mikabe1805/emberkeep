@@ -87,3 +87,24 @@ Avoid: generic journal app, notes app, calendar glyph, open-book education logo,
 ```
 
 Task 2 has not started. The three prompts above are recorded for the later independent generation calls, which must use the five inspected references as moodboard inputs and must stop before any shipping-asset propagation.
+
+## Task 2 generated-output provenance
+
+The three independent built-in Image Gen calls were made in the prompt order recorded above. Every call attached the same five directly inspected reference images. No retry was made, and no shipping icon was changed.
+
+1. **Inhabited Room / World**
+   - Built-in output: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-2d159c54-bfc3-4705-ba0e-4abb8495b5d9.png`
+   - Workspace review copy: `design/icon-exploration/2026-08-19/candidates/inhabited-room-world.png`
+   - Final prompt: the exact `Inhabited Room / World` prompt above; no retry or prompt change.
+2. **Completion Latch / Orbit**
+   - Built-in output: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-6b08f09b-8526-485b-8eb3-86b2daf7a0a7.png`
+   - Workspace review copy: `design/icon-exploration/2026-08-19/candidates/completion-latch-orbit.png`
+   - Final prompt: the exact `Completion Latch / Orbit` prompt above; no retry or prompt change.
+3. **Daybook and Light**
+   - Built-in output: `C:\Users\mikus\.codex\generated_images\01a019fc-1b77-7f32-8a90-d1af757cf379\exec-be6a26ca-87c8-44e3-aeff-3aa1323e4293.png`
+   - Workspace review copy: `design/icon-exploration/2026-08-19/candidates/daybook-light.png`
+   - Final prompt: the exact `Daybook and Light` prompt above; no retry or prompt change.
+
+The built-in generator returned each square output as 1254 x 1254 ARGB despite the requested 1024 x 1024 asset size. The workspace copies preserve those returned pixels exactly; no unapproved resize or format edit was applied. The review-only comparison tool will accept square inputs of at least 1024 px and deterministically downsample 1024, 180, 60, and 32 px previews.
+
+These are review masters only. Their small-size silhouette, category reading, platform-mask behavior, and themed-icon viability remain unaccepted until the deterministic comparison sheets are built and opened.
