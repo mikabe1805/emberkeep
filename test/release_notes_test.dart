@@ -8,7 +8,7 @@ void main() {
   test('current release agrees with the source version', () {
     final pubspec = File('pubspec.yaml').readAsStringSync();
 
-    expect(currentRoomReleaseNotes.id, '1.0.4+24');
+    expect(currentRoomReleaseNotes.id, '1.0.4+25');
     expect(currentRoomReleaseNotes.title, 'Plans are for your whole life.');
     expect(
       currentRoomReleaseNotes.highlights.map((highlight) => highlight.title),
@@ -17,8 +17,22 @@ void main() {
     expect(pubspec, contains('version: ${currentRoomReleaseNotes.id}'));
     expect(
       roomOfDaysReleaseNotes.map((release) => release.id),
-      containsAllInOrder(const ['1.0.4+24', '1.0.3+21', '1.0.2+20']),
+      containsAllInOrder(const [
+        '1.0.4+25',
+        '1.0.4+24',
+        '1.0.3+21',
+        '1.0.2+20',
+      ]),
     );
+    final build24 = roomOfDaysReleaseNotes.singleWhere(
+      (release) => release.id == '1.0.4+24',
+    );
+    expect(build24.highlights, hasLength(3));
+    final build24Titles = build24.highlights.map(
+      (highlight) => highlight.title,
+    );
+    expect(build24Titles, isNot(contains('QUESTS STAY YOURS')));
+    expect(build24Titles, isNot(contains('THE ROOM ANSWERS BACK')));
   });
 
   test('existing install claims an unseen release exactly once', () async {
