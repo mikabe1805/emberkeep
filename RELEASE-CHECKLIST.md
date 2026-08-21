@@ -3,7 +3,21 @@
 Updated August 21, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.4+25 iOS App Store candidate
+## 1.0.4+26 iOS App Store candidate — supersedes Build 25
+
+Build 25 was prepared but is superseded before upload by Build 26, which adds
+the phone-approved sound system: the material texture lanes (slate, page,
+glass, brass over the wood clasp), the room-derived event voices replacing the
+Gen-1 sine palette, dead-tap coverage (active-tab retap, board fling catch,
+Daybook wiring), and its What's New record ("Every surface has a voice.").
+Owner verdicts and byte-locks are recorded under
+`design/audits/2026-08-21/`; the how-and-why lives in `SOUND-DESIGN.md`.
+`pubspec.yaml` is `1.0.4+26`; everything in the Build 25 section below remains
+included. Local verification: format, analyze, full test suite, release web
+build with offline prep, dependency audit, and store-submission verifier —
+run on August 21, 2026.
+
+## 1.0.4+25 iOS App Store candidate (superseded by Build 26)
 
 Builds 22, 23, and 24 were uploaded as internal candidates. Build 24 came from
 the older `ade02ef` source before the final sound and quest-management work, so

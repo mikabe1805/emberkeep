@@ -588,9 +588,22 @@ same room camera.
   early-reflection fingerprint are shared acoustic physics. A folder of clean
   but unrelated tap samples fails the system even when each file sounds good
   alone.
-- Everyday sound is keyed to the interaction verb, not the surface painted
-  beneath it. `open`, `select`, `navigate`, and `place` are small weightings of
-  the same approved X contact/body/8.5 ms clasp—not separate Foley materials.
+- Everyday sound is keyed to the interaction verb first. `open`, `select`,
+  `navigate`, and `place` are small weightings of the same approved X
+  contact/body/8.5 ms clasp—never separate Foley materials.
+- On top of the verb, a surface may declare its MATERIAL (owner direction,
+  2026-08-21: interactable surfaces should feel like different "textures" —
+  slate buttons with a satisfying dak, page flips between tabs, the wood clasp
+  for ordinary tapping). A material is a body/grain shading of the one
+  mechanism — same contact master, reflection fingerprint, and pitch walk —
+  routed as `room/materials/<material>/<verb>/<take>` with automatic fallback
+  to the plain clasp for any lane that has not passed its phone gate. The
+  standing correction still governs: this is the satisfying weight of the
+  press, not stone-on-stone realism, and literal recordings are never the
+  identity. Lane semantics: slate = opaque faceted option chips and commit
+  slabs; parchment = travel between pages/tabs/modes and journal surfaces;
+  glass = translucent switches, dialogs, and previews; brass = gold surfaces
+  only; wood = everything else.
 - X is the production ordinary anchor. Its complete 60 ms gesture and common
   `+1.5 dB` phone level are byte-locked from the physical iPhone study. Five
   close takes move through one global no-repeat walk, creating slight physical
@@ -625,6 +638,17 @@ same room camera.
   same X router through a compatibility bridge. That bridge no longer selects
   unrelated prop recordings and is removed as each surface receives its
   explicit interaction verb.
+- A touch that plainly did something is never left unanswered (owner
+  correction, 2026-08-21; supersedes the earlier already-selected-tabs-are-
+  silent rule). Retapping the active dock tab acknowledges with a quieter
+  `select` detent instead of full `navigate` travel weight; the tap that
+  catches a coasting quest board voices the softest `select` even though the
+  scrollable ignore-pointers its children mid-fling. True no-answer silence is
+  reserved for scrolling itself, typing, passive previews, and decline/not-now
+  actions.
+- New interactive surfaces wire their interaction verb before they ship. The
+  daybook shipped with ~20 silent tappable rows, which read as deadness, not
+  restraint — coverage is part of a surface's definition of done.
 - Completed controls settle into weight; they do not become bright green.
 - Hearth ambience is optional, extremely low, looped cleanly, and never starts
   as a foreground sound.

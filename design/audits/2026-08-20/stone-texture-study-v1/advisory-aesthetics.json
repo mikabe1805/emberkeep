@@ -1,0 +1,19 @@
+{
+  "model": "facebook/audiobox-aesthetics",
+  "run_date": "2026-08-20",
+  "purpose": "advisory export-consistency check only; never a preference ranking",
+  "axes": {
+    "CE": "content enjoyment",
+    "CU": "content usefulness",
+    "PC": "production complexity",
+    "PQ": "production quality"
+  },
+  "scores": {
+    "stone-a": {"CE": 3.2763, "CU": 7.0932, "PC": 1.8071, "PQ": 7.4579},
+    "stone-b": {"CE": 3.2515, "CU": 7.0799, "PC": 1.8061, "PQ": 7.3894},
+    "stone-c": {"CE": 3.2209, "CU": 7.0533, "PC": 1.7917, "PQ": 7.4417},
+    "stone-d": {"CE": 3.2613, "CU": 7.1017, "PC": 1.7988, "PQ": 7.4458},
+    "stone-e": {"CE": 3.3106, "CU": 7.1893, "PC": 1.8159, "PQ": 7.5416},
+    "stone-f": {"CE": 3.2857, "CU": 7.0743, "PC": 1.8037, "PQ": 7.4024}
+  }
+}

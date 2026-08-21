@@ -1,0 +1,330 @@
+{
+  "sample_rate_hz": 48000,
+  "sample_format": "PCM_24",
+  "root_note": "D5",
+  "note_duration_ms": 165.0,
+  "measured_step_ms": 245,
+  "rapid_step_ms": 132,
+  "palettes": {
+    "a": {
+      "collection_semitones": [
+        0,
+        2,
+        4,
+        7,
+        9
+      ],
+      "phrase_semitones": [
+        0,
+        2,
+        4,
+        7,
+        9,
+        7,
+        4,
+        2
+      ],
+      "phrase_notes": [
+        "D5",
+        "E5",
+        "F#5",
+        "A5",
+        "B5",
+        "A5",
+        "F#5",
+        "E5"
+      ],
+      "combined": {
+        "duration_seconds": 4.719,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.057,
+        "spectral_centroid_hz": 788.7,
+        "presence_2_6khz_pct": 0.371,
+        "air_over_8khz_pct": 0.0
+      },
+      "measured": {
+        "duration_seconds": 2.225,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -17.788,
+        "spectral_centroid_hz": 900.57,
+        "presence_2_6khz_pct": 0.55,
+        "air_over_8khz_pct": 0.0
+      },
+      "rapid": {
+        "duration_seconds": 1.434,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.403,
+        "spectral_centroid_hz": 878.17,
+        "presence_2_6khz_pct": 0.517,
+        "air_over_8khz_pct": 0.0
+      }
+    },
+    "b": {
+      "collection_semitones": [
+        0,
+        4,
+        7,
+        9,
+        12
+      ],
+      "phrase_semitones": [
+        0,
+        4,
+        9,
+        12,
+        9,
+        7,
+        4,
+        0
+      ],
+      "phrase_notes": [
+        "D5",
+        "F#5",
+        "B5",
+        "D6",
+        "B5",
+        "A5",
+        "F#5",
+        "D5"
+      ],
+      "combined": {
+        "duration_seconds": 4.719,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.157,
+        "spectral_centroid_hz": 831.96,
+        "presence_2_6khz_pct": 0.585,
+        "air_over_8khz_pct": 0.0
+      },
+      "measured": {
+        "duration_seconds": 2.225,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -17.891,
+        "spectral_centroid_hz": 1007.11,
+        "presence_2_6khz_pct": 1.003,
+        "air_over_8khz_pct": 0.0
+      },
+      "rapid": {
+        "duration_seconds": 1.434,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.5,
+        "spectral_centroid_hz": 962.21,
+        "presence_2_6khz_pct": 0.874,
+        "air_over_8khz_pct": 0.0
+      }
+    },
+    "c": {
+      "collection_semitones": [
+        0,
+        2,
+        4,
+        6,
+        7,
+        9,
+        11,
+        12
+      ],
+      "phrase_semitones": [
+        0,
+        2,
+        6,
+        7,
+        11,
+        12,
+        7,
+        2
+      ],
+      "phrase_notes": [
+        "D5",
+        "E5",
+        "G#5",
+        "A5",
+        "C#6",
+        "D6",
+        "A5",
+        "E5"
+      ],
+      "combined": {
+        "duration_seconds": 4.719,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -17.979,
+        "spectral_centroid_hz": 880.5,
+        "presence_2_6khz_pct": 0.823,
+        "air_over_8khz_pct": 0.0
+      },
+      "measured": {
+        "duration_seconds": 2.225,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -17.789,
+        "spectral_centroid_hz": 1024.79,
+        "presence_2_6khz_pct": 1.434,
+        "air_over_8khz_pct": 0.0
+      },
+      "rapid": {
+        "duration_seconds": 1.434,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.218,
+        "spectral_centroid_hz": 1007.19,
+        "presence_2_6khz_pct": 1.336,
+        "air_over_8khz_pct": 0.0
+      }
+    },
+    "d": {
+      "collection_semitones": [
+        0,
+        7,
+        12,
+        14
+      ],
+      "phrase_semitones": [
+        0,
+        7,
+        12,
+        7,
+        14,
+        12,
+        7,
+        0
+      ],
+      "phrase_notes": [
+        "D5",
+        "A5",
+        "D6",
+        "A5",
+        "E6",
+        "D6",
+        "A5",
+        "D5"
+      ],
+      "combined": {
+        "duration_seconds": 4.719,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.1,
+        "spectral_centroid_hz": 941.25,
+        "presence_2_6khz_pct": 1.015,
+        "air_over_8khz_pct": 0.0
+      },
+      "measured": {
+        "duration_seconds": 2.225,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -17.79,
+        "spectral_centroid_hz": 1132.79,
+        "presence_2_6khz_pct": 1.637,
+        "air_over_8khz_pct": 0.0
+      },
+      "rapid": {
+        "duration_seconds": 1.434,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.504,
+        "spectral_centroid_hz": 1096.63,
+        "presence_2_6khz_pct": 1.513,
+        "air_over_8khz_pct": 0.0
+      }
+    },
+    "e": {
+      "collection_semitones": [
+        0,
+        4,
+        7,
+        12,
+        16
+      ],
+      "phrase_semitones": [
+        0,
+        4,
+        7,
+        12,
+        16,
+        12,
+        7,
+        4
+      ],
+      "phrase_notes": [
+        "D5",
+        "F#5",
+        "A5",
+        "D6",
+        "F#6",
+        "D6",
+        "A5",
+        "F#5"
+      ],
+      "combined": {
+        "duration_seconds": 4.719,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.165,
+        "spectral_centroid_hz": 983.69,
+        "presence_2_6khz_pct": 1.134,
+        "air_over_8khz_pct": 0.0
+      },
+      "measured": {
+        "duration_seconds": 2.225,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -17.892,
+        "spectral_centroid_hz": 1223.2,
+        "presence_2_6khz_pct": 1.895,
+        "air_over_8khz_pct": 0.001
+      },
+      "rapid": {
+        "duration_seconds": 1.434,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.516,
+        "spectral_centroid_hz": 1174.65,
+        "presence_2_6khz_pct": 1.728,
+        "air_over_8khz_pct": 0.001
+      }
+    },
+    "f": {
+      "collection_semitones": [
+        0,
+        5,
+        10,
+        12,
+        17
+      ],
+      "phrase_semitones": [
+        0,
+        5,
+        10,
+        12,
+        17,
+        12,
+        10,
+        5
+      ],
+      "phrase_notes": [
+        "D5",
+        "G5",
+        "C6",
+        "D6",
+        "G6",
+        "D6",
+        "C6",
+        "G5"
+      ],
+      "combined": {
+        "duration_seconds": 4.719,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.092,
+        "spectral_centroid_hz": 1050.89,
+        "presence_2_6khz_pct": 1.585,
+        "air_over_8khz_pct": 0.0
+      },
+      "measured": {
+        "duration_seconds": 2.225,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -17.892,
+        "spectral_centroid_hz": 1286.25,
+        "presence_2_6khz_pct": 2.24,
+        "air_over_8khz_pct": 0.001
+      },
+      "rapid": {
+        "duration_seconds": 1.434,
+        "peak_dbfs": -8.8,
+        "active_rms_dbfs": -18.346,
+        "spectral_centroid_hz": 1241.69,
+        "presence_2_6khz_pct": 2.139,
+        "air_over_8khz_pct": 0.001
+      }
+    }
+  }
+}

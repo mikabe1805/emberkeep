@@ -1,0 +1,609 @@
+{
+  "format": "sonic-system/v1",
+  "product": {
+    "name": "Room of Days",
+    "promise": "One intimate, handmade room answers useful effort through small physical mechanisms that feel warm, responsive, lightly musical, and earned.",
+    "owner_quotes": [
+      "the sounds on their own sound crisp i guess but they don't sound good together or feel like room of days. they sound like random tap sounds.",
+      "i dont like the sound of the stones against each other, but when the guy taps around it sounds good and satisfying",
+      "i like when there's a rhythm and it feels melodic.",
+      "a more \"bloop!\" sound like the current one should be for finishing quests, and then there should be another sound for button clicking (like clicking on a journal entry) that should have a lighter, shorter \"tak!\" feel"
+    ]
+  },
+  "world": {
+    "sensory_words": [
+      "close",
+      "warm",
+      "weighty",
+      "alive",
+      "lightly musical"
+    ],
+    "avoid": [
+      "literal stone-on-stone scrape or clack",
+      "unrelated tap-library samples",
+      "old-recording or audible studio-room veil",
+      "sterile synthetic ticks",
+      "brittle glass sparkle or fairy-dust reverb",
+      "boomy sub-bass that disappears on a phone",
+      "a dark or unresolved emotional story imposed on routine interactions"
+    ],
+    "shared_dna": {
+      "transient": "Every foreground cue begins with the same close, soft-edged mechanism contact: readable within 10 ms, controlled above 5.5 kHz, never a literal material collision.",
+      "body": "Everyday weight comes from one related damped modal body in the phone-readable 550-1400 Hz region, with only quiet 250-450 Hz support and no sub-bass dependency.",
+      "harmonic_field": "Hypothesis pending physical audition: D-major pentatonic (D, E, F-sharp, A, B) is the bounded note field. Frequent cues expose at most one quiet body note; meaningful outcomes may reveal a root/fifth or two-note answer. A global phrase walk provides variation without random pitches.",
+      "texture": "One clean micro-grain and rounded upper edge imply a padded ledger mechanism. Breath or ember texture appears only when the event visually opens into the room.",
+      "space": "All cues are close and centered, with the same nearly subliminal 18-35 ms warm early-reflection fingerprint. Ordinary contacts have no audible reverb tail; earned outcomes may widen after the contact.",
+      "dynamics": "Frequent contacts are quietest; navigation and placement add body; completion and discovery earn more duration and width. Rapid mixed tapping attenuates globally and lower-priority tails yield to outcomes."
+    }
+  },
+  "mix": {
+    "priority_order": [
+      "ceremony",
+      "discovery",
+      "completion",
+      "placement",
+      "boundary",
+      "navigation",
+      "contact",
+      "ambient"
+    ],
+    "priority_map": {
+      "ambient": 0,
+      "contact": 1,
+      "navigation": 2,
+      "placement": 2,
+      "boundary": 2,
+      "completion": 3,
+      "discovery": 4,
+      "ceremony": 4
+    },
+    "voice_cap": 2,
+    "rapid_policy": "Use one global interaction clock across controls. After repeated contacts inside 350 ms, soften later hits; below 70 ms, fade the older ordinary tail instead of stacking. Reset after a calm interval.",
+    "ducking_policy": "A confirmed completion or discovery fades ordinary contact tails over roughly 10-15 ms and temporarily prevents new low-priority tails from masking the outcome.",
+    "silence_policy": [
+      "an already-selected tab or unchanged choice",
+      "scrolling, typing, cursor movement, loading, and passive preview",
+      "cancel, dismiss, and not-now when no state is committed",
+      "background sync and routine network failure",
+      "a disabled or busy control",
+      "a press that becomes a drag or scroll"
+    ],
+    "compound_outcome_rule": "Each action schedules either one immediate cue or one atomic contact-to-outcome plan. Completion suppresses any generic widget sound, emits the accepted-state contact once, clears ordinary tails, and schedules the confirmed bloom once 65-90 ms later.",
+    "voice_stealing_rule": "A new higher-priority cue fades the lowest-priority old tail first. A second ordinary contact may keep its onset but omits its tail. Ordinary contacts do not start under discovery or ceremony.",
+    "state_dedupe_rule": "State transition IDs are deduplicated until the transition resolves and for 180 ms afterward; this guard is separate from cadence attenuation for legitimate distinct taps.",
+    "settings_rule": "Check sound-enabled and platform audio availability before scheduling. Respect native mute/silent behavior, reduced-feedback choices, and the existing ambient/no-audio-focus policy so external music continues."
+  },
+  "render_contract": {
+    "version": "room-world-author-v1",
+    "shared_sources": {
+      "contact": {
+        "id": "approved-c-contact-v1",
+        "recipe": "The first 14 ms of approved C is shaped into one reusable close-contact master; source hashes and the deterministic recipe live in manifest.json."
+      },
+      "body": {
+        "id": "room-modal-bank-v1",
+        "recipe": "One damped slightly inharmonic modal bank with ratios 1.0, 1.498, and 2.17 plus quiet correlated excitation; role envelopes and pitch tokens transform it."
+      },
+      "space": {
+        "id": "room-close-reflection-v1",
+        "recipe": "A feed-forward centered fingerprint at 22, 29, and 34 ms (-24, -29, and -34 dB), low-passed at 3 kHz with no feedback tail."
+      },
+      "signature": {
+        "id": "room-breath-texture-v1",
+        "recipe": "Planned rare-event breath or ember layer derived from a clean traceable source; not present in the everyday proof and not approved until authored and auditioned."
+      }
+    },
+    "variant_axis": "global_phrase_token"
+  },
+  "cues": [
+    {
+      "id": "open",
+      "verb": "open",
+      "meaning": "Ordinary content is now available to inspect.",
+      "representative_actions": [
+        "Open a journal entry",
+        "Open a quiet sheet",
+        "Press a lightweight secondary button"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "Immediate with the accepted press or visible opening gesture.",
+      "timing_class": "immediate",
+      "gesture": "The shared mechanism speaks as its shortest, lightest tak: one contact and a tiny outward release.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "space"
+      ],
+      "distinctive_traits": [
+        "45-55 ms total gesture",
+        "least low-mid weight",
+        "slight upward or outward release"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "layers": ["contact", "body", "space"],
+        "pitch_token": "current global D/E/A phrase token plus the next permitted upper answer",
+        "variant_axis": "global_phrase_token",
+        "derivation": "0.78 contact gain, short shared body, and one very quiet outward answer around 9 ms; shortest room send."
+      },
+      "variant_count": 3,
+      "no_immediate_repeat": true,
+      "motion": "Onset aligns with press depth; the tiny release aligns with the entry or sheet beginning to open.",
+      "haptic": "Light selection feedback only where the control already earns haptics.",
+      "cooldown_ms": 35,
+      "silent_when": [
+        "The content is already open",
+        "The pointer becomes a scroll",
+        "The control is busy or disabled"
+      ]
+    },
+    {
+      "id": "select",
+      "verb": "settle",
+      "meaning": "A small choice has visibly seated into a new state.",
+      "representative_actions": [
+        "Choose a date within the current calendar view",
+        "Change a filter or segment",
+        "Toggle or pin an item"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "Immediate when the new state is accepted.",
+      "timing_class": "immediate",
+      "gesture": "A small tuk made from the shared contact followed by one quiet detent closure.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "space"
+      ],
+      "distinctive_traits": [
+        "55-65 ms total gesture",
+        "rounder and lower than open",
+        "tiny closure 10-18 ms after contact"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "layers": ["contact", "body", "space"],
+        "pitch_token": "current global D/E/A phrase token with its permitted lower detent",
+        "variant_axis": "global_phrase_token",
+        "derivation": "Shared contact and body followed by a quieter inherited contact/body closure at 13 ms."
+      },
+      "variant_count": 3,
+      "no_immediate_repeat": true,
+      "motion": "Contact aligns with selection; closure aligns with the control reaching its settled visual state.",
+      "haptic": "Selection feedback, matched to the rounded rather than sharp gesture.",
+      "cooldown_ms": 35,
+      "silent_when": [
+        "The value did not change",
+        "The control is busy or disabled",
+        "The gesture is only browsing or previewing"
+      ]
+    },
+    {
+      "id": "navigate",
+      "verb": "move",
+      "meaning": "The ledger or room has accepted a real destination change.",
+      "representative_actions": [
+        "Switch a top-level tab",
+        "Turn to another page or major section",
+        "Traverse a calendar period or view"
+      ],
+      "frequency": "frequent",
+      "priority": 2,
+      "priority_class": "navigation",
+      "timing": "Immediate only after the destination is known to differ.",
+      "timing_class": "immediate",
+      "gesture": "The approved weighted dak shape: firm contact, short warm body, and a slight downward seat inside the shared room.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "space",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "70-85 ms total gesture",
+        "strongest everyday contact body",
+        "subtle downward settle rather than an added chime"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "layers": ["contact", "body", "space"],
+        "pitch_token": "current global D/E/A phrase token with its permitted lower seat",
+        "variant_axis": "global_phrase_token",
+        "derivation": "Approved C stays audible as the weighted core, then the shared body adds a small downward drift and lower seat around 14 ms."
+      },
+      "variant_count": 3,
+      "no_immediate_repeat": true,
+      "motion": "The contact and page/tab movement start together; the body seats as the destination commits.",
+      "haptic": "Selection or restrained medium feedback for a decisive page change.",
+      "cooldown_ms": 55,
+      "silent_when": [
+        "The selected destination is already active",
+        "A route change is rejected",
+        "The control is busy or disabled"
+      ]
+    },
+    {
+      "id": "place",
+      "verb": "place",
+      "meaning": "Useful work has been safely put where it belongs.",
+      "representative_actions": [
+        "Save a journal edit",
+        "Add or schedule a plan",
+        "Pin or place an item"
+      ],
+      "frequency": "occasional",
+      "priority": 2,
+      "priority_class": "placement",
+      "timing": "After the state change is confirmed; it replaces a generic press sound when the action itself is the placement.",
+      "timing_class": "confirmed_outcome",
+      "gesture": "The shared mechanism lands, gains a little warm body, and settles downward without opening into a reward bloom.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "space",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "95-120 ms total gesture",
+        "two-stage downward seat",
+        "warmer than navigation but less melodic than completion"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "layers": ["contact", "body", "space"],
+        "pitch_token": "current global D/E/A phrase token with its permitted lower placement tone",
+        "variant_axis": "global_phrase_token",
+        "derivation": "Shared contact and warm lower body, then one quieter inherited contact/body seat around 24 ms with restrained low support."
+      },
+      "variant_count": 3,
+      "no_immediate_repeat": true,
+      "motion": "The final seat aligns with the saved or placed state becoming stable.",
+      "haptic": "Success haptic only after confirmed persistence.",
+      "cooldown_ms": 80,
+      "silent_when": [
+        "Nothing changed",
+        "Persistence failed or remains pending",
+        "The action was undone before commit"
+      ]
+    },
+    {
+      "id": "complete",
+      "verb": "complete",
+      "meaning": "A quest or routine was genuinely finished and the effort mattered.",
+      "representative_actions": [
+        "Complete a quest",
+        "Finish a routine"
+      ],
+      "frequency": "occasional",
+      "priority": 3,
+      "priority_class": "completion",
+      "timing": "After confirmed completion, accepted-state Select take 2 begins once; the Answered detent natural master begins exactly 75 ms later.",
+      "timing_class": "atomic_composed_outcome",
+      "gesture": "A friendly bloop/bloom assembled from the same contact and body, then revealing a short root/fifth or two-note answer and slightly more of the room.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "texture",
+        "space",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "roughly 360 ms composed contact-to-answer gesture",
+        "round expansion after the physical catch",
+        "two-stage tonal answer with no brittle sparkle"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "layers": ["contact", "body", "space"],
+        "pitch_token": "fixed D completion token: D root, A answer, with quiet A4 support",
+        "variant_axis": "global_phrase_token",
+        "current_variant_state": "Answered detent is the single selected completion master; compatible phrase variants are not yet authored.",
+        "accepted_contact_asset": "roles/select/2.wav",
+        "outcome_asset": "../room-reward-voice-v1/rewards/answered-detent/natural.wav",
+        "outcome_delay_ms": 75,
+        "derivation": "The exact accepted Select take 2 heard in the blind flow is scheduled once; 75 ms later Answered detent adds a restrained delayed fifth from the same modal bank and close Room fingerprint."
+      },
+      "variant_count": 1,
+      "no_immediate_repeat": false,
+      "motion": "The catch aligns with acceptance; the bloom follows XP/stat motion and the earned receipt.",
+      "haptic": "Success feedback after commit, synchronized to the catch rather than arbitrarily stacked on the press.",
+      "cooldown_ms": 180,
+      "silent_when": [
+        "The item was already complete",
+        "The completion is unconfirmed",
+        "A replay would duplicate the earned event"
+      ]
+    },
+    {
+      "id": "boundary",
+      "verb": "resist",
+      "meaning": "The requested local action has a gentle, immediate boundary.",
+      "representative_actions": [
+        "Reach a local capacity limit",
+        "Try to create an exact duplicate"
+      ],
+      "frequency": "occasional",
+      "priority": 2,
+      "priority_class": "boundary",
+      "timing": "Immediate only when a quiet local boundary benefits from tactile feedback.",
+      "timing_class": "immediate",
+      "gesture": "A shortened non-starting version of the shared mechanism with no bright answer and no punitive drop.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "space"
+      ],
+      "distinctive_traits": [
+        "shortest aborted body",
+        "muted top edge",
+        "no melodic continuation"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "layers": ["contact", "body", "space"],
+        "pitch_token": "parked neutral token with no continuation",
+        "variant_axis": "global_phrase_token",
+        "derivation": "Short low-passed shared contact and an aborted shared body; no answer tone."
+      },
+      "variant_count": 2,
+      "no_immediate_repeat": true,
+      "motion": "Align with soft visual resistance; never imply loss or failure.",
+      "haptic": "Soft impact only when the visual boundary is also clear.",
+      "cooldown_ms": 120,
+      "silent_when": [
+        "Copy alone explains the condition",
+        "The condition is remote or uncertain",
+        "The action is cancel or not-now"
+      ]
+    },
+    {
+      "id": "discover",
+      "verb": "reveal",
+      "meaning": "Something genuinely new has entered the user's world.",
+      "representative_actions": [
+        "Receive a keepsake",
+        "Reveal a rare reward"
+      ],
+      "frequency": "rare",
+      "priority": 4,
+      "priority_class": "discovery",
+      "timing": "After the new object is confirmed and begins to appear.",
+      "timing_class": "confirmed_outcome",
+      "gesture": "The shared body opens into a brief breath, wider room, and restrained melodic answer.",
+      "shared_traits": [
+        "body",
+        "harmonic_field",
+        "texture",
+        "space",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "250-550 ms with breathing room",
+        "wider only after the causal contact",
+        "rare luminous detail without fairy-dust sparkle"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "layers": ["body", "signature", "space"],
+        "signature_source_id": "room-breath-texture-v1",
+        "pitch_token": "earned root/fifth phrase selected from the same global field",
+        "variant_axis": "global_phrase_token",
+        "derivation": "Shared modal body opens into one restrained breath texture and a wider send after the confirmed visual reveal."
+      },
+      "variant_count": 2,
+      "no_immediate_repeat": true,
+      "motion": "Follows the reveal animation and briefly owns the mix.",
+      "haptic": "One composed success or custom pattern, never repeated by the toast.",
+      "cooldown_ms": 600,
+      "silent_when": [
+        "The object is only previewed",
+        "The reveal has already been acknowledged",
+        "The same event is replayed from history"
+      ]
+    },
+    {
+      "id": "ceremony",
+      "verb": "mark",
+      "meaning": "A rare milestone deserves a pause and a larger sense of accumulation.",
+      "representative_actions": [
+        "Advance a rank",
+        "Complete a major goal ritual"
+      ],
+      "frequency": "rare",
+      "priority": 4,
+      "priority_class": "ceremony",
+      "timing": "After the milestone state is committed, with lesser voices yielding.",
+      "timing_class": "confirmed_outcome",
+      "gesture": "A sparse phrase built from the same body, pitch field, breath, and room rather than a separate victory-jingle library.",
+      "shared_traits": [
+        "body",
+        "harmonic_field",
+        "texture",
+        "space",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "600-1400 ms with deliberate silence around it",
+        "largest harmonic range in the system",
+        "single clear arrival rather than repeated fanfare"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "layers": ["body", "signature", "space"],
+        "signature_source_id": "room-breath-texture-v1",
+        "pitch_token": "rare phrase drawn only from the same audition-approved field",
+        "variant_axis": "global_phrase_token",
+        "derivation": "Sparse arrivals from the shared modal bank, breath, and room with deliberate silence; no separate victory-jingle source."
+      },
+      "variant_count": 2,
+      "no_immediate_repeat": true,
+      "motion": "Composed directly with the milestone overlay and reduced-motion alternative.",
+      "haptic": "One deliberate milestone pattern synchronized to the primary arrival.",
+      "cooldown_ms": 1200,
+      "silent_when": [
+        "The milestone overlay is a replay",
+        "The state is not yet committed",
+        "A lesser receipt already carries the feedback"
+      ]
+    }
+  ],
+  "auditions": [
+    {
+      "id": "ordinary-flow",
+      "context": "Switch page, open a journal entry, choose two values, save, return, then accept and complete a quest at a normal hand cadence.",
+      "sequence": [
+        "navigate",
+        "open",
+        "select",
+        "select",
+        "place",
+        "navigate",
+        "open",
+        "select",
+        "complete"
+      ],
+      "question": "Which sequence feels more like one Room, if either?",
+      "second_question": "Do open, select, navigate, place, and complete remain distinct?",
+      "comparison": {
+        "control": "flows/control-current-natural.wav",
+        "candidate": "flows/candidate-room-natural.wav",
+        "timings_ms": [300, 1050, 1720, 2180, 2920, 3750, 4550, 5300, 5375],
+        "order": "Randomized per browser session, with identities hidden until a verdict is chosen.",
+        "natural_mix": true,
+        "level_control": {
+          "control": "flows/control-current-level-matched.wav",
+          "candidate": "flows/candidate-room-level-matched.wav"
+        },
+        "verdicts": ["control", "candidate", "both", "neither"]
+      }
+    },
+    {
+      "id": "earned-flow",
+      "context": "Open a quest, accept its state, complete it, then reveal a rare reward only when earned.",
+      "sequence": [
+        "open",
+        "select",
+        "complete",
+        "discover"
+      ],
+      "question": "Does meaning rise clearly without the completion sounding imported from another product?"
+    },
+    {
+      "id": "stress-flow",
+      "context": "Twenty realistic mixed interactions including rapid alternating controls and one completion.",
+      "sequence": [
+        "open",
+        "select",
+        "navigate",
+        "open",
+        "select",
+        "navigate",
+        "place",
+        "open",
+        "select",
+        "complete"
+      ],
+      "question": "Does the global rate and voice policy stay satisfying instead of becoming a rhythm of noise?"
+    },
+    {
+      "id": "hierarchy-flow",
+      "context": "Hear one example from each importance tier with enough silence to judge the ladder.",
+      "sequence": [
+        "open",
+        "navigate",
+        "place",
+        "complete",
+        "discover",
+        "ceremony",
+        "boundary"
+      ],
+      "question": "Can the ear understand importance from envelope, body, and space without relying on volume alone?"
+    }
+  ],
+  "provenance": {
+    "policy": "Only original, commissioned, or clearly licensed sources may enter shipping assets. Reference-video audio is analysis-only. Every master records its source, transformation recipe, render version, and license evidence.",
+    "records": [
+      {
+        "id": "approved-dak-c",
+        "status": "structural anchor",
+        "note": "Mika specifically preferred candidate C's weighted contact. Future navigation may preserve its gesture while revoicing the tail to the shared world."
+      },
+      {
+        "id": "current-complete-bloop",
+        "status": "semantic reference, not a cohesive master",
+        "note": "Its rounded completion role remains useful, but the current file did not cohere with the approved navigation and new contacts."
+      },
+      {
+        "id": "youtube-references-2026-08-20",
+        "status": "analysis only",
+        "note": "Waves tapping short, David Dumais Genshin breakdown, and Riot sound-design video inform process and system constraints; none of their audio may be copied into the app."
+      }
+    ]
+  },
+  "approval": {
+    "technical": "pass",
+    "semantic": "pass",
+    "cohesion": "pass",
+    "physical_device": "fail",
+    "scope": "Desktop cohesion passed and Answered Detent remains selected, but the everyday family failed two physical iPhone speaker gates. V2's isolated clicks sounded unfinished and only became fun during rapid tapping. Runtime and headphones remain pending.",
+    "evidence": {
+      "everyday_world": "Unified family won the blind level-controlled cohesion pass and its verbs remained distinct.",
+      "completion": "Answered detent won the matched tournament over the unified baseline, then beat the previous reward in the natural full-flow comparison.",
+      "owner_reason": "I like the composed stuff",
+      "listening_route": "desktop-or-laptop-speaker",
+      "physical_phone_result": {
+        "gate": "room-sonic-phone-gate-v1",
+        "candidate": "answered-detent",
+        "route": "physical-phone-built-in-speaker",
+        "route_attested": true,
+        "device": "iPhone model unspecified; iOS 18.7; Safari 26.6; full volume",
+        "verdict": "almost",
+        "owner_reason": "the main clicking sounds could be more crisp and fuller so it feels nice to click around, and also the volume is off it’s pretty quiet even though i’m on full volume",
+        "decision": "Keep Answered Detent locked; revise only the everyday click texture and level before another physical gate."
+      },
+      "physical_phone_v2_result": {
+        "gate": "room-phone-click-v2",
+        "render_version": "room-phone-click-v2-author-1",
+        "route": "iPhone 17 built-in speaker",
+        "route_attested": true,
+        "device": "iPhone 17; iOS 18.7; Safari 26.6; portrait; full volume; normal room noise",
+        "texture_choice": "double-seat",
+        "level_choice": "+2.0 dB",
+        "final_verdict": "no",
+        "owner_reason": "only when clicking fast does it sound fun, otherwise the sound for each click just sounds unfinished. maybe rebrainstorm how to make the clicking sound right. I mean I really liked C back in the day or whatever ",
+        "decision": "Reject v2. Return to exact full approved C as the everyday structural anchor; every solo cue must contain its own complete contact, body, and seat/release. Keep Answered Detent locked."
+      },
+      "result_files": [
+        "LISTENING-RESULT.md",
+        "PHONE-LISTENING-RESULT.md",
+        "../room-reward-voice-v1/LISTENING-RESULT.md",
+        "../room-phone-click-v2/LISTENING-RESULT.md"
+      ]
+    }
+  }
+}

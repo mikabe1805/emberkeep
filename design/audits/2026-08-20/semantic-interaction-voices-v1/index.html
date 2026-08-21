@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Room of Days · Interaction Voices</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7ead4;
+      --muted: #bba98f;
+      --night: #120d0a;
+      --panel: #211711;
+      --panel-2: #2a1d15;
+      --line: rgba(238, 194, 118, .22);
+      --honey: #e5ad52;
+      --honey-dark: #8b572a;
+      --ember: #d97838;
+      --shadow: #090604;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 50% -12%, rgba(176, 93, 43, .20), transparent 42%),
+        linear-gradient(180deg, #19110d 0%, var(--night) 72%);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    button, input { font: inherit; }
+
+    main {
+      width: min(980px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 42px 0 72px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--honey);
+      font: 700 .72rem/1.2 system-ui, sans-serif;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 760px;
+      margin: 0;
+      font-size: clamp(2.15rem, 6vw, 4.2rem);
+      font-weight: 500;
+      line-height: .98;
+      letter-spacing: -.035em;
+    }
+
+    .lede {
+      max-width: 720px;
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 2vw, 1.18rem);
+      line-height: 1.55;
+    }
+
+    .anchor-note {
+      margin: 24px 0 0;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(229, 173, 82, .055);
+      color: #dfc9a9;
+      line-height: 1.45;
+    }
+
+    .start-panel {
+      margin: 30px 0 0;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(34, 23, 16, .92);
+      box-shadow: 0 22px 60px rgba(0,0,0,.28);
+    }
+
+    .start-panel p { margin: 0 0 14px; color: var(--muted); }
+
+    .primary,
+    .secondary,
+    .play,
+    .run {
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 85ms ease, filter 120ms ease, box-shadow 85ms ease;
+    }
+
+    .primary {
+      min-height: 48px;
+      padding: 0 22px;
+      background: linear-gradient(180deg, #f0c56f, var(--honey));
+      color: #2a180c;
+      font: 800 .82rem/1 system-ui, sans-serif;
+      letter-spacing: .085em;
+      text-transform: uppercase;
+      box-shadow: 0 5px 0 var(--honey-dark), 0 12px 24px rgba(0,0,0,.22);
+    }
+
+    .primary:active,
+    .primary.pressed { transform: translateY(4px); box-shadow: 0 1px 0 var(--honey-dark); }
+
+    .primary:disabled,
+    .secondary:disabled,
+    .play:disabled,
+    .run:disabled { cursor: wait; opacity: .48; }
+
+    #lab[hidden] { display: none; }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      margin: 42px 0 16px;
+    }
+
+    .section-head h2 { margin: 0; font-size: 1.55rem; font-weight: 500; }
+    .section-head p { margin: 0; color: var(--muted); line-height: 1.4; text-align: right; }
+
+    .roles {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .role {
+      display: flex;
+      flex-direction: column;
+      min-height: 250px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(155deg, rgba(47, 32, 23, .96), rgba(28, 19, 14, .98));
+      box-shadow: inset 0 1px rgba(255,255,255,.025), 0 18px 40px rgba(0,0,0,.19);
+    }
+
+    .role .verb {
+      color: var(--honey);
+      font: 800 .72rem/1 system-ui, sans-serif;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    .role h3 { margin: 10px 0 8px; font-size: 1.45rem; font-weight: 500; }
+    .role p { margin: 0; color: var(--muted); line-height: 1.48; }
+
+    .role-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      margin-top: auto;
+      padding-top: 24px;
+    }
+
+    .play {
+      min-height: 54px;
+      padding: 8px 18px;
+      background: linear-gradient(180deg, #efc46e, #dca34b);
+      color: #29170b;
+      font: 800 .78rem/1.15 system-ui, sans-serif;
+      letter-spacing: .075em;
+      text-transform: uppercase;
+      box-shadow: 0 5px 0 #825025;
+    }
+
+    .play:active,
+    .play.pressed { transform: translateY(4px); box-shadow: 0 1px 0 #825025; }
+
+    .run {
+      min-height: 54px;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.025);
+      color: #e7d2b4;
+      font: 700 .72rem/1.2 system-ui, sans-serif;
+      letter-spacing: .04em;
+    }
+
+    .run:active { transform: translateY(2px); }
+
+    .flow {
+      margin-top: 18px;
+      padding: 22px;
+      border: 1px solid rgba(229, 173, 82, .36);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(86, 48, 25, .25), rgba(32, 22, 16, .93));
+    }
+
+    .flow h2 { margin: 0 0 8px; font-size: 1.45rem; font-weight: 500; }
+    .flow p { margin: 0 0 16px; color: var(--muted); line-height: 1.45; }
+
+    .secondary {
+      min-height: 46px;
+      padding: 0 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.035);
+      color: var(--ink);
+      font: 750 .77rem/1 system-ui, sans-serif;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+    }
+
+    .secondary:active { transform: translateY(2px); }
+
+    .prompt {
+      margin: 22px 0 0;
+      padding: 18px;
+      border-left: 3px solid var(--ember);
+      background: rgba(217, 120, 56, .055);
+      color: #ead8bd;
+      line-height: 1.5;
+    }
+
+    #status {
+      min-height: 1.5em;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font: 650 .78rem/1.4 system-ui, sans-serif;
+    }
+
+    button:focus-visible {
+      outline: 3px solid rgba(255, 218, 145, .82);
+      outline-offset: 3px;
+    }
+
+    @media (max-width: 680px) {
+      main { padding-top: 28px; }
+      .roles { grid-template-columns: 1fr; }
+      .section-head { display: block; }
+      .section-head p { margin-top: 7px; text-align: left; }
+      .role { min-height: 228px; }
+      .role-actions { grid-template-columns: 1fr; }
+      .run { min-height: 46px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Room of Days · sound lab</p>
+    <h1>Four different interaction voices.</h1>
+    <p class="lede">This is no longer a material comparison. Each card represents a different thing the app is doing, so clicking around can feel varied without becoming noisy or inconsistent.</p>
+    <p class="anchor-note"><strong>C is untouched.</strong> The page-switch Dak is the exact approved C family. Finish Quest uses the exact current completion Bloop after a small accepted-state touch.</p>
+
+    <section class="start-panel" id="start-panel">
+      <p>Start once to unlock and prewarm every sound. The first comparison click will then be properly synchronized.</p>
+      <button class="primary" id="start" type="button">Start sound lab</button>
+    </section>
+
+    <section id="lab" hidden aria-busy="true">
+      <div class="section-head">
+        <h2>Click around by meaning</h2>
+        <p>Judge whether the verbs feel different—not whether the words are perfect.</p>
+      </div>
+
+      <div class="roles">
+        <article class="role">
+          <span class="verb">Dak · move</span>
+          <h3>Switch page</h3>
+          <p>For accepted tabs, pages, major sections, or moving the calendar to another period or view. Firm enough to make destination changes feel physical.</p>
+          <div class="role-actions">
+            <button class="play" type="button" data-role="navigate-dak" aria-label="Switch page with Dak">Switch page</button>
+            <button class="run" type="button" data-run="navigate-dak" aria-label="Play eight page-switch Dak sounds">8-tap rhythm</button>
+          </div>
+        </article>
+
+        <article class="role">
+          <span class="verb">Tak · open</span>
+          <h3>Open journal entry</h3>
+          <p>For opening a card, entry, detail view, sheet, or ordinary light button. Shorter, drier, and quicker than C.</p>
+          <div class="role-actions">
+            <button class="play" type="button" data-role="open-tak" aria-label="Open journal entry with Tak">Open journal</button>
+            <button class="run" type="button" data-run="open-tak" aria-label="Play eight journal-opening Tak sounds">8-tap rhythm</button>
+          </div>
+        </article>
+
+        <article class="role">
+          <span class="verb">Tuk · settle</span>
+          <h3>Choose a date</h3>
+          <p>For a date, toggle, filter, picker, or pin visibly settling into a new state. Rounder and smaller than page movement.</p>
+          <div class="role-actions">
+            <button class="play" type="button" data-role="select-tuk" aria-label="Choose a date with Tuk">Choose date</button>
+            <button class="run" type="button" data-run="select-tuk" aria-label="Play eight date-selection Tuk sounds">8-tap rhythm</button>
+          </div>
+        </article>
+
+        <article class="role">
+          <span class="verb">Bloop · earn</span>
+          <h3>Finish quest</h3>
+          <p>The current rounded completion sound, reserved for a quest or routine that actually finished. It follows a small accepted-state touch.</p>
+          <div class="role-actions">
+            <button class="play" type="button" data-role="complete-bloop" aria-label="Finish a quest with the current Bloop">Finish quest</button>
+          </div>
+        </article>
+      </div>
+
+      <section class="flow" aria-busy="false">
+        <h2>Hear them as one app</h2>
+        <p>Page → journal → choose → choose → open → finish. This is the useful test: does the sequence feel varied, coherent, and fun?</p>
+        <button class="secondary" id="flow" type="button">Play a normal flow</button>
+      </section>
+
+      <p class="prompt">The best feedback now is something like “Tak is too sharp,” “Tuk and Dak still feel too similar,” or “yes, these finally feel like four different actions.”</p>
+    </section>
+
+    <p id="status" role="status" aria-live="polite">Sound lab is locked.</p>
+  </main>
+
+  <script>
+    const startButton = document.querySelector('#start');
+    const startPanel = document.querySelector('#start-panel');
+    const lab = document.querySelector('#lab');
+    const flowButton = document.querySelector('#flow');
+    const status = document.querySelector('#status');
+    const playButtons = [...document.querySelectorAll('[data-role]')];
+    const runButtons = [...document.querySelectorAll('[data-run]')];
+
+    let context;
+    let manifest;
+    let runActive = false;
+    const buffers = new Map();
+    const cursors = new Map();
+    const activeVoices = [];
+    const timers = new Set();
+    const roleBaseGain = { 'navigate-dak': 1, 'open-tak': 1, 'select-tuk': .90 };
+    let lastEverydayAt = 0;
+    let rapidCount = 0;
+
+    function pathsFor(role) {
+      const data = manifest.roles[role];
+      return data.variant_paths || [data.path];
+    }
+
+    async function loadBuffer(path) {
+      if (buffers.has(path)) return buffers.get(path);
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`Could not load ${path}`);
+      const decoded = await context.decodeAudioData(await response.arrayBuffer());
+      buffers.set(path, decoded);
+      return decoded;
+    }
+
+    function nextPath(role) {
+      const paths = pathsFor(role);
+      if (paths.length === 1) return paths[0];
+      const cursor = cursors.get(role) || 0;
+      const walk = manifest.variant_walk;
+      const index = walk[cursor % walk.length] % paths.length;
+      cursors.set(role, cursor + 1);
+      return paths[index];
+    }
+
+    function removeVoice(voice) {
+      const index = activeVoices.indexOf(voice);
+      if (index >= 0) activeVoices.splice(index, 1);
+    }
+
+    function cancelAll() {
+      for (const timer of timers) window.clearTimeout(timer);
+      timers.clear();
+      document.querySelectorAll('.pressed').forEach(button => button.classList.remove('pressed'));
+      const now = context?.currentTime || 0;
+      for (const voice of activeVoices.splice(0)) {
+        try {
+          voice.gain.gain.cancelScheduledValues(now);
+          voice.gain.gain.setValueAtTime(Math.max(voice.gain.gain.value, .0001), now);
+          voice.gain.gain.exponentialRampToValueAtTime(.0001, now + .007);
+          voice.source.stop(now + .009);
+        } catch (_) {}
+      }
+    }
+
+    function startVoice(path, when, gainValue = 1) {
+      const source = context.createBufferSource();
+      const gain = context.createGain();
+      source.buffer = buffers.get(path);
+      gain.gain.setValueAtTime(gainValue, when);
+      source.connect(gain).connect(context.destination);
+      const voice = { source, gain };
+      activeVoices.push(voice);
+      source.onended = () => removeVoice(voice);
+      source.start(when);
+    }
+
+    function everydayGain(nowMs) {
+      const interval = nowMs - lastEverydayAt;
+      lastEverydayAt = nowMs;
+      if (interval <= 140) rapidCount += 1;
+      else if (interval <= 210) rapidCount = 1;
+      else rapidCount = 0;
+      return [1, .93, .90, .87][Math.min(rapidCount, 3)];
+    }
+
+    function pulse(button) {
+      button.classList.add('pressed');
+      const timer = window.setTimeout(() => {
+        button.classList.remove('pressed');
+        timers.delete(timer);
+      }, 68);
+      timers.add(timer);
+    }
+
+    function playEveryday(role, when = context.currentTime, gainOverride = null) {
+      const gain = gainOverride ?? everydayGain(performance.now()) * roleBaseGain[role];
+      if (activeVoices.length >= 2) cancelAll();
+      startVoice(nextPath(role), when, gain);
+    }
+
+    function playRole(role, button) {
+      if (!context || context.state !== 'running' || runActive || button.disabled) return;
+      if (role === 'complete-bloop') {
+        cancelAll();
+        playEveryday('select-tuk', context.currentTime, .78);
+        startVoice(manifest.roles['complete-bloop'].path, context.currentTime + .065, .90);
+      } else {
+        playEveryday(role);
+      }
+      pulse(button);
+      status.textContent = `${manifest.roles[role].label}: ${manifest.roles[role].voice}.`;
+    }
+
+    function setControlsDisabled(disabled) {
+      [...playButtons, ...runButtons, flowButton].forEach(button => { button.disabled = disabled; });
+      lab.setAttribute('aria-busy', String(disabled));
+    }
+
+    function schedulePulse(button, delayMs) {
+      const timer = window.setTimeout(() => {
+        pulse(button);
+        timers.delete(timer);
+      }, delayMs);
+      timers.add(timer);
+    }
+
+    function playRun(role, button) {
+      if (!context || context.state !== 'running' || runActive || button.disabled) return;
+      runActive = true;
+      setControlsDisabled(true);
+      cancelAll();
+      lastEverydayAt = 0;
+      rapidCount = 0;
+      const playButton = document.querySelector(`[data-role="${role}"]`);
+      const startAt = context.currentTime + .04;
+      const stepMs = 125;
+      for (let index = 0; index < 8; index += 1) {
+        const gain = [1, .93, .90, .87][Math.min(index, 3)] * roleBaseGain[role];
+        startVoice(nextPath(role), startAt + index * stepMs / 1000, gain);
+        schedulePulse(playButton, 40 + index * stepMs);
+      }
+      status.textContent = `${manifest.roles[role].voice}: eight related takes.`;
+      const done = window.setTimeout(() => {
+        timers.delete(done);
+        runActive = false;
+        lastEverydayAt = 0;
+        rapidCount = 0;
+        setControlsDisabled(false);
+        button.focus();
+      }, 80 + 8 * stepMs);
+      timers.add(done);
+    }
+
+    function playNormalFlow() {
+      if (!context || context.state !== 'running' || runActive || flowButton.disabled) return;
+      runActive = true;
+      setControlsDisabled(true);
+      cancelAll();
+      const startAt = context.currentTime + .06;
+      const steps = [
+        ['navigate-dak', 0.00, 1.00],
+        ['open-tak', .54, 1.00],
+        ['select-tuk', 1.00, .90],
+        ['select-tuk', 1.29, .86],
+        ['open-tak', 1.74, 1.00],
+        ['select-tuk', 2.20, .78],
+      ];
+      for (const [role, offset, gain] of steps) startVoice(nextPath(role), startAt + offset, gain);
+      startVoice(manifest.roles['complete-bloop'].path, startAt + 2.265, .90);
+      for (const [role, offset] of steps) {
+        const button = document.querySelector(`[data-role="${role}"]`);
+        schedulePulse(button, 60 + offset * 1000);
+      }
+      schedulePulse(document.querySelector('[data-role="complete-bloop"]'), 60 + 2200);
+      status.textContent = 'Normal flow: move, open, choose twice, open, complete.';
+      const done = window.setTimeout(() => {
+        timers.delete(done);
+        runActive = false;
+        setControlsDisabled(false);
+        flowButton.focus();
+      }, 2840);
+      timers.add(done);
+    }
+
+    function bindImmediate(button, handler) {
+      button.addEventListener('pointerdown', event => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        handler();
+      });
+      button.addEventListener('keydown', event => {
+        if (event.repeat || !['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        handler();
+      });
+    }
+
+    playButtons.forEach(button => bindImmediate(button, () => playRole(button.dataset.role, button)));
+    runButtons.forEach(button => bindImmediate(button, () => playRun(button.dataset.run, button)));
+    bindImmediate(flowButton, playNormalFlow);
+
+    startButton.addEventListener('click', async () => {
+      startButton.disabled = true;
+      status.textContent = 'Loading four interaction voices…';
+      try {
+        context = context || new (window.AudioContext || window.webkitAudioContext)();
+        await context.resume();
+        const manifestResponse = await fetch('manifest.json');
+        if (!manifestResponse.ok) throw new Error('Could not load the sound map');
+        manifest = await manifestResponse.json();
+        const paths = Object.keys(manifest.roles).flatMap(pathsFor);
+        await Promise.all([...new Set(paths)].map(loadBuffer));
+        const silent = context.createBuffer(1, 1, context.sampleRate);
+        const source = context.createBufferSource();
+        source.buffer = silent;
+        source.connect(context.destination);
+        source.start();
+        startPanel.hidden = true;
+        lab.hidden = false;
+        lab.setAttribute('aria-busy', 'false');
+        status.textContent = 'Ready. Start with Switch page, then Open journal.';
+        playButtons[0].focus();
+      } catch (error) {
+        startButton.disabled = false;
+        status.textContent = `Sound lab could not start: ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html>

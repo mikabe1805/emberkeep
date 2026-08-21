@@ -188,6 +188,8 @@ class _QuestCardState extends State<QuestCard>
               : '${opensJournal ? 'Activate to open a dedicated Journal entry' : 'Activate to complete'}${widget.onManage == null ? '' : '; use Manage to edit'}',
           onTapUp: _handleTap,
           onLongPress: widget.onManage,
+          // opening a journal entry is a page gesture (destination material)
+          material: MaterialSound.parchment,
           interactionSound: InteractionSound.open,
           soundEnabled: opensJournal,
           shape: const FacetedBorder(cut: 11),

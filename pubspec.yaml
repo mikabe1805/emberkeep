@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.4+25
+version: 1.0.4+26
 
 environment:
   sdk: ^3.12.2
@@ -129,6 +129,15 @@ flutter:
     - assets/sfx/room/paired_return/e5/navigate/
     - assets/sfx/room/paired_return/e5/place/
     - assets/sfx/room/completion/
+    - assets/sfx/room/materials/slate/select/
+    - assets/sfx/room/materials/slate/navigate/
+    - assets/sfx/room/materials/slate/place/
+    - assets/sfx/room/materials/page/navigate/
+    - assets/sfx/room/materials/page/open/
+    - assets/sfx/room/materials/glass/select/
+    - assets/sfx/room/materials/glass/place/
+    - assets/sfx/room/materials/brass/select/
+    - assets/sfx/room/materials/brass/place/
     - assets/google_fonts/
     - assets/room/
     # painted room plates, one per wall style (see ROOM-PLATES.md). Optional:

@@ -1,0 +1,404 @@
+{
+  "sample_rate_hz": 48000,
+  "sample_format": "PCM_24",
+  "tap_duration_ms": 142.0,
+  "measured_step_ms": 285,
+  "rapid_step_ms": 118,
+  "source": {
+    "title": "Foley Concrete Set On Concrete 01.wav",
+    "sha256": "0376417edbf134682f5b654db6892b747a5261d41c55c6778ee1c00991bad853",
+    "sample_rate_hz": 48000,
+    "channels": 2,
+    "source_subtype": "PCM_16",
+    "source_page": "https://www.adobe.com/products/audition/offers/audition-dlc.html",
+    "download": "https://download.adobe.com/pub/adobe/audition/offers/adobeauditiondlcsfx/foley.zip",
+    "terms": "https://www.adobe.com/legal/terms.html#content-files",
+    "license": "Adobe Audition royalty-free sound effects; source remains cache-only"
+  },
+  "candidates": {
+    "a": {
+      "combined": {
+        "duration_seconds": 4.241,
+        "peak_dbfs": -5.247,
+        "active_rms_dbfs": -25.24,
+        "phone_band_rms_dbfs": -33.153,
+        "spectral_centroid_hz": 1048.88,
+        "body_180_900hz_pct": 34.081,
+        "mineral_900_4000hz_pct": 65.421,
+        "presence_4_8khz_pct": 0.313,
+        "air_over_8khz_pct": 0.005,
+        "mono_fold_loss_db": -0.0
+      },
+      "measured": {
+        "duration_seconds": 1.872,
+        "peak_dbfs": -5.247,
+        "active_rms_dbfs": -25.248,
+        "phone_band_rms_dbfs": -33.872,
+        "spectral_centroid_hz": 1040.62,
+        "body_180_900hz_pct": 34.839,
+        "mineral_900_4000hz_pct": 64.636,
+        "presence_4_8khz_pct": 0.329,
+        "air_over_8khz_pct": 0.005,
+        "mono_fold_loss_db": -0.0
+      },
+      "rapid": {
+        "duration_seconds": 1.509,
+        "peak_dbfs": -5.247,
+        "active_rms_dbfs": -25.235,
+        "phone_band_rms_dbfs": -30.7,
+        "spectral_centroid_hz": 1063.42,
+        "body_180_900hz_pct": 32.671,
+        "mineral_900_4000hz_pct": 66.872,
+        "presence_4_8khz_pct": 0.29,
+        "air_over_8khz_pct": 0.005,
+        "mono_fold_loss_db": -0.0
+      },
+      "contact_variants": [
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -25.103,
+          "phone_band_rms_dbfs": -28.668,
+          "spectral_centroid_hz": 736.37,
+          "body_180_900hz_pct": 75.277,
+          "mineral_900_4000hz_pct": 13.839,
+          "presence_4_8khz_pct": 4.82,
+          "air_over_8khz_pct": 0.021,
+          "mono_fold_loss_db": -0.0
+        },
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -22.992,
+          "phone_band_rms_dbfs": -30.154,
+          "spectral_centroid_hz": 937.23,
+          "body_180_900hz_pct": 50.314,
+          "mineral_900_4000hz_pct": 44.685,
+          "presence_4_8khz_pct": 1.588,
+          "air_over_8khz_pct": 0.183,
+          "mono_fold_loss_db": -0.0
+        }
+      ]
+    },
+    "b": {
+      "combined": {
+        "duration_seconds": 4.241,
+        "peak_dbfs": -5.79,
+        "active_rms_dbfs": -25.308,
+        "phone_band_rms_dbfs": -33.153,
+        "spectral_centroid_hz": 912.65,
+        "body_180_900hz_pct": 53.679,
+        "mineral_900_4000hz_pct": 45.906,
+        "presence_4_8khz_pct": 0.274,
+        "air_over_8khz_pct": 0.004,
+        "mono_fold_loss_db": -0.0
+      },
+      "measured": {
+        "duration_seconds": 1.872,
+        "peak_dbfs": -5.79,
+        "active_rms_dbfs": -25.318,
+        "phone_band_rms_dbfs": -33.872,
+        "spectral_centroid_hz": 905.75,
+        "body_180_900hz_pct": 54.39,
+        "mineral_900_4000hz_pct": 45.175,
+        "presence_4_8khz_pct": 0.286,
+        "air_over_8khz_pct": 0.005,
+        "mono_fold_loss_db": -0.0
+      },
+      "rapid": {
+        "duration_seconds": 1.509,
+        "peak_dbfs": -5.79,
+        "active_rms_dbfs": -25.301,
+        "phone_band_rms_dbfs": -30.7,
+        "spectral_centroid_hz": 924.52,
+        "body_180_900hz_pct": 52.378,
+        "mineral_900_4000hz_pct": 47.24,
+        "presence_4_8khz_pct": 0.255,
+        "air_over_8khz_pct": 0.004,
+        "mono_fold_loss_db": -0.0
+      },
+      "contact_variants": [
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -24.899,
+          "phone_band_rms_dbfs": -28.262,
+          "spectral_centroid_hz": 632.39,
+          "body_180_900hz_pct": 84.93,
+          "mineral_900_4000hz_pct": 7.716,
+          "presence_4_8khz_pct": 3.469,
+          "air_over_8khz_pct": 0.015,
+          "mono_fold_loss_db": -0.0
+        },
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -22.41,
+          "phone_band_rms_dbfs": -29.422,
+          "spectral_centroid_hz": 717.81,
+          "body_180_900hz_pct": 73.3,
+          "mineral_900_4000hz_pct": 23.525,
+          "presence_4_8khz_pct": 1.223,
+          "air_over_8khz_pct": 0.142,
+          "mono_fold_loss_db": -0.0
+        }
+      ]
+    },
+    "c": {
+      "combined": {
+        "duration_seconds": 4.241,
+        "peak_dbfs": -5.204,
+        "active_rms_dbfs": -25.039,
+        "phone_band_rms_dbfs": -33.153,
+        "spectral_centroid_hz": 1133.81,
+        "body_180_900hz_pct": 22.199,
+        "mineral_900_4000hz_pct": 77.471,
+        "presence_4_8khz_pct": 0.185,
+        "air_over_8khz_pct": 0.004,
+        "mono_fold_loss_db": -0.0
+      },
+      "measured": {
+        "duration_seconds": 1.872,
+        "peak_dbfs": -5.204,
+        "active_rms_dbfs": -25.048,
+        "phone_band_rms_dbfs": -33.872,
+        "spectral_centroid_hz": 1126.16,
+        "body_180_900hz_pct": 22.681,
+        "mineral_900_4000hz_pct": 76.971,
+        "presence_4_8khz_pct": 0.194,
+        "air_over_8khz_pct": 0.004,
+        "mono_fold_loss_db": -0.0
+      },
+      "rapid": {
+        "duration_seconds": 1.509,
+        "peak_dbfs": -5.204,
+        "active_rms_dbfs": -25.034,
+        "phone_band_rms_dbfs": -30.7,
+        "spectral_centroid_hz": 1147.26,
+        "body_180_900hz_pct": 21.277,
+        "mineral_900_4000hz_pct": 78.42,
+        "presence_4_8khz_pct": 0.172,
+        "air_over_8khz_pct": 0.004,
+        "mono_fold_loss_db": -0.0
+      },
+      "contact_variants": [
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -24.901,
+          "phone_band_rms_dbfs": -28.704,
+          "spectral_centroid_hz": 743.1,
+          "body_180_900hz_pct": 69.235,
+          "mineral_900_4000hz_pct": 20.937,
+          "presence_4_8khz_pct": 3.814,
+          "air_over_8khz_pct": 0.02,
+          "mono_fold_loss_db": -0.0
+        },
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -22.967,
+          "phone_band_rms_dbfs": -30.205,
+          "spectral_centroid_hz": 1025.75,
+          "body_180_900hz_pct": 39.394,
+          "mineral_900_4000hz_pct": 56.59,
+          "presence_4_8khz_pct": 1.123,
+          "air_over_8khz_pct": 0.154,
+          "mono_fold_loss_db": -0.0
+        }
+      ]
+    },
+    "d": {
+      "combined": {
+        "duration_seconds": 4.241,
+        "peak_dbfs": -5.455,
+        "active_rms_dbfs": -25.267,
+        "phone_band_rms_dbfs": -33.153,
+        "spectral_centroid_hz": 1006.96,
+        "body_180_900hz_pct": 40.92,
+        "mineral_900_4000hz_pct": 58.689,
+        "presence_4_8khz_pct": 0.24,
+        "air_over_8khz_pct": 0.004,
+        "mono_fold_loss_db": -0.0
+      },
+      "measured": {
+        "duration_seconds": 1.872,
+        "peak_dbfs": -5.455,
+        "active_rms_dbfs": -25.277,
+        "phone_band_rms_dbfs": -33.872,
+        "spectral_centroid_hz": 999.09,
+        "body_180_900hz_pct": 41.597,
+        "mineral_900_4000hz_pct": 57.991,
+        "presence_4_8khz_pct": 0.251,
+        "air_over_8khz_pct": 0.005,
+        "mono_fold_loss_db": -0.0
+      },
+      "rapid": {
+        "duration_seconds": 1.509,
+        "peak_dbfs": -5.455,
+        "active_rms_dbfs": -25.261,
+        "phone_band_rms_dbfs": -30.7,
+        "spectral_centroid_hz": 1020.69,
+        "body_180_900hz_pct": 39.669,
+        "mineral_900_4000hz_pct": 59.972,
+        "presence_4_8khz_pct": 0.223,
+        "air_over_8khz_pct": 0.004,
+        "mono_fold_loss_db": -0.0
+      },
+      "contact_variants": [
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -25.007,
+          "phone_band_rms_dbfs": -28.464,
+          "spectral_centroid_hz": 647.89,
+          "body_180_900hz_pct": 81.311,
+          "mineral_900_4000hz_pct": 10.792,
+          "presence_4_8khz_pct": 3.421,
+          "air_over_8khz_pct": 0.017,
+          "mono_fold_loss_db": -0.0
+        },
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -22.823,
+          "phone_band_rms_dbfs": -29.94,
+          "spectral_centroid_hz": 816.16,
+          "body_180_900hz_pct": 62.354,
+          "mineral_900_4000hz_pct": 34.309,
+          "presence_4_8khz_pct": 1.146,
+          "air_over_8khz_pct": 0.147,
+          "mono_fold_loss_db": -0.0
+        }
+      ]
+    },
+    "e": {
+      "combined": {
+        "duration_seconds": 4.241,
+        "peak_dbfs": -4.86,
+        "active_rms_dbfs": -25.572,
+        "phone_band_rms_dbfs": -33.153,
+        "spectral_centroid_hz": 1052.31,
+        "body_180_900hz_pct": 42.503,
+        "mineral_900_4000hz_pct": 55.863,
+        "presence_4_8khz_pct": 1.389,
+        "air_over_8khz_pct": 0.003,
+        "mono_fold_loss_db": -0.0
+      },
+      "measured": {
+        "duration_seconds": 1.872,
+        "peak_dbfs": -4.86,
+        "active_rms_dbfs": -25.582,
+        "phone_band_rms_dbfs": -33.872,
+        "spectral_centroid_hz": 1045.95,
+        "body_180_900hz_pct": 43.407,
+        "mineral_900_4000hz_pct": 54.857,
+        "presence_4_8khz_pct": 1.475,
+        "air_over_8khz_pct": 0.003,
+        "mono_fold_loss_db": -0.0
+      },
+      "rapid": {
+        "duration_seconds": 1.509,
+        "peak_dbfs": -4.86,
+        "active_rms_dbfs": -25.566,
+        "phone_band_rms_dbfs": -30.7,
+        "spectral_centroid_hz": 1063.65,
+        "body_180_900hz_pct": 40.839,
+        "mineral_900_4000hz_pct": 57.692,
+        "presence_4_8khz_pct": 1.248,
+        "air_over_8khz_pct": 0.003,
+        "mono_fold_loss_db": -0.0
+      },
+      "contact_variants": [
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -25.775,
+          "phone_band_rms_dbfs": -28.998,
+          "spectral_centroid_hz": 786.51,
+          "body_180_900hz_pct": 78.312,
+          "mineral_900_4000hz_pct": 8.973,
+          "presence_4_8khz_pct": 6.954,
+          "air_over_8khz_pct": 0.017,
+          "mono_fold_loss_db": -0.0
+        },
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -23.512,
+          "phone_band_rms_dbfs": -30.625,
+          "spectral_centroid_hz": 888.74,
+          "body_180_900hz_pct": 59.071,
+          "mineral_900_4000hz_pct": 35.182,
+          "presence_4_8khz_pct": 2.399,
+          "air_over_8khz_pct": 0.185,
+          "mono_fold_loss_db": -0.0
+        }
+      ]
+    },
+    "f": {
+      "combined": {
+        "duration_seconds": 4.241,
+        "peak_dbfs": -6.375,
+        "active_rms_dbfs": -25.47,
+        "phone_band_rms_dbfs": -33.154,
+        "spectral_centroid_hz": 848.63,
+        "body_180_900hz_pct": 63.138,
+        "mineral_900_4000hz_pct": 36.47,
+        "presence_4_8khz_pct": 0.249,
+        "air_over_8khz_pct": 0.004,
+        "mono_fold_loss_db": -0.0
+      },
+      "measured": {
+        "duration_seconds": 1.872,
+        "peak_dbfs": -6.375,
+        "active_rms_dbfs": -25.48,
+        "phone_band_rms_dbfs": -33.874,
+        "spectral_centroid_hz": 842.06,
+        "body_180_900hz_pct": 63.771,
+        "mineral_900_4000hz_pct": 35.813,
+        "presence_4_8khz_pct": 0.262,
+        "air_over_8khz_pct": 0.004,
+        "mono_fold_loss_db": -0.0
+      },
+      "rapid": {
+        "duration_seconds": 1.509,
+        "peak_dbfs": -6.375,
+        "active_rms_dbfs": -25.463,
+        "phone_band_rms_dbfs": -30.7,
+        "spectral_centroid_hz": 859.37,
+        "body_180_900hz_pct": 62.049,
+        "mineral_900_4000hz_pct": 37.595,
+        "presence_4_8khz_pct": 0.23,
+        "air_over_8khz_pct": 0.004,
+        "mono_fold_loss_db": -0.0
+      },
+      "contact_variants": [
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -25.088,
+          "phone_band_rms_dbfs": -28.171,
+          "spectral_centroid_hz": 548.18,
+          "body_180_900hz_pct": 90.142,
+          "mineral_900_4000hz_pct": 4.291,
+          "presence_4_8khz_pct": 2.57,
+          "air_over_8khz_pct": 0.011,
+          "mono_fold_loss_db": -0.0
+        },
+        {
+          "duration_seconds": 0.142,
+          "peak_dbfs": -4.5,
+          "active_rms_dbfs": -21.335,
+          "phone_band_rms_dbfs": -28.26,
+          "spectral_centroid_hz": 589.57,
+          "body_180_900hz_pct": 83.583,
+          "mineral_900_4000hz_pct": 14.486,
+          "presence_4_8khz_pct": 0.844,
+          "air_over_8khz_pct": 0.1,
+          "mono_fold_loss_db": -0.0
+        }
+      ]
+    }
+  }
+}

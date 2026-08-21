@@ -34,6 +34,79 @@ void main() {
     }
   });
 
+  test('runtime preserves every phone-approved material lane master', () {
+    // Phone-approved 2026-08-21 (room-material-shading-v1 gestures, shipped
+    // as the render-polish-v2 masters after the owner's final verdict:
+    // "it sounds wonderful! very well done").
+    const lanes = [
+      'slate/select',
+      'slate/navigate',
+      'slate/place',
+      'page/navigate',
+      'page/open',
+      'glass/select',
+      'glass/place',
+      'brass/select',
+      'brass/place',
+    ];
+    for (final lane in lanes) {
+      for (var take = 1; take <= 3; take++) {
+        final runtime = File('assets/sfx/room/materials/$lane/$take.wav');
+        final approved = File(
+          'design/audits/2026-08-21/room-material-shading-v2-polish/'
+          'materials/$lane/$take.wav',
+        );
+        expect(
+          runtime.readAsBytesSync(),
+          orderedEquals(approved.readAsBytesSync()),
+        );
+        final wave = _readWave(runtime);
+        expect(wave.audioFormat, 1);
+        expect(wave.channels, 1);
+        expect(wave.sampleRate, 48000);
+        expect(wave.bitsPerSample, 24);
+        expect(wave.peak, lessThanOrEqualTo(0.56));
+        expect(wave.tailRms / wave.peak, lessThan(0.001));
+      }
+    }
+  });
+
+  test('runtime preserves every phone-approved event master byte for byte', () {
+    // Phone-approved 2026-08-21 (room-event-voice-v1 gestures, shipped as the
+    // render-polish-v2 masters after the owner's final verdict). The reward
+    // tier is the room-derived family, calibrated in-file, played at 1.0.
+    const events = [
+      'streak',
+      'crit',
+      'loot',
+      'levelup',
+      'boing',
+      'stat_0',
+      'stat_1',
+      'stat_2',
+      'stat_3',
+      'stat_4',
+      'stat_5',
+    ];
+    for (final name in events) {
+      final runtime = File('assets/sfx/$name.wav');
+      final approved = File(
+        'design/audits/2026-08-21/room-event-voice-v2-polish/events/$name.wav',
+      );
+      expect(
+        runtime.readAsBytesSync(),
+        orderedEquals(approved.readAsBytesSync()),
+      );
+      final wave = _readWave(runtime);
+      expect(wave.audioFormat, 1);
+      expect(wave.channels, 1);
+      expect(wave.sampleRate, 48000);
+      expect(wave.bitsPerSample, 24);
+      // -6 dBFS authoring ceiling plus one 24-bit quantization step.
+      expect(wave.peak, lessThanOrEqualTo(0.5012));
+    }
+  });
+
   test('runtime preserves every phone-approved Paired Return master', () {
     const tokens = ['d5', 'a5', 'e5'];
     expect(InteractionSoundRouter.pairedReturnAssets, hasLength(60));

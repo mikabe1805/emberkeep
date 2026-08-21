@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Room of Days · One Room sound proof</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7ead4;
+      --muted: #bba98f;
+      --night: #120d0a;
+      --panel: #211711;
+      --panel-2: #2a1d15;
+      --line: rgba(238, 194, 118, .22);
+      --honey: #e5ad52;
+      --honey-dark: #8b572a;
+      --ember: #d97838;
+      --moss: #80945f;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 50% -12%, rgba(176, 93, 43, .2), transparent 42%),
+        linear-gradient(180deg, #19110d, var(--night) 72%);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    button { font: inherit; }
+    main { width: min(980px, calc(100% - 28px)); margin: 0 auto; padding: 38px 0 76px; }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--honey);
+      font: 800 .71rem/1.2 system-ui, sans-serif;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+    h1 { max-width: 790px; margin: 0; font-size: clamp(2.15rem, 6vw, 4rem); font-weight: 500; line-height: 1; letter-spacing: -.035em; }
+    .lede { max-width: 740px; margin: 20px 0 0; color: var(--muted); font-size: clamp(1rem, 2vw, 1.16rem); line-height: 1.55; }
+    .principle {
+      margin: 24px 0 0;
+      padding: 15px 17px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(229, 173, 82, .055);
+      color: #dfc9a9;
+      line-height: 1.45;
+    }
+    .panel {
+      margin-top: 30px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(155deg, rgba(47, 32, 23, .96), rgba(28, 19, 14, .98));
+      box-shadow: 0 22px 58px rgba(0,0,0,.24);
+    }
+    .panel[hidden], #lab[hidden] { display: none; }
+    .panel h2 { margin: 0; font-size: 1.55rem; font-weight: 500; }
+    .panel .intro { max-width: 760px; margin: 9px 0 0; color: var(--muted); line-height: 1.48; }
+    .phase {
+      display: inline-block;
+      margin-bottom: 10px;
+      color: var(--honey);
+      font: 800 .68rem/1 system-ui, sans-serif;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    .primary, .play, .verdict, .quiet {
+      min-height: 48px;
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 85ms ease, box-shadow 85ms ease, filter 120ms ease;
+    }
+    .primary, .play {
+      padding: 0 20px;
+      background: linear-gradient(180deg, #f0c56f, var(--honey));
+      color: #2a180c;
+      font: 800 .78rem/1 system-ui, sans-serif;
+      letter-spacing: .075em;
+      text-transform: uppercase;
+      box-shadow: 0 5px 0 var(--honey-dark), 0 12px 24px rgba(0,0,0,.2);
+    }
+    .primary:active, .play:active, .play.pressed { transform: translateY(4px); box-shadow: 0 1px 0 var(--honey-dark); }
+    button:disabled { cursor: wait; opacity: .45; }
+    button:focus-visible { outline: 3px solid rgba(255, 218, 145, .82); outline-offset: 3px; }
+    .start-copy { margin: 0 0 14px; color: var(--muted); line-height: 1.45; }
+    .pair, .roles, .diagnostics { display: grid; gap: 14px; margin-top: 19px; }
+    .pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .roles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .diagnostics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .sequence, .role-card, .diagnostic {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.025);
+    }
+    .sequence { min-height: 174px; display: flex; flex-direction: column; }
+    .sequence h3, .role-card h3, .diagnostic h3 { margin: 0; font-size: 1.25rem; font-weight: 500; }
+    .sequence p, .role-card p, .diagnostic p { margin: 8px 0 16px; color: var(--muted); line-height: 1.42; }
+    .sequence .play { width: 100%; margin-top: auto; }
+    .timeline {
+      margin: 18px 0 0;
+      padding: 12px 14px;
+      border-left: 3px solid var(--ember);
+      background: rgba(217, 120, 56, .055);
+      color: #ead8bd;
+      font: 650 .79rem/1.55 system-ui, sans-serif;
+    }
+    .question { margin: 22px 0 9px; color: #f0dcc0; font-size: 1.04rem; }
+    .verdicts { display: flex; flex-wrap: wrap; gap: 9px; }
+    .verdict, .quiet {
+      padding: 0 15px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.035);
+      color: var(--ink);
+      font: 750 .75rem/1.15 system-ui, sans-serif;
+    }
+    .verdict:hover, .quiet:hover { filter: brightness(1.12); }
+    .verdict.selected { border-color: rgba(128,148,95,.75); background: rgba(128,148,95,.18); }
+    .reveal {
+      margin-top: 16px;
+      padding: 13px 15px;
+      border: 1px solid rgba(128,148,95,.35);
+      border-radius: 12px;
+      background: rgba(128,148,95,.09);
+      color: #e8dfbf;
+      line-height: 1.45;
+    }
+    .reveal[hidden] { display: none; }
+    .role-card .play, .diagnostic .quiet { width: 100%; }
+    .role-card small { display: block; margin-top: 10px; color: #967f65; font: 650 .7rem/1.35 system-ui, sans-serif; }
+    .notes { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .notes-grid { display: grid; grid-template-columns: minmax(180px, .7fr) 1.3fr; gap: 12px; margin-bottom: 14px; }
+    .notes label { color: var(--muted); font: 700 .74rem/1.35 system-ui, sans-serif; }
+    .notes select, .notes textarea {
+      display: block;
+      width: 100%;
+      margin-top: 7px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(0,0,0,.18);
+      color: var(--ink);
+      font: 500 .82rem/1.4 system-ui, sans-serif;
+    }
+    .notes select { min-height: 44px; padding: 0 10px; }
+    .notes textarea { min-height: 78px; padding: 10px; resize: vertical; }
+    #status { min-height: 1.5em; margin: 14px 0 0; color: var(--muted); font: 650 .78rem/1.4 system-ui, sans-serif; }
+    @media (max-width: 720px) {
+      main { padding-top: 28px; }
+      .pair, .roles, .diagnostics { grid-template-columns: 1fr; }
+      .notes-grid { grid-template-columns: 1fr; }
+      .sequence { min-height: 154px; }
+      .play, .primary { min-height: 52px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Room of Days · system proof</p>
+    <h1>Does it sound like one Room?</h1>
+    <p class="lede">The last set had crisp individual taps, but they did not share an acoustic home. This time the unit of judgment is one ordinary interaction sequence—not a row of isolated files.</p>
+    <p class="principle"><strong>One imagined mechanism.</strong> Each verb changes weight, timing, and musical motion, while contact, body, note field, and tiny room fingerprint stay related.</p>
+
+    <section class="panel" id="start-panel">
+      <p class="start-copy">Start once to unlock and prewarm every sound. The first A/B playback is level controlled and identity blind.</p>
+      <button class="primary" id="start" type="button">Start listening</button>
+    </section>
+
+    <div id="lab" hidden>
+      <section class="panel" id="matched-pass">
+        <span class="phase">1 of 3 · cohesion first</span>
+        <h2>Same timeline, same overall energy</h2>
+        <p class="intro">One sequence is the previous mixed study. The other is built from one shared Room source graph. Listen for belonging before polish.</p>
+        <div class="timeline">navigate → open → select → select → place → navigate → open → accept → complete</div>
+        <div class="pair">
+          <article class="sequence">
+            <h3>Sequence A</h3>
+            <p>The identity stays hidden until you choose.</p>
+            <button class="play" type="button" data-audio data-pass="matched" data-slot="0">Play A</button>
+          </article>
+          <article class="sequence">
+            <h3>Sequence B</h3>
+            <p>The event timing is identical.</p>
+            <button class="play" type="button" data-audio data-pass="matched" data-slot="1">Play B</button>
+          </article>
+        </div>
+        <p class="question">Which feels more like one Room, if either?</p>
+        <div class="verdicts" data-verdict-group="matched">
+          <button class="verdict" type="button" data-choice="a">A</button>
+          <button class="verdict" type="button" data-choice="b">B</button>
+          <button class="verdict" type="button" data-choice="both">Both</button>
+          <button class="verdict" type="button" data-choice="neither">Neither</button>
+        </div>
+        <p class="question">Within your preferred sequence, do the verbs still feel distinct?</p>
+        <div class="verdicts" data-verdict-group="distinct">
+          <button class="verdict" type="button" data-choice="yes">Yes</button>
+          <button class="verdict" type="button" data-choice="no">No</button>
+          <button class="verdict" type="button" data-choice="unsure">Not sure</button>
+        </div>
+        <div class="reveal" id="matched-reveal" hidden></div>
+        <button class="play" id="continue-natural" type="button" hidden>Continue to hierarchy check</button>
+      </section>
+
+      <section class="panel" id="natural-pass" hidden>
+        <span class="phase">2 of 3 · hierarchy check</span>
+        <h2>Now hear the shared role hierarchy</h2>
+        <p class="intro">Both systems use the same quiet-open → weighted-navigation → earned-completion ladder, but the whole sequences are no longer globally level matched. Order is randomized again.</p>
+        <div class="pair">
+          <article class="sequence">
+            <h3>Sequence A</h3>
+            <p>Common semantic cue hierarchy.</p>
+            <button class="play" type="button" data-audio data-pass="natural" data-slot="0">Play A</button>
+          </article>
+          <article class="sequence">
+            <h3>Sequence B</h3>
+            <p>Common semantic cue hierarchy.</p>
+            <button class="play" type="button" data-audio data-pass="natural" data-slot="1">Play B</button>
+          </article>
+        </div>
+        <p class="question">Which hierarchy feels better, if either?</p>
+        <div class="verdicts" data-verdict-group="natural">
+          <button class="verdict" type="button" data-choice="a">A</button>
+          <button class="verdict" type="button" data-choice="b">B</button>
+          <button class="verdict" type="button" data-choice="both">Both</button>
+          <button class="verdict" type="button" data-choice="neither">Neither</button>
+        </div>
+        <div class="reveal" id="natural-reveal" hidden></div>
+        <button class="play" id="continue-diagnostics" type="button" hidden>Continue to diagnostics</button>
+      </section>
+
+      <section class="panel" id="diagnostic-pass" hidden>
+        <span class="phase">3 of 3 · diagnosis only</span>
+        <h2>What is creating—or breaking—the family?</h2>
+        <p class="intro">These controls explain the unified candidate. They do not replace the sequence verdict.</p>
+        <div class="roles" id="roles"></div>
+        <div class="diagnostics">
+          <article class="diagnostic">
+            <h3>Shared contacts</h3>
+            <p>Open, select, navigate, and place contact lineage only.</p>
+            <button class="quiet" type="button" data-audio data-buffer="contacts">Play contacts</button>
+          </article>
+          <article class="diagnostic">
+            <h3>Shared bodies</h3>
+            <p>The same modal bank reshaped by role.</p>
+            <button class="quiet" type="button" data-audio data-buffer="bodies">Play bodies</button>
+          </article>
+          <article class="diagnostic">
+            <h3>Room bypass</h3>
+            <p>The unified sequence without its tiny reflection fingerprint.</p>
+            <button class="quiet" type="button" data-audio data-buffer="bypass">Play bypass</button>
+          </article>
+          <article class="diagnostic">
+            <h3>Approved C anchor</h3>
+            <p>The exact weighted click that began this direction, unchanged.</p>
+            <button class="quiet" type="button" data-audio data-buffer="approved-anchor">Play exact C</button>
+          </article>
+          <article class="diagnostic">
+            <h3>Rapid previous</h3>
+            <p>Eighteen mixed actions at 125 ms with the same rate softening.</p>
+            <button class="quiet" type="button" data-audio data-buffer="fatigue-control">Play previous run</button>
+          </article>
+          <article class="diagnostic">
+            <h3>Rapid unified</h3>
+            <p>The same alternating role run from the shared Room family.</p>
+            <button class="quiet" type="button" data-audio data-buffer="fatigue-candidate">Play unified run</button>
+          </article>
+        </div>
+        <p class="principle"><strong>Silent by design:</strong> selected-again tabs, unchanged choices, scrolls, typing, loading, passive previews, busy controls, cancel/not-now, and background sync. The system is allowed to leave air between gestures.</p>
+        <div class="notes">
+          <div class="notes-grid">
+            <label>Listening route
+              <select id="listening-route">
+                <option value="desktop-or-laptop-speaker">Desktop or laptop speaker</option>
+                <option value="phone-speaker">Phone speaker</option>
+                <option value="headphones">Headphones</option>
+                <option value="other">Other</option>
+              </select>
+            </label>
+            <label>What made it belong—or break?
+              <textarea id="listening-reason" placeholder="Use your own words; ‘both bad’ is useful feedback."></textarea>
+            </label>
+          </div>
+          <button class="quiet" id="copy-notes" type="button">Copy listening notes</button>
+        </div>
+      </section>
+    </div>
+    <p id="status" role="status" aria-live="polite">Sound is locked until you start.</p>
+  </main>
+
+  <script>
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    const state = {
+      context: null,
+      manifest: null,
+      buffers: new Map(),
+      active: [],
+      timer: null,
+      busy: false,
+      phrase: 0,
+      orders: {
+        matched: Math.random() < .5 ? ['control', 'candidate'] : ['candidate', 'control'],
+        natural: Math.random() < .5 ? ['control', 'candidate'] : ['candidate', 'control']
+      },
+      listened: { matched: new Set(), natural: new Set() },
+      answers: {},
+      events: []
+    };
+
+    const status = document.querySelector('#status');
+    const start = document.querySelector('#start');
+    const lab = document.querySelector('#lab');
+    const startPanel = document.querySelector('#start-panel');
+    const naturalPass = document.querySelector('#natural-pass');
+    const diagnosticPass = document.querySelector('#diagnostic-pass');
+    const continueNatural = document.querySelector('#continue-natural');
+    const continueDiagnostics = document.querySelector('#continue-diagnostics');
+
+    function record(type, payload = {}) {
+      state.events.push({ type, at: new Date().toISOString(), ...payload });
+    }
+
+    function bufferPath(kind) {
+      const paths = state.manifest.audition.flow_paths;
+      const key = `${kind.system}_${kind.pass}`;
+      return {
+        control_matched: paths.control_matched,
+        candidate_matched: paths.candidate_matched,
+        control_natural: paths.control_natural,
+        candidate_natural: paths.candidate_natural
+      }[key];
+    }
+
+    async function loadAudio(key, path) {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`Could not load ${path}`);
+      const bytes = await response.arrayBuffer();
+      state.buffers.set(key, await state.context.decodeAudioData(bytes));
+    }
+
+    async function prepare() {
+      if (!AudioContextCtor) throw new Error('Web Audio is unavailable in this browser.');
+      state.context = new AudioContextCtor();
+      await state.context.resume();
+      const response = await fetch('manifest.json');
+      if (!response.ok) throw new Error('Could not load the system manifest.');
+      state.manifest = await response.json();
+      const loads = [];
+      for (const pass of ['matched', 'natural']) {
+        for (const system of ['control', 'candidate']) {
+          loads.push(loadAudio(`${system}_${pass}`, bufferPath({ system, pass })));
+        }
+      }
+      const diagnostics = state.manifest.audition.diagnostics;
+      loads.push(loadAudio('contacts', diagnostics.contacts));
+      loads.push(loadAudio('bodies', diagnostics.bodies));
+      loads.push(loadAudio('bypass', diagnostics.bus_bypass));
+      loads.push(loadAudio('approved-anchor', diagnostics.approved_c_anchor));
+      loads.push(loadAudio('fatigue-control', diagnostics.fatigue_control));
+      loads.push(loadAudio('fatigue-candidate', diagnostics.fatigue_candidate));
+      for (const [role, record] of Object.entries(state.manifest.roles)) {
+        record.variant_paths.forEach((path, index) => loads.push(loadAudio(`${role}_${index}`, path)));
+      }
+      await Promise.all(loads);
+      const silent = state.context.createBufferSource();
+      const gain = state.context.createGain();
+      gain.gain.value = 0;
+      silent.buffer = state.buffers.values().next().value;
+      silent.connect(gain).connect(state.context.destination);
+      silent.start();
+    }
+
+    function cancelAudio() {
+      clearTimeout(state.timer);
+      state.timer = null;
+      for (const source of state.active) {
+        try { source.stop(); } catch (_) {}
+      }
+      state.active = [];
+      document.querySelectorAll('.pressed').forEach(node => node.classList.remove('pressed'));
+      state.busy = false;
+      document.querySelectorAll('[data-audio]').forEach(button => { button.disabled = false; });
+      updateVerdictAvailability();
+    }
+
+    function setBusy(value) {
+      state.busy = value;
+      document.querySelectorAll('[data-audio]').forEach(button => { button.disabled = value; });
+      updateVerdictAvailability();
+    }
+
+    function updateVerdictAvailability() {
+      for (const pass of ['matched', 'natural']) {
+        const ready = state.listened[pass].size === 2 && !state.busy;
+        document.querySelectorAll(`[data-verdict-group="${pass}"] .verdict`).forEach(button => {
+          button.disabled = !ready;
+        });
+      }
+      const distinctReady = Boolean(state.answers.matched) && !state.busy;
+      document.querySelectorAll('[data-verdict-group="distinct"] .verdict').forEach(button => {
+        button.disabled = !distinctReady;
+      });
+    }
+
+    function scheduleBuffer(key, at = 0, gainValue = 1) {
+      const source = state.context.createBufferSource();
+      const gain = state.context.createGain();
+      source.buffer = state.buffers.get(key);
+      gain.gain.value = gainValue;
+      source.connect(gain).connect(state.context.destination);
+      source.start(state.context.currentTime + at);
+      state.active.push(source);
+      return source.buffer.duration + at;
+    }
+
+    function playOne(key, button, label, onComplete = null) {
+      if (state.busy) return;
+      cancelAudio();
+      setBusy(true);
+      button.classList.add('pressed');
+      const duration = scheduleBuffer(key, 0, .94);
+      status.textContent = label;
+      record('play', { key });
+      state.timer = setTimeout(() => {
+        state.active = [];
+        setBusy(false);
+        button.classList.remove('pressed');
+        button.focus({ preventScroll: true });
+        if (onComplete) onComplete();
+      }, duration * 1000 + 90);
+    }
+
+    function playRole(role, button) {
+      if (state.busy) return;
+      cancelAudio();
+      setBusy(true);
+      button.classList.add('pressed');
+      const variant = state.phrase % 3;
+      state.phrase = (state.phrase + 1) % 3;
+      let duration;
+      if (role === 'complete-bloom') {
+        duration = scheduleBuffer(`select_${variant}`, 0, .92);
+        duration = Math.max(duration, scheduleBuffer(`${role}_${variant}`, .075, .94));
+      } else {
+        duration = scheduleBuffer(`${role}_${variant}`, 0, .94);
+      }
+      status.textContent = `Played ${role.replace('-', ' ')} in phrase take ${variant + 1}.`;
+      record('role_play', { role, variant: variant + 1 });
+      state.timer = setTimeout(() => {
+        state.active = [];
+        setBusy(false);
+        button.classList.remove('pressed');
+        button.focus({ preventScroll: true });
+      }, duration * 1000 + 100);
+    }
+
+    function bindAudioButton(button, action) {
+      let lastDirectAt = -Infinity;
+      button.addEventListener('pointerdown', event => {
+        if (event.button !== 0 || button.disabled) return;
+        event.preventDefault();
+        lastDirectAt = performance.now();
+        action();
+      });
+      button.addEventListener('keydown', event => {
+        if (event.repeat || button.disabled || !['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        lastDirectAt = performance.now();
+        action();
+      });
+      button.addEventListener('click', event => {
+        if (button.disabled) return;
+        if (performance.now() - lastDirectAt < 500) {
+          event.preventDefault();
+          return;
+        }
+        action();
+      });
+    }
+
+    function moveToPhase(panel) {
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      panel.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+      const heading = panel.querySelector('h2');
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+    }
+
+    function revealMapping(pass) {
+      const order = state.orders[pass];
+      const reveal = document.querySelector(`#${pass}-reveal`);
+      reveal.hidden = false;
+      reveal.innerHTML = `<strong>A was ${order[0] === 'candidate' ? 'the unified Room family' : 'the previous mixed study'}.</strong> B was ${order[1] === 'candidate' ? 'the unified Room family' : 'the previous mixed study'}.`;
+      reveal.tabIndex = -1;
+      return reveal;
+    }
+
+    function revealPass(pass, choice) {
+      const order = state.orders[pass];
+      state.answers[pass] = choice;
+      record('verdict', { pass, choice, mapping: order.slice() });
+      updateVerdictAvailability();
+      if (pass === 'matched') {
+        status.textContent = 'Cohesion choice saved. Now decide whether the interaction verbs still feel distinct.';
+        const distinctButton = document.querySelector('[data-verdict-group="distinct"] .verdict');
+        distinctButton.scrollIntoView({
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+          block: 'center'
+        });
+        distinctButton.focus({ preventScroll: true });
+      } else {
+        const reveal = revealMapping(pass);
+        continueDiagnostics.hidden = false;
+        continueDiagnostics.disabled = false;
+        status.textContent = 'Hierarchy choice saved. The sequence identities are now revealed.';
+        reveal.scrollIntoView({
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+          block: 'center'
+        });
+        reveal.focus({ preventScroll: true });
+      }
+    }
+
+    function setupVerdicts() {
+      document.querySelectorAll('[data-verdict-group]').forEach(group => {
+        group.querySelectorAll('.verdict').forEach(button => {
+          button.addEventListener('click', () => {
+            group.querySelectorAll('.verdict').forEach(item => item.classList.remove('selected'));
+            button.classList.add('selected');
+            const groupName = group.dataset.verdictGroup;
+            const choice = button.dataset.choice;
+            state.answers[groupName] = choice;
+            if (groupName === 'matched' || groupName === 'natural') revealPass(groupName, choice);
+            else {
+              record('verdict', { pass: groupName, choice });
+              const reveal = revealMapping('matched');
+              continueNatural.hidden = false;
+              continueNatural.disabled = false;
+              status.textContent = `Verb distinction: ${button.textContent}. The sequence identities are now revealed.`;
+              reveal.scrollIntoView({
+                behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                block: 'center'
+              });
+              reveal.focus({ preventScroll: true });
+            }
+          });
+        });
+      });
+    }
+
+    continueNatural.addEventListener('click', () => {
+      continueNatural.disabled = true;
+      naturalPass.hidden = false;
+      record('phase_continue', { to: 'natural' });
+      moveToPhase(naturalPass);
+    });
+
+    continueDiagnostics.addEventListener('click', () => {
+      continueDiagnostics.disabled = true;
+      diagnosticPass.hidden = false;
+      record('phase_continue', { to: 'diagnostics' });
+      moveToPhase(diagnosticPass);
+    });
+
+    function buildRoleCards() {
+      const labels = {
+        open: ['Open', 'short outward tak'],
+        select: ['Select', 'small two-part detent'],
+        navigate: ['Navigate', 'weighted downward dak'],
+        place: ['Place', 'confirmed warm seat'],
+        'complete-bloom': ['Complete', 'accepted touch then related bloom']
+      };
+      const root = document.querySelector('#roles');
+      for (const role of Object.keys(labels)) {
+        const [title, description] = labels[role];
+        const card = document.createElement('article');
+        card.className = 'role-card';
+        card.innerHTML = `<h3>${title}</h3><p>${description}</p><button class="play" type="button" data-audio>Play ${title}</button><small>Uses the next shared phrase token.</small>`;
+        const button = card.querySelector('button');
+        bindAudioButton(button, () => playRole(role, button));
+        root.appendChild(card);
+      }
+    }
+
+    start.addEventListener('click', async () => {
+      start.disabled = true;
+      status.textContent = 'Loading and prewarming the two systems…';
+      try {
+        await prepare();
+        startPanel.hidden = true;
+        lab.hidden = false;
+        buildRoleCards();
+        document.querySelectorAll('[data-pass]').forEach(button => {
+          bindAudioButton(button, () => {
+            const pass = button.dataset.pass;
+            const slot = Number(button.dataset.slot);
+            const system = state.orders[pass][slot];
+            playOne(
+              `${system}_${pass}`,
+              button,
+              `Playing sequence ${slot === 0 ? 'A' : 'B'}…`,
+              () => {
+                state.listened[pass].add(slot);
+                updateVerdictAvailability();
+                status.textContent = state.listened[pass].size === 2
+                  ? 'Both sequences heard. Choose a verdict when ready.'
+                  : 'Now hear the other sequence before choosing.';
+              }
+            );
+          });
+        });
+        for (const [key, label] of [
+          ['contacts', 'Playing shared contacts…'],
+          ['bodies', 'Playing shared bodies…'],
+          ['bypass', 'Playing unified family without the Room fingerprint…'],
+          ['approved-anchor', 'Playing the exact approved C anchor…'],
+          ['fatigue-control', 'Playing the rapid previous-study run…'],
+          ['fatigue-candidate', 'Playing the rapid unified-family run…']
+        ]) {
+          const button = document.querySelector(`[data-buffer="${key}"]`);
+          bindAudioButton(button, () => playOne(key, button, label));
+        }
+        setupVerdicts();
+        updateVerdictAvailability();
+        status.textContent = 'Ready. Start with A and B in the cohesion pass.';
+        document.querySelector('#matched-pass .play').focus();
+      } catch (error) {
+        start.disabled = false;
+        status.textContent = `${error.message} Try Start listening again.`;
+      }
+    });
+
+    document.querySelector('#copy-notes').addEventListener('click', async () => {
+      const payload = JSON.stringify({
+        study: state.manifest?.study,
+        answers: state.answers,
+        orders: state.orders,
+        listening_route: document.querySelector('#listening-route').value,
+        reason: document.querySelector('#listening-reason').value,
+        events: state.events
+      }, null, 2);
+      try {
+        await navigator.clipboard.writeText(payload);
+        status.textContent = 'Listening notes copied.';
+      } catch (_) {
+        status.textContent = 'Clipboard access was unavailable. Your choices remain visible on this page.';
+      }
+    });
+  </script>
+</body>
+</html>

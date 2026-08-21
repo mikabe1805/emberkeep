@@ -98,7 +98,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
 
   // ── flow control ─────────────────────────────────────────────────
   void _pick(Routine r) {
-    Sfx.instance.playMaterial(MaterialSound.wood);
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     Haptics.tap();
     setState(() {
       _routine = r;
@@ -145,7 +145,7 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
 
   /// Skip the current move (and its rest) — no penalty, no credit.
   void _skip() {
-    Sfx.instance.playMaterial(MaterialSound.wood);
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     _next();
   }
 

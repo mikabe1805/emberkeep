@@ -454,7 +454,14 @@ class _ThemeCard extends StatelessWidget {
       label: '${theme.name}, ${theme.subtitle}, $stateLabel. Open preview.',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: onOpen,
+        onTap: () {
+          // the card answers the touch; the preview flow itself stays quiet
+          Sfx.instance.playInteraction(
+            InteractionSound.select,
+            material: MaterialSound.glass,
+          );
+          onOpen();
+        },
         child: GlassPanel(
           radius: 20,
           glow: applied,

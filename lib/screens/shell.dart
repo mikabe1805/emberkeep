@@ -1765,11 +1765,26 @@ class _DockItem extends StatelessWidget {
       selected: selected,
       child: Pressable(
         pressDepth: 2,
+        // travel between the five pages of the room: the parchment flip lane
+        // (falls back to the navigate clasp until the page masters ship)
+        material: MaterialSound.parchment,
         interactionSound: InteractionSound.navigate,
         soundEnabled: !selected,
         edgeColor: Colors.transparent,
         semanticLabel: '$label tab',
-        onTapUp: (_) => onTap(),
+        onTapUp: (_) {
+          // Retapping the tab you're already on used to buzz and stay mute,
+          // which read as a dead control (owner, 2026-08-21). It now owns a
+          // quieter select detent: acknowledged, not announced — the full
+          // navigate weight stays reserved for actual travel.
+          if (selected) {
+            Sfx.instance.playInteraction(
+              InteractionSound.select,
+              volumeScale: 0.7,
+            );
+          }
+          onTap();
+        },
         child: AnimatedContainer(
           duration: Motion.quick,
           curve: Motion.respond,

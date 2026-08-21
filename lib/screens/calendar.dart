@@ -220,7 +220,11 @@ class _CalendarPageState extends State<CalendarPage> {
     // must win over a delayed local restore just like a mode change does.
     _recordViewInteraction();
     if (_academicMode == mode) return;
-    Sfx.instance.playMaterial(MaterialSound.glass);
+    // switching month/week/day is a page turn, not a glass tap
+    Sfx.instance.playInteraction(
+      InteractionSound.navigate,
+      material: MaterialSound.parchment,
+    );
     setState(() {
       _academicMode = mode;
       _month = DateTime(_selected.year, _selected.month);

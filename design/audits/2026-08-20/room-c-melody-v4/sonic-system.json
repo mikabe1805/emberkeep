@@ -1,0 +1,399 @@
+{
+  "format": "sonic-system/v1",
+  "product": {
+    "name": "Room of Days",
+    "promise": "A warm physical room answers ordinary movement with satisfying clasps that become quietly musical only through use.",
+    "owner_quotes": [
+      "i like when there's a rhythm and it feels melodic.",
+      "sounds really great but can you make the clicking melodic variations sound better overall when clicking around?"
+    ]
+  },
+  "world": {
+    "sensory_words": [
+      "close",
+      "warm",
+      "weighty",
+      "playful",
+      "restrained"
+    ],
+    "avoid": [
+      "random independent note choice",
+      "an endless rising scale",
+      "a notification jingle on every tap",
+      "brittle sparkle, audible room tail, or synthetic sine purity",
+      "altering the approved X contact, clasp, or level while testing melody"
+    ],
+    "shared_dna": {
+      "transient": "The complete selected X contact and 8.5 ms clasp remain the loudest causal event.",
+      "body": "The entire approved 60 ms X body remains, with only a quieter inherited short resonance added after the clasp.",
+      "harmonic_field": "Audition hypothesis: D-major-pentatonic A4, D5, E5, F-sharp5, and A5; one global eight-step contour, reset after 850 ms quiet.",
+      "texture": "X's filtered micro-grain and inharmonic body remain unchanged; the meaning resonance uses the reward's correlated-excitation modal language.",
+      "space": "Ordinary cues stay centered and dry, parked by 60 ms with no room bus or audible reverb tail.",
+      "dynamics": "The X level stays at its approved +1.5 dB phone lift; resonance is roughly ten decibels quieter, and rapid use suppresses melody after four taps."
+    }
+  },
+  "mix": {
+    "priority_order": [
+      "completion",
+      "placement",
+      "navigation",
+      "contact"
+    ],
+    "priority_map": {
+      "contact": 1,
+      "navigation": 2,
+      "placement": 2,
+      "completion": 3
+    },
+    "voice_cap": 2,
+    "rapid_policy": "One global clock advances the phrase across controls. Reset after 850 ms quiet. Apply X's 1.0, 0.93, 0.93, 0.885 rapid gains and suppress tonal continuation after the fourth rapid event.",
+    "ducking_policy": "A completion clears ordinary resonance immediately; a new ordinary onset may steal only the prior resonance tail, never its own X core.",
+    "silence_policy": [
+      "Already-selected states",
+      "scrolling or typing",
+      "disabled and busy controls",
+      "cancel or dismiss without a commit"
+    ],
+    "compound_outcome_rule": "An action emits one X-plus-phrase cue or one atomic locked contact-to-completion plan, never both independently.",
+    "voice_stealing_rule": "Completion steals every ordinary resonance; at the ordinary voice cap the newer X core plays and the older resonance tail fades first.",
+    "state_dedupe_rule": "State-transition IDs dedupe repeated callbacks independently of the legitimate global phrase clock.",
+    "settings_rule": "Respect sound disabled, native silent behavior, external audio mixing, and reduced-feedback settings before scheduling."
+  },
+  "render_contract": {
+    "version": "room-c-melody-v4-author-1",
+    "shared_sources": {
+      "contact": {
+        "id": "approved-x-complete-gesture-v3",
+        "recipe": "Byte-locked complete X source masters from room-c-gesture-v3."
+      },
+      "body": {
+        "id": "approved-x-body-and-clasp-v3",
+        "recipe": "The same complete X source, including its body and explicit 8.5 ms clasp."
+      },
+      "space": {
+        "id": "room-dry-close-v4",
+        "recipe": "No room bus; every ordinary master is mono and parked inside 60 ms."
+      },
+      "signature": {
+        "id": "room-short-resonance-v4",
+        "recipe": "Equal-energy 49.5 ms modal/excitation stems derived from the selected reward language and beginning at 10.5 ms."
+      }
+    },
+    "variant_axis": "ordinary global_phrase_position; locked completion none"
+  },
+  "cues": [
+    {
+      "id": "open",
+      "verb": "open",
+      "meaning": "Ordinary content is available to inspect.",
+      "representative_actions": [
+        "Open a journal entry or quiet sheet"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "At the accepted visual state change; never for a no-op.",
+      "timing_class": "immediate",
+      "gesture": "The approved complete X clasp plus one quiet global phrase resonance.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "texture",
+        "space"
+      ],
+      "distinctive_traits": [
+        "X open weight",
+        "global phrase position, not widget-local randomness"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-x-complete-gesture-v3",
+        "body_master_id": "approved-x-body-and-clasp-v3",
+        "space_fingerprint_id": "room-dry-close-v4",
+        "signature_source_id": "room-short-resonance-v4",
+        "layers": [
+          "contact",
+          "body",
+          "signature",
+          "space"
+        ],
+        "pitch_token": "One D-major-pentatonic token from the active global phrase.",
+        "variant_axis": "ordinary global_phrase_position; locked completion none",
+        "derivation": "The byte-locked X core remains whole; a dry equal-energy resonance begins after its clasp and ends inside the same 60 ms master."
+      },
+      "variant_count": 5,
+      "no_immediate_repeat": true,
+      "motion": "X onset aligns under the finger; the resonance belongs to the same visual settle.",
+      "haptic": "Existing short selection feedback where already warranted.",
+      "cooldown_ms": 35,
+      "silent_when": [
+        "The value or destination did not change",
+        "The press becomes a scroll",
+        "The control is disabled or busy"
+      ]
+    },
+    {
+      "id": "select",
+      "verb": "select",
+      "meaning": "A small choice has seated into a new state.",
+      "representative_actions": [
+        "Choose a date, filter, or toggle"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "At the accepted visual state change; never for a no-op.",
+      "timing_class": "immediate",
+      "gesture": "The approved complete X clasp plus one quiet global phrase resonance.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "texture",
+        "space"
+      ],
+      "distinctive_traits": [
+        "X select weight",
+        "global phrase position, not widget-local randomness"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-x-complete-gesture-v3",
+        "body_master_id": "approved-x-body-and-clasp-v3",
+        "space_fingerprint_id": "room-dry-close-v4",
+        "signature_source_id": "room-short-resonance-v4",
+        "layers": [
+          "contact",
+          "body",
+          "signature",
+          "space"
+        ],
+        "pitch_token": "One D-major-pentatonic token from the active global phrase.",
+        "variant_axis": "ordinary global_phrase_position; locked completion none",
+        "derivation": "The byte-locked X core remains whole; a dry equal-energy resonance begins after its clasp and ends inside the same 60 ms master."
+      },
+      "variant_count": 5,
+      "no_immediate_repeat": true,
+      "motion": "X onset aligns under the finger; the resonance belongs to the same visual settle.",
+      "haptic": "Existing short selection feedback where already warranted.",
+      "cooldown_ms": 35,
+      "silent_when": [
+        "The value or destination did not change",
+        "The press becomes a scroll",
+        "The control is disabled or busy"
+      ]
+    },
+    {
+      "id": "navigate",
+      "verb": "navigate",
+      "meaning": "A real destination change has been accepted.",
+      "representative_actions": [
+        "Switch a tab, page, or calendar period"
+      ],
+      "frequency": "frequent",
+      "priority": 2,
+      "priority_class": "navigation",
+      "timing": "At the accepted visual state change; never for a no-op.",
+      "timing_class": "immediate",
+      "gesture": "The approved complete X clasp plus one quiet global phrase resonance.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "texture",
+        "space"
+      ],
+      "distinctive_traits": [
+        "X navigate weight",
+        "global phrase position, not widget-local randomness"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-x-complete-gesture-v3",
+        "body_master_id": "approved-x-body-and-clasp-v3",
+        "space_fingerprint_id": "room-dry-close-v4",
+        "signature_source_id": "room-short-resonance-v4",
+        "layers": [
+          "contact",
+          "body",
+          "signature",
+          "space"
+        ],
+        "pitch_token": "One D-major-pentatonic token from the active global phrase.",
+        "variant_axis": "ordinary global_phrase_position; locked completion none",
+        "derivation": "The byte-locked X core remains whole; a dry equal-energy resonance begins after its clasp and ends inside the same 60 ms master."
+      },
+      "variant_count": 5,
+      "no_immediate_repeat": true,
+      "motion": "X onset aligns under the finger; the resonance belongs to the same visual settle.",
+      "haptic": "Existing short selection feedback where already warranted.",
+      "cooldown_ms": 55,
+      "silent_when": [
+        "The value or destination did not change",
+        "The press becomes a scroll",
+        "The control is disabled or busy"
+      ]
+    },
+    {
+      "id": "place",
+      "verb": "place",
+      "meaning": "Useful work has been put where it belongs.",
+      "representative_actions": [
+        "Save, add, schedule, or pin an item"
+      ],
+      "frequency": "occasional",
+      "priority": 2,
+      "priority_class": "placement",
+      "timing": "At the accepted visual state change; never for a no-op.",
+      "timing_class": "confirmed_outcome",
+      "gesture": "The approved complete X clasp plus one quiet global phrase resonance.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "texture",
+        "space"
+      ],
+      "distinctive_traits": [
+        "X place weight",
+        "global phrase position, not widget-local randomness"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-x-complete-gesture-v3",
+        "body_master_id": "approved-x-body-and-clasp-v3",
+        "space_fingerprint_id": "room-dry-close-v4",
+        "signature_source_id": "room-short-resonance-v4",
+        "layers": [
+          "contact",
+          "body",
+          "signature",
+          "space"
+        ],
+        "pitch_token": "One D-major-pentatonic token from the active global phrase.",
+        "variant_axis": "ordinary global_phrase_position; locked completion none",
+        "derivation": "The byte-locked X core remains whole; a dry equal-energy resonance begins after its clasp and ends inside the same 60 ms master."
+      },
+      "variant_count": 5,
+      "no_immediate_repeat": true,
+      "motion": "X onset aligns under the finger; the resonance belongs to the same visual settle.",
+      "haptic": "Existing short selection feedback where already warranted.",
+      "cooldown_ms": 35,
+      "silent_when": [
+        "The value or destination did not change",
+        "The press becomes a scroll",
+        "The control is disabled or busy"
+      ]
+    },
+    {
+      "id": "complete",
+      "verb": "complete",
+      "meaning": "A quest or routine was genuinely finished.",
+      "representative_actions": [
+        "Complete a quest",
+        "Finish a routine"
+      ],
+      "frequency": "occasional",
+      "priority": 3,
+      "priority_class": "completion",
+      "timing": "Accepted Select take 2, then the Answered Detent exactly 75 ms later.",
+      "timing_class": "atomic_composed_outcome",
+      "gesture": "The already-selected physical catch and restrained D-to-A answer.",
+      "shared_traits": [
+        "harmonic_field",
+        "dynamics"
+      ],
+      "distinctive_traits": [
+        "locked earned outcome",
+        "resets and replaces the ordinary phrase"
+      ],
+      "layer_plan": {
+        "contact_master_id": "locked-accepted-select-2-v3",
+        "body_master_id": "locked-answered-detent-v1",
+        "space_fingerprint_id": "locked-answered-detent-space-v1",
+        "signature_source_id": "locked-completion-composite-v3",
+        "layers": [
+          "locked_contact",
+          "locked_body",
+          "locked_signature",
+          "locked_space"
+        ],
+        "pitch_token": "Locked inside the approved composite; ordinary phrase state does not alter it.",
+        "variant_axis": "ordinary global_phrase_position; locked completion none",
+        "derivation": "The exact previously selected completion composite is copied without re-rendering and clears phrase state."
+      },
+      "variant_count": 1,
+      "no_immediate_repeat": false,
+      "motion": "The catch aligns with acceptance and the answer follows the earned receipt.",
+      "haptic": "One success haptic synchronized to the accepted catch.",
+      "cooldown_ms": 180,
+      "silent_when": [
+        "Completion is unconfirmed",
+        "The event was already acknowledged"
+      ]
+    }
+  ],
+  "auditions": [
+    {
+      "id": "melodic-world-flow",
+      "context": "Navigate, open, select twice, place, navigate, open, then complete a quest at the same cadence for both phrase contours.",
+      "sequence": [
+        "navigate",
+        "open",
+        "select",
+        "select",
+        "place",
+        "navigate",
+        "open",
+        "select",
+        "complete"
+      ],
+      "question": "Which contour makes clicking around feel musical while remaining one Room instrument?",
+      "comparison": {
+        "control": "candidates/paired-return/flow.wav",
+        "candidate": "candidates/gentle-arc/flow.wav",
+        "timings_ms": [
+          300,
+          1050,
+          1720,
+          2180,
+          2920,
+          3750,
+          4550,
+          5300,
+          5375
+        ],
+        "order": "Randomized A/B per browser session; identities remain hidden until the final verdict.",
+        "natural_mix": true,
+        "level_control": {
+          "control": "candidates/paired-return/flow.wav",
+          "candidate": "candidates/gentle-arc/flow.wav"
+        },
+        "verdicts": [
+          "paired-return",
+          "gentle-arc",
+          "both",
+          "neither"
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "policy": "Only deterministic project-authored synthesis and already approved project masters are used; reference audio is never copied.",
+    "records": [
+      {
+        "id": "approved-x-v3",
+        "status": "physical mechanism approved",
+        "note": "Selected on an iPhone built-in speaker; contact, clasp, and +1.5 dB lift are locked."
+      },
+      {
+        "id": "answered-detent-v1",
+        "status": "completion approved",
+        "note": "Copied byte-for-byte and scheduled 75 ms after its accepted-state contact."
+      }
+    ]
+  },
+  "approval": {
+    "technical": "pass",
+    "semantic": "pass",
+    "cohesion": "pending",
+    "physical_device": "pending"
+  }
+}

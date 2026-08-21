@@ -1,0 +1,102 @@
+{
+  "study": "room-c-melody-v4",
+  "meaning": {
+    "a4": {
+      "phone_rms_dbfs": -36.500000642188496,
+      "phone_energy_db": -1.9060757645961885,
+      "peak_dbfs": -24.084247496758607,
+      "final_1ms_relative_peak_db": -66.37746584585385
+    },
+    "d5": {
+      "phone_rms_dbfs": -36.500000954768446,
+      "phone_energy_db": -1.9060760771761356,
+      "peak_dbfs": -23.702922020079512,
+      "final_1ms_relative_peak_db": -62.851438909518755
+    },
+    "e5": {
+      "phone_rms_dbfs": -36.50000057511633,
+      "phone_energy_db": -1.9060756975240234,
+      "peak_dbfs": -23.67820003476426,
+      "final_1ms_relative_peak_db": -74.93237551725609
+    },
+    "fs5": {
+      "phone_rms_dbfs": -36.50000038467442,
+      "phone_energy_db": -1.9060755070821114,
+      "peak_dbfs": -24.042006167542453,
+      "final_1ms_relative_peak_db": -74.56122179991654
+    },
+    "a5": {
+      "phone_rms_dbfs": -36.50000070409882,
+      "phone_energy_db": -1.9060758265065045,
+      "peak_dbfs": -23.185915920221806,
+      "final_1ms_relative_peak_db": -64.12684138901501
+    }
+  },
+  "candidates": {
+    "paired-return": {
+      "single": {
+        "phone_rms_dbfs": -26.736733211475826,
+        "phone_energy_db": 7.857191666116481,
+        "peak_dbfs": -6.621591630144419,
+        "final_1ms_relative_peak_db": -83.24323130734248
+      },
+      "phrase": {
+        "phone_rms_dbfs": -33.704905804264115,
+        "phone_energy_db": 17.29051948268921,
+        "peak_dbfs": -5.3244495710791275,
+        "final_1ms_relative_peak_db": -234.67555042892087
+      },
+      "flow": {
+        "phone_rms_dbfs": -35.42214807836302,
+        "phone_energy_db": 19.243562645500518,
+        "peak_dbfs": -5.730914943218448,
+        "final_1ms_relative_peak_db": -234.26908505678156
+      },
+      "rapid": {
+        "phone_rms_dbfs": -31.07696088854579,
+        "phone_energy_db": 17.93653236561063,
+        "peak_dbfs": -5.805164900155056,
+        "final_1ms_relative_peak_db": -234.19483509984497
+      },
+      "pause_probe": {
+        "phone_rms_dbfs": -36.93915783885963,
+        "phone_energy_db": 15.915515065740944,
+        "peak_dbfs": -5.3244495710791275,
+        "final_1ms_relative_peak_db": -234.67555042892087
+      }
+    },
+    "gentle-arc": {
+      "single": {
+        "phone_rms_dbfs": -26.736733211475826,
+        "phone_energy_db": 7.857191666116481,
+        "peak_dbfs": -6.621591630144419,
+        "final_1ms_relative_peak_db": -83.24323130734248
+      },
+      "phrase": {
+        "phone_rms_dbfs": -33.75408132112735,
+        "phone_energy_db": 17.241343965825976,
+        "peak_dbfs": -5.32411225510409,
+        "final_1ms_relative_peak_db": -234.67588774489593
+      },
+      "flow": {
+        "phone_rms_dbfs": -35.4452646060073,
+        "phone_energy_db": 19.220446117856238,
+        "peak_dbfs": -5.731919618841478,
+        "final_1ms_relative_peak_db": -234.2680803811585
+      },
+      "rapid": {
+        "phone_rms_dbfs": -31.058856561345753,
+        "phone_energy_db": 17.95463669281067,
+        "peak_dbfs": -5.805164900155056,
+        "final_1ms_relative_peak_db": -234.19483509984497
+      },
+      "pause_probe": {
+        "phone_rms_dbfs": -36.888948887985514,
+        "phone_energy_db": 15.965724016615061,
+        "peak_dbfs": -5.32411225510409,
+        "final_1ms_relative_peak_db": -234.67588774489593
+      }
+    }
+  },
+  "max_generated_peak_dbfs": -5.32411225510409
+}

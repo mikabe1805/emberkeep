@@ -109,7 +109,11 @@ class _PressableState extends State<Pressable> {
     required Object? screenId,
   }) {
     if (!soundEnabled) return;
-    Sfx.instance.playInteraction(role, screenId: screenId);
+    Sfx.instance.playInteraction(
+      role,
+      screenId: screenId,
+      material: widget.material,
+    );
   }
 
   void _activate() {

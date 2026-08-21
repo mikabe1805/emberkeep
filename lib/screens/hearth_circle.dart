@@ -1395,7 +1395,11 @@ class _SheetChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: () {
-      Sfx.instance.playMaterial(MaterialSound.wood);
+      // faceted option chip: the slate lane once its masters ship
+      Sfx.instance.playInteraction(
+        InteractionSound.select,
+        material: MaterialSound.stone,
+      );
       HapticFeedback.selectionClick();
       onTap();
     },

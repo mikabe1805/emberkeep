@@ -1,0 +1,133 @@
+{
+  "candidates": [
+    {
+      "id": "palette-a",
+      "path": "palette-a.wav",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "id": "palette-b",
+      "path": "palette-b.wav",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "id": "palette-c",
+      "path": "palette-c.wav",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "id": "palette-d",
+      "path": "palette-d.wav",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "id": "palette-e",
+      "path": "palette-e.wav",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "id": "palette-f",
+      "path": "palette-f.wav",
+      "role": "repeated_tap_note_palette"
+    }
+  ],
+  "format": "sonic-taste-session/v1",
+  "pairs": [
+    {
+      "a": "palette-a",
+      "b": "palette-b",
+      "id": "repeated_tap_note_palette:palette-a__palette-b",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-a",
+      "b": "palette-c",
+      "id": "repeated_tap_note_palette:palette-a__palette-c",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-a",
+      "b": "palette-d",
+      "id": "repeated_tap_note_palette:palette-a__palette-d",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-a",
+      "b": "palette-e",
+      "id": "repeated_tap_note_palette:palette-a__palette-e",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-a",
+      "b": "palette-f",
+      "id": "repeated_tap_note_palette:palette-a__palette-f",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-b",
+      "b": "palette-c",
+      "id": "repeated_tap_note_palette:palette-b__palette-c",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-b",
+      "b": "palette-d",
+      "id": "repeated_tap_note_palette:palette-b__palette-d",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-b",
+      "b": "palette-e",
+      "id": "repeated_tap_note_palette:palette-b__palette-e",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-b",
+      "b": "palette-f",
+      "id": "repeated_tap_note_palette:palette-b__palette-f",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-c",
+      "b": "palette-d",
+      "id": "repeated_tap_note_palette:palette-c__palette-d",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-c",
+      "b": "palette-e",
+      "id": "repeated_tap_note_palette:palette-c__palette-e",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-c",
+      "b": "palette-f",
+      "id": "repeated_tap_note_palette:palette-c__palette-f",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-d",
+      "b": "palette-e",
+      "id": "repeated_tap_note_palette:palette-d__palette-e",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-d",
+      "b": "palette-f",
+      "id": "repeated_tap_note_palette:palette-d__palette-f",
+      "role": "repeated_tap_note_palette"
+    },
+    {
+      "a": "palette-e",
+      "b": "palette-f",
+      "id": "repeated_tap_note_palette:palette-e__palette-f",
+      "role": "repeated_tap_note_palette"
+    }
+  ],
+  "rating_choices": [
+    "a",
+    "b",
+    "no_preference",
+    "both_bad"
+  ]
+}

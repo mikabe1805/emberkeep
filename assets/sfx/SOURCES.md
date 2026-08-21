@@ -35,6 +35,26 @@ The similarly named v3 `locked/completion-composite.wav` is a 6.1-second study
 flow with its completion parked at 5.3 seconds; it is audit evidence, never a
 runtime cue.
 
+`room/materials/<slate|page|glass|brass>/<verb>/1..3.wav` contains the nine
+phone-approved material texture lanes (gestures approved in
+`room-material-shading-v1`, shipped as the `room-material-shading-v2-polish`
+render on the owner's 2026-08-21 final verdict). Each lane is a body/grain
+shading of the same X contact master, reflection fingerprint, and pentatonic
+tokens — deterministic project-authored synthesis, no recorded Foley —
+copied byte-for-byte from the v2-polish audition masters and regenerable via
+`tool/author_room_material_shading_study.py --polish`. Runtime routes a
+surface's declared `MaterialSound` onto these lanes and falls back to the
+plain clasp for anything undeclared.
+
+`streak/crit/loot/levelup/boing/stat_0..5.wav` are the phone-approved event
+voices (gestures approved in `room-event-voice-v1`, shipped as the
+`room-event-voice-v2-polish` render on the owner's 2026-08-21 final
+verdict), derived from the same Room chain and calibrated in-file to their
+natural phone-band targets — runtime plays them at volume 1.0. They replaced
+the last Gen-1 synthesized sine palette. Regenerable via
+`tool/author_room_event_voice_study.py --polish`; the shipped copies live
+under `design/audits/2026-08-21/room-event-voice-v2-polish/events/`.
+
 `room/paired_return/<d5|a5|e5>/<open|select|navigate|place>/1..5.wav`
 contains the 60 physically approved Paired Return masters. Each is copied
 byte-for-byte from the corresponding v4 cue and contains one complete X take

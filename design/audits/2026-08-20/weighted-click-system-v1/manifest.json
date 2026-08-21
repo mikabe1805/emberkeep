@@ -1,0 +1,133 @@
+{
+  "study": "weighted-click-system-v1",
+  "source": {
+    "kind": "deterministic procedural synthesis",
+    "recorded_foley": false,
+    "room_or_reverb": false,
+    "recipe": "tool/author_weighted_click_study.py"
+  },
+  "candidates": [
+    {
+      "id": "dak-a",
+      "role": "repeated_weighted_contact",
+      "path": "dak-a.wav"
+    },
+    {
+      "id": "dak-b",
+      "role": "repeated_weighted_contact",
+      "path": "dak-b.wav"
+    },
+    {
+      "id": "dak-c",
+      "role": "repeated_weighted_contact",
+      "path": "dak-c.wav"
+    },
+    {
+      "id": "dak-d",
+      "role": "repeated_weighted_contact",
+      "path": "dak-d.wav"
+    }
+  ],
+  "families": {
+    "dak-a": {
+      "variant_paths": [
+        "variants/dak-a-1.wav",
+        "variants/dak-a-2.wav",
+        "variants/dak-a-3.wav",
+        "variants/dak-a-4.wav",
+        "variants/dak-a-5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/variants/dak-a-1.wav",
+        "level-matched/variants/dak-a-2.wav",
+        "level-matched/variants/dak-a-3.wav",
+        "level-matched/variants/dak-a-4.wav",
+        "level-matched/variants/dak-a-5.wav"
+      ],
+      "no_immediate_repeat": true,
+      "rapid_gain_scale": [
+        1.0,
+        0.93,
+        0.885
+      ]
+    },
+    "dak-b": {
+      "variant_paths": [
+        "variants/dak-b-1.wav",
+        "variants/dak-b-2.wav",
+        "variants/dak-b-3.wav",
+        "variants/dak-b-4.wav",
+        "variants/dak-b-5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/variants/dak-b-1.wav",
+        "level-matched/variants/dak-b-2.wav",
+        "level-matched/variants/dak-b-3.wav",
+        "level-matched/variants/dak-b-4.wav",
+        "level-matched/variants/dak-b-5.wav"
+      ],
+      "no_immediate_repeat": true,
+      "rapid_gain_scale": [
+        1.0,
+        0.93,
+        0.885
+      ]
+    },
+    "dak-c": {
+      "variant_paths": [
+        "variants/dak-c-1.wav",
+        "variants/dak-c-2.wav",
+        "variants/dak-c-3.wav",
+        "variants/dak-c-4.wav",
+        "variants/dak-c-5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/variants/dak-c-1.wav",
+        "level-matched/variants/dak-c-2.wav",
+        "level-matched/variants/dak-c-3.wav",
+        "level-matched/variants/dak-c-4.wav",
+        "level-matched/variants/dak-c-5.wav"
+      ],
+      "no_immediate_repeat": true,
+      "rapid_gain_scale": [
+        1.0,
+        0.93,
+        0.885
+      ]
+    },
+    "dak-d": {
+      "variant_paths": [
+        "variants/dak-d-1.wav",
+        "variants/dak-d-2.wav",
+        "variants/dak-d-3.wav",
+        "variants/dak-d-4.wav",
+        "variants/dak-d-5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/variants/dak-d-1.wav",
+        "level-matched/variants/dak-d-2.wav",
+        "level-matched/variants/dak-d-3.wav",
+        "level-matched/variants/dak-d-4.wav",
+        "level-matched/variants/dak-d-5.wav"
+      ],
+      "no_immediate_repeat": true,
+      "rapid_gain_scale": [
+        1.0,
+        0.93,
+        0.885
+      ]
+    }
+  },
+  "rate_envelope": {
+    "rapid_threshold_ms": 110,
+    "fast_threshold_ms": 180,
+    "rapid_gains": [
+      1.0,
+      0.93,
+      0.93,
+      0.885
+    ],
+    "tail_suppression_threshold_ms": 70,
+    "max_voices": 2
+  }
+}

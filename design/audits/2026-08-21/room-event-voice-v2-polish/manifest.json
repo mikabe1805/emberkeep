@@ -1,0 +1,260 @@
+{
+  "study": "room-event-voice-v2-polish",
+  "question": "Do outcomes finally live in the same Room as the clasps, and does each event still say what it means?",
+  "runtime_changed": false,
+  "owner_feedback_source": {
+    "date": "2026-08-21",
+    "verbatim": "right now there's little to no variety between the \u201ctextures\u201d of taps or different interactions when tapping around so it all just sounds like the same popping sound that feels like a popping bubbles stim toy, ie, not polished and expensive like i like"
+  },
+  "render_contract": {
+    "render_version": "room-event-author-v2-polish",
+    "contact_master_id": "approved-c-contact-v1",
+    "body_master_id": "room-modal-bank-v1",
+    "space_fingerprint_id": "room-close-reflection-v1",
+    "pitch_field": "D-major pentatonic (D E F# A B)",
+    "event_targets_dbfs": {
+      "streak": -26.8,
+      "crit": -25.2,
+      "loot": -25.6,
+      "levelup": -24.8,
+      "boing": -28.2,
+      "stat": -28.8
+    },
+    "shipping_note": "candidates carry their phone level in-file; a shipped candidate moves its Sfx._volume entry to 1.0"
+  },
+  "events": {
+    "streak": {
+      "candidate": "events/streak.wav",
+      "matched_control": "controls/current-streak.wav",
+      "natural_phone_rms_target_dbfs": -26.8,
+      "duration_ms": 320.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      },
+      "flows": {
+        "candidate": "flows/streak/candidate.wav",
+        "current": "flows/streak/current.wav"
+      }
+    },
+    "crit": {
+      "candidate": "events/crit.wav",
+      "matched_control": "controls/current-crit.wav",
+      "natural_phone_rms_target_dbfs": -25.2,
+      "duration_ms": 340.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      },
+      "flows": {
+        "candidate": "flows/crit/candidate.wav",
+        "current": "flows/crit/current.wav"
+      }
+    },
+    "loot": {
+      "candidate": "events/loot.wav",
+      "matched_control": "controls/current-loot.wav",
+      "natural_phone_rms_target_dbfs": -25.6,
+      "duration_ms": 460.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      },
+      "flows": {
+        "candidate": "flows/loot/candidate.wav",
+        "current": "flows/loot/current.wav"
+      }
+    },
+    "levelup": {
+      "candidate": "events/levelup.wav",
+      "matched_control": "controls/current-levelup.wav",
+      "natural_phone_rms_target_dbfs": -24.8,
+      "duration_ms": 950.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      },
+      "flows": {
+        "candidate": "flows/levelup/candidate.wav",
+        "current": "flows/levelup/current.wav"
+      }
+    },
+    "boing": {
+      "candidate": "events/boing.wav",
+      "matched_control": "controls/current-boing.wav",
+      "natural_phone_rms_target_dbfs": -28.2,
+      "duration_ms": 300.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      },
+      "flows": {
+        "candidate": "flows/boing/candidate.wav",
+        "current": "flows/boing/current.wav"
+      }
+    },
+    "stat_0": {
+      "candidate": "events/stat_0.wav",
+      "matched_control": "controls/current-stat_0.wav",
+      "natural_phone_rms_target_dbfs": -28.8,
+      "duration_ms": 240.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      }
+    },
+    "stat_1": {
+      "candidate": "events/stat_1.wav",
+      "matched_control": "controls/current-stat_1.wav",
+      "natural_phone_rms_target_dbfs": -28.8,
+      "duration_ms": 240.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      }
+    },
+    "stat_2": {
+      "candidate": "events/stat_2.wav",
+      "matched_control": "controls/current-stat_2.wav",
+      "natural_phone_rms_target_dbfs": -28.8,
+      "duration_ms": 240.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      }
+    },
+    "stat_3": {
+      "candidate": "events/stat_3.wav",
+      "matched_control": "controls/current-stat_3.wav",
+      "natural_phone_rms_target_dbfs": -28.8,
+      "duration_ms": 240.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      }
+    },
+    "stat_4": {
+      "candidate": "events/stat_4.wav",
+      "matched_control": "controls/current-stat_4.wav",
+      "natural_phone_rms_target_dbfs": -28.8,
+      "duration_ms": 240.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      }
+    },
+    "stat_5": {
+      "candidate": "events/stat_5.wav",
+      "matched_control": "controls/current-stat_5.wav",
+      "natural_phone_rms_target_dbfs": -28.8,
+      "duration_ms": 240.0,
+      "derivation": {
+        "render_version": "room-event-author-v2-polish",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_field": "D-major pentatonic"
+      }
+    }
+  },
+  "locked_everyday_family": {
+    "source_study": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1",
+    "source_hashes": {
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\1.wav": "d65524fa80c1f9f23adc0a677a656dcda4fe4a56b0d76863a034c6ff0de13b52",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\2.wav": "6e2e9c6c3f368835b8e6418c6a3457759d66e3b38b04d45e04e4708bda8d07c8",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\3.wav": "54b410aa919e5f38d62e8602fc3bb3599342e6e31e6b27b99af519483700a013",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\1.wav": "aecdc07653984c0a9c5dd32afe8f6279ab2683c66cea6a62e58521e26d18e4ac",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\2.wav": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\3.wav": "8c56e5fff8ac499d3cc9e444e60c68ec1d83634003ef378a85f9a40fd3bca8cb",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\1.wav": "5e77d912c56c3c19a6eab5bac94b919e7766b61b26fe82b2edad2b8d431c7074",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\2.wav": "9174ef1d18a9c549a424c540a92f6c5c13ddf279d846854e25dfb5a377e9e23b",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\3.wav": "c823d028abfa03208685f915b45d9ff02f53a77a9576998e3883b9fdb12976fc",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\1.wav": "c4f9d9fc9ec086c549f0dc388889c76181d6a349b9d1cc3bf851bcbfc20a4459",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\2.wav": "84d74f4ddfb4802321ddf88c2291ee7b6a408512a34801e3f1387b3a1427c321",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\3.wav": "219401b83616530ade61e60d91c71a5691b14b3b22c178eadf1cdedf6e4116d6"
+    }
+  },
+  "provenance": {
+    "reference_video_audio_used": false,
+    "shipping_assets_changed": false,
+    "legacy_sources": {
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\streak.wav": "986a710e27c425f1d825e9450299ad07170a5d87d4f6e0eead13b61ff1e07967",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\crit.wav": "b0186e86e40328dce7fa81aec9417971e8aa5323f3b19f247abcc4de5c3d8bd0",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\loot.wav": "34c2bf60dbcfacf63188c06ca789c89421d9dc37f46fe01cbfa1cd4a6c99beed",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\levelup.wav": "2387ab629e8010ba48fd36d878379b32e10fd3dd7ecaa52b3e9ea1a968ce0f02",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\boing.wav": "0c7c654b3bc0d90c4610ce4c16f5380fa4ad82aee70d9253da7c5c16f3dad356",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\stat_0.wav": "30f8d7b000d850cd368d8cae357d372b7232bc171138126e62bfa79ad751094c",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\stat_1.wav": "92bf6e79404cc3ceaa8451eca1c06c5ff7a40821bc8d15983c422038076ceec4",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\stat_2.wav": "7424ace692d8a30ce4cf31103e105ad26a942a2757cf285d9310b21615f0e9aa",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\stat_3.wav": "1ce74604c36956b32d8565d67b926ccad6751f10a88f2f07eb60ff6d8f6fb425",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\stat_4.wav": "805c71948cc7ab8c30a2440f91a0e27c4c178b8ed3a40466a172c76b994cb682",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-21\\room-event-voice-v1\\events\\stat_5.wav": "95e02e9d671e2cbc0104f8a5f0c2a9aeda21d03e55a4a114470587b9bf2679d2"
+    }
+  },
+  "generated_audio_sha256": {
+    "controls/current-boing.wav": "cbe901ee88b5f7c562148c55439d890f82c93efedaf4b80b651993cd219c086f",
+    "controls/current-crit.wav": "a7baf48224d8d273c62bf807790717d64ffc4d25708c53aebb2006c5f94809e5",
+    "controls/current-levelup.wav": "aa78b4b0d0420dbde11bfad1ecf210d965f6040110e267ec2deda41ab52c18b9",
+    "controls/current-loot.wav": "4876c682b9641f0ab9b73281dcf9c743374ffbe5a9746038efe144b55fb50ced",
+    "controls/current-stat_0.wav": "2a66714621639c7d9a72b43c114ba2fffaf8889c22e815ae5c505a3e83a0b23c",
+    "controls/current-stat_1.wav": "4ee44b6e3566f96e6b89d99773166b082f9df5c09a6a1a2b77be812351d11ae9",
+    "controls/current-stat_2.wav": "d199f22717f6c0cf8aa256187eeda4eec337153165382d52b557b846c4c213aa",
+    "controls/current-stat_3.wav": "199013d5bb25dc5d6f610a7f770baa037a2ac34781df4bf47bbc696a545a9e96",
+    "controls/current-stat_4.wav": "87035cc03838b35d4d717d7f5f67876a9638a96f7ee94668936aef3f6bbd1ab0",
+    "controls/current-stat_5.wav": "036453e85cb224a357ae2d6db4450d64712d5c3ec31c5bdd36b7e799b286c262",
+    "controls/current-streak.wav": "f4b302c9c6ff06aefc5c210c102217b5b2f31531f6abc2531a187b31d05835d7",
+    "events/boing.wav": "ac3ccdae8a61c9f5b5761754530bf42fd1fed904a29dab09d58d05b5844108f4",
+    "events/crit.wav": "3fa84b4e85052cacfe630c08976edd76de74f643d01ee97eb96dc1c03d8e5fc4",
+    "events/levelup.wav": "45c3317df4d79fff17ecbca23a5a20be823b0af485534a4bacb89cb50b48f01e",
+    "events/loot.wav": "eea204276b7415666c8cc8d828c2e027d3e64ed62b19fc7412a6aa845c471707",
+    "events/stat_0.wav": "cfcfed82d2f61523cdafa0f1ebe69293401420599fb4a54dfb1bbfa48b49789c",
+    "events/stat_1.wav": "6436f17704a60e519ff0e055c297aa31850b904ca7336c175e1a3769d14b2705",
+    "events/stat_2.wav": "55875787be88326f33f10bec677491d4476d9245156db8a92ee9539a5c76cbe7",
+    "events/stat_3.wav": "5e84510e1f421185987f7bb68f0c2c19935a0631b242e8e218d71c8de510961d",
+    "events/stat_4.wav": "350eed45791f478ef4d58947ad3c7aaf6d510742c66515b50045899c1c951286",
+    "events/stat_5.wav": "ca2da18550aa35edf7004d2187930750c91c3020c7561254db0e4c357ea2d874",
+    "events/streak.wav": "21dfc1f56258f889b949008c24b72e8389204c697493f41e8a1bc9668dbc8fca",
+    "flows/boing/candidate.wav": "a6097d379bef9cab65d98c23e6d5d0a357a824e24b73d9446b913563de8c7fe0",
+    "flows/boing/current.wav": "4b96ca1044125bd1809036985748403af410484af70a30721035278efacf2fb9",
+    "flows/crit/candidate.wav": "2c8845f034b7e2e9ae9f648d2f69091ca2da44bd06cc58cdd8fb8bbb2324bd57",
+    "flows/crit/current.wav": "1b533c4b540e93ade3c3d0754f0375b4849a01dfb9e1aff51e1179be7cea11a8",
+    "flows/levelup/candidate.wav": "660256d8251c8259b389a43a3191cee44ab8b4c2091a8dcac8f6d345a48ce329",
+    "flows/levelup/current.wav": "1a7c265e4bf490bdae8fe5f7cb5bcc9af865f99a5963397959bac994e122208c",
+    "flows/loot/candidate.wav": "6cf873e88cefbf8a198f69c5d54bc09771e455b53e9ebde10e221d838225bd26",
+    "flows/loot/current.wav": "1ff7d0025c1862d5a793af97e527309177df78b866c886983b2f719f680b7d98",
+    "flows/stat-run/candidate.wav": "4a962b1ccd5c96b1771d499f3b3bfe23b5617e40f098cb6f7e1c2de6b16567a4",
+    "flows/stat-run/current.wav": "51e43c5df180a77ca7ea6f1f6880a08f5ac23271a7f1b196b3068df34f9f96d7",
+    "flows/streak/candidate.wav": "ea1c721559fec8d039527d038e4042ac2f30892ddb2a906c33f10fd1eceb8cfb",
+    "flows/streak/current.wav": "28bf04a2c29f75eef2fcb2a5b07214262e66353b8f6e98aaf3d7a7924cba3344"
+  }
+}

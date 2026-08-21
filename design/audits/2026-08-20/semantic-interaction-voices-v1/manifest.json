@@ -1,0 +1,100 @@
+{
+  "study": "semantic-interaction-voices-v1",
+  "question": "Do these sound like four distinct, satisfying interaction verbs?",
+  "runtime_changed": false,
+  "roles": {
+    "navigate-dak": {
+      "label": "Switch page",
+      "voice": "dak",
+      "use": "accepted page, tab, major section, or calendar period/view traversal",
+      "variant_paths": [
+        "roles/navigate-dak/1.wav",
+        "roles/navigate-dak/2.wav",
+        "roles/navigate-dak/3.wav",
+        "roles/navigate-dak/4.wav",
+        "roles/navigate-dak/5.wav"
+      ],
+      "copied_byte_for_byte_from_approved_c": true,
+      "sha256": {
+        "roles/navigate-dak/1.wav": "5d70687ac7508c05fd05b7df6523b50e8ad94bf73e4cca53b05da20b6e208247",
+        "roles/navigate-dak/2.wav": "5c4271fad27933a0e1ffa24800ad9d7d332e9ff7cfcffbcd10ae015bb4c8598b",
+        "roles/navigate-dak/3.wav": "65675b4757754ff69cd3af2b426706b13eddc126269d1d3ebbc1fb77849fa999",
+        "roles/navigate-dak/4.wav": "9a0bcf583109cc8e1150ce1ceb70be9dd640d41ceb984a6cafe9fbc395ae5aea",
+        "roles/navigate-dak/5.wav": "6a4bc22b81b2f349115d8293fa8f4cad6e46e20fbd4b539db46f3554abbe3d10"
+      }
+    },
+    "open-tak": {
+      "label": "Open journal entry",
+      "voice": "tak",
+      "use": "open a card, entry, sheet, or ordinary light button",
+      "variant_paths": [
+        "roles/open-tak/1.wav",
+        "roles/open-tak/2.wav",
+        "roles/open-tak/3.wav",
+        "roles/open-tak/4.wav",
+        "roles/open-tak/5.wav"
+      ],
+      "duration_ms": 38.0,
+      "pitch_offsets_cents": [
+        0.0,
+        125.0,
+        -90.0,
+        180.0,
+        60.0
+      ]
+    },
+    "select-tuk": {
+      "label": "Choose a date",
+      "voice": "tuk",
+      "use": "a toggle, date, filter, pin, or small state visibly settles",
+      "variant_paths": [
+        "roles/select-tuk/1.wav",
+        "roles/select-tuk/2.wav",
+        "roles/select-tuk/3.wav",
+        "roles/select-tuk/4.wav",
+        "roles/select-tuk/5.wav"
+      ],
+      "duration_ms": 50.0,
+      "pitch_offsets_cents": [
+        0.0,
+        110.0,
+        -90.0,
+        190.0,
+        45.0
+      ]
+    },
+    "complete-bloop": {
+      "label": "Finish quest",
+      "voice": "bloop",
+      "use": "confirmed quest or routine completion only",
+      "path": "roles/complete-bloop/current.wav",
+      "copied_byte_for_byte_from_current_runtime": true,
+      "sha256": "18521f1806179803926ebd863991881f9e05e3d67c0ddaeea3eb51c59a00fc30",
+      "sample_rate_hz": 44100,
+      "sample_format": "PCM_16",
+      "duration_ms": 274.989,
+      "after_contact_delay_ms": 65
+    }
+  },
+  "variant_walk": [
+    0,
+    2,
+    1,
+    4,
+    3,
+    1,
+    0,
+    4,
+    2,
+    3,
+    0,
+    1
+  ],
+  "flow_path": "normal-flow.wav",
+  "silence_contract": [
+    "already-selected tab",
+    "scroll, typing, loading, and passive preview",
+    "cancel or not-now",
+    "background sync and most network errors"
+  ]
+}

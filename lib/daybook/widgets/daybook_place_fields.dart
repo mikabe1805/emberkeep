@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../audio.dart';
 import '../../release_features.dart';
 import '../../tokens.dart';
 import '../domain/daybook_place.dart';
@@ -406,7 +407,10 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
     label: [suggestion.primaryText, ?suggestion.secondaryText].join(', '),
     child: InkWell(
       key: ValueKey('${widget.keyPrefix}-search-suggestion-$index'),
-      onTap: () => _selectSuggestion(suggestion),
+      onTap: () {
+        _selectSuggestion(suggestion);
+        Sfx.instance.playInteraction(InteractionSound.select);
+      },
       borderRadius: BorderRadius.circular(9),
       child: Container(
         constraints: const BoxConstraints(minHeight: 44),

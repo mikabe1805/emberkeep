@@ -1,0 +1,176 @@
+{
+  "study": "room-material-shading-v2-polish",
+  "question": "Does clicking around finally feel like touching different textures in one room \u2014 and does each material read as itself on the phone speaker?",
+  "runtime_changed": false,
+  "owner_feedback_source": {
+    "date": "2026-08-21",
+    "verbatim": "when im clicking around i want the interactable surfaces to feel like different \"textures\" of sound and interaction, so maybe buttons should feel more like stone slates and have a satisfying \"dak\" sound and flipping between the pages is a different sound and tapping around is the current sound etc"
+  },
+  "render_contract": {
+    "render_version": "room-material-author-v2-polish",
+    "contact_master_id": "approved-c-contact-v1",
+    "space_fingerprint_id": "room-close-reflection-v1",
+    "pitch_field": "D-major pentatonic tokens (d/e/a), same walk axis",
+    "material_axis": "body/grain shading of the one approved mechanism \u2014 never sample replacement",
+    "lane_targets_dbfs": {
+      "slate/select": -28.6,
+      "slate/navigate": -27.6,
+      "slate/place": -27.0,
+      "page/navigate": -28.8,
+      "page/open": -29.4,
+      "glass/select": -29.6,
+      "glass/place": -29.0,
+      "brass/select": -29.2,
+      "brass/place": -28.4
+    }
+  },
+  "lanes": {
+    "slate/select": {
+      "take_paths": [
+        "materials/slate/select/1.wav",
+        "materials/slate/select/2.wav",
+        "materials/slate/select/3.wav"
+      ],
+      "duration_ms": 60.0,
+      "natural_phone_rms_target_dbfs": -28.6,
+      "wood_anchor": "roles/select"
+    },
+    "slate/navigate": {
+      "take_paths": [
+        "materials/slate/navigate/1.wav",
+        "materials/slate/navigate/2.wav",
+        "materials/slate/navigate/3.wav"
+      ],
+      "duration_ms": 74.0,
+      "natural_phone_rms_target_dbfs": -27.6,
+      "wood_anchor": "roles/navigate"
+    },
+    "slate/place": {
+      "take_paths": [
+        "materials/slate/place/1.wav",
+        "materials/slate/place/2.wav",
+        "materials/slate/place/3.wav"
+      ],
+      "duration_ms": 104.0,
+      "natural_phone_rms_target_dbfs": -27.0,
+      "wood_anchor": "roles/place"
+    },
+    "page/navigate": {
+      "take_paths": [
+        "materials/page/navigate/1.wav",
+        "materials/page/navigate/2.wav",
+        "materials/page/navigate/3.wav"
+      ],
+      "duration_ms": 112.0,
+      "natural_phone_rms_target_dbfs": -28.8,
+      "wood_anchor": "roles/navigate"
+    },
+    "page/open": {
+      "take_paths": [
+        "materials/page/open/1.wav",
+        "materials/page/open/2.wav",
+        "materials/page/open/3.wav"
+      ],
+      "duration_ms": 96.0,
+      "natural_phone_rms_target_dbfs": -29.4,
+      "wood_anchor": "roles/open"
+    },
+    "glass/select": {
+      "take_paths": [
+        "materials/glass/select/1.wav",
+        "materials/glass/select/2.wav",
+        "materials/glass/select/3.wav"
+      ],
+      "duration_ms": 58.0,
+      "natural_phone_rms_target_dbfs": -29.6,
+      "wood_anchor": "roles/select"
+    },
+    "glass/place": {
+      "take_paths": [
+        "materials/glass/place/1.wav",
+        "materials/glass/place/2.wav",
+        "materials/glass/place/3.wav"
+      ],
+      "duration_ms": 84.0,
+      "natural_phone_rms_target_dbfs": -29.0,
+      "wood_anchor": "roles/place"
+    },
+    "brass/select": {
+      "take_paths": [
+        "materials/brass/select/1.wav",
+        "materials/brass/select/2.wav",
+        "materials/brass/select/3.wav"
+      ],
+      "duration_ms": 88.0,
+      "natural_phone_rms_target_dbfs": -29.2,
+      "wood_anchor": "roles/select"
+    },
+    "brass/place": {
+      "take_paths": [
+        "materials/brass/place/1.wav",
+        "materials/brass/place/2.wav",
+        "materials/brass/place/3.wav"
+      ],
+      "duration_ms": 118.0,
+      "natural_phone_rms_target_dbfs": -28.4,
+      "wood_anchor": "roles/place"
+    }
+  },
+  "locked_everyday_family": {
+    "source_study": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1",
+    "source_hashes": {
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\1.wav": "d65524fa80c1f9f23adc0a677a656dcda4fe4a56b0d76863a034c6ff0de13b52",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\2.wav": "6e2e9c6c3f368835b8e6418c6a3457759d66e3b38b04d45e04e4708bda8d07c8",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\3.wav": "54b410aa919e5f38d62e8602fc3bb3599342e6e31e6b27b99af519483700a013",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\1.wav": "aecdc07653984c0a9c5dd32afe8f6279ab2683c66cea6a62e58521e26d18e4ac",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\2.wav": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\3.wav": "8c56e5fff8ac499d3cc9e444e60c68ec1d83634003ef378a85f9a40fd3bca8cb",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\1.wav": "5e77d912c56c3c19a6eab5bac94b919e7766b61b26fe82b2edad2b8d431c7074",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\2.wav": "9174ef1d18a9c549a424c540a92f6c5c13ddf279d846854e25dfb5a377e9e23b",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\3.wav": "c823d028abfa03208685f915b45d9ff02f53a77a9576998e3883b9fdb12976fc",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\1.wav": "c4f9d9fc9ec086c549f0dc388889c76181d6a349b9d1cc3bf851bcbfc20a4459",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\2.wav": "84d74f4ddfb4802321ddf88c2291ee7b6a408512a34801e3f1387b3a1427c321",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\3.wav": "219401b83616530ade61e60d91c71a5691b14b3b22c178eadf1cdedf6e4116d6"
+    }
+  },
+  "provenance": {
+    "reference_video_audio_used": false,
+    "shipping_assets_changed": false
+  },
+  "generated_audio_sha256": {
+    "flows/click-around-current.wav": "916e77cddf302b5a5b7e39d93596af536a3a612abf0fb3f1715ca500b12b843c",
+    "flows/click-around-shaded.wav": "8b888b55677b4934d505a68dae75832d24eb5ce6c3c5e77d6d2eb3932a4f56a2",
+    "materials/brass/place/1.wav": "25c913583da3ef30e66922cc30c4e44486eb8b6f056c0941aed3a63671757c1c",
+    "materials/brass/place/2.wav": "9553f403d02c3104417540366981346283e1ad1750059871866f6b47af1d8171",
+    "materials/brass/place/3.wav": "e7a46005a2294d960c12830d8024891f51c7b232a218e4ba214ed891533ce92a",
+    "materials/brass/select/1.wav": "6cba4046d4bf1799bd8815bad30dbe576bed03c4cb38ace2d42aa1ed05692bf5",
+    "materials/brass/select/2.wav": "469716044505510406c45cc35e15ca4592cb07d14962b9f0a882ab68083da8e0",
+    "materials/brass/select/3.wav": "7e7e10b9e10c84c93355ac9372aecd5d9a0d1a3ff6f6d00c1c064b682ab612f9",
+    "materials/glass/place/1.wav": "3443fd536280ad7101088845195643028b650fb79d0a07d56bd1cdc2d8dcd78b",
+    "materials/glass/place/2.wav": "c9fcd34bfba861e8b18c126de38c1b5185f84f0f53b42bd786c5ee506904404b",
+    "materials/glass/place/3.wav": "9d8abe86889e856d74f9c993f05fcb6d9b2ef79bd3d4c4b63f7e2fbe908ce5d4",
+    "materials/glass/select/1.wav": "aab6bc9c9bc59fe760e8dfcf63a8fee7f2075f382536e86602546a0ecd5ba4d9",
+    "materials/glass/select/2.wav": "561e51bb4c7e4de321a25aeaa38bc6f81222c190f0b61adb4cc86e4876f37aa7",
+    "materials/glass/select/3.wav": "0c21e75d3c447532b43d1afbf2a7995dc63341922ad110c5084e6e8b3fc366a1",
+    "materials/page/navigate/1.wav": "646be579c53bad5f27df7d379726fe03820b5f0af25d9ef54e7be47a765af323",
+    "materials/page/navigate/2.wav": "75f4f15902ac159abca73656794d2bda9a27d0bd8ab088b841945f2d1a58143d",
+    "materials/page/navigate/3.wav": "7cb5aa886c5d93ea734a429eec773149c44dfc196c2972b11f45f60c2f3d5237",
+    "materials/page/open/1.wav": "5d2bffabe2ef0a8fbcd7511d401170d01a7dc47e90b5483c41db60a2e521ef31",
+    "materials/page/open/2.wav": "d229e2ea2be38c3d295328941c0c5f5f3e300c9d0fc590a9fd011f4a499f8fef",
+    "materials/page/open/3.wav": "216181028442797fbb1864053037b2f73fbd973502475f11c71ae1af13cf6a49",
+    "materials/slate/navigate/1.wav": "f12aa6df926867a301b0310efd15367d2739823d731983560a2ce18a56858755",
+    "materials/slate/navigate/2.wav": "3226c398339e94e2d6b76aecf1f5c8f03e8546e2d40df712330aa56b8cfbd410",
+    "materials/slate/navigate/3.wav": "50b9b2ef5fb21f2dc0afd3079a9c63fab17581ce5697e2ccd686d8eeabe29ff3",
+    "materials/slate/place/1.wav": "9b5a84aafb5ebc3df72a39559324683ba3a68586ee0222abc11a81c371b001fe",
+    "materials/slate/place/2.wav": "e222e882a5121ad6c6e404e4aea3c8cccee8fc3f0120ae038dd9a91e754aa489",
+    "materials/slate/place/3.wav": "61a02cac9c2dc0061ae7c50bcb5a5b17ff2eb71c0e5ffa23e3dbefdac5faf670",
+    "materials/slate/select/1.wav": "9cafe9b6b2727c2ab1392681d23a254c44cbfde801b4a3af8fea4c44d9f64bab",
+    "materials/slate/select/2.wav": "e82fd2d6a928756a56b86d8b65a814453f1f67d707b2b247abb15e277123750b",
+    "materials/slate/select/3.wav": "d5ffdf155bca15787517e12e6d4d447bd10501b323904eb02c5c5b482cae856f",
+    "reels/brass.wav": "aca83bc29cde36524b769bb81108fd54f58ce373c34e5435d88b99f754c528a1",
+    "reels/glass.wav": "80aa6ec99a828c16f876dee9d8ca5403da2a6f4685b038fd5ba428bfcf119619",
+    "reels/page.wav": "6f6306a6902c75c87e1469c139f48315846a9ab440bf0dd94af142f6f122f9a6",
+    "reels/slate.wav": "8a62e571b3b6f01eea2f0f0937407feb1fe9eabac3e89995ebfa272070d6a5a0",
+    "reels/wood-anchor.wav": "6c9f975c1463f6794b5aed06ebaaeb28aee864a33a39dcd7b53873509e78f82a"
+  }
+}

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../audio.dart';
 import '../../tokens.dart';
 import '../../widgets/facets.dart';
 import '../data/daybook_preferences.dart';
@@ -27,7 +28,10 @@ class DaybookRowActionsButton extends StatelessWidget {
     button: true,
     label: 'Actions for $title',
     child: InkWell(
-      onTap: onTap,
+      onTap: () {
+        onTap();
+        Sfx.instance.playInteraction(InteractionSound.open);
+      },
       customBorder: const CircleBorder(),
       child: const SizedBox.square(
         dimension: 44,
@@ -261,7 +265,10 @@ class _DirectionsInlineAction extends StatelessWidget {
     label: semanticLabel,
     excludeSemantics: true,
     child: InkWell(
-      onTap: onTap,
+      onTap: () {
+        onTap();
+        Sfx.instance.playInteraction(InteractionSound.select);
+      },
       borderRadius: BorderRadius.circular(8),
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 76, minHeight: 44),
@@ -367,7 +374,10 @@ class _DirectionsSheetAction extends StatelessWidget {
     button: true,
     label: label,
     child: InkWell(
-      onTap: onTap,
+      onTap: () {
+        onTap();
+        Sfx.instance.playInteraction(InteractionSound.select);
+      },
       borderRadius: BorderRadius.circular(8),
       child: Container(
         constraints: const BoxConstraints(minHeight: 44),
@@ -496,7 +506,15 @@ class DaybookTaskRow extends StatelessWidget {
                     ? 'Mark ${task.title} open'
                     : 'Mark ${task.title} complete',
                 child: InkWell(
-                  onTap: () => onCompletedChanged!(!task.completed),
+                  onTap: () {
+                    // Setting a task done earns the warmer `place` seat; the
+                    // completion composite stays reserved for quests/routines.
+                    final role = task.completed
+                        ? InteractionSound.select
+                        : InteractionSound.place;
+                    onCompletedChanged!(!task.completed);
+                    Sfx.instance.playInteraction(role);
+                  },
                   customBorder: const CircleBorder(),
                   child: completionMark,
                 ),
@@ -537,7 +555,12 @@ class _DaybookRowSurface extends StatelessWidget {
     button: onTap != null,
     label: semanticLabel,
     child: InkWell(
-      onTap: onTap,
+      onTap: onTap == null
+          ? null
+          : () {
+              onTap!();
+              Sfx.instance.playInteraction(InteractionSound.open);
+            },
       borderRadius: BorderRadius.circular(11),
       child: Opacity(
         opacity: cancelled

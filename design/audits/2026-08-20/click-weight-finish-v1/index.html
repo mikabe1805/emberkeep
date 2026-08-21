@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>C-derived click families</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --canvas: #191210;
+      --canvas-low: #231a20;
+      --surface: #2a211d;
+      --surface-high: #342922;
+      --cream: #f4eadb;
+      --cream-mid: #cfc2b0;
+      --cream-low: #94887a;
+      --honey: #e0a865;
+      --honey-light: #f2cd93;
+      --brass-deep: #4c2f13;
+      --edge: rgba(255, 239, 210, 0.18);
+      --edge-active: rgba(242, 205, 147, 0.62);
+      --shadow: rgba(20, 12, 6, 0.55);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(224, 168, 101, 0.13), transparent 38rem),
+        linear-gradient(180deg, var(--canvas-low), var(--canvas));
+      color: var(--cream);
+      font-family: ui-rounded, "SF Pro Rounded", "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(52rem, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 3.2rem 0 4rem;
+    }
+
+    .eyebrow {
+      color: var(--honey-light);
+      font-size: 0.72rem;
+      font-weight: 750;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 15ch;
+      margin: 0.7rem 0 0.8rem;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.2rem, 8vw, 4.2rem);
+      font-weight: 500;
+      line-height: 0.98;
+      letter-spacing: -0.045em;
+    }
+
+    .intro {
+      max-width: 41rem;
+      margin: 0;
+      color: var(--cream-mid);
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+
+    .unlock, .reference, .study-section, .selection {
+      border: 1px solid var(--edge);
+      background: rgba(255, 242, 220, 0.045);
+      box-shadow: 0 1.2rem 2.7rem var(--shadow);
+    }
+
+    .unlock {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      margin: 1.3rem 0 1.6rem;
+      padding: 1rem;
+      border-radius: 1rem;
+    }
+
+    .status {
+      min-height: 1.25rem;
+      margin: 0;
+      color: var(--cream-low);
+      font-size: 0.86rem;
+      line-height: 1.4;
+    }
+
+    .start, .choose, .favorite, .copy-notes {
+      min-height: 2.65rem;
+      padding: 0 1rem;
+      border: 1px solid rgba(242, 205, 147, 0.30);
+      border-radius: 999px;
+      background: var(--honey);
+      color: var(--brass-deep);
+      font: inherit;
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:disabled { cursor: wait; opacity: 0.44; }
+    button:focus-visible { outline: 2px solid var(--honey-light); outline-offset: 0.2rem; }
+
+    .reference {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(13rem, 18rem);
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding: 1.1rem;
+      border-color: rgba(242, 205, 147, 0.35);
+      border-radius: 1.2rem;
+    }
+
+    .reference h2, .study-section h2 {
+      margin: 0.25rem 0 0.45rem;
+      font-family: Georgia, "Times New Roman", serif;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+
+    .reference p, .section-copy {
+      margin: 0;
+      color: var(--cream-mid);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .step {
+      color: var(--honey-light);
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .study-section {
+      margin-top: 1rem;
+      padding: 1.1rem;
+      border-radius: 1.2rem;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .finish-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+    .candidate {
+      overflow: hidden;
+      border: 1px solid var(--edge);
+      border-radius: 1rem;
+      background: var(--surface);
+      transition: border-color 120ms ease, transform 120ms ease;
+    }
+
+    .candidate.selected {
+      border-color: var(--edge-active);
+      box-shadow: inset 0 0 0 1px rgba(224, 168, 101, 0.22);
+    }
+
+    .dak {
+      position: relative;
+      width: 100%;
+      min-height: 7.8rem;
+      overflow: hidden;
+      border: 0;
+      background: linear-gradient(180deg, rgba(255, 242, 220, 0.08), rgba(255, 242, 220, 0.025)), var(--surface);
+      box-shadow: inset 0 1px rgba(255, 244, 217, 0.11);
+      color: var(--cream);
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform 80ms cubic-bezier(.2,.8,.2,1), background 120ms ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .dak::after {
+      content: "";
+      position: absolute;
+      inset: auto 14% 0;
+      height: 0.18rem;
+      border-radius: 99px 99px 0 0;
+      background: var(--honey);
+      opacity: 0;
+      transform: scaleX(0.55);
+      transition: opacity 80ms ease, transform 80ms ease;
+    }
+
+    .dak:not(:disabled):hover { background-color: var(--surface-high); }
+    .dak:not(:disabled):active, .dak.pressed { transform: translateY(0.18rem) scale(0.986); }
+    .dak:not(:disabled):active::after, .dak.pressed::after { opacity: 0.85; transform: scaleX(1); }
+
+    .name {
+      display: block;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.45rem;
+      line-height: 1.05;
+    }
+
+    .hint {
+      display: block;
+      margin-top: 0.58rem;
+      color: var(--cream-low);
+      font-size: 0.67rem;
+      font-weight: 750;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    .rapid, .choose, .favorite {
+      width: 100%;
+      min-height: 2.5rem;
+      border: 0;
+      border-top: 1px solid var(--edge);
+      border-radius: 0;
+      background: rgba(242, 205, 147, 0.06);
+      color: var(--honey-light);
+      font: inherit;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.035em;
+      cursor: pointer;
+    }
+
+    .choose, .favorite { color: var(--cream-mid); }
+    .choose:hover, .favorite:hover, .rapid:hover { background: rgba(242, 205, 147, 0.11); }
+    .selected .choose, .selected .favorite { background: rgba(224, 168, 101, 0.14); color: var(--honey-light); }
+
+    .selection {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 1rem;
+      padding: 0.9rem 1rem;
+      border-radius: 1rem;
+    }
+
+    .selection strong { color: var(--honey-light); }
+    .selection span { color: var(--cream-mid); font-size: 0.86rem; }
+    .copy-notes { background: transparent; color: var(--honey-light); }
+
+    .footer {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-top: 1.1rem;
+      padding: 0 0.15rem;
+      color: var(--cream-low);
+      font-size: 0.78rem;
+      line-height: 1.45;
+    }
+
+    .controls { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.75rem 1rem; }
+    label { display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
+    input { accent-color: var(--honey); }
+
+    @media (max-width: 42rem) {
+      main { padding-top: 2.2rem; }
+      .reference { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+      .finish-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .dak { min-height: 6.8rem; }
+      .footer, .selection { align-items: flex-start; flex-direction: column; }
+      .controls { justify-content: flex-start; }
+      .unlock { align-items: flex-start; flex-direction: column; }
+    }
+
+    @media (max-width: 27rem) {
+      .finish-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dak, .dak::after, .candidate { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">Room of Days · C family lab</div>
+    <h1>Keep the dak. Change the feel.</h1>
+    <p class="intro">C stays fixed as the reference. First choose how much weight the control carries, then audition four subtle finishes without turning them into literal object recordings.</p>
+
+    <div id="unlock" class="unlock">
+      <button id="start" class="start" type="button" disabled>Start sound lab</button>
+      <p id="status" class="status" aria-live="polite">Loading the C anchor and weight families…</p>
+    </div>
+
+    <div id="lab" hidden>
+      <section class="reference" aria-labelledby="anchor-heading">
+        <div>
+          <div class="step">Approved reference</div>
+          <h2 id="anchor-heading">C anchor</h2>
+          <p>Always available, always unchanged. New options have to earn replacing or tinting this.</p>
+        </div>
+        <div class="candidate">
+          <button class="dak audio-slow" type="button" data-kind="anchor" aria-label="Play approved C anchor slowly" disabled><span class="name">C</span><span class="hint">exact approved click</span></button>
+          <button class="rapid audio-rapid" type="button" data-kind="anchor" aria-label="Play approved C anchor ten-tap run" disabled>play 10-tap run</button>
+        </div>
+      </section>
+
+      <section class="study-section" aria-labelledby="weight-heading">
+        <div class="section-head">
+          <div>
+            <div class="step">1 of 2 · choose mass</div>
+            <h2 id="weight-heading" tabindex="-1">How much weight should the control carry?</h2>
+            <p class="section-copy">The contact and closure stay fixed. Only the compact body becomes lighter or more grounded.</p>
+          </div>
+        </div>
+        <div class="grid" id="weight-grid">
+          <article class="candidate" data-weight-card="light">
+            <button class="dak audio-slow" type="button" data-kind="weight" data-weight="light" aria-label="Play light weight slowly" disabled><span class="name">Light</span><span class="hint">nimble controls</span></button>
+            <button class="rapid audio-rapid" type="button" data-kind="weight" data-weight="light" aria-label="Play light weight ten-tap run" disabled>play 10-tap run</button>
+            <button class="choose" type="button" data-choose-weight="light">use this weight</button>
+          </article>
+          <article class="candidate selected" data-weight-card="settled">
+            <button class="dak audio-slow" type="button" data-kind="weight" data-weight="settled" aria-label="Play settled C weight slowly" disabled><span class="name">Settled · C</span><span class="hint">approved balance</span></button>
+            <button class="rapid audio-rapid" type="button" data-kind="weight" data-weight="settled" aria-label="Play settled C weight ten-tap run" disabled>play 10-tap run</button>
+            <button class="choose" type="button" data-choose-weight="settled">using this weight</button>
+          </article>
+          <article class="candidate" data-weight-card="weighty">
+            <button class="dak audio-slow" type="button" data-kind="weight" data-weight="weighty" aria-label="Play weighty weight slowly" disabled><span class="name">Weighty</span><span class="hint">commit and place</span></button>
+            <button class="rapid audio-rapid" type="button" data-kind="weight" data-weight="weighty" aria-label="Play weighty weight ten-tap run" disabled>play 10-tap run</button>
+            <button class="choose" type="button" data-choose-weight="weighty">use this weight</button>
+          </article>
+        </div>
+      </section>
+
+      <section id="finish-section" class="study-section" aria-labelledby="finish-heading" aria-busy="true">
+        <div class="section-head">
+          <div>
+            <div class="step">2 of 2 · choose finish</div>
+            <h2 id="finish-heading" tabindex="-1">Which finish makes that weight feel best?</h2>
+            <p class="section-copy">These are restrained tints of C—not wood knocks, paper rustles, glass pings, or bells.</p>
+          </div>
+        </div>
+        <div class="grid finish-grid" id="finish-grid">
+          <article class="candidate" data-finish-card="room">
+            <button class="dak audio-slow finish-slow" type="button" data-kind="finish" data-finish="room" disabled><span class="name">Warm room</span><span class="hint">round and close</span></button>
+            <button class="rapid audio-rapid finish-rapid" type="button" data-kind="finish" data-finish="room" disabled>play 10-tap run</button>
+            <button class="favorite" type="button" data-favorite="room" disabled>mark favorite</button>
+          </article>
+          <article class="candidate" data-finish-card="page">
+            <button class="dak audio-slow finish-slow" type="button" data-kind="finish" data-finish="page" disabled><span class="name">Soft page</span><span class="hint">dry brushed middle</span></button>
+            <button class="rapid audio-rapid finish-rapid" type="button" data-kind="finish" data-finish="page" disabled>play 10-tap run</button>
+            <button class="favorite" type="button" data-favorite="page" disabled>mark favorite</button>
+          </article>
+          <article class="candidate" data-finish-card="lens">
+            <button class="dak audio-slow finish-slow" type="button" data-kind="finish" data-finish="lens" disabled><span class="name">Clear lens</span><span class="hint">fine precise edge</span></button>
+            <button class="rapid audio-rapid finish-rapid" type="button" data-kind="finish" data-finish="lens" disabled>play 10-tap run</button>
+            <button class="favorite" type="button" data-favorite="lens" disabled>mark favorite</button>
+          </article>
+          <article class="candidate" data-finish-card="gilt">
+            <button class="dak audio-slow finish-slow" type="button" data-kind="finish" data-finish="gilt" disabled><span class="name">Quiet gilt</span><span class="hint">dense controlled gleam</span></button>
+            <button class="rapid audio-rapid finish-rapid" type="button" data-kind="finish" data-finish="gilt" disabled>play 10-tap run</button>
+            <button class="favorite" type="button" data-favorite="gilt" disabled>mark favorite</button>
+          </article>
+        </div>
+      </section>
+
+      <div class="selection" aria-live="polite">
+        <span id="selection-copy">Current direction: <strong>Settled · C</strong> weight; no finish marked yet.</span>
+        <button id="copy-notes" class="copy-notes" type="button">copy listening notes</button>
+      </div>
+
+      <div class="footer">
+        <span>Five close variants per family · no immediate repeats · 125 ms rhythm run</span>
+        <div class="controls">
+          <label><input id="level-match" type="checkbox"> equal-energy check</label>
+          <label><input id="haptics" type="checkbox"> browser vibration — not app haptics</label>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    const context = AudioContextClass ? new AudioContextClass({ latencyHint: "interactive" }) : null;
+    const start = document.querySelector("#start");
+    const status = document.querySelector("#status");
+    const lab = document.querySelector("#lab");
+    const finishSection = document.querySelector("#finish-section");
+    const finishHeading = document.querySelector("#finish-heading");
+    const selectionCopy = document.querySelector("#selection-copy");
+    const levelMatch = document.querySelector("#level-match");
+    const haptics = document.querySelector("#haptics");
+    const copyNotes = document.querySelector("#copy-notes");
+    const buffers = { primary: {}, matched: {} };
+    const loads = {};
+    const cursors = {};
+    const activeVoices = [];
+    const events = [];
+    const globalRate = { lastAt: 0, rapidCount: 0 };
+    let manifest;
+    let selectedWeight = "settled";
+    let selectedFinish = null;
+    let loadedFinishWeight = null;
+    let runActive = false;
+
+    const labels = {
+      weight: { light: "Light", settled: "Settled · C", weighty: "Weighty" },
+      finish: { room: "Warm room", page: "Soft page", lens: "Clear lens", gilt: "Quiet gilt" },
+    };
+
+    function record(type, payload = {}) {
+      events.push({ type, at: new Date().toISOString(), ...payload });
+    }
+
+    function familyFor(button) {
+      if (button.dataset.kind === "anchor") return "settled-core";
+      if (button.dataset.kind === "weight") return `${button.dataset.weight}-core`;
+      return `${selectedWeight}-${button.dataset.finish}`;
+    }
+
+    function randomCursor() {
+      return crypto.getRandomValues(new Uint32Array(1))[0] % manifest.variant_walk.length;
+    }
+
+    function nextVariant(family) {
+      if (!(family in cursors)) cursors[family] = randomCursor();
+      const walk = manifest.variant_walk;
+      const variant = walk[cursors[family] % walk.length];
+      cursors[family] += 1;
+      return variant;
+    }
+
+    async function decodePaths(paths) {
+      return Promise.all(paths.map(async path => {
+        const response = await fetch(path);
+        if (!response.ok) throw new Error(`Could not load ${path}`);
+        return context.decodeAudioData(await response.arrayBuffer());
+      }));
+    }
+
+    async function ensureFamily(family) {
+      if (loads[family]) return loads[family];
+      const entry = manifest.families[family];
+      if (!entry) throw new Error(`Unknown family ${family}`);
+      loads[family] = Promise.all([
+        decodePaths(entry.variant_paths).then(items => { buffers.primary[family] = items; }),
+        decodePaths(entry.level_matched_variant_paths).then(items => { buffers.matched[family] = items; }),
+      ]);
+      return loads[family];
+    }
+
+    async function loadFinishes(weight) {
+      finishSection.setAttribute("aria-busy", "true");
+      document.querySelectorAll(".finish-slow, .finish-rapid").forEach(button => { button.disabled = true; });
+      document.querySelectorAll(".favorite").forEach(button => { button.disabled = true; });
+      await Promise.all(["room", "page", "lens", "gilt"].map(finish => ensureFamily(`${weight}-${finish}`)));
+      if (weight !== selectedWeight) return;
+      loadedFinishWeight = weight;
+      finishSection.setAttribute("aria-busy", "false");
+      document.querySelectorAll(".finish-slow, .finish-rapid").forEach(button => { button.disabled = false; });
+      document.querySelectorAll(".favorite").forEach(button => { button.disabled = false; });
+      updateFinishLabels();
+      status.textContent = `${labels.weight[weight]} finishes are ready.`;
+    }
+
+    async function prepare() {
+      try {
+        if (!context) throw new Error("This browser cannot open the sound lab");
+        const response = await fetch("manifest.json");
+        if (!response.ok) throw new Error("Could not load the study manifest");
+        manifest = await response.json();
+        await Promise.all(["light-core", "settled-core", "weighty-core"].map(ensureFamily));
+        start.disabled = false;
+        status.textContent = "Ready. Start once so the first comparison has no browser-unlock delay.";
+      } catch (error) {
+        status.textContent = `${error.message}. Open this page through the local study server.`;
+      }
+    }
+
+    function resetRate() {
+      globalRate.lastAt = 0;
+      globalRate.rapidCount = 0;
+    }
+
+    function rateScale(now) {
+      if (!globalRate.lastAt) {
+        globalRate.lastAt = now;
+        globalRate.rapidCount = 0;
+        return { interval: Infinity, gain: 1 };
+      }
+      const interval = now - globalRate.lastAt;
+      globalRate.lastAt = now;
+      if (interval <= manifest.rate_envelope.rapid_threshold_ms) globalRate.rapidCount += 1;
+      else if (interval <= manifest.rate_envelope.fast_threshold_ms) globalRate.rapidCount = 1;
+      else globalRate.rapidCount = 0;
+      const gains = manifest.rate_envelope.rapid_gains;
+      return { interval, gain: gains[Math.min(globalRate.rapidCount, gains.length - 1)] };
+    }
+
+    function cancelAllVoices() {
+      const now = context.currentTime;
+      for (const voice of activeVoices.splice(0)) {
+        try {
+          if (voice.startAt > now + 0.001) {
+            voice.source.stop();
+          } else {
+            voice.gain.gain.cancelScheduledValues(now);
+            voice.gain.gain.setValueAtTime(Math.max(voice.gain.gain.value, 0.0001), now);
+            voice.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.006);
+            voice.source.stop(now + 0.008);
+          }
+        } catch (_) {}
+      }
+    }
+
+    function softenActiveVoices(interval) {
+      const now = context.currentTime;
+      for (let index = activeVoices.length - 1; index >= 0; index -= 1) {
+        if (activeVoices[index].endAt <= now) activeVoices.splice(index, 1);
+      }
+      if (interval >= manifest.rate_envelope.tail_suppression_threshold_ms && activeVoices.length < manifest.rate_envelope.max_voices) return;
+      cancelAllVoices();
+    }
+
+    function startVoice(family, variant, gainValue, when = context.currentTime, forcePrimary = false) {
+      const mode = forcePrimary ? "primary" : levelMatch.checked ? "matched" : "primary";
+      const source = context.createBufferSource();
+      const gain = context.createGain();
+      source.buffer = buffers[mode][family][variant];
+      gain.gain.setValueAtTime(gainValue, when);
+      source.connect(gain).connect(context.destination);
+      const voice = { source, gain, startAt: when, endAt: when + source.buffer.duration };
+      activeVoices.push(voice);
+      source.onended = () => {
+        const index = activeVoices.indexOf(voice);
+        if (index >= 0) activeVoices.splice(index, 1);
+      };
+      source.start(when);
+    }
+
+    function pulse(button) {
+      button.classList.add("pressed");
+      window.setTimeout(() => button.classList.remove("pressed"), 68);
+    }
+
+    function playSlow(button) {
+      if (button.disabled || runActive || context.state !== "running") return;
+      const family = familyFor(button);
+      const rate = rateScale(performance.now());
+      softenActiveVoices(rate.interval);
+      const forcePrimary = button.dataset.kind === "anchor";
+      startVoice(family, nextVariant(family), rate.gain, context.currentTime, forcePrimary);
+      if (haptics.checked && navigator.vibrate) navigator.vibrate(8);
+      pulse(button);
+      record("slow_play", { family, levelMatched: levelMatch.checked && !forcePrimary, immutableAnchor: forcePrimary });
+    }
+
+    function setAudioControlsDisabled(disabled) {
+      document.querySelectorAll(".audio-slow, .audio-rapid").forEach(button => {
+        const isFinish = button.classList.contains("finish-slow") || button.classList.contains("finish-rapid");
+        button.disabled = disabled || (isFinish && loadedFinishWeight !== selectedWeight);
+      });
+    }
+
+    function setRunControlsDisabled(disabled) {
+      setAudioControlsDisabled(disabled);
+      levelMatch.disabled = disabled;
+      haptics.disabled = disabled;
+      document.querySelectorAll(".choose").forEach(button => { button.disabled = disabled; });
+      document.querySelectorAll(".favorite").forEach(button => {
+        button.disabled = disabled || loadedFinishWeight !== selectedWeight;
+      });
+    }
+
+    function playRapid(button) {
+      if (button.disabled || runActive || context.state !== "running") return;
+      const family = familyFor(button);
+      runActive = true;
+      setRunControlsDisabled(true);
+      cancelAllVoices();
+      resetRate();
+      const slowButton = button.closest(".candidate").querySelector(".audio-slow");
+      const count = 10;
+      const stepMs = manifest.rapid_step_ms;
+      const startAt = context.currentTime + 0.035;
+      for (let index = 0; index < count; index += 1) {
+        const gains = manifest.rate_envelope.rapid_gains;
+        const gain = gains[Math.min(index, gains.length - 1)];
+        startVoice(
+          family,
+          nextVariant(family),
+          gain,
+          startAt + index * stepMs / 1000,
+          button.dataset.kind === "anchor",
+        );
+        window.setTimeout(() => pulse(slowButton), 35 + index * stepMs);
+      }
+      record("rapid_run", { family, levelMatched: levelMatch.checked && button.dataset.kind !== "anchor", immutableAnchor: button.dataset.kind === "anchor" });
+      window.setTimeout(() => {
+        runActive = false;
+        resetRate();
+        setRunControlsDisabled(false);
+        button.focus();
+      }, 35 + count * stepMs);
+    }
+
+    function updateFinishLabels() {
+      document.querySelectorAll(".finish-slow").forEach(button => {
+        button.setAttribute("aria-label", `Play ${labels.weight[selectedWeight]} weight with ${labels.finish[button.dataset.finish]} finish slowly`);
+      });
+      document.querySelectorAll(".finish-rapid").forEach(button => {
+        button.setAttribute("aria-label", `Play ${labels.weight[selectedWeight]} weight with ${labels.finish[button.dataset.finish]} finish ten-tap run`);
+      });
+    }
+
+    function updateSelection() {
+      const finishText = selectedFinish ? `<strong>${labels.finish[selectedFinish]}</strong> finish.` : "no finish marked yet.";
+      selectionCopy.innerHTML = `Current direction: <strong>${labels.weight[selectedWeight]}</strong> weight; ${finishText}`;
+    }
+
+    async function chooseWeight(weight, trigger) {
+      if (runActive) return;
+      cancelAllVoices();
+      resetRate();
+      selectedWeight = weight;
+      selectedFinish = null;
+      loadedFinishWeight = null;
+      document.querySelectorAll("[data-weight-card]").forEach(card => card.classList.toggle("selected", card.dataset.weightCard === weight));
+      document.querySelectorAll("[data-choose-weight]").forEach(button => { button.textContent = button.dataset.chooseWeight === weight ? "using this weight" : "use this weight"; });
+      document.querySelectorAll("[data-finish-card]").forEach(card => card.classList.remove("selected"));
+      updateSelection();
+      record("weight_selected", { weight });
+      status.textContent = `Loading ${labels.weight[weight]} finishes…`;
+      await loadFinishes(weight);
+      if (weight !== selectedWeight) return;
+      finishHeading.focus({ preventScroll: true });
+      finishSection.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+      trigger.blur();
+    }
+
+    function chooseFinish(finish) {
+      if (runActive) return;
+      selectedFinish = finish;
+      document.querySelectorAll("[data-finish-card]").forEach(card => card.classList.toggle("selected", card.dataset.finishCard === finish));
+      document.querySelectorAll("[data-favorite]").forEach(button => { button.textContent = button.dataset.favorite === finish ? "favorite marked" : "mark favorite"; });
+      updateSelection();
+      record("finish_selected", { weight: selectedWeight, finish });
+      status.textContent = `${labels.weight[selectedWeight]} + ${labels.finish[finish]} marked. Compare it with C once more.`;
+    }
+
+    for (const button of document.querySelectorAll(".audio-slow")) {
+      button.addEventListener("pointerdown", event => {
+        if (event.pointerType === "mouse" && event.button !== 0) return;
+        playSlow(button);
+      });
+      button.addEventListener("keydown", event => {
+        if ((event.key === "Enter" || event.key === " ") && !event.repeat) {
+          event.preventDefault();
+          playSlow(button);
+        }
+      });
+    }
+
+    for (const button of document.querySelectorAll(".audio-rapid")) {
+      button.addEventListener("click", () => playRapid(button));
+    }
+
+    for (const button of document.querySelectorAll("[data-choose-weight]")) {
+      button.addEventListener("click", () => chooseWeight(button.dataset.chooseWeight, button));
+    }
+
+    for (const button of document.querySelectorAll("[data-favorite]")) {
+      button.addEventListener("click", () => chooseFinish(button.dataset.favorite));
+    }
+
+    levelMatch.addEventListener("change", () => {
+      cancelAllVoices();
+      resetRate();
+      record("level_match_toggled", { enabled: levelMatch.checked });
+      status.textContent = levelMatch.checked ? "Equal-energy control enabled." : "Natural weight restored.";
+    });
+
+    copyNotes.addEventListener("click", async () => {
+      const notes = JSON.stringify({ selectedWeight, selectedFinish, events }, null, 2);
+      try {
+        await navigator.clipboard.writeText(notes);
+        status.textContent = "Listening notes copied. You can paste them into the chat.";
+      } catch (_) {
+        status.textContent = `Direction: ${labels.weight[selectedWeight]} + ${selectedFinish ? labels.finish[selectedFinish] : "no finish"}.`;
+      }
+    });
+
+    start.addEventListener("click", async () => {
+      start.disabled = true;
+      status.textContent = "Starting…";
+      await context.resume();
+      lab.hidden = false;
+      document.querySelectorAll(".audio-slow:not(.finish-slow), .audio-rapid:not(.finish-rapid)").forEach(button => { button.disabled = false; });
+      status.textContent = "Ready. Replay C, then compare the three weights.";
+      record("lab_started");
+      loadFinishes(selectedWeight);
+    });
+
+    prepare();
+  </script>
+</body>
+</html>

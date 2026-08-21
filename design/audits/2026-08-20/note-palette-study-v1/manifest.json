@@ -1,0 +1,34 @@
+{
+  "candidates": [
+    {
+      "id": "palette-a",
+      "role": "repeated_tap_note_palette",
+      "path": "palette-a.wav"
+    },
+    {
+      "id": "palette-b",
+      "role": "repeated_tap_note_palette",
+      "path": "palette-b.wav"
+    },
+    {
+      "id": "palette-c",
+      "role": "repeated_tap_note_palette",
+      "path": "palette-c.wav"
+    },
+    {
+      "id": "palette-d",
+      "role": "repeated_tap_note_palette",
+      "path": "palette-d.wav"
+    },
+    {
+      "id": "palette-e",
+      "role": "repeated_tap_note_palette",
+      "path": "palette-e.wav"
+    },
+    {
+      "id": "palette-f",
+      "role": "repeated_tap_note_palette",
+      "path": "palette-f.wav"
+    }
+  ]
+}

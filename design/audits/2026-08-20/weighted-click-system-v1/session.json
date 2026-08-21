@@ -1,0 +1,69 @@
+{
+  "candidates": [
+    {
+      "id": "dak-a",
+      "path": "dak-a.wav",
+      "role": "repeated_weighted_contact"
+    },
+    {
+      "id": "dak-b",
+      "path": "dak-b.wav",
+      "role": "repeated_weighted_contact"
+    },
+    {
+      "id": "dak-c",
+      "path": "dak-c.wav",
+      "role": "repeated_weighted_contact"
+    },
+    {
+      "id": "dak-d",
+      "path": "dak-d.wav",
+      "role": "repeated_weighted_contact"
+    }
+  ],
+  "format": "sonic-taste-session/v1",
+  "pairs": [
+    {
+      "a": "dak-a",
+      "b": "dak-b",
+      "id": "repeated_weighted_contact:dak-a__dak-b",
+      "role": "repeated_weighted_contact"
+    },
+    {
+      "a": "dak-a",
+      "b": "dak-c",
+      "id": "repeated_weighted_contact:dak-a__dak-c",
+      "role": "repeated_weighted_contact"
+    },
+    {
+      "a": "dak-a",
+      "b": "dak-d",
+      "id": "repeated_weighted_contact:dak-a__dak-d",
+      "role": "repeated_weighted_contact"
+    },
+    {
+      "a": "dak-b",
+      "b": "dak-c",
+      "id": "repeated_weighted_contact:dak-b__dak-c",
+      "role": "repeated_weighted_contact"
+    },
+    {
+      "a": "dak-b",
+      "b": "dak-d",
+      "id": "repeated_weighted_contact:dak-b__dak-d",
+      "role": "repeated_weighted_contact"
+    },
+    {
+      "a": "dak-c",
+      "b": "dak-d",
+      "id": "repeated_weighted_contact:dak-c__dak-d",
+      "role": "repeated_weighted_contact"
+    }
+  ],
+  "rating_choices": [
+    "a",
+    "b",
+    "no_preference",
+    "both_bad"
+  ]
+}

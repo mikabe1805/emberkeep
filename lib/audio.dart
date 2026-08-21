@@ -7,9 +7,18 @@ import 'package:flutter/widgets.dart';
 import 'platform/audio_support_stub.dart'
     if (dart.library.js_interop) 'platform/audio_support_web.dart';
 
-/// Legacy visual-material names retained while call sites move to the event
-/// grammar below. They now resolve to one approved Room mechanism instead of
-/// selecting unrelated recorded-object palettes.
+/// Surface materials. Originally a legacy bridge that collapsed into the verb
+/// grammar; as of the owner's 2026-08-21 texture direction ("interactable
+/// surfaces [should] feel like different 'textures' of sound") a material is
+/// a real routing axis again: each names a SHADING of the one approved Room
+/// mechanism — same contact master, same reflection fingerprint, same pitch
+/// walk, only the struck body changes. Never unrelated Foley.
+///
+/// wood = the shipped clasp (the everyday baseline, untouched);
+/// stone = the weighted slate "dak" for faceted option chips and commits;
+/// parchment = the page flick for travel between tabs/pages/modes;
+/// glass = the small damped pair for switches and translucent surfaces;
+/// brass = the felt-muted dyad, exclusive to gold.
 enum MaterialSound { wood, stone, parchment, brass, glass }
 
 /// Everyday interaction verbs. Every role inherits the same phone-approved X
@@ -350,27 +359,64 @@ class Sfx {
   ];
   static final List<String> _rareAssets =
       InteractionSoundRouter.pairedReturnAssets;
+  static final List<String> _materialAssets = [
+    for (final lane in _shippedMaterialLanes)
+      for (var take = 1; take <= _materialTakeCount; take++)
+        'room/materials/$lane/$take',
+  ];
 
-  /// Named legacy/rare-event volumes. Approved Room interaction masters carry
-  /// their tested phone level in the files and therefore bypass this table.
+  /// Named legacy/rare-event volumes. Approved Room masters carry their
+  /// tested phone level in the files and play at 1.0: as of 2026-08-21 the
+  /// event palette (streak/crit/loot/levelup/boing/stat_*) is the phone-
+  /// approved room-event-voice-v1 family, calibrated in-file like the clasps.
   static const _volume = <String, double>{
-    'streak': 0.55,
-    'boing': 0.4,
+    'streak': 1.0,
+    'boing': 1.0,
     // Full volume marks a genuinely revived hearth. Room navigation reuses the
     // cue once at a much quieter scale; it never starts a background loop.
     'hearth': 0.68,
     'fire_ignite': 0.68,
-    'stat_0': 0.45,
-    'stat_1': 0.45,
-    'stat_2': 0.45,
-    'stat_3': 0.45,
-    'stat_4': 0.45,
-    'stat_5': 0.45,
-    'crit': 0.75,
-    'loot': 0.65,
-    'levelup': 0.7,
+    'stat_0': 1.0,
+    'stat_1': 1.0,
+    'stat_2': 1.0,
+    'stat_3': 1.0,
+    'stat_4': 1.0,
+    'stat_5': 1.0,
+    'crit': 1.0,
+    'loot': 1.0,
+    'levelup': 1.0,
   };
   static double _volFor(String name) => _volume[name] ?? 0.55;
+
+  /// Folder names for the material-shaded masters under room/materials/.
+  static const _materialFolders = <MaterialSound, String>{
+    MaterialSound.stone: 'slate',
+    MaterialSound.parchment: 'page',
+    MaterialSound.glass: 'glass',
+    MaterialSound.brass: 'brass',
+  };
+
+  /// (materialFolder/verb) lanes whose masters have shipped. A declared
+  /// material whose lane is absent falls back to the plain ordinary clasp.
+  /// All nine room-material-shading-v1 lanes were phone-approved on
+  /// 2026-08-21 ("i like all the candidate stuff best on the phone sound
+  /// system, they sound fun") and ship byte-identical to that audition.
+  static const _shippedMaterialLanes = <String>{
+    'slate/select',
+    'slate/navigate',
+    'slate/place',
+    'page/navigate',
+    'page/open',
+    'glass/select',
+    'glass/place',
+    'brass/select',
+    'brass/place',
+  };
+
+  /// Takes per shipped material lane (the study renders 3 per lane; the
+  /// ordinary walk's five variants fold onto them).
+  static const _materialTakeCount = 3;
+
   static const _ordinarySuppressingEvents = <String>{
     'streak',
     'crit',
@@ -444,7 +490,7 @@ class Sfx {
 
     // Parallel loads; each pool becomes playable as soon as it lands, and
     // one failed asset never mutes the others.
-    await Future.wait(_coreAssets.map(_loadPool));
+    await Future.wait([..._coreAssets, ..._materialAssets].map(_loadPool));
     // The rare lane is only reachable after four well-paced accepted actions.
     // Warm it after the everyday set without making sixty tiny easter-egg
     // masters part of first-frame readiness.
@@ -558,11 +604,15 @@ class Sfx {
   /// Plays the selected Room clasp for one accepted ordinary interaction.
   /// [screenId] scopes the physically approved Paired Return to one appearance
   /// per screen. Callers without context use the current Navigator/tab scope.
+  /// [material] requests that surface's texture shading; the plain clasp
+  /// plays whenever the lane has not shipped, and the Paired Return easter
+  /// egg always keeps its own unshaded masters.
   void playInteraction(
     InteractionSound role, {
     double volumeScale = 1,
     DateTime? at,
     Object? screenId,
+    MaterialSound? material,
   }) {
     if (!soundEnabled || (kIsWeb && !browserAudioAvailable)) return;
     final now = at ?? DateTime.now();
@@ -575,10 +625,31 @@ class Sfx {
     );
     if (selection == null) return;
     _playAsset(
-      selection.asset,
+      _shadedAsset(selection, role, material),
       volume: (selection.gain * volumeScale).clamp(0.0, 1.0).toDouble(),
       eventName: role.name,
     );
+  }
+
+  /// Resolves the router's ordinary selection onto a shipped material lane.
+  /// The router still owns the walk, rapid gains, and Paired Return — a
+  /// material only substitutes which body answers, never the grammar.
+  String _shadedAsset(
+    InteractionSoundSelection selection,
+    InteractionSound role,
+    MaterialSound? material,
+  ) {
+    if (material == null || material == MaterialSound.wood) {
+      return selection.asset;
+    }
+    if (selection.pairedReturnToken != null) return selection.asset;
+    final folder = _materialFolders[material];
+    if (folder == null) return selection.asset;
+    final lane = '$folder/${role.name}';
+    if (!_shippedMaterialLanes.contains(lane)) return selection.asset;
+    final variant = int.parse(selection.asset.split('/').last);
+    final take = (variant - 1) % _materialTakeCount + 1;
+    return 'room/materials/$lane/$take';
   }
 
   /// Plays the immutable accepted-contact → Answered Detent master. The 75 ms
@@ -599,10 +670,14 @@ class Sfx {
     );
   }
 
-  /// Compatibility bridge for existing visual-material call sites. New code
-  /// should name the interaction verb directly with [playInteraction].
+  /// Material-first call: the verb comes from the bridge, the texture from
+  /// the material itself once its lane ships.
   void playMaterial(MaterialSound material, {double volumeScale = 1}) {
-    playInteraction(interactionForMaterial(material), volumeScale: volumeScale);
+    playInteraction(
+      interactionForMaterial(material),
+      volumeScale: volumeScale,
+      material: material,
+    );
   }
 
   /// Replaces the current long-lived root screen (for example, a shell tab).

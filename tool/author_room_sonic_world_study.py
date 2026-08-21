@@ -149,7 +149,12 @@ def _modal_body(
     seed: int,
     low_support: bool = False,
     drift_cents: float = 0.0,
+    excitation_gain: float = 0.18,
 ) -> np.ndarray:
+    # excitation_gain defaults to the locked studies' historical value so
+    # existing renders stay byte-identical; polish rounds pass lower values
+    # when several bodies stack (summed uncorrelated excitation beds read as
+    # a recording noise floor — owner, 2026-08-21).
     frames = round(seconds * SAMPLE_RATE)
     t = np.arange(frames, dtype=np.float64) / SAMPLE_RATE
     progress = np.minimum(1.0, t / max(seconds * 0.62, 1 / SAMPLE_RATE))
@@ -185,7 +190,7 @@ def _modal_body(
     )
     excitation = _normalize_peak(excitation)
     excitation *= attack * np.exp(-t / max(0.003, decay_ms / 1000 * 0.56))
-    body += excitation * 0.18
+    body += excitation * excitation_gain
     body = _filter(body, highpass_hz=170, lowpass_hz=4_200, order=3)
     return _normalize_peak(body)
 

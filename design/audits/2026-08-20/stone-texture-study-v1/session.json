@@ -1,0 +1,133 @@
+{
+  "candidates": [
+    {
+      "id": "stone-a",
+      "path": "stone-a.wav",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "id": "stone-b",
+      "path": "stone-b.wav",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "id": "stone-c",
+      "path": "stone-c.wav",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "id": "stone-d",
+      "path": "stone-d.wav",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "id": "stone-e",
+      "path": "stone-e.wav",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "id": "stone-f",
+      "path": "stone-f.wav",
+      "role": "repeated_stone_contact_texture"
+    }
+  ],
+  "format": "sonic-taste-session/v1",
+  "pairs": [
+    {
+      "a": "stone-a",
+      "b": "stone-b",
+      "id": "repeated_stone_contact_texture:stone-a__stone-b",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-a",
+      "b": "stone-c",
+      "id": "repeated_stone_contact_texture:stone-a__stone-c",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-a",
+      "b": "stone-d",
+      "id": "repeated_stone_contact_texture:stone-a__stone-d",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-a",
+      "b": "stone-e",
+      "id": "repeated_stone_contact_texture:stone-a__stone-e",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-a",
+      "b": "stone-f",
+      "id": "repeated_stone_contact_texture:stone-a__stone-f",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-b",
+      "b": "stone-c",
+      "id": "repeated_stone_contact_texture:stone-b__stone-c",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-b",
+      "b": "stone-d",
+      "id": "repeated_stone_contact_texture:stone-b__stone-d",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-b",
+      "b": "stone-e",
+      "id": "repeated_stone_contact_texture:stone-b__stone-e",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-b",
+      "b": "stone-f",
+      "id": "repeated_stone_contact_texture:stone-b__stone-f",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-c",
+      "b": "stone-d",
+      "id": "repeated_stone_contact_texture:stone-c__stone-d",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-c",
+      "b": "stone-e",
+      "id": "repeated_stone_contact_texture:stone-c__stone-e",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-c",
+      "b": "stone-f",
+      "id": "repeated_stone_contact_texture:stone-c__stone-f",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-d",
+      "b": "stone-e",
+      "id": "repeated_stone_contact_texture:stone-d__stone-e",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-d",
+      "b": "stone-f",
+      "id": "repeated_stone_contact_texture:stone-d__stone-f",
+      "role": "repeated_stone_contact_texture"
+    },
+    {
+      "a": "stone-e",
+      "b": "stone-f",
+      "id": "repeated_stone_contact_texture:stone-e__stone-f",
+      "role": "repeated_stone_contact_texture"
+    }
+  ],
+  "rating_choices": [
+    "a",
+    "b",
+    "no_preference",
+    "both_bad"
+  ]
+}

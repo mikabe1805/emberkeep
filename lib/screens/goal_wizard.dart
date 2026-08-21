@@ -80,7 +80,10 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
   static const _dayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   void _chooseTarget(int target) {
-    Sfx.instance.playMaterial(MaterialSound.brass);
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.stone,
+    );
     setState(() => _target = target);
   }
 
@@ -555,7 +558,10 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
-        Sfx.instance.playMaterial(MaterialSound.glass);
+        Sfx.instance.playInteraction(
+          InteractionSound.select,
+          material: MaterialSound.stone,
+        );
         setState(() => _kind = kind);
       },
       child: AnimatedContainer(

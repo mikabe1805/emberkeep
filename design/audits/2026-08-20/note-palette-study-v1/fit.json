@@ -1,0 +1,46 @@
+{
+  "format": "sonic-taste-fit/v1",
+  "ratings_read": 15,
+  "roles": [
+    {
+      "both_bad_ratings": 0,
+      "message": "Connected comparison coverage is available.",
+      "ratings": 15,
+      "role": "repeated_tap_note_palette",
+      "scores": [
+        {
+          "both_bad_count": 0,
+          "id": "palette-a",
+          "score": 0.0
+        },
+        {
+          "both_bad_count": 0,
+          "id": "palette-b",
+          "score": 0.0
+        },
+        {
+          "both_bad_count": 0,
+          "id": "palette-c",
+          "score": 0.0
+        },
+        {
+          "both_bad_count": 0,
+          "id": "palette-d",
+          "score": 0.0
+        },
+        {
+          "both_bad_count": 0,
+          "id": "palette-e",
+          "score": 0.0
+        },
+        {
+          "both_bad_count": 0,
+          "id": "palette-f",
+          "score": 0.0
+        }
+      ],
+      "status": "ok",
+      "usable_comparisons": 15
+    }
+  ]
+}

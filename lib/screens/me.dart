@@ -2433,7 +2433,10 @@ class MePage extends StatelessWidget {
                       label: 'RESTORE',
                       icon: Icons.download_outlined,
                       onTap: () {
-                        Sfx.instance.playMaterial(MaterialSound.glass);
+                        Sfx.instance.playInteraction(
+                          InteractionSound.select,
+                          material: MaterialSound.stone,
+                        );
                         showDialog(
                           context: context,
                           barrierColor: const Color(0xCC140C06),

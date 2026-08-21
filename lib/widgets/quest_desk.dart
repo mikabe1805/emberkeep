@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../audio.dart';
 import '../content/quest_desk_styles.dart';
 import '../tokens.dart';
 import 'facets.dart';
@@ -747,7 +748,13 @@ class QuestDeskStyleButton extends StatelessWidget {
         message: 'Quest Desk · ${look.name}',
         child: InkWell(
           customBorder: FacetedBorder(cut: compact ? 10 : 7),
-          onTap: onTap,
+          onTap: () {
+            Sfx.instance.playInteraction(
+              InteractionSound.select,
+              material: MaterialSound.stone,
+            );
+            onTap();
+          },
           child: content,
         ),
       ),

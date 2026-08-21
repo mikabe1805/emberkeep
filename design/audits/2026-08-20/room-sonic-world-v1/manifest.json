@@ -1,0 +1,476 @@
+{
+  "study": "room-sonic-world-v1",
+  "question": "Does the unified sequence feel like one Room while its verbs remain distinct?",
+  "runtime_changed": false,
+  "render_contract": {
+    "render_version": "room-world-author-v1",
+    "contact_master": {
+      "id": "approved-c-contact-v1",
+      "path": "shared/contact-master.wav",
+      "source": "first approved C mechanism, shaped to a 14 ms reusable contact",
+      "source_path": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\weighted-click-system-v1\\variants\\dak-c-1.wav",
+      "source_sha256": "5d70687ac7508c05fd05b7df6523b50e8ad94bf73e4cca53b05da20b6e208247",
+      "approved_anchor_family": {
+        "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\weighted-click-system-v1\\variants\\dak-c-1.wav": "5d70687ac7508c05fd05b7df6523b50e8ad94bf73e4cca53b05da20b6e208247",
+        "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\weighted-click-system-v1\\variants\\dak-c-2.wav": "5c4271fad27933a0e1ffa24800ad9d7d332e9ff7cfcffbcd10ae015bb4c8598b",
+        "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\weighted-click-system-v1\\variants\\dak-c-3.wav": "65675b4757754ff69cd3af2b426706b13eddc126269d1d3ebbc1fb77849fa999"
+      }
+    },
+    "body_master": {
+      "id": "room-modal-bank-v1",
+      "modal_ratios": [
+        1.0,
+        1.498,
+        2.17
+      ],
+      "modal_detune_cents": [
+        0.0,
+        -4.0,
+        7.0
+      ],
+      "pitch_hypothesis": "D-major pentatonic; pending physical-device audition"
+    },
+    "space_fingerprint": {
+      "id": "room-close-reflection-v1",
+      "path": "shared/space-fingerprint-ir.wav",
+      "taps": [
+        {
+          "delay_ms": 22.0,
+          "gain_db": -24.0
+        },
+        {
+          "delay_ms": 29.0,
+          "gain_db": -29.0
+        },
+        {
+          "delay_ms": 34.0,
+          "gain_db": -34.0
+        }
+      ],
+      "feedback": 0,
+      "reflection_lowpass_hz": 3000
+    },
+    "permitted_variant_axis": "global_phrase_token only"
+  },
+  "roles": {
+    "open": {
+      "variant_paths": [
+        "roles/open/1.wav",
+        "roles/open/2.wav",
+        "roles/open/3.wav"
+      ],
+      "bus_bypass_paths": [
+        "diagnostics/bus-bypass/open/1.wav",
+        "diagnostics/bus-bypass/open/2.wav",
+        "diagnostics/bus-bypass/open/3.wav"
+      ],
+      "duration_ms": 52.0,
+      "natural_phone_rms_target_dbfs": -30.0,
+      "derivation": {
+        "render_version": "room-world-author-v1",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "variant_axis": "global_phrase_token",
+        "pitch_tokens": [
+          "d",
+          "e",
+          "a"
+        ]
+      }
+    },
+    "select": {
+      "variant_paths": [
+        "roles/select/1.wav",
+        "roles/select/2.wav",
+        "roles/select/3.wav"
+      ],
+      "bus_bypass_paths": [
+        "diagnostics/bus-bypass/select/1.wav",
+        "diagnostics/bus-bypass/select/2.wav",
+        "diagnostics/bus-bypass/select/3.wav"
+      ],
+      "duration_ms": 65.0,
+      "natural_phone_rms_target_dbfs": -29.2,
+      "derivation": {
+        "render_version": "room-world-author-v1",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "variant_axis": "global_phrase_token",
+        "pitch_tokens": [
+          "d",
+          "e",
+          "a"
+        ]
+      }
+    },
+    "navigate": {
+      "variant_paths": [
+        "roles/navigate/1.wav",
+        "roles/navigate/2.wav",
+        "roles/navigate/3.wav"
+      ],
+      "bus_bypass_paths": [
+        "diagnostics/bus-bypass/navigate/1.wav",
+        "diagnostics/bus-bypass/navigate/2.wav",
+        "diagnostics/bus-bypass/navigate/3.wav"
+      ],
+      "duration_ms": 82.0,
+      "natural_phone_rms_target_dbfs": -28.2,
+      "derivation": {
+        "render_version": "room-world-author-v1",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "variant_axis": "global_phrase_token",
+        "pitch_tokens": [
+          "d",
+          "e",
+          "a"
+        ]
+      }
+    },
+    "place": {
+      "variant_paths": [
+        "roles/place/1.wav",
+        "roles/place/2.wav",
+        "roles/place/3.wav"
+      ],
+      "bus_bypass_paths": [
+        "diagnostics/bus-bypass/place/1.wav",
+        "diagnostics/bus-bypass/place/2.wav",
+        "diagnostics/bus-bypass/place/3.wav"
+      ],
+      "duration_ms": 118.0,
+      "natural_phone_rms_target_dbfs": -27.6,
+      "derivation": {
+        "render_version": "room-world-author-v1",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "variant_axis": "global_phrase_token",
+        "pitch_tokens": [
+          "d",
+          "e",
+          "a"
+        ]
+      }
+    },
+    "complete-bloom": {
+      "variant_paths": [
+        "roles/complete-bloom/1.wav",
+        "roles/complete-bloom/2.wav",
+        "roles/complete-bloom/3.wav"
+      ],
+      "bus_bypass_paths": [
+        "diagnostics/bus-bypass/complete-bloom/1.wav",
+        "diagnostics/bus-bypass/complete-bloom/2.wav",
+        "diagnostics/bus-bypass/complete-bloom/3.wav"
+      ],
+      "duration_ms": 205.0,
+      "natural_phone_rms_target_dbfs": -25.4,
+      "derivation": {
+        "render_version": "room-world-author-v1",
+        "contact_master_id": null,
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "variant_axis": "global_phrase_token",
+        "pitch_tokens": [
+          "d",
+          "e",
+          "a"
+        ]
+      }
+    }
+  },
+  "audition": {
+    "timeline": [
+      {
+        "at_seconds": 0.3,
+        "role": "navigate",
+        "variant": 1
+      },
+      {
+        "at_seconds": 1.05,
+        "role": "open",
+        "variant": 2
+      },
+      {
+        "at_seconds": 1.72,
+        "role": "select",
+        "variant": 3
+      },
+      {
+        "at_seconds": 2.18,
+        "role": "select",
+        "variant": 1
+      },
+      {
+        "at_seconds": 2.92,
+        "role": "place",
+        "variant": 2
+      },
+      {
+        "at_seconds": 3.75,
+        "role": "navigate",
+        "variant": 3
+      },
+      {
+        "at_seconds": 4.55,
+        "role": "open",
+        "variant": 1
+      },
+      {
+        "at_seconds": 5.3,
+        "role": "select",
+        "variant": 2
+      },
+      {
+        "at_seconds": 5.375,
+        "role": "complete-bloom",
+        "variant": 2
+      }
+    ],
+    "control_timeline": [
+      {
+        "at_seconds": 0.3,
+        "role": "navigate",
+        "variant": 1
+      },
+      {
+        "at_seconds": 1.05,
+        "role": "open",
+        "variant": 2
+      },
+      {
+        "at_seconds": 1.72,
+        "role": "select",
+        "variant": 3
+      },
+      {
+        "at_seconds": 2.18,
+        "role": "select",
+        "variant": 1
+      },
+      {
+        "at_seconds": 2.92,
+        "role": "place",
+        "variant": 2
+      },
+      {
+        "at_seconds": 3.75,
+        "role": "navigate",
+        "variant": 3
+      },
+      {
+        "at_seconds": 4.55,
+        "role": "open",
+        "variant": 1
+      },
+      {
+        "at_seconds": 5.3,
+        "role": "select",
+        "variant": 2
+      },
+      {
+        "at_seconds": 5.375,
+        "role": "complete-bloom",
+        "variant": 2
+      }
+    ],
+    "flow_paths": {
+      "control_natural": "flows/control-current-natural.wav",
+      "candidate_natural": "flows/candidate-room-natural.wav",
+      "control_matched": "flows/control-current-level-matched.wav",
+      "candidate_matched": "flows/candidate-room-level-matched.wav",
+      "candidate_bus_bypass": "flows/candidate-room-bus-bypass.wav",
+      "control_fatigue": "flows/control-current-fatigue-matched.wav",
+      "candidate_fatigue": "flows/candidate-room-fatigue-matched.wav"
+    },
+    "level_control_order": "randomized first by the browser per session",
+    "natural_order": "randomized independently after the level-controlled verdict",
+    "hierarchy_control": "Both systems use the same per-role phone-band RMS targets; the level-control pass additionally matches whole-sequence energy.",
+    "first_gate": "Which sequence feels more like one Room, if either?",
+    "second_gate": "Do open, select, navigate, place, and complete remain distinguishable?",
+    "diagnostics": {
+      "contacts": "diagnostics/contact-lineage.wav",
+      "bodies": "diagnostics/body-lineage.wav",
+      "bus_bypass": "flows/candidate-room-bus-bypass.wav",
+      "approved_c_anchor": "diagnostics/approved-c-anchor.wav",
+      "fatigue_control": "flows/control-current-fatigue-matched.wav",
+      "fatigue_candidate": "flows/candidate-room-fatigue-matched.wav",
+      "fatigue_timeline": [
+        {
+          "at_seconds": 0.16,
+          "role": "open",
+          "variant": 1,
+          "rate_gain": 1.0
+        },
+        {
+          "at_seconds": 0.28500000000000003,
+          "role": "select",
+          "variant": 2,
+          "rate_gain": 0.93
+        },
+        {
+          "at_seconds": 0.41000000000000003,
+          "role": "navigate",
+          "variant": 3,
+          "rate_gain": 0.93
+        },
+        {
+          "at_seconds": 0.535,
+          "role": "open",
+          "variant": 1,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 0.66,
+          "role": "select",
+          "variant": 2,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 0.785,
+          "role": "place",
+          "variant": 3,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 0.91,
+          "role": "open",
+          "variant": 1,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 1.035,
+          "role": "select",
+          "variant": 2,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 1.16,
+          "role": "navigate",
+          "variant": 3,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 1.285,
+          "role": "open",
+          "variant": 1,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 1.41,
+          "role": "select",
+          "variant": 2,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 1.535,
+          "role": "place",
+          "variant": 3,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 1.66,
+          "role": "open",
+          "variant": 1,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 1.785,
+          "role": "select",
+          "variant": 2,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 1.91,
+          "role": "navigate",
+          "variant": 3,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 2.035,
+          "role": "open",
+          "variant": 1,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 2.16,
+          "role": "select",
+          "variant": 2,
+          "rate_gain": 0.885
+        },
+        {
+          "at_seconds": 2.285,
+          "role": "place",
+          "variant": 3,
+          "rate_gain": 0.885
+        }
+      ]
+    }
+  },
+  "provenance": {
+    "reference_video_audio_used": false,
+    "shipping_assets_changed": false,
+    "control_sources": {
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\navigate-dak\\1.wav": "5d70687ac7508c05fd05b7df6523b50e8ad94bf73e4cca53b05da20b6e208247",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\navigate-dak\\2.wav": "5c4271fad27933a0e1ffa24800ad9d7d332e9ff7cfcffbcd10ae015bb4c8598b",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\navigate-dak\\3.wav": "65675b4757754ff69cd3af2b426706b13eddc126269d1d3ebbc1fb77849fa999",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\open-tak\\1.wav": "0131c21d0e67f2fc3157a8469e3ac11dcd3e6e3d17af0e8d15c191e15aa59526",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\open-tak\\2.wav": "fcfe680ca39bac4c153fdc1a5e0f2f555b5ae69461706fac3af365cc61ef6d05",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\open-tak\\3.wav": "aa827c3666e8babf4edb5504d19a04cfb55f920de5984c83d402249e82dbca8a",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\select-tuk\\1.wav": "5c78add1921f6d35cd494af72699a91a664bf4ef8e83f8bd68293941e4f90351",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\select-tuk\\2.wav": "11ff6c205c9b7004e3e2275cfe349c34a0a202000b113e3630cc7e890d2da039",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\select-tuk\\3.wav": "d507cbe39237681311b97532496d0863f9bdcb285b739fc2cd4f208652845e9d",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\complete-bloop\\current.wav": "18521f1806179803926ebd863991881f9e05e3d67c0ddaeea3eb51c59a00fc30",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\assets\\sfx\\streak.wav": "06f8014455d88a6925980a65a09251806453de3ade9abea78cf29b10a1b52c8d"
+    }
+  },
+  "generated_audio_sha256": {
+    "diagnostics/approved-c-anchor.wav": "5d70687ac7508c05fd05b7df6523b50e8ad94bf73e4cca53b05da20b6e208247",
+    "diagnostics/body-lineage.wav": "a22d8ea14301bf12461e7bc57a92594726288e419939b3a73ff384f5acecfbe8",
+    "diagnostics/bus-bypass/complete-bloom/1.wav": "4cb0134216f1f022e0808a78a1e7721dfba62e374752317269a567513103c98c",
+    "diagnostics/bus-bypass/complete-bloom/2.wav": "05e975129b44ca6183f7d75ead3876d4d63e2b2d1a24a652ff424211dbccf7bb",
+    "diagnostics/bus-bypass/complete-bloom/3.wav": "17496376fd4fbce11ef0b09a44ddbad55861ae2acbd039dff268bab89b639735",
+    "diagnostics/bus-bypass/navigate/1.wav": "2cf4a646862ac75b4279fcd3b4196562e52a29a8f2a38c65eaa3cd1d148903b6",
+    "diagnostics/bus-bypass/navigate/2.wav": "c71d44d62b1af8c3e712915c3e001414578f33f481822ccf49bda7a70c728ed8",
+    "diagnostics/bus-bypass/navigate/3.wav": "a2fb890b60a565bf99308689867400aba017b0fd3a40ffb2b8ad32aae32d00fc",
+    "diagnostics/bus-bypass/open/1.wav": "dc901ffe360d7e1545faa7c2ed4c6e42d1ff023089b24056f42a83ade3b05157",
+    "diagnostics/bus-bypass/open/2.wav": "3df6a87679f8a588fa2bc95106ae6f4f4bc1818036bc58a176c0770b7a92d04d",
+    "diagnostics/bus-bypass/open/3.wav": "084fb8d5de272cba6d1b9f3f54bbc9020dfa32eba241b4f0881be13aca864ebb",
+    "diagnostics/bus-bypass/place/1.wav": "876c8e09d382590b94613832b9348644449b29c54487796e4290a1e74226d148",
+    "diagnostics/bus-bypass/place/2.wav": "b64ee8aa53e9417eb0ac80fbc79bdca4ebc6d0362457b65e21552c6a7d16b1e1",
+    "diagnostics/bus-bypass/place/3.wav": "ba47c7d6476c39b2596b519fdb8b897477d767766cc36f22c31d629a34e8a67d",
+    "diagnostics/bus-bypass/select/1.wav": "48f7f2318fe3df2d2d683862527ffae0156ad130c2ca63e982a18c9c6be5a244",
+    "diagnostics/bus-bypass/select/2.wav": "b34434135878bdcc17486928861b40524c67228579d3dd234e441011e697e4b4",
+    "diagnostics/bus-bypass/select/3.wav": "5e002bbf2ef9c098e0270d50b3ab3a2d6a68d8c59316116d810179ec74d70900",
+    "diagnostics/contact-lineage.wav": "7a5cbc945b602b175d3b47a8871f762e5b60bf26258bb67d006d860a903ed32a",
+    "flows/candidate-room-bus-bypass.wav": "6a1cd4ef7dcc0fdda3060b12193c092015d20c6446292351faaaf176ffc6da2c",
+    "flows/candidate-room-fatigue-matched.wav": "706c37b9224391f3f4ef6b592e8872ccef708bc7f2221bebd9274f304110c1e1",
+    "flows/candidate-room-level-matched.wav": "74605343db46aada904371191af3c29fa7244861158d97e36d3ed70fb36ee7de",
+    "flows/candidate-room-natural.wav": "74605343db46aada904371191af3c29fa7244861158d97e36d3ed70fb36ee7de",
+    "flows/control-current-fatigue-matched.wav": "b14835b6a5e5c57e090f0d2580b41a8c9a2c09297b7da6d9891b0b25c476801d",
+    "flows/control-current-level-matched.wav": "26d27bcc2f4c08c7c604aef2773762771d1d7ce8a572d4185b9f7751abddb182",
+    "flows/control-current-natural.wav": "ceaa1f2be87898c1a3a1ffc0c67252d19738579dac90ebbe734a938d0e657ce3",
+    "roles/complete-bloom/1.wav": "cf07adcbe0f7595b1df65261680664830bd413729f18e41289d3d6dd6b2161dc",
+    "roles/complete-bloom/2.wav": "c30b6c1252defb0ad6d6e3939bb6ebb041aa10c9bf324dcd003c1e0ff531c970",
+    "roles/complete-bloom/3.wav": "fa25159e69a2cceba9d3b7a6bed7113caeb603657e6541af6c4b7a17d090984c",
+    "roles/navigate/1.wav": "5e77d912c56c3c19a6eab5bac94b919e7766b61b26fe82b2edad2b8d431c7074",
+    "roles/navigate/2.wav": "9174ef1d18a9c549a424c540a92f6c5c13ddf279d846854e25dfb5a377e9e23b",
+    "roles/navigate/3.wav": "c823d028abfa03208685f915b45d9ff02f53a77a9576998e3883b9fdb12976fc",
+    "roles/open/1.wav": "d65524fa80c1f9f23adc0a677a656dcda4fe4a56b0d76863a034c6ff0de13b52",
+    "roles/open/2.wav": "6e2e9c6c3f368835b8e6418c6a3457759d66e3b38b04d45e04e4708bda8d07c8",
+    "roles/open/3.wav": "54b410aa919e5f38d62e8602fc3bb3599342e6e31e6b27b99af519483700a013",
+    "roles/place/1.wav": "c4f9d9fc9ec086c549f0dc388889c76181d6a349b9d1cc3bf851bcbfc20a4459",
+    "roles/place/2.wav": "84d74f4ddfb4802321ddf88c2291ee7b6a408512a34801e3f1387b3a1427c321",
+    "roles/place/3.wav": "219401b83616530ade61e60d91c71a5691b14b3b22c178eadf1cdedf6e4116d6",
+    "roles/select/1.wav": "aecdc07653984c0a9c5dd32afe8f6279ab2683c66cea6a62e58521e26d18e4ac",
+    "roles/select/2.wav": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+    "roles/select/3.wav": "8c56e5fff8ac499d3cc9e444e60c68ec1d83634003ef378a85f9a40fd3bca8cb",
+    "shared/contact-master.wav": "f9360a3dc476b2bc6764c4165e07908326512b28a8a91603bf623fd908539885",
+    "shared/space-fingerprint-ir.wav": "d8b34aba865e59729013ac209488cbfc76ffa753d75d5ded1753a9e75ceca8fe"
+  }
+}

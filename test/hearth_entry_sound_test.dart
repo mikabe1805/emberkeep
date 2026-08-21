@@ -131,10 +131,10 @@ void main() {
     expect(initialRoom, contains('_maybeStartSessionIgnition();'));
     expect(roomLinks, contains('_maybeStartSessionIgnition();'));
     expect(selectTab, contains('if (i == 1) _maybeStartSessionIgnition();'));
-    expect(
-      pressable,
-      contains('Sfx.instance.playInteraction(role, screenId: screenId)'),
-    );
+    // Pressable routes through the accepted-sound path with its surface
+    // material so shipped texture lanes can shade the clasp (2026-08-21).
+    expect(pressable, contains('Sfx.instance.playInteraction('));
+    expect(pressable, contains('material: widget.material,'));
     expect(
       pressable,
       contains('if (!widget.enabled || widget.onTapUp == null) return;'),

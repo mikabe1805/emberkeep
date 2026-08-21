@@ -6,6 +6,7 @@ import 'package:emberkeep/academic_calendar/data/academic_schedule_repository.da
 import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 import 'package:emberkeep/academic_calendar/services/notebook_handoff.dart';
 import 'package:emberkeep/academic_calendar/widgets/academic_calendar_sections.dart';
+import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/daybook/data/daybook_preferences.dart';
 import 'package:emberkeep/daybook/domain/daybook_event.dart';
@@ -63,9 +64,16 @@ void main() {
 
   setUp(() {
     Clock.freeze(DateTime.utc(2026, 8, 11, 14, 15));
+    // Daybook surfaces voice their interaction verb now; the test binding has
+    // no audioplayers implementation, so keep the palette muted like every
+    // other sounding-surface suite.
+    Sfx.instance.soundEnabled = false;
   });
 
-  tearDown(Clock.reset);
+  tearDown(() {
+    Clock.reset();
+    Sfx.instance.soundEnabled = true;
+  });
 
   for (final mode in const [
     AcademicCalendarMode.month,

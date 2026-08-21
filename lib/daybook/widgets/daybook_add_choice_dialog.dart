@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../audio.dart';
 import '../../tokens.dart';
 import '../../widgets/facets.dart';
 import '../../widgets/glass.dart';
@@ -145,7 +146,10 @@ class _DaybookAddChoice extends StatelessWidget {
     button: true,
     label: '$title, $subtitle',
     child: InkWell(
-      onTap: onTap,
+      onTap: () {
+        onTap();
+        Sfx.instance.playInteraction(InteractionSound.select);
+      },
       borderRadius: BorderRadius.circular(11),
       child: Container(
         constraints: const BoxConstraints(minHeight: 58),

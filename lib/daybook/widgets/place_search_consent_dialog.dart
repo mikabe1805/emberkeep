@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../audio.dart';
 import '../../tokens.dart';
 import '../../widgets/glass.dart';
 import '../../widgets/gold_surface.dart';
@@ -72,9 +73,12 @@ class PlaceSearchConsentDialog extends StatelessWidget {
                 button: true,
                 label: 'Use place search',
                 child: InkWell(
-                  onTap: () => Navigator.of(
-                    context,
-                  ).pop(PlaceSearchConsentDecision.accept),
+                  onTap: () {
+                    Navigator.of(
+                      context,
+                    ).pop(PlaceSearchConsentDecision.accept);
+                    Sfx.instance.playInteraction(InteractionSound.place);
+                  },
                   borderRadius: BorderRadius.circular(9),
                   child: GoldSurface(
                     cut: 9,

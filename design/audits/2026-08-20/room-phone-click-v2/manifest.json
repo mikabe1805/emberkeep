@@ -1,0 +1,965 @@
+{
+  "study": "room-phone-click-v2",
+  "runtime_changed": false,
+  "question": "Which everyday Room click remains crisp and full on a phone without competing with completion?",
+  "render_contract": {
+    "render_version": "room-phone-click-v2-author-1",
+    "sample_rate_hz": 48000,
+    "ordinary_roles": [
+      "open",
+      "select",
+      "navigate",
+      "place"
+    ],
+    "shared_phrase_tokens": [
+      "d",
+      "e",
+      "a"
+    ],
+    "space_fingerprint_id": "room-close-reflection-v1",
+    "texture_comparison_lift_db": 3.0,
+    "level_pass_lifts_db": [
+      2.0,
+      3.0,
+      3.5
+    ],
+    "rapid_step_ms": 125.0
+  },
+  "axes": {
+    "texture": {
+      "ledger-edge": "1.6-4.2 kHz contact edge over current Room bodies",
+      "double-seat": "same edge plus compact 650-1800 Hz derived seat"
+    },
+    "system_level": "ordinary-role lift only; completion absolute source is locked",
+    "level_safety_note": "+2.0 dB is the hierarchy-safe end, +3.0 dB the intended compromise, and +3.5 dB an upper-bound audition rather than a presumed shipping default"
+  },
+  "locked_completion": {
+    "accepted_select_source": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\2.wav",
+    "answered_detent_source": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-reward-voice-v1\\rewards\\answered-detent\\natural.wav",
+    "accepted_select_sha256": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+    "answered_detent_sha256": "5b0d7e3ecd7399638ded807e1d4c2500320762a1d38fd611b212b0c8fc336ea6",
+    "accepted_select_at_seconds": 5.3,
+    "answered_detent_at_seconds": 5.375,
+    "outcome_delay_ms": 75.0,
+    "completion_composite": "locked/completion-composite.wav"
+  },
+  "source_hashes": {
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\shared\\contact-master.wav": "f9360a3dc476b2bc6764c4165e07908326512b28a8a91603bf623fd908539885",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\2.wav": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-reward-voice-v1\\rewards\\answered-detent\\natural.wav": "5b0d7e3ecd7399638ded807e1d4c2500320762a1d38fd611b212b0c8fc336ea6",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\1.wav": "d65524fa80c1f9f23adc0a677a656dcda4fe4a56b0d76863a034c6ff0de13b52",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\2.wav": "6e2e9c6c3f368835b8e6418c6a3457759d66e3b38b04d45e04e4708bda8d07c8",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\3.wav": "54b410aa919e5f38d62e8602fc3bb3599342e6e31e6b27b99af519483700a013",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\1.wav": "aecdc07653984c0a9c5dd32afe8f6279ab2683c66cea6a62e58521e26d18e4ac",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\3.wav": "8c56e5fff8ac499d3cc9e444e60c68ec1d83634003ef378a85f9a40fd3bca8cb",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\1.wav": "5e77d912c56c3c19a6eab5bac94b919e7766b61b26fe82b2edad2b8d431c7074",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\2.wav": "9174ef1d18a9c549a424c540a92f6c5c13ddf279d846854e25dfb5a377e9e23b",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\3.wav": "c823d028abfa03208685f915b45d9ff02f53a77a9576998e3883b9fdb12976fc",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\1.wav": "c4f9d9fc9ec086c549f0dc388889c76181d6a349b9d1cc3bf851bcbfc20a4459",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\2.wav": "84d74f4ddfb4802321ddf88c2291ee7b6a408512a34801e3f1387b3a1427c321",
+    "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\3.wav": "219401b83616530ade61e60d91c71a5691b14b3b22c178eadf1cdedf6e4116d6"
+  },
+  "candidates": {
+    "ledger-edge@+2.0dB": {
+      "texture": "ledger-edge",
+      "ordinary_lift_db": 2.0,
+      "role_paths": {
+        "open": [
+          "roles/ledger-edge/lift-2.0/open/1.wav",
+          "roles/ledger-edge/lift-2.0/open/2.wav",
+          "roles/ledger-edge/lift-2.0/open/3.wav"
+        ],
+        "select": [
+          "roles/ledger-edge/lift-2.0/select/1.wav",
+          "roles/ledger-edge/lift-2.0/select/2.wav",
+          "roles/ledger-edge/lift-2.0/select/3.wav"
+        ],
+        "navigate": [
+          "roles/ledger-edge/lift-2.0/navigate/1.wav",
+          "roles/ledger-edge/lift-2.0/navigate/2.wav",
+          "roles/ledger-edge/lift-2.0/navigate/3.wav"
+        ],
+        "place": [
+          "roles/ledger-edge/lift-2.0/place/1.wav",
+          "roles/ledger-edge/lift-2.0/place/2.wav",
+          "roles/ledger-edge/lift-2.0/place/3.wav"
+        ]
+      },
+      "metrics": {
+        "open": [
+          {
+            "phone_rms_dbfs": -27.999999999999993,
+            "peak_dbfs": -8.830167671564276,
+            "tail_relative_peak_db": -41.43936318835968,
+            "edge_1600_4200_energy": 1.0740022093778565,
+            "seat_650_1800_energy": 1.5401999167305482,
+            "low_250_450_energy": 0.3322323705464244
+          },
+          {
+            "phone_rms_dbfs": -28.00000000000001,
+            "peak_dbfs": -8.356937818314375,
+            "tail_relative_peak_db": -45.784386094414195,
+            "edge_1600_4200_energy": 1.2041915259909781,
+            "seat_650_1800_energy": 1.6539543910849983,
+            "low_250_450_energy": 0.22570783425927893
+          },
+          {
+            "phone_rms_dbfs": -28.0,
+            "peak_dbfs": -7.618909041993249,
+            "tail_relative_peak_db": -44.07240581376777,
+            "edge_1600_4200_energy": 1.3656387260683858,
+            "seat_650_1800_energy": 1.2654439051466955,
+            "low_250_450_energy": 0.5885397141818414
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -27.200000000000003,
+            "peak_dbfs": -7.494803591500546,
+            "tail_relative_peak_db": -44.20526570351797,
+            "edge_1600_4200_energy": 1.4168863351608552,
+            "seat_650_1800_energy": 2.27857658188172,
+            "low_250_450_energy": 0.5949778628032174
+          },
+          {
+            "phone_rms_dbfs": -27.19999999999999,
+            "peak_dbfs": -7.21019098331219,
+            "tail_relative_peak_db": -45.95227929551697,
+            "edge_1600_4200_energy": 1.521679357674016,
+            "seat_650_1800_energy": 2.477183703260083,
+            "low_250_450_energy": 0.42410409976466024
+          },
+          {
+            "phone_rms_dbfs": -27.199999999999996,
+            "peak_dbfs": -6.490596475596002,
+            "tail_relative_peak_db": -42.496957968986884,
+            "edge_1600_4200_energy": 1.7123747507825287,
+            "seat_650_1800_energy": 1.7981110655383137,
+            "low_250_450_energy": 1.233776485906769
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -26.199999999999992,
+            "peak_dbfs": -5.526848214971799,
+            "tail_relative_peak_db": -47.54548554602227,
+            "edge_1600_4200_energy": 2.2587634405151897,
+            "seat_650_1800_energy": 3.57126597822618,
+            "low_250_450_energy": 0.9856014491972127
+          },
+          {
+            "phone_rms_dbfs": -26.19999999999999,
+            "peak_dbfs": -5.43578176696624,
+            "tail_relative_peak_db": -46.46070966697693,
+            "edge_1600_4200_energy": 2.3258639577481315,
+            "seat_650_1800_energy": 3.760655565801785,
+            "low_250_450_energy": 0.7173466837284075
+          },
+          {
+            "phone_rms_dbfs": -26.200000000000003,
+            "peak_dbfs": -4.5801734381519665,
+            "tail_relative_peak_db": -56.43735020734691,
+            "edge_1600_4200_energy": 2.7275019368291384,
+            "seat_650_1800_energy": 2.9241973086304456,
+            "low_250_450_energy": 1.9745955674320135
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -25.599999999999994,
+            "peak_dbfs": -4.160209630064207,
+            "tail_relative_peak_db": -55.61147596243246,
+            "edge_1600_4200_energy": 2.7991322730245614,
+            "seat_650_1800_energy": 3.595690106870462,
+            "low_250_450_energy": 5.425257744006697
+          },
+          {
+            "phone_rms_dbfs": -25.600000000000005,
+            "peak_dbfs": -4.499030975415947,
+            "tail_relative_peak_db": -50.11987425127181,
+            "edge_1600_4200_energy": 2.6094436704634054,
+            "seat_650_1800_energy": 3.6133428204239952,
+            "low_250_450_energy": 4.3575688312510445
+          },
+          {
+            "phone_rms_dbfs": -25.600000000000005,
+            "peak_dbfs": -4.448916735973781,
+            "tail_relative_peak_db": -40.99001238191775,
+            "edge_1600_4200_energy": 2.6001115379729502,
+            "seat_650_1800_energy": 2.8709508154137695,
+            "low_250_450_energy": 8.56042930643057
+          }
+        ]
+      },
+      "flow": "flows/ledger-edge/lift-2.0.wav",
+      "rapid": "rapid/ledger-edge/lift-2.0.wav"
+    },
+    "ledger-edge@+3.0dB": {
+      "texture": "ledger-edge",
+      "ordinary_lift_db": 3.0,
+      "role_paths": {
+        "open": [
+          "roles/ledger-edge/lift-3.0/open/1.wav",
+          "roles/ledger-edge/lift-3.0/open/2.wav",
+          "roles/ledger-edge/lift-3.0/open/3.wav"
+        ],
+        "select": [
+          "roles/ledger-edge/lift-3.0/select/1.wav",
+          "roles/ledger-edge/lift-3.0/select/2.wav",
+          "roles/ledger-edge/lift-3.0/select/3.wav"
+        ],
+        "navigate": [
+          "roles/ledger-edge/lift-3.0/navigate/1.wav",
+          "roles/ledger-edge/lift-3.0/navigate/2.wav",
+          "roles/ledger-edge/lift-3.0/navigate/3.wav"
+        ],
+        "place": [
+          "roles/ledger-edge/lift-3.0/place/1.wav",
+          "roles/ledger-edge/lift-3.0/place/2.wav",
+          "roles/ledger-edge/lift-3.0/place/3.wav"
+        ]
+      },
+      "metrics": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.999999999999996,
+            "peak_dbfs": -7.830167671564281,
+            "tail_relative_peak_db": -41.439363188359685,
+            "edge_1600_4200_energy": 1.3520886737088618,
+            "seat_650_1800_energy": 1.9389968144153311,
+            "low_250_450_energy": 0.4182557739015148
+          },
+          {
+            "phone_rms_dbfs": -27.00000000000001,
+            "peak_dbfs": -7.356937818314378,
+            "tail_relative_peak_db": -45.784386094414195,
+            "edge_1600_4200_energy": 1.515987312737239,
+            "seat_650_1800_energy": 2.0822052128854445,
+            "low_250_450_energy": 0.2841493281900314
+          },
+          {
+            "phone_rms_dbfs": -27.0,
+            "peak_dbfs": -6.618909041993254,
+            "tail_relative_peak_db": -44.07240581376777,
+            "edge_1600_4200_energy": 1.7192372955777029,
+            "seat_650_1800_energy": 1.5930994893892272,
+            "low_250_450_energy": 0.7409276020335925
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -26.200000000000003,
+            "peak_dbfs": -6.494803591500551,
+            "tail_relative_peak_db": -44.20526570351797,
+            "edge_1600_4200_energy": 1.7837542129579083,
+            "seat_650_1800_energy": 2.868557961649992,
+            "low_250_450_energy": 0.7490327509379611
+          },
+          {
+            "phone_rms_dbfs": -26.200000000000003,
+            "peak_dbfs": -6.210190983312195,
+            "tail_relative_peak_db": -45.95227929551697,
+            "edge_1600_4200_energy": 1.9156808119784428,
+            "seat_650_1800_energy": 3.1185895137164947,
+            "low_250_450_energy": 0.5339154284398155
+          },
+          {
+            "phone_rms_dbfs": -26.200000000000006,
+            "peak_dbfs": -5.490596475596005,
+            "tail_relative_peak_db": -42.496957968986884,
+            "edge_1600_4200_energy": 2.155752088274829,
+            "seat_650_1800_energy": 2.263687713634472,
+            "low_250_450_energy": 1.5532325705821426
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -25.200000000000003,
+            "peak_dbfs": -4.526848214971799,
+            "tail_relative_peak_db": -47.54548554602227,
+            "edge_1600_4200_energy": 2.843614694496196,
+            "seat_650_1800_energy": 4.495957492264878,
+            "low_250_450_energy": 1.2407987102955296
+          },
+          {
+            "phone_rms_dbfs": -25.200000000000003,
+            "peak_dbfs": -4.4357817669662385,
+            "tail_relative_peak_db": -46.46070966697693,
+            "edge_1600_4200_energy": 2.928089240785276,
+            "seat_650_1800_energy": 4.734384856793049,
+            "low_250_450_energy": 0.9030859692119648
+          },
+          {
+            "phone_rms_dbfs": -25.199999999999996,
+            "peak_dbfs": -3.580173438151966,
+            "tail_relative_peak_db": -56.43735020734691,
+            "edge_1600_4200_energy": 3.433721498992012,
+            "seat_650_1800_energy": 3.681346300934976,
+            "low_250_450_energy": 2.485868537856299
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -24.600000000000005,
+            "peak_dbfs": -3.160209630064206,
+            "tail_relative_peak_db": -55.61147596243246,
+            "edge_1600_4200_energy": 3.5238987494837906,
+            "seat_650_1800_energy": 4.526705648476088,
+            "low_250_450_energy": 6.82999483946312
+          },
+          {
+            "phone_rms_dbfs": -24.599999999999994,
+            "peak_dbfs": -3.4990309754159474,
+            "tail_relative_peak_db": -50.11987425127181,
+            "edge_1600_4200_energy": 3.2850949473918285,
+            "seat_650_1800_energy": 4.548929098155796,
+            "low_250_450_energy": 5.485854135304157
+          },
+          {
+            "phone_rms_dbfs": -24.599999999999994,
+            "peak_dbfs": -3.448916735973782,
+            "tail_relative_peak_db": -40.99001238191775,
+            "edge_1600_4200_energy": 3.273346488653363,
+            "seat_650_1800_energy": 3.614312937535575,
+            "low_250_450_energy": 10.776941989732885
+          }
+        ]
+      },
+      "flow": "flows/ledger-edge/lift-3.0.wav",
+      "rapid": "rapid/ledger-edge/lift-3.0.wav"
+    },
+    "ledger-edge@+3.5dB": {
+      "texture": "ledger-edge",
+      "ordinary_lift_db": 3.5,
+      "role_paths": {
+        "open": [
+          "roles/ledger-edge/lift-3.5/open/1.wav",
+          "roles/ledger-edge/lift-3.5/open/2.wav",
+          "roles/ledger-edge/lift-3.5/open/3.wav"
+        ],
+        "select": [
+          "roles/ledger-edge/lift-3.5/select/1.wav",
+          "roles/ledger-edge/lift-3.5/select/2.wav",
+          "roles/ledger-edge/lift-3.5/select/3.wav"
+        ],
+        "navigate": [
+          "roles/ledger-edge/lift-3.5/navigate/1.wav",
+          "roles/ledger-edge/lift-3.5/navigate/2.wav",
+          "roles/ledger-edge/lift-3.5/navigate/3.wav"
+        ],
+        "place": [
+          "roles/ledger-edge/lift-3.5/place/1.wav",
+          "roles/ledger-edge/lift-3.5/place/2.wav",
+          "roles/ledger-edge/lift-3.5/place/3.wav"
+        ]
+      },
+      "metrics": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.5,
+            "peak_dbfs": -7.330167671564278,
+            "tail_relative_peak_db": -41.43936318835968,
+            "edge_1600_4200_energy": 1.5170684437540103,
+            "seat_650_1800_energy": 2.175590208606744,
+            "low_250_450_energy": 0.4692906969358455
+          },
+          {
+            "phone_rms_dbfs": -26.500000000000018,
+            "peak_dbfs": -6.856937818314376,
+            "tail_relative_peak_db": -45.784386094414195,
+            "edge_1600_4200_energy": 1.700965741378825,
+            "seat_650_1800_energy": 2.336272674501221,
+            "low_250_450_energy": 0.31882079000672325
+          },
+          {
+            "phone_rms_dbfs": -26.499999999999993,
+            "peak_dbfs": -6.11890904199325,
+            "tail_relative_peak_db": -44.07240581376777,
+            "edge_1600_4200_energy": 1.929015972962384,
+            "seat_650_1800_energy": 1.7874870266337441,
+            "low_250_450_energy": 0.8313344427833966
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -25.700000000000006,
+            "peak_dbfs": -5.994803591500549,
+            "tail_relative_peak_db": -44.205265703517966,
+            "edge_1600_4200_energy": 2.001405144877648,
+            "seat_650_1800_energy": 3.218574970206114,
+            "low_250_450_energy": 0.8404285694289515
+          },
+          {
+            "phone_rms_dbfs": -25.699999999999996,
+            "peak_dbfs": -5.7101909833121915,
+            "tail_relative_peak_db": -45.95227929551697,
+            "edge_1600_4200_energy": 2.1494292235919827,
+            "seat_650_1800_energy": 3.499114985782496,
+            "low_250_450_energy": 0.5990629637460134
+          },
+          {
+            "phone_rms_dbfs": -25.69999999999999,
+            "peak_dbfs": -4.990596475596004,
+            "tail_relative_peak_db": -42.496957968986884,
+            "edge_1600_4200_energy": 2.4187936259443505,
+            "seat_650_1800_energy": 2.539899389474497,
+            "low_250_450_energy": 1.7427556080160396
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -24.700000000000006,
+            "peak_dbfs": -4.026848214971796,
+            "tail_relative_peak_db": -47.54548554602227,
+            "edge_1600_4200_energy": 3.1905881641489753,
+            "seat_650_1800_energy": 5.044547276078379,
+            "low_250_450_energy": 1.3921990510256534
+          },
+          {
+            "phone_rms_dbfs": -24.699999999999985,
+            "peak_dbfs": -3.9357817669662367,
+            "tail_relative_peak_db": -46.46070966697693,
+            "edge_1600_4200_energy": 3.2853701640041093,
+            "seat_650_1800_energy": 5.312067179089553,
+            "low_250_450_energy": 1.0132791232770029
+          },
+          {
+            "phone_rms_dbfs": -24.699999999999996,
+            "peak_dbfs": -3.0801734381519625,
+            "tail_relative_peak_db": -56.43735020734691,
+            "edge_1600_4200_energy": 3.8526988888024385,
+            "seat_650_1800_energy": 4.130538486325318,
+            "low_250_450_energy": 2.789190374443405
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -24.099999999999998,
+            "peak_dbfs": -2.660209630064208,
+            "tail_relative_peak_db": -55.61147596243246,
+            "edge_1600_4200_energy": 3.9538794280124248,
+            "seat_650_1800_energy": 5.079047274783124,
+            "low_250_450_energy": 7.663380252664785
+          },
+          {
+            "phone_rms_dbfs": -24.1,
+            "peak_dbfs": -2.9990309754159474,
+            "tail_relative_peak_db": -50.11987425127181,
+            "edge_1600_4200_energy": 3.685937155107768,
+            "seat_650_1800_energy": 5.1039823954419745,
+            "low_250_450_energy": 6.15522957742002
+          },
+          {
+            "phone_rms_dbfs": -24.099999999999994,
+            "peak_dbfs": -2.948916735973783,
+            "tail_relative_peak_db": -40.99001238191775,
+            "edge_1600_4200_energy": 3.6727551675936043,
+            "seat_650_1800_energy": 4.055325815537256,
+            "low_250_450_energy": 12.091927793422007
+          }
+        ]
+      },
+      "flow": "flows/ledger-edge/lift-3.5.wav",
+      "rapid": "rapid/ledger-edge/lift-3.5.wav"
+    },
+    "double-seat@+2.0dB": {
+      "texture": "double-seat",
+      "ordinary_lift_db": 2.0,
+      "role_paths": {
+        "open": [
+          "roles/double-seat/lift-2.0/open/1.wav",
+          "roles/double-seat/lift-2.0/open/2.wav",
+          "roles/double-seat/lift-2.0/open/3.wav"
+        ],
+        "select": [
+          "roles/double-seat/lift-2.0/select/1.wav",
+          "roles/double-seat/lift-2.0/select/2.wav",
+          "roles/double-seat/lift-2.0/select/3.wav"
+        ],
+        "navigate": [
+          "roles/double-seat/lift-2.0/navigate/1.wav",
+          "roles/double-seat/lift-2.0/navigate/2.wav",
+          "roles/double-seat/lift-2.0/navigate/3.wav"
+        ],
+        "place": [
+          "roles/double-seat/lift-2.0/place/1.wav",
+          "roles/double-seat/lift-2.0/place/2.wav",
+          "roles/double-seat/lift-2.0/place/3.wav"
+        ]
+      },
+      "metrics": {
+        "open": [
+          {
+            "phone_rms_dbfs": -28.000000000000004,
+            "peak_dbfs": -9.406868148399392,
+            "tail_relative_peak_db": -42.453707527161825,
+            "edge_1600_4200_energy": 0.8890378862442837,
+            "seat_650_1800_energy": 1.9666415470721035,
+            "low_250_450_energy": 0.2751872224145351
+          },
+          {
+            "phone_rms_dbfs": -28.000000000000007,
+            "peak_dbfs": -11.009801438827536,
+            "tail_relative_peak_db": -43.796642892795134,
+            "edge_1600_4200_energy": 0.8097205010333262,
+            "seat_650_1800_energy": 2.1801252791247663,
+            "low_250_450_energy": 0.220523612083605
+          },
+          {
+            "phone_rms_dbfs": -28.000000000000014,
+            "peak_dbfs": -9.825022319769209,
+            "tail_relative_peak_db": -42.69637678604773,
+            "edge_1600_4200_energy": 0.9358564197857855,
+            "seat_650_1800_energy": 2.070966077921018,
+            "low_250_450_energy": 0.44307682975952895
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -27.199999999999996,
+            "peak_dbfs": -7.889560215403736,
+            "tail_relative_peak_db": -45.09639711367805,
+            "edge_1600_4200_energy": 1.2364464533518769,
+            "seat_650_1800_energy": 2.8225553408877957,
+            "low_250_450_energy": 0.49710316262549903
+          },
+          {
+            "phone_rms_dbfs": -27.199999999999992,
+            "peak_dbfs": -9.369827166471048,
+            "tail_relative_peak_db": -45.38829522757047,
+            "edge_1600_4200_energy": 1.106425356422991,
+            "seat_650_1800_energy": 3.1299005845668533,
+            "low_250_450_energy": 0.3986118011149433
+          },
+          {
+            "phone_rms_dbfs": -27.200000000000003,
+            "peak_dbfs": -8.244600011046256,
+            "tail_relative_peak_db": -42.701438165752954,
+            "edge_1600_4200_energy": 1.264415462229393,
+            "seat_650_1800_energy": 2.8721593284516826,
+            "low_250_450_energy": 0.9268711627064256
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -26.200000000000003,
+            "peak_dbfs": -5.852485300617966,
+            "tail_relative_peak_db": -48.16026904188627,
+            "edge_1600_4200_energy": 2.0249089678403744,
+            "seat_650_1800_energy": 4.287639145189043,
+            "low_250_450_energy": 0.8645338473660211
+          },
+          {
+            "phone_rms_dbfs": -26.200000000000006,
+            "peak_dbfs": -7.141482135947989,
+            "tail_relative_peak_db": -45.97404425730957,
+            "edge_1600_4200_energy": 1.7986410033066376,
+            "seat_650_1800_energy": 4.679101246986853,
+            "low_250_450_energy": 0.6672153587334939
+          },
+          {
+            "phone_rms_dbfs": -26.200000000000003,
+            "peak_dbfs": -5.946849986199413,
+            "tail_relative_peak_db": -56.47358601214124,
+            "edge_1600_4200_energy": 2.1516507716551176,
+            "seat_650_1800_energy": 4.333680231663843,
+            "low_250_450_energy": 1.5621366809057617
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -25.599999999999994,
+            "peak_dbfs": -4.495112402796186,
+            "tail_relative_peak_db": -56.125394963471145,
+            "edge_1600_4200_energy": 2.509505192900509,
+            "seat_650_1800_energy": 4.830058998213043,
+            "low_250_450_energy": 4.686443032405667
+          },
+          {
+            "phone_rms_dbfs": -25.59999999999999,
+            "peak_dbfs": -5.450223097287291,
+            "tail_relative_peak_db": -49.733748775513746,
+            "edge_1600_4200_energy": 2.376042902910235,
+            "seat_650_1800_energy": 4.860390151063618,
+            "low_250_450_energy": 3.896294100321371
+          },
+          {
+            "phone_rms_dbfs": -25.600000000000005,
+            "peak_dbfs": -5.151242564459571,
+            "tail_relative_peak_db": -41.115757369656876,
+            "edge_1600_4200_energy": 2.417787899389281,
+            "seat_650_1800_energy": 4.91662073672198,
+            "low_250_450_energy": 7.043151592721731
+          }
+        ]
+      },
+      "flow": "flows/double-seat/lift-2.0.wav",
+      "rapid": "rapid/double-seat/lift-2.0.wav"
+    },
+    "double-seat@+3.0dB": {
+      "texture": "double-seat",
+      "ordinary_lift_db": 3.0,
+      "role_paths": {
+        "open": [
+          "roles/double-seat/lift-3.0/open/1.wav",
+          "roles/double-seat/lift-3.0/open/2.wav",
+          "roles/double-seat/lift-3.0/open/3.wav"
+        ],
+        "select": [
+          "roles/double-seat/lift-3.0/select/1.wav",
+          "roles/double-seat/lift-3.0/select/2.wav",
+          "roles/double-seat/lift-3.0/select/3.wav"
+        ],
+        "navigate": [
+          "roles/double-seat/lift-3.0/navigate/1.wav",
+          "roles/double-seat/lift-3.0/navigate/2.wav",
+          "roles/double-seat/lift-3.0/navigate/3.wav"
+        ],
+        "place": [
+          "roles/double-seat/lift-3.0/place/1.wav",
+          "roles/double-seat/lift-3.0/place/2.wav",
+          "roles/double-seat/lift-3.0/place/3.wav"
+        ]
+      },
+      "metrics": {
+        "open": [
+          {
+            "phone_rms_dbfs": -27.0,
+            "peak_dbfs": -8.406868148399397,
+            "tail_relative_peak_db": -42.453707527161825,
+            "edge_1600_4200_energy": 1.1192323870407004,
+            "seat_650_1800_energy": 2.475855019499269,
+            "low_250_450_energy": 0.34644018729872034
+          },
+          {
+            "phone_rms_dbfs": -27.00000000000002,
+            "peak_dbfs": -10.00980143882754,
+            "tail_relative_peak_db": -43.796642892795134,
+            "edge_1600_4200_energy": 1.0193777152015604,
+            "seat_650_1800_energy": 2.744615114785022,
+            "low_250_450_energy": 0.2776227791526862
+          },
+          {
+            "phone_rms_dbfs": -27.000000000000007,
+            "peak_dbfs": -8.825022319769213,
+            "tail_relative_peak_db": -42.69637678604773,
+            "edge_1600_4200_energy": 1.178173428659034,
+            "seat_650_1800_energy": 2.6071918224584714,
+            "low_250_450_energy": 0.5578006803614661
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -26.200000000000006,
+            "peak_dbfs": -6.88956021540374,
+            "tail_relative_peak_db": -45.09639711367805,
+            "edge_1600_4200_energy": 1.5565938604474465,
+            "seat_650_1800_energy": 3.553386644839,
+            "low_250_450_energy": 0.6258158037124908
+          },
+          {
+            "phone_rms_dbfs": -26.199999999999992,
+            "peak_dbfs": -8.369827166471053,
+            "tail_relative_peak_db": -45.38829522757047,
+            "edge_1600_4200_energy": 1.3929069974543213,
+            "seat_650_1800_energy": 3.9403113823006293,
+            "low_250_450_energy": 0.501822525864639
+          },
+          {
+            "phone_rms_dbfs": -26.20000000000001,
+            "peak_dbfs": -7.244600011046258,
+            "tail_relative_peak_db": -42.701438165752954,
+            "edge_1600_4200_energy": 1.591804756466048,
+            "seat_650_1800_energy": 3.615834365309486,
+            "low_250_450_energy": 1.16686166019032
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -25.199999999999996,
+            "peak_dbfs": -4.852485300617965,
+            "tail_relative_peak_db": -48.16026904188627,
+            "edge_1600_4200_energy": 2.549209356184143,
+            "seat_650_1800_energy": 5.397817876481904,
+            "low_250_450_energy": 1.0883836298052536
+          },
+          {
+            "phone_rms_dbfs": -25.2,
+            "peak_dbfs": -6.141482135947987,
+            "tail_relative_peak_db": -45.97404425730957,
+            "edge_1600_4200_energy": 2.264354865757686,
+            "seat_650_1800_energy": 5.890639464189533,
+            "low_250_450_energy": 0.8399743702489588
+          },
+          {
+            "phone_rms_dbfs": -25.2,
+            "peak_dbfs": -4.946849986199412,
+            "tail_relative_peak_db": -56.47358601214124,
+            "edge_1600_4200_energy": 2.7087678337431584,
+            "seat_650_1800_energy": 5.455780170231666,
+            "low_250_450_energy": 1.9666135642880656
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -24.600000000000005,
+            "peak_dbfs": -3.4951124027961855,
+            "tail_relative_peak_db": -56.125394963471145,
+            "edge_1600_4200_energy": 3.159279858371871,
+            "seat_650_1800_energy": 6.080684013315476,
+            "low_250_450_energy": 5.899882224421189
+          },
+          {
+            "phone_rms_dbfs": -24.599999999999987,
+            "peak_dbfs": -4.450223097287292,
+            "tail_relative_peak_db": -49.733748775513746,
+            "edge_1600_4200_energy": 2.9912607899868755,
+            "seat_650_1800_energy": 6.11886867240808,
+            "low_250_450_energy": 4.905143654718266
+          },
+          {
+            "phone_rms_dbfs": -24.600000000000016,
+            "peak_dbfs": -4.15124256445957,
+            "tail_relative_peak_db": -41.115757369656876,
+            "edge_1600_4200_energy": 3.043814626869608,
+            "seat_650_1800_energy": 6.18965878561347,
+            "low_250_450_energy": 8.866802519195854
+          }
+        ]
+      },
+      "flow": "flows/double-seat/lift-3.0.wav",
+      "rapid": "rapid/double-seat/lift-3.0.wav"
+    },
+    "double-seat@+3.5dB": {
+      "texture": "double-seat",
+      "ordinary_lift_db": 3.5,
+      "role_paths": {
+        "open": [
+          "roles/double-seat/lift-3.5/open/1.wav",
+          "roles/double-seat/lift-3.5/open/2.wav",
+          "roles/double-seat/lift-3.5/open/3.wav"
+        ],
+        "select": [
+          "roles/double-seat/lift-3.5/select/1.wav",
+          "roles/double-seat/lift-3.5/select/2.wav",
+          "roles/double-seat/lift-3.5/select/3.wav"
+        ],
+        "navigate": [
+          "roles/double-seat/lift-3.5/navigate/1.wav",
+          "roles/double-seat/lift-3.5/navigate/2.wav",
+          "roles/double-seat/lift-3.5/navigate/3.wav"
+        ],
+        "place": [
+          "roles/double-seat/lift-3.5/place/1.wav",
+          "roles/double-seat/lift-3.5/place/2.wav",
+          "roles/double-seat/lift-3.5/place/3.wav"
+        ]
+      },
+      "metrics": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.500000000000004,
+            "peak_dbfs": -7.906868148399394,
+            "tail_relative_peak_db": -42.453707527161825,
+            "edge_1600_4200_energy": 1.2557993929121045,
+            "seat_650_1800_energy": 2.777955022054327,
+            "low_250_450_energy": 0.3887122834609862
+          },
+          {
+            "phone_rms_dbfs": -26.500000000000018,
+            "peak_dbfs": -9.509801438827537,
+            "tail_relative_peak_db": -43.796642892795134,
+            "edge_1600_4200_energy": 1.143760608360322,
+            "seat_650_1800_energy": 3.079508808744897,
+            "low_250_450_energy": 0.3114978815439052
+          },
+          {
+            "phone_rms_dbfs": -26.500000000000014,
+            "peak_dbfs": -8.32502231976921,
+            "tail_relative_peak_db": -42.69637678604773,
+            "edge_1600_4200_energy": 1.321932329323653,
+            "seat_650_1800_energy": 2.9253173387035716,
+            "low_250_450_energy": 0.6258626571877712
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -25.699999999999985,
+            "peak_dbfs": -6.389560215403739,
+            "tail_relative_peak_db": -45.09639711367805,
+            "edge_1600_4200_energy": 1.7465270372751704,
+            "seat_650_1800_energy": 3.986965390779489,
+            "low_250_450_energy": 0.7021768807592258
+          },
+          {
+            "phone_rms_dbfs": -25.699999999999985,
+            "peak_dbfs": -7.869827166471049,
+            "tail_relative_peak_db": -45.38829522757047,
+            "edge_1600_4200_energy": 1.562867356270088,
+            "seat_650_1800_energy": 4.421102086637392,
+            "low_250_450_energy": 0.5630541348045601
+          },
+          {
+            "phone_rms_dbfs": -25.700000000000003,
+            "peak_dbfs": -6.7446000110462565,
+            "tail_relative_peak_db": -42.701438165752954,
+            "edge_1600_4200_energy": 1.7860343124005496,
+            "seat_650_1800_energy": 4.057032885576467,
+            "low_250_450_energy": 1.3092403163509847
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -24.699999999999996,
+            "peak_dbfs": -4.352485300617962,
+            "tail_relative_peak_db": -48.16026904188627,
+            "edge_1600_4200_energy": 2.860259941517839,
+            "seat_650_1800_energy": 6.056451270373738,
+            "low_250_450_energy": 1.2211865180016537
+          },
+          {
+            "phone_rms_dbfs": -24.699999999999996,
+            "peak_dbfs": -5.641482135947985,
+            "tail_relative_peak_db": -45.97404425730957,
+            "edge_1600_4200_energy": 2.5406479464685683,
+            "seat_650_1800_energy": 6.609406186460078,
+            "low_250_450_energy": 0.9424667445599916
+          },
+          {
+            "phone_rms_dbfs": -24.700000000000003,
+            "peak_dbfs": -4.4468499861994095,
+            "tail_relative_peak_db": -56.47358601214124,
+            "edge_1600_4200_energy": 3.0392874978793767,
+            "seat_650_1800_energy": 6.1214860336146275,
+            "low_250_450_energy": 2.206576711611781
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -24.10000000000001,
+            "peak_dbfs": -2.9951124027961873,
+            "tail_relative_peak_db": -56.125394963471145,
+            "edge_1600_4200_energy": 3.5447703033977342,
+            "seat_650_1800_energy": 6.822639677718904,
+            "low_250_450_energy": 6.6197767340087115
+          },
+          {
+            "phone_rms_dbfs": -24.099999999999984,
+            "peak_dbfs": -3.9502230972872914,
+            "tail_relative_peak_db": -49.733748775513746,
+            "edge_1600_4200_energy": 3.3562498079951455,
+            "seat_650_1800_energy": 6.86548356989203,
+            "low_250_450_energy": 5.503661701596078
+          },
+          {
+            "phone_rms_dbfs": -24.100000000000005,
+            "peak_dbfs": -3.651242564459571,
+            "tail_relative_peak_db": -41.115757369656876,
+            "edge_1600_4200_energy": 3.4152161828219447,
+            "seat_650_1800_energy": 6.944911383290591,
+            "low_250_450_energy": 9.94871605718898
+          }
+        ]
+      },
+      "flow": "flows/double-seat/lift-3.5.wav",
+      "rapid": "rapid/double-seat/lift-3.5.wav"
+    }
+  },
+  "qc": {
+    "device_profiles": [
+      "small-phone-highpass",
+      "mid-forward-phone",
+      "presence-notch-phone"
+    ],
+    "rule": "profiles are analysis-only guards; no production candidate is EQ-matched to one handset"
+  },
+  "generated_audio_sha256": {
+    "flows/double-seat/lift-2.0.wav": "8d592994dc2cb8442c813f179965a5bddb2658d2f29f1324ea1b79595dcf0a9f",
+    "flows/double-seat/lift-3.0.wav": "6159cb2540fd01b9857132888717bca8e3012f78619a4bb9e6c4dda010ad4e4d",
+    "flows/double-seat/lift-3.5.wav": "7e1315edcc8bdc823472e6ef6c6a2211cf118f1b5f4482357503c0dd2d93de0d",
+    "flows/ledger-edge/lift-2.0.wav": "6b1764e07990bb5cdaaab04e7cccd0363a34d4d6a6cfa3c848a709ceabc515d3",
+    "flows/ledger-edge/lift-3.0.wav": "425a02228baf4f526d00864ac8911f8f5c51f9319fab79ab481ed4830ed7d432",
+    "flows/ledger-edge/lift-3.5.wav": "1655209c002c4cb334c47e2b21591f4a0e5fdb5e66bdeb1ad9ec28bfc6005ccb",
+    "locked/accepted-select-2.wav": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+    "locked/answered-detent-natural.wav": "5b0d7e3ecd7399638ded807e1d4c2500320762a1d38fd611b212b0c8fc336ea6",
+    "locked/completion-composite.wav": "223907b95cd6b612ce5de11c7bed263473eaf7c51611bc8f7f1627a100437a47",
+    "rapid/double-seat/lift-2.0.wav": "1df48307df708cf5912a2d6485244e5eb3ebc97a61e29969758ad85a4a73dc13",
+    "rapid/double-seat/lift-3.0.wav": "cffcdd3729c13924c561f97bbf27a1932c014efc220756bbb9dc4c51d12b9b9c",
+    "rapid/double-seat/lift-3.5.wav": "8c2781d4510eaf1779f9590a0e689122bf6316365688b6ba3c281cc7bbd74671",
+    "rapid/ledger-edge/lift-2.0.wav": "e71c7a86c3d54599b0bed4d538724bcff41a631cf6b046470eb3b8e0cb2f3750",
+    "rapid/ledger-edge/lift-3.0.wav": "ab2b02269f97ccc5a4c5bb1677a24482755f6a1a844f22d3bd86e6ba2b044b5d",
+    "rapid/ledger-edge/lift-3.5.wav": "f0b0fb07d6e026054b37718c2e80208c8b101faa630aa8df5981fe8e8b241cec",
+    "roles/double-seat/lift-2.0/navigate/1.wav": "c6fc3a75420e731c3029baf1bc19b3c8ce93ab666784df316686d71f6701ddf3",
+    "roles/double-seat/lift-2.0/navigate/2.wav": "c2493ddd23d2dd997f462f8fcff382a31bb81f58ee5b1653c2bb6c901200caa3",
+    "roles/double-seat/lift-2.0/navigate/3.wav": "ab62c997c7b447a549f7187adaf9fb0410b67e89177fb57533651efa4acc317f",
+    "roles/double-seat/lift-2.0/open/1.wav": "a788e10a124486817c8b86587cbe3e5288228b37e02f9423c477f28cd23d1913",
+    "roles/double-seat/lift-2.0/open/2.wav": "cbf4d0866d73f31c9426ceaef600365de29be9f67f62cb390fc2556ce3300811",
+    "roles/double-seat/lift-2.0/open/3.wav": "71a8ef5f3522ef3a5f3c37d9459402b125e4719695df2b1e019491c8599be2f8",
+    "roles/double-seat/lift-2.0/place/1.wav": "cba6e9b3c7f16e3cf65f0ace8ea55ba1e8f9e2b729f2efbff778c33257c73eff",
+    "roles/double-seat/lift-2.0/place/2.wav": "f3099d74308774da09ff086b4969b43003da2aac7b4e0762e220c460ef55ddfb",
+    "roles/double-seat/lift-2.0/place/3.wav": "608b098b889f8c0df08309c3193d7db4c5d219b0f38b4156f2f67b7517e347e0",
+    "roles/double-seat/lift-2.0/select/1.wav": "698a618f0c780c847314abfcae713100abf741dfbfa2ff75a0b882d9441209f7",
+    "roles/double-seat/lift-2.0/select/2.wav": "6ea64a14bc7b126d7511f7cabc4f1e6295052bc80091ba9365820019493f455d",
+    "roles/double-seat/lift-2.0/select/3.wav": "b9119f4a1fc5926539b07c98cefdb9025a3b52c009f01429e2570917c84f00b9",
+    "roles/double-seat/lift-3.0/navigate/1.wav": "0909133a087a75539dc1b0f89af0fbf06e4c7a7c12e29e5e37b696a7952b6076",
+    "roles/double-seat/lift-3.0/navigate/2.wav": "71f604da1a5d086f5d42bf0b7860631c6e0b4b6db8b1c1843dfc6b31a3281a70",
+    "roles/double-seat/lift-3.0/navigate/3.wav": "f310b1f92db02022925ea1c885e440a62ecf684d193aff315eb0be58a3ac833a",
+    "roles/double-seat/lift-3.0/open/1.wav": "baa55fe8c914c03bd58cfde86b27a9d0a9955f21d13cb8bf04de189802d21915",
+    "roles/double-seat/lift-3.0/open/2.wav": "604196de517544d39a7533b74474e01c2ea85347a501e3e238c15bc55d408b16",
+    "roles/double-seat/lift-3.0/open/3.wav": "ac74594b7b02474be93d146b1798cdde4651aef99ecb27e65847c5cf6a1ba01e",
+    "roles/double-seat/lift-3.0/place/1.wav": "4e820090840880563b252bd7b5f3c092b73dbecb78b78b33051a9099c3ef68b3",
+    "roles/double-seat/lift-3.0/place/2.wav": "430f3dfcb821face3178845b7bb7baeba111e76d3e8e73d927e84e6d6400eb62",
+    "roles/double-seat/lift-3.0/place/3.wav": "66b1f42bdb787ed5a905a43fe8b50bec54686852e2a7dd51098eb56a5b86efc9",
+    "roles/double-seat/lift-3.0/select/1.wav": "9d80b6292007f948c3de213b82c33ba5019325a2d609197bfbf2017fbada3663",
+    "roles/double-seat/lift-3.0/select/2.wav": "9163f19128d093ea7dc77ae49649806218f18d4332c5c58a0cca4d4504915f79",
+    "roles/double-seat/lift-3.0/select/3.wav": "939ace07bbcac7e8993f37f71bdfe8b7c3b373befdd5704b1d457479bea935de",
+    "roles/double-seat/lift-3.5/navigate/1.wav": "8015b6e6059c047bc4560557f0944c6112d6fe7ec59428d70f6d08f8090680e0",
+    "roles/double-seat/lift-3.5/navigate/2.wav": "6ffae61b46e4d66f587dcc606172bae1894b5c7e098fa824463c2cabbead3730",
+    "roles/double-seat/lift-3.5/navigate/3.wav": "ec76ee271f16c15c5eb4af5342b7b1b393d6b1aacbf6baf998d805222d8521ae",
+    "roles/double-seat/lift-3.5/open/1.wav": "fb71ff908b081622abc608ee565129e61cb44c6a438cd18662f4e8473096d085",
+    "roles/double-seat/lift-3.5/open/2.wav": "5346907f45102ff52f02866b01938d3827d491806e15120331225b18bcee3391",
+    "roles/double-seat/lift-3.5/open/3.wav": "0b7dee4fb09ec31a73b3cca779204915c4dee6d8704eb0f3761274d92d928c6d",
+    "roles/double-seat/lift-3.5/place/1.wav": "8873616816e4cd57a72d6197e26fc02b117816a341477c8be8b57ea7c47e66d2",
+    "roles/double-seat/lift-3.5/place/2.wav": "8d65bbe36a017e0359e544f35c4abc0ae784038e57a669fd4e99de0c00b4d3f8",
+    "roles/double-seat/lift-3.5/place/3.wav": "53e2f516c2c5bb71cf918f47fa1eb41f1a64ae55fd56d718d484c45ac0c38ccc",
+    "roles/double-seat/lift-3.5/select/1.wav": "10830d8320936f8c7d06a5107e2deef373f3a700183ad0d5a674c36b3c14ac3e",
+    "roles/double-seat/lift-3.5/select/2.wav": "6eb36fb17d8dbea2b010c5a850643270f8fbdf01f40a2309355264180a12cd63",
+    "roles/double-seat/lift-3.5/select/3.wav": "e33eaa5c1ded08a4ced0e4ba04efc543b6c2b515d35dae350a890d53c68cce05",
+    "roles/ledger-edge/lift-2.0/navigate/1.wav": "ef62d79851f33a40302b05b48b84f6344d7b6def2412fa63ed8df3c269828035",
+    "roles/ledger-edge/lift-2.0/navigate/2.wav": "2d00b511466224e10666ddc471a7dccd3d4c83561658ea5a809c8609bb92132c",
+    "roles/ledger-edge/lift-2.0/navigate/3.wav": "96c5053bc66c91f1371e156b9d38ea1f427a3cc1420e488b331c4357f40d6088",
+    "roles/ledger-edge/lift-2.0/open/1.wav": "02099b98938808901c36b881676a5580843abc1f2d3771d3402b46b6880f3bb0",
+    "roles/ledger-edge/lift-2.0/open/2.wav": "76bdc7896ec4d25a9fdefa3e422e4db64dc797df481767c408aa2a28111f28c2",
+    "roles/ledger-edge/lift-2.0/open/3.wav": "8367eba2902c63fc99d854f811aceadcd82ab967bc7c491dd85d0c746aa89949",
+    "roles/ledger-edge/lift-2.0/place/1.wav": "ec5836a7e18124ae5f8e543703f662eb65abcd926eeae45a9e12ee46232a7c07",
+    "roles/ledger-edge/lift-2.0/place/2.wav": "eed0eb7540437f7272137284c1c20c5270ff014afcfb7b1e8055aae987399393",
+    "roles/ledger-edge/lift-2.0/place/3.wav": "1904352d2b96c316790f0ce5c5e238b7d591f247ffaa5cf065ed8c670d672280",
+    "roles/ledger-edge/lift-2.0/select/1.wav": "4bcf908452ee5bf5ff10eaa2555dc814c1dc80c25f65ad3002001097ad005f2e",
+    "roles/ledger-edge/lift-2.0/select/2.wav": "23d97235d65d5697f9217f27e7358a69c53cdfccbe8b3085a2d70ad3de672910",
+    "roles/ledger-edge/lift-2.0/select/3.wav": "fcd0a8e00344832ecc83223c3fbdb2a7fbf46839124118915e240139e51f73f7",
+    "roles/ledger-edge/lift-3.0/navigate/1.wav": "cd417e22cabcc112761fd9602641f883f0f2acde3d01268c03d6b3ed017036f9",
+    "roles/ledger-edge/lift-3.0/navigate/2.wav": "0a6f38cd5713bc26c9314dd14c6e40cb0adf5c322c0930b3644c1fd8e703d7b3",
+    "roles/ledger-edge/lift-3.0/navigate/3.wav": "75970cfa078ad84ecbcd6e2af3cffc492042addd8f48eebd65d9d8a22977d929",
+    "roles/ledger-edge/lift-3.0/open/1.wav": "8d3b871e47dc9a7fb78e35c3e42c872b2871af11efe7a141f7a061189c85bd04",
+    "roles/ledger-edge/lift-3.0/open/2.wav": "f10161f93baf93b676bf4e7592ac8ed7cee4aad98fc5f28672d3749b252c7f5f",
+    "roles/ledger-edge/lift-3.0/open/3.wav": "dc5418c4f10bd0232c9980e873a1f9fa2309c7c60e03720d2e0de9f1b29ef70d",
+    "roles/ledger-edge/lift-3.0/place/1.wav": "a3e4a7743377b8b76ef4024708f273f0f7e2c0b3d2fddd2648572882f6cec675",
+    "roles/ledger-edge/lift-3.0/place/2.wav": "977974fc6ea2fbdd4a21780915fda439841c2e9d7df3b54790d576fb5a24ad8d",
+    "roles/ledger-edge/lift-3.0/place/3.wav": "56d5cbb175fff21c4d994343f53362176340e4e1374e333becc1de49ce1b5f6c",
+    "roles/ledger-edge/lift-3.0/select/1.wav": "689309b70785b6f8e5f2bfff0b499f90cc97804e73218d19be21a237be61aaa8",
+    "roles/ledger-edge/lift-3.0/select/2.wav": "c1b90df1118054773c60070e11439f794bea03076f9bc7b284b82f482abe52e4",
+    "roles/ledger-edge/lift-3.0/select/3.wav": "1fe12cf8ad9c24da81eb54c8209fdb71d256b9a5cdb58c2aa71bbee80cfe3181",
+    "roles/ledger-edge/lift-3.5/navigate/1.wav": "df84a4809d70403a64eb1366114dcf165bf7468037105ba47f9252d8f92392d8",
+    "roles/ledger-edge/lift-3.5/navigate/2.wav": "963c1d0ed22b58f7e925e5c6b1a0221b2c0823fc5327ed51f6266e55e6e5a80d",
+    "roles/ledger-edge/lift-3.5/navigate/3.wav": "5b8cd90727fe033acb7247ad027287522747b39b9890985e35bb64c725d94071",
+    "roles/ledger-edge/lift-3.5/open/1.wav": "61b92f736de51085b3de33dc8e0b21f290df2931c1ffa90a8fb49a65c497b2a3",
+    "roles/ledger-edge/lift-3.5/open/2.wav": "fda241446de0b81ce10501eb4bf8111617c73b1d7d877596022f0339c9e4c3f3",
+    "roles/ledger-edge/lift-3.5/open/3.wav": "8a8fec645d96940f9b56a3c2e76cbd093a7e0e0e95ba9fdbe24bab2966c704f8",
+    "roles/ledger-edge/lift-3.5/place/1.wav": "95f01780701946211908a696a535a3a13d2760b9be9c3f3831e929ca4d645777",
+    "roles/ledger-edge/lift-3.5/place/2.wav": "a48e8fcc51300aa997912af401b501077e6857f45b3ee66ce1c2b48e0a61fb50",
+    "roles/ledger-edge/lift-3.5/place/3.wav": "54645af97110b5d4e57bc87e9383912464ecdad898a4a0208eb90e4c7a503596",
+    "roles/ledger-edge/lift-3.5/select/1.wav": "b5e542824ca0755cfca23b947911eb3c4c948b7dceaace5ebe8c349b75a17951",
+    "roles/ledger-edge/lift-3.5/select/2.wav": "349c80ca952d5adfa4310fae7f1f4fceceffb801f80bbe1d0191bf6712d69803",
+    "roles/ledger-edge/lift-3.5/select/3.wav": "551984ca98e572cc3d02c67bfc9cfb0d7ebe536e50164c61744e2242c2433043"
+  }
+}

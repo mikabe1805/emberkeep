@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17100d">
+  <link rel="icon" href="data:,">
+  <title>Room of Days · phone sound gate</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f5ead9;
+      --muted: #cbb9a2;
+      --honey: #e4b971;
+      --line: rgba(235, 193, 126, .25);
+      --panel: rgba(61, 42, 32, .72);
+      --panel-deep: rgba(28, 18, 15, .94);
+      --shadow: rgba(4, 2, 2, .48);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 78% 5%, rgba(203, 134, 65, .16), transparent 34%),
+        radial-gradient(circle at 15% 72%, rgba(94, 72, 52, .18), transparent 38%),
+        linear-gradient(155deg, #261913, #120c0a 72%);
+    }
+    main {
+      width: min(100%, 580px);
+      margin: 0 auto;
+      padding: max(28px, env(safe-area-inset-top)) 18px max(32px, env(safe-area-inset-bottom));
+    }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--honey);
+      font-size: .75rem;
+      font-weight: 750;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      max-width: 12ch;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.15rem, 10vw, 3.6rem);
+      font-weight: 500;
+      line-height: .98;
+      letter-spacing: -.035em;
+    }
+    .lede {
+      margin: 18px 0 24px;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.55;
+    }
+    .card {
+      margin-top: 14px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 19px;
+      background: linear-gradient(145deg, rgba(80, 53, 38, .74), var(--panel-deep));
+      box-shadow: 0 18px 42px var(--shadow), inset 0 1px rgba(255, 232, 195, .07);
+    }
+    .step {
+      margin: 0 0 7px;
+      color: var(--honey);
+      font-size: .72rem;
+      font-weight: 750;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    h2 { margin: 0; font-size: 1.2rem; font-weight: 650; }
+    .card p { margin: 8px 0 15px; color: var(--muted); line-height: 1.45; }
+    button, textarea {
+      width: 100%;
+      font: inherit;
+      color: var(--ink);
+    }
+    button {
+      min-height: 54px;
+      padding: 12px 15px;
+      border: 1px solid rgba(236, 194, 126, .34);
+      border-radius: 14px;
+      background: linear-gradient(#795532, #4c321f);
+      box-shadow: 0 4px 0 #24150f, inset 0 1px rgba(255, 240, 208, .16);
+      font-weight: 720;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    button:active { transform: translateY(3px); box-shadow: 0 1px 0 #24150f; }
+    button:disabled { cursor: wait; opacity: .5; transform: none; }
+    button.secondary { margin-top: 10px; background: rgba(31, 20, 16, .72); }
+    button.choice { margin-top: 9px; text-align: left; background: rgba(38, 25, 20, .84); }
+    button.choice[aria-checked="true"] {
+      border-color: var(--honey);
+      background: rgba(104, 71, 41, .72);
+    }
+    .route-check {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 11px;
+      align-items: start;
+      margin: 0 0 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--muted);
+      background: rgba(31, 20, 16, .62);
+      line-height: 1.4;
+    }
+    .route-check input { width: 22px; height: 22px; margin: 0; accent-color: #b78343; }
+    textarea {
+      min-height: 104px;
+      margin-top: 12px;
+      padding: 13px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(13, 8, 7, .7);
+      line-height: 1.45;
+    }
+    .status { min-height: 1.5em; margin: 16px 3px 0; color: var(--muted); font-size: .9rem; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 3px solid rgba(244, 190, 100, .72); outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Physical speaker gate</p>
+    <h1>Does the Room hold up on your phone?</h1>
+    <p class="lede">Use your normal phone volume, not maximum. This is the exact family and Answered detent ending that won on desktop. No identities or alternatives are being tested now.</p>
+
+    <label class="route-check">
+      <input id="route-confirm" type="checkbox">
+      <span>I’m listening through this phone’s built-in speaker, not headphones, Bluetooth, or a computer.</span>
+    </label>
+    <button id="start" type="button" disabled>Start phone check</button>
+
+    <section id="test" hidden>
+      <div class="card">
+        <p class="step">1 · the whole room</p>
+        <h2>Listen to the complete interaction flow</h2>
+        <p>Page movement, opening, small choices, placement, then one earned completion.</p>
+        <button id="flow" type="button">Play full Room flow</button>
+      </div>
+
+      <div class="card">
+        <p class="step">2 · the earned moment</p>
+        <h2>Listen to the composed completion</h2>
+        <p>The accepted-state contact speaks first. Answered detent begins 75 ms later.</p>
+        <button id="ending" type="button">Play quest completion</button>
+        <button id="reward" class="secondary" type="button">Diagnostic: reward alone</button>
+      </div>
+
+      <div class="card" id="verdict-card">
+        <p class="step">3 · verdict</p>
+        <h2>At a normal phone volume, does it still feel like Room of Days?</h2>
+        <p>Choose only after hearing both the full flow and the completion at least once.</p>
+        <div role="radiogroup" aria-label="Phone speaker verdict">
+          <button class="choice" data-verdict="pass" type="button" role="radio" aria-checked="false" disabled>Yes — this holds up</button>
+          <button class="choice" data-verdict="almost" type="button" role="radio" aria-checked="false" disabled>Almost — something still catches me</button>
+          <button class="choice" data-verdict="fail" type="button" role="radio" aria-checked="false" disabled>No — it loses the feeling</button>
+        </div>
+        <textarea id="reason" placeholder="what specifically sounds right or wrong?" aria-label="Reason for your phone verdict"></textarea>
+        <button id="copy" class="secondary" type="button" disabled>Copy phone result</button>
+        <textarea id="result-output" hidden readonly aria-label="Phone result JSON"></textarea>
+      </div>
+    </section>
+
+    <p class="status" id="status" role="status" aria-live="polite">Confirm the built-in phone speaker before starting.</p>
+  </main>
+
+  <script>
+    const files = {
+      flow: 'flows/answered-detent/natural.wav',
+      ending: 'composites/answered-detent/natural.wav',
+      reward: 'rewards/answered-detent/natural.wav'
+    };
+    const state = {
+      context: null,
+      buffers: new Map(),
+      active: null,
+      heard: { flow: false, ending: false },
+      verdict: null,
+      events: []
+    };
+    const start = document.querySelector('#start');
+    const routeConfirm = document.querySelector('#route-confirm');
+    const test = document.querySelector('#test');
+    const status = document.querySelector('#status');
+    const copy = document.querySelector('#copy');
+    const choices = [...document.querySelectorAll('[data-verdict]')];
+
+    function record(type, detail = {}) {
+      state.events.push({ type, at: new Date().toISOString(), ...detail });
+    }
+
+    async function load(key, path) {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+      state.buffers.set(key, await state.context.decodeAudioData(await response.arrayBuffer()));
+    }
+
+    function stopActive() {
+      if (!state.active) return;
+      const voice = state.active;
+      state.active = null;
+      voice.interrupted = true;
+      voice.source.onended = null;
+      voice.button.disabled = false;
+      try { voice.source.stop(); } catch (_) {}
+      record('interrupted', { key: voice.key });
+    }
+
+    function unlockVerdict() {
+      const ready = state.heard.flow && state.heard.ending;
+      choices.forEach(button => button.disabled = !ready);
+      if (ready && !state.verdict) status.textContent = 'Both required listens are complete. Choose your phone verdict.';
+    }
+
+    async function play(key, button) {
+      const buffer = state.buffers.get(key);
+      if (!buffer) return;
+      try {
+        await state.context.resume();
+        if (state.context.state !== 'running') throw new Error('audio remained suspended');
+      } catch (error) {
+        record('play_error', { key, message: error.message });
+        status.textContent = 'Sound could not resume. Check your phone audio, then tap the sound button again.';
+        return;
+      }
+      stopActive();
+      const source = state.context.createBufferSource();
+      const voice = { source, key, button, interrupted: false };
+      source.buffer = buffer;
+      source.connect(state.context.destination);
+      source.onended = () => {
+        if (voice.interrupted) return;
+        if (state.active === voice) state.active = null;
+        if (key === 'flow' || key === 'ending') state.heard[key] = true;
+        button.disabled = false;
+        record('natural_end', { key });
+        if (key === 'flow' && !state.heard.ending) status.textContent = 'Full flow heard. Next, play the quest completion.';
+        if (key === 'ending' && !state.heard.flow) status.textContent = 'Completion heard. Listen to the full Room flow before deciding.';
+        if (key === 'reward') status.textContent = 'Reward diagnostic heard. The composed completion remains the approval unit.';
+        unlockVerdict();
+      };
+      state.active = voice;
+      button.disabled = true;
+      source.start();
+      record('play', { key });
+      status.textContent = key === 'flow' ? 'Playing the full Room flow.' : key === 'ending' ? 'Playing the composed completion.' : 'Playing the reward alone for diagnosis.';
+    }
+
+    routeConfirm.addEventListener('change', () => {
+      start.disabled = !routeConfirm.checked;
+      status.textContent = routeConfirm.checked
+        ? 'Phone speaker confirmed. Start when ready.'
+        : 'Confirm the built-in phone speaker before starting.';
+    });
+
+    start.addEventListener('click', async () => {
+      if (!routeConfirm.checked) return;
+      start.disabled = true;
+      status.textContent = 'Warming the three approved renders…';
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) throw new Error('Web Audio is unavailable in this browser');
+        state.context = new AudioContextClass();
+        await state.context.resume();
+        await Promise.all(Object.entries(files).map(([key, path]) => load(key, path)));
+        const warm = state.context.createBuffer(1, 1, state.context.sampleRate);
+        const source = state.context.createBufferSource();
+        source.buffer = warm;
+        source.connect(state.context.destination);
+        source.start();
+        test.hidden = false;
+        start.hidden = true;
+        status.textContent = 'Ready. Begin with the full Room flow.';
+        record('start', { userAgent: navigator.userAgent, routeConfirmed: true });
+        document.querySelector('#flow').focus();
+      } catch (error) {
+        try { await state.context?.close(); } catch (_) {}
+        state.context = null;
+        state.buffers.clear();
+        start.disabled = false;
+        status.textContent = `Could not load sound: ${error.message}`;
+      }
+    });
+
+    document.querySelector('#flow').addEventListener('click', event => void play('flow', event.currentTarget));
+    document.querySelector('#ending').addEventListener('click', event => void play('ending', event.currentTarget));
+    document.querySelector('#reward').addEventListener('click', event => void play('reward', event.currentTarget));
+
+    choices.forEach(button => button.addEventListener('click', () => {
+      state.verdict = button.dataset.verdict;
+      choices.forEach(choice => choice.setAttribute('aria-checked', String(choice === button)));
+      copy.disabled = false;
+      record('verdict', { verdict: state.verdict });
+      status.textContent = 'Phone verdict selected. Add any useful detail, then copy the result.';
+    }));
+
+    copy.addEventListener('click', async () => {
+      const result = {
+        study: 'room-sonic-phone-gate-v1',
+        candidate: 'answered-detent',
+        output_route: routeConfirm.checked ? 'physical-phone-built-in-speaker' : 'unconfirmed',
+        route_attestation: routeConfirm.checked,
+        verdict: state.verdict,
+        reason: document.querySelector('#reason').value,
+        heard: state.heard,
+        user_agent: navigator.userAgent,
+        events: state.events
+      };
+      const payload = JSON.stringify(result, null, 2);
+      let copied = false;
+      try {
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(payload);
+          copied = true;
+        }
+      } catch (_) {}
+      if (!copied) {
+        const output = document.querySelector('#result-output');
+        output.hidden = false;
+        output.value = payload;
+        output.focus();
+        output.select();
+        try { copied = document.execCommand('copy'); } catch (_) {}
+      }
+      status.textContent = copied
+        ? 'Phone result copied.'
+        : 'Your result is selected below. Long-press it and choose Copy.';
+    });
+  </script>
+</body>
+</html>

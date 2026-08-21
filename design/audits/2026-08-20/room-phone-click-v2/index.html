@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17100d">
+  <link rel="icon" href="data:,">
+  <title>Room of Days · everyday sound phone study</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f5ead9;
+      --muted: #cbb9a2;
+      --honey: #e4b971;
+      --line: rgba(235, 193, 126, .25);
+      --panel: rgba(61, 42, 32, .72);
+      --deep: rgba(28, 18, 15, .94);
+      --shadow: rgba(4, 2, 2, .48);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      min-height: 100dvh;
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 78% 5%, rgba(203, 134, 65, .16), transparent 34%),
+        radial-gradient(circle at 15% 72%, rgba(94, 72, 52, .18), transparent 38%),
+        linear-gradient(155deg, #261913, #120c0a 72%);
+    }
+    main {
+      width: min(100%, 620px);
+      margin: 0 auto;
+      padding: max(28px, env(safe-area-inset-top)) 18px max(36px, env(safe-area-inset-bottom));
+    }
+    .eyebrow, .step {
+      margin: 0 0 9px;
+      color: var(--honey);
+      font-size: .73rem;
+      font-weight: 760;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0;
+      max-width: 13ch;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.1rem, 10vw, 3.7rem);
+      font-weight: 500;
+      line-height: .98;
+      letter-spacing: -.035em;
+    }
+    h2 { margin: 0; font-size: 1.22rem; font-weight: 680; }
+    h3 { margin: 0 0 10px; font-size: 1rem; }
+    .lede, .card p { color: var(--muted); line-height: 1.5; }
+    .lede { margin: 18px 0 24px; }
+    .card {
+      margin-top: 15px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 19px;
+      background: linear-gradient(145deg, var(--panel), var(--deep));
+      box-shadow: 0 18px 42px var(--shadow), inset 0 1px rgba(255, 232, 195, .07);
+    }
+    .card p { margin: 8px 0 15px; }
+    .setup {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: 11px;
+      align-items: start;
+      margin: 10px 0;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--muted);
+      background: rgba(31, 20, 16, .62);
+      line-height: 1.4;
+    }
+    .setup input { width: 22px; height: 22px; margin: 0; accent-color: #b78343; }
+    label.field { display: block; margin: 13px 0; color: var(--muted); font-size: .92rem; }
+    input[type="text"], select, textarea {
+      width: 100%;
+      margin-top: 7px;
+      padding: 12px 13px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      color: var(--ink);
+      background: rgba(13, 8, 7, .72);
+      font: inherit;
+    }
+    textarea { min-height: 104px; resize: vertical; line-height: 1.45; }
+    button {
+      width: 100%;
+      min-height: 54px;
+      padding: 12px 15px;
+      border: 1px solid rgba(236, 194, 126, .34);
+      border-radius: 14px;
+      color: var(--ink);
+      background: linear-gradient(#795532, #4c321f);
+      box-shadow: 0 4px 0 #24150f, inset 0 1px rgba(255, 240, 208, .16);
+      font: inherit;
+      font-weight: 720;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    button + button { margin-top: 9px; }
+    button:active { transform: translateY(3px); box-shadow: 0 1px 0 #24150f; }
+    button:disabled { cursor: wait; opacity: .48; transform: none; }
+    button.secondary, button.choice { background: rgba(34, 22, 18, .84); }
+    button.choice { text-align: left; }
+    .pair { display: grid; gap: 12px; margin: 13px 0 18px; }
+    .candidate {
+      padding: 14px;
+      border: 1px solid rgba(235, 193, 126, .18);
+      border-radius: 15px;
+      background: rgba(24, 15, 13, .52);
+    }
+    .candidate button + button { margin-top: 8px; }
+    .choice[aria-checked="true"] { border-color: var(--honey); background: rgba(104, 71, 41, .72); }
+    .hint { font-size: .88rem; }
+    .status { min-height: 1.5em; margin: 17px 3px 0; color: var(--muted); font-size: .9rem; }
+    [hidden] { display: none !important; }
+    :focus-visible { outline: 3px solid rgba(244, 190, 100, .72); outline-offset: 3px; }
+    @media (min-width: 520px) { .pair { grid-template-columns: 1fr 1fr; } }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Physical phone · focused revision</p>
+    <h1>Make the everyday Room feel good to press.</h1>
+    <p class="lede">The reward you chose is locked. This check changes only the ordinary clicks, first their texture and then their level. Use the same iPhone built-in speaker at full volume.</p>
+
+    <section id="setup" class="card">
+      <p class="step">Set up</p>
+      <h2>Keep the listening route fixed</h2>
+      <label class="setup"><input id="route" type="checkbox"><span>I’m using this phone’s built-in speaker, with Bluetooth and headphones disconnected.</span></label>
+      <label class="setup"><input id="volume" type="checkbox"><span>The phone is at full volume and its speaker openings are unobstructed.</span></label>
+      <label class="field">iPhone model, if known<input id="device" type="text" autocomplete="off" placeholder="for example, iPhone 15 Pro"></label>
+      <label class="field">Room around you<select id="noise"><option value="">Choose one</option><option value="quiet">Quiet</option><option value="normal">Normal room</option><option value="noisy">Noisy</option></select></label>
+      <button id="start" type="button" disabled>Start the phone study</button>
+    </section>
+
+    <section id="texture" class="card" hidden aria-labelledby="texture-title">
+      <p class="step">1 of 3 · texture</p>
+      <h2 id="texture-title" tabindex="-1">Which ordinary family feels better?</h2>
+      <p>Both sides have the same level, timing, note walk, and locked completion. Hear each complete flow and each fast click-around run before choosing.</p>
+      <div class="pair">
+        <div class="candidate"><h3>Family A</h3><button data-play="texture:A:flow" type="button">Play A · full flow</button><button class="secondary" data-play="texture:A:rapid" type="button">Play A · fast click-around</button></div>
+        <div class="candidate"><h3>Family B</h3><button data-play="texture:B:flow" type="button">Play B · full flow</button><button class="secondary" data-play="texture:B:rapid" type="button">Play B · fast click-around</button></div>
+      </div>
+      <div id="texture-choices" role="radiogroup" aria-label="Texture verdict">
+        <button class="choice" data-texture-choice="A" type="button" role="radio" aria-checked="false" disabled>A feels better</button>
+        <button class="choice" data-texture-choice="B" type="button" role="radio" aria-checked="false" disabled>B feels better</button>
+        <button class="choice" data-texture-choice="equal" type="button" role="radio" aria-checked="false" disabled>They feel about the same — no winner</button>
+        <button class="choice" data-texture-choice="neither" type="button" role="radio" aria-checked="false" disabled>Neither fixes it</button>
+      </div>
+    </section>
+
+    <section id="level" class="card" hidden aria-labelledby="level-title">
+      <p class="step">2 of 3 · level</p>
+      <h2 id="level-title" tabindex="-1">Which everyday level feels right?</h2>
+      <p>The chosen texture stays fixed. Only the ordinary clicks move; the completion remains at the same absolute level.</p>
+      <div class="pair">
+        <div class="candidate"><h3>Level A</h3><button data-play="level:A:flow" type="button">Play A · full flow</button><button class="secondary" data-play="level:A:rapid" type="button">Play A · fast click-around</button></div>
+        <div class="candidate"><h3>Level B</h3><button data-play="level:B:flow" type="button">Play B · full flow</button><button class="secondary" data-play="level:B:rapid" type="button">Play B · fast click-around</button></div>
+      </div>
+      <div id="level-choices" role="radiogroup" aria-label="Level verdict">
+        <button class="choice" data-level-choice="A" type="button" role="radio" aria-checked="false" disabled>A feels right</button>
+        <button class="choice" data-level-choice="B" type="button" role="radio" aria-checked="false" disabled>B feels right</button>
+        <button class="choice" data-level-choice="equal" type="button" role="radio" aria-checked="false" disabled>Split the difference</button>
+        <button class="choice" data-level-choice="neither" type="button" role="radio" aria-checked="false" disabled>Neither level feels right</button>
+      </div>
+    </section>
+
+    <section id="confirm" class="card" hidden aria-labelledby="confirm-title">
+      <p class="step">3 of 3 · confirmation</p>
+      <h2 id="confirm-title" tabindex="-1">Would you want to click around with this?</h2>
+      <p>One last clean replay of the selected texture and level. Hear both before the final verdict.</p>
+      <button data-play="confirm:flow" type="button">Play selected full flow</button>
+      <button class="secondary" data-play="confirm:rapid" type="button">Play selected fast click-around</button>
+      <div id="final-choices" role="radiogroup" aria-label="Final phone verdict" style="margin-top:16px">
+        <button class="choice" data-final-choice="ready" type="button" role="radio" aria-checked="false" disabled>Yes — this feels ready</button>
+        <button class="choice" data-final-choice="almost" type="button" role="radio" aria-checked="false" disabled>Almost — one thing still catches me</button>
+        <button class="choice" data-final-choice="no" type="button" role="radio" aria-checked="false" disabled>No — this still isn’t satisfying</button>
+      </div>
+    </section>
+
+    <section id="result" class="card" hidden aria-labelledby="result-title">
+      <p class="step">Result</p>
+      <h2 id="result-title" tabindex="-1">Tell me what your ear caught</h2>
+      <p id="result-summary">Your blind choices are recorded.</p>
+      <textarea id="reason" placeholder="what specifically felt crisp, full, too loud, too soft, or still wrong?" aria-label="Reason for the result"></textarea>
+      <button id="copy" class="secondary" type="button">Copy result</button>
+      <textarea id="output" hidden readonly aria-label="Study result JSON"></textarea>
+    </section>
+
+    <p id="status" class="status" role="status" aria-live="polite">Confirm the phone route, volume, and room before starting.</p>
+  </main>
+
+  <script>
+    const TEXTURES = ['ledger-edge', 'double-seat'];
+    const LEVELS = [2.0, 3.5];
+    const state = {
+      context: null,
+      manifest: null,
+      buffers: new Map(),
+      active: null,
+      busy: false,
+      textureMap: null,
+      levelMap: null,
+      heard: { texture: new Set(), level: new Set(), confirm: new Set() },
+      textureChoice: null,
+      selectedTexture: null,
+      levelChoice: null,
+      selectedLevel: null,
+      finalChoice: null,
+      stoppedAt: null,
+      events: []
+    };
+    const $ = selector => document.querySelector(selector);
+    const $$ = selector => [...document.querySelectorAll(selector)];
+    const status = $('#status');
+    const audioButtons = () => $$('[data-play]').filter(button => !button.closest('[hidden]') && !button.closest('[data-complete="true"]'));
+
+    function shuffle(items) {
+      const copy = [...items];
+      if (crypto.getRandomValues(new Uint32Array(1))[0] & 1) copy.reverse();
+      return copy;
+    }
+    function record(type, detail = {}) { state.events.push({ type, at: new Date().toISOString(), ...detail }); }
+    function key(texture, level, kind) { return `${texture}|${level.toFixed(1)}|${kind}`; }
+    function path(texture, level, kind) { return `${kind === 'flow' ? 'flows' : 'rapid'}/${texture}/lift-${level.toFixed(1)}.wav`; }
+    async function load(keyName, assetPath) {
+      const response = await fetch(assetPath);
+      if (!response.ok) throw new Error(`${assetPath} returned ${response.status}`);
+      state.buffers.set(keyName, await state.context.decodeAudioData(await response.arrayBuffer()));
+    }
+    function currentAsset(spec) {
+      const [phase, side, kindMaybe] = spec.split(':');
+      if (phase === 'texture') return { phase, side, kind: kindMaybe, texture: state.textureMap[side], level: 3.0 };
+      if (phase === 'level') return { phase, side, kind: kindMaybe, texture: state.selectedTexture, level: state.levelMap[side] };
+      return { phase: 'confirm', side: null, kind: side, texture: state.selectedTexture, level: state.selectedLevel };
+    }
+    function setAudioDisabled(disabled) { audioButtons().forEach(button => button.disabled = disabled); }
+    function gate(phase) {
+      const needed = phase === 'confirm' ? ['flow', 'rapid'] : ['A:flow', 'A:rapid', 'B:flow', 'B:rapid'];
+      const ready = needed.every(item => state.heard[phase].has(item));
+      const selector = phase === 'texture' ? '[data-texture-choice]' : phase === 'level' ? '[data-level-choice]' : '[data-final-choice]';
+      $$(selector).forEach(button => button.disabled = !ready || state.busy);
+      if (ready && !state.busy) status.textContent = phase === 'confirm' ? 'Both confirmation listens are complete. Choose the final verdict.' : `Both ${phase} families are complete. Choose only on feel.`;
+    }
+    function stopActive(interrupted = true) {
+      if (!state.active) return;
+      const voice = state.active;
+      state.active = null;
+      voice.interrupted = interrupted;
+      voice.source.onended = null;
+      try { voice.source.stop(); } catch (_) {}
+      if (interrupted) record('interrupted', { phase: voice.asset.phase, side: voice.asset.side, kind: voice.asset.kind });
+    }
+    async function play(button) {
+      const asset = currentAsset(button.dataset.play);
+      const buffer = state.buffers.get(key(asset.texture, asset.level, asset.kind));
+      if (!buffer || state.busy) return;
+      try { await state.context.resume(); } catch (error) { status.textContent = `Sound could not resume: ${error.message}`; return; }
+      stopActive();
+      state.busy = true;
+      setAudioDisabled(true);
+      gate(asset.phase);
+      const source = state.context.createBufferSource();
+      const voice = { source, asset, interrupted: false };
+      source.buffer = buffer;
+      source.connect(state.context.destination);
+      source.onended = () => {
+        if (voice.interrupted) return;
+        if (state.active === voice) state.active = null;
+        state.busy = false;
+        const heardKey = asset.phase === 'confirm' ? asset.kind : `${asset.side}:${asset.kind}`;
+        state.heard[asset.phase].add(heardKey);
+        record('natural_end', { phase: asset.phase, side: asset.side, kind: asset.kind });
+        setAudioDisabled(false);
+        gate(asset.phase);
+      };
+      state.active = voice;
+      source.start();
+      record('play', { phase: asset.phase, side: asset.side, kind: asset.kind });
+      status.textContent = `Playing ${asset.phase} ${asset.side ? asset.side + ' ' : ''}${asset.kind}.`;
+    }
+    function moveTo(section, heading) {
+      section.hidden = false;
+      heading.focus({ preventScroll: true });
+      section.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }
+    function showResult(summary, stoppedAt = null) {
+      state.stoppedAt = stoppedAt;
+      $('#result-summary').textContent = summary;
+      moveTo($('#result'), $('#result-title'));
+      status.textContent = 'Add the detail your ear caught, then copy the result.';
+    }
+    function lockPhase(section) {
+      section.dataset.complete = 'true';
+      $$(`#${section.id} button`).forEach(button => button.disabled = true);
+    }
+
+    function setupReady() {
+      $('#start').disabled = !($('#route').checked && $('#volume').checked && $('#noise').value);
+    }
+    $('#route').addEventListener('change', setupReady);
+    $('#volume').addEventListener('change', setupReady);
+    $('#noise').addEventListener('change', setupReady);
+
+    $('#start').addEventListener('click', async () => {
+      $('#start').disabled = true;
+      status.textContent = 'Warming the Room study…';
+      try {
+        const response = await fetch('manifest.json');
+        if (!response.ok) throw new Error(`manifest returned ${response.status}`);
+        const manifest = await response.json();
+        if (manifest.study !== 'room-phone-click-v2') throw new Error('wrong study is being served');
+        state.manifest = manifest;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) throw new Error('Web Audio is unavailable');
+        state.context = new AudioContextClass();
+        await state.context.resume();
+        const tasks = [];
+        for (const texture of TEXTURES) for (const level of [2.0, 3.0, 3.5]) for (const kind of ['flow', 'rapid']) tasks.push(load(key(texture, level, kind), path(texture, level, kind)));
+        await Promise.all(tasks);
+        const warm = state.context.createBuffer(1, 1, state.context.sampleRate);
+        const source = state.context.createBufferSource();
+        source.buffer = warm;
+        source.connect(state.context.destination);
+        source.start();
+        const textureOrder = shuffle(TEXTURES);
+        const levelOrder = shuffle(LEVELS);
+        state.textureMap = { A: textureOrder[0], B: textureOrder[1] };
+        state.levelMap = { A: levelOrder[0], B: levelOrder[1] };
+        record('start', {
+          userAgent: navigator.userAgent,
+          routeConfirmed: true,
+          volumeConfirmed: true,
+          deviceModel: $('#device').value,
+          roomNoise: $('#noise').value,
+          orientation: screen.orientation?.type || (innerHeight >= innerWidth ? 'portrait' : 'landscape')
+        });
+        $('#setup').hidden = true;
+        moveTo($('#texture'), $('#texture-title'));
+        status.textContent = 'Ready. Hear all four texture plays before choosing.';
+      } catch (error) {
+        try { await state.context?.close(); } catch (_) {}
+        state.context = null;
+        state.buffers.clear();
+        $('#start').disabled = false;
+        status.textContent = `Could not load the study: ${error.message}`;
+      }
+    });
+
+    $$('[data-play]').forEach(button => button.addEventListener('click', () => void play(button)));
+    $$('[data-texture-choice]').forEach(button => button.addEventListener('click', () => {
+      state.textureChoice = button.dataset.textureChoice;
+      $$('[data-texture-choice]').forEach(choice => choice.setAttribute('aria-checked', String(choice === button)));
+      record('texture_verdict', { choice: state.textureChoice });
+      lockPhase($('#texture'));
+      if (state.textureChoice === 'neither' || state.textureChoice === 'equal') {
+        showResult(
+          state.textureChoice === 'neither'
+            ? 'Neither texture fixed the ordinary clicks. The level pass was intentionally skipped.'
+            : 'The texture pass had no winner. The level pass was intentionally skipped rather than assigning one texture arbitrarily.',
+          'texture'
+        );
+        return;
+      }
+      state.selectedTexture = state.textureMap[state.textureChoice];
+      moveTo($('#level'), $('#level-title'));
+      status.textContent = 'Texture recorded. Hear all four level plays before choosing.';
+    }));
+
+    $$('[data-level-choice]').forEach(button => button.addEventListener('click', () => {
+      state.levelChoice = button.dataset.levelChoice;
+      $$('[data-level-choice]').forEach(choice => choice.setAttribute('aria-checked', String(choice === button)));
+      record('level_verdict', { choice: state.levelChoice });
+      lockPhase($('#level'));
+      if (state.levelChoice === 'neither') {
+        showResult('Neither everyday level felt right. Confirmation was intentionally skipped.', 'level');
+        return;
+      }
+      state.selectedLevel = state.levelChoice === 'equal' ? 3.0 : state.levelMap[state.levelChoice];
+      moveTo($('#confirm'), $('#confirm-title'));
+      status.textContent = 'Texture and level are selected. Hear the final flow and click-around run.';
+    }));
+
+    $$('[data-final-choice]').forEach(button => button.addEventListener('click', () => {
+      state.finalChoice = button.dataset.finalChoice;
+      $$('[data-final-choice]').forEach(choice => choice.setAttribute('aria-checked', String(choice === button)));
+      record('final_verdict', { choice: state.finalChoice });
+      lockPhase($('#confirm'));
+      showResult('Your blind texture and level choices are complete.');
+    }));
+
+    $('#copy').addEventListener('click', async () => {
+      const payload = JSON.stringify({
+        study: 'room-phone-click-v2',
+        render_version: state.manifest?.render_contract?.render_version || 'unknown',
+        generated_audio_asset_count: Object.keys(state.manifest?.generated_audio_sha256 || {}).length,
+        output_route: 'physical-phone-built-in-speaker',
+        route_attestation: $('#route').checked,
+        volume: 'full',
+        volume_attestation: $('#volume').checked,
+        device_model: $('#device').value || 'unspecified',
+        room_noise: $('#noise').value,
+        orientation: screen.orientation?.type || (innerHeight >= innerWidth ? 'portrait' : 'landscape'),
+        locked_completion: 'accepted-select-2 + answered-detent-natural @ +75ms',
+        texture_choice: state.textureChoice,
+        selected_texture: state.selectedTexture,
+        level_choice: state.levelChoice,
+        selected_everyday_lift_db: state.selectedLevel,
+        final_verdict: state.finalChoice,
+        stopped_at: state.stoppedAt,
+        reason: $('#reason').value,
+        heard: Object.fromEntries(Object.entries(state.heard).map(([phase, values]) => [phase, [...values]])),
+        hidden_mappings: { texture: state.textureMap, level: state.levelMap },
+        user_agent: navigator.userAgent,
+        events: state.events
+      }, null, 2);
+      let copied = false;
+      try { if (navigator.clipboard) { await navigator.clipboard.writeText(payload); copied = true; } } catch (_) {}
+      if (!copied) {
+        const output = $('#output');
+        output.hidden = false;
+        output.value = payload;
+        output.focus();
+        output.select();
+        try { copied = document.execCommand('copy'); } catch (_) {}
+      }
+      status.textContent = copied ? 'Result copied.' : 'Long-press the selected result below and choose Copy.';
+    });
+  </script>
+</body>
+</html>

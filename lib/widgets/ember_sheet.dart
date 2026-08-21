@@ -620,14 +620,20 @@ class _EmberSheetState extends State<_EmberSheet> {
             selected: selected(d),
             label: _dayNames[d - 1],
             onTap: () {
-              Sfx.instance.playMaterial(MaterialSound.glass);
+              Sfx.instance.playInteraction(
+                InteractionSound.select,
+                material: MaterialSound.stone,
+              );
               onTap(d);
             },
             child: GestureDetector(
               excludeFromSemantics: true,
               behavior: HitTestBehavior.opaque,
               onTap: () {
-                Sfx.instance.playMaterial(MaterialSound.glass);
+                Sfx.instance.playInteraction(
+                  InteractionSound.select,
+                  material: MaterialSound.stone,
+                );
                 onTap(d);
               },
               child: Container(
@@ -917,7 +923,10 @@ class _FreqChips extends StatelessWidget {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
-                Sfx.instance.playMaterial(MaterialSound.glass);
+                Sfx.instance.playInteraction(
+                  InteractionSound.select,
+                  material: MaterialSound.stone,
+                );
                 onChanged(f);
               },
               child: Container(

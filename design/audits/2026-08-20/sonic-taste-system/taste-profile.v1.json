@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "status": "calibrating",
+  "active_studies": [
+    "design/audits/2026-08-20/semantic-interaction-voices-v1"
+  ],
+  "completed_studies": [
+    {
+      "id": "design/audits/2026-08-20/note-palette-study-v1",
+      "result": "no meaningful preference among A-F; note grammar is secondary to material texture"
+    },
+    {
+      "id": "design/audits/2026-08-20/stone-texture-study-v1",
+      "result": "superseded: the stone metaphor was taken too literally; target is abstract weight and satisfying interaction"
+    },
+    {
+      "id": "design/audits/2026-08-20/weighted-click-system-v1",
+      "result": "candidate C selected as the first clearly approved click direction; preserve its press-and-seat identity as the anchor"
+    },
+    {
+      "id": "design/audits/2026-08-20/click-weight-finish-v1",
+      "result": "superseded: the variants were intentionally too close and answered the wrong question; C remains approved, but the desired app variety comes from different semantic interaction voices"
+    }
+  ],
+  "identity": "modern enchanted tactility",
+  "user_evidence": [
+    {
+      "verbatim": "the sound changes notes as you keep clicking around",
+      "interpretation": "Repeated low-stakes interactions need audible scale-step variation, not only microtuning."
+    },
+    {
+      "verbatim": "crisp and satisfying and high quality",
+      "interpretation": "Keep a clean leading edge, controlled body, and silence around the event."
+    },
+    {
+      "verbatim": "there's a rhythm and it feels melodic",
+      "interpretation": "Fast related taps should form a short stateful phrase."
+    },
+    {
+      "verbatim": "kind of like they were recorded in a really old recording studio or something",
+      "interpretation": "Reject audible room, dull bandwidth, archive character, slow mechanisms, and long acoustic tails."
+    },
+    {
+      "verbatim": "hmm i like all of them i guess, none of them stand out to me as clearly better than the rest. what i care more about is the texture sound so it actually feels like youre tapping like a satisfying stone tap when interacting with the right material",
+      "interpretation": "Material credibility and tactile satisfaction outrank note-palette choice; treat pitch as secondary."
+    },
+    {
+      "verbatim": "i think youre taking stone too literally. im not looking for stone on stone sound system, more so the satisfying \"dak\" of clicking something with weight to it i guess? like it sounds like a satisfying interaction. maybe try to figure out why satisfying clicking sounds are satisfying to people and try to reverse engineer a sound system that sounds nice to click around on",
+      "interpretation": "The desired texture is an abstract weighted press-and-seat gesture, not literal material Foley. Judge the repeated interaction system by responsiveness, weight, closure, and fatigue."
+    },
+    {
+      "verbatim": "I think I like C best! you're definitely finally in the right direction so well done! If you can now do different varients with different \"weights\" or \"materials\" that would be awesome!",
+      "interpretation": "Candidate C is an approved anchor. Later clarification assigns its weighted Dak identity to navigation rather than making it the template for every app sound."
+    },
+    {
+      "verbatim": "i hardly hear a difference between the variations of C you made, and that's not what I meant. I meant if one thing sounds like dak when you click on it, like maybe the dak sound (ie C) is going to be used when switching pages, but a more \"bloop!\" sound like the current one should be for finishing quests, and then there should be another sound for button clicking (like clicking on a journal entry) that should have a lighter, shorter \"tak!\" feel, etc. help me figure this out, my instructions here aren't perfect but the core sentiment is that i like variety in the sounds made when clicking around the app, but i like when they feel polished, professional and satisfyig",
+      "interpretation": "Primary variety is semantic and gesture-level: Dak for movement, Tak for light opening/pressing, Tuk for a small accepted state, and Bloop for earned completion. Microvariants are secondary inside each recognizable role."
+    }
+  ],
+  "positive_references": [
+    "Minecraft material-dependent footsteps and controlled variation",
+    "World of Warcraft world-specific layered sound",
+    "Overwatch authored identities and mix clarity",
+    "fwoosh-c-hearth-bloom"
+  ],
+  "context_not_app_direction": [
+    "Blue Lips by Her's shows that Mika notices buildup, tension, release, and emotional nuance; it does not authorize a darker or deliberately unresolved app sound."
+  ],
+  "rejected_directions": [
+    {
+      "id": "2026-08-19-semantic-directions",
+      "reason": "Dusty, damped, literal old-studio Foley; not fresh or satisfying."
+    },
+    {
+      "id": "2026-08-19-material-tap-family",
+      "reason": "Variants are too similar in pitch and the sound quality is not fun enough."
+    },
+    {
+      "id": "2026-08-20-stone-texture-study-v1",
+      "reason": "The physical-stone framing was too literal; weight is a perceptual interaction quality, not a request for stone-on-stone Foley."
+    },
+    {
+      "id": "2026-08-20-click-weight-finish-v1",
+      "reason": "Light/settled/weighty and finish changes were too subtle and treated one Dak as the whole vocabulary. The requested diversity is between interaction meanings."
+    }
+  ],
+  "design_hypotheses": {
+    "contact_variants_per_semantic_role": [3, 5],
+    "sequence_reset_ms": [700, 900],
+    "tonal_palette_status": "secondary; six distinct grammars produced no meaningful preference, so defer selection until material texture is approved",
+    "semantic_gesture_priority": "primary; distinguish move, open, select/settle, and complete before refining sibling takes",
+    "core_contact_gesture": "approved candidate C: abstract press -> compact inharmonic body -> quiet 6 ms seat; reserve this Dak for accepted navigation and major movement",
+    "contact_microvariation": "five close variants, no immediate repeat, inharmonic body-only micro-pitch, global rapid gain attenuation",
+    "frequent_contact_total_ms": [45, 65],
+    "semantic_body_ms": [180, 650],
+    "priority": ["ceremony", "discovery", "progress", "confirmation", "contact"]
+  },
+  "preference_labels": ["a", "b", "both_bad", "no_preference"],
+  "approval_contract": {
+    "minimum_held_out_agreement": 0.8,
+    "automatic_master_promotion": false,
+    "phone_speaker_required": true,
+    "headphones_required": true,
+    "in_app_context_required": true,
+    "lossless_source_required_for_new_masters": true
+  }
+}

@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17100d">
+  <link rel="icon" href="data:,">
+  <title>Room of Days · melodic X study</title>
+  <style>
+    :root { color-scheme:dark; --ink:#f5ead9; --muted:#cbb9a2; --honey:#e4b971; --line:rgba(235,193,126,.25); --panel:rgba(61,42,32,.72); --deep:rgba(28,18,15,.94); }
+    * { box-sizing:border-box; } html { scroll-behavior:smooth; }
+    body { margin:0; min-height:100vh; min-height:100dvh; color:var(--ink); font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:radial-gradient(circle at 78% 5%,rgba(203,134,65,.16),transparent 34%),linear-gradient(155deg,#261913,#120c0a 72%); }
+    main { width:min(100%,650px); margin:auto; padding:max(28px,env(safe-area-inset-top)) 18px max(38px,env(safe-area-inset-bottom)); }
+    .eyebrow,.step { margin:0 0 9px; color:var(--honey); font-size:.73rem; font-weight:760; letter-spacing:.12em; text-transform:uppercase; }
+    h1 { margin:0; max-width:13ch; font:500 clamp(2.1rem,10vw,3.8rem)/.98 Georgia,"Times New Roman",serif; letter-spacing:-.035em; }
+    h2 { margin:0; font-size:1.22rem; } h3 { margin:0 0 8px; font-size:1rem; }
+    p { color:var(--muted); line-height:1.5; } .lede { margin:18px 0 24px; }
+    .card { margin-top:15px; padding:18px; border:1px solid var(--line); border-radius:19px; background:linear-gradient(145deg,var(--panel),var(--deep)); box-shadow:0 18px 42px rgba(4,2,2,.48),inset 0 1px rgba(255,232,195,.07); }
+    .anchor { margin:14px 0; padding:14px; border-left:3px solid rgba(228,185,113,.65); border-radius:4px 14px 14px 4px; background:rgba(20,13,11,.5); }
+    .setup { display:grid; grid-template-columns:24px 1fr; gap:11px; align-items:start; margin:10px 0; padding:13px; border:1px solid var(--line); border-radius:14px; color:var(--muted); line-height:1.4; }
+    .setup input { width:22px; height:22px; margin:0; accent-color:#b78343; }
+    label.field { display:block; margin:13px 0; color:var(--muted); font-size:.92rem; }
+    input[type=text],select,textarea { width:100%; margin-top:7px; padding:12px 13px; border:1px solid var(--line); border-radius:13px; color:var(--ink); background:rgba(13,8,7,.72); font:inherit; }
+    textarea { min-height:112px; resize:vertical; }
+    button { width:100%; min-height:52px; padding:12px 15px; border:1px solid rgba(236,194,126,.34); border-radius:14px; color:var(--ink); background:linear-gradient(#795532,#4c321f); box-shadow:0 4px 0 #24150f,inset 0 1px rgba(255,240,208,.16); font:inherit; font-weight:720; cursor:pointer; touch-action:manipulation; }
+    button+button { margin-top:9px; } button:active { transform:translateY(3px); box-shadow:0 1px 0 #24150f; }
+    button:disabled { cursor:wait; opacity:.48; transform:none; } button.secondary,.choice { background:rgba(34,22,18,.84); }
+    .choice { text-align:left; } .choice[aria-checked=true] { border-color:var(--honey); background:rgba(104,71,41,.72); }
+    .grid { display:grid; gap:12px; margin:14px 0 18px; } .candidate { padding:14px; border:1px solid rgba(235,193,126,.18); border-radius:15px; background:rgba(24,15,13,.52); }
+    .hint { font-size:.88rem; } .status { min-height:1.5em; margin:17px 3px 0; font-size:.9rem; }
+    .reveal { margin-top:14px; padding:13px; border:1px solid var(--line); border-radius:13px; color:var(--muted); line-height:1.5; }
+    [hidden] { display:none!important; } :focus-visible { outline:3px solid rgba(244,190,100,.72); outline-offset:3px; }
+    @media (min-width:540px) { .grid { grid-template-columns:repeat(2,1fr); } }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+  </style>
+</head>
+<body><main>
+  <p class="eyebrow">Physical phone · melodic X revision</p>
+  <h1>Keep the clasp. Fix the phrase.</h1>
+  <p class="lede">The X click you chose is locked: same contact, weight, clasp, 1.5 dB phone lift, and completion. Both choices add the same quiet note colors at the same level. Only the order changes as you click around.</p>
+
+  <section id="setup" class="card">
+    <p class="step">Set up</p><h2>Keep the listening route fixed</h2>
+    <p id="route-evidence" class="hint"></p>
+    <label class="setup"><input id="route" type="checkbox"><span>I’m using this phone’s built-in speaker, with headphones and Bluetooth disconnected.</span></label>
+    <label class="setup"><input id="volume" type="checkbox"><span>The phone is at full volume and the speaker openings are unobstructed.</span></label>
+    <label class="field">iPhone model, if known<input id="device" type="text" autocomplete="off" placeholder="for example, iPhone 17"></label>
+    <label class="field">Room around you<select id="noise"><option value="">Choose one</option><option value="quiet">Quiet</option><option value="normal">Normal room</option><option value="noisy">Noisy</option></select></label>
+    <button id="start" type="button" disabled>Start the melody study</button>
+  </section>
+
+  <section id="primary" class="card" hidden aria-labelledby="primary-title">
+    <p class="step">1 of 2 · phrase shape</p><h2 id="primary-title" tabindex="-1">Which makes clicking around feel naturally melodic?</h2>
+    <p>First replay plain X if you want the approved anchor. Then hear one click, the slow eight-click walk, and the same Room flow for A and B. Judge the sequence—not which one merely sounds busier.</p>
+    <div class="anchor"><h3>Plain X · fixed reference</h3><button id="anchor" class="secondary" type="button" data-audio="anchor">Play plain X once</button></div>
+    <div id="candidates" class="grid"></div>
+    <div id="primary-choices" role="radiogroup" aria-label="Melodic phrase choice">
+      <button class="choice" data-choice="A" role="radio" aria-checked="false" disabled>A feels better</button>
+      <button class="choice" data-choice="B" role="radio" aria-checked="false" disabled>B feels better</button>
+      <button class="choice" data-choice="neither" role="radio" aria-checked="false" disabled>Neither — keep plain X</button>
+    </div>
+  </section>
+
+  <section id="final" class="card" hidden aria-labelledby="final-title">
+    <p class="step">2 of 2 · fatigue and short runs</p><h2 id="final-title" tabindex="-1">Does your choice stay satisfying without turning into a little jingle?</h2>
+    <p>The pause test plays one, then two, then three taps. The rapid run deliberately quiets the musical lane after four taps so fast clicking stays tactile instead of piling up notes.</p>
+    <button data-final-play="single" type="button" data-audio="final">Play selected single click</button>
+    <button data-final-play="pause_probe" class="secondary" type="button" data-audio="final">Play selected pause test</button>
+    <button data-final-play="rapid" class="secondary" type="button" data-audio="final">Play selected rapid stress run</button>
+    <div id="final-choices" role="radiogroup" aria-label="Final phone verdict" style="margin-top:16px">
+      <button class="choice" data-final="ready" role="radio" aria-checked="false" disabled>Ready</button>
+      <button class="choice" data-final="almost" role="radio" aria-checked="false" disabled>Almost</button>
+      <button class="choice" data-final="no" role="radio" aria-checked="false" disabled>No</button>
+    </div>
+  </section>
+
+  <section id="result" class="card" hidden aria-labelledby="result-title">
+    <p class="step">Result</p><h2 id="result-title" tabindex="-1">Tell me what your ear caught</h2>
+    <p id="summary">Your listening result is recorded.</p>
+    <div id="reveal" class="reveal"></div>
+    <textarea id="reason" aria-label="Reason for the result" placeholder="what felt melodic, random, too much like a tune, or still unfinished?"></textarea>
+    <button id="copy" class="secondary" type="button">Copy result</button>
+    <textarea id="output" hidden readonly aria-label="Study result JSON"></textarea>
+  </section>
+  <p id="status" class="status" role="status" aria-live="polite">Confirm the phone route, volume, and room before starting.</p>
+</main>
+<script>
+(() => {
+  const mobileLike=/iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent)||(navigator.maxTouchPoints>1&&/Macintosh/i.test(navigator.userAgent));
+  const routeEvidence=mobileLike?'mobile-like-browser':'desktop-browser';
+  const state={ctx:null,manifest:null,buffers:new Map(),active:null,busy:false,map:{},heard:{primary:new Set(),final:new Set(),anchor:false},choice:null,selectedSide:null,selectedId:null,final:null,stoppedAt:null,events:[]};
+  const $=selector=>document.querySelector(selector), $$=selector=>[...document.querySelectorAll(selector)], status=$('#status');
+  $('#route-evidence').textContent=mobileLike?'This looks like a phone or tablet browser. The speaker route is still your self-attestation.':'This looks like a computer. You can preview here, but this run cannot pass the physical-phone gate; open the link on the phone for that.';
+  const rec=(type,detail={})=>state.events.push({type,at:new Date().toISOString(),...detail});
+  const key=(side,kind)=>`${side}:${kind}`;
+  const sides=()=>Object.keys(state.map);
+  function setAudioButtons(disabled){$$('[data-audio],[data-primary]').forEach(button=>button.disabled=disabled||Boolean(button.closest('[data-complete="true"]')));}
+  function stop(){if(!state.active)return;const voice=state.active;state.active=null;voice.interrupted=true;voice.source.onended=null;try{voice.source.stop();}catch(_){}rec('interrupted',{phase:voice.phase,side:voice.side,kind:voice.kind});}
+  function primaryReady(){return sides().every(side=>['single','phrase','flow'].every(kind=>state.heard.primary.has(key(side,kind))));}
+  function finalReady(){return ['single','pause_probe','rapid'].every(kind=>state.heard.final.has(kind));}
+  function gate(){const primary=primaryReady();$$('[data-choice]').forEach(button=>button.disabled=!primary||state.busy||$('#primary').dataset.complete==='true');$$('[data-final]').forEach(button=>button.disabled=!finalReady()||state.busy||$('#final').dataset.complete==='true');if(primary&&!state.busy&&$('#primary').dataset.complete!=='true')status.textContent='Both phrases have a complete single, slow walk, and Room-flow listen. Choose by musical feel.';if(finalReady()&&!state.busy&&$('#final').dataset.complete!=='true')status.textContent='All confirmation listens finished naturally. Choose the final verdict.';}
+  async function playBuffer(bufferKey,phase,side,kind){const buffer=state.buffers.get(bufferKey);if(!buffer||state.busy)return;try{if(state.ctx.state!=='running')await state.ctx.resume();}catch(error){status.textContent=`Sound could not resume: ${error.message}`;return;}stop();state.busy=true;setAudioButtons(true);gate();const source=state.ctx.createBufferSource();const voice={source,phase,side,kind,interrupted:false};source.buffer=buffer;source.connect(state.ctx.destination);source.onended=()=>{if(voice.interrupted)return;if(state.active===voice)state.active=null;state.busy=false;if(phase==='primary')state.heard.primary.add(key(side,kind));else if(phase==='final')state.heard.final.add(kind);else state.heard.anchor=true;rec('natural_end',{phase,side,kind});setAudioButtons(false);gate();};state.active=voice;source.start();rec('play',{phase,side,kind});status.textContent=`Playing ${phase==='primary'?side+' ':''}${kind.replace('_',' ')}.`;}
+  function move(section,heading){section.hidden=false;heading.focus({preventScroll:true});section.scrollIntoView({block:'start',behavior:matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth'});}
+  function lock(section){section.dataset.complete='true';$$(`#${section.id} button`).forEach(button=>button.disabled=true);}
+  function revealText(){const entries=sides().map(side=>`${side} was ${state.map[side].reveal_name}`).join(' · ');$('#reveal').textContent=entries;}
+  function showResult(text,stoppedAt=null){state.stoppedAt=stoppedAt;$('#summary').textContent=text;revealText();move($('#result'),$('#result-title'));status.textContent='Add the exact detail your ear caught, then copy the result.';}
+  function setupReady(){$('#start').disabled=!($('#route').checked&&$('#volume').checked&&$('#noise').value);}
+  ['route','volume','noise'].forEach(id=>$('#'+id).addEventListener('change',setupReady));
+  $('#start').addEventListener('click',async()=>{const start=$('#start');start.disabled=true;status.textContent='Warming the study and unlocking sound…';try{const response=await fetch('manifest.json');if(!response.ok)throw Error(`manifest returned ${response.status}`);state.manifest=await response.json();if(state.manifest.study!=='room-c-melody-v4')throw Error('wrong study is being served');const ids=Object.keys(state.manifest.candidates);if(ids.length!==2)throw Error('the focused two-phrase comparison is missing');for(let index=ids.length-1;index>0;index--){const swap=Math.floor(Math.random()*(index+1));[ids[index],ids[swap]]=[ids[swap],ids[index]];}state.map={A:{id:ids[0],...state.manifest.candidates[ids[0]]},B:{id:ids[1],...state.manifest.candidates[ids[1]]}};const AudioContextClass=window.AudioContext||window.webkitAudioContext;if(!AudioContextClass)throw Error('Web Audio is unavailable');state.ctx=new AudioContextClass();await state.ctx.resume();const load=async(bufferKey,path)=>{const result=await fetch(path);if(!result.ok)throw Error(`${path} returned ${result.status}`);state.buffers.set(bufferKey,await state.ctx.decodeAudioData(await result.arrayBuffer()));};await load('anchor',state.manifest.control.single);for(const side of sides())for(const kind of ['single','phrase','flow','rapid','pause_probe'])await load(key(side,kind),state.map[side].paths[kind]);const warm=state.ctx.createBufferSource();warm.buffer=state.ctx.createBuffer(1,1,state.ctx.sampleRate);warm.connect(state.ctx.destination);warm.start();rec('start',{userAgent:navigator.userAgent,routeConfirmed:$('#route').checked,routeEvidence,physicalGateEligible:mobileLike&&$('#route').checked,volumeConfirmed:$('#volume').checked,deviceModel:$('#device').value,roomNoise:$('#noise').value,orientation:screen.orientation?.type||(innerHeight>=innerWidth?'portrait':'landscape')});$('#setup').hidden=true;const box=$('#candidates');box.innerHTML='';for(const side of sides()){const panel=document.createElement('div');panel.className='candidate';panel.innerHTML=`<h3>Phrase ${side}</h3><button data-primary="${side}:single" type="button">Play ${side} · single click</button><button class="secondary" data-primary="${side}:phrase" type="button">Play ${side} · slow eight-click walk</button><button class="secondary" data-primary="${side}:flow" type="button">Play ${side} · Room click-around flow</button><button class="secondary hint" data-primary="${side}:rapid" type="button">Optional: play ${side} rapid diagnostic</button>`;box.appendChild(panel);}$$('[data-primary]').forEach(button=>button.addEventListener('click',()=>{const [side,kind]=button.dataset.primary.split(':');void playBuffer(key(side,kind),'primary',side,kind);}));move($('#primary'),$('#primary-title'));status.textContent='Hear both singles, both slow walks, and both Room flows before choosing.';}catch(error){try{await state.ctx?.close();}catch(_){}state.ctx=null;state.buffers.clear();start.disabled=false;status.textContent=`Could not load the study: ${error.message}`;}});
+  $('#anchor').addEventListener('click',()=>void playBuffer('anchor','anchor',null,'single'));
+  $$('[data-choice]').forEach(button=>button.addEventListener('click',()=>{state.choice=button.dataset.choice;$$('[data-choice]').forEach(item=>item.setAttribute('aria-checked',String(item===button)));rec('primary_verdict',{choice:state.choice});lock($('#primary'));if(state.choice==='neither'){showResult('Neither melodic phrase improved plain X. Keeping the approved X without this note lane is a valid result.','primary');return;}state.selectedSide=state.choice;state.selectedId=state.map[state.choice].id;move($('#final'),$('#final-title'));status.textContent='Now test the selected phrase as one click, short bursts, and rapid use.';}));
+  $$('[data-final-play]').forEach(button=>button.addEventListener('click',()=>{const kind=button.dataset.finalPlay;void playBuffer(key(state.selectedSide,kind),'final',state.selectedSide,kind);}));
+  $$('[data-final]').forEach(button=>button.addEventListener('click',()=>{state.final=button.dataset.final;$$('[data-final]').forEach(item=>item.setAttribute('aria-checked',String(item===button)));rec('final_verdict',{choice:state.final});lock($('#final'));showResult('The focused melodic X confirmation is complete.');}));
+  $('#copy').addEventListener('click',async()=>{const mappings=Object.fromEntries(sides().map(side=>[side,{id:state.map[side].id,reveal_name:state.map[side].reveal_name,tokens:state.map[side].tokens,notes:state.map[side].notes,paths:state.map[side].paths}]));const physicalGateEligible=mobileLike&&$('#route').checked;const payload=JSON.stringify({study:'room-c-melody-v4',render_version:state.manifest?.render_version||'unknown',generated_audio_asset_count:state.manifest?.generated_audio_asset_count||0,output_route:physicalGateEligible?'self-attested-phone-built-in-speaker':'desktop-preview-or-unverified',route_attestation:$('#route').checked,route_evidence:routeEvidence,physical_gate_eligible:physicalGateEligible,volume:'full',volume_attestation:$('#volume').checked,device_model:$('#device').value||'unspecified',room_noise:$('#noise').value,orientation:screen.orientation?.type||(innerHeight>=innerWidth?'portrait':'landscape'),locked_everyday_core:'selected X / c-clasp-family / +1.5 dB',locked_completion:'accepted-select-2 + answered-detent-natural @ +75ms',phrase_reset_ms:state.manifest?.render_contract?.phrase_reset_ms,rapid_tonal_limit:state.manifest?.render_contract?.rapid_tonal_limit,primary_choice:state.choice,selected_candidate:state.selectedId,final_verdict:state.final,stopped_at:state.stoppedAt,reason:$('#reason').value,heard:{plain_x_anchor:state.heard.anchor,primary:Object.fromEntries(sides().map(side=>[side,['single','phrase','flow','rapid'].filter(kind=>state.heard.primary.has(key(side,kind)))])),final:[...state.heard.final]},hidden_mappings:mappings,user_agent:navigator.userAgent,events:state.events},null,2);let copied=false;try{if(navigator.clipboard){await navigator.clipboard.writeText(payload);copied=true;}}catch(_){}if(!copied){const output=$('#output');output.hidden=false;output.value=payload;output.focus();output.select();try{copied=document.execCommand('copy');}catch(_){}}status.textContent=copied?'Result copied.':'Long-press the selected result below and choose Copy.';});
+})();
+</script></body></html>

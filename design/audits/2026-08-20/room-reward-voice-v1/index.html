@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Room of Days · Reward voice proof</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7ead4;
+      --muted: #bba98f;
+      --night: #120d0a;
+      --line: rgba(238, 194, 118, .22);
+      --honey: #e5ad52;
+      --honey-dark: #8b572a;
+      --ember: #d97838;
+      --moss: #80945f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 50% -12%, rgba(176, 93, 43, .2), transparent 42%),
+        linear-gradient(180deg, #19110d, var(--night) 72%);
+      color: var(--ink);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+    button, select, textarea { font: inherit; }
+    main { width: min(900px, calc(100% - 28px)); margin: 0 auto; padding: 38px 0 76px; }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--honey);
+      font: 800 .71rem/1.2 system-ui, sans-serif;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+    h1 { max-width: 780px; margin: 0; font-size: clamp(2.15rem, 6vw, 4rem); font-weight: 500; line-height: 1; letter-spacing: -.035em; }
+    .lede { max-width: 730px; margin: 20px 0 0; color: var(--muted); font-size: clamp(1rem, 2vw, 1.16rem); line-height: 1.55; }
+    .principle {
+      margin: 24px 0 0;
+      padding: 15px 17px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(229, 173, 82, .055);
+      color: #dfc9a9;
+      line-height: 1.45;
+    }
+    .panel {
+      margin-top: 30px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(155deg, rgba(47, 32, 23, .96), rgba(28, 19, 14, .98));
+      box-shadow: 0 22px 58px rgba(0,0,0,.24);
+    }
+    [hidden] { display: none !important; }
+    .panel h2 { margin: 0; font-size: 1.55rem; font-weight: 500; }
+    .intro { max-width: 740px; margin: 9px 0 0; color: var(--muted); line-height: 1.48; }
+    .phase {
+      display: inline-block;
+      margin-bottom: 10px;
+      color: var(--honey);
+      font: 800 .68rem/1 system-ui, sans-serif;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+    .timeline {
+      margin: 18px 0 0;
+      padding: 12px 14px;
+      border-left: 3px solid var(--ember);
+      background: rgba(217, 120, 56, .055);
+      color: #ead8bd;
+      font: 650 .79rem/1.55 system-ui, sans-serif;
+    }
+    .pair, .diagnostics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 19px; }
+    .sequence, .diagnostic {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(255,255,255,.025);
+    }
+    .sequence { min-height: 214px; display: flex; flex-direction: column; }
+    .sequence h3, .diagnostic h3 { margin: 0; font-size: 1.25rem; font-weight: 500; }
+    .sequence p, .diagnostic p { margin: 8px 0 16px; color: var(--muted); line-height: 1.42; }
+    .actions { display: grid; gap: 9px; margin-top: auto; }
+    .primary, .play, .quiet, .verdict {
+      min-height: 48px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 85ms ease, box-shadow 85ms ease, filter 120ms ease;
+    }
+    .primary, .play {
+      padding: 0 18px;
+      border: 0;
+      background: linear-gradient(180deg, #f0c56f, var(--honey));
+      color: #2a180c;
+      font: 800 .76rem/1.2 system-ui, sans-serif;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      box-shadow: 0 5px 0 var(--honey-dark), 0 12px 24px rgba(0,0,0,.2);
+    }
+    .primary:active, .play:active, .play.pressed { transform: translateY(4px); box-shadow: 0 1px 0 var(--honey-dark); }
+    .quiet, .verdict {
+      padding: 0 15px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.035);
+      color: var(--ink);
+      font: 750 .75rem/1.15 system-ui, sans-serif;
+    }
+    .quiet:hover, .verdict:hover { filter: brightness(1.12); }
+    .verdict.selected { border-color: rgba(128,148,95,.75); background: rgba(128,148,95,.18); }
+    button:disabled { cursor: wait; opacity: .45; }
+    button:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex="-1"]:focus-visible { outline: 3px solid rgba(255,218,145,.82); outline-offset: 3px; }
+    .question { margin: 22px 0 9px; color: #f0dcc0; font-size: 1.04rem; }
+    .verdicts { display: flex; flex-wrap: wrap; gap: 9px; }
+    .reveal {
+      margin-top: 16px;
+      padding: 13px 15px;
+      border: 1px solid rgba(128,148,95,.35);
+      border-radius: 12px;
+      background: rgba(128,148,95,.09);
+      color: #e8dfbf;
+      line-height: 1.45;
+    }
+    .continue { margin-top: 12px; }
+    .diagnostic .quiet { width: 100%; margin-top: 8px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px; }
+    .tag {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #dec7a7;
+      background: rgba(255,255,255,.025);
+      font: 700 .74rem/1 system-ui, sans-serif;
+    }
+    .notes { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .notes-grid { display: grid; grid-template-columns: minmax(180px, .7fr) 1.3fr; gap: 12px; margin-bottom: 14px; }
+    .notes label { color: var(--muted); font: 700 .74rem/1.35 system-ui, sans-serif; }
+    .notes select, .notes textarea {
+      display: block;
+      width: 100%;
+      margin-top: 7px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: rgba(0,0,0,.18);
+      color: var(--ink);
+      font: 500 .82rem/1.4 system-ui, sans-serif;
+    }
+    .notes select { min-height: 44px; padding: 0 10px; }
+    .notes textarea { min-height: 82px; padding: 10px; resize: vertical; }
+    #status { min-height: 1.5em; margin: 14px 0 0; color: var(--muted); font: 650 .78rem/1.4 system-ui, sans-serif; }
+    @media (max-width: 700px) {
+      main { padding-top: 28px; }
+      .pair, .diagnostics, .notes-grid { grid-template-columns: 1fr; }
+      .sequence { min-height: 190px; }
+      .play, .primary { min-height: 52px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Room of Days · earned voice</p>
+    <h1>Which ending would you want to earn again?</h1>
+    <p class="lede">The everyday sounds are locked. In reward passes one through three, every sequence uses the exact same open, select, navigate, and place cues; only the confirmed reward changes.</p>
+    <p class="principle"><strong>Your last result:</strong> the unified Room family won cohesion and stayed distinct, but its earned ending did not pay off strongly enough at natural weight. This pass fixes that one boundary.</p>
+
+    <section class="panel" id="start-panel">
+      <p class="intro">Start once to unlock and prewarm the study. Three short blind rounds challenge the current reward, then the winner faces a natural benchmark.</p>
+      <button class="primary" id="start" type="button">Start listening</button>
+    </section>
+
+    <section class="panel" id="comparison" hidden aria-busy="false">
+      <span class="phase" id="phase-label">Reward pass</span>
+      <h2 id="phase-heading" tabindex="-1">Two earned endings, one decision</h2>
+      <p class="intro" id="phase-copy">Both sequences have identical timing and reward energy. Identity stays hidden.</p>
+      <div class="timeline">navigate → open → select → place → navigate → open → accept → reward</div>
+      <div class="pair">
+        <article class="sequence">
+          <h3>Sequence A</h3>
+          <p>The full flow is the decision unit. The short replay is only a diagnostic.</p>
+          <div class="actions">
+            <button class="play" type="button" data-play-flow="a">Play full flow A</button>
+            <button class="quiet" type="button" data-play-ending="a">Replay ending A</button>
+          </div>
+        </article>
+        <article class="sequence">
+          <h3>Sequence B</h3>
+          <p>All everyday interactions before the earned ending are byte-identical.</p>
+          <div class="actions">
+            <button class="play" type="button" data-play-flow="b">Play full flow B</button>
+            <button class="quiet" type="button" data-play-ending="b">Replay ending B</button>
+          </div>
+        </article>
+      </div>
+      <p class="question" id="question">Which ending would you want to earn again?</p>
+      <div class="verdicts" id="verdicts">
+        <button class="verdict" type="button" data-choice="a">A feels better</button>
+        <button class="verdict" type="button" data-choice="b">B feels better</button>
+        <button class="verdict" type="button" data-choice="equal">About equal</button>
+        <button class="verdict" type="button" data-choice="neither">Both miss</button>
+      </div>
+      <div class="reveal" id="round-reveal" hidden tabindex="-1"></div>
+      <button class="play continue" id="continue" type="button" hidden>Continue</button>
+    </section>
+
+    <section class="panel" id="results" hidden>
+      <span class="phase">Diagnosis · after the verdict</span>
+      <h2 id="results-heading" tabindex="-1">What gave the reward its payoff?</h2>
+      <p class="intro" id="result-summary"></p>
+      <div class="diagnostics" id="diagnostics"></div>
+      <p class="question">How does the tournament winner feel?</p>
+      <div class="tags" id="texture-tags">
+        <label class="tag"><input type="checkbox" value="crisp"> crisp</label>
+        <label class="tag"><input type="checkbox" value="satisfying"> satisfying</label>
+        <label class="tag"><input type="checkbox" value="full"> full</label>
+        <label class="tag"><input type="checkbox" value="too-soft"> too soft</label>
+        <label class="tag"><input type="checkbox" value="too-sharp"> too sharp</label>
+        <label class="tag"><input type="checkbox" value="too-busy"> too busy</label>
+        <label class="tag"><input type="checkbox" value="not-a-reward"> still not a reward</label>
+      </div>
+      <div class="notes">
+        <div class="notes-grid">
+          <label>Listening route
+            <select id="listening-route">
+              <option value="desktop-or-laptop-speaker">Desktop or laptop speaker</option>
+              <option value="phone-speaker">Phone speaker</option>
+              <option value="headphones">Headphones</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>What made the reward land—or miss?
+            <textarea id="listening-reason" placeholder="Use your own words. ‘None of them’ is useful feedback."></textarea>
+          </label>
+        </div>
+        <button class="quiet" id="copy-notes" type="button">Copy listening notes</button>
+      </div>
+    </section>
+    <p id="status" role="status" aria-live="polite">Sound is locked until you start.</p>
+  </main>
+
+  <script>
+    const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+    const state = {
+      context: null,
+      manifest: null,
+      buffers: new Map(),
+      active: null,
+      busy: false,
+      round: 0,
+      incumbent: 'baseline',
+      pair: [],
+      sideMap: {},
+      listened: new Set(),
+      tournament: [],
+      final: null,
+      stage: 'tournament',
+      events: []
+    };
+
+    const start = document.querySelector('#start');
+    const startPanel = document.querySelector('#start-panel');
+    const comparison = document.querySelector('#comparison');
+    const phaseLabel = document.querySelector('#phase-label');
+    const phaseHeading = document.querySelector('#phase-heading');
+    const phaseCopy = document.querySelector('#phase-copy');
+    const question = document.querySelector('#question');
+    const verdicts = document.querySelector('#verdicts');
+    const reveal = document.querySelector('#round-reveal');
+    const continueButton = document.querySelector('#continue');
+    const results = document.querySelector('#results');
+    const status = document.querySelector('#status');
+
+    function record(type, payload = {}) {
+      state.events.push({ type, at: new Date().toISOString(), ...payload });
+    }
+
+    function shufflePair(first, second) {
+      return Math.random() < .5 ? [first, second] : [second, first];
+    }
+
+    async function loadAudio(key, path) {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`Could not load ${path}`);
+      const bytes = await response.arrayBuffer();
+      state.buffers.set(key, await state.context.decodeAudioData(bytes));
+    }
+
+    async function prepare() {
+      if (!AudioContextCtor) throw new Error('Web Audio is unavailable in this browser.');
+      state.context = new AudioContextCtor();
+      await state.context.resume();
+      const response = await fetch('manifest.json');
+      if (!response.ok) throw new Error('Could not load the reward manifest.');
+      state.manifest = await response.json();
+      const loads = [];
+      for (const [id, reward] of Object.entries(state.manifest.rewards)) {
+        for (const mode of ['matched', 'natural']) {
+          loads.push(loadAudio(`${id}:${mode}:flow`, reward.paths[mode].flow));
+          loads.push(loadAudio(`${id}:${mode}:ending`, reward.paths[mode].composite));
+          loads.push(loadAudio(`${id}:${mode}:reward`, reward.paths[mode].reward));
+        }
+      }
+      loads.push(loadAudio('previous-reward:natural:flow', state.manifest.audition.final_control.flow));
+      loads.push(loadAudio('previous-reward:natural:ending', state.manifest.audition.final_control.ending));
+      loads.push(loadAudio('previous-reward:natural:reward', state.manifest.audition.final_control.reward));
+      await Promise.all(loads);
+      const source = state.context.createBufferSource();
+      const gain = state.context.createGain();
+      gain.gain.value = 0;
+      source.buffer = state.buffers.values().next().value;
+      source.connect(gain).connect(state.context.destination);
+      source.start();
+    }
+
+    function setBusy(value) {
+      state.busy = value;
+      comparison.setAttribute('aria-busy', String(value));
+      document.querySelectorAll('[data-play-flow]').forEach(button => {
+        button.disabled = value || !continueButton.hidden;
+      });
+      document.querySelectorAll('[data-play-ending]').forEach(button => {
+        button.disabled = value || !state.listened.has(button.dataset.playEnding) || !continueButton.hidden;
+      });
+      document.querySelectorAll('.verdict').forEach(button => {
+        button.disabled = value || state.listened.size < 2 || !continueButton.hidden;
+      });
+    }
+
+    function stopActive() {
+      if (!state.active) return;
+      try { state.active.stop(); } catch (_) {}
+      state.active = null;
+    }
+
+    function playKey(key, button, onComplete) {
+      if (state.busy) return;
+      stopActive();
+      const source = state.context.createBufferSource();
+      source.buffer = state.buffers.get(key);
+      source.connect(state.context.destination);
+      state.active = source;
+      setBusy(true);
+      button.classList.add('pressed');
+      status.textContent = 'Listening…';
+      record('play', { key, stage: state.stage, round: state.round + 1 });
+      source.onended = () => {
+        if (state.active !== source) return;
+        state.active = null;
+        button.classList.remove('pressed');
+        if (onComplete) onComplete();
+        setBusy(false);
+        status.textContent = state.listened.size === 2 ? 'Both full sequences heard. Choose when ready.' : 'Ready.';
+        button.focus();
+      };
+      source.start();
+    }
+
+    function currentMode() {
+      return state.stage === 'final' ? 'natural' : 'matched';
+    }
+
+    function keyFor(side, kind) {
+      const id = state.sideMap[side];
+      return `${id}:${currentMode()}:${kind}`;
+    }
+
+    function moveTo(element) {
+      const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      element.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+      element.focus({ preventScroll: true });
+    }
+
+    function resetRoundUi() {
+      state.listened = new Set();
+      reveal.hidden = true;
+      reveal.innerHTML = '';
+      continueButton.hidden = true;
+      continueButton.disabled = false;
+      verdicts.querySelectorAll('.verdict').forEach(button => {
+        button.classList.remove('selected');
+        button.disabled = true;
+      });
+      document.querySelectorAll('[data-play-flow]').forEach(button => { button.disabled = false; });
+      document.querySelectorAll('[data-play-ending]').forEach(button => { button.disabled = true; });
+    }
+
+    function renderTournamentRound() {
+      state.stage = 'tournament';
+      const challenger = state.manifest.audition.challenger_order[state.round];
+      state.pair = shufflePair(state.incumbent, challenger);
+      state.sideMap = { a: state.pair[0], b: state.pair[1] };
+      resetRoundUi();
+      phaseLabel.textContent = `Reward pass ${state.round + 1} of 3 · equal energy`;
+      phaseHeading.textContent = 'Two earned endings, one decision';
+      phaseCopy.textContent = 'Only the earned ending changes. Both reward windows carry the same phone-band energy, so duration and shape—not loudness—must earn the choice.';
+      question.textContent = 'Which ending would you want to earn again?';
+      continueButton.textContent = state.round === 2 ? 'Continue to natural hierarchy' : 'Continue to next reward';
+      moveTo(phaseHeading);
+      record('round_start', { round: state.round + 1, mapping: { ...state.sideMap } });
+    }
+
+    function renderFinal() {
+      state.stage = 'final';
+      state.pair = shufflePair(state.incumbent, 'previous-reward');
+      state.sideMap = { a: state.pair[0], b: state.pair[1] };
+      resetRoundUi();
+      phaseLabel.textContent = 'Final pass · intended hierarchy';
+      phaseHeading.textContent = 'The tournament winner faces a natural benchmark';
+      phaseCopy.textContent = 'Both sequences use the same locked everyday family at intended hierarchy. Only the earned ending differs, identities remain hidden, and this pass is intentionally not level matched.';
+      question.textContent = 'Which whole sequence pays off better now?';
+      continueButton.textContent = 'Reveal the reward voices';
+      moveTo(phaseHeading);
+      record('final_start', { mapping: { ...state.sideMap }, champion: state.incumbent });
+    }
+
+    function winnerFor(choice) {
+      if (choice === 'a' || choice === 'b') return state.sideMap[choice];
+      return state.incumbent;
+    }
+
+    function choose(choice, button) {
+      if (state.busy || state.listened.size < 2 || !continueButton.hidden) return;
+      verdicts.querySelectorAll('.verdict').forEach(item => item.classList.remove('selected'));
+      button.classList.add('selected');
+      const mapping = { ...state.sideMap };
+      if (state.stage === 'tournament') {
+        const prior = state.incumbent;
+        const winner = winnerFor(choice);
+        state.incumbent = winner;
+        state.tournament.push({ round: state.round + 1, choice, mapping, prior, winner });
+        record('verdict', { stage: 'tournament', round: state.round + 1, choice, mapping, winner });
+        const advancedSide = mapping.a === winner ? 'A' : mapping.b === winner ? 'B' : 'the current winner';
+        reveal.textContent = `${advancedSide} advances. The mechanism names stay hidden until the final comparison.`;
+      } else {
+        state.final = { choice, mapping, resolved: choice === 'a' || choice === 'b' ? mapping[choice] : choice };
+        record('verdict', { stage: 'final', choice, mapping, resolved: state.final.resolved });
+        reveal.textContent = 'Final choice saved. Continue to reveal every reward voice.';
+      }
+      reveal.hidden = false;
+      continueButton.hidden = false;
+      setBusy(false);
+      status.textContent = 'Choice saved.';
+      reveal.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+      reveal.focus({ preventScroll: true });
+    }
+
+    function buildDiagnostics() {
+      const root = document.querySelector('#diagnostics');
+      root.innerHTML = '';
+      for (const [id, reward] of Object.entries(state.manifest.rewards)) {
+        const card = document.createElement('article');
+        card.className = 'diagnostic';
+        card.innerHTML = `<h3>${reward.reveal_name}</h3><p>${reward.intent}</p><button class="quiet" type="button" data-diagnostic="${id}:natural:ending">Play composed ending</button><button class="quiet" type="button" data-diagnostic="${id}:natural:reward">Play reward alone</button>`;
+        root.append(card);
+      }
+      const control = state.manifest.audition.final_control;
+      const controlCard = document.createElement('article');
+      controlCard.className = 'diagnostic';
+      controlCard.innerHTML = `<h3>${control.reveal_name}</h3><p>${control.control_rule}</p><button class="quiet" type="button" data-diagnostic="previous-reward:natural:ending">Play composed ending</button><button class="quiet" type="button" data-diagnostic="previous-reward:natural:reward">Play reward alone</button>`;
+      root.append(controlCard);
+      root.querySelectorAll('[data-diagnostic]').forEach(button => {
+        button.addEventListener('click', () => playKey(button.dataset.diagnostic, button));
+      });
+    }
+
+    function revealResults() {
+      comparison.hidden = true;
+      results.hidden = false;
+      buildDiagnostics();
+      const winner = state.manifest.rewards[state.incumbent];
+      const finalResolved = state.final?.resolved === 'previous-reward'
+        ? 'The previous reward still won when both endings used the locked Room family.'
+        : state.final?.resolved === state.incumbent
+          ? `${winner.reveal_name} also won the natural hierarchy.`
+          : 'The final natural comparison was tied or both missed.';
+      document.querySelector('#result-summary').textContent = `The reward tournament selected ${winner.reveal_name}. ${finalResolved} These labels appear only after every preference was recorded.`;
+      moveTo(document.querySelector('#results-heading'));
+      status.textContent = 'Reward identities revealed. Diagnostic listening is now available.';
+      record('reveal', { champion: state.incumbent, final: state.final });
+    }
+
+    document.querySelectorAll('[data-play-flow]').forEach(button => {
+      button.addEventListener('click', () => {
+        const side = button.dataset.playFlow;
+        playKey(keyFor(side, 'flow'), button, () => state.listened.add(side));
+      });
+    });
+    document.querySelectorAll('[data-play-ending]').forEach(button => {
+      button.addEventListener('click', () => playKey(keyFor(button.dataset.playEnding, 'ending'), button));
+    });
+    verdicts.querySelectorAll('.verdict').forEach(button => {
+      button.addEventListener('click', () => choose(button.dataset.choice, button));
+    });
+    continueButton.addEventListener('click', () => {
+      continueButton.disabled = true;
+      if (state.stage === 'final') {
+        revealResults();
+        return;
+      }
+      state.round += 1;
+      if (state.round < state.manifest.audition.challenger_order.length) renderTournamentRound();
+      else renderFinal();
+    });
+
+    start.addEventListener('click', async () => {
+      start.disabled = true;
+      status.textContent = 'Loading and prewarming the reward study…';
+      try {
+        await prepare();
+        startPanel.hidden = true;
+        comparison.hidden = false;
+        renderTournamentRound();
+        status.textContent = 'Ready. Hear both full sequences before choosing.';
+      } catch (error) {
+        start.disabled = false;
+        status.textContent = `${error.message} Try Start listening again.`;
+      }
+    });
+
+    document.querySelector('#copy-notes').addEventListener('click', async () => {
+      const tags = [...document.querySelectorAll('#texture-tags input:checked')].map(input => input.value);
+      const payload = JSON.stringify({
+        study: state.manifest.study,
+        champion: state.incumbent,
+        tournament: state.tournament,
+        final: state.final,
+        texture_tags: tags,
+        listening_route: document.querySelector('#listening-route').value,
+        reason: document.querySelector('#listening-reason').value,
+        events: state.events
+      }, null, 2);
+      try {
+        await navigator.clipboard.writeText(payload);
+        status.textContent = 'Listening notes copied.';
+      } catch (_) {
+        status.textContent = 'Copy was blocked. Select the notes manually from your browser tools.';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+{
+  "study": "click-weight-finish-v1",
+  "approved_anchor": {
+    "source_study": "design/audits/2026-08-20/weighted-click-system-v1",
+    "source_candidate": "C",
+    "variant_paths": [
+      "anchor/c-1.wav",
+      "anchor/c-2.wav",
+      "anchor/c-3.wav",
+      "anchor/c-4.wav",
+      "anchor/c-5.wav"
+    ],
+    "sha256": {
+      "anchor/c-1.wav": "5d70687ac7508c05fd05b7df6523b50e8ad94bf73e4cca53b05da20b6e208247",
+      "anchor/c-2.wav": "5c4271fad27933a0e1ffa24800ad9d7d332e9ff7cfcffbcd10ae015bb4c8598b",
+      "anchor/c-3.wav": "65675b4757754ff69cd3af2b426706b13eddc126269d1d3ebbc1fb77849fa999",
+      "anchor/c-4.wav": "9a0bcf583109cc8e1150ce1ceb70be9dd640d41ceb984a6cafe9fbc395ae5aea",
+      "anchor/c-5.wav": "6a4bc22b81b2f349115d8293fa8f4cad6e46e20fbd4b539db46f3554abbe3d10",
+      "anchor/c-reference.wav": "504375c1e6b3f85540ee7304e7b4fd3bd1dc6d9fe9b3a7d17b872d3ae16e9958"
+    },
+    "copied_byte_for_byte": true
+  },
+  "source": {
+    "kind": "approved C procedural mechanism plus deterministic spectral finishes",
+    "recorded_foley": false,
+    "literal_material_recordings": false,
+    "room_or_reverb": false,
+    "recipe": "tool/author_click_finish_study.py"
+  },
+  "weights": [
+    {
+      "slug": "light",
+      "label": "Light",
+      "body_gain": 0.205,
+      "body_decay_ms": 9.0,
+      "purpose": "selectors, chips, toggles, and quick browsing"
+    },
+    {
+      "slug": "settled",
+      "label": "Settled \u00b7 C",
+      "body_gain": 0.255,
+      "body_decay_ms": 10.5,
+      "purpose": "ordinary cards and room controls"
+    },
+    {
+      "slug": "weighty",
+      "label": "Weighty",
+      "body_gain": 0.305,
+      "body_decay_ms": 11.5,
+      "purpose": "commit, place, save, and primary actions"
+    }
+  ],
+  "finishes": [
+    {
+      "slug": "room",
+      "label": "Warm room",
+      "contact_highpass_hz": 720,
+      "contact_lowpass_hz": 6650,
+      "contact_filter_mix": 0.29,
+      "body_highpass_hz": 200,
+      "body_lowpass_hz": 2500,
+      "body_filter_mix": 0.3,
+      "texture_low_hz": 250,
+      "texture_high_hz": 1520,
+      "texture_mix": 0.18,
+      "mode_frequencies_hz": [],
+      "mode_mix": 0.0,
+      "closure_lowpass_hz": 3250,
+      "closure_filter_mix": 0.39,
+      "closure_gain_scale": 0.95,
+      "purpose": "warm carved controls and general room navigation"
+    },
+    {
+      "slug": "page",
+      "label": "Soft page",
+      "contact_highpass_hz": 940,
+      "contact_lowpass_hz": 5950,
+      "contact_filter_mix": 0.46,
+      "body_highpass_hz": 380,
+      "body_lowpass_hz": 2650,
+      "body_filter_mix": 0.39,
+      "texture_low_hz": 560,
+      "texture_high_hz": 3150,
+      "texture_mix": 0.225,
+      "mode_frequencies_hz": [],
+      "mode_mix": 0.0,
+      "closure_lowpass_hz": 3050,
+      "closure_filter_mix": 0.46,
+      "closure_gain_scale": 0.86,
+      "purpose": "calendar, journal, notes, and planning controls"
+    },
+    {
+      "slug": "lens",
+      "label": "Clear lens",
+      "contact_highpass_hz": 1480,
+      "contact_lowpass_hz": 9650,
+      "contact_filter_mix": 0.29,
+      "body_highpass_hz": 610,
+      "body_lowpass_hz": 4550,
+      "body_filter_mix": 0.27,
+      "texture_low_hz": 860,
+      "texture_high_hz": 4450,
+      "texture_mix": 0.095,
+      "mode_frequencies_hz": [
+        1880,
+        3060
+      ],
+      "mode_mix": 0.095,
+      "closure_lowpass_hz": 6050,
+      "closure_filter_mix": 0.24,
+      "closure_gain_scale": 1.045,
+      "purpose": "switches, pickers, previews, and precise utility selection"
+    },
+    {
+      "slug": "gilt",
+      "label": "Quiet gilt",
+      "contact_highpass_hz": 1120,
+      "contact_lowpass_hz": 9150,
+      "contact_filter_mix": 0.21,
+      "body_highpass_hz": 350,
+      "body_lowpass_hz": 4050,
+      "body_filter_mix": 0.25,
+      "texture_low_hz": 620,
+      "texture_high_hz": 3450,
+      "texture_mix": 0.085,
+      "mode_frequencies_hz": [
+        1430,
+        2180,
+        3020
+      ],
+      "mode_mix": 0.12,
+      "closure_lowpass_hz": 5350,
+      "closure_filter_mix": 0.24,
+      "closure_gain_scale": 1.075,
+      "purpose": "honey buttons and durable, committed choices"
+    }
+  ],
+  "families": {
+    "light-core": {
+      "weight": "light",
+      "finish": "core",
+      "variant_paths": [
+        "families/light-core/1.wav",
+        "families/light-core/2.wav",
+        "families/light-core/3.wav",
+        "families/light-core/4.wav",
+        "families/light-core/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/light-core/1.wav",
+        "level-matched/families/light-core/2.wav",
+        "level-matched/families/light-core/3.wav",
+        "level-matched/families/light-core/4.wav",
+        "level-matched/families/light-core/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "light-room": {
+      "weight": "light",
+      "finish": "room",
+      "variant_paths": [
+        "families/light-room/1.wav",
+        "families/light-room/2.wav",
+        "families/light-room/3.wav",
+        "families/light-room/4.wav",
+        "families/light-room/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/light-room/1.wav",
+        "level-matched/families/light-room/2.wav",
+        "level-matched/families/light-room/3.wav",
+        "level-matched/families/light-room/4.wav",
+        "level-matched/families/light-room/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "light-page": {
+      "weight": "light",
+      "finish": "page",
+      "variant_paths": [
+        "families/light-page/1.wav",
+        "families/light-page/2.wav",
+        "families/light-page/3.wav",
+        "families/light-page/4.wav",
+        "families/light-page/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/light-page/1.wav",
+        "level-matched/families/light-page/2.wav",
+        "level-matched/families/light-page/3.wav",
+        "level-matched/families/light-page/4.wav",
+        "level-matched/families/light-page/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "light-lens": {
+      "weight": "light",
+      "finish": "lens",
+      "variant_paths": [
+        "families/light-lens/1.wav",
+        "families/light-lens/2.wav",
+        "families/light-lens/3.wav",
+        "families/light-lens/4.wav",
+        "families/light-lens/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/light-lens/1.wav",
+        "level-matched/families/light-lens/2.wav",
+        "level-matched/families/light-lens/3.wav",
+        "level-matched/families/light-lens/4.wav",
+        "level-matched/families/light-lens/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "light-gilt": {
+      "weight": "light",
+      "finish": "gilt",
+      "variant_paths": [
+        "families/light-gilt/1.wav",
+        "families/light-gilt/2.wav",
+        "families/light-gilt/3.wav",
+        "families/light-gilt/4.wav",
+        "families/light-gilt/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/light-gilt/1.wav",
+        "level-matched/families/light-gilt/2.wav",
+        "level-matched/families/light-gilt/3.wav",
+        "level-matched/families/light-gilt/4.wav",
+        "level-matched/families/light-gilt/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "settled-core": {
+      "weight": "settled",
+      "finish": "core",
+      "variant_paths": [
+        "anchor/c-1.wav",
+        "anchor/c-2.wav",
+        "anchor/c-3.wav",
+        "anchor/c-4.wav",
+        "anchor/c-5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/settled-core/1.wav",
+        "level-matched/families/settled-core/2.wav",
+        "level-matched/families/settled-core/3.wav",
+        "level-matched/families/settled-core/4.wav",
+        "level-matched/families/settled-core/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "settled-room": {
+      "weight": "settled",
+      "finish": "room",
+      "variant_paths": [
+        "families/settled-room/1.wav",
+        "families/settled-room/2.wav",
+        "families/settled-room/3.wav",
+        "families/settled-room/4.wav",
+        "families/settled-room/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/settled-room/1.wav",
+        "level-matched/families/settled-room/2.wav",
+        "level-matched/families/settled-room/3.wav",
+        "level-matched/families/settled-room/4.wav",
+        "level-matched/families/settled-room/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "settled-page": {
+      "weight": "settled",
+      "finish": "page",
+      "variant_paths": [
+        "families/settled-page/1.wav",
+        "families/settled-page/2.wav",
+        "families/settled-page/3.wav",
+        "families/settled-page/4.wav",
+        "families/settled-page/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/settled-page/1.wav",
+        "level-matched/families/settled-page/2.wav",
+        "level-matched/families/settled-page/3.wav",
+        "level-matched/families/settled-page/4.wav",
+        "level-matched/families/settled-page/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "settled-lens": {
+      "weight": "settled",
+      "finish": "lens",
+      "variant_paths": [
+        "families/settled-lens/1.wav",
+        "families/settled-lens/2.wav",
+        "families/settled-lens/3.wav",
+        "families/settled-lens/4.wav",
+        "families/settled-lens/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/settled-lens/1.wav",
+        "level-matched/families/settled-lens/2.wav",
+        "level-matched/families/settled-lens/3.wav",
+        "level-matched/families/settled-lens/4.wav",
+        "level-matched/families/settled-lens/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "settled-gilt": {
+      "weight": "settled",
+      "finish": "gilt",
+      "variant_paths": [
+        "families/settled-gilt/1.wav",
+        "families/settled-gilt/2.wav",
+        "families/settled-gilt/3.wav",
+        "families/settled-gilt/4.wav",
+        "families/settled-gilt/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/settled-gilt/1.wav",
+        "level-matched/families/settled-gilt/2.wav",
+        "level-matched/families/settled-gilt/3.wav",
+        "level-matched/families/settled-gilt/4.wav",
+        "level-matched/families/settled-gilt/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "weighty-core": {
+      "weight": "weighty",
+      "finish": "core",
+      "variant_paths": [
+        "families/weighty-core/1.wav",
+        "families/weighty-core/2.wav",
+        "families/weighty-core/3.wav",
+        "families/weighty-core/4.wav",
+        "families/weighty-core/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/weighty-core/1.wav",
+        "level-matched/families/weighty-core/2.wav",
+        "level-matched/families/weighty-core/3.wav",
+        "level-matched/families/weighty-core/4.wav",
+        "level-matched/families/weighty-core/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "weighty-room": {
+      "weight": "weighty",
+      "finish": "room",
+      "variant_paths": [
+        "families/weighty-room/1.wav",
+        "families/weighty-room/2.wav",
+        "families/weighty-room/3.wav",
+        "families/weighty-room/4.wav",
+        "families/weighty-room/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/weighty-room/1.wav",
+        "level-matched/families/weighty-room/2.wav",
+        "level-matched/families/weighty-room/3.wav",
+        "level-matched/families/weighty-room/4.wav",
+        "level-matched/families/weighty-room/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "weighty-page": {
+      "weight": "weighty",
+      "finish": "page",
+      "variant_paths": [
+        "families/weighty-page/1.wav",
+        "families/weighty-page/2.wav",
+        "families/weighty-page/3.wav",
+        "families/weighty-page/4.wav",
+        "families/weighty-page/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/weighty-page/1.wav",
+        "level-matched/families/weighty-page/2.wav",
+        "level-matched/families/weighty-page/3.wav",
+        "level-matched/families/weighty-page/4.wav",
+        "level-matched/families/weighty-page/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "weighty-lens": {
+      "weight": "weighty",
+      "finish": "lens",
+      "variant_paths": [
+        "families/weighty-lens/1.wav",
+        "families/weighty-lens/2.wav",
+        "families/weighty-lens/3.wav",
+        "families/weighty-lens/4.wav",
+        "families/weighty-lens/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/weighty-lens/1.wav",
+        "level-matched/families/weighty-lens/2.wav",
+        "level-matched/families/weighty-lens/3.wav",
+        "level-matched/families/weighty-lens/4.wav",
+        "level-matched/families/weighty-lens/5.wav"
+      ],
+      "no_immediate_repeat": true
+    },
+    "weighty-gilt": {
+      "weight": "weighty",
+      "finish": "gilt",
+      "variant_paths": [
+        "families/weighty-gilt/1.wav",
+        "families/weighty-gilt/2.wav",
+        "families/weighty-gilt/3.wav",
+        "families/weighty-gilt/4.wav",
+        "families/weighty-gilt/5.wav"
+      ],
+      "level_matched_variant_paths": [
+        "level-matched/families/weighty-gilt/1.wav",
+        "level-matched/families/weighty-gilt/2.wav",
+        "level-matched/families/weighty-gilt/3.wav",
+        "level-matched/families/weighty-gilt/4.wav",
+        "level-matched/families/weighty-gilt/5.wav"
+      ],
+      "no_immediate_repeat": true
+    }
+  },
+  "rate_envelope": {
+    "rapid_threshold_ms": 135,
+    "fast_threshold_ms": 210,
+    "rapid_gains": [
+      1.0,
+      0.93,
+      0.93,
+      0.885
+    ],
+    "tail_suppression_threshold_ms": 70,
+    "max_voices": 2
+  },
+  "rapid_step_ms": 125,
+  "variant_walk": [
+    0,
+    2,
+    1,
+    3,
+    1,
+    4,
+    2,
+    0,
+    3,
+    4,
+    1,
+    2,
+    4,
+    0
+  ]
+}

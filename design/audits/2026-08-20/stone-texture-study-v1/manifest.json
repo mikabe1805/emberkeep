@@ -1,0 +1,46 @@
+{
+  "study": "stone-texture-study-v1",
+  "source": {
+    "title": "Foley Concrete Set On Concrete 01.wav",
+    "sha256": "0376417edbf134682f5b654db6892b747a5261d41c55c6778ee1c00991bad853",
+    "sample_rate_hz": 48000,
+    "channels": 2,
+    "source_subtype": "PCM_16",
+    "source_page": "https://www.adobe.com/products/audition/offers/audition-dlc.html",
+    "download": "https://download.adobe.com/pub/adobe/audition/offers/adobeauditiondlcsfx/foley.zip",
+    "terms": "https://www.adobe.com/legal/terms.html#content-files",
+    "license": "Adobe Audition royalty-free sound effects; source remains cache-only"
+  },
+  "candidates": [
+    {
+      "id": "stone-a",
+      "role": "repeated_stone_contact_texture",
+      "path": "stone-a.wav"
+    },
+    {
+      "id": "stone-b",
+      "role": "repeated_stone_contact_texture",
+      "path": "stone-b.wav"
+    },
+    {
+      "id": "stone-c",
+      "role": "repeated_stone_contact_texture",
+      "path": "stone-c.wav"
+    },
+    {
+      "id": "stone-d",
+      "role": "repeated_stone_contact_texture",
+      "path": "stone-d.wav"
+    },
+    {
+      "id": "stone-e",
+      "role": "repeated_stone_contact_texture",
+      "path": "stone-e.wav"
+    },
+    {
+      "id": "stone-f",
+      "role": "repeated_stone_contact_texture",
+      "path": "stone-f.wav"
+    }
+  ]
+}

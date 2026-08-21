@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../audio.dart';
 import '../../tokens.dart';
 import '../../widgets/facets.dart';
 import '../../widgets/glass.dart';
@@ -322,7 +323,12 @@ class _ActionTile extends StatelessWidget {
     enabled: onTap != null,
     label: label.toLowerCase(),
     child: InkWell(
-      onTap: onTap,
+      onTap: onTap == null
+          ? null
+          : () {
+              onTap!();
+              Sfx.instance.playInteraction(InteractionSound.select);
+            },
       borderRadius: BorderRadius.circular(10),
       child: Container(
         constraints: const BoxConstraints(minHeight: 48),

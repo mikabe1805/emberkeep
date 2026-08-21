@@ -1,0 +1,375 @@
+{
+  "sample_rate": 48000,
+  "source_files": {
+    "sansula": "C:\\Users\\mikus\\.codex\\visualizations\\2026\\08\\19\\01a01bfc-e048-76c3-b1db-3b14ffd105ea\\fantasy-candidates\\sansula_cabled_mess_380739.mp3",
+    "brass": "C:\\Users\\mikus\\.codex\\visualizations\\2026\\08\\19\\01a01bfc-e048-76c3-b1db-3b14ffd105ea\\fantasy-candidates\\brass_bowl_fossarts_762642.mp3",
+    "glass": "C:\\Users\\mikus\\.codex\\visualizations\\2026\\08\\19\\01a01bfc-e048-76c3-b1db-3b14ffd105ea\\fantasy-candidates\\glass_bowl_anthousai_448071.mp3",
+    "paper": "C:\\Users\\mikus\\.codex\\visualizations\\2026\\08\\19\\01a01bfc-e048-76c3-b1db-3b14ffd105ea\\fantasy-candidates\\paper_brokenmachinery_730078.mp3",
+    "wood": "C:\\Users\\mikus\\.codex\\visualizations\\2026\\08\\19\\01a01bfc-e048-76c3-b1db-3b14ffd105ea\\audio-candidates\\wood_mealwyrm_495814.mp3",
+    "wax": "C:\\Users\\mikus\\.codex\\visualizations\\2026\\08\\19\\01a01bfc-e048-76c3-b1db-3b14ffd105ea\\semantic-sources\\wax_seal_cerise_759526.mp3",
+    "latch": "C:\\Users\\mikus\\.codex\\visualizations\\2026\\08\\19\\01a01bfc-e048-76c3-b1db-3b14ffd105ea\\semantic-sources\\small_door_latch_chewiesmissus_213397.mp3",
+    "drawer": "C:\\Users\\mikus\\.codex\\visualizations\\2026\\08\\19\\01a01bfc-e048-76c3-b1db-3b14ffd105ea\\semantic-sources\\wood_drawer_fossarts_740297.mp3",
+    "fire": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\assets\\sfx\\fire_ignite.wav"
+  },
+  "directions": {
+    "a-ledger": {
+      "title": "The Ledger",
+      "cues": {
+        "boundary_soft": {
+          "duration_ms": 140.0,
+          "peak_dbfs": -13.5,
+          "rms_dbfs": -32.31,
+          "spectral_centroid_hz": 1366.8,
+          "energy_above_5khz_percent": 0.01
+        },
+        "plan_place": {
+          "duration_ms": 250.0,
+          "peak_dbfs": -13.0,
+          "rms_dbfs": -25.43,
+          "spectral_centroid_hz": 2155.7,
+          "energy_above_5khz_percent": 0.01
+        },
+        "goal_seal": {
+          "duration_ms": 480.0,
+          "peak_dbfs": -10.5,
+          "rms_dbfs": -29.16,
+          "spectral_centroid_hz": 360.3,
+          "energy_above_5khz_percent": 0.0
+        },
+        "quest_latch": {
+          "duration_ms": 380.0,
+          "peak_dbfs": -9.8,
+          "rms_dbfs": -27.62,
+          "spectral_centroid_hz": 551.2,
+          "energy_above_5khz_percent": 0.0
+        },
+        "streak_ward": {
+          "duration_ms": 560.0,
+          "peak_dbfs": -11.0,
+          "rms_dbfs": -30.68,
+          "spectral_centroid_hz": 881.2,
+          "energy_above_5khz_percent": 0.0
+        },
+        "keepsake_found": {
+          "duration_ms": 620.0,
+          "peak_dbfs": -10.8,
+          "rms_dbfs": -31.2,
+          "spectral_centroid_hz": 474.2,
+          "energy_above_5khz_percent": 0.0
+        },
+        "ledger_close": {
+          "duration_ms": 580.0,
+          "peak_dbfs": -10.0,
+          "rms_dbfs": -25.13,
+          "spectral_centroid_hz": 492.9,
+          "energy_above_5khz_percent": 0.0
+        },
+        "rank_advance": {
+          "duration_ms": 880.0,
+          "peak_dbfs": -8.8,
+          "rms_dbfs": -30.31,
+          "spectral_centroid_hz": 409.3,
+          "energy_above_5khz_percent": 0.0
+        }
+      },
+      "timecodes": [
+        {
+          "cue": "boundary_soft",
+          "starts_at_seconds": 0.45
+        },
+        {
+          "cue": "plan_place",
+          "starts_at_seconds": 1.21
+        },
+        {
+          "cue": "goal_seal",
+          "starts_at_seconds": 2.08
+        },
+        {
+          "cue": "quest_latch",
+          "starts_at_seconds": 3.18
+        },
+        {
+          "cue": "streak_ward",
+          "starts_at_seconds": 4.18
+        },
+        {
+          "cue": "keepsake_found",
+          "starts_at_seconds": 5.36
+        },
+        {
+          "cue": "ledger_close",
+          "starts_at_seconds": 6.6
+        },
+        {
+          "cue": "rank_advance",
+          "starts_at_seconds": 7.8
+        }
+      ],
+      "reel": {
+        "duration_ms": 9230.0,
+        "peak_dbfs": -8.8,
+        "rms_dbfs": -32.18,
+        "spectral_centroid_hz": 781.6,
+        "energy_above_5khz_percent": 0.01
+      }
+    },
+    "b-hearth": {
+      "title": "The Hearth",
+      "cues": {
+        "boundary_soft": {
+          "duration_ms": 170.0,
+          "peak_dbfs": -13.5,
+          "rms_dbfs": -33.39,
+          "spectral_centroid_hz": 1345.0,
+          "energy_above_5khz_percent": 0.0
+        },
+        "plan_place": {
+          "duration_ms": 290.0,
+          "peak_dbfs": -13.0,
+          "rms_dbfs": -26.38,
+          "spectral_centroid_hz": 2014.3,
+          "energy_above_5khz_percent": 0.01
+        },
+        "goal_seal": {
+          "duration_ms": 600.0,
+          "peak_dbfs": -10.5,
+          "rms_dbfs": -28.7,
+          "spectral_centroid_hz": 328.5,
+          "energy_above_5khz_percent": 0.0
+        },
+        "quest_latch": {
+          "duration_ms": 480.0,
+          "peak_dbfs": -9.8,
+          "rms_dbfs": -27.86,
+          "spectral_centroid_hz": 367.2,
+          "energy_above_5khz_percent": 0.0
+        },
+        "streak_ward": {
+          "duration_ms": 720.0,
+          "peak_dbfs": -11.0,
+          "rms_dbfs": -27.62,
+          "spectral_centroid_hz": 476.6,
+          "energy_above_5khz_percent": 0.0
+        },
+        "keepsake_found": {
+          "duration_ms": 780.0,
+          "peak_dbfs": -10.8,
+          "rms_dbfs": -31.78,
+          "spectral_centroid_hz": 660.4,
+          "energy_above_5khz_percent": 0.0
+        },
+        "ledger_close": {
+          "duration_ms": 720.0,
+          "peak_dbfs": -10.0,
+          "rms_dbfs": -25.6,
+          "spectral_centroid_hz": 425.7,
+          "energy_above_5khz_percent": 0.0
+        },
+        "rank_advance": {
+          "duration_ms": 1020.0,
+          "peak_dbfs": -8.8,
+          "rms_dbfs": -28.8,
+          "spectral_centroid_hz": 428.0,
+          "energy_above_5khz_percent": 0.0
+        }
+      },
+      "timecodes": [
+        {
+          "cue": "boundary_soft",
+          "starts_at_seconds": 0.45
+        },
+        {
+          "cue": "plan_place",
+          "starts_at_seconds": 1.24
+        },
+        {
+          "cue": "goal_seal",
+          "starts_at_seconds": 2.15
+        },
+        {
+          "cue": "quest_latch",
+          "starts_at_seconds": 3.37
+        },
+        {
+          "cue": "streak_ward",
+          "starts_at_seconds": 4.47
+        },
+        {
+          "cue": "keepsake_found",
+          "starts_at_seconds": 5.81
+        },
+        {
+          "cue": "ledger_close",
+          "starts_at_seconds": 7.21
+        },
+        {
+          "cue": "rank_advance",
+          "starts_at_seconds": 8.55
+        }
+      ],
+      "reel": {
+        "duration_ms": 10120.0,
+        "peak_dbfs": -8.8,
+        "rms_dbfs": -31.34,
+        "spectral_centroid_hz": 613.2,
+        "energy_above_5khz_percent": 0.0
+      }
+    },
+    "c-relic": {
+      "title": "The Relic",
+      "cues": {
+        "boundary_soft": {
+          "duration_ms": 200.0,
+          "peak_dbfs": -13.5,
+          "rms_dbfs": -34.15,
+          "spectral_centroid_hz": 1330.0,
+          "energy_above_5khz_percent": 0.0
+        },
+        "plan_place": {
+          "duration_ms": 330.0,
+          "peak_dbfs": -13.0,
+          "rms_dbfs": -26.96,
+          "spectral_centroid_hz": 1755.3,
+          "energy_above_5khz_percent": 0.01
+        },
+        "goal_seal": {
+          "duration_ms": 720.0,
+          "peak_dbfs": -10.5,
+          "rms_dbfs": -27.11,
+          "spectral_centroid_hz": 326.0,
+          "energy_above_5khz_percent": 0.0
+        },
+        "quest_latch": {
+          "duration_ms": 580.0,
+          "peak_dbfs": -9.8,
+          "rms_dbfs": -26.89,
+          "spectral_centroid_hz": 313.7,
+          "energy_above_5khz_percent": 0.0
+        },
+        "streak_ward": {
+          "duration_ms": 860.0,
+          "peak_dbfs": -11.0,
+          "rms_dbfs": -25.71,
+          "spectral_centroid_hz": 394.5,
+          "energy_above_5khz_percent": 0.0
+        },
+        "keepsake_found": {
+          "duration_ms": 940.0,
+          "peak_dbfs": -10.8,
+          "rms_dbfs": -30.68,
+          "spectral_centroid_hz": 790.2,
+          "energy_above_5khz_percent": 0.0
+        },
+        "ledger_close": {
+          "duration_ms": 860.0,
+          "peak_dbfs": -10.0,
+          "rms_dbfs": -25.23,
+          "spectral_centroid_hz": 373.5,
+          "energy_above_5khz_percent": 0.0
+        },
+        "rank_advance": {
+          "duration_ms": 1180.0,
+          "peak_dbfs": -8.8,
+          "rms_dbfs": -27.02,
+          "spectral_centroid_hz": 452.9,
+          "energy_above_5khz_percent": 0.0
+        }
+      },
+      "timecodes": [
+        {
+          "cue": "boundary_soft",
+          "starts_at_seconds": 0.45
+        },
+        {
+          "cue": "plan_place",
+          "starts_at_seconds": 1.27
+        },
+        {
+          "cue": "goal_seal",
+          "starts_at_seconds": 2.22
+        },
+        {
+          "cue": "quest_latch",
+          "starts_at_seconds": 3.56
+        },
+        {
+          "cue": "streak_ward",
+          "starts_at_seconds": 4.76
+        },
+        {
+          "cue": "keepsake_found",
+          "starts_at_seconds": 6.24
+        },
+        {
+          "cue": "ledger_close",
+          "starts_at_seconds": 7.8
+        },
+        {
+          "cue": "rank_advance",
+          "starts_at_seconds": 9.28
+        }
+      ],
+      "reel": {
+        "duration_ms": 11010.0,
+        "peak_dbfs": -8.8,
+        "rms_dbfs": -29.86,
+        "spectral_centroid_hz": 494.5,
+        "energy_above_5khz_percent": 0.0
+      }
+    }
+  },
+  "recommended_gradient": {
+    "source_direction_by_cue": {
+      "boundary_soft": "a-ledger",
+      "plan_place": "a-ledger",
+      "goal_seal": "b-hearth",
+      "quest_latch": "b-hearth",
+      "streak_ward": "b-hearth",
+      "keepsake_found": "c-relic",
+      "ledger_close": "b-hearth",
+      "rank_advance": "c-relic"
+    },
+    "timecodes": [
+      {
+        "cue": "boundary_soft",
+        "starts_at_seconds": 0.45
+      },
+      {
+        "cue": "plan_place",
+        "starts_at_seconds": 1.21
+      },
+      {
+        "cue": "goal_seal",
+        "starts_at_seconds": 2.08
+      },
+      {
+        "cue": "quest_latch",
+        "starts_at_seconds": 3.3
+      },
+      {
+        "cue": "streak_ward",
+        "starts_at_seconds": 4.4
+      },
+      {
+        "cue": "keepsake_found",
+        "starts_at_seconds": 5.74
+      },
+      {
+        "cue": "ledger_close",
+        "starts_at_seconds": 7.3
+      },
+      {
+        "cue": "rank_advance",
+        "starts_at_seconds": 8.64
+      }
+    ],
+    "reel": {
+      "duration_ms": 10370.0,
+      "peak_dbfs": -8.8,
+      "rms_dbfs": -30.73,
+      "spectral_centroid_hz": 630.4,
+      "energy_above_5khz_percent": 0.0
+    }
+  }
+}

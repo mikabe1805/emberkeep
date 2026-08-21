@@ -50,6 +50,38 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+26',
+    versionLabel: 'VERSION 1.0.4 · BUILD 26',
+    dateLabel: 'AUGUST 2026',
+    title: 'Every surface has a voice.',
+    introduction:
+        'Tap around and the room answers in its own materials — and the good '
+        'moments finally sound as good as they feel.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.interactionSound,
+        title: 'TEXTURES UNDER YOUR FINGER',
+        body:
+            'Stone buttons land with a satisfying dak, tabs turn like pages, '
+            'and glass and brass keep their own small voices.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.interactionSound,
+        title: 'REWARDS WORTH HEARING',
+        body:
+            'Streaks, finds, and level-ups now speak the same warm language '
+            'as the rest of the room instead of a synth blip.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'NO DEAD TAPS',
+        body:
+            'Retap the tab you are on, catch a scrolling list, tap around the '
+            'Daybook — everything that does something says so.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+25',
     versionLabel: 'VERSION 1.0.4 · BUILD 25',
     dateLabel: 'AUGUST 2026',
