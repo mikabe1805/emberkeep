@@ -1,0 +1,3010 @@
+diff --git a/README.md b/README.md
+index 795b2fa..944e021 100644
+--- a/README.md
++++ b/README.md
+@@ -32,7 +32,7 @@ flutter pub get
+ flutter run
+ flutter analyze
+ flutter test
+-flutter build web --release
++flutter build web --release --wasm
+ dart run tool/prepare_web_offline.dart
+ dart run tool/prepare_web_offline.dart --check
+ dart run tool/audit_pub_dependencies.dart
+diff --git a/codemagic.yaml b/codemagic.yaml
+index 1fcae7c..5f613c2 100644
+--- a/codemagic.yaml
++++ b/codemagic.yaml
+@@ -115,7 +115,7 @@ workflows:
+       - name: Flutter build ipa
+         script: |
+           set -euo pipefail
+-          # Keep the checked-in pubspec build as the floor (Build 12 for 1.0.0),
++          # Keep the checked-in pubspec build as the floor (Build 13 for 1.0.1),
+           # then exceed any TestFlight build already uploaded for this app. An
+           # authentication/API failure must stop the paid build instead of being
+           # hidden as "no prior build" and producing a duplicate Build 1.
+@@ -139,7 +139,7 @@ workflows:
+           if [ "$LATEST" -ge "$NEXT_BUILD" ]; then
+             NEXT_BUILD=$((LATEST + 1))
+           fi
+-          echo "Building Room of Days 1.0.0 ($NEXT_BUILD); pubspec floor $PUBSPEC_BUILD, latest TestFlight $LATEST"
++          echo "Building Room of Days 1.0.1 ($NEXT_BUILD); pubspec floor $PUBSPEC_BUILD, latest TestFlight $LATEST"
+           flutter build ipa --release \
+             --build-number="$NEXT_BUILD" \
+             --dart-define=COFFEE_URL= \
+@@ -156,7 +156,7 @@ workflows:
+           test -n "$APP"
+ 
+           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = "$BUNDLE_ID"
+-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")" = "1.0.0"
++          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")" = "1.0.1"
+           BUILD_NUMBER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")
+           PUBSPEC_BUILD=$(sed -nE \
+             's/^version:[[:space:]]*[^+]+\+([0-9]+)[[:space:]]*$/\1/p' \
+@@ -244,7 +244,7 @@ workflows:
+             echo "source_commit=${CM_COMMIT:-$(git rev-parse HEAD)}"
+             echo "ipa_sha256=$IPA_SHA256"
+             echo "bundle_id=$BUNDLE_ID"
+-            echo "marketing_version=1.0.0"
++            echo "marketing_version=1.0.1"
+             echo "build_number=$BUILD_NUMBER"
+             echo "sdk_name=$SDK_NAME"
+             echo "xcode_build=$XCODE_BUILD"
+diff --git a/firebase.json b/firebase.json
+index 6386fa7..ff73ff1 100644
+--- a/firebase.json
++++ b/firebase.json
+@@ -1,7 +1,12 @@
+ {
+   "hosting": {
+     "public": "build/web",
+-    "predeploy": ["dart run tool/prepare_web_offline.dart"],
++    "predeploy": [
++      "node tool/verify_public_downloads.mjs",
++      "flutter build web --release --wasm",
++      "dart run tool/prepare_web_offline.dart",
++      "node tool/overlay_introduction.mjs"
++    ],
+     "ignore": [
+       "firebase.json",
+       "**/node_modules/**",
+@@ -11,6 +16,19 @@
+     "cleanUrls": true,
+     "rewrites": [{"source": "**", "destination": "/index.html"}],
+     "headers": [
++      {
++        "source": "**",
++        "headers": [
++          {"key": "Cross-Origin-Opener-Policy", "value": "same-origin"},
++          {"key": "Cross-Origin-Embedder-Policy", "value": "credentialless"}
++        ]
++      },
++      {
++        "regex": "^/(introduction|android)(/|\\.html)?$",
++        "headers": [
++          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
++        ]
++      },
+       {
+         "regex": "^/[^.]*$",
+         "headers": [
+@@ -23,6 +41,30 @@
+           {"key": "Cache-Control", "value": "public, max-age=0, s-maxage=604800"}
+         ]
+       },
++      {
++        "source": "/flutter_bootstrap.js",
++        "headers": [
++          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
++        ]
++      },
++      {
++        "source": "/room_of_days_service_worker.js",
++        "headers": [
++          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
++        ]
++      },
++      {
++        "source": "/offline-assets.json",
++        "headers": [
++          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
++        ]
++      },
++      {
++        "source": "/version.json",
++        "headers": [
++          {"key": "Cache-Control", "value": "no-cache, no-store, must-revalidate"}
++        ]
++      },
+       {
+         "source": "**/*.@(html)",
+         "headers": [
+diff --git a/lib/audio.dart b/lib/audio.dart
+index a4e24be..9430b38 100644
+--- a/lib/audio.dart
++++ b/lib/audio.dart
+@@ -3,13 +3,16 @@ import 'dart:async' show unawaited;
+ import 'package:audioplayers/audioplayers.dart';
+ import 'package:flutter/foundation.dart';
+ 
++import 'platform/audio_support_stub.dart'
++    if (dart.library.js_interop) 'platform/audio_support_web.dart';
++
+ /// Event-typed sound palette (DESIGN.md §8). Sounds are always paired with
+ /// visuals, so every call is fire-and-forget and failure-tolerant — a muted
+ /// or audio-broken device loses nothing.
+ ///
+-/// All wavs are pooled (preloaded + decoded) so rare, high-magnitude events
+-/// (crit, levelup, loot) land frame-synced with their visual beat instead of
+-/// paying asset-load latency at the worst possible moment.
++/// Native wavs are pooled (preloaded + decoded) so rare, high-magnitude events
++/// land frame-synced with their visual beat. Browsers warm each event sound on
++/// first use instead of competing with the first interactive room frame.
+ class Sfx {
+   Sfx._();
+   static final Sfx instance = Sfx._();
+@@ -46,8 +49,8 @@ class Sfx {
+     'complete': 0.55,
+     'streak': 0.55,
+     'boing': 0.4,
+-    // The larger ignition marks a genuinely revived hearth. Merely entering
+-    // Me stays quiet: an automatic sound on every visit became grating.
++    // Full volume marks a genuinely revived hearth. Room navigation reuses the
++    // cue once at a much quieter scale; it never starts a background loop.
+     'hearth': 0.68,
+     'stat_0': 0.45,
+     'stat_1': 0.45,
+@@ -62,6 +65,7 @@ class Sfx {
+   static double _volFor(String name) => _volume[name] ?? 0.55;
+ 
+   final Map<String, AudioPool> _pools = {};
++  final Map<String, Future<AudioPool?>> _poolLoads = {};
+ 
+   // Everyday taps form a tiny six-beat cadence: neutral and warmer contacts
+   // alternate, then the sixth interaction gets a barely brighter lift. It is
+@@ -84,64 +88,15 @@ class Sfx {
+     return asset;
+   }
+ 
+-  /// Sound enabled flag — set from GameState.soundEnabled. Turning sound off
+-  /// also stops the room bed immediately.
+-  bool _soundEnabled = true;
+-  bool get soundEnabled => _soundEnabled;
+-  set soundEnabled(bool value) {
+-    _soundEnabled = value;
+-    if (!value) {
+-      unawaited(_stopHearthRoom());
+-    } else if (_hearthRoomWanted) {
+-      unawaited(_startHearthRoom());
+-    }
+-  }
+-
+-  AudioPlayer? _hearthRoom;
+-  bool _hearthRoomWanted = false;
+-  bool _hearthRoomPlaying = false;
+-
+-  /// A near-subliminal room bed. The asset is original project audio and loops
+-  /// only while a room-facing page is active. It stays far below event sounds
+-  /// and mixes with the user's own music through the ambient audio context.
+-  void setHearthRoomActive(bool active) {
+-    _hearthRoomWanted = active;
+-    if (!active || !_soundEnabled) {
+-      unawaited(_stopHearthRoom());
+-    } else {
+-      unawaited(_startHearthRoom());
+-    }
+-  }
+-
+-  Future<void> _startHearthRoom() async {
+-    if (!_soundEnabled || !_hearthRoomWanted || _hearthRoomPlaying) return;
+-    // Constructing an AudioPlayer subscribes to the global event channel on a
+-    // microtask, *outside* any try/catch here — so on a host with no plugin
+-    // (tests, some web contexts) that surfaced as an uncaught
+-    // MissingPluginException rather than a silent no-op. Gate the bed on a
+-    // pool having actually loaded: no audio backend, no player, no noise.
+-    if (_pools.isEmpty) return;
+-    final player = _hearthRoom ??= AudioPlayer();
+-    try {
+-      await player.setReleaseMode(ReleaseMode.loop);
+-      await player.play(AssetSource('sfx/hearth_room.wav'), volume: 0.045);
+-      _hearthRoomPlaying = true;
+-    } catch (e) {
+-      debugPrint('Hearth room ambience (continuing silent): $e');
+-    }
+-  }
+-
+-  Future<void> _stopHearthRoom() async {
+-    if (!_hearthRoomPlaying) return;
+-    try {
+-      await _hearthRoom?.stop();
+-    } catch (_) {
+-      // Sound is enhancement-only.
+-    }
+-    _hearthRoomPlaying = false;
+-  }
++  /// Sound enabled flag — set from GameState.soundEnabled.
++  bool soundEnabled = true;
+ 
+   Future<void> init() async {
++    // Some embedded/automation WebKit builds expose CanvasKit but no Web Audio
++    // constructor. Treat sound as an unavailable enhancement there instead of
++    // throwing once per tap and repeatedly attempting pools that cannot load.
++    if (kIsWeb && !browserAudioAvailable) return;
++
+     // FIRST, before any pool ever activates the audio session: make our SFX
+     // mix WITH the user's own music instead of evicting it. audioplayers
+     // defaults the iOS AVAudioSession to `.playback` (non-mixable), so the
+@@ -173,27 +128,49 @@ class Sfx {
+       debugPrint('Sfx audio context (continuing): $e');
+     }
+ 
++    // A browser cannot play before a gesture anyway. Eagerly constructing all
++    // sixteen pools made a first visit fetch every wav (and several byte-range
++    // copies) while Flutter was decoding the room and accepting the first tap.
++    // Native keeps its frame-synchronous preload; web warms only sounds the
++    // person actually reaches.
++    if (kIsWeb) return;
++
+     // Parallel loads; each pool becomes playable as soon as it lands, and
+     // one failed asset never mutes the others.
+-    await Future.wait(
+-      _all.map((name) async {
+-        try {
+-          _pools[name] = await AudioPool.createFromAsset(
+-            path: 'sfx/$name.wav',
+-            maxPlayers: 4,
+-          );
+-        } catch (e) {
+-          debugPrint('Sfx pool "$name" failed (continuing silent): $e');
+-        }
+-      }),
+-    );
++    await Future.wait(_all.map(_loadPool));
++  }
++
++  Future<AudioPool?> _loadPool(String name) {
++    final loaded = _pools[name];
++    if (loaded != null) return Future.value(loaded);
++    final active = _poolLoads[name];
++    if (active != null) return active;
++
++    late final Future<AudioPool?> attempt;
++    attempt = () async {
++      try {
++        final pool = await AudioPool.createFromAsset(
++          path: 'sfx/$name.wav',
++          maxPlayers: 4,
++        );
++        _pools[name] = pool;
++        return pool;
++      } catch (e) {
++        debugPrint('Sfx pool "$name" failed (continuing silent): $e');
++        return null;
++      } finally {
++        _poolLoads.remove(name);
++      }
++    }();
++    _poolLoads[name] = attempt;
++    return attempt;
+   }
+ 
+   /// names: tick, complete, streak, crit, loot, levelup, boing, hearth,
+   /// stat_0..5. [volumeScale] lets ambient echoes reuse a sound without
+   /// competing with the user's music; event calls normally leave it at 1.
+   void play(String name, {double volumeScale = 1}) {
+-    if (!soundEnabled) return;
++    if (!soundEnabled || (kIsWeb && !browserAudioAvailable)) return;
+     try {
+       final vol = (_volFor(name) * volumeScale).clamp(0.0, 1.0);
+       final asset = _assetFor(name);
+@@ -204,7 +181,9 @@ class Sfx {
+           return () async {};
+         });
+       } else {
+-        // Pool missing (failed or still loading): best-effort one-shot.
++        // Pool missing (failed, still loading, or intentionally lazy on web):
++        // best-effort one-shot now, and keep a pool warm for the next use.
++        unawaited(_loadPool(asset));
+         final p = AudioPlayer();
+         p.onPlayerComplete.first.then((_) => p.dispose());
+         p.play(AssetSource('sfx/$asset.wav'), volume: vol).catchError((
+diff --git a/lib/engine.dart b/lib/engine.dart
+index 80d9bf7..f2712fa 100644
+--- a/lib/engine.dart
++++ b/lib/engine.dart
+@@ -832,12 +832,35 @@ class GameState extends ChangeNotifier {
+   int bestStreak = 0;
+   String? lastCompletionDay;
+ 
+-  /// Streak shields — the Lv-6 unlock, finally real. Each one quietly bridges
+-  /// a single missed day so a long streak survives one bad day (never-punish;
+-  /// RESEARCH-momentum.md §7). Granted at the unlock and earned on perfect days.
+-  int streakShields = 0;
+-  bool shieldUnlockGranted = false;
+-  static const maxShields = 5;
++  /// Streak freezes are available from the beginning. Each one quietly holds
++  /// one day away, but is spent only when the whole gap can be covered. The
++  /// serialized names remain the old `streakShields` names for save and cloud
++  /// compatibility; public copy consistently calls these freezes.
++  static const starterStreakFreezes = 3;
++  static const maxStreakFreezes = 7;
++  static const _baseFreezeCapacity = 5;
++  static const _streakFreezeVersion = 1;
++  int streakFreezes = starterStreakFreezes;
++  int streakFreezeProgress = 0;
++  int streakFreezeVersion = _streakFreezeVersion;
++  bool freezeLevelBonusGranted = false;
++  final Set<String> frozenStreakDays = {};
++
++  /// Level 6 opens enough room to hold a full week; freezes still work before
++  /// then, so the app never withholds its safety net from a new keeper.
++  int get streakFreezeCapacity =>
++      level >= 6 ? maxStreakFreezes : _baseFreezeCapacity;
++
++  /// Ordinary active days replenish the reserve. CARE bends this loop in a
++  /// deterministic, legible way instead of hiding a random reward chance.
++  int get activeDaysPerFreeze => (stats[Stat.vit] ?? 0) >= 40 ? 2 : 3;
++
++  /// A small public preview for UI. Nothing is spent until a quest is actually
++  /// completed, and an under-covered gap never wastes the reserve.
++  ({int days, bool covered}) get pendingStreakGap {
++    final situation = _streakSituation();
++    return (days: situation.days.length, covered: situation.covered);
++  }
+ 
+   // ── achievement counters ─────────────────────────────────────────
+   int totalCompletions = 0;
+@@ -1138,7 +1161,7 @@ class GameState extends ChangeNotifier {
+     3: 'CHARACTER SHEET',
+     4: 'EVIDENCE ARCHIVE',
+     5: 'THEMES',
+-    6: 'STREAK SHIELDS',
++    6: 'WEEK-LONG FREEZE RESERVE',
+     8: 'TODAY’S BONUS',
+     12: 'WINDOW VIEWS',
+     14: 'ROOM STYLES+',
+@@ -1186,19 +1209,27 @@ class GameState extends ChangeNotifier {
+   double get streakMult => streakMultFor(streakDays);
+ 
+   /// How this completion sits against the streak: is there a gap since the
+-  /// last active day, how many days were missed, and can shields bridge it?
++  /// last active day, which quiet dates sit inside it, and can freezes bridge
++  /// every one? Partial coverage is deliberately refused so no freeze is ever
++  /// spent without preserving the streak.
+   /// Read identically by [roll] (for messaging) and [commit] (to apply) —
+   /// both run before lastCompletionDay is bumped, so they agree.
+-  ({bool gap, int missed, bool covered}) _streakSituation() {
++  ({bool gap, List<String> days, bool covered}) _streakSituation() {
+     final last = lastCompletionDay;
+     final now = Clock.now();
+     if (last == null || last == Days.key(now)) {
+-      return (gap: false, missed: 0, covered: false);
++      return (gap: false, days: const <String>[], covered: false);
+     }
+     final d = Days.parse(last);
+     final missed = Days.between(d, now) - 1;
+-    if (missed <= 0) return (gap: false, missed: 0, covered: false);
+-    return (gap: true, missed: missed, covered: streakShields >= missed);
++    if (missed <= 0) {
++      return (gap: false, days: const <String>[], covered: false);
++    }
++    final days = [
++      for (var i = 1; i <= missed; i++)
++        Days.key(DateTime(d.year, d.month, d.day + i)),
++    ];
++    return (gap: true, days: days, covered: streakFreezes >= days.length);
+   }
+ 
+   /// Verified completions (timer proof) pay ×1.2 — proof multiplies,
+@@ -1297,7 +1328,7 @@ class GameState extends ChangeNotifier {
+   RewardBundle roll(Quest q, {bool verified = false}) {
+     final now = Clock.now();
+     final nowKey = Days.key(now);
+-    // How a gap (if any) resolves: a shield bridges it silently, otherwise
++    // How a gap (if any) resolves: freezes bridge it quietly, otherwise
+     // it's a true lapse and the return earns a warm comeback bonus. Read
+     // before we stamp anything (mirrors [commit]'s decision).
+     final sit = _streakSituation();
+@@ -1305,6 +1336,8 @@ class GameState extends ChangeNotifier {
+     final isComeback = sit.gap && !sit.covered;
+     // the FIRST completion of the day (no completion committed yet today)
+     final firstOfDay = lastCompletionDay != nowKey;
++    final freezesUsed = shieldHeld ? sit.days.length : 0;
++    final reserveAfterHeldDays = streakFreezes - freezesUsed;
+ 
+     final priorSame = todayTitleCounts[q.title] ?? 0;
+     final neglect = _neglectMult(q, nowKey);
+@@ -1360,6 +1393,21 @@ class GameState extends ChangeNotifier {
+     gain *= dayOne;
+     gain *= sameDayDecay(priorSame);
+     if ((todayStats[q.stat] ?? 0) >= dailyStatSoft) gain *= 0.5;
++    final projectedVit =
++        stats[Stat.vit]! +
++        (q.stat == Stat.vit ? max(1, gain.round() + (q.dread ? 3 : 0)) : 0);
++    final freezeCadenceAfter = projectedVit >= 40 ? 2 : 3;
++    final freezeEarnedAfterCommit =
++        firstOfDay &&
++        reserveAfterHeldDays < streakFreezeCapacity &&
++        streakFreezeProgress + 1 >= freezeCadenceAfter;
++    final finalFreezeBalance = min(
++      streakFreezeCapacity,
++      reserveAfterHeldDays + (freezeEarnedAfterCommit ? 1 : 0),
++    );
++    final freezeProgressAfter = freezeEarnedAfterCommit
++        ? 0
++        : min(freezeCadenceAfter - 1, streakFreezeProgress + 1);
+ 
+     return RewardBundle(
+       xp: earned.round(),
+@@ -1389,7 +1437,11 @@ class GameState extends ChangeNotifier {
+           : (streakDays > 0 ? streakMult : null),
+       verifiedMult: verified ? verifiedBonus : null,
+       comebackMult: isComeback ? comebackBonus : null,
+-      shieldHeld: shieldHeld,
++      freezesUsed: freezesUsed,
++      freezeEarned: freezeEarnedAfterCommit,
++      freezeBalanceAfter: finalFreezeBalance,
++      freezeProgressAfter: freezeProgressAfter,
++      freezeCadenceAfter: freezeCadenceAfter,
+       firstOfDay: firstOfDay,
+       loot: loot,
+       hasEvidence:
+@@ -1443,8 +1495,9 @@ class GameState extends ChangeNotifier {
+     );
+     if (ledger.length > 8) ledger.removeLast();
+ 
+-    // streak: consecutive days with at least one completion — a shield
+-    // bridges a missed day so a long run survives one bad day (never-punish)
++    // Streak: active days count upward; freezes hold calendar days away without
++    // pretending those days were active. Full-save undo restores this whole
++    // transaction, including reserve, progress, and the exact frozen dates.
+     final now = Clock.now();
+     final today = Days.key(now);
+     if (lastCompletionDay != today) {
+@@ -1452,7 +1505,8 @@ class GameState extends ChangeNotifier {
+       if (!sit.gap) {
+         streakDays += 1; // first ever, or yesterday → continues
+       } else if (sit.covered) {
+-        streakShields -= sit.missed; // shield(s) hold the line
++        streakFreezes -= sit.days.length;
++        frozenStreakDays.addAll(sit.days);
+         streakDays += 1;
+       } else {
+         comebacks++; // a real lapse — reset, but the return is celebrated
+@@ -1460,6 +1514,15 @@ class GameState extends ChangeNotifier {
+       }
+       lastCompletionDay = today;
+ 
++      // Showing up replenishes freezes without asking for a perfect board.
++      // Progress can sit one day from ready while the reserve is full; if a
++      // later completion spends a freeze, that same active day may refill it.
++      streakFreezes = b.freezeBalanceAfter;
++      streakFreezeProgress = min(
++        b.freezeCadenceAfter - 1,
++        b.freezeProgressAfter,
++      );
++
+       // streak milestone — a 7/30/100 day CROSSING queues a chest. This lives
+       // INSIDE the day-change block on purpose: a milestone can only be
+       // crossed when the streak increments, so the second+ completion of a
+@@ -1494,16 +1557,6 @@ class GameState extends ChangeNotifier {
+     final titleKey = b.questKey ?? b.questTitle;
+     todayTitleCounts[titleKey] = (todayTitleCounts[titleKey] ?? 0) + 1;
+ 
+-    // VIT perk: high Vitality occasionally forges an extra shield on the
+-    // day's first ember (never above the cap; only once shields unlock).
+-    if (b.firstOfDay &&
+-        shieldUnlockGranted &&
+-        streakShields < maxShields &&
+-        stats[Stat.vit]! >= 40 &&
+-        _rng.nextDouble() < 0.08) {
+-      streakShields++;
+-    }
+-
+     // today's haul (night recap)
+     todayXp += b.xp;
+     todayStats[b.stat] = (todayStats[b.stat] ?? 0) + b.statGain;
+@@ -1579,10 +1632,10 @@ class GameState extends ChangeNotifier {
+     if (level >= 2) ownedFurniture.add('rug');
+     if (level >= 3) ownedFurniture.add('plant');
+     if (level >= 4) ownedFurniture.add('cushion');
+-    // the STREAK SHIELDS unlock (Lv 6) actually hands you shields now
+-    if (level >= 6 && !shieldUnlockGranted) {
+-      shieldUnlockGranted = true;
+-      streakShields = (streakShields + 2).clamp(0, maxShields);
++    // Lv 6 widens the reserve to a full week and places two freezes inside it.
++    if (level >= 6 && !freezeLevelBonusGranted) {
++      freezeLevelBonusGranted = true;
++      streakFreezes = (streakFreezes + 2).clamp(0, streakFreezeCapacity);
+     }
+     // the GILDED SKIN unlock (Lv 15) grants the gilded skin for free
+     if (level >= 15 && !ownedSkins.contains('gilded')) {
+@@ -1681,9 +1734,6 @@ class GameState extends ChangeNotifier {
+     if (lastPerfectDay == today || (history[today] ?? 0) < 1) return;
+     lastPerfectDay = today;
+     perfectDays++;
+-    // once shields are unlocked, a perfect day forges one (capped) — a
+-    // reason to clear the whole board, and a buffer for the day you can't
+-    if (shieldUnlockGranted && streakShields < maxShields) streakShields++;
+     notifyListeners();
+   }
+ 
+@@ -1762,8 +1812,12 @@ class GameState extends ChangeNotifier {
+     'ledger': [for (final e in ledger) e.toJson()],
+     'streakDays': streakDays,
+     'bestStreak': bestStreak,
+-    'streakShields': streakShields,
+-    'shieldUnlockGranted': shieldUnlockGranted,
++    // Keep legacy keys stable so an existing cloud/local save keeps merging.
++    'streakShields': streakFreezes,
++    'shieldUnlockGranted': freezeLevelBonusGranted,
++    'streakFreezeProgress': streakFreezeProgress,
++    'streakFreezeVersion': streakFreezeVersion,
++    'frozenStreakDays': frozenStreakDays.toList()..sort(),
+     'lastCompletionDay': lastCompletionDay,
+     'lastActiveDay': lastActiveDay,
+     'totalCompletions': totalCompletions,
+@@ -1984,8 +2038,25 @@ class GameState extends ChangeNotifier {
+     }
+     s.streakDays = j['streakDays'] as int? ?? 0;
+     s.bestStreak = j['bestStreak'] as int? ?? s.streakDays;
+-    s.streakShields = j['streakShields'] as int? ?? 0;
+-    s.shieldUnlockGranted = j['shieldUnlockGranted'] as bool? ?? false;
++    final encodedFreezeVersion = j['streakFreezeVersion'] as int? ?? 0;
++    final encodedFreezes = j['streakShields'] as int? ?? 0;
++    // Every pre-freeze-system save receives the starter reserve exactly once;
++    // any old shields already earned are preserved if that is more generous.
++    s.streakFreezes =
++        (encodedFreezeVersion >= _streakFreezeVersion
++                ? encodedFreezes
++                : max(encodedFreezes, starterStreakFreezes))
++            .clamp(0, s.streakFreezeCapacity);
++    s.streakFreezeVersion = _streakFreezeVersion;
++    s.freezeLevelBonusGranted = j['shieldUnlockGranted'] as bool? ?? false;
++    s.streakFreezeProgress = (j['streakFreezeProgress'] as int? ?? 0).clamp(
++      0,
++      s.activeDaysPerFreeze - 1,
++    );
++    for (final day in (j['frozenStreakDays'] as List?) ?? const []) {
++      final key = Days.validKey(day);
++      if (key != null) s.frozenStreakDays.add(key);
++    }
+     s.lastCompletionDay = Days.validKey(j['lastCompletionDay']);
+     s.lastActiveDay = Days.validKey(j['lastActiveDay']);
+     s.totalCompletions = j['totalCompletions'] as int? ?? 0;
+diff --git a/lib/main.dart b/lib/main.dart
+index 3b1a854..5ac9726 100644
+--- a/lib/main.dart
++++ b/lib/main.dart
+@@ -186,6 +186,11 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
+       theme: ThemeData(
+         brightness: Brightness.dark,
+         scaffoldBackgroundColor: Palette.parchment,
++        // CanvasKit otherwise asks Google for Roboto during the first web
++        // frame even though Inter is already bundled with the app. Keep the
++        // native theme untouched; the browser gets the intended local face
++        // without another network/font-registration task during startup.
++        fontFamily: kIsWeb ? 'Inter' : null,
+         colorScheme: ColorScheme.fromSeed(
+           seedColor: Palette.xp,
+           brightness: Brightness.dark,
+diff --git a/lib/models.dart b/lib/models.dart
+index 69aba8d..eac01d7 100644
+--- a/lib/models.dart
++++ b/lib/models.dart
+@@ -921,7 +921,11 @@ class RewardBundle {
+     this.streakMult,
+     this.verifiedMult,
+     this.comebackMult,
+-    this.shieldHeld = false,
++    this.freezesUsed = 0,
++    this.freezeEarned = false,
++    this.freezeBalanceAfter = 0,
++    this.freezeProgressAfter = 0,
++    this.freezeCadenceAfter = 3,
+     this.firstOfDay = false,
+     this.loot,
+     this.hasEvidence = false,
+@@ -962,9 +966,29 @@ class RewardBundle {
+   /// comeback bonus, never a scold (never-punish; RESEARCH-momentum.md §4).
+   final double? comebackMult;
+ 
+-  /// True when a streak shield silently bridged a gap to keep the
+-  /// streak alive — the completion celebrates "streak safe", not a reset.
+-  final bool shieldHeld;
++  /// Number of quiet days automatically covered by streak freezes on this
++  /// completion. A freeze is only spent when the entire gap can be held.
++  final int freezesUsed;
++
++  /// True when this active day completed the ordinary show-up cadence and
++  /// banked another freeze. This is intentionally not tied to a perfect day.
++  final bool freezeEarned;
++
++  /// Freeze reserve after this completion applies both the held days and any
++  /// newly earned freeze. The receipt can therefore tell the exact truth.
++  final int freezeBalanceAfter;
++
++  /// Ordinary active-day progress remaining after this completion. Carrying
++  /// the value through the staged reward keeps roll and commit identical even
++  /// if this quest itself crosses the CARE-40 cadence threshold.
++  final int freezeProgressAfter;
++
++  /// Cadence used to compute [freezeProgressAfter]. This closes the last seam
++  /// between a staged roll and a commit that itself crosses CARE 40.
++  final int freezeCadenceAfter;
++
++  /// Compatibility name for the existing completion motion path.
++  bool get shieldHeld => freezesUsed > 0;
+ 
+   /// The day's FIRST completion — gets a notch-brighter beat ("first ember
+   /// lit today"). One step above a normal completion, never a takeover.
+diff --git a/lib/screens/calendar.dart b/lib/screens/calendar.dart
+index db6c8f4..94ca5cb 100644
+--- a/lib/screens/calendar.dart
++++ b/lib/screens/calendar.dart
+@@ -48,10 +48,25 @@ const _weekdayNames = [
+   'SUNDAY',
+ ];
+ 
+-/// The Plans page: a warm month calendar. Honey tallies = your completion
+-/// history; stat-colored diamonds = upcoming events/long-term goals. Tap a
+-/// day to see or plan it. (Push reminders arrive with the phone build —
+-/// due quests surface on the Quests page meanwhile.)
++enum _MonthDayWeight { none, light, moderate, full }
++
++final class _MonthDayLoad {
++  const _MonthDayLoad({required this.weight, required this.hasDeadline});
++
++  final _MonthDayWeight weight;
++  final bool hasDeadline;
++
++  String get spokenLabel => switch (weight) {
++    _MonthDayWeight.none => 'open day',
++    _MonthDayWeight.light => 'lightly scheduled day',
++    _MonthDayWeight.moderate => 'moderately scheduled day',
++    _MonthDayWeight.full => 'heavily scheduled day',
++  };
++}
++
++/// The Plans page: a warm month calendar. One brass day-weight mark answers
++/// the month view's useful question at a glance: how much of this day is
++/// spoken for? Tap a day to read the actual classes, plans, work, and notes.
+ class CalendarPage extends StatefulWidget {
+   const CalendarPage({
+     super.key,
+@@ -198,6 +213,51 @@ class _CalendarPageState extends State<CalendarPage> {
+   List<AcademicWorkItem> _academicWorkOn(DateTime day) =>
+       _academicSchedule.workItemsOn(CivilDate.fromDateTime(day));
+ 
++  List<AcademicStudyBlock> _academicStudyOn(DateTime day) =>
++      _academicSchedule.studyBlocksOn(CivilDate.fromDateTime(day));
++
++  _MonthDayLoad _monthDayLoad({
++    required DateTime day,
++    required List<Quest> plans,
++    required List<ClassOccurrence> classes,
++    required List<AcademicWorkItem> work,
++    required List<AcademicStudyBlock> study,
++  }) {
++    var scheduledMinutes = 0;
++    for (final occurrence in classes) {
++      if (occurrence.state == OccurrenceState.cancelled) continue;
++      scheduledMinutes +=
++          occurrence.localEndMinute - occurrence.localStartMinute;
++      scheduledMinutes +=
++          _academicSchedule
++              .meetingSeriesById(occurrence.meetingSeriesId)
++              ?.transitionBufferMinutes ??
++          0;
++    }
++    for (final block in study) {
++      scheduledMinutes += block.durationMinutes;
++    }
++    for (final plan in plans) {
++      // Calendar plans currently have a due day rather than start/end times.
++      // Their timer is the best estimate when present; otherwise one neutral
++      // hour keeps an untimed plan visible without pretending XP difficulty
++      // is a duration.
++      scheduledMinutes += plan.timerMinutes > 0 ? plan.timerMinutes : 60;
++    }
++
++    final hasDeadline =
++        plans.any((plan) => !plan.doneFor(day)) ||
++        work.any((item) => !item.completed);
++    final weight = switch (scheduledMinutes) {
++      0 when hasDeadline => _MonthDayWeight.light,
++      0 => _MonthDayWeight.none,
++      < 120 => _MonthDayWeight.light,
++      < 240 => _MonthDayWeight.moderate,
++      _ => _MonthDayWeight.full,
++    };
++    return _MonthDayLoad(weight: weight, hasDeadline: hasDeadline);
++  }
++
+   Future<bool> _saveAcademicMeeting(
+     AcademicTerm term,
+     AcademicCourse course,
+@@ -234,6 +294,186 @@ class _CalendarPageState extends State<CalendarPage> {
+     return true;
+   }
+ 
++  Future<bool> _saveAcademicStudyPlan(
++    AcademicStudyPlan plan,
++    List<AcademicStudyBlock> blocks,
++  ) async {
++    late final AcademicSchedule next;
++    try {
++      next = _academicSchedule.putStudyPlan(plan: plan, blocks: blocks);
++    } on ArgumentError {
++      return false;
++    }
++    if (!await _scheduleRepository.save(next)) return false;
++    if (mounted) setState(() => _academicSchedule = next);
++    return true;
++  }
++
++  Future<void> _toggleAcademicStudyBlock(AcademicStudyBlock block) async {
++    late final AcademicSchedule next;
++    try {
++      next = _academicSchedule.setStudyBlockCompleted(
++        studyBlockId: block.studyBlockId,
++        completed: !block.completed,
++        updatedAt: Clock.now().toUtc(),
++      );
++    } on ArgumentError {
++      return;
++    }
++    if (!await _scheduleRepository.save(next)) {
++      if (!mounted) return;
++      ScaffoldMessenger.of(context).showSnackBar(
++        SnackBar(
++          behavior: SnackBarBehavior.floating,
++          backgroundColor: Palette.card,
++          content: Text(
++            "Couldn't update this study block locally. Try again.",
++            style: Type.body.copyWith(color: Palette.textHi),
++          ),
++        ),
++      );
++      return;
++    }
++    if (!mounted) return;
++    Sfx.instance.play('tick');
++    setState(() => _academicSchedule = next);
++  }
++
++  Future<void> _showAcademicStudyPlanner(AcademicWorkItem item) async {
++    Sfx.instance.play('tick');
++    await showDialog<void>(
++      context: context,
++      barrierColor: Palette.dialogBarrier,
++      builder: (_) => AcademicStudyPlannerDialog(
++        schedule: _academicSchedule,
++        item: item,
++        onSave: _saveAcademicStudyPlan,
++      ),
++    );
++  }
++
++  Future<bool> _moveAcademicOccurrence(
++    ClassOccurrence occurrence,
++    CivilDate date,
++    int startMinute,
++    int endMinute,
++  ) => _changeAcademicOccurrence(
++    (updatedAt) => _academicSchedule.moveOccurrence(
++      occurrenceKey: occurrence.occurrenceKey,
++      date: date,
++      startMinute: startMinute,
++      endMinute: endMinute,
++      updatedAt: updatedAt,
++    ),
++  );
++
++  Future<bool> _cancelAcademicOccurrence(ClassOccurrence occurrence) =>
++      _changeAcademicOccurrence(
++        (updatedAt) => _academicSchedule.cancelOccurrence(
++          occurrenceKey: occurrence.occurrenceKey,
++          updatedAt: updatedAt,
++        ),
++      );
++
++  Future<bool> _restoreAcademicOccurrence(ClassOccurrence occurrence) =>
++      _changeAcademicOccurrence(
++        (updatedAt) => _academicSchedule.restoreOccurrence(
++          occurrenceKey: occurrence.occurrenceKey,
++          updatedAt: updatedAt,
++        ),
++      );
++
++  Future<bool> _changeAcademicOccurrence(
++    AcademicSchedule Function(DateTime updatedAt) change,
++  ) async {
++    late final AcademicSchedule next;
++    try {
++      next = change(Clock.now().toUtc());
++    } on ArgumentError {
++      return false;
++    }
++    if (!await _scheduleRepository.save(next)) return false;
++    if (mounted) setState(() => _academicSchedule = next);
++    return true;
++  }
++
++  Future<void> _showAcademicOccurrenceAdjuster(
++    ClassOccurrence occurrence,
++  ) async {
++    Sfx.instance.play('tick');
++    await showDialog<void>(
++      context: context,
++      barrierColor: Palette.dialogBarrier,
++      builder: (_) => AcademicOccurrenceAdjustDialog(
++        schedule: _academicSchedule,
++        occurrence: occurrence,
++        onMove: _moveAcademicOccurrence,
++        onCancel: _cancelAcademicOccurrence,
++        onRestore: _restoreAcademicOccurrence,
++      ),
++    );
++  }
++
++  Future<bool> _updateAcademicTransitionBuffer(
++    ClassOccurrence occurrence,
++    int minutes,
++  ) async {
++    final series = _academicSchedule.meetingSeriesById(
++      occurrence.meetingSeriesId,
++    );
++    if (series == null) return false;
++    final course = _academicSchedule.courseById(series.courseId);
++    if (course == null) return false;
++    final term = _academicSchedule.terms
++        .where((term) => term.termId == course.termId)
++        .firstOrNull;
++    if (term == null) return false;
++
++    final updatedAt = Clock.now().toUtc();
++    final updatedSeries = MeetingSeries(
++      meetingSeriesId: series.meetingSeriesId,
++      courseId: series.courseId,
++      kind: series.kind,
++      weekdays: series.weekdays,
++      localStartMinute: series.localStartMinute,
++      localEndMinute: series.localEndMinute,
++      transitionBufferMinutes: minutes,
++      intervalWeeks: series.intervalWeeks,
++      firstDate: series.firstDate,
++      lastDate: series.lastDate,
++      timeZoneId: series.timeZoneId,
++      place: series.place,
++      reminders: series.reminders,
++      revision: series.revision + 1,
++      updatedAt: updatedAt,
++      tombstonedAt: series.tombstonedAt,
++    );
++    final next = _academicSchedule.putMeeting(
++      term: term,
++      course: course,
++      series: updatedSeries,
++      updatedAt: updatedAt,
++    );
++    if (!await _scheduleRepository.save(next)) {
++      if (!mounted) return false;
++      ScaffoldMessenger.of(context).showSnackBar(
++        SnackBar(
++          behavior: SnackBarBehavior.floating,
++          backgroundColor: Palette.card,
++          content: Text(
++            "Couldn't update this class buffer locally. Try again.",
++            style: Type.body.copyWith(color: Palette.textHi),
++          ),
++        ),
++      );
++      return false;
++    }
++    if (!mounted) return false;
++    Sfx.instance.play('tick');
++    setState(() => _academicSchedule = next);
++    return true;
++  }
++
+   Future<void> _toggleAcademicWork(AcademicWorkItem item) async {
+     late final AcademicSchedule next;
+     try {
+@@ -470,110 +710,16 @@ class _CalendarPageState extends State<CalendarPage> {
+               // built like the bound month-folio in the approved target: a
+               // book-cloth board, a brass-ruled masthead, then the dated page
+               // inset into it. A flat panel this size read as an empty block.
+-              GlassPanel(
+-                blur: true,
+-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+-                child: Column(
+-                  children: [
+-                    Row(
+-                      children: [
+-                        _Chevron(
+-                          icon: Icons.chevron_left,
+-                          label: 'Previous month',
+-                          onTap: () => _moveMonth(-1),
+-                        ),
+-                        Expanded(
+-                          child: Center(
+-                            child: Text(
+-                              '${_monthNames[_month.month - 1].toUpperCase()} ${_month.year}',
+-                              style: Type.display.copyWith(
+-                                fontSize: 16,
+-                                letterSpacing: 2.4,
+-                                color: Palette.textHi,
+-                              ),
+-                            ),
+-                          ),
+-                        ),
+-                        _Chevron(
+-                          icon: Icons.chevron_right,
+-                          label: 'Next month',
+-                          onTap: () => _moveMonth(1),
+-                        ),
+-                      ],
+-                    ),
+-                    if (_month.year != now.year || _month.month != now.month)
+-                      TextButton(
+-                        onPressed: _goToday,
+-                        child: Text(
+-                          'BACK TO TODAY',
+-                          style: Type.label.copyWith(
+-                            fontSize: Type.minLabel,
+-                            color: Palette.xpLight,
+-                          ),
+-                        ),
+-                      ),
+-                    const SizedBox(height: 6),
+-                    const _FolioRule(),
+-                    const SizedBox(height: 8),
+-                    DecoratedBox(
+-                      decoration: _folioPage,
+-                      child: Padding(
+-                        padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+-                        child: Column(
+-                          children: [
+-                            Row(
+-                              children: [
+-                                for (var i = 0; i < 7; i++)
+-                                  Expanded(
+-                                    child: Center(
+-                                      child: Text(
+-                                        const [
+-                                          'M',
+-                                          'T',
+-                                          'W',
+-                                          'T',
+-                                          'F',
+-                                          'S',
+-                                          'S',
+-                                        ][i],
+-                                        style: Type.label.copyWith(
+-                                          fontSize: 11,
+-                                          letterSpacing: 1.4,
+-                                          color: i >= 5
+-                                              ? Palette.brass
+-                                              : Palette.textLo,
+-                                        ),
+-                                      ),
+-                                    ),
+-                                  ),
+-                              ],
+-                            ),
+-                            const SizedBox(height: 5),
+-                            const _FolioRule(strength: 0.55),
+-                            const SizedBox(height: 3),
+-                            for (
+-                              var week = 0;
+-                              week * 7 - (firstWeekday - 1) < daysInMonth;
+-                              week++
+-                            )
+-                              Row(
+-                                children: [
+-                                  for (var col = 0; col < 7; col++)
+-                                    Expanded(
+-                                      child: _dayCell(
+-                                        week * 7 + col - (firstWeekday - 1) + 1,
+-                                        daysInMonth,
+-                                        now,
+-                                      ),
+-                                    ),
+-                                ],
+-                              ),
+-                          ],
+-                        ),
+-                      ),
+-                    ),
+-                  ],
+-                ),
++              _MonthFolio(
++                key: const ValueKey('academic-month-folio'),
++                month: _month,
++                now: now,
++                firstWeekday: firstWeekday,
++                daysInMonth: daysInMonth,
++                onPrevious: () => _moveMonth(-1),
++                onNext: () => _moveMonth(1),
++                onToday: _goToday,
++                dayCell: (day) => _dayCell(day, daysInMonth, now),
+               ),
+             ] else ...[
+               AcademicSpanPanel(
+@@ -587,6 +733,10 @@ class _CalendarPageState extends State<CalendarPage> {
+                 onSelectDay: _selectDay,
+                 onOpenNotebook: _openNotebook,
+                 onToggleWork: _toggleAcademicWork,
++                onOpenStudyPlanner: _showAcademicStudyPlanner,
++                onToggleStudyBlock: _toggleAcademicStudyBlock,
++                onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
++                onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
+               ),
+             ],
+             const SizedBox(height: 14),
+@@ -605,14 +755,22 @@ class _CalendarPageState extends State<CalendarPage> {
+               academicWorkItems: _academicMode == AcademicCalendarMode.month
+                   ? _academicWorkOn(_selected)
+                   : const <AcademicWorkItem>[],
++              academicStudyBlocks: _academicMode == AcademicCalendarMode.month
++                  ? _academicStudyOn(_selected)
++                  : const <AcademicStudyBlock>[],
+               hasAcademicItems:
+                   _classesOn(_selected).isNotEmpty ||
+-                  _academicWorkOn(_selected).isNotEmpty,
++                  _academicWorkOn(_selected).isNotEmpty ||
++                  _academicStudyOn(_selected).isNotEmpty,
+               now: now,
+               onPlan: () => _showAddEvent(context),
+               onOpenJournal: _openJournal,
+               onOpenNotebook: _openNotebook,
+               onToggleWork: _toggleAcademicWork,
++              onOpenStudyPlanner: _showAcademicStudyPlanner,
++              onToggleStudyBlock: _toggleAcademicStudyBlock,
++              onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
++              onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
+               lightDirection: widget.lightDirection ?? widget.parallax,
+             ),
+           ],
+@@ -623,7 +781,7 @@ class _CalendarPageState extends State<CalendarPage> {
+ 
+   Widget _dayCell(int day, int daysInMonth, DateTime now) {
+     if (day < 1 || day > daysInMonth) {
+-      return ConstrainedBox(constraints: const BoxConstraints(minHeight: 55));
++      return const SizedBox.expand();
+     }
+     final date = DateTime(_month.year, _month.month, day);
+     final isToday = Days.sameDay(date, now);
+@@ -632,12 +790,22 @@ class _CalendarPageState extends State<CalendarPage> {
+     final events = _eventsOn(date);
+     final classes = _classesOn(date);
+     final academicWork = _academicWorkOn(date);
++    final academicStudy = _academicStudyOn(date);
+     final journalEntries = _journalOn(date);
++    final load = _monthDayLoad(
++      day: date,
++      plans: events,
++      classes: classes,
++      work: academicWork,
++      study: academicStudy,
++    );
+ 
+     final spoken = StringBuffer(
+       '${_monthNames[date.month - 1]} ${date.day}, ${date.year}',
+     );
+     if (isToday) spoken.write(', today');
++    spoken.write(', ${load.spokenLabel}');
++    if (load.hasDeadline) spoken.write(', deadline due');
+     if (done > 0) {
+       spoken.write(', $done quest${done == 1 ? '' : 's'} completed');
+     }
+@@ -667,6 +835,27 @@ class _CalendarPageState extends State<CalendarPage> {
+         );
+       }
+     }
++    if (academicStudy.isNotEmpty) {
++      spoken.write(
++        ', ${academicStudy.length} study block${academicStudy.length == 1 ? '' : 's'}',
++      );
++    }
++    final conflicts = _academicSchedule.meetingConflictsOn(
++      CivilDate.fromDateTime(date),
++    );
++    if (conflicts.isNotEmpty) {
++      spoken.write(
++        ', ${conflicts.length} class overlap${conflicts.length == 1 ? '' : 's'}',
++      );
++    }
++    final transitionPressures = _academicSchedule.transitionPressuresOn(
++      CivilDate.fromDateTime(date),
++    );
++    if (transitionPressures.isNotEmpty) {
++      spoken.write(
++        ', ${transitionPressures.length} tight class transition${transitionPressures.length == 1 ? '' : 's'}',
++      );
++    }
+     if (journalEntries.isNotEmpty) {
+       spoken.write(
+         ', ${journalEntries.length} journal entr${journalEntries.length == 1 ? 'y' : 'ies'}',
+@@ -686,17 +875,7 @@ class _CalendarPageState extends State<CalendarPage> {
+         child: Column(
+           mainAxisSize: MainAxisSize.min,
+           children: [
+-            _dayPlate(
+-              day,
+-              date,
+-              isToday,
+-              isSelected,
+-              done,
+-              events,
+-              classes,
+-              academicWork,
+-              journalEntries.length,
+-            ),
++            _dayPlate(day, date, isToday, isSelected, load),
+             // The folio names today under its date, the way the target does —
+             // the honey plate alone doesn't say WHICH kind of mark it is.
+             ConstrainedBox(
+@@ -705,6 +884,11 @@ class _CalendarPageState extends State<CalendarPage> {
+                   ? Center(
+                       child: Text(
+                         'TODAY',
++                        maxLines: 1,
++                        overflow: TextOverflow.clip,
++                        // A seven-column month cell is truly bounded metadata;
++                        // its full spoken date remains available in Semantics.
++                        textScaler: TextScaler.noScaling,
+                         style: Type.label.copyWith(
+                           fontSize: Type.minLabel,
+                           letterSpacing: 0.9,
+@@ -725,14 +909,10 @@ class _CalendarPageState extends State<CalendarPage> {
+     DateTime date,
+     bool isToday,
+     bool isSelected,
+-    int done,
+-    List<Quest> events,
+-    List<ClassOccurrence> classes,
+-    List<AcademicWorkItem> academicWork,
+-    int journalEntries,
++    _MonthDayLoad load,
+   ) {
+     return Container(
+-      constraints: const BoxConstraints(minHeight: 43),
++      constraints: const BoxConstraints.tightFor(height: 43),
+       margin: const EdgeInsets.all(1.5),
+       decoration: facetedDecoration(
+         cut: 7,
+@@ -757,133 +937,37 @@ class _CalendarPageState extends State<CalendarPage> {
+         children: [
+           Text(
+             '$day',
++            // Keep the compact month numeral inside its fixed folio plate at
++            // large system text. The complete date is exposed by Semantics.
++            textScaler: TextScaler.noScaling,
+             style: Type.numerals.copyWith(
+               fontSize: 13,
+               color: isToday
+                   ? Palette.xp
+-                  : done > 0
++                  : isSelected
+                   ? Palette.textHi
+                   : Palette.textMid,
+             ),
+           ),
+           const SizedBox(height: 2),
+           SizedBox(
+-            height: 10,
+-            child: FittedBox(
+-              fit: BoxFit.scaleDown,
+-              child: Row(
+-                mainAxisSize: MainAxisSize.min,
+-                children: [
+-                  // One brass pip whose size carries the day's haul. It was a
+-                  // glowing blob whose halo bled into the neighbouring dates;
+-                  // a hard-edged dot is the mark the folio actually wants.
+-                  if (done > 0)
+-                    Container(
+-                      width: 3.6 + (done.clamp(1, 9)) * 0.42,
+-                      height: 3.6 + (done.clamp(1, 9)) * 0.42,
+-                      margin: const EdgeInsets.symmetric(horizontal: 1.5),
+-                      decoration: BoxDecoration(
+-                        shape: BoxShape.circle,
+-                        color: Palette.xpLight.withValues(
+-                          alpha: (0.46 + 0.06 * done).clamp(0.46, 0.95),
+-                        ),
+-                      ),
+-                    ),
+-                  // stat-colored diamonds: planned events
+-                  for (final e in events.take(2))
+-                    Transform.rotate(
+-                      angle: 0.785,
+-                      child: Container(
+-                        width: 4.5,
+-                        height: 4.5,
+-                        margin: const EdgeInsets.symmetric(horizontal: 1),
+-                        color: e.stat.color,
+-                      ),
+-                    ),
+-                  for (final occurrence in classes.take(2))
+-                    Container(
++            height: 16,
++            child: load.weight == _MonthDayWeight.none
++                ? null
++                : Center(
++                    child: _MonthDayWeightMark(
+                       key: ValueKey(
+-                        'academic-month-occurrence-${occurrence.occurrenceKey}',
+-                      ),
+-                      width: 7,
+-                      height: 3.5,
+-                      margin: const EdgeInsets.symmetric(horizontal: 1),
+-                      decoration: BoxDecoration(
+-                        borderRadius: BorderRadius.circular(2),
+-                        color:
+-                            Color(
+-                              _academicSchedule
+-                                      .courseById(occurrence.courseId)
+-                                      ?.colorValue ??
+-                                  0xFF8AAFC6,
+-                            ).withValues(
+-                              alpha:
+-                                  occurrence.state == OccurrenceState.cancelled
+-                                  ? 0.34
+-                                  : 0.92,
+-                            ),
++                        'academic-month-weight-'
++                        '${CivilDate.fromDateTime(date)}',
+                       ),
+-                    ),
+-                  if (classes.length > 2)
+-                    Text(
+-                      '+${classes.length - 2}',
+-                      style: Type.label.copyWith(
+-                        fontSize: 8,
+-                        letterSpacing: 0,
+-                        color: Palette.textLo,
++                      weight: load.weight,
++                      hasDeadline: load.hasDeadline,
++                      deadlineKey: ValueKey(
++                        'academic-month-deadline-'
++                        '${CivilDate.fromDateTime(date)}',
+                       ),
+                     ),
+-                  for (final item in academicWork.take(2))
+-                    Transform.rotate(
+-                      key: ValueKey('academic-month-work-${item.workId}'),
+-                      angle: item.kind == AcademicWorkKind.assignment
+-                          ? 0.785
+-                          : 0,
+-                      child: Container(
+-                        width: 5,
+-                        height: 5,
+-                        margin: const EdgeInsets.symmetric(horizontal: 1),
+-                        decoration: BoxDecoration(
+-                          color: item.completed
+-                              ? Colors.transparent
+-                              : Color(
+-                                  _academicSchedule
+-                                          .courseById(item.courseId)
+-                                          ?.colorValue ??
+-                                      0xFF8AAFC6,
+-                                ),
+-                          border: Border.all(
+-                            color: Color(
+-                              _academicSchedule
+-                                      .courseById(item.courseId)
+-                                      ?.colorValue ??
+-                                  0xFF8AAFC6,
+-                            ),
+-                          ),
+-                        ),
+-                      ),
+-                    ),
+-                  if (academicWork.length > 2)
+-                    Text(
+-                      '+${academicWork.length - 2}',
+-                      style: Type.label.copyWith(
+-                        fontSize: 8,
+-                        letterSpacing: 0,
+-                        color: Palette.textLo,
+-                      ),
+-                    ),
+-                  if (journalEntries > 0)
+-                    Padding(
+-                      padding: const EdgeInsets.only(left: 1.5),
+-                      child: Icon(
+-                        Icons.menu_book_outlined,
+-                        size: 8,
+-                        color: Palette.xpLight.withValues(alpha: 0.9),
+-                      ),
+-                    ),
+-                ],
+-              ),
+-            ),
++                  ),
+           ),
+         ],
+       ),
+@@ -935,6 +1019,70 @@ class _CalendarPageState extends State<CalendarPage> {
+   }
+ }
+ 
++/// The month deliberately carries only one visual sentence per date. Height
++/// means scheduled weight; the small diamond at the tick's crown means that
++/// something is due. Specific categories belong in the selected-day panel.
++class _MonthDayWeightMark extends StatelessWidget {
++  const _MonthDayWeightMark({
++    super.key,
++    required this.weight,
++    required this.hasDeadline,
++    required this.deadlineKey,
++  });
++
++  final _MonthDayWeight weight;
++  final bool hasDeadline;
++  final Key deadlineKey;
++
++  @override
++  Widget build(BuildContext context) {
++    final tickHeight = switch (weight) {
++      _MonthDayWeight.none => 0.0,
++      _MonthDayWeight.light => 7.0,
++      _MonthDayWeight.moderate => 10.5,
++      _MonthDayWeight.full => 14.0,
++    };
++    final ink = switch (weight) {
++      _MonthDayWeight.none => Colors.transparent,
++      _MonthDayWeight.light => Palette.xp.withValues(alpha: 0.65),
++      _MonthDayWeight.moderate => Palette.xp.withValues(alpha: 0.82),
++      _MonthDayWeight.full => Palette.xp.withValues(alpha: 0.96),
++    };
++
++    return SizedBox(
++      width: 9,
++      height: 16,
++      child: Stack(
++        alignment: Alignment.bottomCenter,
++        clipBehavior: Clip.none,
++        children: [
++          Container(
++            width: 3,
++            height: tickHeight,
++            decoration: BoxDecoration(
++              color: ink,
++              borderRadius: BorderRadius.circular(1.5),
++            ),
++          ),
++          if (hasDeadline)
++            Positioned(
++              bottom: (tickHeight - 1.5).clamp(2.5, 12.0),
++              child: Transform.rotate(
++                angle: 0.785398,
++                child: Container(
++                  key: deadlineKey,
++                  width: 4.2,
++                  height: 4.2,
++                  color: Palette.brassLit.withValues(alpha: 0.94),
++                ),
++              ),
++            ),
++        ],
++      ),
++    );
++  }
++}
++
+ /// The dated page inset into the folio board — a shade darker than the board,
+ /// warmer at the top lip where the desk candle reaches it.
+ final _folioPage = facetedDecoration(
+@@ -970,6 +1118,128 @@ class _FolioRule extends StatelessWidget {
+   );
+ }
+ 
++class _MonthFolio extends StatelessWidget {
++  const _MonthFolio({
++    super.key,
++    required this.month,
++    required this.now,
++    required this.firstWeekday,
++    required this.daysInMonth,
++    required this.onPrevious,
++    required this.onNext,
++    required this.onToday,
++    required this.dayCell,
++  });
++
++  final DateTime month;
++  final DateTime now;
++  final int firstWeekday;
++  final int daysInMonth;
++  final VoidCallback onPrevious;
++  final VoidCallback onNext;
++  final VoidCallback onToday;
++  final Widget Function(int day) dayCell;
++
++  int get _weekCount => ((firstWeekday - 1 + daysInMonth + 6) ~/ 7);
++
++  @override
++  Widget build(BuildContext context) => GlassPanel(
++    blur: true,
++    padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
++    child: Column(
++      children: [
++        Row(
++          children: [
++            _Chevron(
++              icon: Icons.chevron_left,
++              label: 'Previous month',
++              onTap: onPrevious,
++            ),
++            Expanded(
++              child: Center(
++                child: Text(
++                  '${_monthNames[month.month - 1].toUpperCase()} ${month.year}',
++                  style: Type.display.copyWith(
++                    fontSize: 16,
++                    letterSpacing: 2.4,
++                    color: Palette.textHi,
++                  ),
++                ),
++              ),
++            ),
++            _Chevron(
++              icon: Icons.chevron_right,
++              label: 'Next month',
++              onTap: onNext,
++            ),
++          ],
++        ),
++        if (month.year != now.year || month.month != now.month)
++          TextButton(
++            onPressed: onToday,
++            child: Text(
++              'BACK TO TODAY',
++              style: Type.label.copyWith(
++                fontSize: Type.minLabel,
++                color: Palette.xpLight,
++              ),
++            ),
++          ),
++        const SizedBox(height: 6),
++        const _FolioRule(),
++        const SizedBox(height: 8),
++        DecoratedBox(
++          decoration: _folioPage,
++          child: Padding(
++            padding: const EdgeInsets.fromLTRB(5, 10, 5, 8),
++            child: Column(
++              children: [
++                Row(
++                  children: [
++                    for (var index = 0; index < 7; index++)
++                      Expanded(
++                        child: Center(
++                          child: Text(
++                            const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index],
++                            style: Type.label.copyWith(
++                              fontSize: 11,
++                              letterSpacing: 1.4,
++                              color: index >= 5
++                                  ? Palette.brass
++                                  : Palette.textLo,
++                            ),
++                          ),
++                        ),
++                      ),
++                  ],
++                ),
++                const SizedBox(height: 7),
++                const _FolioRule(strength: 0.55),
++                const SizedBox(height: 5),
++                for (var week = 0; week < _weekCount; week++)
++                  SizedBox(
++                    height: 62,
++                    child: Row(
++                      crossAxisAlignment: CrossAxisAlignment.start,
++                      children: [
++                        for (var column = 0; column < 7; column++)
++                          Expanded(
++                            child: dayCell(
++                              week * 7 + column - (firstWeekday - 1) + 1,
++                            ),
++                          ),
++                      ],
++                    ),
++                  ),
++              ],
++            ),
++          ),
++        ),
++      ],
++    ),
++  );
++}
++
+ class _Chevron extends StatelessWidget {
+   const _Chevron({
+     required this.icon,
+@@ -1022,12 +1292,17 @@ class _DayPanel extends StatelessWidget {
+     required this.academicSchedule,
+     required this.academicOccurrences,
+     required this.academicWorkItems,
++    required this.academicStudyBlocks,
+     required this.hasAcademicItems,
+     required this.now,
+     required this.onPlan,
+     required this.onOpenJournal,
+     required this.onOpenNotebook,
+     required this.onToggleWork,
++    required this.onOpenStudyPlanner,
++    required this.onToggleStudyBlock,
++    required this.onUpdateTransitionBuffer,
++    required this.onOpenOccurrenceAdjuster,
+     required this.lightDirection,
+   });
+ 
+@@ -1039,12 +1314,17 @@ class _DayPanel extends StatelessWidget {
+   final AcademicSchedule academicSchedule;
+   final List<ClassOccurrence> academicOccurrences;
+   final List<AcademicWorkItem> academicWorkItems;
++  final List<AcademicStudyBlock> academicStudyBlocks;
+   final bool hasAcademicItems;
+   final DateTime now;
+   final VoidCallback onPlan;
+   final ValueChanged<Note> onOpenJournal;
+   final OpenAcademicNotebook onOpenNotebook;
+   final ToggleAcademicWork onToggleWork;
++  final OpenAcademicStudyPlanner onOpenStudyPlanner;
++  final ToggleAcademicStudyBlock onToggleStudyBlock;
++  final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
++  final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
+   final ValueListenable<Offset> lightDirection;
+ 
+   @override
+@@ -1121,7 +1401,23 @@ class _DayPanel extends StatelessWidget {
+               AcademicOccurrenceRow(
+                 occurrence: occurrence,
+                 course: academicSchedule.courseById(occurrence.courseId),
++                transitionBufferMinutes:
++                    academicSchedule
++                        .meetingSeriesById(occurrence.meetingSeriesId)
++                        ?.transitionBufferMinutes ??
++                    10,
++                conflict: academicSchedule
++                    .meetingConflictsOn(CivilDate.fromDateTime(day))
++                    .any((item) => item.includes(occurrence.occurrenceKey)),
++                transitionPressure: academicSchedule
++                    .transitionPressuresOn(CivilDate.fromDateTime(day))
++                    .any((item) => item.includes(occurrence.occurrenceKey)),
+                 onOpenNotebook: () => onOpenNotebook(occurrence),
++                onSetTransitionBuffer: (minutes) =>
++                    onUpdateTransitionBuffer(occurrence, minutes),
++                onAdjust: occurrence.canAdjust
++                    ? () => onOpenOccurrenceAdjuster(occurrence)
++                    : null,
+               ),
+           ],
+           if (academicWorkItems.isNotEmpty) ...[
+@@ -1140,11 +1436,45 @@ class _DayPanel extends StatelessWidget {
+               AcademicWorkRow(
+                 item: item,
+                 course: academicSchedule.courseById(item.courseId),
++                studyPlan: academicSchedule.studyPlanFor(item.workId),
++                plannedStudyMinutes: academicSchedule.plannedStudyMinutesFor(
++                  item.workId,
++                ),
+                 onToggle: () => onToggleWork(item),
++                onPlanStudy: () => onOpenStudyPlanner(item),
++              ),
++          ],
++          if (academicStudyBlocks.isNotEmpty) ...[
++            if (academicOccurrences.isNotEmpty || academicWorkItems.isNotEmpty)
++              const Divider(height: 17, color: Color(0x2EE7C47E)),
++            Text(
++              'STUDY BLOCKS',
++              style: Type.label.copyWith(
++                fontSize: Type.minLabel,
++                letterSpacing: 1.7,
++                color: Palette.xpLight,
++              ),
++            ),
++            const SizedBox(height: 7),
++            for (final block in academicStudyBlocks)
++              AcademicStudyBlockRow(
++                block: block,
++                item: academicSchedule.workItems
++                    .where((item) => item.workId == block.workId)
++                    .firstOrNull,
++                course: academicSchedule.courseById(
++                  academicSchedule.workItems
++                          .where((item) => item.workId == block.workId)
++                          .firstOrNull
++                          ?.courseId ??
++                      '',
++                ),
++                onToggle: () => onToggleStudyBlock(block),
+               ),
+           ],
+           if ((academicOccurrences.isNotEmpty ||
+-                  academicWorkItems.isNotEmpty) &&
++                  academicWorkItems.isNotEmpty ||
++                  academicStudyBlocks.isNotEmpty) &&
+               (completions > 0 ||
+                   reflections > 0 ||
+                   journalEntries.isNotEmpty ||
+diff --git a/lib/screens/me.dart b/lib/screens/me.dart
+index d4674bb..e82d934 100644
+--- a/lib/screens/me.dart
++++ b/lib/screens/me.dart
+@@ -44,7 +44,9 @@ import '../social.dart';
+ import 'domain_detail.dart';
+ import 'hearth_circle.dart';
+ import 'about.dart';
++import 'room_guide.dart';
+ import 'shop.dart';
++import 'whats_new.dart';
+ 
+ typedef SpaceRoomPublisher =
+     Future<RoomPublishResult> Function(
+@@ -1683,6 +1685,7 @@ class MePage extends StatelessWidget {
+     required this.onSignIn,
+     required this.onSignOut,
+     required this.onDeleteAccount,
++    this.onSelectTab,
+     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
+     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
+     this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
+@@ -1731,6 +1734,10 @@ class MePage extends StatelessWidget {
+   /// Permanently deletes the linked cloud account; null = success.
+   final Future<String?> Function(String password) onDeleteAccount;
+ 
++  /// Switches the five-room shell after the Room Guide closes. Optional for
++  /// directly constructed test/demo pages; the production shell always sets it.
++  final ValueChanged<int>? onSelectTab;
++
+   /// Shared room perspective. Text and controls stay anchored while the
+   /// authored plate and light respond beneath them.
+   final ValueListenable<Offset> parallax;
+@@ -2322,6 +2329,23 @@ class MePage extends StatelessWidget {
+           const SizedBox(height: 14),
+           _remindersPanel(context),
+           const SizedBox(height: 14),
++          _RoomGuidePanel(
++            onTap: () {
++              Sfx.instance.play('tick');
++              Haptics.tap();
++              Navigator.of(context).push(
++                MaterialPageRoute(
++                  builder: (_) => RoomGuideScreen(
++                    state: state,
++                    onAddQuest: onAddQuest,
++                    onPersist: onPersist,
++                    onSelectTab: onSelectTab ?? (_) {},
++                  ),
++                ),
++              );
++            },
++          ),
++          const SizedBox(height: 14),
+ 
+           // ── account (sync across devices) ─────────────────────────
+           _AccountPanel(
+@@ -2429,6 +2453,22 @@ class MePage extends StatelessWidget {
+                       icon: Icons.person_remove_outlined,
+                       onTap: () => _openPolicyPage(context, _deletionUrl),
+                     ),
++                    _DataButton(
++                      label: "WHAT'S NEW",
++                      icon: Icons.history_rounded,
++                      onTap: () {
++                        Sfx.instance.play('tick');
++                        Haptics.tap();
++                        Navigator.of(context).push(
++                          MaterialPageRoute(
++                            builder: (_) => WhatsNewScreen(
++                              themeId: state.canvasTheme,
++                              reduceMotion: state.reduceMotion,
++                            ),
++                          ),
++                        );
++                      },
++                    ),
+                     _DataButton(
+                       label: 'ABOUT + FEEDBACK',
+                       icon: Icons.info_outline,
+@@ -5425,6 +5465,72 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
+   }
+ }
+ 
++class _RoomGuidePanel extends StatelessWidget {
++  const _RoomGuidePanel({required this.onTap});
++
++  final VoidCallback onTap;
++
++  @override
++  Widget build(BuildContext context) {
++    return Semantics(
++      button: true,
++      label:
++          'Room Guide. A map of the app with direct doors to daily help, goals, plans, the journal, and your space.',
++      onTap: onTap,
++      excludeSemantics: true,
++      child: GestureDetector(
++        behavior: HitTestBehavior.opaque,
++        onTap: onTap,
++        child: GlassPanel(
++          padding: const EdgeInsets.fromLTRB(15, 14, 13, 14),
++          child: Row(
++            children: [
++              const FacetMedallion(
++                size: 44,
++                accent: Palette.xp,
++                child: Icon(
++                  Icons.map_outlined,
++                  size: 21,
++                  color: Palette.xpLight,
++                ),
++              ),
++              const SizedBox(width: 13),
++              Expanded(
++                child: Column(
++                  crossAxisAlignment: CrossAxisAlignment.start,
++                  children: [
++                    Text(
++                      'ROOM GUIDE',
++                      style: Type.label.copyWith(
++                        fontSize: 11,
++                        color: Palette.xpLight,
++                      ),
++                    ),
++                    const SizedBox(height: 3),
++                    Text(
++                      'A map of the app, including help for stuck tasks, low-energy days, and overwhelmed spaces.',
++                      style: Type.body.copyWith(
++                        fontSize: 12.5,
++                        height: 1.35,
++                        color: Palette.textMid,
++                      ),
++                    ),
++                  ],
++                ),
++              ),
++              const Icon(
++                Icons.chevron_right_rounded,
++                size: 21,
++                color: Palette.textLo,
++              ),
++            ],
++          ),
++        ),
++      ),
++    );
++  }
++}
++
+ class _DataButton extends StatelessWidget {
+   const _DataButton({
+     required this.label,
+diff --git a/lib/screens/quests.dart b/lib/screens/quests.dart
+index 64db9fb..bc399c7 100644
+--- a/lib/screens/quests.dart
++++ b/lib/screens/quests.dart
+@@ -1,7 +1,7 @@
+ import 'dart:async';
+ import 'dart:math' show min, pi, sin;
+ 
+-import 'package:flutter/foundation.dart' show ValueListenable;
++import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
+ import 'package:flutter/material.dart';
+ import 'package:flutter/services.dart';
+ 
+@@ -52,6 +52,7 @@ import '../widgets/timer_overlay.dart';
+ import '../widgets/top_three_wizard.dart';
+ import '../widgets/streak_milestone_overlay.dart';
+ import '../widgets/stat_chips.dart';
++import '../widgets/streak_freeze_status.dart';
+ 
+ /// Focus-mode ordering lens: ease in with quick wins, or take the hardest
+ /// (most-dreaded / heaviest) first. Ephemeral — resets to easeIn each session.
+@@ -449,7 +450,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
+ 
+   void _handleScrollLight() {
+     if (!_boardScroll.hasClients) return;
+-    _scrollLight.value = _boardScroll.offset;
++    final next = _boardScroll.offset;
++    if ((_scrollLight.value - next).abs() >= (kIsWeb ? 2.0 : 0.25)) {
++      _scrollLight.value = next;
++    }
+   }
+ 
+   @override
+@@ -793,9 +797,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
+     _celebrateDayClearedIfDone(q); // a warm wash when the last ember is lit
+     Sfx.instance.play('complete');
+     if (_combo < 2 && !bundle.shieldHeld) Haptics.questComplete();
+-    // a shield that held the line gets its own steady double-tap
++    // a freeze that held the quiet days gets its own steady double-tap
+     if (bundle.shieldHeld) {
+-      Future.delayed(const Duration(milliseconds: 260), Haptics.shield);
++      Future.delayed(const Duration(milliseconds: 260), Haptics.streakFreeze);
+     }
+ 
+     final overlay = Overlay.of(context);
+@@ -926,7 +930,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
+ 
+   /// A perfect day must be EARNED, not snoozed: a quest hidden "just for today"
+   /// was due and not cleared, so a day cleared only by hiding quests can't mint
+-  /// a perfect-day reward / streak shield.
++  /// a perfect-day reward. Freeze replenishment is intentionally based on
++  /// ordinary active days, never an all-or-nothing board.
+   bool _anySnoozedToday() {
+     final today = Days.key(Clock.now());
+     return widget.quests.any((q) => q.snoozedDay == today);
+@@ -2371,7 +2376,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
+   Widget _focusBody(List<Quest> pool, int allDayLeft, DateTime now) {
+     final q = pool.first;
+     return ListView(
+-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
++      key: const ValueKey('focus-quest-list'),
++      // Match the rest of the board's protected dock inset so the exit action
++      // never disappears behind navigation on short phones.
++      padding: const EdgeInsets.fromLTRB(16, 4, 16, 130),
+       children: [
+         Padding(
+           padding: const EdgeInsets.fromLTRB(6, 2, 6, 12),
+@@ -2443,14 +2451,28 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
+         ],
+         const SizedBox(height: 22),
+         Center(
+-          child: GestureDetector(
++          child: Semantics(
++            button: true,
++            label: 'Show the full quest board',
+             onTap: _toggleFocus,
+-            behavior: HitTestBehavior.opaque,
+-            child: Padding(
+-              padding: const EdgeInsets.all(10),
+-              child: Text(
+-                'SEE THE FULL BOARD',
+-                style: Type.label.copyWith(fontSize: 11, color: Palette.textLo),
++            excludeSemantics: true,
++            child: GestureDetector(
++              onTap: _toggleFocus,
++              behavior: HitTestBehavior.opaque,
++              child: ConstrainedBox(
++                constraints: const BoxConstraints(minHeight: 44),
++                child: Padding(
++                  padding: const EdgeInsets.symmetric(horizontal: 10),
++                  child: Center(
++                    child: Text(
++                      'SEE THE FULL BOARD',
++                      style: Type.label.copyWith(
++                        fontSize: 11,
++                        color: Palette.textLo,
++                      ),
++                    ),
++                  ),
++                ),
+               ),
+             ),
+           ),
+@@ -2695,11 +2717,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
+                 NestedScrollView(
+                   key: const ValueKey('quest-board-scroll'),
+                   controller: _boardScroll,
+-                  // Prioritize a downward drag for the outer room header.
+-                  // Without this, mobile web could strand the inner quest
+-                  // list at its top while the outer header remained mostly
+-                  // collapsed, so the complete room could not be revealed.
+-                  floatHeaderSlivers: true,
++                  // A reverse scroll belongs to the quest list until it has
++                  // genuinely reached the top. Only then may the room return.
++                  floatHeaderSlivers: false,
+                   physics: const BouncingScrollPhysics(
+                     parent: AlwaysScrollableScrollPhysics(),
+                   ),
+@@ -2900,22 +2920,32 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
+                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                               children: [
+                                 Expanded(
+-                                  child: Text(
+-                                    dayResting
+-                                        ? 'THE DAY IS KEPT'
+-                                        : showFocus
+-                                        ? 'FOCUS MODE'
+-                                        : lowFlame
+-                                        ? (_showFullLowFlame
+-                                              ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
+-                                              : 'GENTLE MODE · $remaining LEFT')
+-                                        : 'TODAY · $remaining LEFT',
+-                                    maxLines: 1,
+-                                    overflow: TextOverflow.ellipsis,
+-                                    style: Type.label.copyWith(
+-                                      fontSize: 12,
+-                                      color: showFocus ? Palette.streak : null,
+-                                    ),
++                                  child: Column(
++                                    mainAxisSize: MainAxisSize.min,
++                                    crossAxisAlignment:
++                                        CrossAxisAlignment.start,
++                                    children: [
++                                      Text(
++                                        dayResting
++                                            ? 'THE DAY IS KEPT'
++                                            : showFocus
++                                            ? 'FOCUS MODE'
++                                            : lowFlame
++                                            ? (_showFullLowFlame
++                                                  ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
++                                                  : 'GENTLE MODE · $remaining LEFT')
++                                            : 'TODAY · $remaining LEFT',
++                                        maxLines: 1,
++                                        overflow: TextOverflow.ellipsis,
++                                        style: Type.label.copyWith(
++                                          fontSize: 12,
++                                          color: showFocus
++                                              ? Palette.streak
++                                              : null,
++                                        ),
++                                      ),
++                                      StreakFreezeStatus(state: _state),
++                                    ],
+                                   ),
+                                 ),
+                                 if (!dayResting)
+@@ -3353,7 +3383,7 @@ class _QuestBackdropBlur extends StatelessWidget {
+   @override
+   Widget build(BuildContext context) {
+     return AnimatedBuilder(
+-      animation: Listenable.merge([controller, parallax]),
++      animation: kIsWeb ? controller : Listenable.merge([controller, parallax]),
+       builder: (context, _) {
+         final offset = controller.hasClients
+             ? controller.offset.clamp(0.0, 220.0)
+@@ -3364,6 +3394,40 @@ class _QuestBackdropBlur extends StatelessWidget {
+         // BackdropFilter, preserving the expensive-looking depth cue without
+         // asking a phone GPU to reblur the full animated room every frame.
+         if (strength <= 0.001) return const SizedBox.shrink();
++        if (kIsWeb) {
++          // CanvasKit's extra full-room raster cross-fade was still expensive
++          // enough to interrupt iPhone scrolling. A source-colored value veil
++          // keeps the foreground separation and warmth without introducing a
++          // second viewport-sized image layer.
++          return Positioned(
++            top: 0,
++            left: 0,
++            right: 0,
++            height: height,
++            child: IgnorePointer(
++              child: DecoratedBox(
++                key: const ValueKey('quest-backdrop-blur'),
++                decoration: BoxDecoration(
++                  gradient: LinearGradient(
++                    begin: Alignment.topCenter,
++                    end: Alignment.bottomCenter,
++                    colors: [
++                      const Color(
++                        0xFF1A120E,
++                      ).withValues(alpha: 0.04 * strength),
++                      const Color(
++                        0xFF211610,
++                      ).withValues(alpha: 0.18 * strength),
++                      const Color(
++                        0xFF140D0A,
++                      ).withValues(alpha: 0.48 * strength),
++                    ],
++                  ),
++                ),
++              ),
++            ),
++          );
++        }
+         final tilt = parallax.value;
+         return Positioned(
+           top: 0,
+@@ -3867,22 +3931,36 @@ class _FocusLensToggle extends StatelessWidget {
+   Widget build(BuildContext context) {
+     Widget seg(_FocusLens l, String label) {
+       final on = lens == l;
+-      return GestureDetector(
++      final spokenLabel = l == _FocusLens.quickWin
++          ? 'Order quests: Ease in'
++          : 'Order quests: Hardest first';
++      return Semantics(
++        button: true,
++        selected: on,
++        label: spokenLabel,
+         onTap: () => onChanged(l),
+-        behavior: HitTestBehavior.opaque,
+-        child: AnimatedContainer(
+-          duration: Motion.quick,
+-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+-          decoration: facetedDecoration(
+-            cut: 7,
+-            color: on ? Palette.xpLight.withValues(alpha: 0.22) : null,
+-            borderColor: Colors.transparent,
+-          ),
+-          child: Text(
+-            label,
+-            style: Type.label.copyWith(
+-              fontSize: Type.minLabel,
+-              color: on ? Palette.xpLight : Palette.textLo,
++        excludeSemantics: true,
++        child: GestureDetector(
++          onTap: () => onChanged(l),
++          behavior: HitTestBehavior.opaque,
++          child: ConstrainedBox(
++            constraints: const BoxConstraints(minHeight: 44),
++            child: AnimatedContainer(
++              duration: Motion.quick,
++              alignment: Alignment.center,
++              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
++              decoration: facetedDecoration(
++                cut: 7,
++                color: on ? Palette.xpLight.withValues(alpha: 0.22) : null,
++                borderColor: Colors.transparent,
++              ),
++              child: Text(
++                label,
++                style: Type.label.copyWith(
++                  fontSize: Type.minLabel,
++                  color: on ? Palette.xpLight : Palette.textLo,
++                ),
++              ),
+             ),
+           ),
+         ),
+diff --git a/lib/widgets/home_room.dart b/lib/widgets/home_room.dart
+index e5da828..9d507c5 100644
+--- a/lib/widgets/home_room.dart
++++ b/lib/widgets/home_room.dart
+@@ -1,9 +1,9 @@
+-import 'dart:async' show unawaited;
++import 'dart:async' show Timer, unawaited;
+ import 'dart:math' show cos, min, pi, sin;
+ import 'dart:ui' as ui;
+ 
+ import 'package:flutter/foundation.dart'
+-    show ValueListenable, listEquals, setEquals;
++    show ValueListenable, kIsWeb, listEquals, setEquals;
+ import 'package:flutter/material.dart';
+ import 'package:flutter/services.dart' show rootBundle;
+ 
+@@ -564,16 +564,36 @@ class HomeRoom extends StatefulWidget {
+ 
+ class _HomeRoomState extends State<HomeRoom>
+     with SingleTickerProviderStateMixin {
+-  /// ONE slow loop drives every ambient motion in the room — hearth, candles,
+-  /// garland, weather, dust. Quantized to ~11fps (MascotSprite's trick) inside
+-  /// its own RepaintBoundary, so a living room costs a handful of small
+-  /// repaints a second, not a 60fps rebuild of the screen. Created lazily and
+-  /// only while [HomeRoom.lively] + the OS animation setting allow it.
++  /// ONE slow phase drives every ambient motion in the room — hearth, candles,
++  /// garland, weather, dust. Native quantizes its controller near 11 fps; web
++  /// uses a true 7 fps timer so it does not wake at display rate. The room has
++  /// its own RepaintBoundary and runs only while [HomeRoom.lively], TickerMode,
++  /// and the OS animation setting allow it.
+   AnimationController? _life;
++  Timer? _webTimer;
++  var _webFrame = 0;
++  final ValueNotifier<double> _paintPhase = ValueNotifier(0);
++
++  void _publishLifeFrame() {
++    final life = _life;
++    if (life == null) return;
++    final steps = 10 * (kIsWeb ? 7 : 11);
++    final snapped = (life.value * steps).round() / steps;
++    if (snapped != _paintPhase.value) _paintPhase.value = snapped;
++  }
++
++  void _publishWebLifeFrame(Timer _) {
++    const steps = 10 * 7;
++    _webFrame = (_webFrame + 1) % steps;
++    _paintPhase.value = _webFrame / steps;
++  }
+ 
+   @override
+   void dispose() {
++    _webTimer?.cancel();
++    _life?.removeListener(_publishLifeFrame);
+     _life?.dispose();
++    _paintPhase.dispose();
+     super.dispose();
+   }
+ 
+@@ -585,16 +605,32 @@ class _HomeRoomState extends State<HomeRoom>
+     final lively =
+         widget.lively &&
+         !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+-    if (lively && _life == null) {
+-      _life = AnimationController(
++    final tickerEnabled = TickerMode.valuesOf(context).enabled;
++    if (kIsWeb && lively && tickerEnabled) {
++      _webTimer ??= Timer.periodic(
++        const Duration(milliseconds: 143),
++        _publishWebLifeFrame,
++      );
++    } else if (kIsWeb) {
++      _webTimer?.cancel();
++      _webTimer = null;
++      _webFrame = 0;
++    }
++    if (!kIsWeb && lively && _life == null) {
++      final life = AnimationController(
+         vsync: this,
+         duration: const Duration(seconds: 10),
+-      )..repeat();
+-    } else if (!lively && _life != null) {
+-      _life!.dispose();
++      );
++      life.addListener(_publishLifeFrame);
++      _life = life..repeat();
++    } else if (!kIsWeb && !lively && _life != null) {
++      _life!
++        ..removeListener(_publishLifeFrame)
++        ..dispose();
+       _life = null;
+     }
+     final life = _life;
++    final phaseIsLive = kIsWeb ? _webTimer != null : life != null;
+     return AspectRatio(
+       aspectRatio: widget.aspect,
+       child: ClipPath(
+@@ -610,16 +646,14 @@ class _HomeRoomState extends State<HomeRoom>
+                     _RoomGrain.version,
+                     _RoomFireFrames.version,
+                     _RoomPlate.version,
+-                    ?life,
++                    _paintPhase,
+                     ?widget.parallax,
+                   ]),
+                   builder: (_, _) {
+-                    // quantize the loop to 110 steps (~11fps) — alive to the
+-                    // eye, near-free to paint; t=0 is the calm reduced-motion
+-                    // frame and every t must look finished on its own
+-                    final t = life == null
+-                        ? 0.0
+-                        : (life.value * 110).round() / 110;
++                    // The publisher already applies the platform cadence. t=0
++                    // is the calm reduced-motion frame, and every phase must
++                    // look finished on its own.
++                    final t = phaseIsLive ? _paintPhase.value : 0.0;
+                     return CustomPaint(
+                       painter: _RoomPainter(
+                         widget.unlocked,
+diff --git a/lib/widgets/onboarding_flow.dart b/lib/widgets/onboarding_flow.dart
+index dc70017..f18a695 100644
+--- a/lib/widgets/onboarding_flow.dart
++++ b/lib/widgets/onboarding_flow.dart
+@@ -24,9 +24,11 @@ class OnboardingFlow extends StatefulWidget {
+   final GameState state;
+ 
+   /// [forgeFirstGoal] true → caller opens the Oath Wizard right after.
++  /// [openGuide] true → caller opens the re-usable Room Guide right after.
+   /// [timeShape] seeds how dense the starter quest board should feel.
+   final void Function({
+     required bool forgeFirstGoal,
++    required bool openGuide,
+     required TimeShape timeShape,
+   })
+   onFinish;
+@@ -52,13 +54,17 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
+     setState(() => _step++);
+   }
+ 
+-  void _finish({required bool forge}) {
++  void _finish({required bool forge, bool openGuide = false}) {
+     widget.state.setPlayerName(_name.text);
+     widget.state.onboarded = true;
+     widget.state.timeShape = _shape.name;
+     Sfx.instance.play('streak');
+     Haptics.success();
+-    widget.onFinish(forgeFirstGoal: forge, timeShape: _shape);
++    widget.onFinish(
++      forgeFirstGoal: forge,
++      openGuide: openGuide,
++      timeShape: _shape,
++    );
+   }
+ 
+   void _back() {
+@@ -450,9 +456,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
+                 'XP and Glimmers land on the thing you actually completed.',
+               ),
+               _fact(
+-                Icons.chair_outlined,
+-                'THE ROOM RESPONDS',
+-                'Your room begins complete, and the atmosphere you choose stays visible without another checklist.',
++                Icons.support_outlined,
++                'HELP FOR TODAY',
++                'A stuck task, a messy room, or a low-energy day can become a few doable quests.',
+               ),
+               _fact(
+                 Icons.edit_note_rounded,
+@@ -465,14 +471,26 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
+         SizedBox(height: compact ? 10 : 22),
+         _Cta(label: 'OPEN TODAY’S QUESTS', onTap: () => _finish(forge: false)),
+         SizedBox(height: compact ? 3 : 10),
+-        Center(
+-          child: TextButton(
+-            onPressed: () => _finish(forge: true),
+-            child: Text(
+-              'set a goal first',
+-              style: Type.label.copyWith(fontSize: 11),
++        Wrap(
++          alignment: WrapAlignment.center,
++          spacing: 6,
++          runSpacing: 0,
++          children: [
++            TextButton(
++              onPressed: () => _finish(forge: true),
++              child: Text(
++                'set a goal first',
++                style: Type.label.copyWith(fontSize: 11),
++              ),
+             ),
+-          ),
++            TextButton(
++              onPressed: () => _finish(forge: false, openGuide: true),
++              child: Text(
++                'open the room guide',
++                style: Type.label.copyWith(fontSize: 11),
++              ),
++            ),
++          ],
+         ),
+       ],
+     );
+diff --git a/lib/widgets/quest_card.dart b/lib/widgets/quest_card.dart
+index 1398174..64e7957 100644
+--- a/lib/widgets/quest_card.dart
++++ b/lib/widgets/quest_card.dart
+@@ -2,7 +2,7 @@ import 'dart:async';
+ import 'dart:math' show min, pi, sin;
+ import 'dart:ui' show ImageFilter;
+ 
+-import 'package:flutter/foundation.dart' show ValueListenable;
++import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
+ import 'package:flutter/material.dart';
+ 
+ import '../clock.dart';
+@@ -566,15 +566,29 @@ class _QuestTitleBlock extends StatelessWidget {
+           ),
+         ] else if (featured && quest.ladderHint != null) ...[
+           const SizedBox(height: 4),
+-          Text(
+-            quest.ladderHint!,
+-            maxLines: 1,
+-            overflow: TextOverflow.ellipsis,
+-            style: Type.label.copyWith(
+-              fontSize: Type.minLabel,
+-              letterSpacing: 0.2,
+-              color: Palette.textLo,
+-            ),
++          Row(
++            children: [
++              Flexible(
++                child: Text(
++                  quest.ladderHint!.replaceAll('📈', '').trim(),
++                  maxLines: 1,
++                  overflow: TextOverflow.ellipsis,
++                  style: Type.label.copyWith(
++                    fontSize: Type.minLabel,
++                    letterSpacing: 0.2,
++                    color: Palette.textLo,
++                  ),
++                ),
++              ),
++              if (quest.ladderHint!.contains('📈')) ...[
++                const SizedBox(width: 4),
++                const Icon(
++                  Icons.trending_up_rounded,
++                  size: 12,
++                  color: Palette.textLo,
++                ),
++              ],
++            ],
+           ),
+         ],
+       ],
+@@ -639,12 +653,17 @@ class _QuestCategoryVignette extends StatelessWidget {
+     final still =
+         reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+     return AnimatedBuilder(
+-      animation: Listenable.merge([?lightDirection, ?scrollPosition]),
++      // The vignette is already softly masked artwork. Its sub-pixel drift
++      // cost a blur + shader recomposite on every browser scroll update while
++      // adding almost no visible information, so web keeps its finished still.
++      animation: kIsWeb
++          ? const AlwaysStoppedAnimation<double>(0)
++          : Listenable.merge([?lightDirection, ?scrollPosition]),
+       builder: (context, _) {
+-        final light = still
++        final light = still || kIsWeb
+             ? Offset.zero
+             : lightDirection?.value ?? Offset.zero;
+-        final scroll = still ? 0.0 : scrollPosition?.value ?? 0.0;
++        final scroll = still || kIsWeb ? 0.0 : scrollPosition?.value ?? 0.0;
+         final drift = still ? 0.0 : sin(scroll * 0.0042);
+         return ShaderMask(
+           blendMode: BlendMode.dstIn,
+diff --git a/lib/widgets/quest_depth_room.dart b/lib/widgets/quest_depth_room.dart
+index a4aad21..0692896 100644
+--- a/lib/widgets/quest_depth_room.dart
++++ b/lib/widgets/quest_depth_room.dart
+@@ -62,17 +62,27 @@ class _QuestDepthRoomState extends State<QuestDepthRoom> {
+ 
+   @override
+   Widget build(BuildContext context) {
++    final roomMotion = kIsWeb
++        ? widget.parallax
++        : Listenable.merge([widget.parallax, widget.scrollPosition]);
+     return ClipRect(
+       child: RepaintBoundary(
+         child: AnimatedBuilder(
+-          animation: Listenable.merge([widget.parallax, widget.scrollPosition]),
+-          child: _QuestLivingFire(hue: widget.flameHue, lively: widget.lively),
++          animation: roomMotion,
++          child: _QuestLivingFire(
++            hue: widget.flameHue,
++            lively: widget.lively,
++            scrollPosition: widget.scrollPosition,
++          ),
+           builder: (context, fire) {
+             final tilt = widget.lively ? widget.parallax.value : Offset.zero;
+             // Reduce Motion means the room is a parked illustration. Scrolling
+             // content remains usable, but it must not counter-slide the room
+             // behind it: that is still motion from the person's point of view.
+-            final scroll = widget.lively
++            // On the browser, scrolling keeps ownership of the frame. The
++            // authored room stays parked while the soft plate and card sheen
++            // provide the depth response; native retains the tiny plane travel.
++            final scroll = widget.lively && !kIsWeb
+                 ? widget.scrollPosition.value.clamp(0.0, 240.0).toDouble() /
+                       240.0
+                 : 0.0;
+@@ -177,10 +187,15 @@ class _RoomRaster extends StatelessWidget {
+ /// perfectly still. It is intentionally fire, not sparkle: a breathing glow,
+ /// moving tongues rooted to the fuel line, and a few natural embers.
+ class _QuestLivingFire extends StatefulWidget {
+-  const _QuestLivingFire({required this.hue, required this.lively});
++  const _QuestLivingFire({
++    required this.hue,
++    required this.lively,
++    required this.scrollPosition,
++  });
+ 
+   final Color hue;
+   final bool lively;
++  final ValueListenable<double> scrollPosition;
+ 
+   @override
+   State<_QuestLivingFire> createState() => _QuestLivingFireState();
+@@ -188,51 +203,103 @@ class _QuestLivingFire extends StatefulWidget {
+ 
+ class _QuestLivingFireState extends State<_QuestLivingFire>
+     with SingleTickerProviderStateMixin {
+-  late final AnimationController _life = AnimationController(
+-    vsync: this,
+-    duration: const Duration(seconds: 9),
+-  );
++  AnimationController? _life;
++  Timer? _webTimer;
++  var _webFrame = 0;
++  var _tickerModeEnabled = true;
+   final ValueNotifier<double> _paintPhase = ValueNotifier(0);
+-  static final _paintFramesPerLoop = 9 * (kIsWeb ? 12 : 20);
++  static const _nativePaintFramesPerLoop = 9 * 20;
++  static const _webPaintFramesPerLoop = 9 * 8;
+ 
+   @override
+   void initState() {
+     super.initState();
+-    _life.addListener(_publishFireFrame);
++    if (!kIsWeb) {
++      _life = AnimationController(
++        vsync: this,
++        duration: const Duration(seconds: 9),
++      )..addListener(_publishFireFrame);
++    }
++    widget.scrollPosition.addListener(_syncLife);
++    _syncLife();
++  }
++
++  @override
++  void didChangeDependencies() {
++    super.didChangeDependencies();
++    _tickerModeEnabled = TickerMode.valuesOf(context).enabled;
+     _syncLife();
+   }
+ 
+   void _publishFireFrame() {
+     // The raster blend and full-room glow are the expensive part of the living
+     // source. Native keeps twenty authored updates per second. Browser phones
+-    // use twelve: two blended transparent rasters at 24 fps consumed
++    // use eight: two blended transparent rasters at 24 fps consumed
+     // the frame budget that scroll and tilt needed, while the flame's tiny
+     // travel remains naturally fluid at this scale.
++    final life = _life;
++    if (life == null) return;
+     final snapped =
+-        (_life.value * _paintFramesPerLoop).floor() / _paintFramesPerLoop;
++        (life.value * _nativePaintFramesPerLoop).floor() /
++        _nativePaintFramesPerLoop;
+     if (snapped != _paintPhase.value) _paintPhase.value = snapped;
+   }
+ 
++  void _publishWebFrame(Timer _) {
++    _webFrame = (_webFrame + 1) % _webPaintFramesPerLoop;
++    _paintPhase.value = _webFrame / _webPaintFramesPerLoop;
++  }
++
+   @override
+   void didUpdateWidget(_QuestLivingFire oldWidget) {
+     super.didUpdateWidget(oldWidget);
++    if (oldWidget.scrollPosition != widget.scrollPosition) {
++      oldWidget.scrollPosition.removeListener(_syncLife);
++      widget.scrollPosition.addListener(_syncLife);
++    }
+     if (widget.lively != oldWidget.lively) _syncLife();
+   }
+ 
+   void _syncLife() {
+-    if (widget.lively) {
+-      if (!_life.isAnimating) _life.repeat();
++    // Once the browser board leaves its resting top, the softened environment
++    // already obscures the flame. Parking it there prevents an off-focus fire
++    // repaint from stealing the same frames as touch/scroll.
++    final shouldLive =
++        widget.lively &&
++        _tickerModeEnabled &&
++        (!kIsWeb || widget.scrollPosition.value <= 1.0);
++    if (kIsWeb) {
++      if (shouldLive) {
++        _webTimer ??= Timer.periodic(
++          const Duration(milliseconds: 125),
++          _publishWebFrame,
++        );
++      } else {
++        _webTimer?.cancel();
++        _webTimer = null;
++        _webFrame = 0;
++        if (_paintPhase.value != 0) _paintPhase.value = 0;
++      }
++      return;
++    }
++    final life = _life!;
++    if (shouldLive) {
++      if (!life.isAnimating) life.repeat();
+     } else {
+-      _life.stop();
+-      _life.value = 0;
+-      _paintPhase.value = 0;
++      if (life.isAnimating || life.value != 0) {
++        life.stop();
++        life.value = 0;
++      }
++      if (_paintPhase.value != 0) _paintPhase.value = 0;
+     }
+   }
+ 
+   @override
+   void dispose() {
+-    _life.removeListener(_publishFireFrame);
+-    _life.dispose();
++    widget.scrollPosition.removeListener(_syncLife);
++    _webTimer?.cancel();
++    _life?.removeListener(_publishFireFrame);
++    _life?.dispose();
+     _paintPhase.dispose();
+     super.dispose();
+   }
+diff --git a/lib/widgets/reward_receipt.dart b/lib/widgets/reward_receipt.dart
+index 7e9e7bf..1c69a84 100644
+--- a/lib/widgets/reward_receipt.dart
++++ b/lib/widgets/reward_receipt.dart
+@@ -141,7 +141,19 @@ class _RewardReceiptState extends State<RewardReceipt>
+           'streak',
+         ),
+       if (b.shieldHeld)
+-        _Bubble('STREAK SAFE 🛡️', Icons.shield, Palette.verify, 'streak'),
++        _Bubble(
++          'STREAK FROZEN · ${b.freezesUsed} ${b.freezesUsed == 1 ? "DAY" : "DAYS"} HELD',
++          Icons.ac_unit_rounded,
++          Palette.info,
++          'streak',
++        ),
++      if (b.freezeEarned)
++        _Bubble(
++          'FREEZE BANKED · ${b.freezeBalanceAfter} READY',
++          Icons.ac_unit_rounded,
++          Palette.info,
++          'streak',
++        ),
+       if (b.critMult != null)
+         _Bubble(
+           'CRITICAL! ×${b.critMult!.toStringAsFixed(1)}',
+diff --git a/lib/widgets/routine_flows.dart b/lib/widgets/routine_flows.dart
+index 495107a..70c5878 100644
+--- a/lib/widgets/routine_flows.dart
++++ b/lib/widgets/routine_flows.dart
+@@ -1038,14 +1038,14 @@ class _NightFlowState extends State<NightFlow> {
+               Text(
+                 '$done quest${done == 1 ? "" : "s"} · streak day ${s.streakDays}'
+                 '${s.bestStreak > s.streakDays ? " · best ${s.bestStreak}" : ""}'
+-                '${s.streakShields > 0 ? " · 🛡️${s.streakShields}" : ""}',
++                '${s.streakFreezes > 0 ? " · ${s.streakFreezes} freezes ready" : ""}',
+                 textAlign: TextAlign.center,
+                 maxLines: 2,
+                 overflow: TextOverflow.ellipsis,
+                 style: Type.body.copyWith(fontSize: 13, color: Palette.textLo),
+               ),
+               const SizedBox(height: 12),
+-              MomentumStrip(history: s.history),
++              MomentumStrip(history: s.history, frozenDays: s.frozenStreakDays),
+               if (s.nightStatGains.isNotEmpty) ...[
+                 const SizedBox(height: 12),
+                 Wrap(
+@@ -1842,13 +1842,24 @@ class _LegacyMorningFlow extends StatelessWidget {
+                                 ],
+                               ),
+                             ),
+-                            if (state.streakShields > 0)
+-                              Text(
+-                                '🛡️ ${state.streakShields}',
+-                                style: Type.label.copyWith(
+-                                  fontSize: 11,
+-                                  color: Palette.verify,
+-                                ),
++                            if (state.streakFreezes > 0)
++                              Row(
++                                mainAxisSize: MainAxisSize.min,
++                                children: [
++                                  const Icon(
++                                    Icons.ac_unit_rounded,
++                                    size: 12,
++                                    color: Palette.info,
++                                  ),
++                                  const SizedBox(width: 3),
++                                  Text(
++                                    '${state.streakFreezes} READY',
++                                    style: Type.label.copyWith(
++                                      fontSize: 11,
++                                      color: Palette.info,
++                                    ),
++                                  ),
++                                ],
+                               ),
+                           ],
+                         ),
+@@ -1875,7 +1886,12 @@ class _LegacyMorningFlow extends StatelessWidget {
+                   ),
+                 ),
+                 const SizedBox(height: 12),
+-                GlassPanel(child: MomentumStrip(history: state.history)),
++                GlassPanel(
++                  child: MomentumStrip(
++                    history: state.history,
++                    frozenDays: state.frozenStreakDays,
++                  ),
++                ),
+                 ..._goalNudges(state),
+                 if (main.isNotEmpty) ...[
+                   const SizedBox(height: 12),
+@@ -3384,11 +3400,16 @@ class _EmptyMorningPage extends StatelessWidget {
+   }
+ }
+ 
+-/// Last-7-days momentum: a row of day dots sized + lit by that day's
+-/// completions, today ringed. Shared by the night recap and morning brief.
++/// Last-7-days momentum: active days glow, frozen days hold a small snowflake,
++/// and today is ringed. Shared by the night recap and morning brief.
+ class MomentumStrip extends StatelessWidget {
+-  const MomentumStrip({super.key, required this.history});
++  const MomentumStrip({
++    super.key,
++    required this.history,
++    this.frozenDays = const <String>{},
++  });
+   final Map<String, int> history;
++  final Set<String> frozenDays;
+ 
+   static const _dow = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+ 
+@@ -3405,6 +3426,7 @@ class MomentumStrip extends StatelessWidget {
+               final n = history[Days.key(day)] ?? 0;
+               final isToday = i == 0;
+               final lit = n > 0;
++              final frozen = !lit && frozenDays.contains(Days.key(day));
+               return Padding(
+                 padding: const EdgeInsets.symmetric(horizontal: 4),
+                 child: Column(
+@@ -3418,16 +3440,27 @@ class MomentumStrip extends StatelessWidget {
+                             ? Palette.xpLight.withValues(
+                                 alpha: (0.4 + 0.15 * n).clamp(0.4, 1.0),
+                               )
++                            : frozen
++                            ? Palette.info.withValues(alpha: 0.12)
+                             : Palette.glassFill,
+                         border: Border.all(
+                           color: isToday
+                               ? Palette.xp
+                               : lit
+                               ? Palette.xpLight.withValues(alpha: 0.6)
++                              : frozen
++                              ? Palette.info.withValues(alpha: 0.78)
+                               : Palette.glassEdge,
+                           width: isToday ? 1.6 : 1,
+                         ),
+                       ),
++                      child: frozen
++                          ? const Icon(
++                              Icons.ac_unit_rounded,
++                              size: 10,
++                              color: Palette.info,
++                            )
++                          : null,
+                     ),
+                     const SizedBox(height: 3),
+                     Text(
+diff --git a/lib/widgets/routine_ledger.dart b/lib/widgets/routine_ledger.dart
+index 1774683..a9ab279 100644
+--- a/lib/widgets/routine_ledger.dart
++++ b/lib/widgets/routine_ledger.dart
+@@ -105,20 +105,30 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
+   final ScrollController _scroll = ScrollController();
+   final ValueNotifier<double> _scrollPosition = ValueNotifier(0);
+   final ValueNotifier<double> _firePhase = ValueNotifier(0.18);
++  Timer? _webFireTimer;
++  var _webFireFrame = (0.18 * 54).round();
++  var _tickerModeEnabled = true;
+   static const _fireFramesPerLoop = 96;
+ 
+   @override
+   void initState() {
+     super.initState();
+     _scroll.addListener(_publishScroll);
+-    _fire.addListener(_publishFireFrame);
++    if (!kIsWeb) _fire.addListener(_publishFireFrame);
+     unawaited(_motion.start());
+     if (widget.reduceMotion) {
+       _entrance.value = 1;
+     } else {
+       _entrance.forward();
+-      _fire.repeat();
+     }
++    _syncFire();
++  }
++
++  @override
++  void didChangeDependencies() {
++    super.didChangeDependencies();
++    _tickerModeEnabled = TickerMode.valuesOf(context).enabled;
++    _syncFire();
+   }
+ 
+   void _publishFireFrame() {
+@@ -131,6 +141,31 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
+     if (snapped != _firePhase.value) _firePhase.value = snapped;
+   }
+ 
++  void _syncFire() {
++    final shouldLive = !widget.reduceMotion && _tickerModeEnabled;
++    if (kIsWeb) {
++      if (shouldLive) {
++        _webFireTimer ??= Timer.periodic(const Duration(milliseconds: 100), (
++          _,
++        ) {
++          const steps = 54;
++          _webFireFrame = (_webFireFrame + 1) % steps;
++          _firePhase.value = _webFireFrame / steps;
++        });
++      } else {
++        _webFireTimer?.cancel();
++        _webFireTimer = null;
++        _webFireFrame = (0.18 * 54).round();
++        if (_firePhase.value != 0.18) _firePhase.value = 0.18;
++      }
++    } else if (shouldLive) {
++      if (!_fire.isAnimating) _fire.repeat();
++    } else {
++      _fire.stop();
++      if (_firePhase.value != 0.18) _firePhase.value = 0.18;
++    }
++  }
++
+   @override
+   void didUpdateWidget(RoutineLedgerScaffold oldWidget) {
+     super.didUpdateWidget(oldWidget);
+@@ -138,25 +173,23 @@ class _RoutineLedgerScaffoldState extends State<RoutineLedgerScaffold>
+       _motion.setReduceMotion(widget.reduceMotion);
+       if (widget.reduceMotion) {
+         _entrance.value = 1;
+-        _fire.stop();
+-        _firePhase.value = 0.18;
+-      } else {
+-        _fire.repeat();
+       }
++      _syncFire();
+     }
+   }
+ 
+   void _publishScroll() {
+     final next = _scroll.hasClients ? _scroll.offset : 0.0;
+-    if ((_scrollPosition.value - next).abs() > 0.25) {
++    if ((_scrollPosition.value - next).abs() > (kIsWeb ? 2.0 : 0.25)) {
+       _scrollPosition.value = next;
+     }
+   }
+ 
+   @override
+   void dispose() {
++    _webFireTimer?.cancel();
+     _scroll.removeListener(_publishScroll);
+-    _fire.removeListener(_publishFireFrame);
++    if (!kIsWeb) _fire.removeListener(_publishFireFrame);
+     _scroll.dispose();
+     _scrollPosition.dispose();
+     _firePhase.dispose();
+diff --git a/pubspec.yaml b/pubspec.yaml
+index 3958be1..957853e 100644
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+ # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+ # In Windows, build-name is used as the major, minor, and patch parts
+ # of the product and file versions while build-number is used as the build suffix.
+-version: 1.0.0+12
++version: 1.0.1+13
+ 
+ environment:
+   sdk: ^3.12.2
+diff --git a/release-candidate.json b/release-candidate.json
+index 8dd1d38..784f6e6 100644
+--- a/release-candidate.json
++++ b/release-candidate.json
+@@ -1,9 +1,9 @@
+ {
+   "schema": 1,
+   "packageId": "com.mikabe.emberkeep",
+-  "versionName": "1.0.0",
+-  "versionCode": 12,
+-  "sourceCommit": "ee091db079a54c982946aa6ab7e7b61546b3354f",
++  "versionName": "1.0.1",
++  "versionCode": 13,
++  "sourceCommit": "e55a51a86013384bef026eded33c1582c435d6ac",
+   "handoffPath": "../release-artifacts/README.md",
+   "minSdk": 24,
+   "targetSdk": 36,
+@@ -17,12 +17,14 @@
+   ],
+   "certificateSha256": "4F:28:DB:3A:70:C6:03:6A:B4:03:E4:2B:D5:3A:96:D1:73:DD:FD:C6:B7:8F:14:55:CC:26:C5:6C:47:C6:14:14",
+   "aab": {
+-    "path": "../release-artifacts/room-of-days-1.0.0+12-android.aab",
+-    "sha256": "E2EA2FB86D95208F8CE0F29A61FD385AEFE227FF0F4C573EF6EDB5C59E36EA90"
++    "path": "../release-artifacts/room-of-days-1.0.1+13-android.aab",
++    "size": 76906618,
++    "sha256": "4E3258CED03ADD2246522D9ECE9E217506C23C0AA7252D2027FD4817F16A5BBA"
+   },
+   "apk": {
+-    "path": "../release-artifacts/room-of-days-1.0.0+12-android.apk",
+-    "sha256": "9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12"
++    "path": "../release-artifacts/room-of-days-1.0.1+13-android.apk",
++    "size": 79190875,
++    "sha256": "42A827512A2E3F9F364FFBD4A050D3AB152D11964CEBDA830C436576F61A0A47"
+   },
+   "bundletool": {
+     "path": "../release-artifacts/_tools/bundletool-all-1.18.3.jar",
+diff --git a/web/android.html b/web/android.html
+index 3bd9011..1969ca9 100644
+--- a/web/android.html
++++ b/web/android.html
+@@ -286,7 +286,7 @@
+   </a>
+ 
+   <section class="hero">
+-    <p class="eyebrow">Android preview &middot; Build 12</p>
++    <p class="eyebrow">Android preview &middot; Build 13</p>
+     <h1>Room of Days for Android</h1>
+     <p class="lede">Turn the small things you do into quests, XP, and a room
+       that changes with you. This is the signed preview build while the public
+@@ -294,12 +294,12 @@
+ 
+     <div class="actions">
+       <a class="button primary"
+-        href="https://github.com/mikabe1805/emberkeep/releases/download/v1.0.0-android-preview.12/room-of-days-1.0.0-build-12.apk">
++        href="https://github.com/mikabe1805/emberkeep/releases/download/v1.0.1-android-preview.13/room-of-days-1.0.1-build-13.apk">
+         Download for Android
+       </a>
+       <a class="button secondary" href="/">Use the web app</a>
+     </div>
+-    <p class="meta">Version 1.0.0 &middot; Build 12 &middot; 76 MB &middot; Android 7 or newer</p>
++    <p class="meta">Version 1.0.1 &middot; Build 13 &middot; Android 7 or newer</p>
+   </section>
+ 
+   <section class="grid" aria-label="Android preview instructions">
+@@ -318,6 +318,8 @@
+     <article class="card">
+       <h2>Keep your save</h2>
+       <p>Your progress stays on your phone unless you choose cloud backup.
++        If you already have Build 12, install Build 13 over it without
++        uninstalling first so Android keeps your local progress.
+         Before moving to the eventual Play Store edition, open Me &rarr; Your
+         save is yours and export a backup.</p>
+       <p>If anything feels wrong, confusing, or unsafe for your progress, write
+@@ -327,8 +329,8 @@
+ 
+   <details>
+     <summary>File details for verification</summary>
+-    <p>Signed APK: <strong>Room of Days 1.0.0, Build 12</strong></p>
+-    <code>SHA-256 9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12</code>
++    <p>Signed APK: <strong>Room of Days 1.0.1, Build 13</strong></p>
++    <code>SHA-256 42A827512A2E3F9F364FFBD4A050D3AB152D11964CEBDA830C436576F61A0A47</code>
+   </details>
+ 
+   <footer>
+diff --git a/web/room_of_days_service_worker.js b/web/room_of_days_service_worker.js
+index 38b49eb..935c859 100644
+--- a/web/room_of_days_service_worker.js
++++ b/web/room_of_days_service_worker.js
+@@ -10,8 +10,10 @@ const offlineManifestUrl = new URL('offline-assets.json', scopeUrl);
+ // response itself so an offline navigation never receives a redirected
+ // Response object that Chromium refuses as a fallback document.
+ const offlineDocumentUrl = scopeUrl;
++let deferredWarmPaused = true;
++let deferredWarmPromise = null;
+ 
+-async function cacheRelease() {
++async function releaseManifest() {
+   const manifestResponse = await fetch(offlineManifestUrl, {cache: 'no-store'});
+   if (!manifestResponse.ok) {
+     throw new Error(
+@@ -20,19 +22,42 @@ async function cacheRelease() {
+   }
+ 
+   const manifest = await manifestResponse.json();
+-  if (manifest.schema !== 1 || !Array.isArray(manifest.assets)) {
++  if (
++    manifest.schema !== 2 ||
++    !Array.isArray(manifest.sharedAssets) ||
++    !Array.isArray(manifest.deferredAssets) ||
++    !manifest.rendererAssets ||
++    !Array.isArray(manifest.rendererAssets.canvaskit) ||
++    !Array.isArray(manifest.rendererAssets.skwasm)
++  ) {
+     throw new Error('Offline manifest is malformed.');
+   }
++  return manifest;
++}
+ 
+-  const cache = await caches.open(cacheName);
+-  const urls = manifest.assets.map((asset) => new URL(asset, scopeUrl));
++function supportsSkwasm() {
++  const agent = self.navigator.userAgent || '';
++  const blink =
++    (/(?:Chrome|Chromium)\//.test(agent) || /Edg\//.test(agent)) &&
++    !/(?:CriOS|EdgiOS|OPiOS)/.test(agent);
++  if (!blink) return false;
++  try {
++    const wasmGcProbe = new Uint8Array([
++      0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 95, 1, 120, 0,
++    ]);
++    return WebAssembly.validate(wasmGcProbe);
++  } catch (_) {
++    return false;
++  }
++}
++
++async function cacheUrls(cache, assets, {batchSize = 4} = {}) {
++  const urls = assets.map((asset) => new URL(asset, scopeUrl));
+ 
+-  // A bounded batch keeps low-memory mobile browsers from fetching the whole
+-  // illustrated app in one burst while still making install atomic: any failed
+-  // response rejects installation instead of claiming an incomplete cache.
+-  for (let index = 0; index < urls.length; index += 8) {
++  for (let index = 0; index < urls.length; index += batchSize) {
+     await Promise.all(
+-      urls.slice(index, index + 8).map(async (url) => {
++      urls.slice(index, index + batchSize).map(async (url) => {
++        if (await cache.match(url, {ignoreSearch: true})) return;
+         const response = await fetch(url, {
+           cache: 'reload',
+           credentials: 'same-origin',
+@@ -46,8 +71,49 @@ async function cacheRelease() {
+   }
+ }
+ 
++async function cacheCore() {
++  const manifest = await releaseManifest();
++  const renderer = supportsSkwasm() ? 'skwasm' : 'canvaskit';
++  const cache = await caches.open(cacheName);
++  // Cache only the runtime this browser can execute plus the first room. The
++  // old installer downloaded every page, sound, and renderer while the person
++  // was trying to use the first screen.
++  await cacheUrls(cache, [
++    ...manifest.sharedAssets,
++    ...manifest.rendererAssets[renderer],
++  ]);
++}
++
++function wait(milliseconds) {
++  return new Promise((resolve) => setTimeout(resolve, milliseconds));
++}
++
++async function warmDeferredCache() {
++  if (deferredWarmPromise) return deferredWarmPromise;
++  deferredWarmPromise = (async () => {
++    const manifest = await releaseManifest();
++    const cache = await caches.open(cacheName);
++    for (const asset of manifest.deferredAssets) {
++      if (deferredWarmPaused) return;
++      const url = new URL(asset, scopeUrl);
++      if (!(await cache.match(url, {ignoreSearch: true}))) {
++        const response = await fetch(url, {
++          cache: 'reload',
++          credentials: 'same-origin',
++        });
++        if (response.ok) await cache.put(url, response);
++      }
++      // One quiet request at a time leaves input, paint, and audio in front.
++      await wait(90);
++    }
++  })().finally(() => {
++    deferredWarmPromise = null;
++  });
++  return deferredWarmPromise;
++}
++
+ self.addEventListener('install', (event) => {
+-  event.waitUntil(cacheRelease().then(() => self.skipWaiting()));
++  event.waitUntil(cacheCore().then(() => self.skipWaiting()));
+ });
+ 
+ self.addEventListener('activate', (event) => {
+@@ -124,6 +190,18 @@ async function navigate(request) {
+   return fallback || Response.error();
+ }
+ 
++function bypassAppShell(url) {
++  if (!url.pathname.startsWith(scopeUrl.pathname)) return false;
++  const relativePath = url.pathname.slice(scopeUrl.pathname.length);
++  return (
++    relativePath === 'android' ||
++    relativePath === 'android.html' ||
++    relativePath === 'introduction' ||
++    relativePath === 'introduction.html' ||
++    relativePath.startsWith('introduction/')
++  );
++}
++
+ self.addEventListener('fetch', (event) => {
+   const request = event.request;
+   if (request.method !== 'GET') return;
+@@ -131,6 +209,11 @@ self.addEventListener('fetch', (event) => {
+   const url = new URL(request.url);
+   if (url.origin !== scopeUrl.origin) return;
+ 
++  // These pages publish independently from the installable Flutter shell.
++  // Leave their documents and assets on the network so an older app cache can
++  // never replace the introduction or retain a superseded download link.
++  if (bypassAppShell(url)) return;
++
+   if (request.mode === 'navigate') {
+     event.respondWith(navigate(request));
+     return;
+@@ -140,5 +223,12 @@ self.addEventListener('fetch', (event) => {
+ });
+ 
+ self.addEventListener('message', (event) => {
+-  if (event.data === 'SKIP_WAITING') self.skipWaiting();
++  if (event.data === 'SKIP_WAITING') {
++    self.skipWaiting();
++  } else if (event.data === 'PAUSE_OFFLINE_CACHE') {
++    deferredWarmPaused = true;
++  } else if (event.data === 'WARM_OFFLINE_CACHE') {
++    deferredWarmPaused = false;
++    event.waitUntil(warmDeferredCache());
++  }
+ });

@@ -282,8 +282,13 @@ The interface does not sparkle on a timer.
   keep it alive. Hidden destinations mute their tickers. Never start all five
   rooms, fires, and image decodes on the first Quest frame.
 - Preserve perceived richness with authored frames and cadence, not display-
-  rate rebuilds: global motes sit near 12 fps, Quest fire near 12 fps on web and
-  20 fps natively, and routine fire near 18 fps.
+  rate rebuilds. On web, global motes park on a composed still; stars and room
+  fire use real 6–10 fps timers, and Quest fire parks while the board scrolls.
+  Native may retain approximately 12–20 fps where the device has headroom. A
+  low visual cadence must also use a low-cadence scheduler: quantizing a 60 Hz
+  controller still wakes and invalidates the browser 60 times each second.
+- Continuous room ambience is native-only. Web loads short, user-triggered
+  event sounds lazily and must never play or offline-cache the room-fire loop.
 - A large animated room must not sit under a live full-screen BackdropFilter
   during scroll. Use a registered pre-softened plate or a warm value veil,
   while keeping live content crisp and the resting room untouched.
@@ -420,6 +425,13 @@ Rules:
 
 - The earned room fills the upper first frame.
 - XP and six domains sit on a darker optical-glass instrument panel.
+- The TODAY rail carries one compact, tappable continuity line: active-day
+  streak plus streak-freeze reserve. It may use a restrained cool moonlit
+  accent because a freeze is protective state, never a second primary action.
+- Streak freezes are available from the beginning, deploy automatically only
+  when they can cover the whole quiet span, and leave an honest snowflake on
+  held days. The detail sheet explains reserve, active-day replenishment, and
+  recent held dates without shame copy or paywall framing.
 - One Main Quest may be featured.
 - Its category uses a soft, low-set painted vignette integrated into the card,
   never a category-sized color fill or sharp pasted thumbnail.
@@ -677,3 +689,5 @@ procedure.
   `design/comparisons/2026-08-01/journal-and-phone-performance-pass.webp`
 - Current pre-TestFlight release audit:
   `design/audits/2026-08-03/pre-testflight-release-audit.md`
+- Current web responsiveness and silence audit:
+  `design/audits/2026-08-10/web-performance-pass.md`

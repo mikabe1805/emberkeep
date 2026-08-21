@@ -210,10 +210,11 @@ layer reconstruction on every tick.
 
 Set a cadence budget before adding polish. Use the lowest rate that preserves
 the intended illusion, and keep independent systems from all rebuilding on the
-same display tick. The current reference budgets are approximately 30 fps for
-phone light/camera publication, 12–20 fps for fire, and 12 fps for ambient
-motes. A 120 Hz screen is not permission to decode, blur, or repaint authored
-rasters 120 times per second.
+same display tick. Native reference budgets are approximately 30 fps for phone
+light/camera publication and 12–20 fps for fire. Web uses approximately 18–24
+fps for reactive light/camera publication, real 6–10 fps timers for living
+sources, and a composed still for global motes. A 120 Hz screen is not
+permission to decode, blur, or repaint authored rasters 120 times per second.
 
 For primary navigation, capture both a cold first frame and the first visit to
 each destination. Illustrated tabs should decode lazily, remain alive after
@@ -299,7 +300,7 @@ visual-system pass, run:
 ```powershell
 flutter analyze
 flutter test
-flutter build web --release
+flutter build web --release --wasm
 flutter build apk --release
 ```
 

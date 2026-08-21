@@ -128,6 +128,384 @@ persisted top-three routine order.
 
 final result: passed
 
+---
+
+## 2026-08-12 — Month ledger-tick implementation
+
+### Source visual truth
+
+- Selected direction: option 2, the single brass ledger tick that makes a
+  busy day visible without category confetti.
+- Source:
+  `C:/Users/mikus/.codex/generated_images/019ff625-dcf7-7be3-9958-e70f843da7f5/exec-b98a7acc-6811-4c8d-a5eb-556ff4f3c0a4.png`
+- Source pixels: 852 x 1846. It was normalized to 430 x 932 for the comparison;
+  this keeps the same 0.505 scale on both axes to within rounding.
+
+### Rendered implementation
+
+- Screenshot:
+  `test/goldens/academic_schedule_month_430x932.png`
+- Implementation pixels and logical viewport: 430 x 932 at DPR 1.
+- State: August 2026 month view, August 11 selected/today, live classes,
+  one open plan, two open academic deadlines, and completion/journal history.
+- Full comparison:
+  `design/comparisons/2026-08-12/month-ledger-ticks-full-final.png`
+  (source left, implementation right).
+- Focused month comparison:
+  `design/comparisons/2026-08-12/month-ledger-ticks-focus-final.png`
+  (source left, implementation right).
+
+### Findings
+
+- P0 remaining: none.
+- P1 remaining: none.
+- P2 remaining: none.
+- The implementation intentionally preserves the production page composition,
+  typography, selected-day plate, spacing, and artwork instead of adopting the
+  generated image's taller illustrative proportions. The chosen design truth
+  was the marker system: one neutral vertical tick, three visible heights, and
+  one attached deadline diamond.
+
+### Comparison history
+
+1. Pass 1 found a P2 legibility mismatch: the 5 px light tick at 48% brass
+   opacity became visually negligible at the real 430 px phone viewport, so the
+   three workload levels did not separate as clearly as the source direction.
+   - Fix: increased the visible tick ramp to 7 / 10.5 / 14 logical pixels,
+     widened it to 3 px, and moved the neutral ink to a clearer 65% / 82% / 96%
+     honey-brass ramp.
+   - Post-fix evidence:
+     `design/comparisons/2026-08-12/month-ledger-ticks-full-final.png` and
+     `design/comparisons/2026-08-12/month-ledger-ticks-focus-final.png`.
+   - Result: light, moderate, and full days read distinctly while staying much
+     calmer than the removed class bars, stat diamonds, completion dots, study
+     icons, journal icons, and `+N` counts.
+
+### Required fidelity surfaces
+
+- Fonts and typography: passed. Existing Fraunces / Inter / JetBrains Mono
+  production hierarchy and date optical weights are preserved; the marker adds
+  no cramped text or truncation.
+- Spacing and layout rhythm: passed. The mark occupies one fixed 9 x 16 slot
+  under each numeral inside equal-height week rows. Empty dates remain bare.
+- Colors and visual tokens: passed. Every workload level uses one restrained
+  honey-brass ramp; course and stat colors no longer compete in the month grid.
+- Image quality and asset fidelity: passed. Existing plans-desk artwork remains
+  unchanged and sharp. No target imagery was replaced or approximated.
+- Copy and content: passed. The interface adds no legend or instructional copy;
+  tapping a date remains the place where classes, work, study, plans, history,
+  and journal entries become readable.
+- Interactions and accessibility: passed. Every date remains a semantic button;
+  its spoken label now includes open/light/moderate/heavy day weight and deadline
+  status before the existing item details. Cancelled classes do not add load,
+  completed deadlines lose the diamond, and the three visual heights have direct
+  regression coverage.
+
+### Verification
+
+- `flutter analyze lib/screens/calendar.dart test/academic_calendar_widget_test.dart`:
+  passed with no issues.
+- `flutter test test/academic_calendar_widget_test.dart`: 20/20 passed.
+- `flutter test test/academic_calendar_visual_test.dart --update-goldens
+  --dart-define=CAPTURE_ACADEMIC=true`: 6/6 passed.
+- Combined focused widget and visual suite: 26/26 passed.
+- Full `flutter analyze`: passed with no issues.
+- `flutter build web --release`: passed.
+- Local release preview: HTTP 200 at `http://127.0.0.1:4174/`.
+
+final result: passed
+
+## Academic scheduling conflict pass - 2026-08-12
+
+### Source truth and rendered evidence
+
+- Approved Plans source: `design/visual-targets/2026-07-30/plans.png`.
+- Current conflict implementation:
+  `test/goldens/academic_schedule_conflict_430x932.png`.
+- Same-input comparison:
+  `design/comparisons/2026-08-12/probe-plans-conflict.png`.
+- Viewport: 430 x 932 logical pixels at DPR 1. The 852 x 1846 source and
+  430 x 932 implementation were normalized to the same display height without
+  cropping.
+- State: Plans > Day, two overlapping classes, one assignment, Reduced Motion.
+
+The academic daybook preserves the source's candlelit desk scene, warm folio
+hierarchy, Fraunces display voice, mono labels, restrained brass, and single
+gold action. The overlap state remains inside the folio and does not compete
+with the room.
+
+### Comparison history and fixes
+
+1. P2: the first conflict render added redundant overlap copy to the compact
+   day count and truncated at the 430 px viewport.
+   - Fixed by keeping the day count factual (`2 CLS · 1 DUE`) and letting the
+     full notice immediately below own the collision explanation.
+2. Post-fix evidence shows the day count, notice, both affected class rows, and
+   assignment fully contained and readable.
+
+P0 remaining: none.
+
+P1 remaining: none.
+
+P2 remaining: none.
+
+### Fidelity, interaction, and accessibility checks
+
+- Typography and spacing: passed; the notice and rows follow the existing
+  folio rhythm without clipping.
+- Materials and color: passed; muted coral identifies schedule pressure without
+  turning the page into an alarm state, and course pigments remain intact.
+- Image fidelity: passed; the approved Plans desk plate is reused with no crop
+  seam or substitute asset.
+- Copy: passed; “two classes share this time” names the problem plainly and
+  “both stay on your daybook” preserves the non-punitive product voice.
+- Interaction: passed; the class form previews overlap before save but permits
+  an intentional collision, and Month, Week, 3 Days, and Day share the same
+  occurrence truth.
+- Accessibility: passed; both class semantics include overlap state and the
+  narrow-phone 200% text regression remains clean.
+- Verification: focused scheduling/audio tests passed, `flutter analyze`
+  passed with no issues, and `git diff --check` reported only existing
+  line-ending conversion warnings.
+
+final result: passed
+
+## Academic transition-buffer pass - 2026-08-12
+
+### Source truth and rendered evidence
+
+- Approved Plans source: `design/visual-targets/2026-07-30/plans.png`.
+- Current tight-transition implementation:
+  `test/goldens/academic_schedule_transition_430x932.png`.
+- Same-input comparison:
+  `design/comparisons/2026-08-12/probe-plans-transition.png`.
+- Viewport: 430 x 932 logical pixels at DPR 1; compact regression: 320 x
+  568 at 200% text.
+- State: Plans > Day, two fixed classes separated by five minutes, one
+  assignment, ten-minute requested transition buffer, Reduced Motion.
+
+The pass extends the existing academic folio instead of introducing a second
+planning language. Fixed class times remain schedule truth. Brass guidance
+identifies a too-tight walking/reset gap, while genuine overlaps remain the
+stronger muted-coral state.
+
+### Comparison history and fixes
+
+1. P1: the first compact action put its full buffer label into a narrow
+   large-text row and overflowed on a 320 px phone.
+   - Fixed by measuring the available width, using a compact two-line label,
+     and retaining the full semantic description and 44 px target.
+2. P2: showing a buffer menu on every ordinary class row made the daybook feel
+   busier than the approved Plans direction.
+   - Fixed by keeping normal rows unchanged and exposing the in-context buffer
+     action only when a transition needs attention.
+3. Post-fix evidence keeps the warning, both fixed class times, both affected
+   rows, and buffer actions readable inside the folio without clipping.
+
+P0 remaining: none.
+
+P1 remaining: none.
+
+P2 remaining: none.
+
+### Fidelity, interaction, and accessibility checks
+
+- Typography and spacing: passed; the warning, mono mechanics, and course rows
+  follow the existing folio rhythm and remain readable at 200% text.
+- Materials and color: passed; aged brass reads as guidance, course pigments
+  remain intact, and the stronger coral overlap treatment stays distinct.
+- Copy: passed; “class times stay exactly as entered” makes the non-destructive
+  behavior explicit.
+- Interaction: passed; each recurring class can request 0, 5, 10, 15, 20, or
+  30 minutes, the add-class form previews a tight turnaround before save, and
+  lowering the relevant buffer resolves the warning without changing either
+  class time.
+- Migration: passed; schema-2 schedules adopt a ten-minute default without
+  losing occurrences, courses, work, or stable identities.
+- Accessibility: passed; pressure state and current buffer are spoken, actions
+  retain practical tap targets, and 320 x 568 at 200% text has no overflow.
+- Verification: focused scheduling/audio tests passed (29/29), visual capture
+  passed, `flutter analyze` passed with no issues, and `git diff --check`
+  reported only existing line-ending conversion warnings.
+
+final result: passed
+
+## Academic study-planning pass - 2026-08-12
+
+### Source truth and rendered evidence
+
+- Approved Plans source: `design/visual-targets/2026-07-30/plans.png`.
+- Current study-planning sheet:
+  `test/goldens/academic_study_planner_430x932.png`.
+- Same-input comparison:
+  `design/comparisons/2026-08-12/probe-plans-study.png`.
+- Viewport: 430 x 932 logical pixels at DPR 1; compact regression: 320 x
+  568 at 200% text.
+- State: an ECE assignment due August 14, two hours of requested effort,
+  45-minute sessions, 9 AM–8 PM usable hours, and recurring class time with a
+  ten-minute transition buffer.
+
+The planner is a temporary folio sheet over the existing candlelit Plans desk.
+The assignment stays the obligation; study blocks are a separate, reversible
+layer that the user reviews before saving. A single satin-gold action owns the
+sheet, while the schedule preview uses restrained brass and ordinary course
+pigment.
+
+### Comparison history and fixes
+
+1. P1: the first sheet stacked every option full-width, making the decision
+   feel like a long settings form and pushing the primary action below the
+   phone frame.
+   - Fixed with a measured three-column folio grid that collapses to two
+     columns for narrow or large-text layouts.
+2. P1: the first scheduling pass filled every short gap, producing fragmented
+   45/25/45/5-minute blocks and then claiming five minutes still needed room.
+   - Fixed by treating the chosen session length as a real preference: open
+     blocks use that length, with only the final remainder allowed to be
+     shorter. The rendered plan now finds three coherent sessions.
+3. P2: study-day rows could be hidden by the empty-day branch because study
+   blocks were not included in that visibility decision.
+   - Fixed by making study blocks first-class daybook content with their own
+     completion control, semantics, and month marker.
+
+P0 remaining: none.
+
+P1 remaining: none.
+
+P2 remaining: none.
+
+### Fidelity, interaction, and accessibility checks
+
+- Typography and spacing: passed; the dialog uses the existing Fraunces,
+  Inter, and mono roles and remains contained at both audited phone sizes.
+- Materials and hierarchy: passed; the sheet belongs to the photographed desk,
+  restrained brass owns selection and preview, and one gold keep action owns
+  the luminous hierarchy.
+- Scheduling truth: passed; suggestions reserve fixed classes plus their
+  transition buffers, existing blocks, chosen usable hours, the current time,
+  and the actual due time. When the request does not fit, the sheet names the
+  unscheduled remainder instead of inventing capacity.
+- Interaction: passed; total effort, session length, and usable hours all
+  regenerate the preview; nothing persists before confirmation; re-planning
+  replaces only open blocks and preserves completed study history.
+- Completion: passed; checking a study block does not complete its assignment
+  or exam.
+- Migration: passed; schema-3 schedules load with no invented study plan, and
+  schema-4 plans and blocks round-trip through the local store.
+- Accessibility: passed; controls expose selected state, previews and blocks
+  have descriptive semantics, touch targets remain practical, and 320 x 568
+  at 200% text has no overflow.
+- Verification: focused academic/audio tests passed (37/37), visual capture
+  passed, `flutter analyze` passed with no issues, and `git diff --check`
+  reported only existing line-ending conversion warnings.
+
+final result: passed
+
+## One-class schedule adjustments - 2026-08-12
+
+### Source truth and rendered evidence
+
+- Approved Plans source: `design/visual-targets/2026-07-30/plans.png`.
+- Current adjustment sheet:
+  `test/goldens/academic_occurrence_adjust_430x932.png`.
+- Updated daybook row:
+  `test/goldens/academic_schedule_day_430x932.png`.
+- Same-input comparison:
+  `design/comparisons/2026-08-12/probe-plans-occurrence-adjust.png`.
+- Viewport: 430 x 932 logical pixels at DPR 1; compact regression: 320 x
+  568 at 200% text.
+- State: one ECE lecture, a recurring weekly series, and an open assignment
+  study plan that must react to a one-off class change.
+
+The daybook now gives each live class a quiet `ADJUST` doorway beneath Notes.
+Its temporary folio sheet makes the scope explicit before committing: move,
+cancel, and restore affect one occurrence only, while the recurring series
+stays intact. If active study plans exist, unfinished blocks are rebuilt
+around the new class grid and completed study remains fixed.
+
+### Comparison history and fixes
+
+1. P1: an occurrence state alone could not distinguish a deliberate one-off
+   cancellation from a date removed by editing the recurring series.
+   - Fixed with an explicit persisted user-adjustment marker. Only intentional
+     overrides can be restored; series tombstones remain schedule history.
+2. P1: recalculating plans one at a time against stale open blocks could make
+   the result depend on plan order.
+   - Fixed by removing all targeted open blocks first, sorting plans by actual
+     deadline, and then refitting them into one shared schedule. Completed
+     blocks stay immutable.
+3. P2: the first sheet described study reflow but did not explicitly repeat
+   that the weekly class was safe.
+   - Fixed by putting both consequences in the same pre-action note: only this
+     class changes, the weekly class stays intact, open study refits, and
+     completed study stays put.
+4. P2: the initial right-side class actions made tall rows because both Notes
+   and Adjust used separate full control heights.
+   - Tightened their visual rhythm while retaining 44-pixel tap targets and
+     keeping Adjust subordinate to Notes.
+
+P0 remaining: none.
+
+P1 remaining: none.
+
+P2 remaining: none.
+
+### Fidelity, interaction, and accessibility checks
+
+- Typography and materials: passed; the sheet uses the existing folio,
+  brass, course pigment, mono mechanics, and a single satin-gold primary
+  action over the approved candlelit desk.
+- Scheduling truth: passed; move changes one date/time record and preserves
+  the weekly series, cancel suppresses that occurrence from doorway/conflict
+  logic, and restore adopts the recurring series' current date/time.
+- Study reflow: passed; every active plan keeps its preferences, open blocks
+  are regenerated around classes and transition buffers, completed blocks do
+  not move, and plans remain honest when available time is insufficient.
+- Persistence: passed; user overrides round-trip through the local schedule,
+  while older moved/cancelled records are inferred without turning recurrence
+  tombstones into restorable classes.
+- Accessibility: passed; move/cancel/restore scopes are named, actions retain
+  practical targets, and the complete move form scrolls without overflow at
+  320 x 568 and 200% text.
+- Verification: domain, interaction, and visual scheduling suites passed;
+  `flutter analyze` passed with no issues; `git diff --check` reported only
+  existing line-ending conversion warnings.
+
+final result: passed
+
+## Month folio density and modal focus correction - 2026-08-12
+
+### Evidence
+
+- Resting month: `test/goldens/academic_schedule_month_430x932.png`.
+- Real routed adjustment state:
+  `test/goldens/academic_occurrence_adjust_430x932.png`.
+- Source comparisons:
+  `design/comparisons/2026-08-12/probe-plans-month.png` and
+  `design/comparisons/2026-08-12/probe-plans-occurrence-adjust-focus.png`.
+
+The lower half of the prior adjustment capture read as a cramped fragment of
+the modal because the capture fixture stacked the sheet directly over the
+page, bypassing the app's actual modal barrier. Separately, the six-week month
+used content-driven rows, so a dense selected day could distort the rhythm of
+the whole folio.
+
+- Fixed the evidence fixture to open the adjustment through the real route and
+  therefore capture its full focus scrim. The calendar now recedes as one
+  plane instead of competing with the sheet.
+- Extracted the month into one explicit folio composition with six equal
+  62-pixel week rows, more breathing room under the weekday rule, and a stable
+  height regardless of how many markers one date contains.
+- Kept the grid scrollable with the page rather than shrinking it to preserve
+  an arbitrary first-frame crop.
+- Added a six-week rhythm regression and retained the 320 x 568 / 200% text
+  overflow checks.
+- Verification: 45 focused scheduling/audio/visual tests passed; `flutter
+  analyze` passed with no issues; `git diff --check` reported only existing
+  line-ending conversion warnings.
+
+final result: passed
+
 ## 2026-08-03 — Pre-TestFlight family-feedback freeze
 
 - The featured Quest action now calibrates to the phone's resting hold, filters

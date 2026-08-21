@@ -73,7 +73,7 @@ app/
 flutter run                    # Run on connected device/emulator
 flutter build apk              # Build Android APK
 flutter build ios              # Build iOS
-flutter build web --release    # PWA / Firebase Hosting
+flutter build web --release --wasm # PWA / Firebase Hosting (JS fallback included)
 flutter test                   # Run tests
 flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true test/screenshots_test.dart
 python tool/visual_compare.py review
