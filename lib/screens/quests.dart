@@ -755,6 +755,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (q.allDay) {
       // honesty by design: an all-day line is only confirmed at night — but
       // the moment of willpower still deserves a beat, not a cold deferral.
+      // The card suppresses its automatic tap so real completions own their
+      // moment, which left this bob silent; a deferred line still answers
+      // with the ordinary clasp (owner, 2026-08-21).
+      Sfx.instance.playInteraction(InteractionSound.open);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,

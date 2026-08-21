@@ -3,6 +3,14 @@
 Updated August 21, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
+## 1.0.4+27 iOS App Store candidate — supersedes Build 26
+
+Build 26 shipped the sound system to TestFlight; Build 27 adds one owner-noted
+coverage fix on top: tapping an all-day quest (which bobs and defers its
+completion to the night ledger) now answers with the ordinary clasp instead of
+staying silent. Everything else is identical to Build 26. `pubspec.yaml` is
+`1.0.4+27`.
+
 ## 1.0.4+26 iOS App Store candidate — supersedes Build 25
 
 Build 25 was prepared but is superseded before upload by Build 26, which adds
