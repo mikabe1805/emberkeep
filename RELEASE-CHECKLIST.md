@@ -5,11 +5,12 @@ not replace a signed device build or store-console review.
 
 ## 1.0.4+27 iOS App Store candidate — supersedes Build 26
 
-Build 26 shipped the sound system to TestFlight; Build 27 adds one owner-noted
-coverage fix on top: tapping an all-day quest (which bobs and defers its
-completion to the night ledger) now answers with the ordinary clasp instead of
-staying silent. Everything else is identical to Build 26. `pubspec.yaml` is
-`1.0.4+27`.
+Build 26 shipped the sound system to TestFlight; Build 27 adds two owner-noted
+coverage fixes on top: a press that drifts into a drag (press depth and haptic
+fired, then the finger moved past tap slop) now answers with a quiet select
+detent instead of staying silent, and tapping an all-day quest (which bobs and
+defers its completion to the night ledger) answers with the ordinary clasp.
+Everything else is identical to Build 26. `pubspec.yaml` is `1.0.4+27`.
 
 ## 1.0.4+26 iOS App Store candidate — supersedes Build 25
 

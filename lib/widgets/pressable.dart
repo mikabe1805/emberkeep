@@ -90,8 +90,17 @@ class Pressable extends StatefulWidget {
 
 class _PressableState extends State<Pressable> {
   static const _slop = 12.0;
+
+  /// A press that drifts past the framework's 18 px touch slop can never be
+  /// delivered as a tap, so by 22 px the gesture is definitively a drag. The
+  /// pointer-down haptic already acknowledged the touch; the aborted press
+  /// answers here with a quieter detent so the promise is kept in sound too
+  /// (owner note, 2026-08-21). Below 18 px nothing plays — a tap released in
+  /// the 12-18 px band still fires normally with its own sound.
+  static const _dragVoiceSlop = 22.0;
   bool _down = false;
   bool _pointerAcknowledged = false;
+  bool _dragVoiced = false;
   Offset _downAt = Offset.zero;
 
   void _setDown(bool down) {
@@ -103,14 +112,18 @@ class _PressableState extends State<Pressable> {
     }
   }
 
+  /// The one sound owner for every Pressable voice — accepted taps at full
+  /// weight, and the aborted press (drag-voice) as a quieter detent.
   void _playAcceptedSound({
     required bool soundEnabled,
     required InteractionSound role,
     required Object? screenId,
+    double volumeScale = 1,
   }) {
     if (!soundEnabled) return;
     Sfx.instance.playInteraction(
       role,
+      volumeScale: volumeScale,
       screenId: screenId,
       material: widget.material,
     );
@@ -181,6 +194,7 @@ class _PressableState extends State<Pressable> {
         child: Listener(
           onPointerDown: (e) {
             _downAt = e.position;
+            _dragVoiced = false;
             _setDown(true);
           },
           onPointerMove: (e) {
@@ -188,6 +202,21 @@ class _PressableState extends State<Pressable> {
             if ((e.position - _downAt).distance > _slop) {
               _setDown(false);
               _pointerAcknowledged = false;
+            }
+            if (!_dragVoiced &&
+                widget.enabled &&
+                widget.onTapUp != null &&
+                (e.position - _downAt).distance > _dragVoiceSlop) {
+              _dragVoiced = true;
+              // soundEnabled is forced true here: a control that owns its
+              // accepted-tap cue (quest completion, the dock) still never
+              // owns the aborted press — that acknowledgment is the surface's.
+              _playAcceptedSound(
+                soundEnabled: true,
+                role: InteractionSound.select,
+                screenId: InteractionSoundScreenScope.maybeScreenIdOf(context),
+                volumeScale: 0.7,
+              );
             }
           },
           onPointerUp: (_) {

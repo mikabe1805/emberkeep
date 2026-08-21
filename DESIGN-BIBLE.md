@@ -643,9 +643,12 @@ same room camera.
   silent rule). Retapping the active dock tab acknowledges with a quieter
   `select` detent instead of full `navigate` travel weight; the tap that
   catches a coasting quest board voices the softest `select` even though the
-  scrollable ignore-pointers its children mid-fling. True no-answer silence is
-  reserved for scrolling itself, typing, passive previews, and decline/not-now
-  actions.
+  scrollable ignore-pointers its children mid-fling; and a press that drifts
+  into a drag — where the pointer-down haptic and press depth already
+  promised a tap — answers with the same quiet detent once the drift passes
+  the point where no tap can be delivered (past the 18 px framework slop).
+  True no-answer silence is reserved for scrolling itself once underway,
+  typing, passive previews, and decline/not-now actions.
 - New interactive surfaces wire their interaction verb before they ship. The
   daybook shipped with ~20 silent tappable rows, which read as deadness, not
   restraint — coverage is part of a surface's definition of done.
