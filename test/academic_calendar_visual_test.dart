@@ -25,6 +25,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/golden_platform_policy.dart';
 
 const _capture = bool.fromEnvironment('CAPTURE_ACADEMIC');
+const _captureStore = bool.fromEnvironment('CAPTURE_STORE');
 const _verifyExactGoldens = bool.fromEnvironment('VERIFY_EXACT_GOLDENS');
 const _captureConflict = bool.fromEnvironment('CAPTURE_ACADEMIC_CONFLICT');
 const _captureTransition = bool.fromEnvironment('CAPTURE_ACADEMIC_TRANSITION');
@@ -68,6 +69,8 @@ void main() {
 
   for (final mode in const [
     AcademicCalendarMode.month,
+    AcademicCalendarMode.week,
+    AcademicCalendarMode.threeDay,
     AcademicCalendarMode.day,
   ]) {
     testWidgets('academic ${mode.name} visual', (tester) async {
@@ -149,6 +152,107 @@ void main() {
     });
   }
 
+  testWidgets('academic threeDay selected-away visual', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+      tester.binding.setSurfaceSize(null);
+    });
+    final state = GameState()
+      ..reduceMotion = true
+      ..history[Days.key(DateTime(2026, 8, 11))] = 2;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: CalendarPage(
+            state: state,
+            quests: const [],
+            onAdd: (_) => true,
+            scheduleRepository: InMemoryAcademicScheduleRepository(
+              _visualSchedule(),
+            ),
+            calendarPreferences: InMemoryAcademicCalendarPreferences(
+              state: const AcademicCalendarViewState(
+                mode: AcademicCalendarMode.threeDay,
+                selectedDate: '2026-08-12',
+                threeDayStartDate: '2026-08-11',
+              ),
+            ),
+            notebookHandoff: _NoopHandoff(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final context = tester.element(find.byType(MaterialApp));
+    await tester.runAsync(
+      () => precacheImage(
+        const AssetImage('assets/pages/plans-desk-v2.webp'),
+        context,
+      ),
+    );
+    for (var frame = 0; frame < 5; frame++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+    final today = find.byKey(const ValueKey('calendar-back-to-today'));
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('daybook-day-control-2026-08-12')),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
+
+    expect(today, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('calendar-plan-selected-day')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/academic_schedule_threeDay_selected_away_320x568_200.png',
+        ),
+      );
+    }
+  });
+
+  testWidgets('App Store Daybook release visual', (tester) async {
+    if (!_captureStore) return;
+
+    await _pumpGeneralDaybookReleaseFixture(
+      tester,
+      mode: AcademicCalendarMode.month,
+      size: const Size(430, 932),
+      textScale: 1,
+      devicePixelRatio: 3,
+    );
+
+    expect(find.text('PLANS'), findsOneWidget);
+    expect(find.text('DAYBOOK'), findsOneWidget);
+    expect(find.text('AUGUST 2026'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/store_03_daybook_1290x2796.png'),
+    );
+  });
+
   for (final mode in const [
     AcademicCalendarMode.month,
     AcademicCalendarMode.day,
@@ -175,7 +279,7 @@ void main() {
 
       if (mode == AcademicCalendarMode.day) {
         await Scrollable.ensureVisible(
-          tester.element(find.text('ALL DAY').first),
+          tester.element(find.text('TUESDAY 11')),
           alignment: 0.02,
         );
         await tester.pump();
@@ -190,6 +294,8 @@ void main() {
           ),
           findsOneWidget,
         );
+        expect(find.text('Choose references for the cover'), findsOneWidget);
+        expect(find.text('Clear the sink'), findsNothing);
         expect(
           tester.getTopLeft(find.text('Museum tickets release')).dy,
           greaterThanOrEqualTo(16),
@@ -275,16 +381,32 @@ void main() {
               .didExceedMaxLines,
           isFalse,
         );
+        final selectedDayLabel = mode == AcademicCalendarMode.month
+            ? 'TUESDAY 11 · TODAY'
+            : 'TUESDAY 11';
         expect(
           tester
-              .renderObject<RenderParagraph>(find.text('TUESDAY 11 · TODAY'))
+              .renderObject<RenderParagraph>(find.text(selectedDayLabel))
               .didExceedMaxLines,
           isFalse,
         );
-        expect(
-          tester.getBottomLeft(find.text('TUESDAY 11 · TODAY')).dy,
-          lessThan(tester.getTopLeft(find.text('+ PLAN')).dy),
-        );
+        if (mode == AcademicCalendarMode.month) {
+          expect(
+            tester.getBottomLeft(find.text(selectedDayLabel)).dy,
+            lessThan(tester.getTopLeft(find.text('+ PLAN')).dy),
+          );
+        } else {
+          expect(find.text('TUESDAY 11 · TODAY'), findsNothing);
+          expect(find.text('+ PLAN'), findsOneWidget);
+          expect(
+            tester.getBottomLeft(find.text(selectedDayLabel)).dy,
+            lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
+          );
+          expect(
+            tester.getBottomLeft(find.text('+ PLAN')).dy,
+            lessThan(tester.getTopLeft(find.text('DAY SHAPE')).dy),
+          );
+        }
         expect(tester.takeException(), isNull);
       },
     );
@@ -361,19 +483,15 @@ void main() {
         expect(find.text('3D'), findsOneWidget);
         expect(find.text('DAY'), findsOneWidget);
       }
-      for (
-        var drag = 0;
-        drag < 5 && find.text('Library closed').evaluate().isEmpty;
-        drag++
-      ) {
-        await tester.dragFrom(
-          Offset(configuration.size.width / 2, configuration.size.height - 70),
-          const Offset(0, -260),
-        );
-        await tester.pump();
-      }
-      await tester.ensureVisible(find.text('Library closed'));
+      await tester.scrollUntilVisible(
+        find.text('DAY SHAPE'),
+        260,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(find.text('DAY SHAPE'));
       await tester.pump();
+      expect(find.text('DAY SHAPE'), findsOneWidget);
+      expect(find.text('ALL DAY'), findsWidgets);
       expect(find.text('Library closed'), findsOneWidget);
       expect(find.text('Project meeting'), findsOneWidget);
       expect(find.text('Return library book'), findsOneWidget);
@@ -879,9 +997,10 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
   required AcademicCalendarMode mode,
   required Size size,
   required double textScale,
+  double devicePixelRatio = 1,
   bool integratedDirections = false,
 }) async {
-  tester.view.devicePixelRatio = 1;
+  tester.view.devicePixelRatio = devicePixelRatio;
   tester.platformDispatcher.textScaleFactorTestValue = textScale;
   await tester.binding.setSurfaceSize(size);
   addTearDown(() {
@@ -891,12 +1010,24 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
   });
 
   final state = GameState()..reduceMotion = true;
-  final quest = Quest(
+  final dueQuest = Quest(
     title: 'Clear the kitchen table and put every borrowed thing back',
     stat: Stat.dis,
     difficulty: 2,
     schedule: QuestSchedule.once,
     dueDate: DateTime(2026, 8, 11),
+  );
+  final focusQuest = Quest(
+    title: 'Choose references for the cover',
+    stat: Stat.foc,
+    difficulty: 3,
+    priorityDay: Days.key(DateTime(2026, 8, 11)),
+  );
+  final routineQuest = Quest(
+    title: 'Clear the sink',
+    stat: Stat.dis,
+    difficulty: 1,
+    schedule: QuestSchedule.daily,
   );
   await tester.pumpWidget(
     MaterialApp(
@@ -913,7 +1044,7 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
       home: Scaffold(
         body: CalendarPage(
           state: state,
-          quests: [quest],
+          quests: [dueQuest, focusQuest, routineQuest],
           onAdd: (_) => true,
           scheduleRepository: InMemoryAcademicScheduleRepository(
             _generalDaybookReleaseSchedule(

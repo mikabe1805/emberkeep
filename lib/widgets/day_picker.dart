@@ -65,7 +65,7 @@ class _WeekdaySheetState extends State<_WeekdaySheet> {
   late int _sel = widget.initial;
 
   void _chooseDay(int day) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _sel = day);
   }
 
@@ -173,7 +173,6 @@ class _WeekdaySheetState extends State<_WeekdaySheet> {
                       label: 'PIN TO ${_dayNames[_sel - 1].toUpperCase()}',
                       expand: true,
                       onTap: () {
-                        Sfx.instance.play('streak');
                         Navigator.of(context).pop(_sel);
                       },
                     ),

@@ -1,8 +1,10 @@
 # Room of Days physical-device acceptance
 
-Complete this runbook on a physical Android phone and a physical iPhone before
-submitting either store build. Emulator evidence is useful but does not close
-this gate. Use disposable test data and accounts; never risk a personal journal.
+Complete the iPhone columns before submitting the 1.0.4 App Store update.
+Android publication is deferred and its historical instructions remain below
+for a later release. Simulator and widget evidence are useful but do not close
+the iPhone gate. Use disposable test data and accounts; never risk a personal
+journal.
 
 ## Candidate identity
 
@@ -18,15 +20,16 @@ this gate. Use disposable test data and accounts; never risk a personal journal.
 
 ### iPhone
 
-- Install only the processed Room of Days `1.0.0` (Build 19) from TestFlight.
-  It was produced by the manual Codemagic `ios-testflight` workflow; do not
-  substitute a local debug/profile build or the superseded Build 18 candidate.
-- Keep `../release-artifacts/room-of-days-1.0.0+19-ios.ipa`, the matching Runner
-  dSYM, Codemagic Build #28 log, and `room-of-days-1.0.0+19-ios-evidence.txt`
-  together. The expected IPA SHA-256 is
-  `5773219E32E60EEB799CE191C895A4CB82826C17E8C7FE8DF02C82F060AA65BE`.
-- Confirm the installed version/build match the evidence, which must name source
-  commit `32e1f053f9f8f7d601c84fe2beef8bc834c4aa87` and Team ID `D63Z4RBRT8`.
+- Install only the processed Room of Days `1.0.4` (Build 25) from TestFlight.
+  It must come from the final release commit through the manual Codemagic
+  `ios-testflight` workflow; do not substitute a local debug/profile build.
+- Keep the emitted IPA, matching Runner dSYM, Codemagic log, and
+  `release-evidence.txt` together. Record the IPA SHA-256 after the signed build
+  exists; do not copy Build 19's hash into the new receipt.
+- Confirm the installed version/build match that evidence, which must name the
+  final release commit and Team ID `D63Z4RBRT8`.
+- Keep processed Build 24 installed long enough to perform the
+  upgrade-preservation pass before the separate fresh-install pass.
 
 Record before testing:
 
@@ -37,7 +40,7 @@ Record before testing:
 | OS version |  |  |
 | Installed app version/build |  |  |
 | Artifact SHA-256 / evidence file |  |  |
-| Source commit | `ee091db079a54c982946aa6ab7e7b61546b3354f` | `32e1f053f9f8f7d601c84fe2beef8bc834c4aa87` |
+| Source commit | `ee091db079a54c982946aa6ab7e7b61546b3354f` |  |
 
 ## Stop conditions
 
@@ -60,24 +63,45 @@ Run the upgrade check before uninstalling anything:
 - [ ] Uninstall Room of Days, then install the verified Build 12 APK fresh.
   Confirm the old test data is gone and onboarding begins normally.
 
-For iPhone, use processed Build 19 as a clean install. If approved Build 18 is
-still installed, first verify that updating to Build 19 preserves its test data,
-then clear the app and repeat the fresh-install path.
+For iPhone, first install Build 25 over processed Build 24 without
+deleting Room of Days. Confirm the save, journal, room, Daybook, settings, and
+account state remain and What's New appears once. Then delete the app, install
+Build 25 fresh, and confirm onboarding starts with no prior test data.
 
 ## 2. First launch and core story
 
 Repeat on both phones:
 
-- [ ] Launch from a fully stopped state. The icon, app-switcher label, splash,
-  and first screen all say Room of Days and use the dark lit-window identity.
+- [ ] Launch from a fully stopped state. The Home Screen shows the Day Ledger,
+  the app-switcher label says Room of Days, and the launch canvas stays dark and
+  visually continuous with the first screen.
+- [ ] At App Library size, the Day Ledger remains recognizable and its completed
+  honey mark reads as a crisp point of light rather than a blurry halo.
+- [ ] On the first unobscured Quests view of the process, the hearth begins
+  dark, one magic ignition sound lands with one visible bloom, and the flame
+  stays lit. Switching tabs or resuming does not replay it; a fully new process
+  does. With Reduce Motion, it settles lit without the bloom.
+- [ ] With the Ring/Silent switch on, the room stays visually understandable
+  without sound. With Apple Music or Spotify already playing, Room of Days does
+  not stop or take over the person's audio.
 - [ ] Complete onboarding at a normal text size. Buttons remain reachable with
   gesture navigation/home indicators and notches in the way.
 - [ ] Complete a Quest. Confirm immediate press feedback, sound/haptic feedback,
   the reward receipt, XP/Glimmers, and the visible room/progress change.
+- [ ] Tap 20–30 controls across the room, dock, calendar, journal, overlays, and
+  rewards. Ordinary contacts share one crisp, weighty voice with subtle
+  five-take variation, never double-fire, and do not become tiring. During a
+  calm 180–700 ms rhythm, listen for the rare D5 → A5 → E5 → D5 return. Confirm
+  rapid tapping stays plain with no later catch-up, changing pages clears an
+  unfinished return, and Quest completion interrupts it cleanly. Repeat one
+  activation with VoiceOver or a hardware keyboard.
 - [ ] Use Undo once and confirm the accidental completion and its rewards are
   actually reversed.
 - [ ] Open Quests, Me, Plans, Goals, and Journal. Switch through all five tabs
   twice; no stale screen, lost scroll state, or accidental activation appears.
+- [ ] In Goals, take back an adopted quest and select it again. Change the day
+  of a weekly quest, force-quit, and reopen. Its progress, history, selected
+  state, and new weekday remain intact.
 - [ ] Spend earned Glimmers on an available room choice and confirm it remains
   equipped after force-quitting and reopening.
 

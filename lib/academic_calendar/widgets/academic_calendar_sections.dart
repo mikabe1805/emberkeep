@@ -56,6 +56,7 @@ typedef OpenAcademicOccurrenceAdjuster =
 typedef ToggleDaybookTask =
     Future<void> Function(DaybookTask task, bool completed);
 typedef OpenDaybookActions = Future<void> Function(DaybookActionTarget target);
+typedef CompleteQuestPlan = void Function(String questTitle, Offset anchor);
 
 enum AcademicAddTarget { classMeeting, assignment, exam }
 
@@ -448,6 +449,9 @@ class DaybookSpanPanel extends StatelessWidget {
     required this.onOpenOccurrenceAdjuster,
     required this.directionsLauncher,
     required this.daybookPreferences,
+    this.selectedDaySummaryBuilder,
+    this.selectedDayHeaderBuilder,
+    this.onCompleteQuestPlan,
   });
 
   final AcademicCalendarMode mode;
@@ -469,6 +473,9 @@ class DaybookSpanPanel extends StatelessWidget {
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
   final DirectionsLauncher directionsLauncher;
   final DaybookPreferences daybookPreferences;
+  final Widget Function(DaybookDay day)? selectedDaySummaryBuilder;
+  final Widget Function(DaybookDay day)? selectedDayHeaderBuilder;
+  final CompleteQuestPlan? onCompleteQuestPlan;
 
   @override
   Widget build(BuildContext context) {
@@ -477,6 +484,10 @@ class DaybookSpanPanel extends StatelessWidget {
     final first = daybook.first;
     final last = daybook.last;
     final count = daybook.days.length;
+    final selectedDayData = daybook.dayOn(selected);
+    final selectedHeader = selectedDayHeaderBuilder?.call(selectedDayData);
+    final selectedSummary = selectedDaySummaryBuilder?.call(selectedDayData);
+    final detailsStayWithDay = mode == AcademicCalendarMode.day;
 
     return GlassPanel(
       key: ValueKey('academic-${mode.name}-view'),
@@ -539,7 +550,16 @@ class DaybookSpanPanel extends StatelessWidget {
             ),
           const SizedBox(height: 4),
           const _AcademicRule(),
+          if (!detailsStayWithDay && selectedSummary != null) ...[
+            const SizedBox(height: 8),
+            selectedSummary,
+            const SizedBox(height: 8),
+            const _AcademicRule(strength: 0.42),
+          ],
           for (var index = 0; index < count; index++) ...[
+            // Multi-day rows keep the same 44px date control before and after
+            // selection. Their changing overview lives above the list, so a
+            // tap never swaps the control underneath the person's finger.
             DaybookAgendaDay(
               day: daybook.dayOn(first.addDays(index)),
               selected: first.addDays(index) == selected,
@@ -556,6 +576,12 @@ class DaybookSpanPanel extends StatelessWidget {
               onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
               directionsLauncher: directionsLauncher,
               daybookPreferences: daybookPreferences,
+              onCompleteQuestPlan: onCompleteQuestPlan,
+              header: first.addDays(index) == selected ? selectedHeader : null,
+              beforeEntries:
+                  detailsStayWithDay && first.addDays(index) == selected
+                  ? selectedSummary
+                  : null,
             ),
             if (index != count - 1) const _AcademicRule(strength: 0.42),
           ],
@@ -583,6 +609,9 @@ class DaybookAgendaDay extends StatelessWidget {
     required this.onOpenOccurrenceAdjuster,
     required this.directionsLauncher,
     required this.daybookPreferences,
+    this.onCompleteQuestPlan,
+    this.header,
+    this.beforeEntries,
     this.compact = false,
   });
 
@@ -601,6 +630,9 @@ class DaybookAgendaDay extends StatelessWidget {
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
   final DirectionsLauncher directionsLauncher;
   final DaybookPreferences daybookPreferences;
+  final CompleteQuestPlan? onCompleteQuestPlan;
+  final Widget? header;
+  final Widget? beforeEntries;
   final bool compact;
 
   @override
@@ -611,71 +643,78 @@ class DaybookAgendaDay extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Semantics(
-            button: true,
-            selected: selected,
-            label:
-                '${_weekdayNames[date.weekday - 1]} ${date.day}'
-                '${today ? ', today' : ''}',
-            child: InkWell(
-              onTap: () =>
-                  onSelectDay(DateTime(date.year, date.month, date.day)),
-              borderRadius: BorderRadius.circular(9),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 44),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                '${_weekdayNames[date.weekday - 1]} ${date.day}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Type.label.copyWith(
-                                  fontSize: Type.minLabel,
-                                  letterSpacing: 1.25,
-                                  color: today || selected
-                                      ? Palette.xpLight
-                                      : Palette.textMid,
+          header ??
+              Semantics(
+                key: ValueKey('daybook-day-control-$date'),
+                button: true,
+                selected: selected,
+                label:
+                    '${_weekdayNames[date.weekday - 1]} ${date.day}'
+                    '${today ? ', today' : ''}',
+                child: InkWell(
+                  onTap: () =>
+                      onSelectDay(DateTime(date.year, date.month, date.day)),
+                  borderRadius: BorderRadius.circular(9),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    '${_weekdayNames[date.weekday - 1]} ${date.day}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Type.label.copyWith(
+                                      fontSize: Type.minLabel,
+                                      letterSpacing: 1.25,
+                                      color: today || selected
+                                          ? Palette.xpLight
+                                          : Palette.textMid,
+                                    ),
+                                  ),
                                 ),
+                                if (today) ...[
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'TODAY',
+                                    style: Type.label.copyWith(
+                                      fontSize: Type.minLabel,
+                                      color: Palette.xp,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              _dayCountLabel(day.entries),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.end,
+                              style: Type.label.copyWith(
+                                fontSize: Type.minLabel,
+                                color: Palette.textLo,
                               ),
                             ),
-                            if (today) ...[
-                              const SizedBox(width: 6),
-                              Text(
-                                'TODAY',
-                                style: Type.label.copyWith(
-                                  fontSize: Type.minLabel,
-                                  color: Palette.xp,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          _dayCountLabel(day.entries),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.end,
-                          style: Type.label.copyWith(
-                            fontSize: Type.minLabel,
-                            color: Palette.textLo,
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ),
+          if (beforeEntries != null) ...[
+            const SizedBox(height: 2),
+            beforeEntries!,
+            const SizedBox(height: 8),
+          ],
           if (day.entries.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 8),
@@ -702,6 +741,7 @@ class DaybookAgendaDay extends StatelessWidget {
               onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
               directionsLauncher: directionsLauncher,
               daybookPreferences: daybookPreferences,
+              onCompleteQuestPlan: onCompleteQuestPlan,
             ),
         ],
       ),
@@ -724,6 +764,7 @@ class DaybookAgendaEntries extends StatelessWidget {
     required this.onOpenOccurrenceAdjuster,
     required this.directionsLauncher,
     required this.daybookPreferences,
+    this.onCompleteQuestPlan,
     this.showNotices = true,
   });
 
@@ -739,6 +780,7 @@ class DaybookAgendaEntries extends StatelessWidget {
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
   final DirectionsLauncher directionsLauncher;
   final DaybookPreferences daybookPreferences;
+  final CompleteQuestPlan? onCompleteQuestPlan;
   final bool showNotices;
 
   @override
@@ -766,6 +808,7 @@ class DaybookAgendaEntries extends StatelessWidget {
               (DaybookSection.allDay, 'ALL DAY'),
               (DaybookSection.timed, 'SCHEDULE'),
               (DaybookSection.due, 'DUE'),
+              (DaybookSection.focus, 'TODAY’S FOCUS'),
               (DaybookSection.stillOpen, 'STILL OPEN'),
             ]
             .where(
@@ -831,6 +874,7 @@ class DaybookAgendaEntries extends StatelessWidget {
                 onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
                 directionsLauncher: directionsLauncher,
                 daybookPreferences: daybookPreferences,
+                onCompleteQuestPlan: onCompleteQuestPlan,
               ),
         ],
       ],
@@ -854,6 +898,7 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
     required this.onOpenOccurrenceAdjuster,
     required this.directionsLauncher,
     required this.daybookPreferences,
+    this.onCompleteQuestPlan,
   });
 
   final DaybookEntry entry;
@@ -869,6 +914,7 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
   final DirectionsLauncher directionsLauncher;
   final DaybookPreferences daybookPreferences;
+  final CompleteQuestPlan? onCompleteQuestPlan;
 
   @override
   Widget build(BuildContext context) {
@@ -976,6 +1022,18 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
         icon: Icons.menu_book_rounded,
         onTap: _toggleStudyBlock,
       ),
+      QuestPlanAction() when day.date == CivilDate.fromDateTime(Clock.now()) =>
+        _ProjectedCompletionButton(
+          key: ValueKey('quest-plan-toggle-${entry.sourceId}'),
+          title: entry.title,
+          completed: entry.completed,
+          accent: _entryAccent(entry),
+          icon: Icons.check_rounded,
+          onTapAt: !entry.completed && onCompleteQuestPlan != null
+              ? _completeQuestPlan
+              : null,
+          canReopen: false,
+        ),
       _ => null,
     };
     return _ProjectedDaybookEntryRow(
@@ -996,6 +1054,11 @@ class _DaybookProjectionEntryRow extends StatelessWidget {
         .where((item) => item.taskId == action.taskId)
         .firstOrNull;
     if (task != null) await onToggleTask(task, !entry.completed);
+  }
+
+  void _completeQuestPlan(Offset anchor) {
+    final action = entry.action as QuestPlanAction;
+    onCompleteQuestPlan?.call(action.questTitle, anchor);
   }
 
   Future<void> _toggleWork() async {
@@ -1215,46 +1278,69 @@ class _ProjectedCompletionButton extends StatelessWidget {
     required this.completed,
     required this.accent,
     required this.icon,
-    required this.onTap,
-  });
+    this.onTap,
+    this.onTapAt,
+    this.canReopen = true,
+  }) : assert(onTap == null || onTapAt == null);
 
   final String title;
   final bool completed;
   final Color accent;
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final ValueChanged<Offset>? onTapAt;
+  final bool canReopen;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    checked: completed,
-    label: completed ? 'Mark $title open' : 'Mark $title complete',
-    child: InkWell(
-      onTap: onTap,
-      customBorder: const CircleBorder(),
-      child: SizedBox.square(
-        dimension: 44,
-        child: Center(
-          child: Container(
-            width: 27,
-            height: 27,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: completed
-                  ? accent.withValues(alpha: 0.82)
-                  : Colors.transparent,
-              border: Border.all(color: completed ? accent : Palette.textLo),
-            ),
-            child: Icon(
-              completed ? Icons.check_rounded : icon,
-              size: 16,
-              color: completed ? const Color(0xFF17100C) : accent,
+  Widget build(BuildContext context) {
+    final enabled = onTap != null || onTapAt != null;
+    void activate() {
+      onTap?.call();
+      final callback = onTapAt;
+      if (callback == null) return;
+      final box = context.findRenderObject() as RenderBox?;
+      final anchor = box == null || !box.hasSize
+          ? Offset.zero
+          : box.localToGlobal(box.size.center(Offset.zero));
+      callback(anchor);
+    }
+
+    return Semantics(
+      button: enabled,
+      enabled: enabled,
+      checked: completed,
+      label: completed && (!enabled || !canReopen)
+          ? '$title complete'
+          : completed
+          ? 'Mark $title open'
+          : 'Mark $title complete',
+      child: InkWell(
+        onTap: enabled ? activate : null,
+        customBorder: const CircleBorder(),
+        child: SizedBox.square(
+          dimension: 44,
+          child: Center(
+            child: Container(
+              width: 27,
+              height: 27,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: completed
+                    ? accent.withValues(alpha: 0.82)
+                    : Colors.transparent,
+                border: Border.all(color: completed ? accent : Palette.textLo),
+              ),
+              child: Icon(
+                completed ? Icons.check_rounded : icon,
+                size: 16,
+                color: completed ? const Color(0xFF17100C) : accent,
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ProjectedStudyPlanAction extends StatelessWidget {
@@ -1364,6 +1450,7 @@ String _projectedEntryTiming(DaybookEntry entry) => switch (entry.section) {
     entry.startMinute == null
         ? 'DUE'
         : 'DUE ${_projectedTime(entry.startMinute!)}',
+  DaybookSection.focus => 'CHOSEN FOR TODAY',
   DaybookSection.stillOpen =>
     entry.startMinute == null
         ? 'DUE'
@@ -1377,6 +1464,7 @@ String _projectedEntrySemantics(DaybookEntry entry) {
       DaybookSection.allDay => 'all day',
       DaybookSection.timed => 'schedule',
       DaybookSection.due => 'due',
+      DaybookSection.focus => 'today’s focus',
       DaybookSection.stillOpen => 'still open',
     },
     if (entry.section == DaybookSection.timed)
@@ -4790,11 +4878,15 @@ String _dayCountLabel(List<DaybookEntry> entries) {
             entry.section == DaybookSection.stillOpen,
       )
       .length;
+  final focus = entries
+      .where((entry) => entry.section == DaybookSection.focus)
+      .length;
   final parts = <String>[];
   if (scheduled > 0) {
     parts.add('$scheduled ${scheduled == 1 ? 'PLAN' : 'PLANS'}');
   }
   if (due > 0) parts.add('$due DUE');
+  if (focus > 0) parts.add('$focus FOCUS');
   return parts.isEmpty ? 'QUIET DAY' : parts.join(' · ');
 }
 

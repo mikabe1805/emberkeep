@@ -1,4 +1,5 @@
 import 'package:emberkeep/audio.dart';
+import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/journal_doc.dart';
 import 'package:emberkeep/models.dart';
@@ -9,6 +10,8 @@ import 'package:emberkeep/tokens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+Note _note(String text, DateTime at) => Note(at: at, text: text);
 
 Future<void> _pumpHub(
   WidgetTester tester,
@@ -36,6 +39,33 @@ void main() {
 
   tearDown(() {
     Sfx.instance.soundEnabled = true;
+    Clock.reset();
+  });
+
+  test('Then & Now is occasional and rotates through older entries', () {
+    final first = _note('first', DateTime(2026, 7, 1));
+    final second = _note('second', DateTime(2026, 7, 2));
+    final notes = [first, second];
+
+    expect(thenAndNowEntry(notes, now: DateTime(2026, 8, 5))?.text, 'second');
+    expect(thenAndNowEntry(notes, now: DateTime(2026, 8, 6)), isNull);
+    expect(thenAndNowEntry(notes, now: DateTime(2026, 8, 8))?.text, 'first');
+  });
+
+  test('Then & Now does not turn a current-day entry into history', () {
+    final today = _note('today', DateTime(2026, 8, 6, 9));
+    expect(thenAndNowEntry([today], now: DateTime(2026, 8, 6)), isNull);
+  });
+
+  test('Then & Now rotation is stable when entries share a timestamp', () {
+    final at = DateTime(2026, 7, 1, 9);
+    final alpha = Note(id: 'alpha', at: at, text: 'alpha');
+    final beta = Note(id: 'beta', at: at, text: 'beta');
+
+    expect(
+      thenAndNowEntry([beta, alpha], now: DateTime(2026, 8, 5))?.text,
+      thenAndNowEntry([alpha, beta], now: DateTime(2026, 8, 5))?.text,
+    );
   });
 
   testWidgets('Journal feed opens an existing page read-first, then edits', (
@@ -172,6 +202,7 @@ void main() {
   ) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    Clock.freeze(DateTime(2026, 8, 5, 10));
     final note = Note(
       at: DateTime(2026, 7, 4, 9),
       text: 'I can see the difference now.',

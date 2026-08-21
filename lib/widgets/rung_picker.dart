@@ -51,7 +51,7 @@ class _RungSheetState extends State<_RungSheet> {
   late int _sel = widget.initial;
 
   void _choose(int rung) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     setState(() => _sel = rung);
   }
 
@@ -148,7 +148,6 @@ class _RungSheetState extends State<_RungSheet> {
                     label: 'START HERE',
                     expand: true,
                     onTap: () {
-                      Sfx.instance.play('streak');
                       Navigator.of(context).pop(_sel);
                     },
                   ),

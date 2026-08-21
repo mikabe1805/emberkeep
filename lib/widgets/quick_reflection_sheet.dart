@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../audio.dart';
-import '../haptics.dart';
 import '../tokens.dart';
 import 'facets.dart';
 import 'glass.dart';
@@ -15,8 +13,6 @@ Future<String?> showQuickReflectionSheet(
   required String prompt,
   String? attached,
 }) {
-  Sfx.instance.play('tick_warm');
-  Haptics.tap();
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
@@ -62,8 +58,6 @@ class _QuickReflectionSheetState extends State<_QuickReflectionSheet> {
   void _keep() {
     final value = _text.text.trim();
     if (value.isEmpty) return;
-    Sfx.instance.play('tick_lift');
-    Haptics.success();
     Navigator.of(context).pop(value);
   }
 

@@ -105,8 +105,6 @@ class _ShopScreenState extends State<ShopScreen> {
 
   Future<void> _showTheme(SpaceTheme theme) async {
     if (_busyTheme != null) return;
-    Sfx.instance.play('tick');
-    Haptics.tap();
     setState(() => _busyTheme = theme.id);
     await preloadSpaceTheme(theme.id);
     if (!mounted) return;

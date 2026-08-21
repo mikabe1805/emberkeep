@@ -12,10 +12,15 @@ enum AcademicCalendarMode {
 }
 
 final class AcademicCalendarViewState {
-  const AcademicCalendarViewState({required this.mode, this.selectedDate});
+  const AcademicCalendarViewState({
+    required this.mode,
+    this.selectedDate,
+    this.threeDayStartDate,
+  });
 
   final AcademicCalendarMode mode;
   final String? selectedDate;
+  final String? threeDayStartDate;
 }
 
 abstract interface class AcademicCalendarPreferences {
@@ -27,6 +32,8 @@ final class LocalAcademicCalendarPreferences
     implements AcademicCalendarPreferences {
   static const _modeKey = 'room_of_days_academic_calendar_mode_v1';
   static const _dateKey = 'room_of_days_academic_calendar_date_v1';
+  static const _threeDayStartKey =
+      'room_of_days_academic_calendar_three_day_start_v1';
 
   @override
   Future<AcademicCalendarViewState> load() async {
@@ -40,6 +47,7 @@ final class LocalAcademicCalendarPreferences
       return AcademicCalendarViewState(
         mode: mode,
         selectedDate: preferences.getString(_dateKey),
+        threeDayStartDate: preferences.getString(_threeDayStartKey),
       );
     } catch (_) {
       return const AcademicCalendarViewState(mode: AcademicCalendarMode.month);
@@ -54,6 +62,8 @@ final class LocalAcademicCalendarPreferences
         preferences.setString(_modeKey, state.mode.name),
         if (state.selectedDate != null)
           preferences.setString(_dateKey, state.selectedDate!),
+        if (state.threeDayStartDate != null)
+          preferences.setString(_threeDayStartKey, state.threeDayStartDate!),
       ]);
     } catch (_) {
       // View preferences are non-essential; schedule content is not touched.

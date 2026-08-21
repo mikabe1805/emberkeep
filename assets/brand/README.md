@@ -2,30 +2,57 @@
 
 ## Public app mark
 
-The approved public launcher mark is the isometric little room holding the sun.
-Its archived master is:
+The approved public launcher mark is **The Day Ledger**: a shallow open quest
+ledger with three broad quest rows, one completed honey-gold medallion, and two
+unfinished Room of Days completion rings. It was selected on 2026-08-19 after
+the owner identified it as the only direction they would automatically
+recognize as Room of Days, then confirmed that it felt like an app they would
+click out of curiosity.
 
-- `design/source-assets/runtime-originals/assets/brand/room-of-days-icon-source-v2.png`
+The current immutable selected artwork and production cutout source are:
 
-It was generated with the built-in image-generation workflow on 2026-08-03.
-The selected direction uses a compact isometric room, one rising sun, and one
-controlled path of daybreak. It is more ownable to Room of Days than the
-earlier arched-window candidate while preserving the same candlelit palette,
-aged-brass material language, and small-size discipline. It contains no text,
-initials, clock, calendar, house exterior, or rounded-square container.
+- `design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-source-v2.png`
+- `design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-chroma-v2.png`
 
-Selected generation prompt:
+The selected source is a 1254 x 1254 opaque RGB PNG with SHA-256
+`DBB4936D2D6E4BD430C19B51E6F2E99D42F125C05AD79A16F287E4659E2F0ABB`.
+The second production pass preserves the approved book silhouette, framing,
+materials, and three-row structure while making the completed medallion the
+single high-luminance earned reward. The exact preserved prompts and full
+generation lineage live in
+`design/icon-exploration/2026-08-19/README.md`.
 
-> Create an abstract top-down room or compact floor-plan corner that gently
-> cradles one small golden sun disc, as if a day is being kept safely inside a
-> room. Use two or three strong geometric room planes, a single restrained
-> wedge of honey light, a dark espresso-plum field, aged brass, parchment, and
-> warm handcrafted texture. Keep a bold silhouette legible at 32 px. No text,
-> window, arch, house exterior, calendar, clock, fantasy sparkle, or watermark.
+The chroma source is a 1254 x 1254 opaque RGB production derivative with
+SHA-256
+`EEB69A16749A1AA0A8FA2AD1BB0DCD6B7A4551F5C31F679D0396D827C7091700`.
+It exists only so the deterministic exporter can produce a true transparent
+Android foreground. It is not a public icon master.
 
-Run `python ../tools/gen_icon_mascot.py` from this app directory to export the
-web, Android, and iOS launcher sizes. The generator also writes
-`build/icon_master_preview.png` for inspection.
+The first approved Day Ledger sources remain archived as
+`room-of-days-day-ledger-source-v1.png` and
+`room-of-days-day-ledger-chroma-v1.png`; they are historical inputs, not the
+shipping master.
+
+`tool/export_app_icons.dart` performs the bounded deterministic work: cubic RGB
+resizes, green-dominance alpha extraction and despill, a 92 percent maskable-web
+composition, luminance-weighted monochrome alpha, and a multi-frame Windows
+ICO. `flutter_launcher_icons` then regenerates the Android and iOS matrices with
+an 8 percent adaptive inset. Every source and derivative hash is recorded in
+`room-of-days-icon-manifest-v1.json`.
+
+From the app root, regenerate and verify with:
+
+```powershell
+dart run tool/export_app_icons.dart --app-root . --master design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-source-v2.png --adaptive-chroma design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-chroma-v2.png
+dart run flutter_launcher_icons
+dart run tool/export_app_icons.dart --app-root . --master design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-source-v2.png --adaptive-chroma design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-chroma-v2.png
+dart run tool/build_shipping_icon_review.dart --app-root . --output-dir design/icon-exploration/2026-08-19/selected
+```
+
+The second deterministic export refreshes the manifest after native generation.
+The former isometric room-and-sun source remains archived at
+`design/source-assets/runtime-originals/assets/brand/room-of-days-icon-source-v2.png`;
+it is no longer the shipping launcher identity.
 
 ## The Woven Dawn
 

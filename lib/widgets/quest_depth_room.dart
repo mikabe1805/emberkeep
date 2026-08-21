@@ -21,6 +21,9 @@ class QuestDepthRoom extends StatefulWidget {
     required this.scrollPosition,
     required this.flameHue,
     required this.lively,
+    this.igniting = false,
+    this.hearthLit = true,
+    this.reduceMotion = false,
   });
 
   static const baseAsset = 'assets/rooms/quest-depth-base-v2.webp';
@@ -42,6 +45,9 @@ class QuestDepthRoom extends StatefulWidget {
   final ValueListenable<double> scrollPosition;
   final Color flameHue;
   final bool lively;
+  final bool igniting;
+  final bool hearthLit;
+  final bool reduceMotion;
 
   @override
   State<QuestDepthRoom> createState() => _QuestDepthRoomState();
@@ -73,6 +79,9 @@ class _QuestDepthRoomState extends State<QuestDepthRoom> {
             hue: widget.flameHue,
             lively: widget.lively,
             scrollPosition: widget.scrollPosition,
+            igniting: widget.igniting,
+            hearthLit: widget.hearthLit,
+            reduceMotion: widget.reduceMotion,
           ),
           builder: (context, fire) {
             final tilt = widget.lively ? widget.parallax.value : Offset.zero;
@@ -191,23 +200,35 @@ class _QuestLivingFire extends StatefulWidget {
     required this.hue,
     required this.lively,
     required this.scrollPosition,
+    required this.igniting,
+    required this.hearthLit,
+    required this.reduceMotion,
   });
 
   final Color hue;
   final bool lively;
   final ValueListenable<double> scrollPosition;
+  final bool igniting;
+  final bool hearthLit;
+  final bool reduceMotion;
 
   @override
   State<_QuestLivingFire> createState() => _QuestLivingFireState();
 }
 
 class _QuestLivingFireState extends State<_QuestLivingFire>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   AnimationController? _life;
   Timer? _webTimer;
   var _webFrame = 0;
   var _tickerModeEnabled = true;
   final ValueNotifier<double> _paintPhase = ValueNotifier(0);
+  late final AnimationController _ignition = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 780),
+  );
+  var _ignitionActive = false;
+  late bool _settledLit = widget.hearthLit;
   static const _nativePaintFramesPerLoop = 9 * 20;
   static const _webPaintFramesPerLoop = 9 * 8;
 
@@ -221,6 +242,14 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
       )..addListener(_publishFireFrame);
     }
     widget.scrollPosition.addListener(_syncLife);
+    _ignition.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() {
+          _ignitionActive = false;
+          _settledLit = true;
+        });
+      }
+    });
     _syncLife();
   }
 
@@ -258,6 +287,23 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
       widget.scrollPosition.addListener(_syncLife);
     }
     if (widget.lively != oldWidget.lively) _syncLife();
+    if (!widget.hearthLit && oldWidget.hearthLit) {
+      _ignition.stop();
+      setState(() {
+        _ignitionActive = false;
+        _settledLit = false;
+      });
+    } else if (widget.hearthLit && !oldWidget.hearthLit) {
+      if (widget.reduceMotion || !widget.igniting) {
+        setState(() {
+          _ignition.value = 1;
+          _settledLit = true;
+        });
+      } else {
+        setState(() => _ignitionActive = true);
+        _ignition.forward(from: 0);
+      }
+    }
   }
 
   void _syncLife() {
@@ -300,6 +346,7 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
     _webTimer?.cancel();
     _life?.removeListener(_publishFireFrame);
     _life?.dispose();
+    _ignition.dispose();
     _paintPhase.dispose();
     super.dispose();
   }
@@ -309,9 +356,14 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
     return IgnorePointer(
       child: RepaintBoundary(
         child: AnimatedBuilder(
-          animation: _paintPhase,
+          animation: Listenable.merge([_paintPhase, _ignition]),
           builder: (context, _) {
             final t = widget.lively ? _paintPhase.value : 0.0;
+            final ignition = !_settledLit && !_ignitionActive
+                ? 0.0
+                : _ignitionActive
+                ? Curves.easeOutCubic.transform(_ignition.value)
+                : 1.0;
             final frame = hearthFireFrameAt(t);
             final sway = sin(t * pi * 8) * 1.7 + sin(t * pi * 14 + 0.8) * 0.7;
             final lift = sin(t * pi * 12 + 0.35) * 0.9;
@@ -320,9 +372,17 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
             return Stack(
               fit: StackFit.expand,
               children: [
-                CustomPaint(
-                  key: const ValueKey('quest-depth-fire'),
-                  painter: _QuestFirePainter(t: t, hue: widget.hue),
+                Opacity(
+                  key: const ValueKey('quest-fire-ignition'),
+                  opacity: ignition,
+                  child: CustomPaint(
+                    key: const ValueKey('quest-depth-fire'),
+                    painter: _QuestFirePainter(
+                      t: t,
+                      hue: widget.hue,
+                      ignition: ignition,
+                    ),
+                  ),
                 ),
                 FittedBox(
                   fit: BoxFit.cover,
@@ -339,23 +399,27 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
                           height: 300,
                           child: Transform.scale(
                             alignment: Alignment.bottomCenter,
-                            scaleX: 1 / breathe,
-                            scaleY: breathe,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                RecoloredHearthFireFrame(
-                                  asset:
-                                      QuestDepthRoom.fireAssets[frame.current],
-                                  hue: widget.hue,
-                                  opacity: 1 - frame.blend,
-                                ),
-                                RecoloredHearthFireFrame(
-                                  asset: QuestDepthRoom.fireAssets[frame.next],
-                                  hue: widget.hue,
-                                  opacity: frame.blend,
-                                ),
-                              ],
+                            scaleX: (1 / breathe) * (0.72 + ignition * 0.28),
+                            scaleY: breathe * (0.12 + ignition * 0.88),
+                            child: Opacity(
+                              opacity: ignition,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  RecoloredHearthFireFrame(
+                                    asset: QuestDepthRoom
+                                        .fireAssets[frame.current],
+                                    hue: widget.hue,
+                                    opacity: 1 - frame.blend,
+                                  ),
+                                  RecoloredHearthFireFrame(
+                                    asset:
+                                        QuestDepthRoom.fireAssets[frame.next],
+                                    hue: widget.hue,
+                                    opacity: frame.blend,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -373,10 +437,15 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
 }
 
 class _QuestFirePainter extends CustomPainter {
-  const _QuestFirePainter({required this.t, required this.hue});
+  const _QuestFirePainter({
+    required this.t,
+    required this.hue,
+    required this.ignition,
+  });
 
   final double t;
   final Color hue;
+  final double ignition;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -395,8 +464,8 @@ class _QuestFirePainter extends CustomPainter {
         ..blendMode = BlendMode.plus
         ..shader = RadialGradient(
           colors: [
-            hue.withValues(alpha: 0.070 * breath),
-            hue.withValues(alpha: 0.026 * breath),
+            hue.withValues(alpha: 0.070 * breath * ignition),
+            hue.withValues(alpha: 0.026 * breath * ignition),
             hue.withValues(alpha: 0),
           ],
           stops: const [0, 0.45, 1],
@@ -418,8 +487,8 @@ class _QuestFirePainter extends CustomPainter {
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
           colors: [
-            hue.withValues(alpha: 0.040 * breath),
-            hue.withValues(alpha: 0.011 * breath),
+            hue.withValues(alpha: 0.040 * breath * ignition),
+            hue.withValues(alpha: 0.011 * breath * ignition),
             hue.withValues(alpha: 0),
           ],
         ).createShader(Rect.fromLTWH(fuel.dx, fuel.dy, w - fuel.dx, h)),
@@ -428,7 +497,7 @@ class _QuestFirePainter extends CustomPainter {
     for (var i = 0; i < 3; i++) {
       final cycle = (t * (0.64 + i * 0.06) + i * 0.31) % 1.0;
       final rise = Curves.easeOutCubic.transform(cycle);
-      final alpha = sin(cycle * pi).abs() * (i.isEven ? 0.34 : 0.22);
+      final alpha = sin(cycle * pi).abs() * (i.isEven ? 0.34 : 0.22) * ignition;
       final point = Offset(
         fuel.dx + sin(cycle * pi * 2 + i * 1.6) * w * 0.008,
         fuel.dy - h * (0.08 + rise * (0.11 + i * 0.006)),
@@ -449,5 +518,7 @@ class _QuestFirePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_QuestFirePainter oldDelegate) =>
-      oldDelegate.t != t || oldDelegate.hue != hue;
+      oldDelegate.t != t ||
+      oldDelegate.hue != hue ||
+      oldDelegate.ignition != ignition;
 }

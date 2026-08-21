@@ -263,12 +263,10 @@ bool _sharedCore(String relative) {
       relative == 'assets/assets/rooms/wall_walnut-clean-v2.webp') {
     return true;
   }
-  return const {
-    'assets/assets/sfx/tick.wav',
-    'assets/assets/sfx/tick_warm.wav',
-    'assets/assets/sfx/tick_lift.wav',
-    'assets/assets/sfx/complete.wav',
-  }.contains(relative);
+  if (relative.startsWith('assets/assets/sfx/room/ordinary/')) return true;
+  if (relative.startsWith('assets/assets/sfx/room/paired_return/')) return true;
+  return relative ==
+      'assets/assets/sfx/room/completion/completion-composite.wav';
 }
 
 bool _cacheable(String relative) {

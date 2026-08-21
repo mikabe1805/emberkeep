@@ -48,17 +48,27 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     super.dispose();
   }
 
-  void _next() {
-    Sfx.instance.play('tick');
-    Haptics.tap();
+  void _next({bool alreadyAcknowledged = false}) {
+    if (!alreadyAcknowledged) {
+      Sfx.instance.playMaterial(MaterialSound.wood);
+      Haptics.tap();
+    }
     setState(() => _step++);
   }
 
-  void _finish({required bool forge, bool openGuide = false}) {
+  void _finish({
+    required bool forge,
+    bool openGuide = false,
+    bool alreadyAcknowledged = false,
+  }) {
     widget.state.setPlayerName(_name.text);
     widget.state.onboarded = true;
     widget.state.timeShape = _shape.name;
-    Sfx.instance.play('streak');
+    if (alreadyAcknowledged) {
+      Sfx.instance.playAfterContact('streak');
+    } else {
+      Sfx.instance.play('streak');
+    }
     Haptics.success();
     widget.onFinish(
       forgeFirstGoal: forge,
@@ -69,7 +79,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   void _back() {
     if (_step == 0) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.wood);
     Haptics.tap();
     setState(() => _step--);
   }
@@ -272,7 +282,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ),
         ),
         SizedBox(height: short ? 9 : (compact ? 14 : 28)),
-        _Cta(label: 'ENTER ROOM OF DAYS', onTap: _next),
+        _Cta(
+          label: 'ENTER ROOM OF DAYS',
+          onTap: () => _next(alreadyAcknowledged: true),
+        ),
       ],
     );
   }
@@ -349,7 +362,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         ),
         SizedBox(height: short ? 7 : (compact ? 12 : 28)),
         Center(
-          child: _Cta(label: 'CONTINUE', onTap: _next),
+          child: _Cta(
+            label: 'CONTINUE',
+            onTap: () => _next(alreadyAcknowledged: true),
+          ),
         ),
         SizedBox(height: short ? 0 : (compact ? 2 : 8)),
         Center(
@@ -415,7 +431,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
         ),
         SizedBox(height: compact ? 12 : 28),
         Center(
-          child: _Cta(label: 'CONTINUE', onTap: _next),
+          child: _Cta(
+            label: 'CONTINUE',
+            onTap: () => _next(alreadyAcknowledged: true),
+          ),
         ),
       ],
     );
@@ -469,7 +488,10 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           ),
         ),
         SizedBox(height: compact ? 10 : 22),
-        _Cta(label: 'OPEN TODAY’S QUESTS', onTap: () => _finish(forge: false)),
+        _Cta(
+          label: 'OPEN TODAY’S QUESTS',
+          onTap: () => _finish(forge: false, alreadyAcknowledged: true),
+        ),
         SizedBox(height: compact ? 3 : 10),
         Wrap(
           alignment: WrapAlignment.center,

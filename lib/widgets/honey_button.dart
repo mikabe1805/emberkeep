@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
+import '../audio.dart';
 import '../tokens.dart';
 import 'facets.dart';
 import 'gold_surface.dart';
@@ -85,6 +86,7 @@ class HoneyButton extends StatelessWidget {
       opacity: enabled ? 1.0 : 0.45,
       child: Pressable(
         enabled: enabled,
+        material: MaterialSound.brass,
         semanticLabel: label,
         onTapUp: enabled ? (_) => onTap() : null,
         shape: shape,

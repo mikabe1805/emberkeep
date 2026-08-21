@@ -242,7 +242,7 @@ class _RewardReceiptState extends State<RewardReceipt>
     _c.stop();
     setState(() => _heldForSheet = true);
     s.markEvidenceSeen([card.title]);
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.brass);
     Haptics.tap();
     showModalBottomSheet<void>(
       context: context,
@@ -527,6 +527,7 @@ class _RewardReceiptState extends State<RewardReceipt>
                 : 'Keep one line about this quest in Journal',
             child: Pressable(
               enabled: !_reflectionSaved,
+              material: MaterialSound.parchment,
               pressDepth: 2,
               edgeColor: Colors.transparent,
               semanticLabel: _reflectionSaved

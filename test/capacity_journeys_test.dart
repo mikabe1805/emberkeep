@@ -378,14 +378,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text(planTomorrowEmber), findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('PLAN'),
-      240,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -120));
+    final plan = find.text('PLAN');
+    await tester.ensureVisible(plan);
     await tester.pump(const Duration(milliseconds: 150));
-    await tester.tap(find.text('PLAN'));
+    await tester.tap(plan);
     await tester.pump(const Duration(milliseconds: 450));
     expect(find.text('Shape tomorrow'), findsOneWidget);
 

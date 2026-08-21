@@ -1,0 +1,417 @@
+{
+  "format": "sonic-system/v1",
+  "product": {
+    "name": "Room of Days",
+    "promise": "A warm, physical room answers ordinary movement with restrained clasps; the rare Paired Return is an earned detail rather than everyday noise.",
+    "owner_quotes": [
+      "i like when there's a rhythm and it feels melodic.",
+      "sounds really great but can you make the clicking melodic variations sound better overall when clicking around?"
+    ]
+  },
+  "world": {
+    "sensory_words": [
+      "close",
+      "warm",
+      "weighty",
+      "playful",
+      "restrained"
+    ],
+    "avoid": [
+      "random independent note choice",
+      "an endless rising scale",
+      "a notification jingle on every tap",
+      "brittle sparkle, audible room tail, or synthetic sine purity",
+      "letting the approved return escape its rarity gate"
+    ],
+    "shared_dna": {
+      "transient": "The approved v3 X contact and 8.5 ms clasp remain the audible causal event.",
+      "body": "All ordinary events use the complete v3 X core selected from its five-take family.",
+      "harmonic_field": "Phone-approved bounded D-major-pentatonic D5/A5/E5/D5 after an active stable-screen eligibility gate; ordinary X has no pitch token.",
+      "texture": "The filtered v3 micro-grain and inharmonic body remain unchanged; v4's short modal stem is only the rare signature layer.",
+      "space": "Ordinary cues are centered and dry, parked inside their short masters with no room bus.",
+      "dynamics": "Everyday X uses approved source level; a sub-180 ms rapid run follows 1.0/0.93/0.93/0.885 and clears the motif."
+    }
+  },
+  "mix": {
+    "priority_order": [
+      "outcome",
+      "placement",
+      "navigation",
+      "contact"
+    ],
+    "priority_map": {
+      "contact": 1,
+      "navigation": 2,
+      "placement": 2,
+      "outcome": 3
+    },
+    "voice_cap": 2,
+    "rapid_policy": "The active stable-screen eligibility clock advances only at 180\u2013700 ms and clears on a screen change. Any interval below 180 ms aborts the rare motif; the armed D5-through-rapid burst uses 1.0, 0.93, 0.93, 0.885, and 0.885 gains and later eligible events stay plain without catch-up.",
+    "ducking_policy": "Completion clears the rare phrase immediately; a newer ordinary X may steal only an older resonance tail, never its own X core.",
+    "silence_policy": [
+      "Already-selected states",
+      "scrolling or typing",
+      "disabled and busy controls",
+      "cancel or dismiss without a commit"
+    ],
+    "compound_outcome_rule": "An action emits one X cue or the atomic locked completion plan, never both independently.",
+    "voice_stealing_rule": "At the two-voice cap, completion has priority and drops rare resonance tails first.",
+    "state_dedupe_rule": "State-transition IDs dedupe callbacks independently from the active-screen eligibility clock, screen limit, and global cooldown.",
+    "settings_rule": "Respect sound disabled, native silent behavior, external audio mixing, and reduced-feedback settings before scheduling."
+  },
+  "render_contract": {
+    "version": "room-paired-return-phone-gate-author-2",
+    "shared_sources": {
+      "contact": {
+        "id": "approved-x-complete-gesture-v3",
+        "recipe": "All five byte-copied c-clasp-family X takes from room-c-gesture-v3."
+      },
+      "body": {
+        "id": "approved-x-body-and-clasp-v3",
+        "recipe": "The same complete approved X sources including their body and explicit clasp."
+      },
+      "space": {
+        "id": "room-dry-close-v3",
+        "recipe": "No room bus; the gate uses the already rendered short source masters."
+      },
+      "signature": {
+        "id": "paired-return-approved-v4",
+        "recipe": "Physically approved bounded D5/A5/E5/D5 meaning layers from room-c-melody-v4."
+      }
+    },
+    "variant_axis": "approved v3 global five-take walk; phrase state is shared across controls within one stable screen"
+  },
+  "cues": [
+    {
+      "id": "navigate",
+      "verb": "navigate",
+      "meaning": "A real destination change is accepted.",
+      "representative_actions": [
+        "Switch a tab, page, or calendar period"
+      ],
+      "frequency": "frequent",
+      "priority": 2,
+      "priority_class": "navigation",
+      "timing": "At the accepted visual state change; never for a no-op.",
+      "timing_class": "immediate",
+      "gesture": "One approved v3 X contact/body take, selected by the global no-repeat walk.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "texture",
+        "space"
+      ],
+      "distinctive_traits": [
+        "X navigate weight",
+        "global take position rather than widget-local randomness"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-x-complete-gesture-v3",
+        "body_master_id": "approved-x-body-and-clasp-v3",
+        "space_fingerprint_id": "room-dry-close-v3",
+        "signature_source_id": "paired-return-approved-v4",
+        "layers": [
+          "contact",
+          "body",
+          "signature",
+          "space"
+        ],
+        "pitch_token": "None in everyday use; D5/A5/E5/D5 only in the rare phone-approved motif.",
+        "variant_axis": "approved v3 global five-take walk; phrase state is shared across controls within one stable screen",
+        "derivation": "Everyday use is core-only. The phone-approved Paired Return layer is added only after the active stable-screen rarity gate opens."
+      },
+      "variant_count": 5,
+      "no_immediate_repeat": true,
+      "motion": "The X onset aligns under the finger and the visual state settle.",
+      "haptic": "Existing short selection feedback where already warranted.",
+      "cooldown_ms": 35,
+      "silent_when": [
+        "The value or destination did not change",
+        "The press becomes a scroll",
+        "The control is disabled or busy"
+      ]
+    },
+    {
+      "id": "open",
+      "verb": "open",
+      "meaning": "Ordinary content becomes available to inspect.",
+      "representative_actions": [
+        "Open a journal entry or quiet sheet"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "At the accepted visual state change; never for a no-op.",
+      "timing_class": "immediate",
+      "gesture": "One approved v3 X contact/body take, selected by the global no-repeat walk.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "texture",
+        "space"
+      ],
+      "distinctive_traits": [
+        "X open weight",
+        "global take position rather than widget-local randomness"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-x-complete-gesture-v3",
+        "body_master_id": "approved-x-body-and-clasp-v3",
+        "space_fingerprint_id": "room-dry-close-v3",
+        "signature_source_id": "paired-return-approved-v4",
+        "layers": [
+          "contact",
+          "body",
+          "signature",
+          "space"
+        ],
+        "pitch_token": "None in everyday use; D5/A5/E5/D5 only in the rare phone-approved motif.",
+        "variant_axis": "approved v3 global five-take walk; phrase state is shared across controls within one stable screen",
+        "derivation": "Everyday use is core-only. The phone-approved Paired Return layer is added only after the active stable-screen rarity gate opens."
+      },
+      "variant_count": 5,
+      "no_immediate_repeat": true,
+      "motion": "The X onset aligns under the finger and the visual state settle.",
+      "haptic": "Existing short selection feedback where already warranted.",
+      "cooldown_ms": 35,
+      "silent_when": [
+        "The value or destination did not change",
+        "The press becomes a scroll",
+        "The control is disabled or busy"
+      ]
+    },
+    {
+      "id": "select",
+      "verb": "select",
+      "meaning": "A small choice seats into a changed state.",
+      "representative_actions": [
+        "Choose a date, filter, or toggle"
+      ],
+      "frequency": "frequent",
+      "priority": 1,
+      "priority_class": "contact",
+      "timing": "At the accepted visual state change; never for a no-op.",
+      "timing_class": "immediate",
+      "gesture": "One approved v3 X contact/body take, selected by the global no-repeat walk.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "texture",
+        "space"
+      ],
+      "distinctive_traits": [
+        "X select weight",
+        "global take position rather than widget-local randomness"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-x-complete-gesture-v3",
+        "body_master_id": "approved-x-body-and-clasp-v3",
+        "space_fingerprint_id": "room-dry-close-v3",
+        "signature_source_id": "paired-return-approved-v4",
+        "layers": [
+          "contact",
+          "body",
+          "signature",
+          "space"
+        ],
+        "pitch_token": "None in everyday use; D5/A5/E5/D5 only in the rare phone-approved motif.",
+        "variant_axis": "approved v3 global five-take walk; phrase state is shared across controls within one stable screen",
+        "derivation": "Everyday use is core-only. The phone-approved Paired Return layer is added only after the active stable-screen rarity gate opens."
+      },
+      "variant_count": 5,
+      "no_immediate_repeat": true,
+      "motion": "The X onset aligns under the finger and the visual state settle.",
+      "haptic": "Existing short selection feedback where already warranted.",
+      "cooldown_ms": 35,
+      "silent_when": [
+        "The value or destination did not change",
+        "The press becomes a scroll",
+        "The control is disabled or busy"
+      ]
+    },
+    {
+      "id": "place",
+      "verb": "place",
+      "meaning": "Useful work is put where it belongs.",
+      "representative_actions": [
+        "Save, add, schedule, or pin an item"
+      ],
+      "frequency": "occasional",
+      "priority": 2,
+      "priority_class": "placement",
+      "timing": "At the accepted visual state change; never for a no-op.",
+      "timing_class": "confirmed_outcome",
+      "gesture": "One approved v3 X contact/body take, selected by the global no-repeat walk.",
+      "shared_traits": [
+        "transient",
+        "body",
+        "harmonic_field",
+        "texture",
+        "space"
+      ],
+      "distinctive_traits": [
+        "X place weight",
+        "global take position rather than widget-local randomness"
+      ],
+      "layer_plan": {
+        "contact_master_id": "approved-x-complete-gesture-v3",
+        "body_master_id": "approved-x-body-and-clasp-v3",
+        "space_fingerprint_id": "room-dry-close-v3",
+        "signature_source_id": "paired-return-approved-v4",
+        "layers": [
+          "contact",
+          "body",
+          "signature",
+          "space"
+        ],
+        "pitch_token": "None in everyday use; D5/A5/E5/D5 only in the rare phone-approved motif.",
+        "variant_axis": "approved v3 global five-take walk; phrase state is shared across controls within one stable screen",
+        "derivation": "Everyday use is core-only. The phone-approved Paired Return layer is added only after the active stable-screen rarity gate opens."
+      },
+      "variant_count": 5,
+      "no_immediate_repeat": true,
+      "motion": "The X onset aligns under the finger and the visual state settle.",
+      "haptic": "Existing short selection feedback where already warranted.",
+      "cooldown_ms": 35,
+      "silent_when": [
+        "The value or destination did not change",
+        "The press becomes a scroll",
+        "The control is disabled or busy"
+      ]
+    },
+    {
+      "id": "complete",
+      "verb": "complete",
+      "meaning": "A quest or routine was genuinely finished.",
+      "representative_actions": [
+        "Complete a quest",
+        "Finish a routine"
+      ],
+      "frequency": "occasional",
+      "priority": 3,
+      "priority_class": "outcome",
+      "timing": "Accepted Select take 2 followed by the Answered Detent exactly 75 ms later, rendered atomically.",
+      "timing_class": "atomic_composed_outcome",
+      "gesture": "The locked earned contact-to-answer composite.",
+      "shared_traits": [
+        "harmonic_field",
+        "dynamics",
+        "body"
+      ],
+      "distinctive_traits": [
+        "locked earned outcome",
+        "clears rare phrase state"
+      ],
+      "layer_plan": {
+        "contact_master_id": "locked-accepted-select-2-v3",
+        "body_master_id": "locked-answered-detent-v1",
+        "space_fingerprint_id": "locked-answered-detent-space-v1",
+        "signature_source_id": "locked-answered-detent-composite-v1",
+        "layers": [
+          "locked_contact",
+          "locked_body",
+          "locked_signature",
+          "locked_space"
+        ],
+        "pitch_token": "Locked inside the canonical atomic composite; the rare phrase cannot alter it.",
+        "variant_axis": "approved v3 global five-take walk; phrase state is shared across controls within one stable screen",
+        "derivation": "The canonical 430 ms answered-detent natural composite is copied without re-rendering before scheduling."
+      },
+      "variant_count": 1,
+      "no_immediate_repeat": false,
+      "motion": "The accepted catch and answer form one earned receipt.",
+      "haptic": "One success haptic synchronized to the accepted catch.",
+      "cooldown_ms": 180,
+      "silent_when": [
+        "Completion is unconfirmed",
+        "The event was already acknowledged"
+      ]
+    }
+  ],
+  "auditions": [
+    {
+      "id": "paired-return-regression-phone-gate",
+      "context": "Three deterministic phone reels: discovery/cooldown, armed rapid abort, and atomic completion interruption.",
+      "sequence": [
+        "navigate",
+        "open",
+        "select",
+        "place",
+        "complete"
+      ],
+      "question": "On an iPhone built-in speaker, does the selected motif stay rare, abort cleanly, and never compete with completion?"
+    },
+    {
+      "id": "historical-v4-phrase-comparison",
+      "context": "Historical evidence only: the prior room-c-melody-v4 randomized phrase A/B that selected the Paired Return contour for this exploratory regression target.",
+      "sequence": [
+        "navigate",
+        "open",
+        "select",
+        "select",
+        "place",
+        "navigate",
+        "open",
+        "select",
+        "complete"
+      ],
+      "question": "Historical question: which same-level phrase contour made clicking around feel melodic without becoming a jingle? This gate does not reopen that decision.",
+      "comparison": {
+        "control": "../room-c-melody-v4/candidates/gentle-arc/flow.wav",
+        "candidate": "../room-c-melody-v4/candidates/paired-return/flow.wav",
+        "timings_ms": [
+          300,
+          1050,
+          1720,
+          2180,
+          2920,
+          3750,
+          4550,
+          5300,
+          5375
+        ],
+        "order": "Historical randomized A/B per browser session; identities were hidden until final verdict.",
+        "natural_mix": true,
+        "level_control": {
+          "control": "../room-c-melody-v4/candidates/gentle-arc/flow.wav",
+          "candidate": "../room-c-melody-v4/candidates/paired-return/flow.wav"
+        },
+        "verdicts": [
+          "paired-return",
+          "gentle-arc",
+          "both",
+          "neither"
+        ]
+      }
+    }
+  ],
+  "provenance": {
+    "policy": "Only deterministic project-authored synthesis and physically approved project masters are copied; unused v4 notes and audition reels remain excluded from production.",
+    "records": [
+      {
+        "id": "approved-x-v3",
+        "status": "physical mechanism approved",
+        "note": "All five source takes are byte-copied and exercised through the approved global walk."
+      },
+      {
+        "id": "paired-return-v4",
+        "status": "physically approved bounded rare easter egg",
+        "note": "D5/A5/E5/D5 passed the corrected iPhone 17 behavioral gate; the longer v4 phrase remains excluded."
+      },
+      {
+        "id": "answered-detent-atomic-v1",
+        "status": "completion approved",
+        "note": "Canonical composites/answered-detent/natural.wav is copied byte-for-byte before scheduling."
+      }
+    ]
+  },
+  "approval": {
+    "technical": "pass",
+    "semantic": "pass",
+    "cohesion": "pass",
+    "physical_device": "pass"
+  }
+}

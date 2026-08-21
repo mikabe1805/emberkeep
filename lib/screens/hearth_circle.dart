@@ -272,7 +272,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
   }
 
   Future<void> _chooseSpark(String code) async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     final kind = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -285,7 +285,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
   }
 
   Future<void> _sendSpark(String code, String kind) async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.brass);
     final sender = widget.sparkSender;
     if (sender == null && !await CloudSync.instance.ensureSocialSession()) {
       if (mounted) _toast('Couldn’t connect your note right now.');
@@ -337,7 +337,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
   }
 
   void _openSessionPicker() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -1395,7 +1395,7 @@ class _SheetChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: () {
-      Sfx.instance.play('tick');
+      Sfx.instance.playMaterial(MaterialSound.wood);
       HapticFeedback.selectionClick();
       onTap();
     },

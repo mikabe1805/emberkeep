@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.3+21
+version: 1.0.4+25
 
 environment:
   sdk: ^3.12.2
@@ -80,9 +80,9 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
 
-# App launcher icons — the Room of Days sunroom mark, exported from the
-# archived source by `../tools/gen_icon_mascot.py`. The legacy package and
-# bundle identifiers intentionally remain unchanged.
+# App launcher icons — the owner-approved Room of Days Day Ledger, exported by
+# `tool/export_app_icons.dart` and `flutter_launcher_icons`. The legacy package
+# and bundle identifiers intentionally remain unchanged.
 flutter_launcher_icons:
   ios: true
   android: true
@@ -90,9 +90,9 @@ flutter_launcher_icons:
   background_color_ios: "#191210"
   image_path: "web/icons/Icon-1024.png"
   adaptive_icon_background: "#170D0A"
-  adaptive_icon_foreground: "web/icons/Icon-1024.png"
-  adaptive_icon_monochrome: "assets/brand/room-of-days-monochrome-v1.png"
-  adaptive_icon_foreground_inset: 12
+  adaptive_icon_foreground: "assets/brand/room-of-days-adaptive-foreground-v1.png"
+  adaptive_icon_monochrome: "assets/brand/room-of-days-monochrome-v2.png"
+  adaptive_icon_foreground_inset: 8
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -112,6 +112,23 @@ flutter:
 
   assets:
     - assets/sfx/
+    - assets/sfx/room/ordinary/open/
+    - assets/sfx/room/ordinary/select/
+    - assets/sfx/room/ordinary/navigate/
+    - assets/sfx/room/ordinary/place/
+    - assets/sfx/room/paired_return/d5/open/
+    - assets/sfx/room/paired_return/d5/select/
+    - assets/sfx/room/paired_return/d5/navigate/
+    - assets/sfx/room/paired_return/d5/place/
+    - assets/sfx/room/paired_return/a5/open/
+    - assets/sfx/room/paired_return/a5/select/
+    - assets/sfx/room/paired_return/a5/navigate/
+    - assets/sfx/room/paired_return/a5/place/
+    - assets/sfx/room/paired_return/e5/open/
+    - assets/sfx/room/paired_return/e5/select/
+    - assets/sfx/room/paired_return/e5/navigate/
+    - assets/sfx/room/paired_return/e5/place/
+    - assets/sfx/room/completion/
     - assets/google_fonts/
     - assets/room/
     # painted room plates, one per wall style (see ROOM-PLATES.md). Optional:

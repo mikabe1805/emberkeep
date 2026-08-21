@@ -1,4 +1,6 @@
 import 'package:emberkeep/models.dart';
+import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/content/quest_companion_copy.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/quest_card.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +9,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 void main() {
   setUpAll(() => GoogleFonts.config.allowRuntimeFetching = false);
+
+  setUp(() => Clock.freeze(DateTime(2026, 8, 19, 14)));
+  tearDown(Clock.reset);
 
   testWidgets('only the featured quest ring follows live light', (
     tester,
@@ -135,4 +140,149 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'featured Quest shows a muted generated companion when eligible',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 290,
+                child: QuestCard(
+                  quest: Quest(
+                    title: 'Clear one surface',
+                    stat: Stat.dis,
+                    difficulty: 2,
+                  ),
+                  done: false,
+                  featured: true,
+                  xpPreview: 10,
+                  onComplete: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final q = Quest(
+        title: 'Clear one surface',
+        stat: Stat.dis,
+        difficulty: 2,
+      );
+      expect(
+        find.text(questCompanionCopy(quest: q, day: Clock.now())!),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'featured Quest keeps a keeper note above generated companion copy',
+    (tester) async {
+      final now = Clock.now();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 290,
+                child: QuestCard(
+                  quest: Quest(
+                    title: 'Clear one surface',
+                    stat: Stat.dis,
+                    difficulty: 2,
+                    log: [Note(at: now, text: 'Start with the desk')],
+                  ),
+                  done: false,
+                  featured: true,
+                  xpPreview: 10,
+                  onComplete: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.textContaining('Start with the desk'), findsOneWidget);
+      expect(find.text('One corner is enough to begin.'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'overdue Quest names its factual open day without a narrow overflow',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 568));
+      addTearDown(() {
+        tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Padding(
+              padding: const EdgeInsets.all(16),
+              child: QuestCard(
+                quest: Quest(
+                  title: 'Clear the desk',
+                  stat: Stat.foc,
+                  difficulty: 5,
+                  schedule: QuestSchedule.once,
+                  dueDate: DateTime(2026, 8, 17),
+                ),
+                done: false,
+                featured: true,
+                xpPreview: 41,
+                onComplete: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('OPEN SINCE MON'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('a carried weekly Quest uses neutral open language', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 320,
+              child: QuestCard(
+                quest: Quest(
+                  title: 'Call home',
+                  stat: Stat.soc,
+                  difficulty: 2,
+                  schedule: QuestSchedule.weekly,
+                  weekdays: const [DateTime.monday],
+                ),
+                done: false,
+                featured: true,
+                xpPreview: 10,
+                onComplete: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('OPEN THIS WEEK'), findsOneWidget);
+    expect(find.text('STILL THIS WEEK'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }

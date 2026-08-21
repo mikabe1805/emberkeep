@@ -86,6 +86,8 @@ final _goalCategories = <_GoalCategory>[
   ),
 ];
 
+String _questTitleKey(String title) => title.trim().toLowerCase();
+
 /// "Take on quests!" — goal discovery. Every routine quest belongs to a
 /// goal (the why stays attached, round-7): begin your own via the Oath
 /// Wizard, or adopt a curated goal whole. One-time plans live on the
@@ -95,7 +97,7 @@ class GoalsPage extends StatelessWidget {
     super.key,
     required this.state,
     required this.onAdd,
-    required this.activeTitles,
+    required this.onRemoveQuest,
     required this.onRemoveGoal,
     required this.onPersist,
     required this.quests,
@@ -109,8 +111,8 @@ class GoalsPage extends StatelessWidget {
   /// Returns false when a same-titled quest is already on the list.
   final bool Function(Quest quest) onAdd;
 
-  /// Titles already on the quest list (disables duplicate take-ons).
-  final Set<String> activeTitles;
+  /// Takes one live quest back off the board without removing its goal.
+  final void Function(Quest quest) onRemoveQuest;
 
   /// Abandons a goal and clears its linked quests.
   final void Function(Goal goal) onRemoveGoal;
@@ -127,7 +129,7 @@ class GoalsPage extends StatelessWidget {
   final ValueListenable<Offset>? lightDirection;
 
   void _openWizard(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.brass);
     HapticFeedback.selectionClick();
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -264,6 +266,9 @@ class GoalsPage extends StatelessWidget {
       'Every goalCatalog entry must be listed in a _GoalCategory (goals.dart). '
       'Unmapped goal(s): ${goalCatalog.where((g) => !_goalCategories.any((c) => c.goalTitles.contains(g.title))).map((g) => g.title).toList()}',
     );
+    final activeQuests = <String, Quest>{
+      for (final quest in quests) _questTitleKey(quest.title): quest,
+    };
     final widgets = <Widget>[];
     for (final cat in _goalCategories) {
       final ideas = [
@@ -285,9 +290,12 @@ class GoalsPage extends StatelessWidget {
         final idea = ideas[i];
         widgets.add(
           _GoalCard(
+            key: ValueKey<String>('goal-catalog-${_questTitleKey(idea.title)}'),
             idea: idea,
             onAdd: onAdd,
-            activeTitles: activeTitles,
+            activeQuests: activeQuests,
+            onRemoveQuest: onRemoveQuest,
+            onPersist: onPersist,
             onAdopt: () => _adoptGoal(context, idea),
             adopted: state.goals.any((g) => g.title == idea.title),
           ),
@@ -316,7 +324,7 @@ class _ReadyMadePathsDisclosureState extends State<_ReadyMadePathsDisclosure> {
   var _expanded = false;
 
   void _toggle() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     HapticFeedback.selectionClick();
     setState(() => _expanded = !_expanded);
   }
@@ -419,7 +427,7 @@ class _MomentumKitsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void open() {
-      Sfx.instance.play('tick');
+      Sfx.instance.playMaterial(MaterialSound.parchment);
       HapticFeedback.selectionClick();
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -527,18 +535,21 @@ class _CategoryHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title line: medallion · ALL-CAPS label · honey-to-nothing rule.
-          // The hairline is the sole flexible child, so it always runs to the
-          // edge (and the label, being inflexible, is never truncated).
+          // Both the label and rule can yield space so enlarged text wraps
+          // cleanly instead of pushing past a narrow phone viewport.
           Row(
             children: [
               medallion,
               const SizedBox(width: 10),
-              Text(
-                label,
-                style: Type.label.copyWith(
-                  fontSize: 11,
-                  letterSpacing: 1.6,
-                  color: Palette.textHi,
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    letterSpacing: 1.6,
+                    color: Palette.textHi,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -590,7 +601,7 @@ class _GuidedWorkoutsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.brass);
         HapticFeedback.selectionClick();
         final added = onAdd(workoutLauncherQuest());
         ScaffoldMessenger.of(context).showSnackBar(
@@ -675,7 +686,7 @@ class _YourGoals extends StatelessWidget {
   };
 
   void _openDetail(BuildContext context, Goal g) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     HapticFeedback.selectionClick();
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -692,7 +703,7 @@ class _YourGoals extends StatelessWidget {
   }
 
   void _confirmAbandon(BuildContext context, Goal g) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     HapticFeedback.selectionClick();
     var armed = false;
     showDialog(
@@ -756,7 +767,7 @@ class _YourGoals extends StatelessWidget {
                       child: GestureDetector(
                         onTap: () {
                           if (!armed) {
-                            Sfx.instance.play('tick');
+                            Sfx.instance.playMaterial(MaterialSound.brass);
                             setDialog(() => armed = true);
                             return;
                           }
@@ -945,16 +956,21 @@ class _YourGoals extends StatelessWidget {
 
 class _GoalCard extends StatefulWidget {
   const _GoalCard({
+    super.key,
     required this.idea,
     required this.onAdd,
-    required this.activeTitles,
+    required this.activeQuests,
+    required this.onRemoveQuest,
+    required this.onPersist,
     required this.onAdopt,
     required this.adopted,
   });
 
   final GoalIdea idea;
   final bool Function(Quest) onAdd;
-  final Set<String> activeTitles;
+  final Map<String, Quest> activeQuests;
+  final void Function(Quest) onRemoveQuest;
+  final VoidCallback onPersist;
   final VoidCallback onAdopt;
   final bool adopted;
 
@@ -974,9 +990,12 @@ class _GoalCardState extends State<_GoalCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           GestureDetector(
+            key: ValueKey<String>(
+              'goal-catalog-toggle-${_questTitleKey(idea.title)}',
+            ),
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              Sfx.instance.play('tick');
+              Sfx.instance.playMaterial(MaterialSound.glass);
               setState(() => _open = !_open);
             },
             child: Row(
@@ -1024,68 +1043,70 @@ class _GoalCardState extends State<_GoalCard> {
               ],
             ),
           ),
-          AnimatedCrossFade(
+          AnimatedSize(
             duration: Motion.settle,
-            sizeCurve: Motion.respond,
-            crossFadeState: _open
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            firstChild: const SizedBox(width: double.infinity),
-            secondChild: Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    idea.blurb,
-                    style: Type.body.copyWith(
-                      fontSize: 13.5,
-                      height: 1.5,
-                      color: Palette.textMid,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  for (final t in idea.quests)
-                    _TemplateRow(
-                      template: t,
-                      taken: widget.activeTitles.contains(t.title),
-                      onAdd: widget.onAdd,
-                    ),
-                  const SizedBox(height: 4),
-                  Center(
-                    child: GestureDetector(
-                      onTap: widget.adopted ? null : widget.onAdopt,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: facetedDecoration(
-                          cut: 8,
-                          gradient: widget.adopted
-                              ? null
-                              : Palette.honeyGradient,
-                          borderColor: widget.adopted
-                              ? Palette.success.withValues(alpha: 0.5)
-                              : Colors.transparent,
-                        ),
-                        child: Text(
-                          widget.adopted
-                              ? 'GOAL UNDERWAY ✓'
-                              : 'ADOPT WHOLE GOAL',
-                          style: Type.label.copyWith(
-                            fontSize: 11,
-                            color: widget.adopted
-                                ? Palette.success
-                                : Palette.onHoney,
+            curve: Motion.respond,
+            alignment: Alignment.topCenter,
+            child: _open
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          idea.blurb,
+                          style: Type.body.copyWith(
+                            fontSize: 13.5,
+                            height: 1.5,
+                            color: Palette.textMid,
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                        for (final t in idea.quests)
+                          _TemplateRow(
+                            template: t,
+                            activeQuest:
+                                widget.activeQuests[_questTitleKey(t.title)],
+                            onAdd: widget.onAdd,
+                            onRemove: widget.onRemoveQuest,
+                            onPersist: widget.onPersist,
+                          ),
+                        const SizedBox(height: 4),
+                        Center(
+                          child: GestureDetector(
+                            onTap: widget.adopted ? null : widget.onAdopt,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: facetedDecoration(
+                                cut: 8,
+                                gradient: widget.adopted
+                                    ? null
+                                    : Palette.honeyGradient,
+                                borderColor: widget.adopted
+                                    ? Palette.success.withValues(alpha: 0.5)
+                                    : Colors.transparent,
+                              ),
+                              child: Text(
+                                widget.adopted
+                                    ? 'GOAL UNDERWAY ✓'
+                                    : 'ADOPT WHOLE GOAL',
+                                style: Type.label.copyWith(
+                                  fontSize: 11,
+                                  color: widget.adopted
+                                      ? Palette.success
+                                      : Palette.onHoney,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-            ),
+                  )
+                : const SizedBox(width: double.infinity),
           ),
         ],
       ),
@@ -1099,7 +1120,7 @@ class _GoalCardState extends State<_GoalCard> {
 void _showQuestWhy(BuildContext context, QuestTemplate t) {
   final why = questWhy[t.title];
   if (why == null) return;
-  Sfx.instance.play('tick');
+  Sfx.instance.playMaterial(MaterialSound.glass);
   HapticFeedback.selectionClick();
   showDialog(
     context: context,
@@ -1163,20 +1184,232 @@ void _showQuestWhy(BuildContext context, QuestTemplate t) {
   );
 }
 
-class _TemplateRow extends StatelessWidget {
+enum _TakenQuestAction { changeDay, takeBack }
+
+class _TemplateRow extends StatefulWidget {
   const _TemplateRow({
     required this.template,
-    required this.taken,
+    required this.activeQuest,
     required this.onAdd,
+    required this.onRemove,
+    required this.onPersist,
   });
 
   final QuestTemplate template;
-  final bool taken;
+  final Quest? activeQuest;
   final bool Function(Quest) onAdd;
+  final void Function(Quest) onRemove;
+  final VoidCallback onPersist;
+
+  @override
+  State<_TemplateRow> createState() => _TemplateRowState();
+}
+
+class _TemplateRowState extends State<_TemplateRow> {
+  Future<_TakenQuestAction?> _showTakenActions(Quest quest) {
+    final t = widget.template;
+    final weekly = quest.schedule == QuestSchedule.weekly;
+    return showModalBottomSheet<_TakenQuestAction>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: GlassPanel(
+            tint: const Color(0xF22A211D),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'ON YOUR QUEST BOARD',
+                  style: Type.label.copyWith(fontSize: 11, color: t.stat.color),
+                ),
+                const SizedBox(height: 5),
+                Text(t.title, style: Type.display.copyWith(fontSize: 19)),
+                const SizedBox(height: 7),
+                Text(
+                  weekly
+                      ? 'Move it to another day without losing its progress, or take it back from your board.'
+                      : 'Take it back from your board now. You can take it on again here whenever you want.',
+                  style: Type.body.copyWith(
+                    fontSize: 13.5,
+                    height: 1.45,
+                    color: Palette.textMid,
+                  ),
+                ),
+                const SizedBox(height: 15),
+                if (weekly) ...[
+                  _QuestManageActionTile(
+                    key: const Key('goal-quest-change-day'),
+                    icon: Icons.calendar_today_outlined,
+                    label: 'CHANGE WEEKLY DAY',
+                    detail: weekdayLabel(quest.weekdays),
+                    accent: t.stat.color,
+                    onTap: () => Navigator.of(
+                      sheetContext,
+                    ).pop(_TakenQuestAction.changeDay),
+                  ),
+                  const SizedBox(height: 9),
+                ],
+                _QuestManageActionTile(
+                  key: const Key('goal-quest-take-back'),
+                  icon: Icons.undo_rounded,
+                  label: 'TAKE BACK',
+                  detail:
+                      'Taking it back removes this quest and its current progress. Undo restores it.',
+                  accent: Palette.textLo,
+                  onTap: () => Navigator.of(
+                    sheetContext,
+                  ).pop(_TakenQuestAction.takeBack),
+                ),
+                const SizedBox(height: 9),
+                Semantics(
+                  button: true,
+                  label: 'Keep ${t.title} on the quest board',
+                  onTap: () => Navigator.of(sheetContext).pop(),
+                  child: GestureDetector(
+                    key: const Key('goal-quest-keep'),
+                    excludeFromSemantics: true,
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => Navigator.of(sheetContext).pop(),
+                    child: Container(
+                      alignment: Alignment.center,
+                      constraints: const BoxConstraints(minHeight: 46),
+                      decoration: facetedDecoration(
+                        cut: 8,
+                        gradient: Palette.honeyGradient,
+                      ),
+                      child: Text(
+                        'KEEP IT',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          color: Palette.onHoney,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _manageTakenQuest(Quest quest) async {
+    Sfx.instance.playMaterial(MaterialSound.glass);
+    HapticFeedback.selectionClick();
+    final action = await _showTakenActions(quest);
+    if (!mounted || action == null) return;
+
+    switch (action) {
+      case _TakenQuestAction.changeDay:
+        final day = await pickWeekday(
+          context,
+          accent: widget.template.stat.color,
+          questTitle: widget.template.title,
+          initial: quest.weekdays.isEmpty ? null : quest.weekdays.first,
+        );
+        if (!mounted || day == null) return;
+        setState(() {
+          quest.weekdays = day == 0 ? <int>[] : <int>[day];
+        });
+        widget.onPersist();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Palette.card,
+            duration: const Duration(milliseconds: 1600),
+            content: Text(
+              '“${widget.template.title}” now lands ${weekdayLabel(quest.weekdays).toLowerCase()}',
+              style: Type.body.copyWith(color: Palette.textHi),
+            ),
+          ),
+        );
+      case _TakenQuestAction.takeBack:
+        final messenger = ScaffoldMessenger.of(context);
+        final restoreQuest = widget.onAdd;
+        widget.onRemove(quest);
+        messenger.showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Palette.card,
+            duration: const Duration(seconds: 4),
+            content: Text(
+              '“${widget.template.title}” taken back',
+              style: Type.body.copyWith(color: Palette.textHi),
+            ),
+            action: SnackBarAction(
+              label: 'UNDO',
+              textColor: Palette.xpLight,
+              onPressed: () => restoreQuest(quest),
+            ),
+          ),
+        );
+    }
+  }
+
+  Future<void> _takeOnQuest() async {
+    final t = widget.template;
+    // Weekly quests ask which day they should land on (the "weekly shot"
+    // feedback) — default-selected to today.
+    Quest quest;
+    if (t.schedule == QuestSchedule.weekly) {
+      final day = await pickWeekday(
+        context,
+        accent: t.stat.color,
+        questTitle: t.title,
+      );
+      if (day == null) return; // dismissed → don't adopt
+      quest = t.build(weekdays: day == 0 ? const [] : [day]);
+    } else {
+      quest = t.build();
+    }
+    // A laddered quest asks where you're starting, the same one-question
+    // posture as the weekly day. Payout moves with the chosen rung (the
+    // night-rise coupling), so a higher start earns like a risen quest.
+    final ladder = quest.ladder;
+    if (ladder != null && ladder.length > 1) {
+      if (!mounted) return;
+      final rung = await pickRung(
+        context,
+        accent: t.stat.color,
+        questTitle: t.title,
+        ladder: ladder,
+        initial: quest.rung,
+      );
+      if (rung == null) return; // dismissed → don't adopt
+      quest.difficulty = (quest.difficulty + (rung - quest.rung)).clamp(1, 10);
+      quest.rung = rung;
+    }
+    if (!mounted) return;
+    final ok = widget.onAdd(quest);
+    if (ok) {
+      Sfx.instance.play('streak');
+      HapticFeedback.selectionClick();
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        duration: const Duration(milliseconds: 1400),
+        content: Text(
+          ok ? '“${t.title}” taken on ⚔️' : 'Already on your quest list',
+          style: Type.body.copyWith(color: Palette.textHi),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final t = template;
+    final t = widget.template;
+    final activeQuest = widget.activeQuest;
+    final taken = activeQuest != null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -1217,7 +1450,13 @@ class _TemplateRow extends StatelessWidget {
                   spacing: 5,
                   runSpacing: 5,
                   children: [
-                    _MiniChip(label: t.schedule.label),
+                    _MiniChip(
+                      label: activeQuest == null
+                          ? t.schedule.label
+                          : activeQuest.schedule == QuestSchedule.weekly
+                          ? weekdayLabel(activeQuest.weekdays).toUpperCase()
+                          : activeQuest.schedule.label,
+                    ),
                     if (t.timerMinutes > 0)
                       _MiniChip(
                         label: '⏱ ${t.timerMinutes}M',
@@ -1238,83 +1477,118 @@ class _TemplateRow extends StatelessWidget {
               ],
             ),
           ),
-          GestureDetector(
-            onTap: taken
-                ? null
-                : () async {
-                    // Weekly quests ask which day they should land on (the
-                    // "weekly shot" feedback) — default-selected to today.
-                    Quest quest;
-                    if (t.schedule == QuestSchedule.weekly) {
-                      final day = await pickWeekday(
-                        context,
-                        accent: t.stat.color,
-                        questTitle: t.title,
-                      );
-                      if (day == null) return; // dismissed → don't adopt
-                      quest = t.build(weekdays: day == 0 ? const [] : [day]);
-                    } else {
-                      quest = t.build();
-                    }
-                    // A laddered quest asks where you're starting, the same
-                    // one-question posture as the weekly day. Payout moves
-                    // with the chosen rung (the night-rise coupling), so a
-                    // higher start earns like a risen quest.
-                    final ladder = quest.ladder;
-                    if (ladder != null && ladder.length > 1) {
-                      if (!context.mounted) return;
-                      final rung = await pickRung(
-                        context,
-                        accent: t.stat.color,
-                        questTitle: t.title,
-                        ladder: ladder,
-                        initial: quest.rung,
-                      );
-                      if (rung == null) return; // dismissed → don't adopt
-                      quest.difficulty =
-                          (quest.difficulty + (rung - quest.rung)).clamp(1, 10);
-                      quest.rung = rung;
-                    }
-                    if (!context.mounted) return;
-                    final ok = onAdd(quest);
-                    if (ok) {
-                      Sfx.instance.play('streak');
-                      HapticFeedback.selectionClick();
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        behavior: SnackBarBehavior.floating,
-                        backgroundColor: Palette.card,
-                        duration: const Duration(milliseconds: 1400),
-                        content: Text(
-                          ok
-                              ? '“${t.title}” taken on ⚔️'
-                              : 'Already on your quest list',
-                          style: Type.body.copyWith(color: Palette.textHi),
-                        ),
-                      ),
-                    );
-                  },
-            child: AnimatedContainer(
-              duration: Motion.quick,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: facetedDecoration(
-                cut: 7,
-                gradient: taken ? null : Palette.honeyGradient,
-                borderColor: taken
-                    ? Palette.success.withValues(alpha: 0.5)
-                    : Colors.transparent,
+          Semantics(
+            button: true,
+            enabled: true,
+            label: taken
+                ? 'Manage ${t.title}, currently taken'
+                : 'Take on ${t.title}',
+            onTap: taken ? () => _manageTakenQuest(activeQuest) : _takeOnQuest,
+            child: GestureDetector(
+              key: ValueKey<String>(
+                'goal-quest-${taken ? 'manage' : 'take'}-${_questTitleKey(t.title)}',
               ),
-              child: Text(
-                taken ? 'TAKEN ✓' : 'TAKE ON',
-                style: Type.label.copyWith(
-                  fontSize: 11,
-                  color: taken ? Palette.success : Palette.onHoney,
+              excludeFromSemantics: true,
+              behavior: HitTestBehavior.opaque,
+              onTap: taken
+                  ? () => _manageTakenQuest(activeQuest)
+                  : _takeOnQuest,
+              child: AnimatedContainer(
+                duration: Motion.quick,
+                alignment: Alignment.center,
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: facetedDecoration(
+                  cut: 7,
+                  gradient: taken ? null : Palette.honeyGradient,
+                  borderColor: taken
+                      ? Palette.success.withValues(alpha: 0.5)
+                      : Colors.transparent,
+                ),
+                child: Text(
+                  taken ? 'TAKEN · EDIT' : 'TAKE ON',
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    color: taken ? Palette.success : Palette.onHoney,
+                  ),
                 ),
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QuestManageActionTile extends StatelessWidget {
+  const _QuestManageActionTile({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.detail,
+    required this.accent,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final String detail;
+  final Color accent;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '$label, $detail',
+      onTap: onTap,
+      child: GestureDetector(
+        excludeFromSemantics: true,
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 54),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+          decoration: facetedDecoration(
+            cut: 9,
+            color: Palette.glassFill,
+            borderColor: accent.withValues(alpha: 0.45),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: accent),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: Type.label.copyWith(fontSize: 11, color: accent),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      detail,
+                      style: Type.body.copyWith(
+                        fontSize: 12.5,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 20,
+                color: Palette.textLo,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

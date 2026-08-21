@@ -68,6 +68,7 @@ class CalendarPage extends StatefulWidget {
     required this.state,
     required this.quests,
     required this.onAdd,
+    this.onCompleteQuest,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
     this.lightDirection,
     this.scheduleRepository,
@@ -82,6 +83,7 @@ class CalendarPage extends StatefulWidget {
   final GameState state;
   final List<Quest> quests;
   final bool Function(Quest) onAdd;
+  final void Function(Quest quest, Offset anchor)? onCompleteQuest;
   final ValueListenable<Offset> parallax;
   final ValueListenable<Offset>? lightDirection;
   final AcademicScheduleRepository? scheduleRepository;
@@ -99,6 +101,8 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   late DateTime _month;
   late DateTime _selected;
+  late CivilDate _threeDayStart;
+  final ScrollController _calendarScroll = ScrollController();
   late final AcademicScheduleRepository _scheduleRepository;
   late final AcademicCalendarPreferences _calendarPreferences;
   late final NotebookHandoff _notebookHandoff;
@@ -107,6 +111,8 @@ class _CalendarPageState extends State<CalendarPage> {
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
   AcademicCalendarMode _academicMode = AcademicCalendarMode.month;
   bool _academicLoading = true;
+  int _viewInteractionRevision = 0;
+  Future<void> _viewSaveTail = Future<void>.value();
 
   @override
   void initState() {
@@ -114,6 +120,7 @@ class _CalendarPageState extends State<CalendarPage> {
     final now = Clock.now();
     _month = DateTime(now.year, now.month);
     _selected = DateTime(now.year, now.month, now.day);
+    _threeDayStart = CivilDate.fromDateTime(_selected);
     _scheduleRepository =
         widget.scheduleRepository ?? LocalAcademicScheduleRepository();
     _calendarPreferences =
@@ -134,6 +141,7 @@ class _CalendarPageState extends State<CalendarPage> {
     final preferences = await preferencesFuture;
     if (!mounted) return;
     DateTime? restoredDate;
+    CivilDate? restoredThreeDayStart;
     if (preferences.selectedDate case final raw?) {
       try {
         final civil = CivilDate.parse(raw);
@@ -142,47 +150,92 @@ class _CalendarPageState extends State<CalendarPage> {
         // A stale view preference never makes academic content unreadable.
       }
     }
+    if (preferences.threeDayStartDate case final raw?) {
+      try {
+        restoredThreeDayStart = CivilDate.parse(raw);
+      } on FormatException {
+        // The selected date remains a safe backwards-compatible anchor.
+      }
+    }
     setState(() {
       _academicSchedule = schedule;
-      _academicMode = preferences.mode;
-      if (restoredDate != null) {
-        _selected = restoredDate;
-        _month = DateTime(restoredDate.year, restoredDate.month);
+      // A person can touch Plans before local preferences finish loading.
+      // That immediate choice is more current than the delayed snapshot.
+      if (_viewInteractionRevision == 0) {
+        _academicMode = preferences.mode;
+        if (restoredDate != null) {
+          _selected = restoredDate;
+          _month = DateTime(restoredDate.year, restoredDate.month);
+          final restoredSelected = CivilDate.fromDateTime(restoredDate);
+          _threeDayStart =
+              restoredThreeDayStart != null &&
+                  restoredSelected.isWithin(
+                    restoredThreeDayStart,
+                    restoredThreeDayStart.addDays(
+                      AcademicCalendarMode.threeDay.spanDays - 1,
+                    ),
+                  )
+              ? restoredThreeDayStart
+              : restoredSelected;
+        }
       }
       _academicLoading = false;
     });
   }
 
   void _persistAcademicView() {
-    unawaited(
-      _calendarPreferences.save(
-        AcademicCalendarViewState(
-          mode: _academicMode,
-          selectedDate: CivilDate.fromDateTime(_selected).toString(),
-        ),
-      ),
+    final snapshot = AcademicCalendarViewState(
+      mode: _academicMode,
+      selectedDate: CivilDate.fromDateTime(_selected).toString(),
+      threeDayStartDate: _threeDayStart.toString(),
     );
+    // Preference writes are deliberately non-blocking, but serialize them so
+    // a slow earlier write cannot land after a newer day or mode choice.
+    _viewSaveTail = _viewSaveTail
+        .catchError((_) {})
+        .then<void>((_) => _calendarPreferences.save(snapshot));
   }
 
+  void _recordViewInteraction() => _viewInteractionRevision++;
+
   void _selectDay(DateTime day) {
+    _recordViewInteraction();
+    final selected = CivilDate.fromDateTime(day);
     setState(() {
       _selected = DateTime(day.year, day.month, day.day);
       _month = DateTime(day.year, day.month);
+      if (_academicMode == AcademicCalendarMode.threeDay &&
+          !selected.isWithin(
+            _threeDayStart,
+            _threeDayStart.addDays(AcademicCalendarMode.threeDay.spanDays - 1),
+          )) {
+        _threeDayStart = selected;
+      }
     });
     _persistAcademicView();
   }
 
   void _setAcademicMode(AcademicCalendarMode mode) {
+    // Even choosing the already-visible mode is an explicit preference. It
+    // must win over a delayed local restore just like a mode change does.
+    _recordViewInteraction();
     if (_academicMode == mode) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     setState(() {
       _academicMode = mode;
       _month = DateTime(_selected.year, _selected.month);
+      if (mode == AcademicCalendarMode.threeDay) {
+        _threeDayStart = CivilDate.fromDateTime(_selected);
+      }
     });
     _persistAcademicView();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_calendarScroll.hasClients) _calendarScroll.jumpTo(0);
+    });
   }
 
   void _moveMonth(int delta) {
+    _recordViewInteraction();
     final next = DateTime(_month.year, _month.month + delta);
     final lastDay = DateTime(next.year, next.month + 1, 0).day;
     setState(() {
@@ -201,17 +254,26 @@ class _CalendarPageState extends State<CalendarPage> {
       _moveMonth(direction);
       return;
     }
-    final next = CivilDate.fromDateTime(
-      _selected,
-    ).addDays(direction * _academicMode.spanDays);
+    // A three-day spread keeps its visible window contiguous even after the
+    // person chooses its second or third day. Otherwise "Next 3 days" can
+    // overlap the current spread or skip the days immediately after it.
+    final next = _academicMode == AcademicCalendarMode.threeDay
+        ? _threeDayStart.addDays(direction * _academicMode.spanDays)
+        : CivilDate.fromDateTime(
+            _selected,
+          ).addDays(direction * _academicMode.spanDays);
     _selectDay(DateTime(next.year, next.month, next.day));
   }
 
   void _goToday() {
     final now = Clock.now();
+    _recordViewInteraction();
     setState(() {
       _month = DateTime(now.year, now.month);
       _selected = DateTime(now.year, now.month, now.day);
+      if (_academicMode == AcademicCalendarMode.threeDay) {
+        _threeDayStart = CivilDate.fromDateTime(_selected);
+      }
     });
     _persistAcademicView();
   }
@@ -228,15 +290,22 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
       );
     }
-    final first = _academicMode == AcademicCalendarMode.week
-        ? selected.startOfWeek(
-            (_academicSchedule.termFor(selected) ??
-                        _academicSchedule.latestTerm)
-                    ?.weekStartsOn ??
-                DateTime.monday,
-          )
-        : selected;
+    final first = switch (_academicMode) {
+      AcademicCalendarMode.week => selected.startOfWeek(
+        (_academicSchedule.termFor(selected) ?? _academicSchedule.latestTerm)
+                ?.weekStartsOn ??
+            DateTime.monday,
+      ),
+      AcademicCalendarMode.threeDay => _threeDayStart,
+      _ => selected,
+    };
     return (first, first.addDays(_academicMode.spanDays - 1));
+  }
+
+  @override
+  void dispose() {
+    _calendarScroll.dispose();
+    super.dispose();
   }
 
   Future<bool> _saveDaybookEvent(DaybookEvent event) async {
@@ -348,7 +417,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return;
     }
     if (!mounted) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _academicSchedule = next);
   }
 
@@ -429,12 +498,12 @@ class _CalendarPageState extends State<CalendarPage> {
       return;
     }
     if (!mounted) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _academicSchedule = next);
   }
 
   Future<void> _showAcademicStudyPlanner(AcademicWorkItem item) async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     await showDialog<void>(
       context: context,
       barrierColor: Palette.dialogBarrier,
@@ -494,7 +563,7 @@ class _CalendarPageState extends State<CalendarPage> {
   Future<void> _showAcademicOccurrenceAdjuster(
     ClassOccurrence occurrence,
   ) async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     await showDialog<void>(
       context: context,
       barrierColor: Palette.dialogBarrier,
@@ -563,7 +632,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!mounted) return false;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _academicSchedule = next);
     return true;
   }
@@ -594,14 +663,14 @@ class _CalendarPageState extends State<CalendarPage> {
       return;
     }
     if (!mounted) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _academicSchedule = next);
   }
 
   Future<void> _openNotebook(ClassOccurrence occurrence) async {
     final course = _academicSchedule.courseById(occurrence.courseId);
     if (course == null) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     final result = await _notebookHandoff.open(
       NotebookHandoffIntent(
         courseId: occurrence.courseId,
@@ -670,7 +739,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _openJournal(Note entry) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     final night = entry.night;
     return Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -720,6 +789,21 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
+  void _completeQuestPlan(String questTitle, Offset anchor) {
+    final complete = widget.onCompleteQuest;
+    if (complete == null) return;
+    Quest? quest;
+    for (final candidate in widget.quests) {
+      if (candidate.title == questTitle) {
+        quest = candidate;
+        break;
+      }
+    }
+    if (quest == null || quest.doneFor(Clock.now())) return;
+    complete(quest, anchor);
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -747,6 +831,14 @@ class _CalendarPageState extends State<CalendarPage> {
         final selectedTerm =
             _academicSchedule.termFor(selectedCivil) ??
             _academicSchedule.latestTerm;
+        final selectedCompletions =
+            widget.state.history[Days.key(_selected)] ?? 0;
+        final selectedReflections = _reflectionsOn(_selected);
+        final selectedJournalEntries = _journalOn(_selected);
+        final selectedHasHistory =
+            selectedCompletions > 0 ||
+            selectedReflections > 0 ||
+            selectedJournalEntries.isNotEmpty;
 
         return LuxePageList(
           assetPath: 'assets/pages/plans-desk-v2.webp',
@@ -755,6 +847,7 @@ class _CalendarPageState extends State<CalendarPage> {
           icon: Icons.calendar_month_outlined,
           parallax: widget.parallax,
           reduceMotion: widget.state.reduceMotion,
+          scrollController: _calendarScroll,
           children: [
             AcademicCalendarHeader(
               mode: _academicMode,
@@ -783,6 +876,7 @@ class _CalendarPageState extends State<CalendarPage> {
               _MonthFolio(
                 key: const ValueKey('academic-month-folio'),
                 month: _month,
+                selected: _selected,
                 now: now,
                 firstWeekday: firstWeekday,
                 daysInMonth: daysInMonth,
@@ -812,34 +906,60 @@ class _CalendarPageState extends State<CalendarPage> {
                 onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
                 directionsLauncher: _directionsLauncher,
                 daybookPreferences: _daybookPreferences,
+                onCompleteQuestPlan: widget.onCompleteQuest == null
+                    ? null
+                    : _completeQuestPlan,
+                selectedDayHeaderBuilder: (day) => _SelectedDayHeader(
+                  day: DateTime(day.date.year, day.date.month, day.date.day),
+                  now: now,
+                  onPlan: () => _showAddEvent(context),
+                  onToday: _goToday,
+                  onSelect: () => _selectDay(
+                    DateTime(day.date.year, day.date.month, day.date.day),
+                  ),
+                  lightDirection: widget.lightDirection ?? widget.parallax,
+                  spanStyle: true,
+                ),
+                selectedDaySummaryBuilder: (day) =>
+                    _DayShapeSummary(summary: day.summary),
               ),
             ],
-            const SizedBox(height: 14),
+            if (_academicMode == AcademicCalendarMode.month ||
+                selectedHasHistory) ...[
+              const SizedBox(height: 14),
 
-            // ── selected day panel ───────────────────────────────
-            _DayPanel(
-              day: _selected,
-              completions: widget.state.history[Days.key(_selected)] ?? 0,
-              reflections: _reflectionsOn(_selected),
-              journalEntries: _journalOn(_selected),
-              daybookDay: daybook.dayOn(CivilDate.fromDateTime(_selected)),
-              showDaybookEntries: _academicMode == AcademicCalendarMode.month,
-              academicSchedule: _academicSchedule,
-              now: now,
-              onPlan: () => _showAddEvent(context),
-              onOpenJournal: _openJournal,
-              onOpenNotebook: _openNotebook,
-              onOpenDaybookActions: _showDaybookActions,
-              onToggleTask: _toggleDaybookTask,
-              onToggleWork: _toggleAcademicWork,
-              onOpenStudyPlanner: _showAcademicStudyPlanner,
-              onToggleStudyBlock: _toggleAcademicStudyBlock,
-              onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
-              onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
-              directionsLauncher: _directionsLauncher,
-              daybookPreferences: _daybookPreferences,
-              lightDirection: widget.lightDirection ?? widget.parallax,
-            ),
+              // Month owns the complete selected-day folio. Span modes already
+              // keep the date, plan action, Day Shape, and agenda together;
+              // this continuation carries only history and journal material.
+              _DayPanel(
+                day: _selected,
+                completions: selectedCompletions,
+                reflections: selectedReflections,
+                journalEntries: selectedJournalEntries,
+                daybookDay: daybook.dayOn(CivilDate.fromDateTime(_selected)),
+                showDaybookEntries: _academicMode == AcademicCalendarMode.month,
+                showDayShape: _academicMode == AcademicCalendarMode.month,
+                showHeader: _academicMode == AcademicCalendarMode.month,
+                academicSchedule: _academicSchedule,
+                now: now,
+                onPlan: () => _showAddEvent(context),
+                onOpenJournal: _openJournal,
+                onOpenNotebook: _openNotebook,
+                onOpenDaybookActions: _showDaybookActions,
+                onToggleTask: _toggleDaybookTask,
+                onToggleWork: _toggleAcademicWork,
+                onOpenStudyPlanner: _showAcademicStudyPlanner,
+                onToggleStudyBlock: _toggleAcademicStudyBlock,
+                onCompleteQuestPlan: widget.onCompleteQuest == null
+                    ? null
+                    : _completeQuestPlan,
+                onUpdateTransitionBuffer: _updateAcademicTransitionBuffer,
+                onOpenOccurrenceAdjuster: _showAcademicOccurrenceAdjuster,
+                directionsLauncher: _directionsLauncher,
+                daybookPreferences: _daybookPreferences,
+                lightDirection: widget.lightDirection ?? widget.parallax,
+              ),
+            ],
           ],
         );
       },
@@ -856,6 +976,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return const SizedBox.expand();
     }
     final date = DateTime(_month.year, _month.month, day);
+    final keyDate = CivilDate.fromDateTime(date).toString();
     final daybookDay = daybook.dayOn(CivilDate.fromDateTime(date));
     final isToday = Days.sameDay(date, now);
     final isSelected = Days.sameDay(date, _selected);
@@ -863,11 +984,8 @@ class _CalendarPageState extends State<CalendarPage> {
     final journalEntries = _journalOn(date);
 
     final spoken = StringBuffer(
-      '${_monthNames[date.month - 1]} ${date.day}, ${date.year}',
+      _monthDaySemanticLabel(date, daybookDay.summary, isToday: isToday),
     );
-    if (isToday) spoken.write(', today');
-    spoken.write(', ${_spokenDayWeight(daybookDay.summary.weight)}');
-    spoken.write(', ${daybookDay.summary.semanticLabel}');
     if (done > 0) {
       spoken.write(', $done quest${done == 1 ? '' : 's'} completed');
     }
@@ -888,11 +1006,17 @@ class _CalendarPageState extends State<CalendarPage> {
       button: true,
       selected: isSelected,
       label: spoken.toString(),
+      hint: isSelected
+          ? 'Showing this day below the calendar'
+          : 'Show this day below the calendar',
+      excludeSemantics: true,
       onTap: () => _selectDay(date),
       child: GestureDetector(
+        key: ValueKey('academic-month-day-$keyDate'),
         excludeFromSemantics: true,
+        behavior: HitTestBehavior.opaque,
         onTap: () {
-          Sfx.instance.play('tick');
+          Sfx.instance.playMaterial(MaterialSound.parchment);
           _selectDay(date);
         },
         child: Column(
@@ -1005,16 +1129,23 @@ class _CalendarPageState extends State<CalendarPage> {
                 height: 13,
                 child:
                     summary.weight == DaybookDayWeight.none &&
-                        !summary.hasDeadline
+                        !summary.hasDeadline &&
+                        summary.focusCount == 0
                     ? null
                     : Center(
                         child: _MonthDayWeightMark(
-                          key: ValueKey('academic-month-weight-$keyDate'),
+                          key:
+                              summary.weight == DaybookDayWeight.none &&
+                                  !summary.hasDeadline
+                              ? null
+                              : ValueKey('academic-month-weight-$keyDate'),
                           weight: summary.weight,
                           hasDeadline: summary.hasDeadline,
                           deadlineKey: ValueKey(
                             'academic-month-deadline-$keyDate',
                           ),
+                          hasFocus: summary.focusCount > 0,
+                          focusKey: ValueKey('academic-month-focus-$keyDate'),
                         ),
                       ),
               ),
@@ -1026,7 +1157,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   void _showAddEvent(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.brass);
     showDialog(
       context: context,
       barrierColor: const Color(0xCC140C06),
@@ -1035,14 +1166,14 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _showAddDaybook(BuildContext context) async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     final target = await showDialog<DaybookAddTarget>(
       context: context,
       barrierColor: Palette.dialogBarrier,
       builder: (_) => const DaybookAddChoiceDialog(),
     );
     if (!mounted || !context.mounted || target == null) return;
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     switch (target) {
       case DaybookAddTarget.event:
         await showDialog<void>(
@@ -1254,27 +1385,61 @@ class _CalendarPageState extends State<CalendarPage> {
   );
 }
 
-String _spokenDayWeight(DaybookDayWeight weight) => switch (weight) {
-  DaybookDayWeight.none => 'open day',
-  DaybookDayWeight.light => 'lightly scheduled day',
-  DaybookDayWeight.moderate => 'moderately scheduled day',
-  DaybookDayWeight.full => 'heavily scheduled day',
-};
+String _monthDaySemanticLabel(
+  DateTime date,
+  DaybookDaySummary summary, {
+  required bool isToday,
+}) {
+  final facts = <String>[
+    '${_monthNames[date.month - 1]} ${date.day}, ${date.year}',
+    if (isToday) 'today',
+    summary.scheduledMinutes == 0
+        ? 'no timed plans'
+        : '${summary.scheduledMinutes} scheduled minutes',
+  ];
+  if (summary.fixedPlanCount == 0) {
+    facts.add('no fixed plans');
+  } else if (summary.scheduledMinutes == 0) {
+    facts.add(
+      '${summary.fixedPlanCount} all-day plan${summary.fixedPlanCount == 1 ? '' : 's'}',
+    );
+  } else {
+    facts.add(
+      '${summary.fixedPlanCount} fixed plan${summary.fixedPlanCount == 1 ? '' : 's'}',
+    );
+  }
+  facts.add(
+    summary.deadlineCount == 0
+        ? 'no active deadlines'
+        : '${summary.deadlineCount} active deadline${summary.deadlineCount == 1 ? '' : 's'}',
+  );
+  facts.add(
+    summary.focusCount == 0
+        ? 'no active focus choices'
+        : '${summary.focusCount} active focus choice${summary.focusCount == 1 ? '' : 's'}',
+  );
+  return facts.join(', ');
+}
 
 /// The month deliberately carries only one visual sentence per date. Height
 /// means scheduled weight; the small diamond at the tick's crown means that
-/// something is due. Specific categories belong in the selected-day panel.
+/// something is due; the quiet unlock point names an intentional focus. Specific
+/// categories belong in the selected-day panel.
 class _MonthDayWeightMark extends StatelessWidget {
   const _MonthDayWeightMark({
     super.key,
     required this.weight,
     required this.hasDeadline,
     required this.deadlineKey,
+    required this.hasFocus,
+    required this.focusKey,
   });
 
   final DaybookDayWeight weight;
   final bool hasDeadline;
   final Key deadlineKey;
+  final bool hasFocus;
+  final Key focusKey;
 
   @override
   Widget build(BuildContext context) {
@@ -1324,6 +1489,21 @@ class _MonthDayWeightMark extends StatelessWidget {
                 ),
               ),
             ),
+          if (hasFocus)
+            Positioned(
+              bottom: 0,
+              left: tickHeight > 0 ? null : 3,
+              right: tickHeight > 0 ? 0 : null,
+              child: Container(
+                key: focusKey,
+                width: 3,
+                height: 3,
+                decoration: const BoxDecoration(
+                  color: Palette.unlock,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -1369,6 +1549,7 @@ class _MonthFolio extends StatelessWidget {
   const _MonthFolio({
     super.key,
     required this.month,
+    required this.selected,
     required this.now,
     required this.firstWeekday,
     required this.daysInMonth,
@@ -1379,6 +1560,7 @@ class _MonthFolio extends StatelessWidget {
   });
 
   final DateTime month;
+  final DateTime selected;
   final DateTime now;
   final int firstWeekday;
   final int daysInMonth;
@@ -1390,101 +1572,142 @@ class _MonthFolio extends StatelessWidget {
   int get _weekCount => ((firstWeekday - 1 + daysInMonth + 6) ~/ 7);
 
   @override
-  Widget build(BuildContext context) => GlassPanel(
-    blur: true,
-    padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
-    child: Column(
+  Widget build(BuildContext context) {
+    final selectedIsToday = Days.sameDay(selected, now);
+    final selectedContext =
+        '${_weekdayNames[selected.weekday - 1].substring(0, 3)} '
+        '${selected.day} · ${selectedIsToday ? 'TODAY' : 'BACK TO TODAY'}';
+    final monthHeading = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Row(
-          children: [
-            _Chevron(
-              icon: Icons.chevron_left,
-              label: 'Previous month',
-              onTap: onPrevious,
-            ),
-            Expanded(
-              child: Center(
-                child: Text(
-                  '${_monthNames[month.month - 1].toUpperCase()} ${month.year}',
-                  style: Type.display.copyWith(
-                    fontSize: 16,
-                    letterSpacing: 2.4,
-                    color: Palette.textHi,
-                  ),
-                ),
-              ),
-            ),
-            _Chevron(
-              icon: Icons.chevron_right,
-              label: 'Next month',
-              onTap: onNext,
-            ),
-          ],
-        ),
-        if (month.year != now.year || month.month != now.month)
-          TextButton(
-            onPressed: onToday,
-            child: Text(
-              'BACK TO TODAY',
-              style: Type.label.copyWith(
-                fontSize: Type.minLabel,
-                color: Palette.xpLight,
-              ),
-            ),
+        Text(
+          '${_monthNames[month.month - 1].toUpperCase()} ${month.year}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Type.display.copyWith(
+            fontSize: 16,
+            letterSpacing: 2.4,
+            color: Palette.textHi,
           ),
-        const SizedBox(height: 6),
-        const _FolioRule(),
-        const SizedBox(height: 8),
-        DecoratedBox(
-          decoration: _folioPage,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(5, 10, 5, 8),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    for (var index = 0; index < 7; index++)
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index],
-                            style: Type.label.copyWith(
-                              fontSize: 11,
-                              letterSpacing: 1.4,
-                              color: index >= 5
-                                  ? Palette.brass
-                                  : Palette.textLo,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 7),
-                const _FolioRule(strength: 0.55),
-                const SizedBox(height: 5),
-                for (var week = 0; week < _weekCount; week++)
-                  SizedBox(
-                    height: 62,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (var column = 0; column < 7; column++)
-                          Expanded(
-                            child: dayCell(
-                              week * 7 + column - (firstWeekday - 1) + 1,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          selectedContext,
+          key: const ValueKey('month-selected-context'),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textScaler: TextScaler.noScaling,
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            letterSpacing: 1.1,
+            color: selectedIsToday ? Palette.textLo : Palette.xpLight,
           ),
         ),
       ],
-    ),
-  );
+    );
+    final monthHeadingHitArea = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 44),
+      child: Center(child: monthHeading),
+    );
+    final interactiveHeading = selectedIsToday
+        ? Semantics(
+            key: const ValueKey('month-selected-context-control'),
+            header: true,
+            label:
+                '${_monthNames[month.month - 1]} ${month.year}, $selectedContext',
+            excludeSemantics: true,
+            child: monthHeadingHitArea,
+          )
+        : Semantics(
+            key: const ValueKey('month-selected-context-control'),
+            button: true,
+            header: true,
+            label:
+                '${_monthNames[month.month - 1]} ${month.year}, '
+                '${_weekdayNames[selected.weekday - 1]} ${selected.day} selected. Back to today',
+            onTap: onToday,
+            excludeSemantics: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onToday,
+              child: monthHeadingHitArea,
+            ),
+          );
+
+    return GlassPanel(
+      blur: true,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _Chevron(
+                icon: Icons.chevron_left,
+                label: 'Previous month',
+                onTap: onPrevious,
+              ),
+              Expanded(child: interactiveHeading),
+              _Chevron(
+                icon: Icons.chevron_right,
+                label: 'Next month',
+                onTap: onNext,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const _FolioRule(),
+          const SizedBox(height: 8),
+          DecoratedBox(
+            decoration: _folioPage,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(5, 10, 5, 8),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      for (var index = 0; index < 7; index++)
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              const ['M', 'T', 'W', 'T', 'F', 'S', 'S'][index],
+                              style: Type.label.copyWith(
+                                fontSize: 11,
+                                letterSpacing: 1.4,
+                                color: index >= 5
+                                    ? Palette.brass
+                                    : Palette.textLo,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  const _FolioRule(strength: 0.55),
+                  const SizedBox(height: 5),
+                  for (var week = 0; week < _weekCount; week++)
+                    SizedBox(
+                      height: 62,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (var column = 0; column < 7; column++)
+                            Expanded(
+                              child: dayCell(
+                                week * 7 + column - (firstWeekday - 1) + 1,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Chevron extends StatelessWidget {
@@ -1500,7 +1723,7 @@ class _Chevron extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void activate() {
-      Sfx.instance.play('tick');
+      Sfx.instance.playMaterial(MaterialSound.brass);
       onTap();
     }
 
@@ -1529,6 +1752,184 @@ class _Chevron extends StatelessWidget {
   }
 }
 
+class _SelectedDayHeader extends StatelessWidget {
+  const _SelectedDayHeader({
+    required this.day,
+    required this.now,
+    required this.onPlan,
+    required this.lightDirection,
+    this.onSelect,
+    this.onToday,
+    this.spanStyle = false,
+  });
+
+  final DateTime day;
+  final DateTime now;
+  final VoidCallback onPlan;
+  final ValueListenable<Offset> lightDirection;
+  final VoidCallback? onSelect;
+  final VoidCallback? onToday;
+  final bool spanStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final isToday = Days.sameDay(day, now);
+    final isPast = day.isBefore(DateTime(now.year, now.month, now.day));
+    final largeText = MediaQuery.textScalerOf(context).scale(11.5) >= 17.25;
+    final labelStyle = Type.label.copyWith(
+      fontSize: 11.5,
+      letterSpacing: 1.5,
+      color: isToday ? Palette.xpLight : Palette.textMid,
+    );
+    final spoken =
+        '${_weekdayNames[day.weekday - 1]} ${day.day}'
+        '${isToday ? ', today' : ''}';
+    Widget visualDayLabel() => spanStyle
+        ? Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            runSpacing: 2,
+            children: [
+              Text(
+                '${_weekdayNames[day.weekday - 1]} ${day.day}',
+                style: labelStyle,
+              ),
+              if (isToday)
+                Text(
+                  'TODAY',
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    color: Palette.xp,
+                  ),
+                ),
+            ],
+          )
+        : Text(
+            '${_weekdayNames[day.weekday - 1]} ${day.day}'
+            '${isToday ? " · TODAY" : " · ${_monthNames[day.month - 1].toUpperCase()}"}',
+            maxLines: largeText ? 2 : 1,
+            overflow: largeText ? TextOverflow.clip : TextOverflow.ellipsis,
+            style: labelStyle,
+          );
+    final dayLabel = onSelect == null
+        ? Semantics(
+            header: true,
+            label: spoken,
+            excludeSemantics: true,
+            child: visualDayLabel(),
+          )
+        : Semantics(
+            key: ValueKey('daybook-day-control-${CivilDate.fromDateTime(day)}'),
+            button: true,
+            selected: true,
+            header: true,
+            label: spoken,
+            onTap: onSelect,
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: onSelect,
+              borderRadius: BorderRadius.circular(9),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: visualDayLabel(),
+                ),
+              ),
+            ),
+          );
+    final planAction = isPast
+        ? null
+        : Semantics(
+            button: true,
+            label: 'Add a plan for $spoken',
+            onTap: onPlan,
+            child: GestureDetector(
+              key: const ValueKey('calendar-plan-selected-day'),
+              excludeFromSemantics: true,
+              behavior: HitTestBehavior.opaque,
+              onTap: onPlan,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                child: Center(
+                  child: GoldSurface(
+                    cut: 7,
+                    glow: false,
+                    textured: false,
+                    light: lightDirection,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        '+ PLAN',
+                        style: Type.label.copyWith(
+                          fontSize: 11,
+                          letterSpacing: 1.2,
+                          color: Palette.onHoney,
+                          shadows: const [
+                            Shadow(
+                              color: Color(0x59FFEBBE),
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+    final todayAction = isToday || onToday == null
+        ? null
+        : TextButton(
+            key: const ValueKey('calendar-back-to-today'),
+            onPressed: onToday,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              'TODAY',
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                letterSpacing: 1.0,
+                color: Palette.xpLight,
+              ),
+            ),
+          );
+    final actions = Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
+      runSpacing: 4,
+      children: [?todayAction, ?planAction],
+    );
+
+    if (largeText) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          dayLabel,
+          if (todayAction != null || planAction != null) ...[
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerRight, child: actions),
+          ],
+        ],
+      );
+    }
+    return Row(
+      children: [
+        Expanded(child: dayLabel),
+        if (todayAction != null || planAction != null) actions,
+      ],
+    );
+  }
+}
+
 class _DayPanel extends StatelessWidget {
   const _DayPanel({
     required this.day,
@@ -1537,6 +1938,8 @@ class _DayPanel extends StatelessWidget {
     required this.journalEntries,
     required this.daybookDay,
     required this.showDaybookEntries,
+    required this.showDayShape,
+    required this.showHeader,
     required this.academicSchedule,
     required this.now,
     required this.onPlan,
@@ -1547,6 +1950,7 @@ class _DayPanel extends StatelessWidget {
     required this.onToggleWork,
     required this.onOpenStudyPlanner,
     required this.onToggleStudyBlock,
+    required this.onCompleteQuestPlan,
     required this.onUpdateTransitionBuffer,
     required this.onOpenOccurrenceAdjuster,
     required this.directionsLauncher,
@@ -1560,6 +1964,8 @@ class _DayPanel extends StatelessWidget {
   final List<Note> journalEntries;
   final DaybookDay daybookDay;
   final bool showDaybookEntries;
+  final bool showDayShape;
+  final bool showHeader;
   final AcademicSchedule academicSchedule;
   final DateTime now;
   final VoidCallback onPlan;
@@ -1570,6 +1976,7 @@ class _DayPanel extends StatelessWidget {
   final ToggleAcademicWork onToggleWork;
   final OpenAcademicStudyPlanner onOpenStudyPlanner;
   final ToggleAcademicStudyBlock onToggleStudyBlock;
+  final CompleteQuestPlan? onCompleteQuestPlan;
   final UpdateAcademicTransitionBuffer onUpdateTransitionBuffer;
   final OpenAcademicOccurrenceAdjuster onOpenOccurrenceAdjuster;
   final DirectionsLauncher directionsLauncher;
@@ -1578,74 +1985,29 @@ class _DayPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPast = day.isBefore(DateTime(now.year, now.month, now.day));
-    final largeText = MediaQuery.textScalerOf(context).scale(11.5) >= 17.25;
-    final dayLabel = Text(
-      '${_weekdayNames[day.weekday - 1]} ${day.day}'
-      '${Days.sameDay(day, now) ? " · TODAY" : " · ${_monthNames[day.month - 1].toUpperCase()}"}',
-      maxLines: largeText ? 2 : 1,
-      overflow: largeText ? TextOverflow.clip : TextOverflow.ellipsis,
-      style: Type.label.copyWith(
-        fontSize: 11.5,
-        letterSpacing: 1.5,
-        color: Days.sameDay(day, now) ? Palette.xpLight : Palette.textMid,
-      ),
-    );
-    final planAction = isPast
-        ? null
-        : GestureDetector(
-            onTap: onPlan,
-            child: GoldSurface(
-              cut: 7,
-              glow: false,
-              textured: false,
-              light: lightDirection,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 8,
-                ),
-                child: Text(
-                  '+ PLAN',
-                  style: Type.label.copyWith(
-                    fontSize: 11,
-                    letterSpacing: 1.2,
-                    color: Palette.onHoney,
-                    shadows: const [
-                      Shadow(color: Color(0x59FFEBBE), offset: Offset(0, 1)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
+    final hasContentBeforeJournal =
+        showHeader ||
+        showDayShape ||
+        (showDaybookEntries && daybookDay.entries.isNotEmpty) ||
+        completions > 0 ||
+        reflections > 0;
     return GlassPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // "26.7.2026" was a raw numeric locale dump in the one place the
-          // design speaks a date out loud. The approved target reads
-          // THURSDAY 30 · TODAY. At large text, keep that sentence intact and
-          // move the action below it instead of truncating either one.
-          if (largeText)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                dayLabel,
-                if (planAction != null) ...[
-                  const SizedBox(height: 8),
-                  Align(alignment: Alignment.centerRight, child: planAction),
-                ],
-              ],
-            )
-          else
-            Row(
-              children: [
-                Expanded(child: dayLabel),
-                ?planAction,
-              ],
+          if (showHeader) ...[
+            _SelectedDayHeader(
+              day: day,
+              now: now,
+              onPlan: onPlan,
+              lightDirection: lightDirection,
             ),
-          const SizedBox(height: 10),
+            const SizedBox(height: 9),
+          ],
+          if (showDayShape) ...[
+            _DayShapeSummary(summary: daybookDay.summary),
+            const SizedBox(height: 12),
+          ],
           if (showDaybookEntries && daybookDay.entries.isNotEmpty)
             DaybookAgendaEntries(
               day: daybookDay,
@@ -1656,6 +2018,7 @@ class _DayPanel extends StatelessWidget {
               onToggleWork: onToggleWork,
               onOpenStudyPlanner: onOpenStudyPlanner,
               onToggleStudyBlock: onToggleStudyBlock,
+              onCompleteQuestPlan: onCompleteQuestPlan,
               onUpdateTransitionBuffer: onUpdateTransitionBuffer,
               onOpenOccurrenceAdjuster: onOpenOccurrenceAdjuster,
               directionsLauncher: directionsLauncher,
@@ -1712,7 +2075,8 @@ class _DayPanel extends StatelessWidget {
               ),
             ),
           if (journalEntries.isNotEmpty) ...[
-            const Divider(height: 18, color: Color(0x2EE7C47E)),
+            if (hasContentBeforeJournal)
+              const Divider(height: 18, color: Color(0x2EE7C47E)),
             Text(
               'JOURNAL',
               style: Type.label.copyWith(
@@ -1728,20 +2092,69 @@ class _DayPanel extends StatelessWidget {
               onOpenJournal: onOpenJournal,
             ),
           ],
-          if (daybookDay.entries.isEmpty &&
-              completions == 0 &&
-              reflections == 0 &&
-              journalEntries.isEmpty)
-            Text(
-              isPast ? 'A quiet day.' : 'Nothing planned for this day yet.',
-              style: Type.body.copyWith(
-                fontSize: 13.5,
-                fontStyle: FontStyle.italic,
-                color: Palette.textLo,
-              ),
-            ),
         ],
       ),
+    );
+  }
+}
+
+class _DayShapeSummary extends StatelessWidget {
+  const _DayShapeSummary({required this.summary});
+
+  final DaybookDaySummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final facts = <String>[];
+    if (summary.fixedPlanCount > 0) {
+      if (summary.firstTimedStartMinute == null &&
+          summary.fixedPlanCount == 1) {
+        facts.add('1 all-day plan');
+      } else if (summary.fixedPlanCount == 1) {
+        facts.add(
+          '1 fixed plan · ${formatAcademicTime(summary.firstTimedStartMinute!)}',
+        );
+      } else if (summary.firstTimedStartMinute != null) {
+        facts.add(
+          '${summary.fixedPlanCount} fixed plans · first at ${formatAcademicTime(summary.firstTimedStartMinute!)}',
+        );
+      } else {
+        facts.add('${summary.fixedPlanCount} fixed plans');
+      }
+    }
+    if (summary.deadlineCount > 0) {
+      facts.add(
+        '${summary.deadlineCount} deadline${summary.deadlineCount == 1 ? '' : 's'}',
+      );
+    }
+    if (summary.focusCount > 0) {
+      facts.add(
+        summary.focusCount == 1
+            ? '1 focus'
+            : '${summary.focusCount} focus choices',
+      );
+    }
+    final body = facts.isEmpty ? 'No fixed plans.' : facts.join(' · ');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 1, thickness: 1, color: Color(0x46E7C47E)),
+        const SizedBox(height: 8),
+        Text(
+          'DAY SHAPE',
+          style: Type.label.copyWith(
+            fontSize: Type.minLabel,
+            letterSpacing: 1.7,
+            color: Palette.xpLight,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          body,
+          style: Type.body.copyWith(fontSize: 13.5, color: Palette.textMid),
+        ),
+      ],
     );
   }
 }
@@ -1968,7 +2381,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     ({String label, String title, Stat stat, double difficulty, IconData icon})
     preset,
   ) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     HapticFeedback.selectionClick();
     setState(() {
       _title.text = preset.title;

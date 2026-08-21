@@ -1,0 +1,1172 @@
+{
+  "study": "room-c-melody-v4",
+  "runtime_changed": false,
+  "render_version": "room-c-melody-v4-author-1",
+  "generated_audio_asset_count": 142,
+  "source_study": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-c-gesture-v3",
+  "source_study_manifest_sha256": "218f1956d7ae0c6279136bb2d4ea726c2e21102a402637d1762bde2ddeec219c",
+  "render_contract": {
+    "sample_rate_hz": 48000,
+    "cue_duration_ms": 60.0,
+    "x_core_is_byte_locked": true,
+    "x_common_phone_lift_db": 1.5,
+    "meaning_onset_ms": 10.5,
+    "meaning_phone_rms_dbfs": -36.5,
+    "phrase_reset_ms": 850,
+    "rapid_tonal_limit": 4,
+    "rapid_step_ms": 125.0,
+    "rapid_gains": [
+      1.0,
+      0.93,
+      0.93,
+      0.885
+    ],
+    "no_room_bus": true,
+    "comparison_axis": "phrase token order only"
+  },
+  "source_graph": {
+    "x_system": "c-clasp-family",
+    "x_role_sources": {
+      "roles/c-clasp-family/open/1.wav": "94f5aaa4018d19018766dff798b8462f00a92afc2b55b5fd6ce21023fa7b422d",
+      "roles/c-clasp-family/open/2.wav": "fa305dee3d978193f0baf87185672f5dcaa23d9dff589099b77239ef79131aff",
+      "roles/c-clasp-family/open/3.wav": "43818ea3cbf998169eaa4792f5fcb21bacbf17eb619424c01e44a2bfb9ff4c4f",
+      "roles/c-clasp-family/open/4.wav": "360c4451283efc2ef04844d08c87cd494bf43041a4cf57572666a15d9795a6fe",
+      "roles/c-clasp-family/open/5.wav": "d842bb416930df189fe2919f52998c05a81ff561c33437c789b918a3c2a0fa20",
+      "roles/c-clasp-family/select/1.wav": "1a7750dc84fd1a7cc6d29924bfcde21100fae66ee929bd5cf16800ec4d736c75",
+      "roles/c-clasp-family/select/2.wav": "8062a68e243d239decea9688361de0e9cf6cb4f79fcbac143f4ff87e90992583",
+      "roles/c-clasp-family/select/3.wav": "9d8c9981c624b2ab51bf917c7cf7ca37da81df851a21584a1e0a9eb7fd6fd3d0",
+      "roles/c-clasp-family/select/4.wav": "09d94854224ebc6c4261bfda6ff5fd7c290e686061f8fbfd7fb96e2c710e9564",
+      "roles/c-clasp-family/select/5.wav": "1818ddeac0b32df742f5048095957a74c25221ca9be25c8f116b3d50f530f673",
+      "roles/c-clasp-family/navigate/1.wav": "6653693fa687e082e0b2a3a4a9a90e3067c88459858bb31c9cc0fc5af6aa7fbe",
+      "roles/c-clasp-family/navigate/2.wav": "84c0e890705e45baa6c6fd189a817fe88f3798f9e7660f445431cad1edc41a95",
+      "roles/c-clasp-family/navigate/3.wav": "533ef78f93bb783e7c2e180eee9c04a753021ce044da2e799058c53ba47088bf",
+      "roles/c-clasp-family/navigate/4.wav": "30c7c70e935914818d1a483e9323eb773973d2da804ed8a40c6bef8ad0643c38",
+      "roles/c-clasp-family/navigate/5.wav": "f6086c9eec5361c5a84ca6946be75c4fc5cd824963717af8ee80cc8928823231",
+      "roles/c-clasp-family/place/1.wav": "fab8b1da14360ab463631d20995ded944a73aa83e95b66a5a00e8257b37c248e",
+      "roles/c-clasp-family/place/2.wav": "e2fb5f061252b5ff60ec90aad28634ec516de1c1d628298f6242886dafa1871a",
+      "roles/c-clasp-family/place/3.wav": "7815512e35b540f27b37226ed509d90551b7da70e21755a391ecd843e0a8587b",
+      "roles/c-clasp-family/place/4.wav": "ffd000116a782c19a868ddcc36a8c71b905809b043ab9b9b0f77b4d6da0c39ba",
+      "roles/c-clasp-family/place/5.wav": "9e559ba6af88f7bf1ce2ae834bc0bbe3e9252a26a8d92baf8169d035a7253c4c"
+    },
+    "locked_x_paths": {
+      "open": [
+        "locked-x/roles/open/1.wav",
+        "locked-x/roles/open/2.wav",
+        "locked-x/roles/open/3.wav",
+        "locked-x/roles/open/4.wav",
+        "locked-x/roles/open/5.wav"
+      ],
+      "select": [
+        "locked-x/roles/select/1.wav",
+        "locked-x/roles/select/2.wav",
+        "locked-x/roles/select/3.wav",
+        "locked-x/roles/select/4.wav",
+        "locked-x/roles/select/5.wav"
+      ],
+      "navigate": [
+        "locked-x/roles/navigate/1.wav",
+        "locked-x/roles/navigate/2.wav",
+        "locked-x/roles/navigate/3.wav",
+        "locked-x/roles/navigate/4.wav",
+        "locked-x/roles/navigate/5.wav"
+      ],
+      "place": [
+        "locked-x/roles/place/1.wav",
+        "locked-x/roles/place/2.wav",
+        "locked-x/roles/place/3.wav",
+        "locked-x/roles/place/4.wav",
+        "locked-x/roles/place/5.wav"
+      ]
+    },
+    "meaning_master_id": "room-short-resonance-v4",
+    "meaning_note_stems": {
+      "a4": "meaning/a4.wav",
+      "d5": "meaning/d5.wav",
+      "e5": "meaning/e5.wav",
+      "fs5": "meaning/fs5.wav",
+      "a5": "meaning/a5.wav"
+    },
+    "meaning_derivation": "room-modal-bank-v1, 22 ms decay, dry, equal phone RMS, begins after the approved X clasp",
+    "cue_derivation": "byte-locked X role take plus one meaning-note stem; no resampling, pitch shift, EQ, or gain change to X"
+  },
+  "notes": {
+    "a4": {
+      "name": "A4",
+      "midi": 69,
+      "frequency_hz": 440.0
+    },
+    "d5": {
+      "name": "D5",
+      "midi": 74,
+      "frequency_hz": 587.33
+    },
+    "e5": {
+      "name": "E5",
+      "midi": 76,
+      "frequency_hz": 659.255
+    },
+    "fs5": {
+      "name": "F#5",
+      "midi": 78,
+      "frequency_hz": 739.989
+    },
+    "a5": {
+      "name": "A5",
+      "midi": 81,
+      "frequency_hz": 880.0
+    }
+  },
+  "phrases": {
+    "paired-return": {
+      "tokens": [
+        "d5",
+        "a5",
+        "e5",
+        "d5",
+        "a4",
+        "e5",
+        "fs5",
+        "d5"
+      ],
+      "notes": [
+        "D5",
+        "A5",
+        "E5",
+        "D5",
+        "A4",
+        "E5",
+        "F#5",
+        "D5"
+      ],
+      "multiset": {
+        "a4": 1,
+        "a5": 1,
+        "d5": 3,
+        "e5": 2,
+        "fs5": 1
+      },
+      "reset_ms": 850,
+      "rapid_rule": "first 4 events keep the phrase; later rapid events use plain X"
+    },
+    "gentle-arc": {
+      "tokens": [
+        "d5",
+        "e5",
+        "fs5",
+        "a5",
+        "e5",
+        "d5",
+        "a4",
+        "d5"
+      ],
+      "notes": [
+        "D5",
+        "E5",
+        "F#5",
+        "A5",
+        "E5",
+        "D5",
+        "A4",
+        "D5"
+      ],
+      "multiset": {
+        "a4": 1,
+        "a5": 1,
+        "d5": 3,
+        "e5": 2,
+        "fs5": 1
+      },
+      "reset_ms": 850,
+      "rapid_rule": "first 4 events keep the phrase; later rapid events use plain X"
+    }
+  },
+  "control": {
+    "single": "control/plain-x-single.wav",
+    "phrase": "control/plain-x-phrase.wav",
+    "rapid": "control/plain-x-rapid.wav",
+    "flow": "control/plain-x-flow.wav"
+  },
+  "candidates": {
+    "paired-return": {
+      "reveal_name": "Paired return",
+      "intent": "small call-and-answer cells that repeatedly come home",
+      "tokens": [
+        "d5",
+        "a5",
+        "e5",
+        "d5",
+        "a4",
+        "e5",
+        "fs5",
+        "d5"
+      ],
+      "notes": [
+        "D5",
+        "A5",
+        "E5",
+        "D5",
+        "A4",
+        "E5",
+        "F#5",
+        "D5"
+      ],
+      "paths": {
+        "single": "candidates/paired-return/single.wav",
+        "phrase": "candidates/paired-return/phrase.wav",
+        "flow": "candidates/paired-return/flow.wav",
+        "rapid": "candidates/paired-return/rapid.wav",
+        "pause_probe": "candidates/paired-return/pause-probe.wav"
+      },
+      "metrics": {
+        "single": {
+          "phone_rms_dbfs": -26.736733211475826,
+          "phone_energy_db": 7.857191666116481,
+          "peak_dbfs": -6.621591630144419,
+          "final_1ms_relative_peak_db": -83.24323130734248
+        },
+        "phrase": {
+          "phone_rms_dbfs": -33.704905804264115,
+          "phone_energy_db": 17.29051948268921,
+          "peak_dbfs": -5.3244495710791275,
+          "final_1ms_relative_peak_db": -234.67555042892087
+        },
+        "flow": {
+          "phone_rms_dbfs": -35.42214807836302,
+          "phone_energy_db": 19.243562645500518,
+          "peak_dbfs": -5.730914943218448,
+          "final_1ms_relative_peak_db": -234.26908505678156
+        },
+        "rapid": {
+          "phone_rms_dbfs": -31.07696088854579,
+          "phone_energy_db": 17.93653236561063,
+          "peak_dbfs": -5.805164900155056,
+          "final_1ms_relative_peak_db": -234.19483509984497
+        },
+        "pause_probe": {
+          "phone_rms_dbfs": -36.93915783885963,
+          "phone_energy_db": 15.915515065740944,
+          "peak_dbfs": -5.3244495710791275,
+          "final_1ms_relative_peak_db": -234.67555042892087
+        }
+      }
+    },
+    "gentle-arc": {
+      "reveal_name": "Gentle arc",
+      "intent": "one gradual rise, a warm dip, and a final return home",
+      "tokens": [
+        "d5",
+        "e5",
+        "fs5",
+        "a5",
+        "e5",
+        "d5",
+        "a4",
+        "d5"
+      ],
+      "notes": [
+        "D5",
+        "E5",
+        "F#5",
+        "A5",
+        "E5",
+        "D5",
+        "A4",
+        "D5"
+      ],
+      "paths": {
+        "single": "candidates/gentle-arc/single.wav",
+        "phrase": "candidates/gentle-arc/phrase.wav",
+        "flow": "candidates/gentle-arc/flow.wav",
+        "rapid": "candidates/gentle-arc/rapid.wav",
+        "pause_probe": "candidates/gentle-arc/pause-probe.wav"
+      },
+      "metrics": {
+        "single": {
+          "phone_rms_dbfs": -26.736733211475826,
+          "phone_energy_db": 7.857191666116481,
+          "peak_dbfs": -6.621591630144419,
+          "final_1ms_relative_peak_db": -83.24323130734248
+        },
+        "phrase": {
+          "phone_rms_dbfs": -33.75408132112735,
+          "phone_energy_db": 17.241343965825976,
+          "peak_dbfs": -5.32411225510409,
+          "final_1ms_relative_peak_db": -234.67588774489593
+        },
+        "flow": {
+          "phone_rms_dbfs": -35.4452646060073,
+          "phone_energy_db": 19.220446117856238,
+          "peak_dbfs": -5.731919618841478,
+          "final_1ms_relative_peak_db": -234.2680803811585
+        },
+        "rapid": {
+          "phone_rms_dbfs": -31.058856561345753,
+          "phone_energy_db": 17.95463669281067,
+          "peak_dbfs": -5.805164900155056,
+          "final_1ms_relative_peak_db": -234.19483509984497
+        },
+        "pause_probe": {
+          "phone_rms_dbfs": -36.888948887985514,
+          "phone_energy_db": 15.965724016615061,
+          "peak_dbfs": -5.32411225510409,
+          "final_1ms_relative_peak_db": -234.67588774489593
+        }
+      }
+    }
+  },
+  "audition_contract": {
+    "randomized_hidden_sides": true,
+    "required_primary_listens": [
+      "single",
+      "phrase",
+      "flow"
+    ],
+    "rapid_is_diagnostic_only": true,
+    "plain_x_is_fixed_anchor_not_a_competitor": true,
+    "neither_means_keep_plain_x": true,
+    "identity_reveal": "after final verdict"
+  },
+  "locked_completion": {
+    "paths": {
+      "accepted-select-2.wav": "locked/accepted-select-2.wav",
+      "answered-detent-natural.wav": "locked/answered-detent-natural.wav",
+      "completion-composite.wav": "locked/completion-composite.wav"
+    },
+    "accepted_select_sha256": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+    "answered_detent_sha256": "5b0d7e3ecd7399638ded807e1d4c2500320762a1d38fd611b212b0c8fc336ea6",
+    "completion_composite_sha256": "223907b95cd6b612ce5de11c7bed263473eaf7c51611bc8f7f1627a100437a47",
+    "accepted_select_at_seconds": 5.3,
+    "answered_detent_at_seconds": 5.375,
+    "outcome_delay_ms": 75.0
+  },
+  "qc": {
+    "meaning": {
+      "a4": {
+        "phone_rms_dbfs": -36.500000642188496,
+        "phone_energy_db": -1.9060757645961885,
+        "peak_dbfs": -24.084247496758607,
+        "final_1ms_relative_peak_db": -66.37746584585385
+      },
+      "d5": {
+        "phone_rms_dbfs": -36.500000954768446,
+        "phone_energy_db": -1.9060760771761356,
+        "peak_dbfs": -23.702922020079512,
+        "final_1ms_relative_peak_db": -62.851438909518755
+      },
+      "e5": {
+        "phone_rms_dbfs": -36.50000057511633,
+        "phone_energy_db": -1.9060756975240234,
+        "peak_dbfs": -23.67820003476426,
+        "final_1ms_relative_peak_db": -74.93237551725609
+      },
+      "fs5": {
+        "phone_rms_dbfs": -36.50000038467442,
+        "phone_energy_db": -1.9060755070821114,
+        "peak_dbfs": -24.042006167542453,
+        "final_1ms_relative_peak_db": -74.56122179991654
+      },
+      "a5": {
+        "phone_rms_dbfs": -36.50000070409882,
+        "phone_energy_db": -1.9060758265065045,
+        "peak_dbfs": -23.185915920221806,
+        "final_1ms_relative_peak_db": -64.12684138901501
+      }
+    },
+    "cues": {
+      "a4": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.355889044806343,
+            "phone_energy_db": 8.238035832785966,
+            "peak_dbfs": -5.805059048177782,
+            "final_1ms_relative_peak_db": -86.53859297459151
+          },
+          {
+            "phone_rms_dbfs": -26.149613078127388,
+            "phone_energy_db": 8.44431179946492,
+            "peak_dbfs": -6.919944105118433,
+            "final_1ms_relative_peak_db": -82.6873934000099
+          },
+          {
+            "phone_rms_dbfs": -26.22804034731697,
+            "phone_energy_db": 8.365884530275338,
+            "peak_dbfs": -5.3243091267325235,
+            "final_1ms_relative_peak_db": -84.0361995199383
+          },
+          {
+            "phone_rms_dbfs": -26.47185423959602,
+            "phone_energy_db": 8.122070637996291,
+            "peak_dbfs": -7.092329553440226,
+            "final_1ms_relative_peak_db": -84.87368559814014
+          },
+          {
+            "phone_rms_dbfs": -26.02839394416356,
+            "phone_energy_db": 8.565530933428748,
+            "peak_dbfs": -5.709467819547367,
+            "final_1ms_relative_peak_db": -83.86662975575716
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -26.344851406908244,
+            "phone_energy_db": 8.249073470684063,
+            "peak_dbfs": -6.388049877905159,
+            "final_1ms_relative_peak_db": -88.2489975569209
+          },
+          {
+            "phone_rms_dbfs": -26.129321572373296,
+            "phone_energy_db": 8.464603305219011,
+            "peak_dbfs": -7.370508395297069,
+            "final_1ms_relative_peak_db": -81.45901780928499
+          },
+          {
+            "phone_rms_dbfs": -26.22892051329872,
+            "phone_energy_db": 8.36500436429359,
+            "peak_dbfs": -5.731121254750448,
+            "final_1ms_relative_peak_db": -82.6522165854064
+          },
+          {
+            "phone_rms_dbfs": -26.466646515629094,
+            "phone_energy_db": 8.127278361963217,
+            "peak_dbfs": -8.25598682388481,
+            "final_1ms_relative_peak_db": -85.42990116884138
+          },
+          {
+            "phone_rms_dbfs": -26.015326931271456,
+            "phone_energy_db": 8.578597946320851,
+            "peak_dbfs": -6.088639416867786,
+            "final_1ms_relative_peak_db": -82.65546186427284
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -26.340637706584292,
+            "phone_energy_db": 8.253287171008017,
+            "peak_dbfs": -6.621707915724809,
+            "final_1ms_relative_peak_db": -89.80764573796529
+          },
+          {
+            "phone_rms_dbfs": -26.12074362544465,
+            "phone_energy_db": 8.47318125214766,
+            "peak_dbfs": -7.575171973754793,
+            "final_1ms_relative_peak_db": -80.78102569302514
+          },
+          {
+            "phone_rms_dbfs": -26.22938846246865,
+            "phone_energy_db": 8.364536415123657,
+            "peak_dbfs": -5.913868964947295,
+            "final_1ms_relative_peak_db": -81.89113914732326
+          },
+          {
+            "phone_rms_dbfs": -26.463458335184594,
+            "phone_energy_db": 8.130466542407714,
+            "peak_dbfs": -8.659737578521872,
+            "final_1ms_relative_peak_db": -86.26111654787762
+          },
+          {
+            "phone_rms_dbfs": -26.01007470303143,
+            "phone_energy_db": 8.583850174560876,
+            "peak_dbfs": -6.26276872290822,
+            "final_1ms_relative_peak_db": -82.01251356167695
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -26.327390881573812,
+            "phone_energy_db": 8.266533996018495,
+            "peak_dbfs": -7.6407507498625495,
+            "final_1ms_relative_peak_db": -83.98459363912467
+          },
+          {
+            "phone_rms_dbfs": -26.093415635820104,
+            "phone_energy_db": 8.500509241772201,
+            "peak_dbfs": -8.496969199497336,
+            "final_1ms_relative_peak_db": -78.09918662841986
+          },
+          {
+            "phone_rms_dbfs": -26.230867998952462,
+            "phone_energy_db": 8.363056878639844,
+            "peak_dbfs": -6.696218953868355,
+            "final_1ms_relative_peak_db": -79.03702834928283
+          },
+          {
+            "phone_rms_dbfs": -26.452851075055325,
+            "phone_energy_db": 8.141073802536988,
+            "peak_dbfs": -9.931794471589992,
+            "final_1ms_relative_peak_db": -85.37475369193636
+          },
+          {
+            "phone_rms_dbfs": -25.992754720148472,
+            "phone_energy_db": 8.601170157443836,
+            "peak_dbfs": -7.0808549234677285,
+            "final_1ms_relative_peak_db": -79.40536214440024
+          }
+        ]
+      },
+      "d5": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.632369592373728,
+            "phone_energy_db": 7.961555285218582,
+            "peak_dbfs": -5.805164900155056,
+            "final_1ms_relative_peak_db": -81.90138833849375
+          },
+          {
+            "phone_rms_dbfs": -26.367351375965864,
+            "phone_energy_db": 8.226573501626445,
+            "peak_dbfs": -6.919823757479961,
+            "final_1ms_relative_peak_db": -79.08006437593846
+          },
+          {
+            "phone_rms_dbfs": -26.326868848260403,
+            "phone_energy_db": 8.267056029331904,
+            "peak_dbfs": -5.324208975492998,
+            "final_1ms_relative_peak_db": -80.51195630649556
+          },
+          {
+            "phone_rms_dbfs": -26.495193435905588,
+            "phone_energy_db": 8.098731441686718,
+            "peak_dbfs": -7.092206793467057,
+            "final_1ms_relative_peak_db": -80.39093911243401
+          },
+          {
+            "phone_rms_dbfs": -26.27933908200609,
+            "phone_energy_db": 8.314585795586217,
+            "peak_dbfs": -5.709363127389869,
+            "final_1ms_relative_peak_db": -80.26989008371528
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -26.70606769857691,
+            "phone_energy_db": 7.887857179015399,
+            "peak_dbfs": -6.387936678787925,
+            "final_1ms_relative_peak_db": -82.58896114872326
+          },
+          {
+            "phone_rms_dbfs": -26.404909126719023,
+            "phone_energy_db": 8.189015750873285,
+            "peak_dbfs": -7.370381640143124,
+            "final_1ms_relative_peak_db": -78.10831511231314
+          },
+          {
+            "phone_rms_dbfs": -26.372535070447974,
+            "phone_energy_db": 8.221389807144336,
+            "peak_dbfs": -5.73101630127727,
+            "final_1ms_relative_peak_db": -79.44182902875848
+          },
+          {
+            "phone_rms_dbfs": -26.49433964619785,
+            "phone_energy_db": 8.09958523139446,
+            "peak_dbfs": -8.255846465226416,
+            "final_1ms_relative_peak_db": -80.2123507942511
+          },
+          {
+            "phone_rms_dbfs": -26.338269313808667,
+            "phone_energy_db": 8.255655563783645,
+            "peak_dbfs": -6.0885300533143365,
+            "final_1ms_relative_peak_db": -79.33199317831702
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -26.736733211475826,
+            "phone_energy_db": 7.857191666116481,
+            "peak_dbfs": -6.621591630144419,
+            "final_1ms_relative_peak_db": -83.24323130734248
+          },
+          {
+            "phone_rms_dbfs": -26.418684180869903,
+            "phone_energy_db": 8.175240696722406,
+            "peak_dbfs": -7.575042196456004,
+            "final_1ms_relative_peak_db": -77.57904033921258
+          },
+          {
+            "phone_rms_dbfs": -26.39410537755232,
+            "phone_energy_db": 8.199819500039986,
+            "peak_dbfs": -5.913761779914593,
+            "final_1ms_relative_peak_db": -78.855384444193
+          },
+          {
+            "phone_rms_dbfs": -26.493054739922176,
+            "phone_energy_db": 8.100870137670132,
+            "peak_dbfs": -8.659590541540169,
+            "final_1ms_relative_peak_db": -80.46406572964432
+          },
+          {
+            "phone_rms_dbfs": -26.361114825089437,
+            "phone_energy_db": 8.232810052502872,
+            "peak_dbfs": -6.262657144792528,
+            "final_1ms_relative_peak_db": -78.83537897122534
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -26.83532430088519,
+            "phone_energy_db": 7.758600576707117,
+            "peak_dbfs": -7.6406199890397595,
+            "final_1ms_relative_peak_db": -83.98472439994747
+          },
+          {
+            "phone_rms_dbfs": -26.462827101443835,
+            "phone_energy_db": 8.131097776148472,
+            "peak_dbfs": -8.496824892221468,
+            "final_1ms_relative_peak_db": -75.4028908920335
+          },
+          {
+            "phone_rms_dbfs": -26.46853618836626,
+            "phone_energy_db": 8.12538868922605,
+            "peak_dbfs": -6.696101666459544,
+            "final_1ms_relative_peak_db": -76.56273863527326
+          },
+          {
+            "phone_rms_dbfs": -26.48917529422401,
+            "phone_energy_db": 8.104749583368298,
+            "peak_dbfs": -9.931964702082446,
+            "final_1ms_relative_peak_db": -82.33086686476013
+          },
+          {
+            "phone_rms_dbfs": -26.436723912939026,
+            "phone_energy_db": 8.157200964653281,
+            "peak_dbfs": -7.0807323255603185,
+            "final_1ms_relative_peak_db": -76.73824875249025
+          }
+        ]
+      },
+      "e5": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.27788578629383,
+            "phone_energy_db": 8.31603909129848,
+            "peak_dbfs": -5.805267128376271,
+            "final_1ms_relative_peak_db": -98.78737906904915
+          },
+          {
+            "phone_rms_dbfs": -26.240100963319737,
+            "phone_energy_db": 8.353823914272573,
+            "peak_dbfs": -6.919707532819629,
+            "final_1ms_relative_peak_db": -89.65505626780924
+          },
+          {
+            "phone_rms_dbfs": -26.07967069772871,
+            "phone_energy_db": 8.514254179863599,
+            "peak_dbfs": -5.32411225510409,
+            "final_1ms_relative_peak_db": -90.7094581348128
+          },
+          {
+            "phone_rms_dbfs": -26.682059738313097,
+            "phone_energy_db": 7.911865139279212,
+            "peak_dbfs": -7.0920882391483335,
+            "final_1ms_relative_peak_db": -96.04785876685007
+          },
+          {
+            "phone_rms_dbfs": -26.01117604370659,
+            "phone_energy_db": 8.58274883388572,
+            "peak_dbfs": -5.70926202169179,
+            "final_1ms_relative_peak_db": -90.79597959875295
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -26.249234540474372,
+            "phone_energy_db": 8.344690337117937,
+            "peak_dbfs": -6.387827357659903,
+            "final_1ms_relative_peak_db": -93.05838224681942
+          },
+          {
+            "phone_rms_dbfs": -26.238670479668514,
+            "phone_energy_db": 8.355254397923792,
+            "peak_dbfs": -7.37025922757053,
+            "final_1ms_relative_peak_db": -87.55640946435253
+          },
+          {
+            "phone_rms_dbfs": -26.0448908865923,
+            "phone_energy_db": 8.549033991000012,
+            "peak_dbfs": -5.730914943218448,
+            "final_1ms_relative_peak_db": -88.31785291384082
+          },
+          {
+            "phone_rms_dbfs": -26.719632481643394,
+            "phone_energy_db": 7.874292395948911,
+            "peak_dbfs": -8.255710915408702,
+            "final_1ms_relative_peak_db": -94.5114903898073
+          },
+          {
+            "phone_rms_dbfs": -25.99113371712746,
+            "phone_energy_db": 8.60279116046485,
+            "peak_dbfs": -6.088424436305044,
+            "final_1ms_relative_peak_db": -88.6667362719527
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -26.238123122700394,
+            "phone_energy_db": 8.355801754891916,
+            "peak_dbfs": -6.621479328328894,
+            "final_1ms_relative_peak_db": -90.30427951946193
+          },
+          {
+            "phone_rms_dbfs": -26.236885478461215,
+            "phone_energy_db": 8.357039399131095,
+            "peak_dbfs": -7.5749168653189125,
+            "final_1ms_relative_peak_db": -86.42182008701248
+          },
+          {
+            "phone_rms_dbfs": -26.03167421134281,
+            "phone_energy_db": 8.562250666249495,
+            "peak_dbfs": -5.913658266769415,
+            "final_1ms_relative_peak_db": -87.05678734523146
+          },
+          {
+            "phone_rms_dbfs": -26.731948787979146,
+            "phone_energy_db": 7.861976089613164,
+            "peak_dbfs": -8.659448542313092,
+            "final_1ms_relative_peak_db": -91.97245740930866
+          },
+          {
+            "phone_rms_dbfs": -25.98298596249589,
+            "phone_energy_db": 8.610938915096417,
+            "peak_dbfs": -6.262549389113814,
+            "final_1ms_relative_peak_db": -87.57993918979979
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -26.203453124599196,
+            "phone_energy_db": 8.390471752993111,
+            "peak_dbfs": -7.640493708088188,
+            "final_1ms_relative_peak_db": -83.06739415559356
+          },
+          {
+            "phone_rms_dbfs": -26.230987937743897,
+            "phone_energy_db": 8.362936939848407,
+            "peak_dbfs": -8.496685529132488,
+            "final_1ms_relative_peak_db": -82.39326459045188
+          },
+          {
+            "phone_rms_dbfs": -25.98971198453993,
+            "phone_energy_db": 8.60421289305238,
+            "peak_dbfs": -6.695988397149538,
+            "final_1ms_relative_peak_db": -82.82108402923357
+          },
+          {
+            "phone_rms_dbfs": -26.767451560888716,
+            "phone_energy_db": 7.826473316703593,
+            "peak_dbfs": -9.932129106070605,
+            "final_1ms_relative_peak_db": -85.37441905745575
+          },
+          {
+            "phone_rms_dbfs": -25.95625894086908,
+            "phone_energy_db": 8.637665936723225,
+            "peak_dbfs": -7.080613927752944,
+            "final_1ms_relative_peak_db": -83.62982300448417
+          }
+        ]
+      },
+      "fs5": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.326116271179426,
+            "phone_energy_db": 8.267808606412881,
+            "peak_dbfs": -5.804253933400928,
+            "final_1ms_relative_peak_db": -89.1755042907462
+          },
+          {
+            "phone_rms_dbfs": -26.168320433971427,
+            "phone_energy_db": 8.42560444362088,
+            "peak_dbfs": -6.920859577116959,
+            "final_1ms_relative_peak_db": -93.32755593900569
+          },
+          {
+            "phone_rms_dbfs": -26.153522986427305,
+            "phone_energy_db": 8.440401891165001,
+            "peak_dbfs": -5.325070959196406,
+            "final_1ms_relative_peak_db": -96.82112600926072
+          },
+          {
+            "phone_rms_dbfs": -26.491821478035714,
+            "phone_energy_db": 8.102103399556597,
+            "peak_dbfs": -7.093263376934626,
+            "final_1ms_relative_peak_db": -89.06693144945615
+          },
+          {
+            "phone_rms_dbfs": -26.00819542507804,
+            "phone_energy_db": 8.585729452514267,
+            "peak_dbfs": -5.7102641957491755,
+            "final_1ms_relative_peak_db": -96.56952146298524
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -26.310105084588926,
+            "phone_energy_db": 8.283819793003381,
+            "peak_dbfs": -6.388910968794466,
+            "final_1ms_relative_peak_db": -86.12876102428628
+          },
+          {
+            "phone_rms_dbfs": -26.1579363203916,
+            "phone_energy_db": 8.435988557200712,
+            "peak_dbfs": -7.371472611662078,
+            "final_1ms_relative_peak_db": -93.16787868358298
+          },
+          {
+            "phone_rms_dbfs": -26.135735985928754,
+            "phone_energy_db": 8.458188891663557,
+            "peak_dbfs": -5.731919618841478,
+            "final_1ms_relative_peak_db": -93.20245115695485
+          },
+          {
+            "phone_rms_dbfs": -26.493571118374817,
+            "phone_energy_db": 8.100353759217494,
+            "peak_dbfs": -8.257054528221703,
+            "final_1ms_relative_peak_db": -86.2150112567355
+          },
+          {
+            "phone_rms_dbfs": -25.991991038002684,
+            "phone_energy_db": 8.601933839589623,
+            "peak_dbfs": -6.089471329543743,
+            "final_1ms_relative_peak_db": -94.12548206262957
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -26.30410122366733,
+            "phone_energy_db": 8.289823653924977,
+            "peak_dbfs": -6.622592486288666,
+            "final_1ms_relative_peak_db": -84.6726858702105
+          },
+          {
+            "phone_rms_dbfs": -26.15392043906954,
+            "phone_energy_db": 8.440004438522767,
+            "peak_dbfs": -7.576159180813272,
+            "final_1ms_relative_peak_db": -91.26710218812109
+          },
+          {
+            "phone_rms_dbfs": -26.128744562165057,
+            "phone_energy_db": 8.465180315427254,
+            "peak_dbfs": -5.91468430505209,
+            "final_1ms_relative_peak_db": -91.20761040047883
+          },
+          {
+            "phone_rms_dbfs": -26.494037753545747,
+            "phone_energy_db": 8.09988712404656,
+            "peak_dbfs": -8.66085608837605,
+            "final_1ms_relative_peak_db": -84.92636369969549
+          },
+          {
+            "phone_rms_dbfs": -25.98581644081809,
+            "phone_energy_db": 8.608108436774218,
+            "peak_dbfs": -6.26361748236898,
+            "final_1ms_relative_peak_db": -92.3119131280216
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -26.285131870692197,
+            "phone_energy_db": 8.308793006900112,
+            "peak_dbfs": -7.6417454390057316,
+            "final_1ms_relative_peak_db": -79.88835442760862
+          },
+          {
+            "phone_rms_dbfs": -26.14124631922295,
+            "phone_energy_db": 8.452678558369355,
+            "peak_dbfs": -8.498066943003158,
+            "final_1ms_relative_peak_db": -85.47804974536217
+          },
+          {
+            "phone_rms_dbfs": -26.106028935218546,
+            "phone_energy_db": 8.487895942373761,
+            "peak_dbfs": -6.697111145664577,
+            "final_1ms_relative_peak_db": -85.38059648728708
+          },
+          {
+            "phone_rms_dbfs": -26.49581527874867,
+            "phone_energy_db": 8.098109598843642,
+            "peak_dbfs": -9.930499732297909,
+            "final_1ms_relative_peak_db": -80.88772434517358
+          },
+          {
+            "phone_rms_dbfs": -25.965316833548897,
+            "phone_energy_db": 8.62860804404341,
+            "peak_dbfs": -7.081787514068354,
+            "final_1ms_relative_peak_db": -86.1905827316615
+          }
+        ]
+      },
+      "a5": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.31559597713032,
+            "phone_energy_db": 8.278328900461986,
+            "peak_dbfs": -5.804910613786415,
+            "final_1ms_relative_peak_db": -82.77318876043321
+          },
+          {
+            "phone_rms_dbfs": -26.19516964009039,
+            "phone_energy_db": 8.398755237501916,
+            "peak_dbfs": -6.920112871803078,
+            "final_1ms_relative_peak_db": -79.78930082219146
+          },
+          {
+            "phone_rms_dbfs": -26.180349005309232,
+            "phone_energy_db": 8.413575872283076,
+            "peak_dbfs": -5.3244495710791275,
+            "final_1ms_relative_peak_db": -81.20744726642417
+          },
+          {
+            "phone_rms_dbfs": -26.494440787258004,
+            "phone_energy_db": 8.099484090334304,
+            "peak_dbfs": -7.092501703063212,
+            "final_1ms_relative_peak_db": -81.23894211453027
+          },
+          {
+            "phone_rms_dbfs": -26.01720658742556,
+            "phone_energy_db": 8.57671829016675,
+            "peak_dbfs": -5.7096146318180585,
+            "final_1ms_relative_peak_db": -80.97741003386821
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -26.292049378899407,
+            "phone_energy_db": 8.301875498692905,
+            "peak_dbfs": -6.388208619871987,
+            "final_1ms_relative_peak_db": -83.60583115082166
+          },
+          {
+            "phone_rms_dbfs": -26.190743636585225,
+            "phone_energy_db": 8.403181241007086,
+            "peak_dbfs": -7.37068614756807,
+            "final_1ms_relative_peak_db": -78.77458539097567
+          },
+          {
+            "phone_rms_dbfs": -26.166577355875123,
+            "phone_energy_db": 8.427347521717186,
+            "peak_dbfs": -5.731268433475575,
+            "final_1ms_relative_peak_db": -80.08421336796361
+          },
+          {
+            "phone_rms_dbfs": -26.50034944683656,
+            "phone_energy_db": 8.093575430755752,
+            "peak_dbfs": -8.256183653098002,
+            "final_1ms_relative_peak_db": -81.16798806611666
+          },
+          {
+            "phone_rms_dbfs": -25.99955614052452,
+            "phone_energy_db": 8.594368737067787,
+            "peak_dbfs": -6.088792780045784,
+            "final_1ms_relative_peak_db": -79.99368183474184
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -26.282185109620755,
+            "phone_energy_db": 8.31173976797155,
+            "peak_dbfs": -6.621870985986088,
+            "final_1ms_relative_peak_db": -84.37702429997455
+          },
+          {
+            "phone_rms_dbfs": -26.18955530015162,
+            "phone_energy_db": 8.40436957744069,
+            "peak_dbfs": -7.575353964139461,
+            "final_1ms_relative_peak_db": -78.21992588459392
+          },
+          {
+            "phone_rms_dbfs": -26.160180941239688,
+            "phone_energy_db": 8.433743936352624,
+            "peak_dbfs": -5.914019273087239,
+            "final_1ms_relative_peak_db": -79.4675246445836
+          },
+          {
+            "phone_rms_dbfs": -26.502993447478516,
+            "phone_energy_db": 8.090931430113795,
+            "peak_dbfs": -8.659943773141277,
+            "final_1ms_relative_peak_db": -81.4992613660774
+          },
+          {
+            "phone_rms_dbfs": -25.992466181266977,
+            "phone_energy_db": 8.60145869632533,
+            "peak_dbfs": -6.262925191668773,
+            "final_1ms_relative_peak_db": -79.47202919675091
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -26.25053929424905,
+            "phone_energy_db": 8.343385583343254,
+            "peak_dbfs": -7.640934119495744,
+            "final_1ms_relative_peak_db": -83.98441026949149
+          },
+          {
+            "phone_rms_dbfs": -26.185964146490207,
+            "phone_energy_db": 8.407960731102103,
+            "peak_dbfs": -8.497171566087347,
+            "final_1ms_relative_peak_db": -75.95471467315488
+          },
+          {
+            "phone_rms_dbfs": -26.13862901402951,
+            "phone_energy_db": 8.4552958635628,
+            "peak_dbfs": -6.696383429042189,
+            "final_1ms_relative_peak_db": -77.07417209053666
+          },
+          {
+            "phone_rms_dbfs": -26.511212301048506,
+            "phone_energy_db": 8.082712576543802,
+            "peak_dbfs": -9.93155576244878,
+            "final_1ms_relative_peak_db": -83.85933199047535
+          },
+          {
+            "phone_rms_dbfs": -25.968666569873378,
+            "phone_energy_db": 8.62525830771893,
+            "peak_dbfs": -7.081026845817673,
+            "final_1ms_relative_peak_db": -77.28485180728418
+          }
+        ]
+      }
+    }
+  },
+  "generated_audio_sha256": {
+    "candidates/gentle-arc/flow.wav": "6cadb011a0687733f2eb4cecce3a2a42e868712e89785e2123fa3e59cbeeb21b",
+    "candidates/gentle-arc/pause-probe.wav": "cb327cfe8b2ad4888d143dc560310c2acac53371020d7b455001e7cabe424786",
+    "candidates/gentle-arc/phrase.wav": "a841f996fa040d6a82262aff336970f22ef5491b992afcdbc51e26a922e3aa73",
+    "candidates/gentle-arc/rapid.wav": "a5f2a763c7bed194e0ad041dc3cdb6c42365dec5dc33ddbbb2c944734cb124d2",
+    "candidates/gentle-arc/single.wav": "bdba154f0d617843e01e35c7a8b682f14877ce39ad7d7f8bffb89e32857b3a33",
+    "candidates/paired-return/flow.wav": "866110c46aed2f9decf4d330f1346295fc6b72cbc16f11eed6b194c2fcabd172",
+    "candidates/paired-return/pause-probe.wav": "716b7fbef2de991a263b1554599a1f3b452647f1b60f1f1dc18fa0dc7db909ac",
+    "candidates/paired-return/phrase.wav": "faf0161488af1f461e7becbdc156592d03e84b5def0bbcad4fbf4157eff81e54",
+    "candidates/paired-return/rapid.wav": "2749fdf07e739938843fdf376acd246d8f2b85bf4176467db12a8142dff12dc7",
+    "candidates/paired-return/single.wav": "bdba154f0d617843e01e35c7a8b682f14877ce39ad7d7f8bffb89e32857b3a33",
+    "control/plain-x-flow.wav": "48f27b5ceff8615e744a604052e2efa260305fe84700a3de984729ae8d5c67ee",
+    "control/plain-x-phrase.wav": "e69c0f1be6467630729d4c57a83a8c0763c70bec19cd8cde92b998239ebad991",
+    "control/plain-x-rapid.wav": "e5bfa8018cf0382067b02f43f98f13b7fa7f4b5ee6b1b1527179d1200594d4c4",
+    "control/plain-x-single.wav": "6653693fa687e082e0b2a3a4a9a90e3067c88459858bb31c9cc0fc5af6aa7fbe",
+    "cues/a4/navigate/1.wav": "06c89066eb4d0b3b5e2ed05cdfc4ab8131b570dc9cd2230b8fac2473ec81b8c9",
+    "cues/a4/navigate/2.wav": "fcdcdb6e80fac72d5f9724ede4d7c9ceac37b4fcf19ae9312c260657a3d2f0e7",
+    "cues/a4/navigate/3.wav": "bab972e17af2d2443874faa8fe8da05b39397df2a6e8e1a5df4a3853524f7c5b",
+    "cues/a4/navigate/4.wav": "a625b27d1e6334d867fe3f3b6e25c3efc43f19bcabe903f4e32579daceb81cc5",
+    "cues/a4/navigate/5.wav": "ebb6b9f80eeb572cfe4719258d3e3939111b2782e9411b18472b899feb738c26",
+    "cues/a4/open/1.wav": "b1c23c5443261ffa1595f5a01149ac521e87ee7ba2aea72141b07c526583463e",
+    "cues/a4/open/2.wav": "2236a16ab7e4f3e0f8c1603a1b83e4df8d10f6b77837dbc9bab60e166c142b99",
+    "cues/a4/open/3.wav": "8050973c7c01c3516643abc57d9ebbf7bae7e34c14514f99ff1a97f72ad3b2ba",
+    "cues/a4/open/4.wav": "61e14272164e5b0f817ed6ae9361448f8a3c7c07f4f834a414a4ffd4cf77be10",
+    "cues/a4/open/5.wav": "7e785b944e7d36a0620aef959651f411e20158379d67b7ceffadf02faf0f43cd",
+    "cues/a4/place/1.wav": "3f4febca7a5d50b1653b7710a273def3370d3d1da97dc4ef97dbca6ad4678980",
+    "cues/a4/place/2.wav": "0e87e493e171bdf5b127b42afd1a4a57cf9dbbdfd14925166d5e6fb02f137095",
+    "cues/a4/place/3.wav": "ff6eee73e2b11b11db370e841209fd6d73c9ec5d9ff4d52582167b43cfa8a072",
+    "cues/a4/place/4.wav": "7ea71f484314ec1bccffaaaf1644a285093e537782b4256ccf529a8a89ad8b23",
+    "cues/a4/place/5.wav": "a9b870b49468fe1e998ce50594887765be4e7a00cf4190ce204632f0b7716d39",
+    "cues/a4/select/1.wav": "dfd6a367dc8c9e1c876f0ed8fd475b5f635e1980bf76f20b27d72a1bf701f914",
+    "cues/a4/select/2.wav": "43f2598bfb30d7fa97e8b09dc9c5a9092b6a3fabc11a6c105b3c4a22b2d867a2",
+    "cues/a4/select/3.wav": "0ec7cd0fe6fe4990334ac18a2577fde310b2faa1eb70229d6d3914ca4d81f8af",
+    "cues/a4/select/4.wav": "8f9eb985c0368dd1213881ca0ee51c48e0267f57b4f295d3a94c194ccd255200",
+    "cues/a4/select/5.wav": "8b244941a5f09b08aaec1f90743d2dfa43e8d930a86fbca160f753694957b3f0",
+    "cues/a5/navigate/1.wav": "8221b6a92679419ebe60f37576684af0c2d80c72f645b469939cebff196b39d5",
+    "cues/a5/navigate/2.wav": "b65d506bcf151ef371376e1394283e0ba52076e6bf09a1db850e73e687255fd0",
+    "cues/a5/navigate/3.wav": "8d39a611b3699380d5b84b9de05607f51949be6bd1f5b0167dca3657815bc0f8",
+    "cues/a5/navigate/4.wav": "6bc15c5f51d8bd4147f87969e107b43e4073d059d3b5a4ef3554162c24e12c9d",
+    "cues/a5/navigate/5.wav": "9767b336431d8d2d9c890117ea7b20f87f4a17944a31f18081b7a3f992edd8d8",
+    "cues/a5/open/1.wav": "924fe584ec0bbe8a2e9e70a174d6dbe5775749694d654482c682a4e5927247c5",
+    "cues/a5/open/2.wav": "0783d76a5ffc3294e29fb5929bfa43cb675116376a145b843173f98ef1b105e1",
+    "cues/a5/open/3.wav": "f995dfaa88b48a20ed8bab257047bdeda442bcf7bd955e88adc1b9c69238802b",
+    "cues/a5/open/4.wav": "73eba5bfb56d6a668584965b00277ae2807548374e4220c6039cfd9e9b6d1255",
+    "cues/a5/open/5.wav": "8bfcfc5b0cce52bd4b6359364ad05aada5886be38e30be5a7990e7aa84f8cd5d",
+    "cues/a5/place/1.wav": "f966a957826c594371f032a8b36c431a6efd8167d4ce0a6d8e8ffadc4672b2ae",
+    "cues/a5/place/2.wav": "36960c6bdef6c7ef2e2d2098cbc90c61e9d63290a4051a4d873674184ce7fc66",
+    "cues/a5/place/3.wav": "1112d407da4cff98316aa8709c85fefe938630c3e83f3f6447d2150e0e695074",
+    "cues/a5/place/4.wav": "58a7c3047877dc8ce0c30f42badcec80bf04b54f5cae30794e016a89d833e190",
+    "cues/a5/place/5.wav": "c1431f728d3aeb85c084dca016d945042ece98a29f0777bc280dcc628031dc10",
+    "cues/a5/select/1.wav": "0878ce43da4d561d929451a38bd69c03c30a6fe87ed07af4a2868e4fff73de6f",
+    "cues/a5/select/2.wav": "777d409c0aa606625f467d586a6060fa915b4a87e84a2b88246669bf8f5575ad",
+    "cues/a5/select/3.wav": "c756af6fc5849d575473bdcb4deee2a9c6c0e3d05e479e815e5df5eb05da0caa",
+    "cues/a5/select/4.wav": "a4cb3f6540b52e6b096a38fe2021973ab56eb151b5005a08321a82c8381b430f",
+    "cues/a5/select/5.wav": "464501f107d91c96e9ce4e04db9b08bc7b0926b3c3b46ce72c3e5655cd4e9e94",
+    "cues/d5/navigate/1.wav": "bdba154f0d617843e01e35c7a8b682f14877ce39ad7d7f8bffb89e32857b3a33",
+    "cues/d5/navigate/2.wav": "5e80ae5b1c99f4c738a86fa786bfb7ad7c88eb8eb54b8a3ded7d3264348f06f0",
+    "cues/d5/navigate/3.wav": "82b7a55f61a607ab0dd52bc3b8e0d34a76bca2ff8ef26c4a4eb3343fa5c7c7c0",
+    "cues/d5/navigate/4.wav": "eb5d3e21c8ef174db4abc7746cc9ed0956fe7828e69e52636b0b9574c4c66b39",
+    "cues/d5/navigate/5.wav": "8c1dbaefa15d827f2ab48efc39e08ecc0e05511dda304d59d49aa8a399e8b630",
+    "cues/d5/open/1.wav": "275e262c17e7f19a9e9cd91c1d0d2ae0432e22aaf3e3e3d620a8eb520e5882e8",
+    "cues/d5/open/2.wav": "a57e91426790c6c3d78b60c3d2a8bf7b728c225b3ebc301a40dfa15b3976a69d",
+    "cues/d5/open/3.wav": "3715727d6c244b229f79979d4b5db6e39e30286a2cce4da9fac97f2631a55852",
+    "cues/d5/open/4.wav": "0558beb25247538feb1b1a64e45cd721f426f4d818e7b3a4eb0c814b0fc4158b",
+    "cues/d5/open/5.wav": "e11484ec1e2ba9eb5a8b4c31f96f0036cfd253b84ad971e6af86f4f503e39903",
+    "cues/d5/place/1.wav": "a690374b90b5c11bee97f72938d8c0f7292318679eb9d6a5daac67eccfd3db42",
+    "cues/d5/place/2.wav": "39b249aae542bb4895f6d535b526945f25aa6f9add1918b6398414d9ee8a3c7e",
+    "cues/d5/place/3.wav": "bacad35e6ce92d6f1cfe67fbab276a650e154d4e53602cb68285ade147c93f17",
+    "cues/d5/place/4.wav": "23cfe40140b2b98d05bc21fd2d37d5f6f13c836f9edfe8fad4f1c870b8d3c2b3",
+    "cues/d5/place/5.wav": "1d0679ef919ecfadb2df978c23573e4fdbb3c9166afa3bc6ebd55bd0a48c7322",
+    "cues/d5/select/1.wav": "fd3444f6a99f8d4dc5e4b08e58740e0269bead8a102f9e6e603b1d0e08f3d824",
+    "cues/d5/select/2.wav": "b4011c2fc857dfa71dc7f8029150c54e395713a487b96525bc118f37cd63f987",
+    "cues/d5/select/3.wav": "5ec25af33bdc6cfb4c7c209d3f6372a38a16916f8887d1404e6e2fda40fa6171",
+    "cues/d5/select/4.wav": "e304657b2bd661c33c6e0074622276a057cf31fec495082f2fe681bfa34e7a60",
+    "cues/d5/select/5.wav": "8e212c2ab5fa98a6e446a06eaf4b91477dd7821100e9e3994aa805da7faca4c0",
+    "cues/e5/navigate/1.wav": "805ec2f4dd8fe75be61608eebd63c1f180b1ff7144e9323a02658e8c07514c28",
+    "cues/e5/navigate/2.wav": "e7cf1280ef0193a5cd782a14e587b2e02ef1ad335c952f0c81b1a7b40d8ee2af",
+    "cues/e5/navigate/3.wav": "ebdabe9c683191e736f7875462135e334d05d1be5b2ded36c66b5f9d2f829dae",
+    "cues/e5/navigate/4.wav": "de1a9c8768cc68591a55ea07958224711ed7f40c3d25f44b642baf0f7d6e9020",
+    "cues/e5/navigate/5.wav": "a3431c7b43eaa634defaecc5bc4e8071f0aa00f8ca30cb3a7d80b10223b6f9f1",
+    "cues/e5/open/1.wav": "bdc471e5bbc7ab661b12b4cc96c2ed9f7bdd369d8920f00c0783ffbcdf8c4dc5",
+    "cues/e5/open/2.wav": "aa8e897a61ae2cc8c57738afb53185b2fe1e6267c013e0ab49b8d1015c4f9086",
+    "cues/e5/open/3.wav": "2d3969b3f1efce404a5196161c4b513245a8d3f4369d82169058208fdaabfafc",
+    "cues/e5/open/4.wav": "c2d3f5229bb54a7506cee197f17594d931ca446b3590e2d6a2177e5addf13794",
+    "cues/e5/open/5.wav": "38b74974f9792ad01601cf997321f50f841fcf337057f3f427a4f953b8879a3b",
+    "cues/e5/place/1.wav": "06e8315560ef633ae9f49a8f480204e4b45c4def7873cf18cdac4f4abb68309f",
+    "cues/e5/place/2.wav": "bca8eb2067f42cb9756068eb95c2321b9c4b75e055e9373e44cff9d4ec5a49df",
+    "cues/e5/place/3.wav": "327f8459cb1203bfa5f6bd691bbbfffb9623aaaa77d7ac326a905bc52b570c63",
+    "cues/e5/place/4.wav": "44e0b3279d2af55b7406aa9ad84db123974f4c7eba5a4c483d72517ccf692b12",
+    "cues/e5/place/5.wav": "a44a57870560396dd544f412e1c85400b46cccfc07f110816cbfa36bb54ad6dc",
+    "cues/e5/select/1.wav": "abe499014f1852881df1d66d792df2854fec042162e5bf354b4394800a608f34",
+    "cues/e5/select/2.wav": "d4b6a5d9c61091e659691b67d9927b3fcbe6e00d50292ffbbfeebed385c95dfa",
+    "cues/e5/select/3.wav": "cfe7995ade3a5cbd35df55790ff090a93d90ef4cf46190c8c9991f3c593d4d37",
+    "cues/e5/select/4.wav": "7660120c2f201ffb58f809435972d6f739e6de0857252e1a71a1d4a010be6008",
+    "cues/e5/select/5.wav": "515a47ef02368b2ea56699e73d4f305abc683054f99daa9212e3b5ed4f853fbf",
+    "cues/fs5/navigate/1.wav": "3fcbc38fdb4d885aa7885f1e94152b46cf205f01079b46288ae4c0eaf44d0ab5",
+    "cues/fs5/navigate/2.wav": "aca28f796eb6b4725de27e610806606a95a73662de608ce724d157a479b79d98",
+    "cues/fs5/navigate/3.wav": "73e84d3e18643677df6b56827ffa95e5d96a5f6c68d69ad0e56517acd71c69ff",
+    "cues/fs5/navigate/4.wav": "e98ee98f6a892cf9fdd0d4b801cbdd88f4f69148e18605fc26d9dd98eebce174",
+    "cues/fs5/navigate/5.wav": "227940efa2266f8e4314fdbe5778d5177afe2da2ab87f19cff138ffebe7fd9cd",
+    "cues/fs5/open/1.wav": "4ab4d32af00c81478450904594342db10eef96ab21bac4a6ab9d0ccb4cf01019",
+    "cues/fs5/open/2.wav": "38721a0d96b9d05cc826bead09d2d2a04d32de5eb605e0fc01f9503461949886",
+    "cues/fs5/open/3.wav": "faa09b19d7f21344cfd7b6c4c0ded9d585cb50c27067ad5b35b9b020d7631c77",
+    "cues/fs5/open/4.wav": "4f41295430ae426f4a78cfaa9c814301337db62ff7622e4ef70742c0d208515b",
+    "cues/fs5/open/5.wav": "72b8f61ef7685d031593db7cc26027bffb66712db1ecedd4bd6cfce7784fee27",
+    "cues/fs5/place/1.wav": "0766507414706cd76bd539badca18ecd279591d8ba0c553204c03c8b05204cfc",
+    "cues/fs5/place/2.wav": "b18d1d8feff303d9df87ea77e31a009a355430c6fe021b4219b50d1aa8bb0686",
+    "cues/fs5/place/3.wav": "93c4a14635f285cbc8490857af27982d3f3b263be577cae31214f506643fc0a8",
+    "cues/fs5/place/4.wav": "b4302d80429fdbdb35350f0122d5f1c75992ce428a6a0f26cdb92e60b8402492",
+    "cues/fs5/place/5.wav": "6161a7f0bd684b35e1431ac793a2851618b81101c5f9d0184861cc575dc01a49",
+    "cues/fs5/select/1.wav": "362041b92093581805fe86af0778e90d80a977a6fcd83f4601436d2689fe2dcf",
+    "cues/fs5/select/2.wav": "eba13eccc2a2826ad3923c67b17c51400d2cfa2da8c218791ec0f09fc34d5922",
+    "cues/fs5/select/3.wav": "31161bbd0dded5f33030bc20a1986790a7eda46754e049c6772625855f00c19c",
+    "cues/fs5/select/4.wav": "e8b379364a20e5046a46fd3e3b7802d8dfdd41eda167909e805fcd6f8ab0a6d0",
+    "cues/fs5/select/5.wav": "677630699679720a5b6f6ef16585ad595079594289a856fdf65c070de7c5c306",
+    "locked/accepted-select-2.wav": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+    "locked/answered-detent-natural.wav": "5b0d7e3ecd7399638ded807e1d4c2500320762a1d38fd611b212b0c8fc336ea6",
+    "locked/completion-composite.wav": "223907b95cd6b612ce5de11c7bed263473eaf7c51611bc8f7f1627a100437a47",
+    "locked-x/roles/navigate/1.wav": "6653693fa687e082e0b2a3a4a9a90e3067c88459858bb31c9cc0fc5af6aa7fbe",
+    "locked-x/roles/navigate/2.wav": "84c0e890705e45baa6c6fd189a817fe88f3798f9e7660f445431cad1edc41a95",
+    "locked-x/roles/navigate/3.wav": "533ef78f93bb783e7c2e180eee9c04a753021ce044da2e799058c53ba47088bf",
+    "locked-x/roles/navigate/4.wav": "30c7c70e935914818d1a483e9323eb773973d2da804ed8a40c6bef8ad0643c38",
+    "locked-x/roles/navigate/5.wav": "f6086c9eec5361c5a84ca6946be75c4fc5cd824963717af8ee80cc8928823231",
+    "locked-x/roles/open/1.wav": "94f5aaa4018d19018766dff798b8462f00a92afc2b55b5fd6ce21023fa7b422d",
+    "locked-x/roles/open/2.wav": "fa305dee3d978193f0baf87185672f5dcaa23d9dff589099b77239ef79131aff",
+    "locked-x/roles/open/3.wav": "43818ea3cbf998169eaa4792f5fcb21bacbf17eb619424c01e44a2bfb9ff4c4f",
+    "locked-x/roles/open/4.wav": "360c4451283efc2ef04844d08c87cd494bf43041a4cf57572666a15d9795a6fe",
+    "locked-x/roles/open/5.wav": "d842bb416930df189fe2919f52998c05a81ff561c33437c789b918a3c2a0fa20",
+    "locked-x/roles/place/1.wav": "fab8b1da14360ab463631d20995ded944a73aa83e95b66a5a00e8257b37c248e",
+    "locked-x/roles/place/2.wav": "e2fb5f061252b5ff60ec90aad28634ec516de1c1d628298f6242886dafa1871a",
+    "locked-x/roles/place/3.wav": "7815512e35b540f27b37226ed509d90551b7da70e21755a391ecd843e0a8587b",
+    "locked-x/roles/place/4.wav": "ffd000116a782c19a868ddcc36a8c71b905809b043ab9b9b0f77b4d6da0c39ba",
+    "locked-x/roles/place/5.wav": "9e559ba6af88f7bf1ce2ae834bc0bbe3e9252a26a8d92baf8169d035a7253c4c",
+    "locked-x/roles/select/1.wav": "1a7750dc84fd1a7cc6d29924bfcde21100fae66ee929bd5cf16800ec4d736c75",
+    "locked-x/roles/select/2.wav": "8062a68e243d239decea9688361de0e9cf6cb4f79fcbac143f4ff87e90992583",
+    "locked-x/roles/select/3.wav": "9d8c9981c624b2ab51bf917c7cf7ca37da81df851a21584a1e0a9eb7fd6fd3d0",
+    "locked-x/roles/select/4.wav": "09d94854224ebc6c4261bfda6ff5fd7c290e686061f8fbfd7fb96e2c710e9564",
+    "locked-x/roles/select/5.wav": "1818ddeac0b32df742f5048095957a74c25221ca9be25c8f116b3d50f530f673",
+    "meaning/a4.wav": "f92d08e6de92c243b26f230ab495c9c08302cae5fc5e64a26905770de41301ac",
+    "meaning/a5.wav": "8d39e5855e93d02ee2a19013f4fc732e760635dc08fcc9ed513f31bdaea12415",
+    "meaning/d5.wav": "422786bf70ac172f018c691deda8b45a979ed17f25a0d3ae10abd8dac2a3357b",
+    "meaning/e5.wav": "93870889058e0704024ea1598d836920e57ac70053992a38b32a0fc6a5fd081e",
+    "meaning/fs5.wav": "3f77bdbca6f48cc9fe68cd634853c36dc5c9441813f693675b5f1de7a049c0c7"
+  }
+}

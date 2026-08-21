@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../audio.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
+import 'facets.dart';
 import 'glass.dart';
+import 'pressable.dart';
 
 /// Compact continuity truth for the Quest board. It shares the existing TODAY
 /// rail instead of introducing another dashboard card or competing action.
@@ -16,42 +19,86 @@ class StreakFreezeStatus extends StatelessWidget {
   Widget build(BuildContext context) {
     final gap = state.pendingStreakGap;
     final stale = gap.days > 0 && !gap.covered;
-    final label = stale
-        ? 'BEST ${state.bestStreak.clamp(state.streakDays, 1 << 30)} · '
-              '${state.streakFreezes} FREEZES READY'
-        : '${state.streakDays} DAY STREAK · '
-              '${state.streakFreezes} ${state.streakFreezes == 1 ? "FREEZE" : "FREEZES"}';
+    final ready = state.streakFreezes;
+    final best = state.bestStreak.clamp(state.streakDays, 1 << 30);
+    final value = stale
+        ? '$ready READY · BEST $best KEPT'
+        : '$ready READY · ${state.streakDays} DAY STREAK';
+    final spokenStatus = stale
+        ? '$ready ${ready == 1 ? "freeze" : "freezes"} ready. Best streak $best kept.'
+        : '$ready ${ready == 1 ? "freeze" : "freezes"} ready. '
+              '${state.streakDays} day streak.';
 
-    return Semantics(
-      button: true,
-      label: '$label. Open streak freeze details.',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => showStreakFreezeDetails(context, state),
-        child: Padding(
-          padding: const EdgeInsets.only(top: 4, right: 8, bottom: 3),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                stale ? Icons.history_rounded : Icons.ac_unit_rounded,
-                size: 11,
-                color: stale ? Palette.textLo : Palette.info,
-              ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  label,
+    return Padding(
+      padding: const EdgeInsets.only(top: 5, right: 8, bottom: 3),
+      child: Pressable(
+        material: MaterialSound.glass,
+        pressDepth: 1,
+        edgeColor: Colors.transparent,
+        shape: const FacetedBorder(cut: 5),
+        semanticLabel: 'Freeze reserve. $spokenStatus Open details.',
+        onTapUp: (_) => showStreakFreezeDetails(context, state),
+        child: DecoratedBox(
+          decoration: facetedDecoration(
+            cut: 5,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: stale
+                  ? const [Color(0x261C1714), Color(0x14120F0D)]
+                  : const [Color(0x242A5553), Color(0x12131E1E)],
+            ),
+            borderColor: (stale ? Palette.textLo : Palette.info).withValues(
+              alpha: stale ? 0.24 : 0.34,
+            ),
+            borderWidth: 0.8,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(7, 4, 9, 5),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 1),
+                      child: Icon(
+                        stale ? Icons.history_rounded : Icons.ac_unit_rounded,
+                        size: 9,
+                        color: stale ? Palette.textLo : Palette.info,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'FREEZE RESERVE',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.label.copyWith(
+                          fontSize: 7.5,
+                          color: (stale ? Palette.textLo : Palette.info)
+                              .withValues(alpha: 0.82),
+                          letterSpacing: 1.15,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  value,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Type.label.copyWith(
-                    fontSize: 10,
+                    fontSize: 9.2,
                     color: stale ? Palette.textLo : Palette.info,
-                    letterSpacing: 0.75,
+                    letterSpacing: 0.7,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

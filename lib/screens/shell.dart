@@ -64,6 +64,27 @@ bool shouldSuppressNextNightReminder({
   return Days.nightKey(next) == nightDoneDay;
 }
 
+/// The welcome ignition is a visible-room event, never a launch side effect.
+/// Keeping this pure makes overlay ordering explicit and regression-testable.
+bool sessionIgnitionMayBegin({
+  required bool startupSettled,
+  required bool onboarded,
+  required bool questRoomVisible,
+  required bool whatsNewPending,
+  required bool whatsNewVisible,
+  required bool whatsNewCheckScheduled,
+  required bool morningVisible,
+  required bool morningCheckScheduled,
+}) =>
+    startupSettled &&
+    onboarded &&
+    questRoomVisible &&
+    !whatsNewPending &&
+    !whatsNewVisible &&
+    !whatsNewCheckScheduled &&
+    !morningVisible &&
+    !morningCheckScheduled;
+
 class FreshSocialInbox {
   const FreshSocialInbox({required this.sparkKinds, required this.circleAdds});
 
@@ -137,12 +158,18 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   List<Quest>? _quests;
   int _tab = 1; // Quests is home
   final Set<int> _visitedTabs = {1};
+  final List<Object> _soundTabScopes = List<Object>.generate(
+    5,
+    (_) => Object(),
+    growable: false,
+  );
   late final LuxeMotionController _luxeMotion;
   late final ReleaseNotesGate _releaseNotesGate;
   OverlayEntry? _morningOverlay;
   OverlayEntry? _whatsNewOverlay;
   bool _morningCheckScheduled = false;
   bool _whatsNewCheckScheduled = false;
+  bool _ignitionCheckScheduled = false;
   bool _whatsNewPending = false;
   bool _startupSettled = false;
   bool _initialRoomHandled = false;
@@ -151,13 +178,18 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   final SocialInboxSessionTracker _socialInboxSession =
       SocialInboxSessionTracker();
   Timer? _midnight; // fires at the next local midnight to roll the day over
+  Timer? _ignitionClearTimer;
   Future<void> _notificationSchedule = Future<void>.value();
   Future<String?>? _enableCloudFuture;
+  final AppSessionIgnitionGate _sessionIgnition = AppSessionIgnitionGate();
+  bool _roomIgniting = false;
+  bool _roomHearthLit = false;
 
   /// Bound by QuestsPage so pause-path saves always flush a pending
   /// deferred commit before writing (bug-hunt §1 — observer order alone
   /// is fragile across IndexedStack rebuilds).
   VoidCallback? _flushQuestsCommit;
+  void Function(Quest quest, Offset anchor)? _completeQuest;
 
   /// Serializes preference writes so a slower old write cannot land after a
   /// newer one. Export and lifecycle flushes await this same tail.
@@ -171,6 +203,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         const ReleaseNotesGate(SharedPreferencesReleaseSeenStore());
     _luxeMotion = LuxeMotionController();
     unawaited(_luxeMotion.start());
+    Sfx.instance.setInteractionScreen(_soundTabScopes[_tab]);
     WidgetsBinding.instance.addObserver(this);
     widget.roomLinks?.addListener(_onIncomingRoomLink);
     _load();
@@ -181,6 +214,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     widget.roomLinks?.removeListener(_onIncomingRoomLink);
     _midnight?.cancel();
+    _ignitionClearTimer?.cancel();
     _luxeMotion.dispose();
     super.dispose();
   }
@@ -289,6 +323,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _maybeOnboard();
     _maybeWhatsNew();
     _maybeMorning();
+    _maybeStartSessionIgnition();
     _rescheduleNotifications(); // refresh reminders for today (native-only)
   }
 
@@ -418,6 +453,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _maybeOnboard();
       _maybeWhatsNew();
       _maybeMorning();
+      _maybeStartSessionIgnition();
       _rescheduleNotifications();
     }
     return true;
@@ -461,6 +497,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         _maybeOnboard();
         _maybeWhatsNew();
         _maybeMorning();
+        _maybeStartSessionIgnition();
         _rescheduleNotifications();
       }
     } finally {
@@ -501,6 +538,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
     if (!mounted) return;
     Haptics.reduceMotion = state.reduceMotion;
+    Sfx.instance.soundEnabled = state.soundEnabled;
     // Decode the selected complete room while the Quest home is appearing, so
     // opening Me never flashes the procedural legacy fallback.
     unawaited(preloadSpaceTheme(state.wallStyle));
@@ -659,6 +697,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (!mounted) return;
     _maybeWhatsNew();
     _maybeMorning();
+    _maybeStartSessionIgnition();
   }
 
   Future<void> _openRoomGuide() async {
@@ -745,6 +784,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _whatsNewOverlay = null;
     if (mounted) setState(() {});
     _maybeMorning();
+    _maybeStartSessionIgnition();
   }
 
   /// Auto-greet: last night was closed out, today hasn't been briefed.
@@ -787,6 +827,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             e.remove();
             _morningOverlay = null;
             if (mounted) setState(() {});
+            _maybeStartSessionIgnition();
           },
           onClose: () {
             s.closeMorning(); // disarms the briefing
@@ -794,11 +835,53 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             e.remove();
             _morningOverlay = null;
             if (mounted) setState(() {});
+            _maybeStartSessionIgnition();
           },
         ),
       );
       _morningOverlay = e;
       Overlay.of(context).insert(e);
+    });
+  }
+
+  /// Starts the welcome flame only when the Quest room is genuinely on screen.
+  /// Overlay flows and pushed routes defer it without consuming the session
+  /// gate, so a first-run welcome or morning brief never steals the fwoosh.
+  void _maybeStartSessionIgnition() {
+    if (_ignitionCheckScheduled || _sessionIgnition.isClaimed) return;
+    _ignitionCheckScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _ignitionCheckScheduled = false;
+      if (!mounted) return;
+      final state = _state;
+      if (state == null) return;
+      final questRoomVisible =
+          _tab == 1 &&
+          _visitedTabs.contains(1) &&
+          Navigator.of(context).canPop() == false;
+      if (!sessionIgnitionMayBegin(
+            startupSettled: _startupSettled,
+            onboarded: state.onboarded,
+            questRoomVisible: questRoomVisible,
+            whatsNewPending: _whatsNewPending,
+            whatsNewVisible: _whatsNewOverlay != null,
+            whatsNewCheckScheduled: _whatsNewCheckScheduled,
+            morningVisible: _morningOverlay != null,
+            morningCheckScheduled: _morningCheckScheduled,
+          ) ||
+          !_sessionIgnition.claim()) {
+        return;
+      }
+      setState(() {
+        _roomHearthLit = true;
+        _roomIgniting = true;
+      });
+      Sfx.instance.play('fire_ignite');
+      _ignitionClearTimer?.cancel();
+      _ignitionClearTimer = Timer(const Duration(milliseconds: 900), () {
+        _ignitionClearTimer = null;
+        if (mounted) setState(() => _roomIgniting = false);
+      });
     });
   }
 
@@ -1250,7 +1333,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     final key = q.title.trim().toLowerCase();
     if (quests.any((e) => e.title.trim().toLowerCase() == key)) return false;
     q.createdDay ??= Days.key(Clock.now());
-    setState(() => quests.add(q));
+    setState(() {
+      quests.add(q);
+      // A deliberate re-take supersedes the old "don't restore this default"
+      // marker. Removing it again will add the marker back normally.
+      _state?.removedDefaults.remove(key);
+    });
     _persist();
     // a new dated plan should get its reminder right away (native-only)
     if (q.isEvent && (_state?.notifyEnabled ?? false)) {
@@ -1330,16 +1418,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // immediate instead of waiting for the gesture arena. Build a destination
     // only on its first visit; keeping five illustrated pages alive from frame
     // one decoded tens of megabytes the person had not asked to see yet.
-    final entersRoom = i == 0 || i == 1;
+    Sfx.instance.setInteractionScreen(_soundTabScopes[i]);
     setState(() {
       _visitedTabs.add(i);
       _tab = i;
     });
-    // The room acknowledges a deliberate arrival once. Continuous fireplace
-    // ambience turned a navigation cue into an unending fire sound, and firing
-    // only on the boundary would make Me -> Quests silent even though the user
-    // has entered a different room-facing page.
-    if (entersRoom) Sfx.instance.play('hearth', volumeScale: 0.32);
+    if (i == 1) _maybeStartSessionIgnition();
   }
 
   @override
@@ -1368,6 +1452,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // screen-reader/focus window between the post-frame check and the modal.
     final releaseOverlayVisible =
         _whatsNewPending || _whatsNewOverlay != null || _whatsNewCheckScheduled;
+    final soundRootRoute = ModalRoute.of(context);
 
     // Only the canvas listens to the notifier (theme swaps recolor it live);
     // the Scaffold subtree is passed as `child` and not rebuilt on every notify.
@@ -1464,20 +1549,22 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           onRestore: _restoreSnapshot,
                                           onBindFlush: (flush) =>
                                               _flushQuestsCommit = flush,
+                                          onBindComplete: (complete) =>
+                                              _completeQuest = complete,
                                           onNightClosed: () => unawaited(
                                             _rescheduleNotifications(),
                                           ),
                                           parallax: cameraFor(1),
                                           lightDirection: lightFor(1),
+                                          roomIgniting: _roomIgniting,
+                                          roomHearthLit: _roomHearthLit,
                                         )
                                       : const SizedBox.shrink(),
                                   _visitedTabs.contains(2)
                                       ? GoalsPage(
                                           state: state,
                                           onAdd: _addQuest,
-                                          activeTitles: {
-                                            for (final q in quests) q.title,
-                                          },
+                                          onRemoveQuest: _removeQuest,
                                           onRemoveGoal: _removeGoal,
                                           onPersist: _persist,
                                           quests: quests,
@@ -1491,6 +1578,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           state: state,
                                           quests: quests,
                                           onAdd: _addQuest,
+                                          onCompleteQuest: (quest, anchor) =>
+                                              _completeQuest?.call(
+                                                quest,
+                                                anchor,
+                                              ),
                                           parallax: cameraFor(3),
                                           lightDirection: lightFor(3),
                                         )
@@ -1505,7 +1597,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                         )
                                       : const SizedBox.shrink(),
                                 ].indexed)
-                                  TickerMode(enabled: _tab == i, child: page),
+                                  InteractionSoundScreenScope(
+                                    id: _soundTabScopes[i],
+                                    sourceRoute: soundRootRoute,
+                                    child: TickerMode(
+                                      enabled: _tab == i,
+                                      child: page,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -1666,6 +1765,8 @@ class _DockItem extends StatelessWidget {
       selected: selected,
       child: Pressable(
         pressDepth: 2,
+        interactionSound: InteractionSound.navigate,
+        soundEnabled: !selected,
         edgeColor: Colors.transparent,
         semanticLabel: '$label tab',
         onTapUp: (_) => onTap(),

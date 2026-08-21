@@ -75,7 +75,7 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
   void _toggle(Quest quest) {
     if (_selected.contains(quest.title)) {
       setState(() => _selected.remove(quest.title));
-      Sfx.instance.play('tick');
+      Sfx.instance.playMaterial(MaterialSound.glass);
       HapticFeedback.selectionClick();
       return;
     }
@@ -169,7 +169,6 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
                   enabled: _selected.isNotEmpty,
                   expand: true,
                   onTap: () {
-                    Sfx.instance.play('tick_lift');
                     setState(() => _step = 1);
                   },
                 )
@@ -194,8 +193,6 @@ class _TopThreeWizardState extends State<_TopThreeWizard> {
                         icon: Icons.auto_awesome,
                         expand: true,
                         onTap: () {
-                          Sfx.instance.play('streak');
-                          HapticFeedback.mediumImpact();
                           Navigator.of(context).pop(Set<String>.of(_selected));
                         },
                       ),

@@ -8,14 +8,18 @@ have no device frame, overlay copy, alpha channel, or transparency.
   separate render is necessary because Google's long edge may not exceed twice
   the short edge.
 
-The sequence is the same in both folders:
+The App Store sequence is:
 
 1. Quests — the daily board, six life domains, and an achievable main quest.
 2. Reward — a completed quest becoming XP, Glimmers, a stat gain, and streak
    progress.
-3. My Space — the authored room, earned Glimmers, level, and milestones.
-4. Change Space — a full-room preview and the no-cost room-switching promise.
-5. Journal — a private local entry shown in its then-and-now context.
+3. Plans — the Daybook, next class, and calendar sharing one warm desk.
+4. My Space — the authored room, earned Glimmers, level, and milestones.
+5. Change Space — a full-room preview and the no-cost room-switching promise.
+6. Journal — a private local entry shown in its then-and-now context.
+
+Google Play remains the earlier five-image core story without the Plans frame;
+Android publication is deferred, so those files stay unchanged in this iOS pass.
 
 Suggested Google Play alt text (each under 140 characters):
 

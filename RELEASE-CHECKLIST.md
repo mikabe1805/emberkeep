@@ -1,26 +1,84 @@
 # Room of Days Release Checklist
 
-Updated August 18, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 21, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.3+21 internal TestFlight candidate
+## 1.0.4+25 iOS App Store candidate
 
-- [x] Give the post-1.0.2 Daybook work a new release identity instead of
-  reusing the frozen 1.0.2+20 Android/web record.
+Builds 22, 23, and 24 were uploaded as internal candidates. Build 24 came from
+the older `ade02ef` source before the final sound and quest-management work, so
+it is superseded rather than releasable. Build 23 remains the known processed
+fallback; all current TestFlight and App Store actions below target Build 25.
+
+- [x] Preserve Build 23 as an internal TestFlight fallback. A live Codemagic
+  high-water check found the older Build 24 on Apple, so advance the final
+  candidate without changing its marketing version to `1.0.4+25`.
+- [x] Include the finished calendar-commitment work: Day Shape, fixed plans,
+  deadlines, and chosen Quests now read as distinct parts of the same day.
 - [x] Put the general Daybook, optional School lane, unified calendar views,
-  manual locations, and Get Directions in the newest-first What's New record.
+  manual locations, and Get Directions in the newest-first What's New record,
+  while retaining the earlier Build 21 record in the archive.
+- [x] Ship the owner-approved Day Ledger icon in the iOS asset catalog.
+- [x] Give the room one crisp five-take interaction voice, a phone-approved
+  bounded melodic return, a single-session hearth ignition, calmer rotating
+  Quest companion copy, and a brighter earned mark in the Day Ledger icon
+  without adding looping ambience.
+- [x] Let Goals take back and reselect adopted quests, preserve their progress,
+  and move weekly quests to another day without recreating them.
 - [x] Keep protected Google place search off. The candidate is built without a
   `PLACE_SEARCH_ENABLED=true` define; manual location entry and map handoff
   remain available.
-- [ ] Push the verified release-prep commit to `origin/main`, then start exactly
+- [ ] Confirm the existing App Store Version 1.0.4 draft remains unsent, public
+  distribution in the US and agreements remain in effect, and Build 25 is
+  unused. The public US catalog is not proof of those internal states.
+- [ ] Refresh and inspect the final App Store screenshots and paste the exact
+  1.0.4 What's New copy from the versioned `STORE-LISTING.md`.
+- [ ] Push the verified release commit to `origin/main`, then start exactly
   one manual Codemagic `ios-testflight` run for that displayed commit.
 - [ ] Save the emitted IPA, dSYM, and `release-evidence.txt`; verify the source
   commit, marketing version, build number, signature, and TestFlight upload.
-- [ ] After Apple finishes processing, add the build to the intended internal
-  tester group and install it over Build 19 on a physical iPhone.
+- [ ] After Apple finishes processing, add Build 25 to the intended internal
+  tester group and install it over Build 23 on a physical iPhone.
 - [ ] Complete the focused Daybook, persistence, accessibility, offline, and map
   handoff checks in `DEVICE-ACCEPTANCE-RUNBOOK.md` before any public App Store
   submission change.
+- [ ] In the existing App Store Version 1.0.4 draft, select processed Build 25,
+  complete its metadata, submit it to App Review, and verify the released
+  version in Apple's public catalog. Upload, TestFlight processing, and review
+  are not publication.
+
+Android store work is intentionally deferred for this release. Its immutable
+Build 20 evidence in `release-candidate.json` remains unchanged.
+
+## 1.0.4+23 internal TestFlight fallback
+
+- [x] Apple processed Version 1.0.4, Build 23 and made it available to the
+  internal `Me` group on August 19, 2026.
+- [x] Keep Build 23 available as the known processed fallback while Build 25 is
+  built and auditioned; do not attach it to the App Store draft unless Build 25
+  is abandoned for a documented release blocker.
+- [ ] Preserve a completed physical-iPhone acceptance receipt if Build 23 was
+  installed and tested; otherwise Build 25 supersedes this unchecked gate.
+
+## 1.0.4+24 superseded App Store Connect artifact
+
+- [x] Build 24 was produced from commit
+  `ade02ef8b58c421ae25ba6f7ac3379d8279abcf3` and processed by Apple on
+  August 19, 2026.
+- [x] Do not attach or submit Build 24. It predates the approved five-take X and
+  Paired Return system, Goals take-back/reselection, the reachable Planning
+  Ember, and the final narrow-layout repair.
+- [x] The attempted final-candidate run stopped before archive when its live
+  high-water check found Build 24 already present; Build 25 replaces it.
+
+## 1.0.3+21 internal TestFlight record
+
+- [x] Give the post-1.0.2 Daybook work a new internal identity instead of
+  reusing the frozen 1.0.2+20 Android/web record.
+- [x] Apple processed Version 1.0.3, Build 21 and made it available in
+  TestFlight on August 18, 2026.
+- [ ] Preserve a completed physical-iPhone acceptance receipt if Build 21 was
+  installed and tested; otherwise Build 25 supersedes this unchecked gate.
 
 ## 1.0.2+20 release record
 
@@ -69,7 +127,9 @@ not replace a signed device build or store-console review.
 - [x] Journal photos remain local and are excluded from cloud backup and shared
   rooms in v1.
 - [x] Cold-start backgrounds match the dark Room of Days canvas.
-- [x] Native/PWA icons use the approved lit-window Room of Days mark.
+- [x] Native/PWA icons use the owner-approved Day Ledger mark; the exact
+  iOS, Android legacy/adaptive/themed, web maskable, and Windows outputs were
+  rendered together and visually accepted on August 19, 2026.
 - [x] The web release uses a first-party, versioned offline cache now that
   Flutter's generated service worker is intentionally a no-op. It keeps
   CanvasKit on the Room of Days origin, refuses stale/incomplete deploy output,
@@ -185,10 +245,11 @@ Task 5 documentation commit itself.
 
 ## Verify before every candidate
 
-- [ ] Add the shipped build to `lib/content/release_notes.dart`, keep the
-  newest record first, and confirm its `version+build` matches both
-  `pubspec.yaml` and `release-candidate.json`. Include only factual changes
-  present in that exact candidate.
+- [x] Keep the iOS Build 25 record first in `lib/content/release_notes.dart` and
+  match its `1.0.4+25` identity to `pubspec.yaml`. The frozen Android Build 20
+  manifest remains separate in `release-candidate.json`. The current record
+  and store copy include only factual Daybook, quest-management, sound, hearth,
+  companion-copy, and Day Ledger changes in this candidate.
 - [ ] Install over the previous build and confirm What's New appears once,
   dismisses through both exits, and remains replayable from Me. Confirm a
   fresh install goes directly to onboarding, then inspect the normal,
@@ -348,7 +409,7 @@ Task 5 documentation commit itself.
   App Store profile, uploaded Build 19, and completed its automatic TestFlight
   submission after Apple processed the binary.
 - [x] In App Store Connect TestFlight Test Information, paste the exact Beta App
-  Description and Build 19 What to Test copy from `../STORE-LISTING.md`, use
+  Description and Build 19 What to Test copy from `STORE-LISTING.md`, use
   `support@roomofdays.com` as Feedback Email, add the marketing/privacy URLs and
   beta-review notes, and verify the existing beta-review contact fields. Build
   19's saved copy includes the redesigned About page, and the build is available
@@ -382,11 +443,11 @@ Task 5 documentation commit itself.
   Codemagic compiles that URL as empty; an empty `COFFEE_URL` remains the
   rollback switch for every platform.
 - [x] Route `support@roomofdays.com` to a monitored inbox (owner confirmed).
-- [x] Complete and publish Apple App Privacy from `../STORE-LISTING.md`, including
+- [x] Complete and publish Apple App Privacy from `STORE-LISTING.md`, including
   the privacy and deletion URLs and the seven linked, app-functionality data
   types used by optional account/cloud and user-authored features.
-- [ ] Complete Google Play Data safety from `../STORE-LISTING.md`.
-- [ ] Complete Google Play's Health Apps declaration from `../STORE-LISTING.md`;
+- [ ] Complete Google Play Data safety from `STORE-LISTING.md`.
+- [ ] Complete Google Play's Health Apps declaration from `STORE-LISTING.md`;
   do not claim that the app has no health features. Confirm the declaration
   includes Activity and Fitness, Nutrition and Weight Management, Sleep
   Management, and Stress Management / Relaxation / Mental Acuity.
@@ -433,7 +494,7 @@ Task 5 documentation commit itself.
   confirm no Emberkeep/project identity appears in the received email or action
   page, and prove that a full reset preserves the review account's cloud save.
 - [ ] Complete every Google Play App content card using
-  `../STORE-LISTING.md`: Ads No; sign-in details supplied; target audience and
+  `STORE-LISTING.md`: Ads No; sign-in details supplied; target audience and
   content rating; Data safety; Health apps; Financial features None;
   Government apps No; News and Magazine No; COVID-19 No; Advertising ID No;
   and any additional card Play Console marks `Needs attention`.

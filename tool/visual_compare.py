@@ -15,7 +15,8 @@ aspect, so a comparison only needs a common height -- never a crop.
     python tool/visual_compare.py social-phone # Me, Circle, and visitor-profile handoff
     python tool/visual_compare.py my-space-cards-phone # card deck + arranger handoff
     python tool/visual_compare.py sharing-journal-phone # sharing/privacy/journal handoff
-    python tool/visual_compare.py probe A B  # ad-hoc pair
+    python tool/visual_compare.py probe A B  # approved-target/current-build pair
+    python tool/visual_compare.py evidence-pair TITLE LABEL_A A LABEL_B B
 
 Output lands in design/comparisons/<stamp>/.
 """
@@ -148,11 +149,12 @@ def crop_pair(
     build: Path,
     box: tuple[float, float, float, float],
     height: int = 760,
+    tags: tuple[str, str] = ("APPROVED TARGET", "CURRENT BUILD"),
 ) -> Image.Image:
     """`box` is a fractional (l, t, r, b) window shared by both rasters."""
     label_h = 26
     tiles = []
-    for tag, path in (("APPROVED TARGET", target), ("CURRENT BUILD", build)):
+    for tag, path in zip(tags, (target, build)):
         img = Image.open(path).convert("RGB")
         l, t, r, b = box
         window = img.crop(
@@ -605,6 +607,22 @@ def main() -> None:
         title, a, b = sys.argv[2], Path(sys.argv[3]), Path(sys.argv[4])
         box = tuple(float(v) for v in sys.argv[5:9]) if len(sys.argv) > 8 else (0, 0, 1, 1)
         stack([crop_pair(title, a, b, box)], f"probe-{title.lower().replace(' ', '-')}")
+    elif mode == "evidence-pair":
+        title, label_a, a, label_b, b = sys.argv[2:7]
+        box = tuple(float(v) for v in sys.argv[7:11]) if len(sys.argv) > 10 else (0, 0, 1, 1)
+        slug = title.lower().replace(" ", "-")
+        stack(
+            [
+                crop_pair(
+                    title,
+                    Path(a),
+                    Path(b),
+                    box,
+                    tags=(label_a.upper(), label_b.upper()),
+                )
+            ],
+            f"evidence-{slug}",
+        )
     elif mode == "routine":
         routine_sheet()
     elif mode == "routine-detail":

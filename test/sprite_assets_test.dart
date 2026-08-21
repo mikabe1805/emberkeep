@@ -24,6 +24,7 @@ void main() {
       'complete',
       'crit',
       'hearth',
+      'fire_ignite',
       'hearth_room',
       'levelup',
       'loot',
@@ -37,6 +38,21 @@ void main() {
       'tick',
       'tick_lift',
       'tick_warm',
+      'tap_wood_1',
+      'tap_wood_2',
+      'tap_wood_3',
+      'tap_stone_1',
+      'tap_stone_2',
+      'tap_stone_3',
+      'tap_parchment_1',
+      'tap_parchment_2',
+      'tap_parchment_3',
+      'tap_brass_1',
+      'tap_brass_2',
+      'tap_brass_3',
+      'tap_glass_1',
+      'tap_glass_2',
+      'tap_glass_3',
     ]) {
       final data = await rootBundle.load('assets/sfx/$name.wav');
       expect(
@@ -44,6 +60,32 @@ void main() {
         greaterThan(0),
         reason: 'assets/sfx/$name.wav is empty',
       );
+    }
+
+    for (final role in const ['open', 'select', 'navigate', 'place']) {
+      for (var take = 1; take <= 5; take++) {
+        final path = 'assets/sfx/room/ordinary/$role/$take.wav';
+        final data = await rootBundle.load(path);
+        expect(data.lengthInBytes, greaterThan(0), reason: '$path is empty');
+      }
+    }
+    for (final token in const ['d5', 'a5', 'e5']) {
+      for (final role in const ['open', 'select', 'navigate', 'place']) {
+        for (var take = 1; take <= 5; take++) {
+          final path = 'assets/sfx/room/paired_return/$token/$role/$take.wav';
+          final data = await rootBundle.load(path);
+          expect(data.lengthInBytes, greaterThan(0), reason: '$path is empty');
+        }
+      }
+    }
+    for (final name in const [
+      'accepted-select-2',
+      'answered-detent-natural',
+      'completion-composite',
+    ]) {
+      final path = 'assets/sfx/room/completion/$name.wav';
+      final data = await rootBundle.load(path);
+      expect(data.lengthInBytes, greaterThan(0), reason: '$path is empty');
     }
   });
 }

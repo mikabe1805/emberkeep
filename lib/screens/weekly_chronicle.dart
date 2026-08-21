@@ -115,7 +115,7 @@ class _WeeklyChronicleScreenState extends State<WeeklyChronicleScreen> {
                       _PrivacyChoice(
                         selected: _includeReflection,
                         onChanged: (value) {
-                          Sfx.instance.play('tick');
+                          Sfx.instance.playMaterial(MaterialSound.glass);
                           HapticFeedback.selectionClick();
                           setState(() => _includeReflection = value);
                         },

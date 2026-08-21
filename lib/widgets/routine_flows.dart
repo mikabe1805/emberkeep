@@ -84,7 +84,7 @@ class _NightFlowState extends State<NightFlow> {
   Future<void> _finish() async {
     if (_closing) return;
     setState(() => _closing = true);
-    Sfx.instance.play('streak');
+    Sfx.instance.playAfterContact('streak');
     HapticFeedback.mediumImpact();
     if (!_reduceMotion) {
       await Future<void>.delayed(const Duration(milliseconds: 430));
@@ -137,7 +137,7 @@ class _NightFlowState extends State<NightFlow> {
       dateLabel: _routineDateLabel(Days.nightDate(Clock.now())),
       dismissLabel: 'NOT YET',
       onDismiss: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.glass);
         widget.onClose();
       },
       reduceMotion: _reduceMotion,
@@ -154,8 +154,6 @@ class _NightFlowState extends State<NightFlow> {
           onPrimary: _step == 0
               ? _finish
               : () {
-                  Sfx.instance.play('tick_lift');
-                  HapticFeedback.selectionClick();
                   setState(() => _step = 0);
                 },
           secondaryLabel: _step == 0
@@ -164,7 +162,7 @@ class _NightFlowState extends State<NightFlow> {
           onSecondary: _step == 0
               ? _keepNightReflection
               : () {
-                  Sfx.instance.play('tick');
+                  Sfx.instance.playMaterial(MaterialSound.glass);
                   setState(() => _step = 0);
                 },
           child: AnimatedSwitcher(
@@ -216,8 +214,9 @@ class _NightFlowState extends State<NightFlow> {
 
     return LayoutBuilder(
       builder: (context, bounds) {
-        final accessibilityText =
-            MediaQuery.textScalerOf(context).scale(1) > 1.15;
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final accessibilityText = textScale > 1.15;
+        final veryLargeText = textScale >= 1.75;
         final compact = bounds.maxWidth < 300 || accessibilityText;
         final tomorrowTray = _LedgerTomorrowTray(
           selected: selected,
@@ -355,7 +354,9 @@ class _NightFlowState extends State<NightFlow> {
                     if (compact) ...[
                       const Spacer(),
                       SizedBox(
-                        height: accessibilityText ? 84 : 92,
+                        height: veryLargeText
+                            ? 180
+                            : (accessibilityText ? 84 : 92),
                         child: tomorrowTray,
                       ),
                     ],
@@ -602,7 +603,7 @@ class _NightFlowState extends State<NightFlow> {
 
   /// Shame-free slip logging: no XP, no loss, no red — tomorrow is fresh.
   void _logSlip(Quest q) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     setState(() => _slipped.add(q));
   }
 
@@ -679,7 +680,7 @@ class _NightFlowState extends State<NightFlow> {
   }
 
   void _notYet(Quest q) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     // ask again after a couple more honest completions — never nag
     setState(() => q.risingStreak = Quest.risesAt - 2);
     widget.onPersist();
@@ -692,7 +693,7 @@ class _NightFlowState extends State<NightFlow> {
     final bundle = s.roll(q);
     s.commit(bundle);
     widget.onPersist();
-    Sfx.instance.play('complete');
+    Sfx.instance.playCompletionAccepted(transitionId: q);
     HapticFeedback.mediumImpact();
     setState(() {});
   }
@@ -1177,7 +1178,6 @@ class _NightFlowState extends State<NightFlow> {
           child: _BigButton(
             label: 'PLAN TOMORROW →',
             onTap: () {
-              Sfx.instance.play('tick');
               setState(() => _step = 1);
             },
           ),
@@ -1271,7 +1271,7 @@ class _NightFlowState extends State<NightFlow> {
                             HapticFeedback.lightImpact();
                             return;
                           }
-                          Sfx.instance.play('tick');
+                          Sfx.instance.playMaterial(MaterialSound.glass);
                           HapticFeedback.selectionClick();
                           setState(() {
                             if (selected) {
@@ -1499,7 +1499,7 @@ class _MorningFlowState extends State<MorningFlow> {
   Future<void> _finish() async {
     if (_closing) return;
     setState(() => _closing = true);
-    Sfx.instance.play('tick_lift');
+    Sfx.instance.playAfterContact('tick_lift');
     HapticFeedback.mediumImpact();
     if (!_reduceMotion) {
       await Future<void>.delayed(const Duration(milliseconds: 430));
@@ -1524,7 +1524,7 @@ class _MorningFlowState extends State<MorningFlow> {
       dateLabel: _routineDateLabel(now),
       dismissLabel: 'LATER',
       onDismiss: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.glass);
         (widget.onDismiss ?? widget.onClose)();
       },
       reduceMotion: _reduceMotion,
@@ -2045,7 +2045,7 @@ class _TomorrowSelfCard extends StatelessWidget {
   final String message;
 
   void _openFullMessage(BuildContext context) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -2356,8 +2356,11 @@ class _FinishedThreadsLedger extends StatelessWidget {
     final collapsedCount = 3;
     final visible = titles.take(collapsedCount).toList();
     final remaining = titles.length - visible.length;
-    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.15;
-    final height = compact ? (largeText ? 94.0 : 82.0) : 112.0;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final largeText = textScale > 1.15;
+    final height = compact
+        ? (textScale >= 1.75 ? 132.0 : (largeText ? 94.0 : 82.0))
+        : 112.0;
 
     if (titles.isEmpty) {
       return SizedBox(
@@ -2624,9 +2627,84 @@ class _LedgerTomorrowTray extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final veryLargeText = MediaQuery.textScalerOf(context).scale(1) >= 1.75;
+    final semanticLabel =
+        'Mark tomorrow, ${selected.length} of 3 priorities selected'
+        '${selected.isEmpty ? '' : ': ${selected.map((quest) => quest.displayTitle).join(', ')}'}';
+    if (compact && veryLargeText) {
+      return Semantics(
+        button: true,
+        label: semanticLabel,
+        child: Material(
+          color: Colors.transparent,
+          shape: const FacetedBorder(
+            cut: 8,
+            side: BorderSide(color: Color(0x997B603F)),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 9),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'MARK TOMORROW',
+                    textAlign: TextAlign.center,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      letterSpacing: 1.2,
+                      color: Palette.xpLight,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  for (var index = 0; index < 3; index++)
+                    Expanded(
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 18,
+                            child: Text(
+                              '${index + 1}',
+                              style: LedgerType.display.copyWith(
+                                fontSize: 16,
+                                color: index < selected.length
+                                    ? Palette.brassLit
+                                    : Palette.brass,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              index < selected.length
+                                  ? selected[index].displayTitle
+                                  : 'Choose one',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: LedgerType.body.copyWith(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: index < selected.length
+                                    ? Palette.textMid
+                                    : Palette.textLo,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Semantics(
       button: true,
-      label: 'Mark tomorrow, ${selected.length} of 3 priorities selected',
+      label: semanticLabel,
       child: Material(
         color: Colors.transparent,
         child: LayoutBuilder(

@@ -8,6 +8,8 @@ enum ReleaseHighlightKind {
   flexiblePlans,
   streakSafety,
   roomGuide,
+  interactionSound,
+  questControl,
 }
 
 class ReleaseHighlight {
@@ -47,6 +49,74 @@ class RoomReleaseNotes {
 /// Newest first. A user-facing build is not ready to release until its record
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
+  RoomReleaseNotes(
+    id: '1.0.4+25',
+    versionLabel: 'VERSION 1.0.4 · BUILD 25',
+    dateLabel: 'AUGUST 2026',
+    title: 'Plans are for your whole life.',
+    introduction:
+        'Your Daybook is calmer, quests are easier to reshape, and every interaction feels more at home in the room.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'YOUR WHOLE DAYBOOK',
+        body:
+            'Add events and tasks without setting up a term or course. School stays there when you need it.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.calendarViews,
+        title: 'ONE CALENDAR, FOUR VIEWS',
+        body:
+            'Month, week, three-day, and day views keep plans, classes, deadlines, and chosen quests together.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.locationDirections,
+        title: 'GET THERE',
+        body:
+            'Save a location and open directions in Apple Maps or Google Maps when it is time to go.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'QUESTS STAY YOURS',
+        body:
+            'Take a quest back, choose it again, or move a weekly quest to another day without losing it.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.interactionSound,
+        title: 'THE ROOM ANSWERS BACK',
+        body:
+            'Clicking around now has one crisp, varied voice, with a rare melodic reply tucked into the rhythm.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
+    id: '1.0.4+24',
+    versionLabel: 'VERSION 1.0.4 · BUILD 24',
+    dateLabel: 'AUGUST 2026',
+    title: 'Plans are for your whole life.',
+    introduction:
+        'Events, tasks, classes, quests, and the places you need to be can now share one calm Daybook.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'YOUR WHOLE DAYBOOK',
+        body:
+            'Add events and tasks without setting up a term or course. School stays there when you need it.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.calendarViews,
+        title: 'ONE CALENDAR, FOUR VIEWS',
+        body:
+            'Month, week, three-day, and day views keep plans, classes, deadlines, and chosen quests together.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.locationDirections,
+        title: 'GET THERE',
+        body:
+            'Save a location and open directions in Apple Maps or Google Maps when it is time to go.',
+      ),
+    ],
+  ),
   RoomReleaseNotes(
     id: '1.0.3+21',
     versionLabel: 'VERSION 1.0.3 · BUILD 21',

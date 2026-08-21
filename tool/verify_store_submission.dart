@@ -3,14 +3,15 @@ import 'dart:io';
 
 import 'package:image/image.dart' as img;
 
-const _listingPath = '../STORE-LISTING.md';
+const _listingName = 'STORE-LISTING.md';
 
 const _appStoreScreenshots = <String>[
   '01-quests-1290x2796.png',
   '02-reward-1290x2796.png',
-  '03-my-space-1290x2796.png',
-  '04-change-space-1290x2796.png',
-  '05-journal-1290x2796.png',
+  '03-plans-1290x2796.png',
+  '04-my-space-1290x2796.png',
+  '05-change-space-1290x2796.png',
+  '06-journal-1290x2796.png',
 ];
 
 const _playScreenshots = <String>[
@@ -29,14 +30,17 @@ const _legacyScreenshots = <String>[
   'store-assets/screenshots/05-insights-1290x2796.png',
 ];
 
-Future<void> main() async {
+Future<void> main(List<String> arguments) async {
   try {
+    final iosOnly = _parseIosOnly(arguments);
     if (!File('pubspec.yaml').existsSync()) {
       throw StateError('Run this command from the app repository root.');
     }
-    final listingFile = File(_listingPath).absolute;
+    final listingFile = File(_listingName);
     if (!listingFile.existsSync()) {
-      throw StateError('Missing store listing: ${listingFile.path}');
+      throw StateError(
+        'Missing the versioned App Store submission source: $_listingName.',
+      );
     }
     final listing = await listingFile.readAsString();
 
@@ -45,11 +49,13 @@ Future<void> main() async {
     _checkField(listing, 'Apple subtitle (30 characters)', 30);
     _checkField(listing, 'Apple promotional text (170 characters max)', 170);
     _checkField(listing, 'Apple keywords (100 characters max)', 100);
-    _checkField(
-      listing,
-      'Google Play short description (80 characters max)',
-      80,
-    );
+    if (!iosOnly) {
+      _checkField(
+        listing,
+        'Google Play short description (80 characters max)',
+        80,
+      );
+    }
 
     final fullDescription = _markdownSection(listing, 'Full description');
     final testFlightDescription = _markdownSection(
@@ -101,19 +107,25 @@ Future<void> main() async {
       r'^version:\s*(\S+)\s*$',
       multiLine: true,
     ).firstMatch(pubspec)?.group(1);
-    final candidate =
-        jsonDecode(await File('release-candidate.json').readAsString())
-            as Map<String, dynamic>;
-    final candidatePermissions = (candidate['permissions'] as List<dynamic>)
-        .cast<String>();
-    final candidateVersion =
-        '${candidate['versionName']}+'
-        '${candidate['versionCode']}';
-    if (pubspecVersion != candidateVersion) {
-      throw StateError(
-        'pubspec version $pubspecVersion differs from candidate '
-        '$candidateVersion.',
-      );
+    _verifyCurrentInAppReleaseNotes(pubspecVersion);
+    Map<String, dynamic>? candidate;
+    List<String>? candidatePermissions;
+    String? candidateVersion;
+    if (!iosOnly) {
+      candidate =
+          jsonDecode(await File('release-candidate.json').readAsString())
+              as Map<String, dynamic>;
+      candidatePermissions = (candidate['permissions'] as List<dynamic>)
+          .cast<String>();
+      candidateVersion =
+          '${candidate['versionName']}+'
+          '${candidate['versionCode']}';
+      if (pubspecVersion != candidateVersion) {
+        throw StateError(
+          'pubspec version $pubspecVersion differs from candidate '
+          '$candidateVersion.',
+        );
+      }
     }
     final normalizedFullDescription = fullDescription.replaceAll(
       RegExp(r'\s+'),
@@ -151,16 +163,7 @@ Future<void> main() async {
       'journal photos local and does not upload them',
     );
     for (final expected in const [
-      'Google Play Health apps declaration',
-      "My app doesn't provide any health features",
-      'Activity and Fitness',
-      'Nutrition and Weight Management',
-      'Sleep Management',
-      'Stress Management, Relaxation, Mental Acuity',
-      '| Health info | Yes | No | No | Optional | App functionality |',
       'Device tilt only controls visual depth and is not stored or uploaded.',
-      'Organization',
-      'D-U-N-S number',
       'NSPrivacyCollectedDataTypeHealth',
     ]) {
       final source = expected == 'NSPrivacyCollectedDataTypeHealth'
@@ -168,26 +171,55 @@ Future<void> main() async {
           : normalizedListing;
       _expectContains('health disclosure', source, expected);
     }
+    if (!iosOnly) {
+      for (final expected in const [
+        'Google Play Health apps declaration',
+        "My app doesn't provide any health features",
+        'Activity and Fitness',
+        'Nutrition and Weight Management',
+        'Sleep Management',
+        'Stress Management, Relaxation, Mental Acuity',
+        '| Health info | Yes | No | No | Optional | App functionality |',
+        'Organization',
+        'D-U-N-S number',
+      ]) {
+        _expectContains(
+          'Google Play health disclosure',
+          normalizedListing,
+          expected,
+        );
+      }
+    }
     for (final expected in const [
       'Apple App Store Connect completion key',
       'Content Rights:** **Yes',
       'SIL Open Font License',
       '2026 <legal rights holder>',
       'Digital Services Act (DSA) status',
-      'Google Play App content completion key',
-      'All or some functionality is restricted',
-      'dedicated, reusable review-only account',
       "My app doesn't provide any financial features",
       'non-purchasable, non-transferable progression counters',
       'Government apps:** No',
       'News and Magazine apps:** No',
       'COVID-19 contact tracing or status app:** No',
-      'Advertising ID:** No',
-      'READ_MEDIA_IMAGES',
-      'READ_MEDIA_VIDEO',
-      'not a Social or Dating app',
     ]) {
       _expectContains('console answer key', normalizedListing, expected);
+    }
+    if (!iosOnly) {
+      for (final expected in const [
+        'Google Play App content completion key',
+        'All or some functionality is restricted',
+        'dedicated, reusable review-only account',
+        'Advertising ID:** No',
+        'READ_MEDIA_IMAGES',
+        'READ_MEDIA_VIDEO',
+        'not a Social or Dating app',
+      ]) {
+        _expectContains(
+          'Google Play console answer key',
+          normalizedListing,
+          expected,
+        );
+      }
     }
     for (final expected in const [
       'verified custom Auth email domain',
@@ -205,24 +237,26 @@ Future<void> main() async {
         'iOS Info.plist must declare ITSAppUsesNonExemptEncryption=false.',
       );
     }
-    for (final permission in const [
-      'com.google.android.gms.permission.AD_ID',
-      'android.permission.READ_MEDIA_IMAGES',
-      'android.permission.READ_MEDIA_VIDEO',
-      'android.permission.READ_EXTERNAL_STORAGE',
-      'android.permission.ACCESS_FINE_LOCATION',
-      'android.permission.ACCESS_COARSE_LOCATION',
-      'android.permission.READ_CONTACTS',
-      'android.permission.SCHEDULE_EXACT_ALARM',
-      'android.permission.USE_EXACT_ALARM',
-      'android.permission.REQUEST_INSTALL_PACKAGES',
-      'com.android.vending.BILLING',
-    ]) {
-      if (candidatePermissions.contains(permission)) {
-        throw StateError(
-          'Store answer key says the candidate omits $permission, but the '
-          'release permission inventory contains it.',
-        );
+    if (!iosOnly) {
+      for (final permission in const [
+        'com.google.android.gms.permission.AD_ID',
+        'android.permission.READ_MEDIA_IMAGES',
+        'android.permission.READ_MEDIA_VIDEO',
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.ACCESS_FINE_LOCATION',
+        'android.permission.ACCESS_COARSE_LOCATION',
+        'android.permission.READ_CONTACTS',
+        'android.permission.SCHEDULE_EXACT_ALARM',
+        'android.permission.USE_EXACT_ALARM',
+        'android.permission.REQUEST_INSTALL_PACKAGES',
+        'com.android.vending.BILLING',
+      ]) {
+        if (candidatePermissions!.contains(permission)) {
+          throw StateError(
+            'Store answer key says the candidate omits $permission, but the '
+            'release permission inventory contains it.',
+          );
+        }
       }
     }
     for (final path in const [
@@ -249,30 +283,32 @@ Future<void> main() async {
     );
     _pass(
       'public URLs, local pages, privacy/health and console declarations, '
-      'candidate permissions, export status, licenses, and $candidateVersion '
-      'agree',
+      '${iosOnly ? 'current in-app release notes' : 'candidate permissions'}, '
+      'export status, licenses, and ${iosOnly ? pubspecVersion : candidateVersion} agree',
     );
 
     _section('Submission artwork');
     _verifyRgbPng('web/icons/Icon-1024.png', 1024, 1024);
-    _verifyRgbPng('web/icons/Icon-512.png', 512, 512);
-    _verifyRgbPng(
-      'store-assets/google-play-feature-graphic-1024x500.png',
-      1024,
-      500,
-    );
     _verifyScreenshotDirectory(
       'store-assets/screenshots/app-store',
       _appStoreScreenshots,
       1290,
       2796,
     );
-    _verifyScreenshotDirectory(
-      'store-assets/screenshots/google-play',
-      _playScreenshots,
-      1080,
-      1920,
-    );
+    if (!iosOnly) {
+      _verifyRgbPng('web/icons/Icon-512.png', 512, 512);
+      _verifyRgbPng(
+        'store-assets/google-play-feature-graphic-1024x500.png',
+        1024,
+        500,
+      );
+      _verifyScreenshotDirectory(
+        'store-assets/screenshots/google-play',
+        _playScreenshots,
+        1080,
+        1920,
+      );
+    }
     for (final path in _legacyScreenshots) {
       if (File(path).existsSync()) {
         throw StateError('Retired store screenshot still exists: $path');
@@ -284,19 +320,29 @@ Future<void> main() async {
     _expectContains(
       'screenshot README',
       screenshotReadme,
-      'The sequence is the same in both folders:',
+      'The App Store sequence is:',
     );
     for (final item in const [
       '1. Quests',
       '2. Reward',
-      '3. My Space',
-      '4. Change Space',
-      '5. Journal',
+      '3. Plans',
+      '4. My Space',
+      '5. Change Space',
+      '6. Journal',
     ]) {
       _expectContains('screenshot README', screenshotReadme, item);
     }
+    if (!iosOnly) {
+      _expectContains(
+        'screenshot README',
+        screenshotReadme,
+        'Google Play remains the earlier five-image core story',
+      );
+    }
     _pass(
-      'icons, feature graphic, and both five-image screenshot sets are RGB',
+      iosOnly
+          ? 'App Store icon and six-image screenshot set are RGB'
+          : 'icons, feature graphic, and both five-image screenshot sets are RGB',
     );
 
     stdout.writeln();
@@ -308,6 +354,52 @@ Future<void> main() async {
     }
     exitCode = 1;
   }
+}
+
+bool _parseIosOnly(List<String> arguments) {
+  if (arguments.isEmpty) return false;
+  if (arguments.length == 1 && arguments.single == '--ios-only') return true;
+  throw ArgumentError(
+    'Usage: dart run tool/verify_store_submission.dart [--ios-only]',
+  );
+}
+
+void _verifyCurrentInAppReleaseNotes(String? pubspecVersion) {
+  if (pubspecVersion == null) {
+    throw StateError('pubspec.yaml is missing a version.');
+  }
+  final releaseNotes = File('lib/content/release_notes.dart');
+  if (!releaseNotes.existsSync()) {
+    throw StateError('Missing lib/content/release_notes.dart.');
+  }
+  final source = releaseNotes.readAsStringSync();
+  final match = RegExp(
+    r"RoomReleaseNotes\(\s*id: '([^']+)',\s*versionLabel: '([^']+)'",
+    dotAll: true,
+  ).firstMatch(source);
+  if (match == null) {
+    throw StateError('Could not read the current in-app release notes.');
+  }
+  final noteVersion = match.group(1)!;
+  if (noteVersion != pubspecVersion) {
+    throw StateError(
+      'pubspec version $pubspecVersion differs from current in-app release notes $noteVersion.',
+    );
+  }
+  final versionMatch = RegExp(
+    r'^(\d+\.\d+\.\d+)\+(\d+)$',
+  ).firstMatch(pubspecVersion);
+  if (versionMatch == null) {
+    throw StateError('pubspec version $pubspecVersion is not version+build.');
+  }
+  final expectedLabel =
+      'VERSION ${versionMatch.group(1)} · BUILD ${versionMatch.group(2)}';
+  if (match.group(2) != expectedLabel) {
+    throw StateError(
+      'Current in-app release label is "${match.group(2)}"; expected "$expectedLabel".',
+    );
+  }
+  _pass('pubspec $pubspecVersion matches current in-app release notes');
 }
 
 void _checkField(String markdown, String label, int maximum) {

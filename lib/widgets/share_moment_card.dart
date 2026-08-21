@@ -129,6 +129,7 @@ class _ShareMomentSheetState extends State<ShareMomentSheet> {
                   ),
                   Pressable(
                     semanticLabel: 'Share this moment',
+                    material: MaterialSound.brass,
                     shape: const FacetedBorder(cut: 9),
                     onTapUp: (_) => _share(),
                     child: Container(

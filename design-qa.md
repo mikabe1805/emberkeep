@@ -576,6 +576,25 @@ validation step
 - `flutter analyze`: passed with no issues.
 - Full `flutter test`: 158/158 passed.
 - Store-size screenshot regeneration: 17/17 passed.
+
+## 2026-08-19 — Day Ledger launcher identity
+
+This supersedes only the launcher-mark bullets in the 2026-08-03 historical
+record above. The owner selected **The Day Ledger**, an open physical quest
+ledger with one completed honey-gold medallion and two unfinished Room of Days
+completion rings. The previous room-and-sun source remains archived provenance
+and is no longer the shipping launcher identity.
+
+- Selected source, exact prompt lineage, rejected transparency attempt, and
+  owner checkpoint: `design/icon-exploration/2026-08-19/README.md`.
+- Production source/export instructions:
+  `assets/brand/README.md`.
+- Exact source and derivative hashes:
+  `assets/brand/room-of-days-icon-manifest-v1.json`.
+- Exact platform-output review:
+  `design/icon-exploration/2026-08-19/selected/shipping-platform-review.png`.
+- Android adaptive icons now use a true transparent foreground and an 8%
+  inset; the old opaque-master/12% treatment is superseded.
 - `flutter build web --release`: passed, including the WebAssembly dry run.
 - A clean rebuild removed a stale generated-only `figma-board` directory; the
   shipping web root now contains no former public-name copy.

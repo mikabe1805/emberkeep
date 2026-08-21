@@ -1,0 +1,284 @@
+{
+  "study": "room-reward-voice-v1",
+  "question": "Which completion ending would you want to earn again?",
+  "runtime_changed": false,
+  "locked_everyday_family": {
+    "source_study": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1",
+    "roles": [
+      "open",
+      "select",
+      "navigate",
+      "place"
+    ],
+    "source_hashes": {
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\1.wav": "d65524fa80c1f9f23adc0a677a656dcda4fe4a56b0d76863a034c6ff0de13b52",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\2.wav": "6e2e9c6c3f368835b8e6418c6a3457759d66e3b38b04d45e04e4708bda8d07c8",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\3.wav": "54b410aa919e5f38d62e8602fc3bb3599342e6e31e6b27b99af519483700a013",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\1.wav": "aecdc07653984c0a9c5dd32afe8f6279ab2683c66cea6a62e58521e26d18e4ac",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\2.wav": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\3.wav": "8c56e5fff8ac499d3cc9e444e60c68ec1d83634003ef378a85f9a40fd3bca8cb",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\1.wav": "5e77d912c56c3c19a6eab5bac94b919e7766b61b26fe82b2edad2b8d431c7074",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\2.wav": "9174ef1d18a9c549a424c540a92f6c5c13ddf279d846854e25dfb5a377e9e23b",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\3.wav": "c823d028abfa03208685f915b45d9ff02f53a77a9576998e3883b9fdb12976fc",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\1.wav": "c4f9d9fc9ec086c549f0dc388889c76181d6a349b9d1cc3bf851bcbfc20a4459",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\2.wav": "84d74f4ddfb4802321ddf88c2291ee7b6a408512a34801e3f1387b3a1427c321",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\3.wav": "219401b83616530ade61e60d91c71a5691b14b3b22c178eadf1cdedf6e4116d6"
+    }
+  },
+  "render_contract": {
+    "render_version": "room-reward-author-v1",
+    "contact_master_id": "approved-c-contact-v1",
+    "body_master_id": "room-modal-bank-v1",
+    "space_fingerprint_id": "room-close-reflection-v1",
+    "fixed_pitch_token": {
+      "id": "d",
+      "support_hz": 440.0,
+      "root_hz": 587.33,
+      "answer_hz": 880.0
+    },
+    "outcome_delay_ms": 75.0,
+    "matched_reward_energy_reference": "exact current unified complete-bloom take 2",
+    "natural_reward_lift_db": 0.65,
+    "mechanism_is_only_primary_study_axis": true
+  },
+  "rewards": {
+    "baseline": {
+      "reveal_name": "Current unified bloom",
+      "intent": "the exact completion bloom heard in the accepted system proof",
+      "duration_ms": 205.0,
+      "paths": {
+        "matched": {
+          "reward": "rewards/baseline/matched.wav",
+          "composite": "composites/baseline/matched.wav",
+          "flow": "flows/baseline/matched.wav",
+          "phone_energy": 5.32718214949786,
+          "peak_dbfs": -12.614958393493716
+        },
+        "natural": {
+          "reward": "rewards/baseline/natural.wav",
+          "composite": "composites/baseline/natural.wav",
+          "flow": "flows/baseline/natural.wav",
+          "phone_energy": 5.32718214949786,
+          "peak_dbfs": -12.614958393493716
+        }
+      },
+      "derivation": {
+        "render_version": "room-reward-author-v1",
+        "contact_master_id": null,
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_token": "existing-e-take",
+        "study_axis": "reward_mechanism"
+      }
+    },
+    "receipt-edge": {
+      "reveal_name": "Receipt edge",
+      "intent": "clean release edge followed by a compact warm bloom",
+      "duration_ms": 245.0,
+      "paths": {
+        "matched": {
+          "reward": "rewards/receipt-edge/matched.wav",
+          "composite": "composites/receipt-edge/matched.wav",
+          "flow": "flows/receipt-edge/matched.wav",
+          "phone_energy": 5.327182149497861,
+          "peak_dbfs": -11.716427995754305
+        },
+        "natural": {
+          "reward": "rewards/receipt-edge/natural.wav",
+          "composite": "composites/receipt-edge/natural.wav",
+          "flow": "flows/receipt-edge/natural.wav",
+          "phone_energy": 5.741132189900456,
+          "peak_dbfs": -11.066427995754307
+        }
+      },
+      "derivation": {
+        "render_version": "room-reward-author-v1",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_token": "d",
+        "study_axis": "reward_mechanism"
+      }
+    },
+    "seated-catch": {
+      "reveal_name": "Seated catch",
+      "intent": "dense low-mid latch body that settles with weight",
+      "duration_ms": 295.0,
+      "paths": {
+        "matched": {
+          "reward": "rewards/seated-catch/matched.wav",
+          "composite": "composites/seated-catch/matched.wav",
+          "flow": "flows/seated-catch/matched.wav",
+          "phone_energy": 5.327182149497865,
+          "peak_dbfs": -13.49691488310043
+        },
+        "natural": {
+          "reward": "rewards/seated-catch/natural.wav",
+          "composite": "composites/seated-catch/natural.wav",
+          "flow": "flows/seated-catch/natural.wav",
+          "phone_energy": 5.741132189900462,
+          "peak_dbfs": -12.846914883100432
+        }
+      },
+      "derivation": {
+        "render_version": "room-reward-author-v1",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_token": "d",
+        "study_axis": "reward_mechanism"
+      }
+    },
+    "answered-detent": {
+      "reveal_name": "Answered detent",
+      "intent": "physical catch followed by one restrained delayed answer",
+      "duration_ms": 285.0,
+      "paths": {
+        "matched": {
+          "reward": "rewards/answered-detent/matched.wav",
+          "composite": "composites/answered-detent/matched.wav",
+          "flow": "flows/answered-detent/matched.wav",
+          "phone_energy": 5.327182149497859,
+          "peak_dbfs": -14.695739560421936
+        },
+        "natural": {
+          "reward": "rewards/answered-detent/natural.wav",
+          "composite": "composites/answered-detent/natural.wav",
+          "flow": "flows/answered-detent/natural.wav",
+          "phone_energy": 5.741132189900454,
+          "peak_dbfs": -14.045739560421937
+        }
+      },
+      "derivation": {
+        "render_version": "room-reward-author-v1",
+        "contact_master_id": "approved-c-contact-v1",
+        "body_master_id": "room-modal-bank-v1",
+        "space_fingerprint_id": "room-close-reflection-v1",
+        "pitch_token": "d",
+        "study_axis": "reward_mechanism"
+      }
+    }
+  },
+  "audition": {
+    "challenger_order": [
+      "receipt-edge",
+      "seated-catch",
+      "answered-detent"
+    ],
+    "tournament_rule": "incumbent versus one new mechanism; equal or both-bad retains incumbent",
+    "tournament_mode": "matched",
+    "final_mode": "natural",
+    "final_control": {
+      "id": "previous-reward",
+      "reveal_name": "Previous reward on the locked Room family",
+      "flow": "controls/previous-reward-locked-family-flow.wav",
+      "ending": "controls/previous-reward-locked-family-ending.wav",
+      "reward": "controls/previous-reward-locked-family.wav",
+      "diagnostic_original_full_flow": "controls/previous-mixed-natural.wav",
+      "control_rule": "same locked everyday roles; only the previous calibrated completion reward differs; its final source boundary is parked to remove the old edit",
+      "level_note": "intended natural hierarchy; not a loudness-neutral comparison",
+      "reward_phone_energy_db_over_matched_baseline": 1.2757883792927716,
+      "whole_flow_phone_energy_db_over_challengers": 0.30190494837289883
+    },
+    "full_flow_timeline": [
+      {
+        "at_seconds": 0.3,
+        "role": "navigate"
+      },
+      {
+        "at_seconds": 1.05,
+        "role": "open"
+      },
+      {
+        "at_seconds": 1.72,
+        "role": "select"
+      },
+      {
+        "at_seconds": 2.18,
+        "role": "select"
+      },
+      {
+        "at_seconds": 2.92,
+        "role": "place"
+      },
+      {
+        "at_seconds": 3.75,
+        "role": "navigate"
+      },
+      {
+        "at_seconds": 4.55,
+        "role": "open"
+      },
+      {
+        "at_seconds": 5.3,
+        "role": "accepted-contact"
+      },
+      {
+        "at_seconds": 5.375,
+        "role": "completion-reward"
+      }
+    ],
+    "identity_reveal": "after all tournament and final natural verdicts"
+  },
+  "feedback_source": {
+    "study": "room-sonic-world-v1",
+    "listening_route": "desktop-or-laptop-speaker",
+    "matched_choice_resolved": "unified candidate",
+    "distinct_choice": "yes",
+    "natural_choice_resolved": "previous mixed study",
+    "verbatim_reason": "it sounds pretty good! The reward sounds could be better though and more crisp i guess or satisfying or full?"
+  },
+  "provenance": {
+    "reference_video_audio_used": false,
+    "shipping_assets_changed": false,
+    "source_hashes": {
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\1.wav": "d65524fa80c1f9f23adc0a677a656dcda4fe4a56b0d76863a034c6ff0de13b52",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\2.wav": "6e2e9c6c3f368835b8e6418c6a3457759d66e3b38b04d45e04e4708bda8d07c8",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\open\\3.wav": "54b410aa919e5f38d62e8602fc3bb3599342e6e31e6b27b99af519483700a013",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\1.wav": "aecdc07653984c0a9c5dd32afe8f6279ab2683c66cea6a62e58521e26d18e4ac",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\2.wav": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\3.wav": "8c56e5fff8ac499d3cc9e444e60c68ec1d83634003ef378a85f9a40fd3bca8cb",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\1.wav": "5e77d912c56c3c19a6eab5bac94b919e7766b61b26fe82b2edad2b8d431c7074",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\2.wav": "9174ef1d18a9c549a424c540a92f6c5c13ddf279d846854e25dfb5a377e9e23b",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\navigate\\3.wav": "c823d028abfa03208685f915b45d9ff02f53a77a9576998e3883b9fdb12976fc",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\1.wav": "c4f9d9fc9ec086c549f0dc388889c76181d6a349b9d1cc3bf851bcbfc20a4459",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\2.wav": "84d74f4ddfb4802321ddf88c2291ee7b6a408512a34801e3f1387b3a1427c321",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\place\\3.wav": "219401b83616530ade61e60d91c71a5691b14b3b22c178eadf1cdedf6e4116d6",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\shared\\contact-master.wav": "f9360a3dc476b2bc6764c4165e07908326512b28a8a91603bf623fd908539885",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\complete-bloom\\2.wav": "c30b6c1252defb0ad6d6e3939bb6ebb041aa10c9bf324dcd003c1e0ff531c970",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\flows\\control-current-natural.wav": "ceaa1f2be87898c1a3a1ffc0c67252d19738579dac90ebbe734a938d0e657ce3",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\semantic-interaction-voices-v1\\roles\\complete-bloop\\current.wav": "18521f1806179803926ebd863991881f9e05e3d67c0ddaeea3eb51c59a00fc30"
+    }
+  },
+  "generated_audio_sha256": {
+    "composites/answered-detent/matched.wav": "30b0efbc832604dfae5c2d0892bffb27e94079127776c19bbbee18d498ecb414",
+    "composites/answered-detent/natural.wav": "7caf33eb445f49d63fcaa90fa7d27a3236e67658f5fa4ba5844634a67a0ecad2",
+    "composites/baseline/matched.wav": "ab805d4e9b71123062ab68536a41109b4e7bbd47c34ec7096b41182ba51f78d7",
+    "composites/baseline/natural.wav": "ab805d4e9b71123062ab68536a41109b4e7bbd47c34ec7096b41182ba51f78d7",
+    "composites/receipt-edge/matched.wav": "5f2afa26724d9a728571806ca961dfff26d78c961764cc3adaa3ac7b4f61091e",
+    "composites/receipt-edge/natural.wav": "62bf560039078e44e590a527f077d2bcbbb67b7dd0ad445e7a9dd20e3494cd56",
+    "composites/seated-catch/matched.wav": "371b732ae543c718a25beda2c496324bf9347f8cb46a1b38389f66201f440804",
+    "composites/seated-catch/natural.wav": "a236143f28a822897198666b5d1032548866f3f4f0f01308b8dfc955e165684e",
+    "controls/previous-mixed-ending.wav": "674437fb0a2c2e7b53ebd0ac78571c40f9fbbb2f271e722a4fae909bdad372d1",
+    "controls/previous-mixed-natural.wav": "ceaa1f2be87898c1a3a1ffc0c67252d19738579dac90ebbe734a938d0e657ce3",
+    "controls/previous-reward-locked-family-ending.wav": "c929518fe12d6528f32e855c67faad95bd332510fd2113b6227cda024420d706",
+    "controls/previous-reward-locked-family-flow.wav": "d0732e1f3e275ee0366903a4f5d82c3f2a4f87bca2756b8889ba0861c1bb9ed0",
+    "controls/previous-reward-locked-family.wav": "2c4d4c1231f14f10fc271dfff81904b62caafd2fce439b70ca35bc652685a5ca",
+    "flows/answered-detent/matched.wav": "104103515e6b37d07a5e5f53d5dd0a33dc4658b1aaa7f86b193fcd256d425707",
+    "flows/answered-detent/natural.wav": "401da43f5e5459a075dfb09fabcebb5ee2074c0ec004cc7a9c52afbc0ba9969b",
+    "flows/baseline/matched.wav": "74605343db46aada904371191af3c29fa7244861158d97e36d3ed70fb36ee7de",
+    "flows/baseline/natural.wav": "74605343db46aada904371191af3c29fa7244861158d97e36d3ed70fb36ee7de",
+    "flows/receipt-edge/matched.wav": "7b39be1e5496bc48d9d8daeb04bd384a5327a6e75e61eddb9f571b02d03f9d71",
+    "flows/receipt-edge/natural.wav": "1baf16d38cf0a23f388a2b91917a3e2449ce72d3cc4970c0ca752a12d4020374",
+    "flows/seated-catch/matched.wav": "84d1ad679793a03cf861ec3d27c00c1ed18cb8f45d2071b2418e6541bd8c53c3",
+    "flows/seated-catch/natural.wav": "63a28004622b77529f9ad2ba1da79a92967c79251230faf8ae466e54fb8b9253",
+    "rewards/answered-detent/matched.wav": "70f291188297ea5d5db7b0fb2027dcdc89a7814cd8f6a68eaa4081d7888b5f2b",
+    "rewards/answered-detent/natural.wav": "5b0d7e3ecd7399638ded807e1d4c2500320762a1d38fd611b212b0c8fc336ea6",
+    "rewards/baseline/matched.wav": "c30b6c1252defb0ad6d6e3939bb6ebb041aa10c9bf324dcd003c1e0ff531c970",
+    "rewards/baseline/natural.wav": "c30b6c1252defb0ad6d6e3939bb6ebb041aa10c9bf324dcd003c1e0ff531c970",
+    "rewards/receipt-edge/matched.wav": "aeb71e7b05468acff319671ee87f0f77d299e95e89d717ec71e10850c7883bdd",
+    "rewards/receipt-edge/natural.wav": "4345fac46abd04d5a35db54b0a97e8a19b611d13b11d7535d4d9513650ecf429",
+    "rewards/seated-catch/matched.wav": "8a6390ff72205c1baef8669570ce62806319bce931aaf9aeb8c2ff8c40d9895f",
+    "rewards/seated-catch/natural.wav": "15c2adf7f34b3b2d0c7504f4d5ef697dd0673c40ef0fdf39bc92819d782c18fe"
+  }
+}

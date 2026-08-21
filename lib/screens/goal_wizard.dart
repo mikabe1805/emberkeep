@@ -80,7 +80,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
   static const _dayShort = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   void _chooseTarget(int target) {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.brass);
     setState(() => _target = target);
   }
 
@@ -203,7 +203,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
       q.goalTitle = name;
       widget.onAdd(q);
     }
-    Sfx.instance.play('levelup');
+    Sfx.instance.playAfterContact('levelup');
     HapticFeedback.heavyImpact();
     setState(() => _sealing = true);
     await Future.delayed(const Duration(milliseconds: 1400));
@@ -269,7 +269,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Sfx.instance.play('tick');
+                      Sfx.instance.playMaterial(MaterialSound.glass);
                       Navigator.of(context).pop(false);
                     },
                     behavior: HitTestBehavior.opaque,
@@ -555,7 +555,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
-        Sfx.instance.play('tick');
+        Sfx.instance.playMaterial(MaterialSound.glass);
         setState(() => _kind = kind);
       },
       child: AnimatedContainer(

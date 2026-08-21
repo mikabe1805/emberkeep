@@ -183,6 +183,7 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
       // be /space/CODE; that code lives in [_roomLinks], not in the legacy
       // Navigator's named-route table.
       initialRoute: Navigator.defaultRouteName,
+      navigatorObservers: [roomSoundNavigatorObserver],
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Palette.parchment,

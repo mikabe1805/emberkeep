@@ -634,7 +634,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   }
 
   Future<void> _beginEditing() async {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     final externalEditor = widget.onEditRequested;
     if (externalEditor != null) {
       await externalEditor(context);
@@ -651,7 +651,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   /// was never anything (nothing typed, no photo) just leaves instead of
   /// presenting an empty read view.
   void _finishEditing() {
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     FocusScope.of(context).unfocus();
     _flush();
     if (_current == null) {
@@ -687,7 +687,7 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
       }
       return;
     }
-    Sfx.instance.play('tick');
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     _insertImages(names);
   }
 
