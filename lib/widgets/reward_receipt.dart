@@ -527,6 +527,7 @@ class _RewardReceiptState extends State<RewardReceipt>
                 : 'Keep one line about this quest in Journal',
             child: Pressable(
               enabled: !_reflectionSaved,
+              material: MaterialSound.parchment,
               pressDepth: 2,
               edgeColor: Colors.transparent,
               semanticLabel: _reflectionSaved

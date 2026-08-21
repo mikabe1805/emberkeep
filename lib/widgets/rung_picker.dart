@@ -148,7 +148,6 @@ class _RungSheetState extends State<_RungSheet> {
                     label: 'START HERE',
                     expand: true,
                     onTap: () {
-                      Sfx.instance.play('streak');
                       Navigator.of(context).pop(_sel);
                     },
                   ),

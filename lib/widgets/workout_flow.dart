@@ -107,8 +107,6 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
   }
 
   void _begin() {
-    Sfx.instance.play('streak');
-    Haptics.success();
     _startMove(0);
   }
 
@@ -173,9 +171,11 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
     );
   }
 
-  void _togglePause() {
+  void _togglePause({bool alreadyAcknowledged = false}) {
     setState(() => _paused = !_paused);
-    Sfx.instance.playMaterial(MaterialSound.wood);
+    if (!alreadyAcknowledged) {
+      Sfx.instance.playMaterial(MaterialSound.wood);
+    }
   }
 
   // ── build ────────────────────────────────────────────────────────
@@ -1157,7 +1157,10 @@ class _WorkoutFlowState extends State<WorkoutFlow> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                _bigButton('RESUME', _togglePause),
+                _bigButton(
+                  'RESUME',
+                  () => _togglePause(alreadyAcknowledged: true),
+                ),
                 const SizedBox(height: 12),
                 TextButton(
                   onPressed: () => _finish(endedEarly: true),

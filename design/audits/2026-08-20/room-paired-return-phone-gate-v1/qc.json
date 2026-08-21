@@ -1,0 +1,69 @@
+{
+  "study": "room-paired-return-phone-gate-v1",
+  "render_version": "room-paired-return-phone-gate-author-2",
+  "technical": "pass",
+  "reels": {
+    "discovery": {
+      "duration_ms": 5050.0,
+      "peak": 0.5417027473449707,
+      "rms": 0.019618171017438304
+    },
+    "rapid_stays_plain": {
+      "duration_ms": 4180.0,
+      "peak": 0.5182055234909058,
+      "rms": 0.02081602610997044
+    },
+    "completion_interrupts": {
+      "duration_ms": 3580.0,
+      "peak": 0.5417027473449707,
+      "rms": 0.02366337589575163
+    }
+  },
+  "checks": {
+    "motif_tokens": [
+      "d5",
+      "a5",
+      "e5",
+      "d5"
+    ],
+    "eligible_interval_ms": [
+      180,
+      700
+    ],
+    "cooldown_seconds": 90,
+    "once_per_screen": 1,
+    "rapid_has_no_stems_after_abort": true,
+    "completion_has_no_catchup": true,
+    "completion_atomic_source_sha256": "7caf33eb445f49d63fcaa90fa7d27a3236e67658f5fa4ba5844634a67a0ecad2",
+    "all_five_v3_takes_exercised_by_role": {
+      "navigate": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "open": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "select": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "place": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  }
+}

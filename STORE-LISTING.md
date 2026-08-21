@@ -27,10 +27,14 @@ course. Month, Week, 3 Days, and Day bring plans, classes, deadlines, and
 chosen quests into one calm view. Save a location and open directions in Apple
 Maps or Google Maps. Streak freezes make returning gentler after a day away.
 
-The room now answers with subtle wood, stone, parchment, glass, and brass
-contacts, and its hearth wakes with one small ignition when a visit begins.
-Room of Days also has a brighter Day Ledger icon, drawn from the daily quest
-ledger at the heart of the app.
+Quests are easier to change: take one back, choose it again, or move a weekly
+quest to another day without losing it.
+
+Clicking around the room now has a crisp, varied voice. A rare melodic reply
+can surface during a natural rhythm, while rapid taps and quest completions
+stay clear and uncluttered. The hearth still wakes with one small ignition when
+a visit begins. Room of Days also has a brighter Day Ledger icon, drawn from
+the daily quest ledger at the heart of the app.
 
 ## Full description
 
@@ -80,11 +84,14 @@ ads, subscriptions, or paywalls.
 This build adds a general Daybook for events and tasks, keeps School as an
 optional lane, brings personal plans and classes into the same calendar views,
 keeps fixed plans, deadlines, and chosen quests visually distinct, and opens
-directions from manually saved locations. It also adds material-aware tap
-sounds, a one-time hearth ignition, calmer rotating Quest companion lines, and
-the brighter Day Ledger app icon. Protected Google place search remains
-intentionally off in this build; manual locations do not require an account or
-device-location permission.
+directions from manually saved locations. Goals now lets you take back and
+reselect adopted quests or move a weekly quest to another day. A new cohesive
+interaction-sound system keeps ordinary clicks crisp and varied, reserves a
+short melodic reply for a rare natural rhythm, and gives quest completion clear
+priority. The one-time hearth ignition, calmer rotating Quest companion lines,
+and brighter Day Ledger app icon remain part of the same polish pass. Protected
+Google place search remains intentionally off in this build; manual locations
+do not require an account or device-location permission.
 
 Feedback on clarity, warmth, performance, and anything that gets between you
 and doing what matters is especially useful.
@@ -102,14 +109,17 @@ and doing what matters is especially useful.
 - Add a manual location and routing address, tap **Get Directions**, and try
   Apple Maps and Google Maps. Confirm the remembered choice and change option
   behave clearly.
+- In Goals, take back an adopted quest, choose it again, and change the day of
+  a weekly quest. Confirm its history and progress stay intact.
 - Look through Quests, Goals, Help for Today, and Plans for stray lines,
   awkward wrapping, or visible background seams.
 - Start the app from a fully stopped state and confirm the hearth ignites once
   when Quests is first unobscured, stays lit, and does not replay on tab changes
   or resume. Repeat with Reduce Motion and the Ring/Silent switch.
-- Tap across the dock, calendar, journal, overlays, and rewards. Listen for
-  subtle material variation with no double sound, harsh repetition, or music
-  interruption.
+- Tap across the dock, calendar, journal, overlays, and rewards at an ordinary
+  pace and in a rapid burst. Confirm clicks stay crisp, a rare melodic answer
+  never spills across pages, completion takes priority, and background music
+  keeps playing.
 - Check the Day Ledger in the Home Screen and App Library at its smallest size;
   the completed honey mark should catch the eye without losing the book.
 - Repeat important flows offline, with Reduce Motion, Larger Text, and

@@ -1,0 +1,804 @@
+{
+  "study": "room-c-gesture-v3",
+  "runtime_changed": false,
+  "render_version": "room-c-gesture-v3-author-2",
+  "generated_audio_asset_count": 89,
+  "level_lift_db": 1.5,
+  "render_contract": {
+    "render_version": "room-c-gesture-v3-author-2",
+    "sample_rate_hz": 48000,
+    "ordinary_duration_ms": 60.0,
+    "ordinary_common_audition_lift_db": 1.5,
+    "ordinary_common_audition_gain": 1.1885022274370185,
+    "no_room_bus": true,
+    "no_v1_contact_master_input": true,
+    "rapid_step_ms": 125.0,
+    "rapid_gains": [
+      1.0,
+      0.93,
+      0.93,
+      0.885
+    ]
+  },
+  "source_graph": {
+    "anchor": {
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\weighted-click-system-v1\\variants\\dak-c-1.wav": "5d70687ac7508c05fd05b7df6523b50e8ad94bf73e4cca53b05da20b6e208247",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\weighted-click-system-v1\\variants\\dak-c-2.wav": "5c4271fad27933a0e1ffa24800ad9d7d332e9ff7cfcffbcd10ae015bb4c8598b",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\weighted-click-system-v1\\variants\\dak-c-3.wav": "65675b4757754ff69cd3af2b426706b13eddc126269d1d3ebbc1fb77849fa999",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\weighted-click-system-v1\\variants\\dak-c-4.wav": "9a0bcf583109cc8e1150ce1ceb70be9dd640d41ceb984a6cafe9fbc395ae5aea",
+      "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\weighted-click-system-v1\\variants\\dak-c-5.wav": "6a4bc22b81b2f349115d8293fa8f4cad6e46e20fbd4b539db46f3554abbe3d10"
+    },
+    "historical_c": "approved C variants with waveform shape unchanged and only the declared common audition scalar",
+    "role_family": "original weighted contact/body/6ms closure physics",
+    "clasp_family": "original weighted contact/body with 8.5ms explicit clasp closure",
+    "forbidden_input": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\shared\\contact-master.wav"
+  },
+  "systems": {
+    "historical-c": {
+      "role_paths": {
+        "open": [
+          "roles/historical-c/open/1.wav",
+          "roles/historical-c/open/2.wav",
+          "roles/historical-c/open/3.wav",
+          "roles/historical-c/open/4.wav",
+          "roles/historical-c/open/5.wav"
+        ],
+        "select": [
+          "roles/historical-c/select/1.wav",
+          "roles/historical-c/select/2.wav",
+          "roles/historical-c/select/3.wav",
+          "roles/historical-c/select/4.wav",
+          "roles/historical-c/select/5.wav"
+        ],
+        "navigate": [
+          "roles/historical-c/navigate/1.wav",
+          "roles/historical-c/navigate/2.wav",
+          "roles/historical-c/navigate/3.wav",
+          "roles/historical-c/navigate/4.wav",
+          "roles/historical-c/navigate/5.wav"
+        ],
+        "place": [
+          "roles/historical-c/place/1.wav",
+          "roles/historical-c/place/2.wav",
+          "roles/historical-c/place/3.wav",
+          "roles/historical-c/place/4.wav",
+          "roles/historical-c/place/5.wav"
+        ]
+      },
+      "isolated": {
+        "open": "isolated/historical-c/open.wav",
+        "select": "isolated/historical-c/select.wav",
+        "navigate": "isolated/historical-c/navigate.wav",
+        "place": "isolated/historical-c/place.wav"
+      },
+      "slow": "slow/historical-c.wav",
+      "rapid": "rapid/historical-c.wav",
+      "flow": "flows/historical-c.wav",
+      "metrics": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.836119807778203,
+            "peak_dbfs": -6.1350552096175095,
+            "attack_0_4ms_energy": 4.855545413142588,
+            "body_4_28ms_energy": 1.412042164847109,
+            "closure_5_10ms_energy": 0.8775778815421603,
+            "tail_after_55ms_relative_peak_db": -76.70438714907866
+          },
+          {
+            "phone_rms_dbfs": -26.63772786060022,
+            "peak_dbfs": -7.321490829690785,
+            "attack_0_4ms_energy": 4.901857902173006,
+            "body_4_28ms_energy": 1.7392743048507975,
+            "closure_5_10ms_energy": 1.051539980500142,
+            "tail_after_55ms_relative_peak_db": -74.58064599788243
+          },
+          {
+            "phone_rms_dbfs": -26.653282406690366,
+            "peak_dbfs": -5.568147633026575,
+            "attack_0_4ms_energy": 4.965284585009759,
+            "body_4_28ms_energy": 1.6271381934868139,
+            "closure_5_10ms_energy": 0.9534109762386995,
+            "tail_after_55ms_relative_peak_db": -76.34932174863935
+          },
+          {
+            "phone_rms_dbfs": -26.93388705959586,
+            "peak_dbfs": -7.800524418671855,
+            "attack_0_4ms_energy": 4.041121535258657,
+            "body_4_28ms_energy": 2.0474772125869487,
+            "closure_5_10ms_energy": 1.2755113954560333,
+            "tail_after_55ms_relative_peak_db": -73.43824514384826
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008537,
+            "peak_dbfs": -5.908143454645911,
+            "attack_0_4ms_energy": 5.73080388654398,
+            "body_4_28ms_energy": 1.1270200483800077,
+            "closure_5_10ms_energy": 0.6047982849039795,
+            "tail_after_55ms_relative_peak_db": -78.23617234070345
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -26.836119807778203,
+            "peak_dbfs": -6.1350552096175095,
+            "attack_0_4ms_energy": 4.855545413142588,
+            "body_4_28ms_energy": 1.412042164847109,
+            "closure_5_10ms_energy": 0.8775778815421603,
+            "tail_after_55ms_relative_peak_db": -76.70438714907866
+          },
+          {
+            "phone_rms_dbfs": -26.63772786060022,
+            "peak_dbfs": -7.321490829690785,
+            "attack_0_4ms_energy": 4.901857902173006,
+            "body_4_28ms_energy": 1.7392743048507975,
+            "closure_5_10ms_energy": 1.051539980500142,
+            "tail_after_55ms_relative_peak_db": -74.58064599788243
+          },
+          {
+            "phone_rms_dbfs": -26.653282406690366,
+            "peak_dbfs": -5.568147633026575,
+            "attack_0_4ms_energy": 4.965284585009759,
+            "body_4_28ms_energy": 1.6271381934868139,
+            "closure_5_10ms_energy": 0.9534109762386995,
+            "tail_after_55ms_relative_peak_db": -76.34932174863935
+          },
+          {
+            "phone_rms_dbfs": -26.93388705959586,
+            "peak_dbfs": -7.800524418671855,
+            "attack_0_4ms_energy": 4.041121535258657,
+            "body_4_28ms_energy": 2.0474772125869487,
+            "closure_5_10ms_energy": 1.2755113954560333,
+            "tail_after_55ms_relative_peak_db": -73.43824514384826
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008537,
+            "peak_dbfs": -5.908143454645911,
+            "attack_0_4ms_energy": 5.73080388654398,
+            "body_4_28ms_energy": 1.1270200483800077,
+            "closure_5_10ms_energy": 0.6047982849039795,
+            "tail_after_55ms_relative_peak_db": -78.23617234070345
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -26.836119807778203,
+            "peak_dbfs": -6.1350552096175095,
+            "attack_0_4ms_energy": 4.855545413142588,
+            "body_4_28ms_energy": 1.412042164847109,
+            "closure_5_10ms_energy": 0.8775778815421603,
+            "tail_after_55ms_relative_peak_db": -76.70438714907866
+          },
+          {
+            "phone_rms_dbfs": -26.63772786060022,
+            "peak_dbfs": -7.321490829690785,
+            "attack_0_4ms_energy": 4.901857902173006,
+            "body_4_28ms_energy": 1.7392743048507975,
+            "closure_5_10ms_energy": 1.051539980500142,
+            "tail_after_55ms_relative_peak_db": -74.58064599788243
+          },
+          {
+            "phone_rms_dbfs": -26.653282406690366,
+            "peak_dbfs": -5.568147633026575,
+            "attack_0_4ms_energy": 4.965284585009759,
+            "body_4_28ms_energy": 1.6271381934868139,
+            "closure_5_10ms_energy": 0.9534109762386995,
+            "tail_after_55ms_relative_peak_db": -76.34932174863935
+          },
+          {
+            "phone_rms_dbfs": -26.93388705959586,
+            "peak_dbfs": -7.800524418671855,
+            "attack_0_4ms_energy": 4.041121535258657,
+            "body_4_28ms_energy": 2.0474772125869487,
+            "closure_5_10ms_energy": 1.2755113954560333,
+            "tail_after_55ms_relative_peak_db": -73.43824514384826
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008537,
+            "peak_dbfs": -5.908143454645911,
+            "attack_0_4ms_energy": 5.73080388654398,
+            "body_4_28ms_energy": 1.1270200483800077,
+            "closure_5_10ms_energy": 0.6047982849039795,
+            "tail_after_55ms_relative_peak_db": -78.23617234070345
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -26.836119807778203,
+            "peak_dbfs": -6.1350552096175095,
+            "attack_0_4ms_energy": 4.855545413142588,
+            "body_4_28ms_energy": 1.412042164847109,
+            "closure_5_10ms_energy": 0.8775778815421603,
+            "tail_after_55ms_relative_peak_db": -76.70438714907866
+          },
+          {
+            "phone_rms_dbfs": -26.63772786060022,
+            "peak_dbfs": -7.321490829690785,
+            "attack_0_4ms_energy": 4.901857902173006,
+            "body_4_28ms_energy": 1.7392743048507975,
+            "closure_5_10ms_energy": 1.051539980500142,
+            "tail_after_55ms_relative_peak_db": -74.58064599788243
+          },
+          {
+            "phone_rms_dbfs": -26.653282406690366,
+            "peak_dbfs": -5.568147633026575,
+            "attack_0_4ms_energy": 4.965284585009759,
+            "body_4_28ms_energy": 1.6271381934868139,
+            "closure_5_10ms_energy": 0.9534109762386995,
+            "tail_after_55ms_relative_peak_db": -76.34932174863935
+          },
+          {
+            "phone_rms_dbfs": -26.93388705959586,
+            "peak_dbfs": -7.800524418671855,
+            "attack_0_4ms_energy": 4.041121535258657,
+            "body_4_28ms_energy": 2.0474772125869487,
+            "closure_5_10ms_energy": 1.2755113954560333,
+            "tail_after_55ms_relative_peak_db": -73.43824514384826
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008537,
+            "peak_dbfs": -5.908143454645911,
+            "attack_0_4ms_energy": 5.73080388654398,
+            "body_4_28ms_energy": 1.1270200483800077,
+            "closure_5_10ms_energy": 0.6047982849039795,
+            "tail_after_55ms_relative_peak_db": -78.23617234070345
+          }
+        ]
+      }
+    },
+    "c-role-family": {
+      "role_paths": {
+        "open": [
+          "roles/c-role-family/open/1.wav",
+          "roles/c-role-family/open/2.wav",
+          "roles/c-role-family/open/3.wav",
+          "roles/c-role-family/open/4.wav",
+          "roles/c-role-family/open/5.wav"
+        ],
+        "select": [
+          "roles/c-role-family/select/1.wav",
+          "roles/c-role-family/select/2.wav",
+          "roles/c-role-family/select/3.wav",
+          "roles/c-role-family/select/4.wav",
+          "roles/c-role-family/select/5.wav"
+        ],
+        "navigate": [
+          "roles/c-role-family/navigate/1.wav",
+          "roles/c-role-family/navigate/2.wav",
+          "roles/c-role-family/navigate/3.wav",
+          "roles/c-role-family/navigate/4.wav",
+          "roles/c-role-family/navigate/5.wav"
+        ],
+        "place": [
+          "roles/c-role-family/place/1.wav",
+          "roles/c-role-family/place/2.wav",
+          "roles/c-role-family/place/3.wav",
+          "roles/c-role-family/place/4.wav",
+          "roles/c-role-family/place/5.wav"
+        ]
+      },
+      "isolated": {
+        "open": "isolated/c-role-family/open.wav",
+        "select": "isolated/c-role-family/select.wav",
+        "navigate": "isolated/c-role-family/navigate.wav",
+        "place": "isolated/c-role-family/place.wav"
+      },
+      "slow": "slow/c-role-family.wav",
+      "rapid": "rapid/c-role-family.wav",
+      "flow": "flows/c-role-family.wav",
+      "metrics": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.836119807778193,
+            "peak_dbfs": -5.426874996764805,
+            "attack_0_4ms_energy": 5.332269774942285,
+            "body_4_28ms_energy": 0.9798805925399487,
+            "closure_5_10ms_energy": 0.6475112129452132,
+            "tail_after_55ms_relative_peak_db": -86.85971027186167
+          },
+          {
+            "phone_rms_dbfs": -26.63772786060023,
+            "peak_dbfs": -6.803787324708434,
+            "attack_0_4ms_energy": 5.443143126675142,
+            "body_4_28ms_energy": 1.2477113591787252,
+            "closure_5_10ms_energy": 0.7632623239326943,
+            "tail_after_55ms_relative_peak_db": -84.8316641827283
+          },
+          {
+            "phone_rms_dbfs": -26.653282406690355,
+            "peak_dbfs": -5.1161039590919986,
+            "attack_0_4ms_energy": 5.461104900457265,
+            "body_4_28ms_energy": 1.1709681770486509,
+            "closure_5_10ms_energy": 0.699386507923197,
+            "tail_after_55ms_relative_peak_db": -86.33887763011215
+          },
+          {
+            "phone_rms_dbfs": -26.933887059595886,
+            "peak_dbfs": -6.5093063502138415,
+            "attack_0_4ms_energy": 4.571762948331847,
+            "body_4_28ms_energy": 1.5515045196405082,
+            "closure_5_10ms_energy": 1.00853302815791,
+            "tail_after_55ms_relative_peak_db": -83.96246489734737
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008526,
+            "peak_dbfs": -5.479484893553792,
+            "attack_0_4ms_energy": 6.187459745944271,
+            "body_4_28ms_energy": 0.7094556991933869,
+            "closure_5_10ms_energy": 0.3923388844629584,
+            "tail_after_55ms_relative_peak_db": -88.28196353799862
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -26.836119807778203,
+            "peak_dbfs": -5.841989171938698,
+            "attack_0_4ms_energy": 5.061956397756072,
+            "body_4_28ms_energy": 1.225334921138296,
+            "closure_5_10ms_energy": 0.785203348797695,
+            "tail_after_55ms_relative_peak_db": -80.93208396966388
+          },
+          {
+            "phone_rms_dbfs": -26.637727860600243,
+            "peak_dbfs": -7.090528393374537,
+            "attack_0_4ms_energy": 5.12472184064697,
+            "body_4_28ms_energy": 1.5382123859671633,
+            "closure_5_10ms_energy": 0.9471784590600928,
+            "tail_after_55ms_relative_peak_db": -78.88860256929446
+          },
+          {
+            "phone_rms_dbfs": -26.653282406690355,
+            "peak_dbfs": -5.358193731030568,
+            "attack_0_4ms_energy": 5.181671153987774,
+            "body_4_28ms_energy": 1.4287339847300948,
+            "closure_5_10ms_energy": 0.8511199534232665,
+            "tail_after_55ms_relative_peak_db": -80.52945597357976
+          },
+          {
+            "phone_rms_dbfs": -26.933887059595868,
+            "peak_dbfs": -7.2776460900948585,
+            "attack_0_4ms_energy": 4.257490165440478,
+            "body_4_28ms_energy": 1.8472194075083466,
+            "closure_5_10ms_energy": 1.179622130508722,
+            "tail_after_55ms_relative_peak_db": -77.82896539387936
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008526,
+            "peak_dbfs": -5.705680971826066,
+            "attack_0_4ms_energy": 5.939097489533272,
+            "body_4_28ms_energy": 0.9369092556511929,
+            "closure_5_10ms_energy": 0.5126385231383217,
+            "tail_after_55ms_relative_peak_db": -82.43818725829831
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -26.836119807778203,
+            "peak_dbfs": -6.1350552096175095,
+            "attack_0_4ms_energy": 4.855545413142588,
+            "body_4_28ms_energy": 1.412042164847109,
+            "closure_5_10ms_energy": 0.8775778815421603,
+            "tail_after_55ms_relative_peak_db": -76.70438714907866
+          },
+          {
+            "phone_rms_dbfs": -26.63772786060022,
+            "peak_dbfs": -7.321490829690785,
+            "attack_0_4ms_energy": 4.901857902173006,
+            "body_4_28ms_energy": 1.7392743048507975,
+            "closure_5_10ms_energy": 1.051539980500142,
+            "tail_after_55ms_relative_peak_db": -74.58064599788243
+          },
+          {
+            "phone_rms_dbfs": -26.653282406690366,
+            "peak_dbfs": -5.568147633026575,
+            "attack_0_4ms_energy": 4.965284585009759,
+            "body_4_28ms_energy": 1.6271381934868139,
+            "closure_5_10ms_energy": 0.9534109762386995,
+            "tail_after_55ms_relative_peak_db": -76.34932174863935
+          },
+          {
+            "phone_rms_dbfs": -26.93388705959586,
+            "peak_dbfs": -7.800524418671855,
+            "attack_0_4ms_energy": 4.041121535258657,
+            "body_4_28ms_energy": 2.0474772125869487,
+            "closure_5_10ms_energy": 1.2755113954560333,
+            "tail_after_55ms_relative_peak_db": -73.43824514384826
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008537,
+            "peak_dbfs": -5.908143454645911,
+            "attack_0_4ms_energy": 5.73080388654398,
+            "body_4_28ms_energy": 1.1270200483800077,
+            "closure_5_10ms_energy": 0.6047982849039795,
+            "tail_after_55ms_relative_peak_db": -78.23617234070345
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -26.836119807778175,
+            "peak_dbfs": -7.18279641408608,
+            "attack_0_4ms_energy": 4.2250718451879035,
+            "body_4_28ms_energy": 1.9807242770345572,
+            "closure_5_10ms_energy": 1.1577170303805946,
+            "tail_after_55ms_relative_peak_db": -68.71914319541042
+          },
+          {
+            "phone_rms_dbfs": -26.637727860600226,
+            "peak_dbfs": -8.231072665215242,
+            "attack_0_4ms_energy": 4.1689144876855675,
+            "body_4_28ms_energy": 2.3951646879261395,
+            "closure_5_10ms_energy": 1.4132245544947235,
+            "tail_after_55ms_relative_peak_db": -66.4017820926088
+          },
+          {
+            "phone_rms_dbfs": -26.653282406690344,
+            "peak_dbfs": -6.354239902573488,
+            "attack_0_4ms_energy": 4.286165353709105,
+            "body_4_28ms_energy": 2.24298013067141,
+            "closure_5_10ms_energy": 1.2676551998020726,
+            "tail_after_55ms_relative_peak_db": -68.45460882900899
+          },
+          {
+            "phone_rms_dbfs": -26.93388705959588,
+            "peak_dbfs": -9.84183543553981,
+            "attack_0_4ms_energy": 3.4196136344950805,
+            "body_4_28ms_energy": 2.617353635294977,
+            "closure_5_10ms_energy": 1.5497044937823174,
+            "tail_after_55ms_relative_peak_db": -64.61349496316495
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008522,
+            "peak_dbfs": -6.7052791852463915,
+            "attack_0_4ms_energy": 5.011589626751041,
+            "body_4_28ms_energy": 1.7790794167770327,
+            "closure_5_10ms_energy": 0.925147294418935,
+            "tail_after_55ms_relative_peak_db": -70.19755918896892
+          }
+        ]
+      }
+    },
+    "c-clasp-family": {
+      "role_paths": {
+        "open": [
+          "roles/c-clasp-family/open/1.wav",
+          "roles/c-clasp-family/open/2.wav",
+          "roles/c-clasp-family/open/3.wav",
+          "roles/c-clasp-family/open/4.wav",
+          "roles/c-clasp-family/open/5.wav"
+        ],
+        "select": [
+          "roles/c-clasp-family/select/1.wav",
+          "roles/c-clasp-family/select/2.wav",
+          "roles/c-clasp-family/select/3.wav",
+          "roles/c-clasp-family/select/4.wav",
+          "roles/c-clasp-family/select/5.wav"
+        ],
+        "navigate": [
+          "roles/c-clasp-family/navigate/1.wav",
+          "roles/c-clasp-family/navigate/2.wav",
+          "roles/c-clasp-family/navigate/3.wav",
+          "roles/c-clasp-family/navigate/4.wav",
+          "roles/c-clasp-family/navigate/5.wav"
+        ],
+        "place": [
+          "roles/c-clasp-family/place/1.wav",
+          "roles/c-clasp-family/place/2.wav",
+          "roles/c-clasp-family/place/3.wav",
+          "roles/c-clasp-family/place/4.wav",
+          "roles/c-clasp-family/place/5.wav"
+        ]
+      },
+      "isolated": {
+        "open": "isolated/c-clasp-family/open.wav",
+        "select": "isolated/c-clasp-family/select.wav",
+        "navigate": "isolated/c-clasp-family/navigate.wav",
+        "place": "isolated/c-clasp-family/place.wav"
+      },
+      "slow": "slow/c-clasp-family.wav",
+      "rapid": "rapid/c-clasp-family.wav",
+      "flow": "flows/c-clasp-family.wav",
+      "metrics": {
+        "open": [
+          {
+            "phone_rms_dbfs": -26.836119807778186,
+            "peak_dbfs": -5.80456113584768,
+            "attack_0_4ms_energy": 5.021066866595374,
+            "body_4_28ms_energy": 1.2687087154313255,
+            "closure_5_10ms_energy": 0.821292497898519,
+            "tail_after_55ms_relative_peak_db": -83.86405601282411
+          },
+          {
+            "phone_rms_dbfs": -26.63772786060024,
+            "peak_dbfs": -6.920509763477903,
+            "attack_0_4ms_energy": 5.3071254419209986,
+            "body_4_28ms_energy": 1.3695008395835877,
+            "closure_5_10ms_energy": 0.810782630788372,
+            "tail_after_55ms_relative_peak_db": -81.8445299156715
+          },
+          {
+            "phone_rms_dbfs": -26.653282406690337,
+            "peak_dbfs": -5.3247806528934705,
+            "attack_0_4ms_energy": 5.210600723482863,
+            "body_4_28ms_energy": 1.4052874776770699,
+            "closure_5_10ms_energy": 0.8868642590904244,
+            "tail_after_55ms_relative_peak_db": -83.41519654520964
+          },
+          {
+            "phone_rms_dbfs": -26.933887059595868,
+            "peak_dbfs": -7.09290725630591,
+            "attack_0_4ms_energy": 4.3092349907790295,
+            "body_4_28ms_energy": 1.8079194604249915,
+            "closure_5_10ms_energy": 1.1795655283945885,
+            "tail_after_55ms_relative_peak_db": -80.7930342129359
+          },
+          {
+            "phone_rms_dbfs": -26.48256562400853,
+            "peak_dbfs": -5.709960773420134,
+            "attack_0_4ms_energy": 5.899923466560325,
+            "body_4_28ms_energy": 0.9804308606454004,
+            "closure_5_10ms_energy": 0.5887375774889111,
+            "tail_after_55ms_relative_peak_db": -85.33012959748496
+          }
+        ],
+        "select": [
+          {
+            "phone_rms_dbfs": -26.836119807778196,
+            "peak_dbfs": -6.388582140122155,
+            "attack_0_4ms_energy": 4.649702007356161,
+            "body_4_28ms_energy": 1.605416190712907,
+            "closure_5_10ms_energy": 0.9984821779941154,
+            "tail_after_55ms_relative_peak_db": -76.7421378435544
+          },
+          {
+            "phone_rms_dbfs": -26.637727860600226,
+            "peak_dbfs": -7.371104695713951,
+            "attack_0_4ms_energy": 4.8634235935395855,
+            "body_4_28ms_energy": 1.771088534252667,
+            "closure_5_10ms_energy": 1.0448663498260427,
+            "tail_after_55ms_relative_peak_db": -74.63669659210106
+          },
+          {
+            "phone_rms_dbfs": -26.65328240669035,
+            "peak_dbfs": -5.731614305606109,
+            "attack_0_4ms_energy": 4.804266573547198,
+            "body_4_28ms_energy": 1.7786695169730615,
+            "closure_5_10ms_energy": 1.0978049629505788,
+            "tail_after_55ms_relative_peak_db": -76.39128053463503
+          },
+          {
+            "phone_rms_dbfs": -26.933887059595882,
+            "peak_dbfs": -8.256646071849934,
+            "attack_0_4ms_energy": 3.9021859966746275,
+            "body_4_28ms_energy": 2.186111835369418,
+            "closure_5_10ms_energy": 1.3839353195007518,
+            "tail_after_55ms_relative_peak_db": -73.25317751151309
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008515,
+            "peak_dbfs": -6.089154653897157,
+            "attack_0_4ms_energy": 5.524622365154159,
+            "body_4_28ms_energy": 1.3229391104169028,
+            "closure_5_10ms_energy": 0.7646392147872964,
+            "tail_after_55ms_relative_peak_db": -78.250325226639
+          }
+        ],
+        "navigate": [
+          {
+            "phone_rms_dbfs": -26.836119807778193,
+            "peak_dbfs": -6.622255548580246,
+            "attack_0_4ms_energy": 4.49778436309926,
+            "body_4_28ms_energy": 1.743053713623617,
+            "closure_5_10ms_energy": 1.063215449558333,
+            "tail_after_55ms_relative_peak_db": -73.93858485946103
+          },
+          {
+            "phone_rms_dbfs": -26.63772786060023,
+            "peak_dbfs": -7.575783047287996,
+            "attack_0_4ms_energy": 4.6840062208962685,
+            "body_4_28ms_energy": 1.9325694844999564,
+            "closure_5_10ms_energy": 1.129641019195011,
+            "tail_after_55ms_relative_peak_db": -71.76634545850709
+          },
+          {
+            "phone_rms_dbfs": -26.653282406690344,
+            "peak_dbfs": -5.914372410774707,
+            "attack_0_4ms_energy": 4.638262133930793,
+            "body_4_28ms_energy": 1.9301709225482275,
+            "closure_5_10ms_energy": 1.1732338708128611,
+            "tail_after_55ms_relative_peak_db": -73.60780477986427
+          },
+          {
+            "phone_rms_dbfs": -26.933887059595868,
+            "peak_dbfs": -8.660429365942717,
+            "attack_0_4ms_energy": 3.7485805732264725,
+            "body_4_28ms_energy": 2.326727895962939,
+            "closure_5_10ms_energy": 1.4492168344750551,
+            "tail_after_55ms_relative_peak_db": -70.31588031550845
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008526,
+            "peak_dbfs": -6.263293194657956,
+            "attack_0_4ms_energy": 5.36159613188396,
+            "body_4_28ms_energy": 1.4711780844330544,
+            "closure_5_10ms_energy": 0.8339040561510259,
+            "tail_after_55ms_relative_peak_db": -75.44436837430267
+          }
+        ],
+        "place": [
+          {
+            "phone_rms_dbfs": -26.836119807778196,
+            "peak_dbfs": -7.641365375582351,
+            "attack_0_4ms_energy": 3.935128929506961,
+            "body_4_28ms_energy": 2.2471553716566337,
+            "closure_5_10ms_energy": 1.290763477506867,
+            "tail_after_55ms_relative_peak_db": -66.47002377560283
+          },
+          {
+            "phone_rms_dbfs": -26.637727860600243,
+            "peak_dbfs": -8.497649241708386,
+            "attack_0_4ms_energy": 4.003470320158128,
+            "body_4_28ms_energy": 2.5360468709875295,
+            "closure_5_10ms_energy": 1.4359380022743893,
+            "tail_after_55ms_relative_peak_db": -64.08049151302319
+          },
+          {
+            "phone_rms_dbfs": -26.65328240669036,
+            "peak_dbfs": -6.696770187714128,
+            "attack_0_4ms_energy": 4.010434511924062,
+            "body_4_28ms_energy": 2.4948596818937627,
+            "closure_5_10ms_energy": 1.438775411397121,
+            "tail_after_55ms_relative_peak_db": -66.24495031825785
+          },
+          {
+            "phone_rms_dbfs": -26.93388705959588,
+            "peak_dbfs": -9.930994324938814,
+            "attack_0_4ms_energy": 3.2131573286937316,
+            "body_4_28ms_energy": 2.8084623372211315,
+            "closure_5_10ms_energy": 1.6551960351372679,
+            "tail_after_55ms_relative_peak_db": -62.69801322247075
+          },
+          {
+            "phone_rms_dbfs": -26.482565624008526,
+            "peak_dbfs": -7.081432484123961,
+            "attack_0_4ms_energy": 4.686767076717425,
+            "body_4_28ms_energy": 2.078260867653554,
+            "closure_5_10ms_energy": 1.1126309289602085,
+            "tail_after_55ms_relative_peak_db": -67.93796760626114
+          }
+        ]
+      }
+    }
+  },
+  "candidates": {
+    "C": {
+      "label": "old C gesture intact",
+      "source_system": "historical-c",
+      "single": "isolated/historical-c/navigate.wav",
+      "slow": "slow/historical-c.wav",
+      "rapid": "rapid/historical-c.wav",
+      "flow": "flows/historical-c.wav"
+    },
+    "X": {
+      "label": "challenger",
+      "source_system": "c-clasp-family",
+      "single": "isolated/c-clasp-family/navigate.wav",
+      "slow": "slow/c-clasp-family.wav",
+      "rapid": "rapid/c-clasp-family.wav",
+      "flow": "flows/c-clasp-family.wav"
+    }
+  },
+  "audition_contract": {
+    "fixed_anchor": "C",
+    "challengers": [
+      "X"
+    ],
+    "primary_required_listens": [
+      "single",
+      "slow"
+    ],
+    "rapid_is_diagnostic_only": true,
+    "omitted_from_human_comparison": [
+      "c-role-family"
+    ],
+    "none_is_valid_and_stops": true
+  },
+  "locked_completion": {
+    "accepted_select_source": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-sonic-world-v1\\roles\\select\\2.wav",
+    "answered_detent_source": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-reward-voice-v1\\rewards\\answered-detent\\natural.wav",
+    "accepted_select_sha256": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+    "answered_detent_sha256": "5b0d7e3ecd7399638ded807e1d4c2500320762a1d38fd611b212b0c8fc336ea6",
+    "accepted_select_at_seconds": 5.3,
+    "answered_detent_at_seconds": 5.375,
+    "outcome_delay_ms": 75.0
+  },
+  "generated_audio_sha256": {
+    "anchor/dak-c-1.wav": "5d70687ac7508c05fd05b7df6523b50e8ad94bf73e4cca53b05da20b6e208247",
+    "anchor/dak-c-2.wav": "5c4271fad27933a0e1ffa24800ad9d7d332e9ff7cfcffbcd10ae015bb4c8598b",
+    "anchor/dak-c-3.wav": "65675b4757754ff69cd3af2b426706b13eddc126269d1d3ebbc1fb77849fa999",
+    "anchor/dak-c-4.wav": "9a0bcf583109cc8e1150ce1ceb70be9dd640d41ceb984a6cafe9fbc395ae5aea",
+    "anchor/dak-c-5.wav": "6a4bc22b81b2f349115d8293fa8f4cad6e46e20fbd4b539db46f3554abbe3d10",
+    "flows/c-clasp-family.wav": "48f27b5ceff8615e744a604052e2efa260305fe84700a3de984729ae8d5c67ee",
+    "flows/c-role-family.wav": "48342ed80d23e42093060eb9beb41c6c48b8e223d1b926638a75ddf98911c7d8",
+    "flows/historical-c.wav": "e87a0f6278a9fa8614e32b3c30da99ea3137595f51eab340701de97f5032be9e",
+    "isolated/c-clasp-family/navigate.wav": "6653693fa687e082e0b2a3a4a9a90e3067c88459858bb31c9cc0fc5af6aa7fbe",
+    "isolated/c-clasp-family/open.wav": "94f5aaa4018d19018766dff798b8462f00a92afc2b55b5fd6ce21023fa7b422d",
+    "isolated/c-clasp-family/place.wav": "fab8b1da14360ab463631d20995ded944a73aa83e95b66a5a00e8257b37c248e",
+    "isolated/c-clasp-family/select.wav": "1a7750dc84fd1a7cc6d29924bfcde21100fae66ee929bd5cf16800ec4d736c75",
+    "isolated/c-role-family/navigate.wav": "9b5593ee62d143078edf14a3bf58b7fbd37ef09b42aec980a438babf479086c5",
+    "isolated/c-role-family/open.wav": "fa33b97448355c632c81c24c0e6e0ee4bdd260943e0b838f2428c5e4a3451b69",
+    "isolated/c-role-family/place.wav": "5b31f7dbd532978c2c7b5e01e49068f746aef2ce907d3cc97415d317581d8c48",
+    "isolated/c-role-family/select.wav": "0f2fd19aa154aa5c195f1c4fe30ef1b43f2a717c0dbaad1d63b3e5961ec11c0c",
+    "isolated/historical-c/navigate.wav": "9b5593ee62d143078edf14a3bf58b7fbd37ef09b42aec980a438babf479086c5",
+    "isolated/historical-c/open.wav": "9b5593ee62d143078edf14a3bf58b7fbd37ef09b42aec980a438babf479086c5",
+    "isolated/historical-c/place.wav": "9b5593ee62d143078edf14a3bf58b7fbd37ef09b42aec980a438babf479086c5",
+    "isolated/historical-c/select.wav": "9b5593ee62d143078edf14a3bf58b7fbd37ef09b42aec980a438babf479086c5",
+    "locked/accepted-select-2.wav": "7f8809bac9cec3840c15ab39c1db5fa97d7f8079b2f56e7dff9c16ab1a776a75",
+    "locked/answered-detent-natural.wav": "5b0d7e3ecd7399638ded807e1d4c2500320762a1d38fd611b212b0c8fc336ea6",
+    "locked/completion-composite.wav": "223907b95cd6b612ce5de11c7bed263473eaf7c51611bc8f7f1627a100437a47",
+    "rapid/c-clasp-family.wav": "e5bfa8018cf0382067b02f43f98f13b7fa7f4b5ee6b1b1527179d1200594d4c4",
+    "rapid/c-role-family.wav": "7bbeb5186241f4276382ae5b3b6b30c596bdd10942acd6962763f512bca4ecce",
+    "rapid/historical-c.wav": "0907570d67ce4a50e3ad14ce42ab7383d5d468686d584fdb7e42ab5c047e1054",
+    "roles/c-clasp-family/navigate/1.wav": "6653693fa687e082e0b2a3a4a9a90e3067c88459858bb31c9cc0fc5af6aa7fbe",
+    "roles/c-clasp-family/navigate/2.wav": "84c0e890705e45baa6c6fd189a817fe88f3798f9e7660f445431cad1edc41a95",
+    "roles/c-clasp-family/navigate/3.wav": "533ef78f93bb783e7c2e180eee9c04a753021ce044da2e799058c53ba47088bf",
+    "roles/c-clasp-family/navigate/4.wav": "30c7c70e935914818d1a483e9323eb773973d2da804ed8a40c6bef8ad0643c38",
+    "roles/c-clasp-family/navigate/5.wav": "f6086c9eec5361c5a84ca6946be75c4fc5cd824963717af8ee80cc8928823231",
+    "roles/c-clasp-family/open/1.wav": "94f5aaa4018d19018766dff798b8462f00a92afc2b55b5fd6ce21023fa7b422d",
+    "roles/c-clasp-family/open/2.wav": "fa305dee3d978193f0baf87185672f5dcaa23d9dff589099b77239ef79131aff",
+    "roles/c-clasp-family/open/3.wav": "43818ea3cbf998169eaa4792f5fcb21bacbf17eb619424c01e44a2bfb9ff4c4f",
+    "roles/c-clasp-family/open/4.wav": "360c4451283efc2ef04844d08c87cd494bf43041a4cf57572666a15d9795a6fe",
+    "roles/c-clasp-family/open/5.wav": "d842bb416930df189fe2919f52998c05a81ff561c33437c789b918a3c2a0fa20",
+    "roles/c-clasp-family/place/1.wav": "fab8b1da14360ab463631d20995ded944a73aa83e95b66a5a00e8257b37c248e",
+    "roles/c-clasp-family/place/2.wav": "e2fb5f061252b5ff60ec90aad28634ec516de1c1d628298f6242886dafa1871a",
+    "roles/c-clasp-family/place/3.wav": "7815512e35b540f27b37226ed509d90551b7da70e21755a391ecd843e0a8587b",
+    "roles/c-clasp-family/place/4.wav": "ffd000116a782c19a868ddcc36a8c71b905809b043ab9b9b0f77b4d6da0c39ba",
+    "roles/c-clasp-family/place/5.wav": "9e559ba6af88f7bf1ce2ae834bc0bbe3e9252a26a8d92baf8169d035a7253c4c",
+    "roles/c-clasp-family/select/1.wav": "1a7750dc84fd1a7cc6d29924bfcde21100fae66ee929bd5cf16800ec4d736c75",
+    "roles/c-clasp-family/select/2.wav": "8062a68e243d239decea9688361de0e9cf6cb4f79fcbac143f4ff87e90992583",
+    "roles/c-clasp-family/select/3.wav": "9d8c9981c624b2ab51bf917c7cf7ca37da81df851a21584a1e0a9eb7fd6fd3d0",
+    "roles/c-clasp-family/select/4.wav": "09d94854224ebc6c4261bfda6ff5fd7c290e686061f8fbfd7fb96e2c710e9564",
+    "roles/c-clasp-family/select/5.wav": "1818ddeac0b32df742f5048095957a74c25221ca9be25c8f116b3d50f530f673",
+    "roles/c-role-family/navigate/1.wav": "9b5593ee62d143078edf14a3bf58b7fbd37ef09b42aec980a438babf479086c5",
+    "roles/c-role-family/navigate/2.wav": "69b9ac6f4893edd6f27752d320a08e4a50316ebec85f1ea540c5f4f0bf852a50",
+    "roles/c-role-family/navigate/3.wav": "e6dc23500da6d90261e17998f36c47f4e5097847ca4d2175091b5f8fc0c97196",
+    "roles/c-role-family/navigate/4.wav": "8210add8324d01ab0646049ac40b1cc76f709b9273cc675d895a228bb37cbd22",
+    "roles/c-role-family/navigate/5.wav": "772c5749acd80628a6513a23fe3e589c730a71acc30a4b6ab8bc01d6b6f7754b",
+    "roles/c-role-family/open/1.wav": "fa33b97448355c632c81c24c0e6e0ee4bdd260943e0b838f2428c5e4a3451b69",
+    "roles/c-role-family/open/2.wav": "5bb51bf90bf02cbe64246e60695818803d5d17172fdc8c7b94bd2840b69eebaa",
+    "roles/c-role-family/open/3.wav": "49221e23a7f181fde9f6d14997e68837f865171e0864c569b8c3429b725a3d6d",
+    "roles/c-role-family/open/4.wav": "7319aa9a54ef669c48e87b4a566c762192321fc7b134caf70732cbfca8e86da9",
+    "roles/c-role-family/open/5.wav": "414f91e78479cc2af49dd63b2c413d6cef678727c0c869e459b1801809160732",
+    "roles/c-role-family/place/1.wav": "5b31f7dbd532978c2c7b5e01e49068f746aef2ce907d3cc97415d317581d8c48",
+    "roles/c-role-family/place/2.wav": "e323b643e4346f85be6022d8fc3b0b271dfd7b15bcd4a40a9f5c4e6e27441819",
+    "roles/c-role-family/place/3.wav": "d493d6fc70a1f808e8f1b5ee283e7c23481afef00edf1f9c76dae6337156ddee",
+    "roles/c-role-family/place/4.wav": "eb906550ed8ed3fabc92d6af6d5efab880ac05b732f91caea0dfd1bde97cad9f",
+    "roles/c-role-family/place/5.wav": "28eccfde82a0cc21aff0dd8b77508c80b65de584134b82072430c9f784d02a6a",
+    "roles/c-role-family/select/1.wav": "0f2fd19aa154aa5c195f1c4fe30ef1b43f2a717c0dbaad1d63b3e5961ec11c0c",
+    "roles/c-role-family/select/2.wav": "c040f2dde165940b259a9f12a80c3c6fb926daafdb781fa2e56170d76833f08d",
+    "roles/c-role-family/select/3.wav": "82a81a99f1c95ea3ce76c58147b1f7660495c5a8064683b171c19b34e1d926db",
+    "roles/c-role-family/select/4.wav": "a314e6400e1b056944b2c19dba2f412322d14f4e68e845921aa97bda3d9e6be6",
+    "roles/c-role-family/select/5.wav": "f18a8a9e8bccd3e2f51c60a2f5f834962c77393d20c5c57c23209820d076fe81",
+    "roles/historical-c/navigate/1.wav": "9b5593ee62d143078edf14a3bf58b7fbd37ef09b42aec980a438babf479086c5",
+    "roles/historical-c/navigate/2.wav": "69b9ac6f4893edd6f27752d320a08e4a50316ebec85f1ea540c5f4f0bf852a50",
+    "roles/historical-c/navigate/3.wav": "e6dc23500da6d90261e17998f36c47f4e5097847ca4d2175091b5f8fc0c97196",
+    "roles/historical-c/navigate/4.wav": "8210add8324d01ab0646049ac40b1cc76f709b9273cc675d895a228bb37cbd22",
+    "roles/historical-c/navigate/5.wav": "772c5749acd80628a6513a23fe3e589c730a71acc30a4b6ab8bc01d6b6f7754b",
+    "roles/historical-c/open/1.wav": "9b5593ee62d143078edf14a3bf58b7fbd37ef09b42aec980a438babf479086c5",
+    "roles/historical-c/open/2.wav": "69b9ac6f4893edd6f27752d320a08e4a50316ebec85f1ea540c5f4f0bf852a50",
+    "roles/historical-c/open/3.wav": "e6dc23500da6d90261e17998f36c47f4e5097847ca4d2175091b5f8fc0c97196",
+    "roles/historical-c/open/4.wav": "8210add8324d01ab0646049ac40b1cc76f709b9273cc675d895a228bb37cbd22",
+    "roles/historical-c/open/5.wav": "772c5749acd80628a6513a23fe3e589c730a71acc30a4b6ab8bc01d6b6f7754b",
+    "roles/historical-c/place/1.wav": "9b5593ee62d143078edf14a3bf58b7fbd37ef09b42aec980a438babf479086c5",
+    "roles/historical-c/place/2.wav": "69b9ac6f4893edd6f27752d320a08e4a50316ebec85f1ea540c5f4f0bf852a50",
+    "roles/historical-c/place/3.wav": "e6dc23500da6d90261e17998f36c47f4e5097847ca4d2175091b5f8fc0c97196",
+    "roles/historical-c/place/4.wav": "8210add8324d01ab0646049ac40b1cc76f709b9273cc675d895a228bb37cbd22",
+    "roles/historical-c/place/5.wav": "772c5749acd80628a6513a23fe3e589c730a71acc30a4b6ab8bc01d6b6f7754b",
+    "roles/historical-c/select/1.wav": "9b5593ee62d143078edf14a3bf58b7fbd37ef09b42aec980a438babf479086c5",
+    "roles/historical-c/select/2.wav": "69b9ac6f4893edd6f27752d320a08e4a50316ebec85f1ea540c5f4f0bf852a50",
+    "roles/historical-c/select/3.wav": "e6dc23500da6d90261e17998f36c47f4e5097847ca4d2175091b5f8fc0c97196",
+    "roles/historical-c/select/4.wav": "8210add8324d01ab0646049ac40b1cc76f709b9273cc675d895a228bb37cbd22",
+    "roles/historical-c/select/5.wav": "772c5749acd80628a6513a23fe3e589c730a71acc30a4b6ab8bc01d6b6f7754b",
+    "slow/c-clasp-family.wav": "e69c0f1be6467630729d4c57a83a8c0763c70bec19cd8cde92b998239ebad991",
+    "slow/c-role-family.wav": "568f799cde9b72a9dbe962a78d6d7581bb211dcbc09ca7d364c7ace606b04b51",
+    "slow/historical-c.wav": "684e6a87c2d891eca599331ac70750c91e80e670c141de45a693bfe5d906e9e3"
+  }
+}

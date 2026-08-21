@@ -18,9 +18,12 @@ the fully polished Build 24.
   manual locations, and Get Directions in the newest-first What's New record,
   while retaining the earlier Build 21 record in the archive.
 - [x] Ship the owner-approved Day Ledger icon in the iOS asset catalog.
-- [x] Give the room a restrained material sound palette, a single-session
-  hearth ignition, calmer rotating Quest companion copy, and a brighter earned
-  mark in the Day Ledger icon without adding looping ambience.
+- [x] Give the room one crisp five-take interaction voice, a phone-approved
+  bounded melodic return, a single-session hearth ignition, calmer rotating
+  Quest companion copy, and a brighter earned mark in the Day Ledger icon
+  without adding looping ambience.
+- [x] Let Goals take back and reselect adopted quests, preserve their progress,
+  and move weekly quests to another day without recreating them.
 - [x] Keep protected Google place search off. The candidate is built without a
   `PLACE_SEARCH_ENABLED=true` define; manual location entry and map handoff
   remain available.
@@ -230,10 +233,11 @@ Task 5 documentation commit itself.
 
 ## Verify before every candidate
 
-- [ ] Add the shipped build to `lib/content/release_notes.dart`, keep the
-  newest record first, and confirm its `version+build` matches both
-  `pubspec.yaml` and `release-candidate.json`. Include only factual changes
-  present in that exact candidate.
+- [x] Keep the iOS Build 24 record first in `lib/content/release_notes.dart` and
+  match its `1.0.4+24` identity to `pubspec.yaml`. The frozen Android Build 20
+  manifest remains separate in `release-candidate.json`. The current record
+  and store copy include only factual Daybook, quest-management, sound, hearth,
+  companion-copy, and Day Ledger changes in this candidate.
 - [ ] Install over the previous build and confirm What's New appears once,
   dismisses through both exits, and remains replayable from Me. Confirm a
   fresh install goes directly to onboarding, then inspect the normal,

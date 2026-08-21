@@ -158,6 +158,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   List<Quest>? _quests;
   int _tab = 1; // Quests is home
   final Set<int> _visitedTabs = {1};
+  final List<Object> _soundTabScopes = List<Object>.generate(
+    5,
+    (_) => Object(),
+    growable: false,
+  );
   late final LuxeMotionController _luxeMotion;
   late final ReleaseNotesGate _releaseNotesGate;
   OverlayEntry? _morningOverlay;
@@ -198,6 +203,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         const ReleaseNotesGate(SharedPreferencesReleaseSeenStore());
     _luxeMotion = LuxeMotionController();
     unawaited(_luxeMotion.start());
+    Sfx.instance.setInteractionScreen(_soundTabScopes[_tab]);
     WidgetsBinding.instance.addObserver(this);
     widget.roomLinks?.addListener(_onIncomingRoomLink);
     _load();
@@ -1327,7 +1333,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     final key = q.title.trim().toLowerCase();
     if (quests.any((e) => e.title.trim().toLowerCase() == key)) return false;
     q.createdDay ??= Days.key(Clock.now());
-    setState(() => quests.add(q));
+    setState(() {
+      quests.add(q);
+      // A deliberate re-take supersedes the old "don't restore this default"
+      // marker. Removing it again will add the marker back normally.
+      _state?.removedDefaults.remove(key);
+    });
     _persist();
     // a new dated plan should get its reminder right away (native-only)
     if (q.isEvent && (_state?.notifyEnabled ?? false)) {
@@ -1407,6 +1418,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // immediate instead of waiting for the gesture arena. Build a destination
     // only on its first visit; keeping five illustrated pages alive from frame
     // one decoded tens of megabytes the person had not asked to see yet.
+    Sfx.instance.setInteractionScreen(_soundTabScopes[i]);
     setState(() {
       _visitedTabs.add(i);
       _tab = i;
@@ -1440,6 +1452,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // screen-reader/focus window between the post-frame check and the modal.
     final releaseOverlayVisible =
         _whatsNewPending || _whatsNewOverlay != null || _whatsNewCheckScheduled;
+    final soundRootRoute = ModalRoute.of(context);
 
     // Only the canvas listens to the notifier (theme swaps recolor it live);
     // the Scaffold subtree is passed as `child` and not rebuilt on every notify.
@@ -1551,9 +1564,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                       ? GoalsPage(
                                           state: state,
                                           onAdd: _addQuest,
-                                          activeTitles: {
-                                            for (final q in quests) q.title,
-                                          },
+                                          onRemoveQuest: _removeQuest,
                                           onRemoveGoal: _removeGoal,
                                           onPersist: _persist,
                                           quests: quests,
@@ -1586,7 +1597,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                         )
                                       : const SizedBox.shrink(),
                                 ].indexed)
-                                  TickerMode(enabled: _tab == i, child: page),
+                                  InteractionSoundScreenScope(
+                                    id: _soundTabScopes[i],
+                                    sourceRoute: soundRootRoute,
+                                    child: TickerMode(
+                                      enabled: _tab == i,
+                                      child: page,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -1747,7 +1765,8 @@ class _DockItem extends StatelessWidget {
       selected: selected,
       child: Pressable(
         pressDepth: 2,
-        material: MaterialSound.stone,
+        interactionSound: InteractionSound.navigate,
+        soundEnabled: !selected,
         edgeColor: Colors.transparent,
         semanticLabel: '$label tab',
         onTapUp: (_) => onTap(),

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Synthesize soft, warm UI sounds for Morrowloom (candlelit-glass aesthetic).
+"""Synthesize legacy reward cues for Room of Days.
 
-Design goals (owner feedback: the old set felt harsh; wanted softer + higher
-quality): gentle marimba/music-box/bell timbres, smooth click-free envelopes
-(no hard onsets/cutoffs — the main cause of "cheap synth" harshness), pleasant
-pentatonic intervals, light reverb for air. Pure stdlib (math, wave, struct).
+The retired material contacts and ticks are intentionally excluded; their
+historical Foley/acoustic recipe lives in ``tool/author_fantasy_sfx.py``.
+Production everyday interaction audio is the separately authored X clasp
+family under ``assets/sfx/room/ordinary``. This file retains the older
+marimba/music-box recipes only for rewards and stat voices. Pure stdlib
+(math, wave, struct).
 """
 import math
 import os
@@ -123,9 +125,6 @@ def write_wav(path, buf):
 
 def build():
     out = {}
-
-    # tick — a whisper-soft rounded pip (every tap)
-    out['tick'] = note(NOTE['A5'], 0.07, 'soft', gain=0.7)
 
     # stat_0..5 — gentle marimba blips, ascending pentatonic (pitch per stat)
     penta = ['C5', 'D5', 'E5', 'G5', 'A5', 'C6']

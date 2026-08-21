@@ -5,6 +5,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:flutter/foundation.dart' show ValueListenable, kIsWeb;
 import 'package:flutter/material.dart';
 
+import '../audio.dart';
 import '../clock.dart';
 import '../content/quest_companion_copy.dart';
 import '../models.dart';
@@ -187,6 +188,8 @@ class _QuestCardState extends State<QuestCard>
               : '${opensJournal ? 'Activate to open a dedicated Journal entry' : 'Activate to complete'}${widget.onManage == null ? '' : '; use Manage to edit'}',
           onTapUp: _handleTap,
           onLongPress: widget.onManage,
+          interactionSound: InteractionSound.open,
+          soundEnabled: opensJournal,
           shape: const FacetedBorder(cut: 11),
           child: AnimatedContainer(
             duration: Motion.settle,

@@ -112,6 +112,23 @@ flutter:
 
   assets:
     - assets/sfx/
+    - assets/sfx/room/ordinary/open/
+    - assets/sfx/room/ordinary/select/
+    - assets/sfx/room/ordinary/navigate/
+    - assets/sfx/room/ordinary/place/
+    - assets/sfx/room/paired_return/d5/open/
+    - assets/sfx/room/paired_return/d5/select/
+    - assets/sfx/room/paired_return/d5/navigate/
+    - assets/sfx/room/paired_return/d5/place/
+    - assets/sfx/room/paired_return/a5/open/
+    - assets/sfx/room/paired_return/a5/select/
+    - assets/sfx/room/paired_return/a5/navigate/
+    - assets/sfx/room/paired_return/a5/place/
+    - assets/sfx/room/paired_return/e5/open/
+    - assets/sfx/room/paired_return/e5/select/
+    - assets/sfx/room/paired_return/e5/navigate/
+    - assets/sfx/room/paired_return/e5/place/
+    - assets/sfx/room/completion/
     - assets/google_fonts/
     - assets/room/
     # painted room plates, one per wall style (see ROOM-PLATES.md). Optional:

@@ -725,8 +725,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (q.allDay) {
       // honesty by design: an all-day line is only confirmed at night — but
       // the moment of willpower still deserves a beat, not a cold deferral.
-      Sfx.instance.playMaterial(MaterialSound.brass);
-      HapticFeedback.lightImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -815,7 +813,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _lastCompleteAt = nowT;
     _maybeOfferReAnchor(q); // "did your Tuesday quest on Thursday? move it?"
     _celebrateDayClearedIfDone(q); // a warm wash when the last ember is lit
-    Sfx.instance.play('complete');
+    // The immutable master owns both the accepted contact and its Answered
+    // Detent 75 ms later. QuestCard suppresses its ordinary X for this path.
+    Sfx.instance.playCompletionAccepted(transitionId: q);
     if (_combo < 2 && !bundle.shieldHeld) Haptics.questComplete();
     // a freeze that held the quiet days gets its own steady double-tap
     if (bundle.shieldHeld) {
@@ -1369,9 +1369,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (q != null) widget.onAdd(q);
   }
 
-  void _openNight() {
+  void _openNight({bool alreadyAcknowledged = false}) {
     if (_nightOverlay != null) return;
-    Sfx.instance.playMaterial(MaterialSound.glass);
+    if (!alreadyAcknowledged) {
+      Sfx.instance.playMaterial(MaterialSound.glass);
+    }
     final s = _state;
     late final OverlayEntry e;
     e = OverlayEntry(
@@ -1429,8 +1431,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   void _openWorkout(Quest launcher, Offset tapPos) {
     if (_workoutRunnerOpen) return; // dedupe rapid double-tap (bug-hunt §8)
     _workoutRunnerOpen = true;
-    Sfx.instance.playMaterial(MaterialSound.wood);
-    HapticFeedback.selectionClick();
     late final OverlayEntry e;
     e = OverlayEntry(
       builder: (_) => WorkoutFlow(
@@ -1924,8 +1924,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                     label: 'MOVE TO ${plural.toUpperCase()}',
                     expand: true,
                     onTap: () {
-                      Sfx.instance.play('streak');
-                      HapticFeedback.selectionClick();
                       setState(() {
                         q.weekdays = [day];
                         _reAnchorQuest = null;
@@ -2934,6 +2932,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               ],
                             ),
                           ),
+                          // Planning tomorrow is a deliberate, time-bound action rather
+                          // than an ordinary bonus. Keep that invitation at the room edge
+                          // instead of burying it after a long board.
+                          if (_state.emberDue &&
+                              emberOfDay(now).title == planTomorrowEmber)
+                            _emberPanel(),
 
                           // ── Quest list ──────────────────────────────────────────
                           Padding(
@@ -3051,7 +3055,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
                                   const InstallHint(),
-                                  _hearthPanel(),
+                                  if (!(_state.emberDue &&
+                                      emberOfDay(now).title ==
+                                          planTomorrowEmber))
+                                    _hearthPanel(),
                                   if (lowFlame)
                                     _lowFlameBar(
                                       chosen: shelteredQuestCount,
@@ -3192,7 +3199,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                         HoneyButton(
                                           label: 'CLOSE THE DAY',
                                           icon: Icons.nightlight_outlined,
-                                          onTap: _openNight,
+                                          onTap: () => _openNight(
+                                            alreadyAcknowledged: true,
+                                          ),
                                           expand: true,
                                         ),
                                       ],

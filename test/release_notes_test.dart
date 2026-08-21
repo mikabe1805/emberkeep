@@ -10,6 +10,10 @@ void main() {
 
     expect(currentRoomReleaseNotes.id, '1.0.4+24');
     expect(currentRoomReleaseNotes.title, 'Plans are for your whole life.');
+    expect(
+      currentRoomReleaseNotes.highlights.map((highlight) => highlight.title),
+      containsAll(const ['QUESTS STAY YOURS', 'THE ROOM ANSWERS BACK']),
+    );
     expect(pubspec, contains('version: ${currentRoomReleaseNotes.id}'));
     expect(
       roomOfDaysReleaseNotes.map((release) => release.id),

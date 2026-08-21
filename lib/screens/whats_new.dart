@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../audio.dart';
 import '../content/release_notes.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
@@ -275,6 +276,8 @@ class _HighlightRow extends StatelessWidget {
     ReleaseHighlightKind.flexiblePlans => Icons.event_repeat_rounded,
     ReleaseHighlightKind.streakSafety => Icons.shield_outlined,
     ReleaseHighlightKind.roomGuide => Icons.explore_outlined,
+    ReleaseHighlightKind.interactionSound => Icons.graphic_eq_rounded,
+    ReleaseHighlightKind.questControl => Icons.edit_note_rounded,
   };
 
   @override
@@ -351,6 +354,7 @@ class _ExitAction extends StatelessWidget {
         automatic ? 'whats-new-keep-going' : 'whats-new-back-to-room',
       ),
       semanticLabel: automatic ? 'Keep going' : 'Back to your room',
+      material: MaterialSound.brass,
       onTapUp: (_) => onTap(),
       pressDepth: 3,
       edgeColor: Palette.brassDeep,

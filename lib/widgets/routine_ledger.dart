@@ -4,6 +4,7 @@ import 'dart:math' show max, pi, sin;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../audio.dart';
 import '../tokens.dart';
 import 'facets.dart';
 import 'glass.dart';
@@ -971,6 +972,7 @@ class LedgerClaspButton extends StatelessWidget {
     final accessibilityText = MediaQuery.textScalerOf(context).scale(1) >= 1.75;
     return Pressable(
       semanticLabel: label,
+      material: MaterialSound.brass,
       shape: shape,
       // The plate is a photograph with its own cast shadow and rounded ends.
       // Pressable's under-edge drew an opaque chamfered slab in brassDeep

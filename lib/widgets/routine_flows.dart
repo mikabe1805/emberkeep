@@ -84,7 +84,7 @@ class _NightFlowState extends State<NightFlow> {
   Future<void> _finish() async {
     if (_closing) return;
     setState(() => _closing = true);
-    Sfx.instance.play('streak');
+    Sfx.instance.playAfterContact('streak');
     HapticFeedback.mediumImpact();
     if (!_reduceMotion) {
       await Future<void>.delayed(const Duration(milliseconds: 430));
@@ -154,8 +154,6 @@ class _NightFlowState extends State<NightFlow> {
           onPrimary: _step == 0
               ? _finish
               : () {
-                  Sfx.instance.play('tick_lift');
-                  HapticFeedback.selectionClick();
                   setState(() => _step = 0);
                 },
           secondaryLabel: _step == 0
@@ -695,7 +693,7 @@ class _NightFlowState extends State<NightFlow> {
     final bundle = s.roll(q);
     s.commit(bundle);
     widget.onPersist();
-    Sfx.instance.play('complete');
+    Sfx.instance.playCompletionAccepted(transitionId: q);
     HapticFeedback.mediumImpact();
     setState(() {});
   }
@@ -1180,7 +1178,6 @@ class _NightFlowState extends State<NightFlow> {
           child: _BigButton(
             label: 'PLAN TOMORROW →',
             onTap: () {
-              Sfx.instance.playMaterial(MaterialSound.glass);
               setState(() => _step = 1);
             },
           ),
@@ -1502,7 +1499,7 @@ class _MorningFlowState extends State<MorningFlow> {
   Future<void> _finish() async {
     if (_closing) return;
     setState(() => _closing = true);
-    Sfx.instance.play('tick_lift');
+    Sfx.instance.playAfterContact('tick_lift');
     HapticFeedback.mediumImpact();
     if (!_reduceMotion) {
       await Future<void>.delayed(const Duration(milliseconds: 430));

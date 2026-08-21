@@ -89,13 +89,19 @@ Repeat on both phones:
 - [ ] Complete a Quest. Confirm immediate press feedback, sound/haptic feedback,
   the reward receipt, XP/Glimmers, and the visible room/progress change.
 - [ ] Tap 20–30 controls across the room, dock, calendar, journal, overlays, and
-  rewards. Wood, stone, parchment, glass, and brass contacts feel related but
-  distinct, vary subtly within each material, never double-fire, and do not
-  become tiring. Repeat one activation with VoiceOver or a hardware keyboard.
+  rewards. Ordinary contacts share one crisp, weighty voice with subtle
+  five-take variation, never double-fire, and do not become tiring. During a
+  calm 180–700 ms rhythm, listen for the rare D5 → A5 → E5 → D5 return. Confirm
+  rapid tapping stays plain with no later catch-up, changing pages clears an
+  unfinished return, and Quest completion interrupts it cleanly. Repeat one
+  activation with VoiceOver or a hardware keyboard.
 - [ ] Use Undo once and confirm the accidental completion and its rewards are
   actually reversed.
 - [ ] Open Quests, Me, Plans, Goals, and Journal. Switch through all five tabs
   twice; no stale screen, lost scroll state, or accidental activation appears.
+- [ ] In Goals, take back an adopted quest and select it again. Change the day
+  of a weekly quest, force-quit, and reopen. Its progress, history, selected
+  state, and new weekday remain intact.
 - [ ] Spend earned Glimmers on an available room choice and confirm it remains
   equipped after force-quitting and reopening.
 

@@ -6,22 +6,40 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test(
-    'material contacts rotate deterministically inside their own families',
+    'ordinary contacts share one deterministic varied walk across roles',
     () {
-      final sounds = MaterialSoundRouter();
+      final sounds = InteractionSoundRouter();
+      final start = DateTime(2026, 8, 20, 12);
 
       expect(
         [
-          sounds.next(MaterialSound.wood),
-          sounds.next(MaterialSound.wood),
-          sounds.next(MaterialSound.wood),
-          sounds.next(MaterialSound.wood),
+          sounds.next(InteractionSound.open, at: start)?.asset,
+          sounds
+              .next(
+                InteractionSound.navigate,
+                at: start.add(const Duration(milliseconds: 250)),
+              )
+              ?.asset,
+          sounds
+              .next(
+                InteractionSound.select,
+                at: start.add(const Duration(milliseconds: 500)),
+              )
+              ?.asset,
+          sounds
+              .next(
+                InteractionSound.place,
+                at: start.add(const Duration(milliseconds: 750)),
+              )
+              ?.asset,
         ],
-        ['tap_wood_1', 'tap_wood_2', 'tap_wood_3', 'tap_wood_1'],
+        [
+          'room/ordinary/open/1',
+          'room/ordinary/navigate/3',
+          'room/ordinary/select/2',
+          'room/ordinary/place/4',
+        ],
       );
-      // A parchment interaction does not disturb wood's authored rhythm.
-      expect(sounds.next(MaterialSound.parchment), 'tap_parchment_1');
-      expect(sounds.next(MaterialSound.wood), 'tap_wood_2');
     },
   );
 
@@ -113,7 +131,19 @@ void main() {
     expect(initialRoom, contains('_maybeStartSessionIgnition();'));
     expect(roomLinks, contains('_maybeStartSessionIgnition();'));
     expect(selectTab, contains('if (i == 1) _maybeStartSessionIgnition();'));
-    expect(pressable, contains('playMaterial(widget.material)'));
+    expect(
+      pressable,
+      contains('Sfx.instance.playInteraction(role, screenId: screenId)'),
+    );
+    expect(
+      pressable,
+      contains('if (!widget.enabled || widget.onTapUp == null) return;'),
+    );
+    final rawPointerDown = pressable.substring(
+      pressable.indexOf('onPointerDown:'),
+      pressable.indexOf('onPointerMove:'),
+    );
+    expect(rawPointerDown, isNot(contains('Sfx.instance')));
     expect(
       pressable,
       contains('onPointerUp: (_) {\n            _setDown(false);'),
@@ -125,9 +155,9 @@ void main() {
       ),
     );
     expect(
-      RegExp(r'play(?:Material)?\(').allMatches(pressable),
-      hasLength(2),
-      reason: 'pointer and non-pointer activation each have one ack path',
+      RegExp(r'Sfx\.instance\.playInteraction\(').allMatches(pressable),
+      hasLength(1),
+      reason: 'all accepted activation paths share one sound owner',
     );
     expect(fire, contains("ValueKey('quest-fire-ignition')"));
     expect(fire, contains('widget.reduceMotion'));

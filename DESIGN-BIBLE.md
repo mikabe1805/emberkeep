@@ -577,15 +577,60 @@ same room camera.
 ## Reward, sound, and touch
 
 - The first response to a tap lands inside 100 ms.
-- Press depth, the quiet tick, and selection haptic begin on raw pointer-down;
-  the action still commits only after a valid tap. A scrolling finger cancels
-  the pressed visual instead of firing the control.
-- Navigation is a quiet wood/brass tick.
-- Completion is a soft latch, a warm ember release, then a readable earned
-  receipt.
+- Press depth and the immediate haptic begin under the finger; the ordinary X
+  clasp sounds only after Flutter recognizes a tap rather than a scroll. A
+  control whose state can still reject or no-op must own its semantic cue or
+  disable the automatic one. A scrolling finger cancels the pressed visual and
+  never voices a control.
+- Every foreground cue is a different gesture performed by one imagined cause:
+  a close, handmade ledger mechanism inside the warm living room. Its contact,
+  damped modal body, bounded pitch field, rounded top edge, and almost-felt
+  early-reflection fingerprint are shared acoustic physics. A folder of clean
+  but unrelated tap samples fails the system even when each file sounds good
+  alone.
+- Everyday sound is keyed to the interaction verb, not the surface painted
+  beneath it. `open`, `select`, `navigate`, and `place` are small weightings of
+  the same approved X contact/body/8.5 ms clasp—not separate Foley materials.
+- X is the production ordinary anchor. Its complete 60 ms gesture and common
+  `+1.5 dB` phone level are byte-locked from the physical iPhone study. Five
+  close takes move through one global no-repeat walk, creating slight physical
+  variation without making ordinary navigation sing.
+- Everyday sounds begin with a clean, close, modern transient and park fully
+  inside 60 ms. Audible room tone, codec swish, literal prop-library tails,
+  long resonance, and an added reverb fingerprint are faults.
+- Plain X with slight take variation is the default. The physically approved
+  `paired-return` easter egg appears only after four accepted actions spaced
+  180–700 ms apart, as D5 → A5 → E5 → D5 over the unchanged X mechanism. It is
+  limited to once per stable screen and a global 90-second cooldown. Rapid
+  input below 180 ms and completion clear the phrase without melodic catch-up.
+- A person's broader music taste is evidence that nuance matters, not
+  permission to impose a dark or deliberately unresolved harmony on the app.
+  Every tap remains complete on its own and avoids becoming a notification
+  jingle.
+- Fantasy comes from causal material, authored transient/body/tail, harmonic
+  continuity, and precise sound-motion-haptic timing, never a generic layer of
+  sparkles, notification pings, or long fairy-dust reverb.
+- Completion is one immutable atomic plan: suppress the widget's ordinary X,
+  emit accepted Select-2, then begin Answered Detent exactly 75 ms later after
+  the state commits. The 430 ms atomic master begins at contact—never at a
+  parked timestamp inside an audition flow—and prevents scheduling jitter. It
+  belongs to a quest or routine that actually completed; generic saves and
+  button presses do not borrow it.
+- The audio director owns the global take walk, 18 ms ordinary duplicate gate,
+  transition-scoped completion dedupe, Paired Return eligibility/screen/cooldown
+  state, rapid attenuation and phrase abort, mute settings, high-priority start
+  suppression, per-asset pool caps, and compound outcomes.
+  New and migrated widgets request semantic events. The semantic migration is
+  intentionally partial: many older visual-material call sites still enter the
+  same X router through a compatibility bridge. That bridge no longer selects
+  unrelated prop recordings and is removed as each surface receives its
+  explicit interaction verb.
 - Completed controls settle into weight; they do not become bright green.
 - Hearth ambience is optional, extremely low, looped cleanly, and never starts
   as a foreground sound.
+- A hearth ignition is a one-shot physical gesture: quiet intake, low warm
+  swell, irregular flame crest, brief airy edge, and clean decay. If it carries
+  a pitch, that pitch is an almost-felt afterglow beneath the fire—not a chime.
 - Music, if introduced, belongs to the world and defaults off until chosen.
 - Haptics and sound support the visual event; muted phones lose no information.
 - Full-screen spectacle is reserved for genuinely rare milestones.

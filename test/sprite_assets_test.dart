@@ -61,5 +61,31 @@ void main() {
         reason: 'assets/sfx/$name.wav is empty',
       );
     }
+
+    for (final role in const ['open', 'select', 'navigate', 'place']) {
+      for (var take = 1; take <= 5; take++) {
+        final path = 'assets/sfx/room/ordinary/$role/$take.wav';
+        final data = await rootBundle.load(path);
+        expect(data.lengthInBytes, greaterThan(0), reason: '$path is empty');
+      }
+    }
+    for (final token in const ['d5', 'a5', 'e5']) {
+      for (final role in const ['open', 'select', 'navigate', 'place']) {
+        for (var take = 1; take <= 5; take++) {
+          final path = 'assets/sfx/room/paired_return/$token/$role/$take.wav';
+          final data = await rootBundle.load(path);
+          expect(data.lengthInBytes, greaterThan(0), reason: '$path is empty');
+        }
+      }
+    }
+    for (final name in const [
+      'accepted-select-2',
+      'answered-detent-natural',
+      'completion-composite',
+    ]) {
+      final path = 'assets/sfx/room/completion/$name.wav';
+      final data = await rootBundle.load(path);
+      expect(data.lengthInBytes, greaterThan(0), reason: '$path is empty');
+    }
   });
 }

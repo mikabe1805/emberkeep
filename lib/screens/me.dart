@@ -35,10 +35,12 @@ import '../widgets/facets.dart';
 import '../models.dart';
 import '../widgets/glass.dart';
 import '../widgets/glass_switch.dart';
+import '../widgets/gold_surface.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/morrow_tapestry_glyph.dart';
+import '../widgets/pressable.dart';
 import '../widgets/radar.dart';
 import '../widgets/stat_chips.dart';
 import '../social.dart';
@@ -1855,7 +1857,6 @@ class MePage extends StatelessWidget {
             embers: state.embers,
             light: state.reduceMotion ? null : parallax,
             onChangeSpace: () {
-              Sfx.instance.playMaterial(MaterialSound.wood);
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => ShopScreen(
@@ -5187,48 +5188,75 @@ class _SpaceRail extends StatelessWidget {
         ),
       ],
     );
-    final chooser = HoneyButton(
-      label: 'CHANGE SPACE',
-      icon: Icons.meeting_room_outlined,
-      fontSize: 10.5,
+    final chooser = GoldSurface(
+      cut: 11,
       glow: false,
       light: light,
-      onTap: onChangeSpace,
-    );
-    return Semantics(
-      button: true,
-      label: 'Open room chooser. $embers Glimmers available.',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onChangeSpace,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
-          // A pane is darker than the lit art behind it (DESIGN-BIBLE), so this is
-          // opaque warm glass, not a film — a translucent rail let the room's own
-          // light and anything beneath it read straight through.
-          decoration: facetedDecoration(
-            cut: 10,
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xF02A211B), Color(0xF61A130F)],
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.meeting_room_outlined,
+              size: 15.5,
+              color: Palette.onHoney,
             ),
-            borderColor: Palette.brass.withValues(alpha: 0.52),
-          ),
-          child: largeText
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [balance, const SizedBox(height: 8), chooser],
-                )
-              : Row(
-                  children: [
-                    Expanded(child: balance),
-                    const SizedBox(width: 10),
-                    chooser,
-                  ],
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'CHANGE SPACE',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Type.label.copyWith(
+                  fontSize: 10.5,
+                  letterSpacing: 1.3,
+                  color: Palette.onHoney,
                 ),
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+    return Pressable(
+      material: MaterialSound.brass,
+      semanticLabel: 'Open room chooser. $embers Glimmers available.',
+      onTapUp: (_) => onChangeSpace(),
+      pressDepth: 2,
+      edgeColor: Colors.transparent,
+      shape: const FacetedBorder(cut: 10),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+        // A pane is darker than the lit art behind it (DESIGN-BIBLE), so this is
+        // opaque warm glass, not a film — a translucent rail let the room's own
+        // light and anything beneath it read straight through.
+        decoration: facetedDecoration(
+          cut: 10,
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xF02A211B), Color(0xF61A130F)],
+          ),
+          borderColor: Palette.brass.withValues(alpha: 0.52),
+        ),
+        child: largeText
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [balance, const SizedBox(height: 8), chooser],
+              )
+            : Row(
+                children: [
+                  Expanded(child: balance),
+                  const SizedBox(width: 10),
+                  chooser,
+                ],
+              ),
       ),
     );
   }

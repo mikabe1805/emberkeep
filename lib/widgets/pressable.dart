@@ -5,6 +5,37 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../tokens.dart';
 
+/// Stable sound identity for one visible app screen. A nested Navigator route
+/// overrides the inherited tab identity, while the five IndexedStack pages
+/// retain their own identity across rebuilds and scrolls.
+class InteractionSoundScreenScope extends InheritedWidget {
+  const InteractionSoundScreenScope({
+    super.key,
+    required this.id,
+    required this.sourceRoute,
+    required super.child,
+  });
+
+  final Object id;
+  final Route<dynamic>? sourceRoute;
+
+  static Object? maybeScreenIdOf(BuildContext context) {
+    final scope = context
+        .getInheritedWidgetOfExactType<InteractionSoundScreenScope>();
+    final route = ModalRoute.of(context);
+    if (route != null &&
+        (scope == null || !identical(route, scope.sourceRoute))) {
+      return route;
+    }
+    return scope?.id ?? route;
+  }
+
+  @override
+  bool updateShouldNotify(InteractionSoundScreenScope oldWidget) =>
+      !identical(id, oldWidget.id) ||
+      !identical(sourceRoute, oldWidget.sourceRoute);
+}
+
 /// Faux-3D press: thick bottom edge that collapses as the child drops 4px,
 /// paired with a haptic tick — every tap feels physical before any reward
 /// logic runs (Duolingo's cheapest juice, DESIGN.md §2).
@@ -27,6 +58,8 @@ class Pressable extends StatefulWidget {
     this.enabled = true,
     this.pressDepth = 4,
     this.material = MaterialSound.wood,
+    this.interactionSound,
+    this.soundEnabled = true,
     this.semanticLabel,
     this.semanticHint,
   });
@@ -46,6 +79,8 @@ class Pressable extends StatefulWidget {
   final bool enabled;
   final double pressDepth;
   final MaterialSound material;
+  final InteractionSound? interactionSound;
+  final bool soundEnabled;
   final String? semanticLabel;
   final String? semanticHint;
 
@@ -65,8 +100,16 @@ class _PressableState extends State<Pressable> {
     if (down) {
       _pointerAcknowledged = true;
       HapticFeedback.selectionClick();
-      Sfx.instance.playMaterial(widget.material);
     }
+  }
+
+  void _playAcceptedSound({
+    required bool soundEnabled,
+    required InteractionSound role,
+    required Object? screenId,
+  }) {
+    if (!soundEnabled) return;
+    Sfx.instance.playInteraction(role, screenId: screenId);
   }
 
   void _activate() {
@@ -75,14 +118,23 @@ class _PressableState extends State<Pressable> {
     // them the same single physical acknowledgement without duplicating touch.
     if (!_pointerAcknowledged) {
       HapticFeedback.selectionClick();
-      Sfx.instance.playMaterial(widget.material);
     }
     _pointerAcknowledged = false;
     final box = context.findRenderObject() as RenderBox?;
     final center = box == null
         ? Offset.zero
         : box.localToGlobal(box.size.center(Offset.zero));
-    widget.onTapUp!(center);
+    final callback = widget.onTapUp!;
+    final soundEnabled = widget.soundEnabled;
+    final role =
+        widget.interactionSound ?? interactionForMaterial(widget.material);
+    final screenId = InteractionSoundScreenScope.maybeScreenIdOf(context);
+    callback(center);
+    _playAcceptedSound(
+      soundEnabled: soundEnabled,
+      role: role,
+      screenId: screenId,
+    );
   }
 
   @override
@@ -148,8 +200,21 @@ class _PressableState extends State<Pressable> {
           child: GestureDetector(
             excludeFromSemantics: true,
             onTapUp: (d) {
-              if (!widget.enabled) return;
-              widget.onTapUp?.call(d.globalPosition);
+              if (!widget.enabled || widget.onTapUp == null) return;
+              final callback = widget.onTapUp!;
+              final soundEnabled = widget.soundEnabled;
+              final role =
+                  widget.interactionSound ??
+                  interactionForMaterial(widget.material);
+              final screenId = InteractionSoundScreenScope.maybeScreenIdOf(
+                context,
+              );
+              callback(d.globalPosition);
+              _playAcceptedSound(
+                soundEnabled: soundEnabled,
+                role: role,
+                screenId: screenId,
+              );
               _pointerAcknowledged = false;
             },
             onLongPress: widget.onLongPress == null

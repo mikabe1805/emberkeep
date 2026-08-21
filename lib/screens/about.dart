@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../audio.dart';
 import '../platform/share_stub.dart'
     if (dart.library.js_interop) '../platform/share_web.dart';
 import '../tokens.dart';
@@ -378,6 +379,7 @@ class _AboutAction extends StatelessWidget {
     final ink = gold ? Palette.onHoney : Palette.textHi;
     return Pressable(
       semanticLabel: label,
+      material: gold ? MaterialSound.brass : MaterialSound.glass,
       onTapUp: onTap,
       pressDepth: 3,
       edgeColor: gold ? const Color(0xFF5B3215) : const Color(0xFF0F0905),

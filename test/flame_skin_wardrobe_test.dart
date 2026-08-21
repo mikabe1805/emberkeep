@@ -117,7 +117,7 @@ void main() {
         home: GoalsPage(
           state: state,
           onAdd: (_) => true,
-          activeTitles: const {},
+          onRemoveQuest: (_) {},
           onRemoveGoal: (_) {},
           onPersist: () {},
           quests: const [],

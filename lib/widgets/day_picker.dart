@@ -173,7 +173,6 @@ class _WeekdaySheetState extends State<_WeekdaySheet> {
                       label: 'PIN TO ${_dayNames[_sel - 1].toUpperCase()}',
                       expand: true,
                       onTap: () {
-                        Sfx.instance.play('streak');
                         Navigator.of(context).pop(_sel);
                       },
                     ),

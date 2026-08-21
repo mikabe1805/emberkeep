@@ -8,6 +8,8 @@ enum ReleaseHighlightKind {
   flexiblePlans,
   streakSafety,
   roomGuide,
+  interactionSound,
+  questControl,
 }
 
 class ReleaseHighlight {
@@ -53,7 +55,7 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
     dateLabel: 'AUGUST 2026',
     title: 'Plans are for your whole life.',
     introduction:
-        'Events, tasks, classes, quests, and the places you need to be can now share one calm Daybook.',
+        'Your Daybook is calmer, quests are easier to reshape, and every interaction feels more at home in the room.',
     highlights: <ReleaseHighlight>[
       ReleaseHighlight(
         kind: ReleaseHighlightKind.flexiblePlans,
@@ -72,6 +74,18 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
         title: 'GET THERE',
         body:
             'Save a location and open directions in Apple Maps or Google Maps when it is time to go.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'QUESTS STAY YOURS',
+        body:
+            'Take a quest back, choose it again, or move a weekly quest to another day without losing it.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.interactionSound,
+        title: 'THE ROOM ANSWERS BACK',
+        body:
+            'Clicking around now has one crisp, varied voice, with a rare melodic reply tucked into the rhythm.',
       ),
     ],
   ),

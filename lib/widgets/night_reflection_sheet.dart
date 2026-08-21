@@ -149,8 +149,6 @@ class _NightReflectionSheetState extends State<_NightReflectionSheet> {
       tomorrowMessage: _tomorrow.text,
     );
     if (data.isEmpty && widget.initial == null) return;
-    Sfx.instance.play('tick_lift');
-    Haptics.success();
     Navigator.of(context).pop(data);
   }
 

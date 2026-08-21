@@ -203,7 +203,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
       q.goalTitle = name;
       widget.onAdd(q);
     }
-    Sfx.instance.play('levelup');
+    Sfx.instance.playAfterContact('levelup');
     HapticFeedback.heavyImpact();
     setState(() => _sealing = true);
     await Future.delayed(const Duration(milliseconds: 1400));

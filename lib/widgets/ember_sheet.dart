@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../clock.dart';
@@ -358,8 +357,6 @@ class _EmberSheetState extends State<_EmberSheet> {
 
   void _submit() {
     if (_title.text.trim().isEmpty) return;
-    Sfx.instance.play('streak');
-    HapticFeedback.selectionClick();
     Navigator.of(context).pop(_build());
   }
 

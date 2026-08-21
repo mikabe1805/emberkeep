@@ -1,0 +1,542 @@
+{
+  "study": "room-paired-return-phone-gate-v1",
+  "render_version": "room-paired-return-phone-gate-author-2",
+  "purpose": "Short physical-phone regression gate for the rare Paired Return easter egg.",
+  "not_an_ab": true,
+  "source_studies": {
+    "v3": "room-c-gesture-v3",
+    "v4": "room-c-melody-v4",
+    "reward": "room-reward-voice-v1"
+  },
+  "source_paths": {
+    "v3_root": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-c-gesture-v3",
+    "v4_root": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-c-melody-v4",
+    "reward_root": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\release-final\\design\\audits\\2026-08-20\\room-reward-voice-v1",
+    "atomic_completion": "composites/answered-detent/natural.wav"
+  },
+  "contract": {
+    "everyday_default": "v3 X slight variations only, chosen from the approved global variant walk.",
+    "rare_paired_return": {
+      "status": "physically approved bounded rare easter egg",
+      "trigger": "after 4 eligible ordinary actions",
+      "eligible_interval_ms": [
+        180,
+        700
+      ],
+      "tokens": [
+        "D5",
+        "A5",
+        "E5",
+        "D5"
+      ],
+      "cooldown_seconds": 90,
+      "once_per_screen": 1
+    },
+    "rapid_policy": {
+      "below_ms": 180,
+      "armed_burst_gains": [
+        1.0,
+        0.93,
+        0.93,
+        0.885,
+        0.885
+      ],
+      "result": "D5 begins the armed burst; a sub-180 ms event attenuates to .93, aborts active motif state, and later eligible events do not catch up."
+    },
+    "completion_policy": {
+      "result": "interrupt and clear ordinary motif state",
+      "composite": "accepted-select-2 + answered-detent-natural @ +75ms",
+      "source": "room-reward-voice-v1/composites/answered-detent/natural.wav",
+      "duration_ms": 430,
+      "scheduled_after_d5_onset_ms": 80
+    }
+  },
+  "reels": {
+    "discovery": {
+      "file": "reels/discovery.wav",
+      "purpose": "Varied plain X, one D5-A5-E5-D5 return, plain X, then a second qualifying run held plain by the one-per-screen and 90-second cooldown.",
+      "events": [
+        {
+          "at_seconds": 0.2,
+          "at_ms": 200,
+          "role": "navigate",
+          "take": 1,
+          "variant_walk_position": 0,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 0.55,
+          "at_ms": 550,
+          "role": "open",
+          "take": 3,
+          "variant_walk_position": 1,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 0.8999999999999999,
+          "at_ms": 900,
+          "role": "select",
+          "take": 2,
+          "variant_walk_position": 2,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 1.2499999999999998,
+          "at_ms": 1250,
+          "role": "place",
+          "take": 4,
+          "variant_walk_position": 3,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 1.5999999999999999,
+          "at_ms": 1600,
+          "role": "navigate",
+          "take": 2,
+          "variant_walk_position": 4,
+          "state": "motif",
+          "token": "D5",
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 1.95,
+          "at_ms": 1950,
+          "role": "open",
+          "take": 5,
+          "variant_walk_position": 5,
+          "state": "motif",
+          "token": "A5",
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 2.3,
+          "at_ms": 2300,
+          "role": "select",
+          "take": 3,
+          "variant_walk_position": 6,
+          "state": "motif",
+          "token": "E5",
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 2.65,
+          "at_ms": 2650,
+          "role": "place",
+          "take": 1,
+          "variant_walk_position": 7,
+          "state": "motif",
+          "token": "D5",
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 3.0,
+          "at_ms": 3000,
+          "role": "navigate",
+          "take": 4,
+          "variant_walk_position": 8,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 3.35,
+          "at_ms": 3350,
+          "role": "open",
+          "take": 5,
+          "variant_walk_position": 9,
+          "state": "cooldown_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 3.7,
+          "at_ms": 3700,
+          "role": "select",
+          "take": 2,
+          "variant_walk_position": 10,
+          "state": "cooldown_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 4.05,
+          "at_ms": 4050,
+          "role": "place",
+          "take": 3,
+          "variant_walk_position": 11,
+          "state": "cooldown_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 4.3999999999999995,
+          "at_ms": 4400,
+          "role": "navigate",
+          "take": 5,
+          "variant_walk_position": 12,
+          "state": "cooldown_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 4.75,
+          "at_ms": 4750,
+          "role": "open",
+          "take": 1,
+          "variant_walk_position": 13,
+          "state": "cooldown_plain",
+          "token": null,
+          "gain": 1.0
+        }
+      ],
+      "metrics": {
+        "duration_ms": 5050.0,
+        "peak": 0.5417027473449707,
+        "rms": 0.019618171017438304
+      }
+    },
+    "rapid_stays_plain": {
+      "file": "reels/rapid-stays-plain.wav",
+      "purpose": "Four eligible X events and D5 arm the motif; a 120 ms event aborts it, and both rapid and later eligible X events stay plain without catch-up.",
+      "events": [
+        {
+          "at_seconds": 0.2,
+          "at_ms": 200,
+          "role": "select",
+          "take": 1,
+          "variant_walk_position": 0,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 0.55,
+          "at_ms": 550,
+          "role": "place",
+          "take": 3,
+          "variant_walk_position": 1,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 0.9,
+          "at_ms": 900,
+          "role": "navigate",
+          "take": 2,
+          "variant_walk_position": 2,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 1.25,
+          "at_ms": 1250,
+          "role": "open",
+          "take": 4,
+          "variant_walk_position": 3,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 1.6,
+          "at_ms": 1600,
+          "role": "place",
+          "take": 2,
+          "variant_walk_position": 4,
+          "state": "motif",
+          "token": "D5",
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 1.72,
+          "at_ms": 1720,
+          "role": "select",
+          "take": 5,
+          "variant_walk_position": 5,
+          "state": "rapid_abort",
+          "token": null,
+          "gain": 0.93
+        },
+        {
+          "at_seconds": 1.84,
+          "at_ms": 1840,
+          "role": "navigate",
+          "take": 3,
+          "variant_walk_position": 6,
+          "state": "rapid_plain",
+          "token": null,
+          "gain": 0.93
+        },
+        {
+          "at_seconds": 1.96,
+          "at_ms": 1960,
+          "role": "place",
+          "take": 1,
+          "variant_walk_position": 7,
+          "state": "rapid_plain",
+          "token": null,
+          "gain": 0.885
+        },
+        {
+          "at_seconds": 2.08,
+          "at_ms": 2080,
+          "role": "select",
+          "take": 4,
+          "variant_walk_position": 8,
+          "state": "rapid_plain",
+          "token": null,
+          "gain": 0.885
+        },
+        {
+          "at_seconds": 2.48,
+          "at_ms": 2480,
+          "role": "place",
+          "take": 5,
+          "variant_walk_position": 9,
+          "state": "post_abort_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 2.83,
+          "at_ms": 2830,
+          "role": "open",
+          "take": 2,
+          "variant_walk_position": 10,
+          "state": "post_abort_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 3.18,
+          "at_ms": 3180,
+          "role": "navigate",
+          "take": 3,
+          "variant_walk_position": 11,
+          "state": "post_abort_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 3.53,
+          "at_ms": 3530,
+          "role": "open",
+          "take": 5,
+          "variant_walk_position": 12,
+          "state": "post_abort_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 3.88,
+          "at_ms": 3880,
+          "role": "select",
+          "take": 1,
+          "variant_walk_position": 13,
+          "state": "post_abort_plain",
+          "token": null,
+          "gain": 1.0
+        }
+      ],
+      "metrics": {
+        "duration_ms": 4180.0,
+        "peak": 0.5182055234909058,
+        "rms": 0.02081602610997044
+      }
+    },
+    "completion_interrupts": {
+      "file": "reels/completion-interrupts.wav",
+      "purpose": "D5 is followed 80 ms later by the canonical 430 ms atomic completion, then a later plain eligible X proves the motif was cleared.",
+      "events": [
+        {
+          "at_seconds": 0.2,
+          "at_ms": 200,
+          "role": "navigate",
+          "take": 1,
+          "variant_walk_position": 0,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 0.55,
+          "at_ms": 550,
+          "role": "open",
+          "take": 3,
+          "variant_walk_position": 1,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 0.9,
+          "at_ms": 900,
+          "role": "select",
+          "take": 2,
+          "variant_walk_position": 2,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 1.25,
+          "at_ms": 1250,
+          "role": "place",
+          "take": 4,
+          "variant_walk_position": 3,
+          "state": "plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 1.6,
+          "at_ms": 1600,
+          "role": "navigate",
+          "take": 2,
+          "variant_walk_position": 4,
+          "state": "motif",
+          "token": "D5",
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 1.68,
+          "at_ms": 1680,
+          "role": "completion",
+          "take": null,
+          "variant_walk_position": null,
+          "state": "atomic_completion",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 2.2,
+          "at_ms": 2200,
+          "role": "open",
+          "take": 5,
+          "variant_walk_position": 5,
+          "state": "post_completion_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 2.55,
+          "at_ms": 2550,
+          "role": "select",
+          "take": 3,
+          "variant_walk_position": 6,
+          "state": "post_completion_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 2.9,
+          "at_ms": 2900,
+          "role": "place",
+          "take": 1,
+          "variant_walk_position": 7,
+          "state": "post_completion_plain",
+          "token": null,
+          "gain": 1.0
+        },
+        {
+          "at_seconds": 3.25,
+          "at_ms": 3250,
+          "role": "navigate",
+          "take": 4,
+          "variant_walk_position": 8,
+          "state": "post_completion_plain",
+          "token": null,
+          "gain": 1.0
+        }
+      ],
+      "metrics": {
+        "duration_ms": 3580.0,
+        "peak": 0.5417027473449707,
+        "rms": 0.02366337589575163
+      }
+    }
+  },
+  "used_v3_takes_by_role": {
+    "navigate": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "open": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "select": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "place": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ]
+  },
+  "source_sha256": {
+    "v3/roles/c-clasp-family/navigate/1.wav": "6653693fa687e082e0b2a3a4a9a90e3067c88459858bb31c9cc0fc5af6aa7fbe",
+    "v3/roles/c-clasp-family/navigate/2.wav": "84c0e890705e45baa6c6fd189a817fe88f3798f9e7660f445431cad1edc41a95",
+    "v3/roles/c-clasp-family/navigate/3.wav": "533ef78f93bb783e7c2e180eee9c04a753021ce044da2e799058c53ba47088bf",
+    "v3/roles/c-clasp-family/navigate/4.wav": "30c7c70e935914818d1a483e9323eb773973d2da804ed8a40c6bef8ad0643c38",
+    "v3/roles/c-clasp-family/navigate/5.wav": "f6086c9eec5361c5a84ca6946be75c4fc5cd824963717af8ee80cc8928823231",
+    "v3/roles/c-clasp-family/open/1.wav": "94f5aaa4018d19018766dff798b8462f00a92afc2b55b5fd6ce21023fa7b422d",
+    "v3/roles/c-clasp-family/open/2.wav": "fa305dee3d978193f0baf87185672f5dcaa23d9dff589099b77239ef79131aff",
+    "v3/roles/c-clasp-family/open/3.wav": "43818ea3cbf998169eaa4792f5fcb21bacbf17eb619424c01e44a2bfb9ff4c4f",
+    "v3/roles/c-clasp-family/open/4.wav": "360c4451283efc2ef04844d08c87cd494bf43041a4cf57572666a15d9795a6fe",
+    "v3/roles/c-clasp-family/open/5.wav": "d842bb416930df189fe2919f52998c05a81ff561c33437c789b918a3c2a0fa20",
+    "v3/roles/c-clasp-family/select/1.wav": "1a7750dc84fd1a7cc6d29924bfcde21100fae66ee929bd5cf16800ec4d736c75",
+    "v3/roles/c-clasp-family/select/2.wav": "8062a68e243d239decea9688361de0e9cf6cb4f79fcbac143f4ff87e90992583",
+    "v3/roles/c-clasp-family/select/3.wav": "9d8c9981c624b2ab51bf917c7cf7ca37da81df851a21584a1e0a9eb7fd6fd3d0",
+    "v3/roles/c-clasp-family/select/4.wav": "09d94854224ebc6c4261bfda6ff5fd7c290e686061f8fbfd7fb96e2c710e9564",
+    "v3/roles/c-clasp-family/select/5.wav": "1818ddeac0b32df742f5048095957a74c25221ca9be25c8f116b3d50f530f673",
+    "v3/roles/c-clasp-family/place/1.wav": "fab8b1da14360ab463631d20995ded944a73aa83e95b66a5a00e8257b37c248e",
+    "v3/roles/c-clasp-family/place/2.wav": "e2fb5f061252b5ff60ec90aad28634ec516de1c1d628298f6242886dafa1871a",
+    "v3/roles/c-clasp-family/place/3.wav": "7815512e35b540f27b37226ed509d90551b7da70e21755a391ecd843e0a8587b",
+    "v3/roles/c-clasp-family/place/4.wav": "ffd000116a782c19a868ddcc36a8c71b905809b043ab9b9b0f77b4d6da0c39ba",
+    "v3/roles/c-clasp-family/place/5.wav": "9e559ba6af88f7bf1ce2ae834bc0bbe3e9252a26a8d92baf8169d035a7253c4c",
+    "v4/meaning/d5.wav": "422786bf70ac172f018c691deda8b45a979ed17f25a0d3ae10abd8dac2a3357b",
+    "v4/meaning/a5.wav": "8d39e5855e93d02ee2a19013f4fc732e760635dc08fcc9ed513f31bdaea12415",
+    "v4/meaning/e5.wav": "93870889058e0704024ea1598d836920e57ac70053992a38b32a0fc6a5fd081e",
+    "reward/composites/answered-detent/natural.wav": "7caf33eb445f49d63fcaa90fa7d27a3236e67658f5fa4ba5844634a67a0ecad2"
+  },
+  "generated_audio_sha256": {
+    "reels/discovery.wav": "70367fde39c5d9935837e87763c70defe0464f245eb454e7c8401720989a3737",
+    "reels/rapid-stays-plain.wav": "2b9cdaba6129acf74bf6c6c07e26ed1876a2a10fb828500865629e15c1d58bef",
+    "reels/completion-interrupts.wav": "fa30456794cb95b782547c0da49219f62e5fff2b4d0c6e46f88bdf5069adcf63"
+  },
+  "physical_gate": {
+    "requires": [
+      "route_attestation",
+      "full_volume_attestation",
+      "device_model",
+      "room_condition",
+      "natural_completion_of_all_reels"
+    ],
+    "eligible_browser": "actual iPhone-like user agent plus self-attested built-in-speaker route",
+    "desktop_preview_is_eligible": false,
+    "android_ipad_touch_mac_preview_only": true
+  }
+}
