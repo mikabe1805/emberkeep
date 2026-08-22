@@ -4197,25 +4197,56 @@ class _ModeCell extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 44),
-          alignment: Alignment.center,
+          height: 44,
           decoration: facetedDecoration(
             cut: 7,
-            color: selected
-                ? Palette.xp.withValues(alpha: 0.13)
-                : Colors.transparent,
+            gradient: selected
+                ? const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF3B3325), Color(0xFF211A16)],
+                  )
+                : null,
+            color: selected ? null : Colors.transparent,
             borderColor: selected
-                ? Palette.xpLight.withValues(alpha: 0.54)
+                ? Palette.brassLit.withValues(alpha: 0.78)
                 : Palette.glassEdge,
+            borderWidth: selected ? 1.15 : 1,
           ),
-          child: Text(
-            visibleLabel,
-            maxLines: 1,
-            style: Type.label.copyWith(
-              fontSize: Type.minLabel,
-              letterSpacing: 0.7,
-              color: selected ? Palette.xpLight : Palette.textLo,
-            ),
+          child: Stack(
+            alignment: Alignment.center,
+            fit: StackFit.expand,
+            children: [
+              Center(
+                child: Text(
+                  visibleLabel,
+                  maxLines: 1,
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    letterSpacing: 0.7,
+                    color: selected ? Palette.xpLight : Palette.textLo,
+                  ),
+                ),
+              ),
+              if (selected)
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: SizedBox(
+                    key: ValueKey('academic-selected-folio-tab-${mode.name}'),
+                    width: 22,
+                    height: 3,
+                    child: DecoratedBox(
+                      decoration: facetedDecoration(
+                        cut: 1.5,
+                        gradient: const LinearGradient(
+                          colors: [Palette.brassLit, Palette.brass],
+                        ),
+                        borderColor: Palette.brassDeep,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

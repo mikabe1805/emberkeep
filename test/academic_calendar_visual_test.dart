@@ -141,7 +141,7 @@ void main() {
       final context = tester.element(find.byType(MaterialApp));
       await tester.runAsync(
         () => precacheImage(
-          const AssetImage('assets/pages/plans-desk-v2.webp'),
+          const AssetImage('assets/pages/plans-conservatory-v2.webp'),
           context,
         ),
       );
@@ -209,7 +209,7 @@ void main() {
     final context = tester.element(find.byType(MaterialApp));
     await tester.runAsync(
       () => precacheImage(
-        const AssetImage('assets/pages/plans-desk-v2.webp'),
+        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
         context,
       ),
     );
@@ -477,7 +477,7 @@ void main() {
       final context = tester.element(find.byType(MaterialApp));
       await tester.runAsync(
         () => precacheImage(
-          const AssetImage('assets/pages/plans-desk-v2.webp'),
+          const AssetImage('assets/pages/plans-conservatory-v2.webp'),
           context,
         ),
       );
@@ -703,7 +703,7 @@ void main() {
     final context = tester.element(find.byType(MaterialApp));
     await tester.runAsync(
       () => precacheImage(
-        const AssetImage('assets/pages/plans-desk-v2.webp'),
+        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
         context,
       ),
     );
@@ -765,7 +765,7 @@ void main() {
     final context = tester.element(find.byType(MaterialApp));
     await tester.runAsync(
       () => precacheImage(
-        const AssetImage('assets/pages/plans-desk-v2.webp'),
+        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
         context,
       ),
     );
@@ -824,7 +824,7 @@ void main() {
     final context = tester.element(find.byType(MaterialApp));
     await tester.runAsync(
       () => precacheImage(
-        const AssetImage('assets/pages/plans-desk-v2.webp'),
+        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
         context,
       ),
     );
@@ -891,7 +891,7 @@ void main() {
     final context = tester.element(find.byType(MaterialApp));
     await tester.runAsync(
       () => precacheImage(
-        const AssetImage('assets/pages/plans-desk-v2.webp'),
+        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
         context,
       ),
     );
@@ -968,7 +968,7 @@ void main() {
     final context = tester.element(find.byType(MaterialApp));
     await tester.runAsync(
       () => precacheImage(
-        const AssetImage('assets/pages/plans-desk-v2.webp'),
+        const AssetImage('assets/pages/plans-conservatory-v2.webp'),
         context,
       ),
     );
@@ -1080,7 +1080,7 @@ Future<void> _pumpGeneralDaybookReleaseFixture(
   final context = tester.element(find.byType(MaterialApp));
   await tester.runAsync(
     () => precacheImage(
-      const AssetImage('assets/pages/plans-desk-v2.webp'),
+      const AssetImage('assets/pages/plans-conservatory-v2.webp'),
       context,
     ),
   );

@@ -68,6 +68,57 @@ void main() {
     );
   });
 
+  testWidgets(
+    'Journal archive cues appear only after there is history to show',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final empty = GameState()..reduceMotion = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: InsightsPage(state: empty, quests: const [], onPersist: () {}),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('journal-entry-count')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('journal-entry-page-stack')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('journal-selected-lens-entries')),
+        findsOneWidget,
+      );
+
+      final populated = GameState()
+        ..reduceMotion = true
+        ..setJournal([_note('A page worth keeping.', DateTime(2026, 7, 1))]);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: InsightsPage(
+            state: populated,
+            quests: const [],
+            onPersist: () {},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('journal-entry-count')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('journal-entry-page-stack')),
+        findsOneWidget,
+      );
+      final pageStack = tester.getSize(
+        find.byKey(const ValueKey('journal-entry-page-stack')),
+      );
+      expect(pageStack.width, 30);
+      expect(pageStack.height, greaterThanOrEqualTo(72));
+    },
+  );
+
   testWidgets('Journal feed opens an existing page read-first, then edits', (
     tester,
   ) async {

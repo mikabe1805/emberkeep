@@ -75,6 +75,34 @@ the following decisions began reinforcing one another:
 These are the durable mechanisms. Exact offsets and individual assets may
 evolve as long as these relationships remain true.
 
+### Header art grammar
+
+Destination headers are authored thresholds, not generic room wallpaper. They
+may use either of two related lanes:
+
+- **Object-led:** one specific working artifact carries the identity, as on
+  Goals and in the Journal editor.
+- **Threshold-view:** the user looks into a contained part of the same world,
+  with one restrained artifact proving the destination. Plans looks into the
+  rainy conservatory; Journal looks into the private archive.
+
+Across both lanes:
+
+- Give each destination a distinct construction and silhouette; palette alone
+  is not identity. A threshold-view should spend roughly four parts of its
+  attention on place and one on its identifying artifact.
+- Keep every physical relationship literal. A visible light needs a credible
+  mount or an intentionally off-frame source; its occlusion, reflection, rain,
+  and cast light must agree about which side of a wall or pane it occupies.
+- Keep every view inside the established building, night, material culture,
+  and light model. Scenic novelty and generic fantasy vistas are not identity.
+- Keep live information in Flutter. Paper may carry fibers, ruling, wear, and
+  repair, but never fake prose, dates, numbers, or pseudo-writing.
+- Reserve a quiet, low-detail field for the live title, icon, and controls, with
+  enough overscan for crop, tilt, and scroll.
+- Spend the detail budget on a few credible proofs of craft—binding, deckle,
+  patina, mullions, joinery—then remove decorative noise.
+
 ## One world, five rooms
 
 The primary navigation is:

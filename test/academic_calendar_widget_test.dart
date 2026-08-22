@@ -4209,7 +4209,56 @@ void main() {
     expect(folio, findsOneWidget);
     final folioBox = tester.renderObject<RenderBox>(folio);
     expect(folioBox.size.height, greaterThanOrEqualTo(450));
-    expect(tester.getTopLeft(find.text('31').last).dy, greaterThan(850));
+    expect(find.byKey(const ValueKey('month-summary-rail')), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('month-summary-rail'))).dy,
+      greaterThan(tester.getTopLeft(find.text('31').last).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('month folio summary reads only the projected visible schedule', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_generalDaybookSchedule()),
+      handoff: _RecordingHandoff(),
+    );
+    expect(
+      find.text('2 TASKS', findRichText: true, skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.text('2 EVENTS', findRichText: true, skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.text('1 CLASS', findRichText: true, skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .getSemantics(find.byKey(const ValueKey('month-summary-rhythm')))
+          .label,
+      contains('calendar weeks contain plans this month'),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Next month'));
+    await tester.pump();
+
+    expect(
+      find.text('0 TASKS', findRichText: true, skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.text('0 EVENTS', findRichText: true, skipOffstage: false),
+      findsOneWidget,
+    );
+    expect(
+      find.text('0 CLASSES', findRichText: true, skipOffstage: false),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -4231,9 +4280,11 @@ void main() {
     );
 
     final marker = find.byKey(const ValueKey('month-today-marker-2026-08-17'));
+    final clip = find.byKey(const ValueKey('month-today-clip-2026-08-17'));
     await tester.dragFrom(const Offset(160, 500), const Offset(0, -480));
     await tester.pump();
     expect(marker, findsOneWidget);
+    expect(clip, findsOneWidget);
     expect(tester.getSize(marker), const Size(30, 30));
     expect(
       find.byKey(const ValueKey('month-today-label-2026-08-17')),
@@ -4243,6 +4294,13 @@ void main() {
       find.byKey(const ValueKey('month-selected-wash-2026-08-17')),
       findsOneWidget,
     );
+    final clipRect = tester.getRect(clip);
+    final labelRect = tester.getRect(
+      find.byKey(const ValueKey('month-today-label-2026-08-17')),
+    );
+    expect(clipRect.height, lessThanOrEqualTo(labelRect.height));
+    expect(clipRect.top, greaterThanOrEqualTo(labelRect.top));
+    expect(clipRect.bottom, lessThanOrEqualTo(labelRect.bottom));
     expect(tester.takeException(), isNull);
     expect(
       tester.getSemantics(find.text('17').first).label,
@@ -4285,6 +4343,58 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     }
+  });
+
+  testWidgets('today clip follows the displayed current month', (tester) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+    );
+
+    const todayClip = ValueKey('month-today-clip-2026-08-11');
+    expect(find.byKey(todayClip), findsOneWidget);
+
+    final nextMonth = find.bySemanticsLabel('Next month');
+    await tester.ensureVisible(nextMonth);
+    await tester.tap(nextMonth);
+    await tester.pump();
+    expect(find.byKey(todayClip), findsNothing);
+
+    final previousMonth = find.bySemanticsLabel('Previous month');
+    await tester.ensureVisible(previousMonth);
+    await tester.tap(previousMonth);
+    await tester.pump();
+    expect(find.byKey(todayClip), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('selected folio tab follows the active calendar mode', (
+    tester,
+  ) async {
+    await _pumpCalendar(
+      tester,
+      repository: InMemoryAcademicScheduleRepository(_scheduleFixture()),
+      handoff: _RecordingHandoff(),
+    );
+
+    const monthTab = ValueKey('academic-selected-folio-tab-month');
+    const weekTab = ValueKey('academic-selected-folio-tab-week');
+    expect(find.byKey(monthTab), findsOneWidget);
+    expect(find.byKey(weekTab), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('academic-mode-week')));
+    await tester.pump();
+    expect(find.byKey(monthTab), findsNothing);
+    expect(find.byKey(weekTab), findsOneWidget);
+    final weekSemantics = tester.getSemantics(
+      find.byKey(const ValueKey('academic-mode-week')),
+    );
+    expect(
+      weekSemantics.getSemanticsData().flagsCollection.isSelected,
+      Tristate.isTrue,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('today deadline stays below the compact marker', (tester) async {

@@ -90,63 +90,72 @@ class InsightsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: state,
-      builder: (context, _) => LuxePageList(
-        assetPath: 'assets/pages/journal-desk-v2.webp',
-        title: 'Journal',
-        subtitle: 'what you noticed, and what changed',
-        icon: Icons.menu_book_outlined,
-        parallax: parallax,
-        reduceMotion: state.reduceMotion,
-        trailing: Text(
-          '${_noteCount()} ENTRIES',
-          style: Type.label.copyWith(
-            fontSize: Type.minLabel,
-            color: Palette.textLo,
-          ),
-        ),
-        children: [
-          LuxeGoldButton(
-            label: 'Write for today',
-            icon: Icons.edit_note_rounded,
-            onTap: () => _openJournal(context, compose: true),
-            parallax: lightDirection ?? parallax,
-          ),
-          const SizedBox(height: 14),
-          _JournalLensBar(
-            onEntries: () => _openJournal(context),
-            onPatterns: () => _openPatterns(context),
-            onChronicle: () => _openChronicle(context),
-          ),
-          const SizedBox(height: 14),
-          if (thenAndNowEntry(state.journal) case final note?) ...[
-            _thenAndNow(context, note),
+      builder: (context, _) {
+        final noteCount = _noteCount();
+        return LuxePageList(
+          assetPath: 'assets/pages/journal-archive-v1.webp',
+          title: 'Journal',
+          subtitle: 'what you noticed, and what changed',
+          icon: Icons.menu_book_outlined,
+          parallax: parallax,
+          reduceMotion: state.reduceMotion,
+          trailing: noteCount == 0
+              ? null
+              : Semantics(
+                  label: '$noteCount journal entries kept',
+                  child: Text(
+                    key: const ValueKey('journal-entry-count'),
+                    '$noteCount ENTRIES',
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                ),
+          children: [
+            LuxeGoldButton(
+              label: 'Write for today',
+              icon: Icons.edit_note_rounded,
+              onTap: () => _openJournal(context, compose: true),
+              parallax: lightDirection ?? parallax,
+            ),
             const SizedBox(height: 14),
+            _JournalLensBar(
+              onEntries: () => _openJournal(context),
+              onPatterns: () => _openPatterns(context),
+              onChronicle: () => _openChronicle(context),
+            ),
+            const SizedBox(height: 14),
+            if (thenAndNowEntry(state.journal) case final note?) ...[
+              _thenAndNow(context, note),
+              const SizedBox(height: 14),
+            ],
+            _journalCard(context, noteCount),
+            const SizedBox(height: 14),
+            _chronicleCard(context),
+            const SizedBox(height: 14),
+            if (state.totalCompletions == 0)
+              _empty()
+            else ...[
+              // lead with the feeling — the one true encouraging line + this
+              // week's shape — then the supporting charts below it
+              _heroTakeaway(),
+              const SizedBox(height: 14),
+              _snapshot(),
+              const SizedBox(height: 14),
+              _energyWeather(),
+              const SizedBox(height: 14),
+              _domains(),
+              const SizedBox(height: 14),
+              _rhythm(),
+              const SizedBox(height: 14),
+              _activity(),
+              const SizedBox(height: 14),
+              _sky(context),
+            ],
           ],
-          _journalCard(context),
-          const SizedBox(height: 14),
-          _chronicleCard(context),
-          const SizedBox(height: 14),
-          if (state.totalCompletions == 0)
-            _empty()
-          else ...[
-            // lead with the feeling — the one true encouraging line + this
-            // week's shape — then the supporting charts below it
-            _heroTakeaway(),
-            const SizedBox(height: 14),
-            _snapshot(),
-            const SizedBox(height: 14),
-            _energyWeather(),
-            const SizedBox(height: 14),
-            _domains(),
-            const SizedBox(height: 14),
-            _rhythm(),
-            const SizedBox(height: 14),
-            _activity(),
-            const SizedBox(height: 14),
-            _sky(context),
-          ],
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -344,9 +353,9 @@ class InsightsPage extends StatelessWidget {
                       colors: [Colors.transparent, Color(0xB3000000)],
                     ).createShader(bounds),
                     child: Opacity(
-                      opacity: 0.20,
+                      opacity: 0.14,
                       child: Image.asset(
-                        'assets/quest/category-mind-v2.webp',
+                        'assets/pages/journal-desk-v3.webp',
                         fit: BoxFit.cover,
                         alignment: Alignment.centerRight,
                         filterQuality: FilterQuality.medium,
@@ -514,8 +523,7 @@ class InsightsPage extends StatelessWidget {
   /// The discoverable home for notes (round-45): a prominent, always-visible
   /// card into the Journal hub — the fix for "I don't see the notes feature
   /// anywhere." Lives at the top of Insights, where the owner looked for it.
-  Widget _journalCard(BuildContext context) {
-    final n = _noteCount();
+  Widget _journalCard(BuildContext context, int n) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
@@ -532,41 +540,86 @@ class InsightsPage extends StatelessWidget {
       },
       child: GlassPanel(
         glow: true,
-        child: Row(
-          children: [
-            const FacetMedallion(
-              size: 40,
-              accent: Palette.xp,
-              child: Icon(
-                Icons.menu_book_outlined,
-                size: 20,
-                color: Palette.xpLight,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Your Journal',
-                    style: Type.display.copyWith(fontSize: 18),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    n == 0
-                        ? 'write a thought · read everything you’ve kept'
-                        : '$n ${n == 1 ? "note" : "notes"} kept · tap to read & write',
-                    style: Type.body.copyWith(
-                      fontSize: 12,
-                      color: Palette.textLo,
+        padding: EdgeInsets.zero,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 72),
+          child: Stack(
+            children: [
+              if (n > 0)
+                Positioned(
+                  key: const ValueKey('journal-entry-page-stack'),
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: 30,
+                  child: IgnorePointer(
+                    child: ShaderMask(
+                      blendMode: BlendMode.dstIn,
+                      shaderCallback: (bounds) => const LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [Colors.transparent, Color(0xF2000000)],
+                        stops: [0, 0.32],
+                      ).createShader(bounds),
+                      child: Opacity(
+                        opacity: 0.56,
+                        child: Image.asset(
+                          'assets/pages/journal-page-edge-v1.webp',
+                          fit: BoxFit.cover,
+                          alignment: Alignment.centerRight,
+                          filterQuality: FilterQuality.medium,
+                          excludeFromSemantics: true,
+                        ),
+                      ),
                     ),
                   ),
-                ],
+                ),
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, n > 0 ? 43 : 16, 16),
+                child: Row(
+                  children: [
+                    const FacetMedallion(
+                      size: 40,
+                      accent: Palette.xp,
+                      child: Icon(
+                        Icons.menu_book_outlined,
+                        size: 20,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Your Journal',
+                            style: Type.display.copyWith(fontSize: 18),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            n == 0
+                                ? 'write a thought · read everything you’ve kept'
+                                : '$n ${n == 1 ? "note" : "notes"} kept · tap to read & write',
+                            style: Type.body.copyWith(
+                              fontSize: 12,
+                              color: Palette.textLo,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (n == 0)
+                      const Icon(
+                        Icons.chevron_right,
+                        size: 20,
+                        color: Palette.textLo,
+                      ),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right, size: 20, color: Palette.textLo),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1234,27 +1287,31 @@ class _JournalLensBar extends StatelessWidget {
           behavior: HitTestBehavior.opaque,
           onTap: action,
           child: AnimatedContainer(
+            key: selected
+                ? const ValueKey('journal-selected-lens-entries')
+                : null,
             duration: Motion.quick,
             curve: Motion.respond,
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 13),
-            decoration: BoxDecoration(
-              gradient: selected
-                  ? LinearGradient(
+            margin: selected ? const EdgeInsets.all(3) : EdgeInsets.zero,
+            padding: EdgeInsets.symmetric(
+              horizontal: 5,
+              vertical: selected ? 10 : 13,
+            ),
+            decoration: selected
+                ? facetedDecoration(
+                    cut: 6,
+                    gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Palette.xp.withValues(alpha: 0.18),
-                        Palette.xp.withValues(alpha: 0.04),
+                        const Color(0xFF4A3827).withValues(alpha: 0.84),
+                        const Color(0xFF241B16).withValues(alpha: 0.92),
                       ],
-                    )
-                  : null,
-              border: Border(
-                bottom: BorderSide(
-                  color: selected ? Palette.xp : Colors.transparent,
-                  width: 1.4,
-                ),
-              ),
-            ),
+                    ),
+                    borderColor: Palette.brassLit.withValues(alpha: 0.78),
+                    borderWidth: 1.1,
+                  )
+                : null,
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(

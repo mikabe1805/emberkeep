@@ -128,6 +128,117 @@ persisted top-three routine order.
 
 final result: passed
 
+---
+
+# Design QA — Plans conservatory and Journal archive (2026-08-21)
+
+**Comparison target**
+
+- Selected Option 3 direction board:
+  `design/visual-targets/2026-08-21/plans-journal-destination-selected.png`.
+- Direction crops:
+  `design/visual-targets/2026-08-21/plans-destination-selected-crop.png`
+  and
+  `design/visual-targets/2026-08-21/journal-destination-selected-crop.png`.
+- Production sources:
+  `design/source-assets/runtime-originals/assets/pages/plans-conservatory-v2.png`
+  and
+  `design/source-assets/runtime-originals/assets/pages/journal-archive-v1.png`,
+  each 1672 x 941.
+- Rendered implementations:
+  `test/goldens/store_05_planner_1290x2796.png`,
+  `test/goldens/store_06_insights_1290x2796.png`, and the truthful empty state
+  `test/goldens/store_audit_12_fresh_journal_1290x2796.png`.
+- Viewport: 430 x 932 logical pixels at DPR 3, producing 1290 x 2796
+  screenshots. Reduce Motion parks the source plate for deterministic capture.
+- The shared background band is 274 logical pixels including overscan. Focused
+  source/build evidence normalizes the visible 1325 x 843 source crop to the
+  1290 x 822 physical hero region.
+
+**Evidence**
+
+- Selected direction/build comparison:
+  `design/comparisons/2026-08-21/plans-journal-selected-direction-vs-build.webp`.
+- Object-first baseline/threshold-view final comparison:
+  `design/comparisons/2026-08-21/plans-journal-threshold-before-after-phone.webp`.
+- Final paired phone render:
+  `design/comparisons/2026-08-21/plans-journal-threshold-final-phone.webp`.
+- Exact Plans source/build hero comparison:
+  `design/comparisons/2026-08-21/evidence-plans-threshold-source-vs-build.png`.
+- Exact Journal source/build hero comparison:
+  `design/comparisons/2026-08-21/evidence-journal-threshold-source-vs-build.png`.
+- Normal and 200% Plans evidence includes
+  `test/goldens/daybook_general_month_430x932.png` and
+  `test/goldens/daybook_general_narrow_200.png`.
+
+**Findings**
+
+- No actionable P0, P1, or P2 issue remains.
+- Spatial and lighting logic: passed after iteration. Plans now establishes the
+  camera inside the conservatory: the cage lamp is in front of the wet glazing,
+  overlaps the near-side mullion, and casts one coherent pool across the sill
+  and folio. Journal's open drawer, rails, rainy window, paper stack, and
+  off-frame warm source agree in depth and perspective.
+- Fonts and typography: passed. Fraunces, Inter, and the compact label face stay
+  live, sharp, correctly weighted, and readable against intentionally quiet
+  lower fields; the generated plates contain no baked type or pseudo-writing.
+- Spacing and hierarchy: passed. Both threshold views survive the real cover
+  crop without crowding the icon/title group or first functional surface.
+  Plans remains calendar-first and Journal remains writing-first.
+- Materials and color: passed. Rainy ink-blue glass, walnut, blackened iron,
+  cloth, deckled paper, aged brass, and honey light remain inside the existing
+  palette. The two spaces feel distinct without becoming separate themes.
+- Image quality: passed. Runtime WebPs derive from native 1672 x 941 sources at
+  quality 84 and six-pass compression. No visible stretch, seam, placeholder,
+  baked UI, or compression breakup appears at DPR 3.
+- Truthful state: passed. The Journal entry count and measured page-edge cue are
+  absent with zero entries and appear only after saved history exists. Plans'
+  Today clip follows the true current month independently of the selected date.
+- Interaction and accessibility: passed. The attached folio tab follows Month,
+  Week, 3 Days, and Day without changing callbacks or semantics. Controls retain
+  44 logical-pixel targets; current-month behavior, 200% text, and reduced motion
+  are covered.
+
+**Comparison history**
+
+1. P1: the first Plans production plate placed the cage light visually behind
+   rain-covered glazing while using it as the strongest interior light source.
+   - Fix: rejected that runtime plate and edited the registered composition so
+     the lamp is attached to the camera-facing mullion, droplets remain behind
+     it, and the interior light pool follows its position.
+   - Post-fix evidence: exact Plans source/build comparison and native source
+     review. The rejected source remains preserved under
+     `design/source-assets/rejected/` for provenance only.
+2. P2: the first selected-mode folio underline was sized by its label and could
+   cross the word instead of sitting at the control edge.
+   - Fix: kept a fixed 44-pixel control, centered the label explicitly, and
+     anchored the three-pixel brass tab to the bottom edge.
+   - Post-fix evidence: `daybook_general_month_430x932.png` plus the state test
+     that moves the tab from Month to Week.
+3. P3: the first Journal history cue sampled a dark corner of the full 16:9
+   ledger and read as a stray shadow.
+   - Fix: made a measured 260 x 820 derivative of the actual deckled page block
+     for the 13 x 42 cue. It remains state-gated and decorative-only.
+   - Post-fix evidence: populated and fresh Journal captures.
+
+**Verification**
+
+- Full `flutter analyze`: passed with no issues.
+- Full Flutter suite: passed, 744/744.
+- Release web build: passed with `--no-wasm-dry-run`.
+- Local release preview: HTTP 200 at `http://127.0.0.1:4174/`.
+- Focused Calendar widget suite: passed, 113/113.
+- Focused Journal read/state suite: passed, 8/8.
+- Academic Calendar visual suite: passed, 20/20, including current 430 x 932
+  goldens and the narrow 200% fixture.
+- Populated production screenshot story: passed, 1/1.
+- Fresh Journal audit story: passed, 1/1.
+- Physical-iPhone normal-motion feel remains a manual release check; it is not
+  represented as completed by static desktop rendering.
+
+final result: passed
+
+
 ## 2026-08-03 — Pre-TestFlight family-feedback freeze
 
 - The featured Quest action now calibrates to the phone's resting hold, filters
@@ -1970,7 +2081,7 @@ P2 remaining: none.
 - Updated store screenshots copied to `store-assets/screenshots/`.
 - No external deployment or publication performed.
 
-historical result: passed
+final result: passed
 
 ---
 
@@ -2288,5 +2399,232 @@ P2 remaining: none.
   toolbar overhead, but a physical TestFlight run remains the performance truth.
 - `git diff --check`: passed; only pre-existing line-ending conversion warnings
   were reported.
+
+final result: passed
+
+---
+
+# Design QA — Option 1 object-first page headers (superseded reference, 2026-08-21)
+
+This remains the verified restraint study. The later selected Option 3
+threshold-view pass replaces its top-level Plans and Journal headers; Journal
+v3 remains active in the editor and measured page accents.
+
+**Comparison target**
+
+- Source visual truth:
+  `C:\Users\mikus\.codex\generated_images\01a02708-e1c7-72c0-87ba-f006c16a4513\exec-6ff86263-fcc8-43cf-bfa0-0f05d96680a3.png`
+  (the selected Bookbinder's Margins direction board).
+- Production source plates:
+  `design/source-assets/runtime-originals/assets/pages/plans-desk-v3.png`
+  and
+  `design/source-assets/runtime-originals/assets/pages/journal-desk-v3.png`.
+- Rendered implementations:
+  `test/goldens/store_05_planner_1290x2796.png` and
+  `test/goldens/store_06_insights_1290x2796.png`.
+- Viewport: 430 x 932 logical pixels at DPR 3, producing 1290 x 2796
+  screenshots.
+- State: parked zero-parallax production surfaces; Plans in Month view on
+  July 26, 2026; Journal in Entries view with three entries.
+- Source dimensions: each v3 PNG is 1672 x 941. Implementation dimensions:
+  1290 x 2796.
+- Density normalization: the shared 274dp hero band is 1290 x 822 physical
+  pixels. To represent the visible `BoxFit.cover` plus 1.115 overscan, each
+  source was normalized from a centered 1325 x 843 crop at x=173, y=49 and
+  scaled to 1290 x 822. The implementation was cropped to the same 1290 x 822
+  hero region.
+
+**Evidence**
+
+- Full-view comparison:
+  `design/comparisons/2026-08-21/plans-journal-object-headers-phone.webp`.
+- Focused Plans source/app comparison:
+  `design/comparisons/2026-08-21/evidence-plans-header-option-1.png`.
+- Focused Journal source/app comparison:
+  `design/comparisons/2026-08-21/evidence-journal-header-option-1.png`.
+- Focused comparisons were required because the full phone pair makes paper
+  texture, binding coherence, title overlap, and edge crop too small to judge
+  confidently.
+
+**Findings**
+
+- No actionable P0, P1, or P2 differences remain.
+- Fonts and typography: passed. The selected art target contains no baked type;
+  the existing Fraunces display title and supporting app typography remain
+  crisp, correctly weighted, untruncated, and readable against both quiet
+  lower fields.
+- Spacing and layout rhythm: passed. The binder, tab, candle, cloth cover,
+  deckle, leaf, and ribbon survive the real cover crop. Neither title group
+  collides with the semantic focal object or the first content surface.
+- Colors and visual tokens: passed. Both plates inherit the established walnut,
+  parchment, aged-brass, and honey light field without changing app tokens or
+  making either destination a separate theme.
+- Image quality and asset fidelity: passed. Both runtime assets derive from
+  native 1672 x 941 sources, remain sharp at DPR 3, show no visible compression
+  break-up, use real raster art rather than code-drawn substitutes, and contain
+  no fake prose, dates, numbers, pseudo-writing, UI, or logos.
+- Copy and content: passed. Live titles, subtitles, entry count, calendar data,
+  and controls remain Flutter-owned and truthful; no generated page content
+  competes with them.
+- Icons and affordances: passed. Existing calendar and open-book icons retain
+  their shared brass medallion treatment and the underlying actions remain
+  unchanged.
+- Responsiveness and accessibility: passed for the covered code path. Updated
+  Plans goldens pass at 430 x 932 and at the 320 x 568 / 200% text fixture.
+  Reduce Motion still parks the supporting plate while the list remains
+  scrollable.
+
+**Comparison History**
+
+- Pre-QA P3 refinement: the first in-app Plans render pushed most of the candle
+  beyond the overscanned right edge. The final source moved the complete candle
+  inward while preserving the binder and blank page, then the same viewport and
+  state were re-rendered. The post-fix focused evidence shows the flame and
+  saucer fully legible without crowding the title. No P0/P1/P2 iteration was
+  required.
+
+**Open Questions**
+
+- None for desktop-rendered fidelity. Normal-motion feel at the maximum physical
+  phone tilt remains a device-listening-equivalent visual check, not a blocker
+  for this static asset pass.
+
+**Implementation Checklist**
+
+- [x] Translate the selected board into separate native 16:9 plates.
+- [x] Replace Plans, Journal, and the Journal entry backdrop with v3 assets.
+- [x] Update asset precaches, visual fixtures, and provenance.
+- [x] Add the durable object-first header grammar to the design bible.
+- [x] Re-render source/app comparisons at the production phone viewport.
+- [x] Refresh intentional Plans golden changes and rerun regression coverage.
+
+**Follow-up Polish**
+
+- P3/manual: feel the normal tilt and scroll treatment on a physical iPhone
+  before the next release build; no static crop or readability defect is
+  currently visible.
+
+**Verification**
+
+- Focused production screenshot story: passed, 1/1.
+- Academic calendar and motion/accessibility suites: passed, 25/25.
+- `flutter analyze`: passed with no issues.
+- `git diff --check`: passed; only pre-existing line-ending notices were
+  emitted.
+
+historical result: passed; superseded at the two top-level destinations
+
+---
+
+# Design QA — Plans and Journal reference-UI convergence (2026-08-22)
+
+This pass keeps the selected Option 3 threshold-view art and moves the live
+controls closer to the same authored folio language. It does not copy the
+reference's invented dates or counts into production.
+
+**Comparison target**
+
+- Selected direction board:
+  `design/visual-targets/2026-08-21/plans-journal-destination-selected.png`.
+- Normalized source crops:
+  `design/visual-targets/2026-08-21/plans-destination-selected-crop.png` and
+  `design/visual-targets/2026-08-21/journal-destination-selected-crop.png`.
+- Production captures:
+  `test/goldens/store_05_planner_1290x2796.png`,
+  `test/goldens/store_06_insights_1290x2796.png`, and the empty-state check
+  `test/goldens/store_audit_12_fresh_journal_1290x2796.png`.
+- Implementation viewport: 430 x 932 logical pixels at DPR 3, producing
+  1290 x 2796 rasters. Full comparisons normalize both rasters to a common
+  height without distorting either aspect ratio; focused comparisons use the
+  same fractional content window on source and build.
+- The reference's `8 TASKS / 3 EVENTS / 2 CLASSES` and `3 ENTRIES` are
+  conceptual sample data. Production counts remain derived from the visible
+  month and real Journal state.
+
+**Rendered comparison evidence**
+
+- Plans full-view source/build pair:
+  `design/comparisons/2026-08-22/evidence-plans-reference-ui.png`.
+- Journal full-view source/build pair:
+  `design/comparisons/2026-08-22/evidence-journal-reference-ui.png`.
+- Plans focused controls pair:
+  `design/comparisons/2026-08-22/evidence-plans-controls-focus.png`.
+- Journal focused controls pair:
+  `design/comparisons/2026-08-22/evidence-journal-controls-focus.png`.
+- Compact current-production handoff:
+  `design/comparisons/2026-08-22/plans-journal-reference-ui-final-phone.webp`.
+
+**Comparison history and fixes**
+
+1. P2: the selected Plans reference gave the month folio a quiet summary rail,
+   while production ended after the calendar grid.
+   - Fixed with a live month footer for distinct tasks, events, and classes,
+     plus a week rhythm derived from those same visible categories. Cancelled,
+     off-month, and duplicate projected occurrences cannot inflate it.
+2. P2: selected Month and Entries modes read as ordinary segmented controls
+   instead of inset folio tabs.
+   - Fixed with warmer selected material, a complete brass outline, and the
+     same clipped-corner silhouette already used by the app's authored frames.
+3. P2: the populated Journal card only hinted at its physical page stack.
+   - Fixed by attaching the real page-edge plate flush to the card's right
+     boundary and letting it replace the redundant chevron. The empty Journal
+     retains its chevron and does not show pages that do not exist.
+4. P2: the first Plans footer render could light a week dot for plan kinds not
+   represented by its three counts.
+   - Fixed by deriving the rhythm from exactly the task, event, and class sets
+     named in the footer.
+5. P2/test harness: the phone-shell render test could wake native audio while
+   running without plugins.
+   - Fixed by muting only that visual fixture. Production sound routing and the
+     newly authored sound library are unchanged.
+
+P0 remaining: none.
+
+P1 remaining: none.
+
+P2 remaining: none.
+
+**Fidelity and state checks**
+
+- Typography: passed. Fraunces display type, mono utility labels, casing, and
+  weights preserve the live app while matching the reference hierarchy.
+- Spacing and layout: passed. The stronger tabs, footer, and page edge remain
+  inside the existing clipped frames at the shipping phone viewport. A
+  two-pixel six-week compression overflow caught in the first pass was removed
+  before the final captures.
+- Materials and color: passed. New selection treatment reuses walnut, parchment,
+  aged brass, and honey-gold values rather than introducing a second theme.
+- Image quality: passed. The Journal edge is a measured raster asset, remains
+  crisp at DPR 3, and is attached rather than floated. The coherent indoor
+  lantern and conservatory pane relationship remains intact.
+- Copy and data truth: passed. Plans counts read only the projected visible
+  month; Journal count, page edge, and chevron respond to actual entry state.
+- Populated and empty Journal states: passed. The empty state shows no false
+  pages or count, and the populated state shows its three-entry folio edge.
+- Primary interactions: passed. Calendar mode tabs, month navigation and count
+  refresh, Journal destination navigation, and the Entries lens are covered by
+  widget tests. The reference-like controls remain real controls.
+- Browser delivery: release web compilation passed and the local preview
+  responds HTTP 200. A browser console was not opened because no preferred
+  browser was specified; widget and release-build output reported no runtime
+  errors in the covered paths.
+
+**Verification**
+
+- `flutter analyze`: passed with no issues.
+- Full `flutter test`: 745/745 passed.
+- Academic calendar visual suite: 20/20 passed after reviewing and accepting
+  the intentional folio snapshot updates.
+- Production screenshot story: passed, 1/1.
+- Phone-shell screenshot regression: passed, 1/1 with its visual-only audio
+  fixture muted.
+- `flutter build web --release`: passed.
+- Local release preview: HTTP 200 at `http://127.0.0.1:4174/`.
+
+**Manual follow-up**
+
+- Feel the normal-motion parallax, scroll, and selected-tab response on a
+  physical iPhone before the next store submission. Static geometry and state
+  truth have no remaining P0/P1/P2 defect.
 
 final result: passed

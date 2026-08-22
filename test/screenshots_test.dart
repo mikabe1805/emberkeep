@@ -170,8 +170,10 @@ Future<void> _precacheRoutineArt(WidgetTester tester) async {
 Future<void> _precachePageArt(WidgetTester tester) async {
   const assets = <String>[
     'assets/pages/goals-desk-v2.webp',
-    'assets/pages/plans-desk-v2.webp',
-    'assets/pages/journal-desk-v2.webp',
+    'assets/pages/plans-conservatory-v2.webp',
+    'assets/pages/journal-archive-v1.webp',
+    'assets/pages/journal-desk-v3.webp',
+    'assets/pages/journal-page-edge-v1.webp',
   ];
   final context = tester.element(find.byType(MaterialApp));
   await tester.runAsync(() async {
@@ -779,6 +781,8 @@ void main() {
       Clock.reset();
     });
     Clock.freeze(DateTime(2026, 7, 7, 14));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
     final state = GameState()
       ..onboarded = true
       ..playerName = 'Mika'
@@ -790,7 +794,8 @@ void main() {
       ..streakFreezes = 3
       ..streakFreezeProgress = 2
       ..lastActiveDay = '2026-07-07'
-      ..lastCompletionDay = '2026-07-07';
+      ..lastCompletionDay = '2026-07-07'
+      ..soundEnabled = false;
     state.frozenStreakDays.add('2026-07-05');
     state.stats[Stat.str] = 42;
     state.stats[Stat.vit] = 35;
@@ -1049,7 +1054,7 @@ void main() {
         context,
       );
       await precacheImage(
-        const AssetImage('assets/pages/journal-desk-v2.webp'),
+        const AssetImage('assets/pages/journal-desk-v3.webp'),
         context,
       );
     });

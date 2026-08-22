@@ -194,7 +194,7 @@ class _JournalDeskBackdrop extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/pages/journal-desk-v2.webp',
+            'assets/pages/journal-desk-v3.webp',
             fit: BoxFit.cover,
             alignment: const Alignment(0, -0.28),
             filterQuality: FilterQuality.medium,

@@ -845,7 +845,7 @@ class _CalendarPageState extends State<CalendarPage> {
             selectedJournalEntries.isNotEmpty;
 
         return LuxePageList(
-          assetPath: 'assets/pages/plans-desk-v2.webp',
+          assetPath: 'assets/pages/plans-conservatory-v2.webp',
           title: 'Plans',
           subtitle: 'your days, held in one place',
           icon: Icons.calendar_month_outlined,
@@ -882,6 +882,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 month: _month,
                 selected: _selected,
                 now: now,
+                daybook: daybook,
                 firstWeekday: firstWeekday,
                 daysInMonth: daysInMonth,
                 onPrevious: () => _moveMonth(-1),
@@ -1038,18 +1039,33 @@ class _CalendarPageState extends State<CalendarPage> {
               height: 12,
               child: isToday
                   ? Center(
-                      child: Text(
-                        'TODAY',
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
-                        // A seven-column month cell is truly bounded metadata;
-                        // its full spoken date remains available in Semantics.
-                        textScaler: TextScaler.noScaling,
-                        style: Type.label.copyWith(
-                          fontSize: Type.minLabel,
-                          height: 1,
-                          letterSpacing: 0.9,
-                          color: Palette.xp.withValues(alpha: 0.85),
+                      child: Container(
+                        key: ValueKey('month-today-clip-$keyDate'),
+                        height: 10,
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: facetedDecoration(
+                          cut: 2,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xCC9A6B3C), Color(0xCC5A3A20)],
+                          ),
+                          borderColor: Palette.brassLit.withValues(alpha: 0.5),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'TODAY',
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
+                          // A seven-column month cell is truly bounded metadata;
+                          // its full spoken date remains available in Semantics.
+                          textScaler: TextScaler.noScaling,
+                          style: Type.label.copyWith(
+                            fontSize: 7,
+                            height: 1,
+                            letterSpacing: 0.75,
+                            color: Palette.brassLit,
+                          ),
                         ),
                       ),
                     )
@@ -1555,6 +1571,7 @@ class _MonthFolio extends StatelessWidget {
     required this.month,
     required this.selected,
     required this.now,
+    required this.daybook,
     required this.firstWeekday,
     required this.daysInMonth,
     required this.onPrevious,
@@ -1566,6 +1583,7 @@ class _MonthFolio extends StatelessWidget {
   final DateTime month;
   final DateTime selected;
   final DateTime now;
+  final DaybookRange daybook;
   final int firstWeekday;
   final int daysInMonth;
   final VoidCallback onPrevious;
@@ -1577,6 +1595,11 @@ class _MonthFolio extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final summary = _MonthFolioSummary.from(
+      daybook,
+      firstWeekday: firstWeekday,
+      weekCount: _weekCount,
+    );
     final selectedIsToday = Days.sameDay(selected, now);
     final selectedContext =
         '${_weekdayNames[selected.weekday - 1].substring(0, 3)} '
@@ -1691,7 +1714,12 @@ class _MonthFolio extends StatelessWidget {
                   const SizedBox(height: 5),
                   for (var week = 0; week < _weekCount; week++)
                     SizedBox(
-                      height: 62,
+                      // The target spends the calendar's lower edge on a
+                      // truthful month index. Tightening the rows keeps that
+                      // index in the same physical folio instead of turning it
+                      // into another card below the fold, while preserving a
+                      // comfortable full-cell touch target.
+                      height: 58,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -1704,11 +1732,255 @@ class _MonthFolio extends StatelessWidget {
                         ],
                       ),
                     ),
+                  const SizedBox(height: 2),
+                  const _FolioRule(strength: 0.48),
+                  const SizedBox(height: 6),
+                  _MonthSummaryRail(summary: summary),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+final class _MonthFolioSummary {
+  const _MonthFolioSummary({
+    required this.taskCount,
+    required this.eventCount,
+    required this.classCount,
+    required this.weekPlanCounts,
+  });
+
+  factory _MonthFolioSummary.from(
+    DaybookRange daybook, {
+    required int firstWeekday,
+    required int weekCount,
+  }) {
+    final tasks = <String>{};
+    final events = <String>{};
+    final classes = <String>{};
+    final weeklyPlans = List.generate(weekCount, (_) => <String>{});
+
+    for (final day in daybook.days.values) {
+      final week = (firstWeekday - 1 + day.date.day - 1) ~/ 7;
+      for (final entry in day.entries) {
+        if (entry.cancelled) continue;
+        switch (entry.sourceKind) {
+          case DaybookSourceKind.task:
+            tasks.add(entry.displayKey);
+            weeklyPlans[week].add(
+              '${entry.sourceKind.name}:${entry.displayKey}',
+            );
+          case DaybookSourceKind.event:
+            events.add(entry.displayKey);
+            weeklyPlans[week].add(
+              '${entry.sourceKind.name}:${entry.displayKey}',
+            );
+          case DaybookSourceKind.classOccurrence:
+            classes.add(entry.displayKey);
+            weeklyPlans[week].add(
+              '${entry.sourceKind.name}:${entry.displayKey}',
+            );
+          case DaybookSourceKind.academicWork:
+          case DaybookSourceKind.studyBlock:
+          case DaybookSourceKind.questPlan:
+            break;
+        }
+      }
+    }
+
+    return _MonthFolioSummary(
+      taskCount: tasks.length,
+      eventCount: events.length,
+      classCount: classes.length,
+      weekPlanCounts: [for (final plans in weeklyPlans) plans.length],
+    );
+  }
+
+  final int taskCount;
+  final int eventCount;
+  final int classCount;
+  final List<int> weekPlanCounts;
+}
+
+class _MonthSummaryRail extends StatelessWidget {
+  const _MonthSummaryRail({required this.summary});
+
+  final _MonthFolioSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: const ValueKey('month-summary-rail'),
+      height: 24,
+      child: Row(
+        children: [
+          Expanded(
+            child: _MonthSummaryMetric(
+              metricKey: const ValueKey('month-summary-tasks'),
+              value: summary.taskCount,
+              label: 'TASKS',
+            ),
+          ),
+          const _MonthSummaryDivider(),
+          Expanded(
+            child: _MonthSummaryMetric(
+              metricKey: const ValueKey('month-summary-events'),
+              value: summary.eventCount,
+              label: 'EVENTS',
+            ),
+          ),
+          const _MonthSummaryDivider(),
+          Expanded(
+            child: _MonthSummaryMetric(
+              metricKey: const ValueKey('month-summary-classes'),
+              value: summary.classCount,
+              label: 'CLASSES',
+            ),
+          ),
+          const _MonthSummaryDivider(),
+          Expanded(child: _MonthWeekRhythm(counts: summary.weekPlanCounts)),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthSummaryMetric extends StatelessWidget {
+  const _MonthSummaryMetric({
+    required this.metricKey,
+    required this.value,
+    required this.label,
+  });
+
+  final Key metricKey;
+  final int value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayLabel = value == 1
+        ? switch (label) {
+            'TASKS' => 'TASK',
+            'EVENTS' => 'EVENT',
+            'CLASSES' => 'CLASS',
+            _ => label,
+          }
+        : label;
+    final spokenLabel = displayLabel.toLowerCase();
+    return Semantics(
+      label: '$value $spokenLabel this month',
+      excludeSemantics: true,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text.rich(
+          key: metricKey,
+          TextSpan(
+            children: [
+              TextSpan(
+                text: '$value ',
+                style: Type.numerals.copyWith(
+                  fontSize: 11,
+                  color: Palette.textMid,
+                ),
+              ),
+              TextSpan(
+                text: displayLabel,
+                style: Type.label.copyWith(
+                  fontSize: 8.5,
+                  letterSpacing: 0.9,
+                  color: Palette.textLo,
+                ),
+              ),
+            ],
+          ),
+          maxLines: 1,
+          textScaler: TextScaler.noScaling,
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthSummaryDivider extends StatelessWidget {
+  const _MonthSummaryDivider();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 1,
+    height: 18,
+    color: Palette.brass.withValues(alpha: 0.38),
+  );
+}
+
+class _MonthWeekRhythm extends StatelessWidget {
+  const _MonthWeekRhythm({required this.counts});
+
+  final List<int> counts;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeWeeks = counts.where((count) => count > 0).length;
+    final maxCount = counts.fold<int>(
+      0,
+      (value, count) => count > value ? count : value,
+    );
+    return Semantics(
+      key: const ValueKey('month-summary-rhythm'),
+      label:
+          '$activeWeeks of ${counts.length} calendar weeks contain plans this month',
+      excludeSemantics: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 7),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var index = 0; index < counts.length; index++) ...[
+              if (index > 0)
+                Expanded(
+                  child: Container(
+                    height: 1,
+                    color: Palette.textLo.withValues(alpha: 0.38),
+                  ),
+                ),
+              _MonthWeekDot(
+                strength: counts[index] == 0 || maxCount == 0
+                    ? 0
+                    : counts[index] / maxCount,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MonthWeekDot extends StatelessWidget {
+  const _MonthWeekDot({required this.strength});
+
+  final double strength;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = strength > 0;
+    return Container(
+      width: active ? 5 : 4,
+      height: active ? 5 : 4,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: active
+            ? Palette.xp.withValues(alpha: 0.5 + (strength * 0.5))
+            : Colors.transparent,
+        border: Border.all(
+          color: active
+              ? Palette.xpLight.withValues(alpha: 0.62)
+              : Palette.textLo.withValues(alpha: 0.45),
+          width: 0.75,
+        ),
       ),
     );
   }
