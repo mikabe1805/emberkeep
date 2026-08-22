@@ -733,6 +733,6 @@ void main() {
 
     expect(find.byType(WhatsNewScreen), findsOneWidget);
     expect(find.text('Your semester has a place in Plans.'), findsOneWidget);
-    expect(find.text('VERSION 1.0.4 · BUILD 27'), findsOneWidget);
+    expect(find.text('VERSION 1.0.4 · BUILD 28'), findsOneWidget);
   });
 }

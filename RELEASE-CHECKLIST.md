@@ -3,6 +3,27 @@
 Updated August 21, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
+## 1.0.4+28 iOS App Store candidate — supersedes Build 27
+
+Build 27 reached TestFlight from `fe7b973` before the final Plans and Journal
+destination pass. Build 28 carries that candidate forward and gives each page
+its own authored place: the Daybook opens onto a rainlit conservatory, Journal
+settles into a warm archive, and the controls now borrow the material language
+of the page they serve. `pubspec.yaml` is `1.0.4+28`.
+
+- [x] Confirm the live App Store Connect high-water is Build 27 and advance the
+  checked-in candidate to Build 28 before starting another archive.
+- [ ] Confirm the existing App Store Version 1.0.4 draft remains unsent, public
+  US distribution and agreements remain in effect, and Build 28 is unused.
+- [ ] In Codemagic, select `release/room-of-days-1.0.4`, verify the displayed
+  commit is the pushed release HEAD, and start exactly one `ios-testflight` run.
+- [ ] Save the emitted IPA, dSYMs, and `release-evidence.txt`; verify the source
+  commit, marketing version, build number, signature, and TestFlight upload.
+- [ ] After Apple finishes processing, add Build 28 to the intended internal
+  tester group and install it over Build 27 on a physical iPhone.
+- [ ] Complete `DEVICE-ACCEPTANCE-RUNBOOK.md` before selecting Build 28 in the
+  App Store Version 1.0.4 draft or making any public submission change.
+
 ## 1.0.4+27 iOS App Store candidate — supersedes Build 26
 
 Build 26 shipped the sound system to TestFlight; Build 27 adds two owner-noted
@@ -31,7 +52,10 @@ run on August 21, 2026.
 Builds 22, 23, and 24 were uploaded as internal candidates. Build 24 came from
 the older `ade02ef` source before the final sound and quest-management work, so
 it is superseded rather than releasable. Build 23 remains the known processed
-fallback; all current TestFlight and App Store actions below target Build 25.
+fallback; Build 25 was the target of the historical preparation below.
+
+The uncompleted Build 25 release actions were superseded before they ran; the
+active release actions now live in the Build 28 section above.
 
 - [x] Preserve Build 23 as an internal TestFlight fallback. A live Codemagic
   high-water check found the older Build 24 on Apple, so advance the final
@@ -51,25 +75,6 @@ fallback; all current TestFlight and App Store actions below target Build 25.
 - [x] Keep protected Google place search off. The candidate is built without a
   `PLACE_SEARCH_ENABLED=true` define; manual location entry and map handoff
   remain available.
-- [ ] Confirm the existing App Store Version 1.0.4 draft remains unsent, public
-  distribution in the US and agreements remain in effect, and Build 25 is
-  unused. The public US catalog is not proof of those internal states.
-- [ ] Refresh and inspect the final App Store screenshots and paste the exact
-  1.0.4 What's New copy from the versioned `STORE-LISTING.md`.
-- [ ] Push the verified release commit to `origin/main`, then start exactly
-  one manual Codemagic `ios-testflight` run for that displayed commit.
-- [ ] Save the emitted IPA, dSYM, and `release-evidence.txt`; verify the source
-  commit, marketing version, build number, signature, and TestFlight upload.
-- [ ] After Apple finishes processing, add Build 25 to the intended internal
-  tester group and install it over Build 23 on a physical iPhone.
-- [ ] Complete the focused Daybook, persistence, accessibility, offline, and map
-  handoff checks in `DEVICE-ACCEPTANCE-RUNBOOK.md` before any public App Store
-  submission change.
-- [ ] In the existing App Store Version 1.0.4 draft, select processed Build 25,
-  complete its metadata, submit it to App Review, and verify the released
-  version in Apple's public catalog. Upload, TestFlight processing, and review
-  are not publication.
-
 Android store work is intentionally deferred for this release. Its immutable
 Build 20 evidence in `release-candidate.json` remains unchanged.
 
@@ -77,11 +82,11 @@ Build 20 evidence in `release-candidate.json` remains unchanged.
 
 - [x] Apple processed Version 1.0.4, Build 23 and made it available to the
   internal `Me` group on August 19, 2026.
-- [x] Keep Build 23 available as the known processed fallback while Build 25 is
-  built and auditioned; do not attach it to the App Store draft unless Build 25
+- [x] Keep Build 23 available as the known processed fallback while Build 28 is
+  built and auditioned; do not attach it to the App Store draft unless Build 28
   is abandoned for a documented release blocker.
 - [ ] Preserve a completed physical-iPhone acceptance receipt if Build 23 was
-  installed and tested; otherwise Build 25 supersedes this unchecked gate.
+  installed and tested; otherwise Build 28 supersedes this unchecked gate.
 
 ## 1.0.4+24 superseded App Store Connect artifact
 
@@ -101,7 +106,7 @@ Build 20 evidence in `release-candidate.json` remains unchanged.
 - [x] Apple processed Version 1.0.3, Build 21 and made it available in
   TestFlight on August 18, 2026.
 - [ ] Preserve a completed physical-iPhone acceptance receipt if Build 21 was
-  installed and tested; otherwise Build 25 supersedes this unchecked gate.
+  installed and tested; otherwise Build 28 supersedes this unchecked gate.
 
 ## 1.0.2+20 release record
 
@@ -268,11 +273,12 @@ Task 5 documentation commit itself.
 
 ## Verify before every candidate
 
-- [x] Keep the iOS Build 25 record first in `lib/content/release_notes.dart` and
-  match its `1.0.4+25` identity to `pubspec.yaml`. The frozen Android Build 20
+- [x] Keep the iOS Build 28 record first in `lib/content/release_notes.dart` and
+  match its `1.0.4+28` identity to `pubspec.yaml`. The frozen Android Build 20
   manifest remains separate in `release-candidate.json`. The current record
-  and store copy include only factual Daybook, quest-management, sound, hearth,
-  companion-copy, and Day Ledger changes in this candidate.
+  and store copy include only factual Plans, Journal, Daybook,
+  quest-management, sound, hearth, companion-copy, and Day Ledger changes in
+  this candidate.
 - [ ] Install over the previous build and confirm What's New appears once,
   dismisses through both exits, and remains replayable from Me. Confirm a
   fresh install goes directly to onboarding, then inspect the normal,

@@ -50,6 +50,38 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+28',
+    versionLabel: 'VERSION 1.0.4 · BUILD 28',
+    dateLabel: 'AUGUST 2026',
+    title: 'Two pages became places.',
+    introduction:
+        'Plans opens onto a rainlit conservatory and Journal into a quiet '
+        'archive, with controls shaped around what each page is for.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'PLANS WITH A VIEW',
+        body:
+            'Your Daybook now sits inside a rainlit conservatory, so planning '
+            'feels like entering its own corner of the room.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.academicDaybook,
+        title: 'A PLACE TO WRITE',
+        body:
+            'Journal opens on a warm archive desk, with entries and reflection '
+            'tools gathered into one writing surface.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'CONTROLS THAT BELONG',
+        body:
+            'Tabs, filters, and actions now borrow the materials and details '
+            'of the page they serve instead of feeling pasted on.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+27',
     versionLabel: 'VERSION 1.0.4 · BUILD 27',
     dateLabel: 'AUGUST 2026',

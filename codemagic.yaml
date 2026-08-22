@@ -117,7 +117,7 @@ workflows:
       - name: Flutter build ipa
         script: |
           set -euo pipefail
-          # Keep the checked-in version+build exact (Build 25 for 1.0.4). A live
+          # Keep the checked-in version+build exact. A live
           # high-water or authentication/API problem must stop before archive so
           # the binary cannot drift from its in-app release record.
           PUBSPEC_VERSION=$(sed -nE \
