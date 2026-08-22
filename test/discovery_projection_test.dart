@@ -1,0 +1,151 @@
+import 'package:emberkeep/discovery.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  const code = 'ABC234';
+
+  test('directory projection is an allowlist with no private activity', () {
+    final display = discoverableSpaceDisplay({
+      'title': 'MIGHTY MAKER',
+      'level': 42,
+      'wall': 'wall_archive',
+      'floor': 'floor_cherry',
+      'skin': 'ember_amber',
+      'window': 'aurora',
+      'uid': 'private-uid',
+      'name': 'private name',
+      'email': 'private@example.com',
+      'presence': true,
+      'todayLit': true,
+      'weather': 'bright',
+      'focusKind': 'study',
+      'focusUntil': 999999,
+      'memories': 500,
+      'quests': ['private quest'],
+      'journal': ['private journal'],
+      'streak': 20,
+      'profileVisible': true,
+    }, roomCode: code);
+
+    expect(display.keys, {
+      'v',
+      'title',
+      'level',
+      'wall',
+      'floor',
+      'skin',
+      'window',
+      'bucket',
+      'publicName',
+    });
+    expect(display['v'], discoverableSpaceVersion);
+    expect(display['title'], 'MIGHTY MAKER');
+    expect(display['wall'], 'wall_archive');
+    expect(display['bucket'], discoverableSpaceBucket(code));
+    expect(display['publicName'], isEmpty);
+    expect(display.values.join(' '), isNot(contains('private')));
+  });
+
+  test('public names normalize locally without borrowing private identity', () {
+    expect(
+      sanitizeDiscoveryPublicName('  José\u00a0  O’Neil  '),
+      'José O’Neil',
+    );
+    expect(sanitizeDiscoveryPublicName('A\nB'), 'A B');
+    expect(
+      sanitizeDiscoveryPublicName(List.filled(40, 'x').join()).runes.length,
+      discoveryPublicNameMaxLength,
+    );
+    expect(
+      discoverableSpaceDisplay({
+        'playerName': 'PRIVATE MIKA',
+        'displayName': 'ALSO PRIVATE',
+      }, roomCode: code)['publicName'],
+      isEmpty,
+    );
+  });
+
+  test('authored space themes survive the strict wall projection', () {
+    expect(
+      discoverableSpaceDisplay({
+        'wall': 'wall_archive',
+      }, roomCode: code)['wall'],
+      'wall_archive',
+    );
+    expect(
+      discoverableSpaceDisplay({
+        'wall': 'wall_conservatory',
+      }, roomCode: code)['wall'],
+      'wall_conservatory',
+    );
+  });
+
+  test('bucket is stable, bounded, and rejects non-room codes', () {
+    expect(discoverableSpaceBucket('abc234'), discoverableSpaceBucket(code));
+    expect(discoverableSpaceBucket(code), inInclusiveRange(0, 999999));
+    expect(() => discoverableSpaceBucket('A0C234'), throwsArgumentError);
+  });
+
+  test('summary rejects incompatible documents and safely renders bad ids', () {
+    final now = DateTime.utc(2026, 8, 22);
+    final summary = DiscoverableSpaceSummary.fromDocument('abc234', {
+      'v': 2,
+      'title': '  DEEP CURRENT  ',
+      'level': 0,
+      'wall': 'unknown_wall',
+      'floor': 'unknown_floor',
+      'skin': 'unknown_skin',
+      'window': 'unknown_window',
+      'bucket': 9,
+      'publicName': '  Rowan  ',
+      'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
+      'uid': 'never accepted into the model',
+    }, now: now);
+
+    expect(summary, isNotNull);
+    expect(summary!.code, code);
+    expect(summary.buildTitle, 'DEEP CURRENT');
+    expect(summary.level, 1);
+    expect(summary.wall, 'wall_walnut');
+    expect(summary.floor, 'floor_oak');
+    expect(summary.skin, 'ember_amber');
+    expect(summary.window, 'moon');
+    expect(summary.publicName, 'Rowan');
+    expect(
+      DiscoverableSpaceSummary.fromDocument(code, {
+        'v': 1,
+        'bucket': 1,
+        'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
+      }, now: now),
+      isNull,
+    );
+    expect(
+      DiscoverableSpaceSummary.fromDocument(code, {
+        'v': 2,
+        'bucket': -1,
+        'publicName': '',
+        'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
+      }, now: now),
+      isNull,
+    );
+    expect(
+      DiscoverableSpaceSummary.fromDocument('invalid', {
+        'v': 2,
+        'bucket': 1,
+        'publicName': '',
+        'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
+      }, now: now),
+      isNull,
+    );
+    expect(
+      DiscoverableSpaceSummary.fromDocument(code, {
+        'v': 2,
+        'bucket': 1,
+        'publicName': '',
+        'expiresAt': Timestamp.fromDate(now),
+      }, now: now),
+      isNull,
+    );
+  });
+}

@@ -3,6 +3,10 @@
 These are direct production-UI captures from one deterministic account. They
 have no device frame, overlay copy, alpha channel, or transparency.
 
+The six-frame iOS set was freshly regenerated from the `1.0.4+29` candidate and
+opened for visual inspection on August 22, 2026. Its compact review sheet is
+`design/comparisons/2026-08-22/app-store-build-29-phone.webp`.
+
 - `app-store/` contains Apple's accepted 1290×2796 iPhone 6.9-inch class.
 - `google-play/` contains Google's recommended 1080×1920 portrait class. A
   separate render is necessary because Google's long edge may not exceed twice

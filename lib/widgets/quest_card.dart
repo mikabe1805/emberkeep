@@ -188,10 +188,11 @@ class _QuestCardState extends State<QuestCard>
               : '${opensJournal ? 'Activate to open a dedicated Journal entry' : 'Activate to complete'}${widget.onManage == null ? '' : '; use Manage to edit'}',
           onTapUp: _handleTap,
           onLongPress: widget.onManage,
-          // opening a journal entry is a page gesture (destination material)
+          // Every visible quest bob owns this immediate page-contact cue, even
+          // if the gesture later becomes a scroll. QuestsPage separately owns
+          // a real accepted outcome such as completion.
           material: MaterialSound.parchment,
           interactionSound: InteractionSound.open,
-          soundEnabled: opensJournal,
           shape: const FacetedBorder(cut: 11),
           child: AnimatedContainer(
             duration: Motion.settle,

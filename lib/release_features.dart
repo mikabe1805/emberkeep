@@ -22,6 +22,22 @@ const bool kVisitorProfileSharingEnabled = bool.fromEnvironment(
   defaultValue: false,
 );
 
+/// Opt-in browsing of a tiny, app-generated room directory. This stays absent
+/// from ordinary store builds until the directory rules are deployed and the
+/// privacy/store review plus fresh device captures are complete.
+const bool kSpaceDiscoveryEnabled = bool.fromEnvironment(
+  'SPACE_DISCOVERY',
+  defaultValue: false,
+);
+
+/// Optional names in Discover are the first user-authored text on the public
+/// directory. Keep them independently gated until the server filter, App
+/// Check, reporting, blocking, moderation runbook, and policy disclosures are
+/// all deployed and verified. Discovery itself can remain generated-only.
+const bool kPublicDiscoveryNamesEnabled =
+    kSpaceDiscoveryEnabled &&
+    bool.fromEnvironment('PUBLIC_DISCOVERY_NAMES', defaultValue: false);
+
 /// Protected Google place search stays absent unless every external release
 /// gate (billing, server secret, quotas, policy pages, and App Check
 /// enforcement) has been completed and the build opts in explicitly.

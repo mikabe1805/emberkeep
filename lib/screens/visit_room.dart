@@ -10,6 +10,7 @@ import '../cloud.dart';
 import '../content/creature_skins.dart';
 import '../content/room_styles.dart';
 import '../content/space_themes.dart';
+import '../discovery.dart';
 import '../engine.dart';
 import '../release_features.dart';
 import '../shared_room_media.dart';
@@ -21,6 +22,9 @@ import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
 import '../widgets/spark_picker.dart';
 import '../widgets/visitor_shared_room_photo.dart';
+
+typedef DiscoverySpaceReporter =
+    Future<bool> Function(String code, String category);
 
 /// A read-only look at someone else's "Your Space" (round-52, social). Built
 /// only from its bounded public room document. The v1 candidate accepts preset
@@ -39,6 +43,8 @@ class VisitRoomScreen extends StatelessWidget {
     this.onPersist,
     this.photoUrlLoader,
     this.sparkSender,
+    this.discoveryPublicName = '',
+    this.onReportDiscoverableSpace,
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
     this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
   });
@@ -62,6 +68,8 @@ class VisitRoomScreen extends StatelessWidget {
   final VisitorPhotoUrlLoader? photoUrlLoader;
   final bool visitorPhotoSharingEnabled;
   final bool visitorProfileSharingEnabled;
+  final String discoveryPublicName;
+  final DiscoverySpaceReporter? onReportDiscoverableSpace;
 
   /// Test seam for the leave-a-note action; the real path acquires the
   /// anonymous social session only on the explicit send.
@@ -79,7 +87,12 @@ class VisitRoomScreen extends StatelessWidget {
         visitorProfileSharingEnabled && room['profileVisible'] == true;
     final legacyName = safeString('name', '', 40);
     final displayName = profileVisible ? safeString('displayName', '', 40) : '';
-    final name = displayName.isNotEmpty ? displayName : legacyName;
+    final directoryName = sanitizeDiscoveryPublicName(discoveryPublicName);
+    final name = directoryName.isNotEmpty
+        ? directoryName
+        : displayName.isNotEmpty
+        ? displayName
+        : legacyName;
     final title = safeString('title', '', 64);
     final about = profileVisible ? safeString('about', '', 180) : '';
     final featuredGoals = <String>[];
@@ -314,8 +327,23 @@ class VisitRoomScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _KeepInCircleAction(
                     code: code,
+                    publicName: directoryName,
                     state: localState!,
                     onPersist: onPersist!,
+                  ),
+                ),
+              ],
+              if (localState != null &&
+                  onPersist != null &&
+                  onReportDiscoverableSpace != null) ...[
+                const SizedBox(height: 4),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _ReportOrHideAction(
+                    code: code,
+                    state: localState!,
+                    onPersist: onPersist!,
+                    onReport: onReportDiscoverableSpace!,
                   ),
                 ),
               ],
@@ -833,11 +861,13 @@ class _LeaveNoteActionState extends State<_LeaveNoteAction> {
 class _KeepInCircleAction extends StatelessWidget {
   const _KeepInCircleAction({
     required this.code,
+    required this.publicName,
     required this.state,
     required this.onPersist,
   });
 
   final String code;
+  final String publicName;
   final GameState state;
   final VoidCallback onPersist;
 
@@ -857,33 +887,29 @@ class _KeepInCircleAction extends StatelessWidget {
         final normalized = code.trim().toUpperCase();
         final own = normalized == state.roomCode;
         final saved = state.hearthCircleCodes.contains(normalized);
-        final full = !saved && state.hearthCircleCodes.length >= 5;
-        final enabled = !own && !saved && !full;
+        final enabled = !own && !saved;
         final label = own
             ? 'THIS IS YOUR SPACE'
             : saved
             ? 'IN YOUR CIRCLE'
-            : full
-            ? 'CIRCLE IS FULL'
             : 'KEEP IN MY CIRCLE';
         final detail = own
             ? 'You are visiting the room attached to your own share code.'
             : saved
             ? 'Saved with your trusted spaces.'
-            : full
-            ? 'Your Circle holds five spaces. Remove one before adding another.'
             : 'Save this space so it is easy to visit again.';
         final icon = own
             ? Icons.home_outlined
             : saved
             ? Icons.bookmark_added_outlined
-            : full
-            ? Icons.people_outline_rounded
             : Icons.bookmark_add_outlined;
         final accent = enabled ? Palette.xpLight : Palette.textLo;
 
         void add() {
-          if (!enabled || !state.addCircleCode(normalized)) return;
+          if (!enabled ||
+              !state.addCircleCode(normalized, publicName: publicName)) {
+            return;
+          }
           onPersist();
           unawaited(_notifyOwner(normalized));
           ScaffoldMessenger.of(context)
@@ -967,6 +993,166 @@ class _KeepInCircleAction extends StatelessWidget {
       },
     );
   }
+}
+
+class _ReportOrHideAction extends StatelessWidget {
+  const _ReportOrHideAction({
+    required this.code,
+    required this.state,
+    required this.onPersist,
+    required this.onReport,
+  });
+
+  final String code;
+  final GameState state;
+  final VoidCallback onPersist;
+  final DiscoverySpaceReporter onReport;
+
+  Future<void> _open(BuildContext context) async {
+    final choice = await showDialog<String>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (dialogContext) => AlertDialog(
+        scrollable: true,
+        backgroundColor: Palette.dialogSurface,
+        shape: const FacetedBorder(cut: 12),
+        title: Text(
+          'Hide or report this space?',
+          style: Type.display.copyWith(fontSize: 20, color: Palette.textHi),
+        ),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Hiding removes it from Discover on this device. Reports are private and never tell the room owner who sent them.',
+              style: Type.body.copyWith(
+                fontSize: 13,
+                height: 1.4,
+                color: Palette.textMid,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Palette.glassEdge),
+            const SizedBox(height: 6),
+            _DiscoverySafetyChoice(
+              key: const ValueKey('discover-hide-space'),
+              icon: Icons.visibility_off_outlined,
+              label: 'HIDE FROM DISCOVER',
+              color: Palette.xpLight,
+              onTap: () => Navigator.of(dialogContext).pop('hide'),
+            ),
+            _DiscoverySafetyChoice(
+              key: const ValueKey('discover-report-name'),
+              icon: Icons.flag_outlined,
+              label: 'REPORT THIS NAME',
+              color: Palette.danger,
+              onTap: () =>
+                  Navigator.of(dialogContext).pop('inappropriate_name'),
+            ),
+            _DiscoverySafetyChoice(
+              key: const ValueKey('discover-report-impersonation'),
+              icon: Icons.badge_outlined,
+              label: 'REPORT IMPERSONATION',
+              color: Palette.danger,
+              onTap: () => Navigator.of(dialogContext).pop('impersonation'),
+            ),
+            _DiscoverySafetyChoice(
+              key: const ValueKey('discover-report-other'),
+              icon: Icons.report_outlined,
+              label: 'REPORT SOMETHING ELSE',
+              color: Palette.danger,
+              onTap: () => Navigator.of(dialogContext).pop('other'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(
+              'CANCEL',
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: Palette.textLo,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (choice == null || !context.mounted) return;
+
+    final normalized = code.trim().toUpperCase();
+    state.blockRoomCode(normalized);
+    onPersist();
+    final reported = choice == 'hide'
+        ? null
+        : await onReport(normalized, choice);
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    Navigator.of(context).pop();
+    messenger
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Palette.card,
+          content: Text(
+            choice == 'hide'
+                ? 'Hidden from Discover on this device.'
+                : reported == true
+                ? 'Hidden. Your private report was sent.'
+                : 'Hidden on this device. The report could not be sent yet.',
+            style: Type.body.copyWith(color: Palette.textHi),
+          ),
+        ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+    key: const ValueKey('discover-report-or-hide'),
+    onPressed: () => _open(context),
+    icon: const Icon(Icons.visibility_off_outlined, size: 15),
+    label: Text(
+      'HIDE OR REPORT THIS SPACE',
+      style: Type.label.copyWith(fontSize: Type.minLabel),
+    ),
+    style: TextButton.styleFrom(
+      minimumSize: const Size.fromHeight(44),
+      foregroundColor: Palette.textLo,
+    ),
+  );
+}
+
+class _DiscoverySafetyChoice extends StatelessWidget {
+  const _DiscoverySafetyChoice({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+    onPressed: onTap,
+    icon: Icon(icon, size: 17),
+    label: Text(
+      label,
+      style: Type.label.copyWith(fontSize: Type.minLabel, color: color),
+    ),
+    style: TextButton.styleFrom(
+      alignment: Alignment.centerLeft,
+      foregroundColor: color,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      minimumSize: const Size.fromHeight(44),
+    ),
+  );
 }
 
 class _StatusChip extends StatelessWidget {

@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import '../audio.dart';
 import '../clock.dart';
 import '../content/goal_catalog.dart';
-import '../content/routines.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../tokens.dart';
@@ -16,6 +15,7 @@ import '../widgets/rung_picker.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/luxe_depth.dart';
+import '../widgets/pressable.dart';
 import 'goal_detail.dart';
 import 'goal_wizard.dart';
 import 'momentum_kits.dart';
@@ -102,6 +102,7 @@ class GoalsPage extends StatelessWidget {
     required this.onPersist,
     required this.quests,
     required this.onOpenQuests,
+    this.onOpenGuidedWorkouts,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
     this.lightDirection,
   });
@@ -125,6 +126,11 @@ class GoalsPage extends StatelessWidget {
 
   /// Leaves this discovery tab and opens the shared board after a kit is lit.
   final VoidCallback onOpenQuests;
+
+  /// Opens the canonical seven-session picker owned by the Quests page.
+  /// Optional only for independently rendered previews/tests; the app shell
+  /// always supplies it.
+  final VoidCallback? onOpenGuidedWorkouts;
   final ValueListenable<Offset> parallax;
   final ValueListenable<Offset>? lightDirection;
 
@@ -243,7 +249,7 @@ class GoalsPage extends StatelessWidget {
               accent: Stat.str.color,
             ),
             const SizedBox(height: 10),
-            _GuidedWorkoutsCard(onAdd: onAdd),
+            _GuidedWorkoutsCard(onOpen: onOpenGuidedWorkouts ?? onOpenQuests),
             if (state.goals.isNotEmpty) ...catalog,
           ],
         );
@@ -594,29 +600,19 @@ class _CategoryHeader extends StatelessWidget {
 /// Guided-workout discovery: puts the hand-held session quest on the board
 /// for the user who wants to move but isn't a gym rat (RESEARCH-workouts.md).
 class _GuidedWorkoutsCard extends StatelessWidget {
-  const _GuidedWorkoutsCard({required this.onAdd});
-  final bool Function(Quest) onAdd;
+  const _GuidedWorkoutsCard({required this.onOpen});
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        Sfx.instance.playMaterial(MaterialSound.brass);
-        HapticFeedback.selectionClick();
-        final added = onAdd(workoutLauncherQuest());
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Palette.card,
-            content: Text(
-              added
-                  ? 'Guided workouts added — find it on your Quests board 💪'
-                  : 'It’s already on your Quests board — tap it to begin',
-              style: Type.body.copyWith(color: Palette.textHi),
-            ),
-          ),
-        );
-      },
+    return Pressable(
+      key: const ValueKey('guided-workouts-card'),
+      semanticLabel: 'Choose a guided workout',
+      semanticHint: 'Opens seven gentle guided sessions',
+      // Contact belongs to this visible bob. The Quests-owned picker does not
+      // add another generic tap when it opens a frame later.
+      material: MaterialSound.brass,
+      onTapUp: (_) => onOpen(),
       child: GlassPanel(
         glow: true,
         child: Row(
@@ -640,7 +636,7 @@ class _GuidedWorkoutsCard extends StatelessWidget {
                     style: Type.display.copyWith(fontSize: 19),
                   ),
                   Text(
-                    'gentle, beginner sessions — we walk you through it',
+                    '7 guided sessions · choose what fits today',
                     style: Type.body.copyWith(
                       fontSize: 13,
                       fontStyle: FontStyle.italic,

@@ -45,6 +45,7 @@ import '../widgets/radar.dart';
 import '../widgets/stat_chips.dart';
 import '../social.dart';
 import 'domain_detail.dart';
+import 'discover_spaces.dart';
 import 'hearth_circle.dart';
 import 'about.dart';
 import 'room_guide.dart';
@@ -1696,6 +1697,7 @@ class MePage extends StatelessWidget {
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
     this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
     this.placeSearchEnabled = kPlaceSearchEnabled,
+    this.spaceDiscoveryEnabled = kSpaceDiscoveryEnabled,
     this.supportsPrivateServiceIdentityRemoval = !kIsWeb,
   });
 
@@ -1764,6 +1766,7 @@ class MePage extends StatelessWidget {
   final bool visitorPhotoSharingEnabled;
   final bool visitorProfileSharingEnabled;
   final bool placeSearchEnabled;
+  final bool spaceDiscoveryEnabled;
   final bool supportsPrivateServiceIdentityRemoval;
 
   static final _privacyUrl = Uri.parse(PublicLinks.privacy);
@@ -1878,20 +1881,39 @@ class MePage extends StatelessWidget {
                 icon: Icons.ios_share,
                 label: state.roomCode == null
                     ? 'Share my space'
+                    : spaceDiscoveryEnabled && state.roomDiscoverable
+                    ? 'Discoverable · ${state.roomCode}'
                     : 'Shared · ${state.roomCode}',
-                onTap: () => shareSpace(context, state, onPersist),
+                onTap: () => shareSpace(
+                  context,
+                  state,
+                  onPersist,
+                  spaceDiscoveryEnabled: spaceDiscoveryEnabled,
+                ),
               ),
               _SpaceLink(
                 icon: Icons.travel_explore,
-                label: 'Visit a space',
-                onTap: () => visitSpace(
-                  context,
-                  state: state,
-                  onPersist: onPersist,
-                  themeId: state.canvasTheme,
-                  lively: !state.reduceMotion,
-                  parallax: parallax,
-                ),
+                label: spaceDiscoveryEnabled
+                    ? 'Discover spaces'
+                    : 'Visit a space',
+                onTap: spaceDiscoveryEnabled
+                    ? () => Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => DiscoverSpacesScreen(
+                            state: state,
+                            onPersist: onPersist,
+                            parallax: parallax,
+                          ),
+                        ),
+                      )
+                    : () => visitSpace(
+                        context,
+                        state: state,
+                        onPersist: onPersist,
+                        themeId: state.canvasTheme,
+                        lively: !state.reduceMotion,
+                        parallax: parallax,
+                      ),
               ),
             ],
           ),

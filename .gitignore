@@ -59,6 +59,7 @@ migrate_working_dir/
 .worktrees/
 /output/
 /tmp/
+audit_sfx_context*.txt
 test/failures/
 
 # Symbolication related

@@ -765,6 +765,7 @@ void main() {
     final audio = source('lib/audio.dart');
     final mainApp = source('lib/main.dart');
     final shell = source('lib/screens/shell.dart');
+    final goals = source('lib/screens/goals.dart');
     final me = source('lib/screens/me.dart');
     final pressable = source('lib/widgets/pressable.dart');
     final questCard = source('lib/widgets/quest_card.dart');
@@ -775,6 +776,7 @@ void main() {
 
     expect(audio, contains('void playAfterContact('));
     expect(audio, contains('void playCompletionAccepted('));
+    expect(audio, contains("'room/completion/answered-detent-natural'"));
     expect(audio, contains("'room/completion/completion-composite'"));
     expect(
       mainApp,
@@ -786,29 +788,46 @@ void main() {
       pressable,
       contains('InteractionSoundScreenScope.maybeScreenIdOf(context)'),
     );
-    expect(quests, contains('playCompletionAccepted(transitionId: q)'));
+    expect(quests, contains('Sfx.instance.playCompletionAccepted('));
+    expect(quests, contains('contactAlreadyPlayed: contactAlreadyPlayed'));
     expect(quests, isNot(contains("playAfterContact('complete')")));
     expect(routines, contains('playCompletionAccepted(transitionId: q)'));
     expect(routines, isNot(contains("play('complete')")));
     expect(quests, contains('alreadyAcknowledged: true'));
-    expect(questCard, contains('soundEnabled: opensJournal'));
+    expect(questCard, isNot(contains('soundEnabled:')));
+    expect(goals, isNot(contains('soundEnabled:')));
+    expect(shell, isNot(contains('soundEnabled:')));
+    expect(quests, isNot(contains('_boardCoastingAt')));
+    expect(quests, isNot(contains('_trackBoardCoasting')));
 
     final pointerDown = _between(pressable, 'onPointerDown:', 'onPointerMove:');
-    expect(pointerDown, isNot(contains('Sfx.instance')));
-    final tapUp = _between(pressable, 'onTapUp: (d)', 'onLongPress:');
-    expect(tapUp, contains('callback(d.globalPosition);'));
-    expect(tapUp, contains('_playAcceptedSound'));
-    expect(
-      tapUp.indexOf('callback(d.globalPosition);'),
-      lessThan(tapUp.indexOf('_playAcceptedSound')),
+    expect(pointerDown, contains('_beginContact();'));
+    final contact = _between(
+      pressable,
+      'void _beginContact()',
+      'void _activate()',
     );
+    expect(contact, contains('_setDown(true)'));
+    expect(contact, contains('_playContactSound()'));
+    expect(
+      contact.indexOf('_setDown(true)'),
+      lessThan(contact.indexOf('_playContactSound()')),
+    );
+    final pointerMove = _between(pressable, 'onPointerMove:', 'onPointerUp:');
+    expect(pointerMove, isNot(contains('_playContactSound')));
+    expect(pointerMove, isNot(contains('Sfx.instance')));
+    final tapUp = _between(pressable, 'onTapUp: (d)', 'onLongPress:');
+    expect(tapUp, contains('widget.onTapUp!(d.globalPosition);'));
+    expect(tapUp, isNot(contains('_playContactSound')));
+    expect(tapUp, isNot(contains('Sfx.instance')));
 
     final workoutOpen = _between(
       quests,
       'void _openWorkout',
       'void _finishWorkout',
     );
-    expect(workoutOpen, isNot(contains('Sfx.instance')));
+    expect(workoutOpen, contains('required bool contactAlreadyPlayed'));
+    expect(workoutOpen, contains('if (!contactAlreadyPlayed)'));
     expect(workoutOpen, isNot(contains('HapticFeedback')));
 
     final themeOpen = _between(

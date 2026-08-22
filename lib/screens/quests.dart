@@ -74,6 +74,7 @@ class QuestsPage extends StatefulWidget {
     required this.onRestore,
     this.onBindFlush,
     this.onBindComplete,
+    this.onBindOpenWorkout,
     this.onNightClosed,
     this.parallax,
     this.lightDirection,
@@ -109,6 +110,10 @@ class QuestsPage extends StatefulWidget {
   /// completion pipeline without copying reward or persistence logic.
   final void Function(void Function(Quest quest, Offset anchor) complete)?
   onBindComplete;
+
+  /// Lets the Goals page enter the same canonical workout picker without
+  /// manufacturing another launcher or duplicating reward logic.
+  final void Function(void Function(Quest launcher) open)? onBindOpenWorkout;
 
   /// Lets the shell push an enabled night reminder to tomorrow immediately
   /// after this evening's ledger closes.
@@ -472,33 +477,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     }
   }
 
-  /// Timestamp of the last coasting (finger-free) board scroll frame. While a
-  /// fling is live, the scrollable ignore-pointers its children, so the tap
-  /// that catches the moving list used to reach nothing and stay silent — a
-  /// touch that plainly did something with no answer (owner, 2026-08-21).
-  DateTime? _boardCoastingAt;
-
-  /// Ballistic frames arrive every vsync, so a pointer that lands within two
-  /// frames of one was a genuine catch. The window stays this tight so a tap
-  /// just after the list parks reads as an ordinary tap, not a catch.
-  bool get _boardWasCoasting {
-    final at = _boardCoastingAt;
-    return at != null &&
-        DateTime.now().difference(at) < const Duration(milliseconds: 40);
-  }
-
-  bool _trackBoardCoasting(ScrollUpdateNotification notification) {
-    if (notification.dragDetails == null) _boardCoastingAt = DateTime.now();
-    return false;
-  }
-
-  void _handleBoardPointerDown(PointerDownEvent event) {
+  void _handleBoardPointerDown(PointerDownEvent _) {
     if (_localMotion != null) {
       unawaited(_localMotion!.requestBrowserMotionPermission());
-    }
-    if (_boardWasCoasting) {
-      // The softest voiced touch in the room: the hand settling the page.
-      Sfx.instance.playInteraction(InteractionSound.select, volumeScale: 0.62);
     }
   }
 
@@ -511,6 +492,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     // bind flush so the shell can settle rewards before a pause-path save
     widget.onBindFlush?.call(_flushCommit);
     widget.onBindComplete?.call(_completeQuest);
+    widget.onBindOpenWorkout?.call(_openWorkoutFromOutside);
     Haptics.reduceMotion = _state.reduceMotion;
   }
 
@@ -529,6 +511,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     }
     if (old.onBindComplete != widget.onBindComplete) {
       widget.onBindComplete?.call(_completeQuest);
+    }
+    if (old.onBindOpenWorkout != widget.onBindOpenWorkout) {
+      widget.onBindOpenWorkout?.call(_openWorkoutFromOutside);
     }
     _syncLocalMotion();
     Haptics.reduceMotion = _state.reduceMotion;
@@ -667,7 +652,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Opens (or resumes) the one dedicated page for this Quest today. Merely
   /// looking at the prompt earns nothing; once meaningful writing has actually
   /// autosaved, returning to the board uses the ordinary reward pipeline once.
-  Future<void> _openQuestJournal(Quest quest, Offset tapPos) async {
+  Future<void> _openQuestJournal(
+    Quest quest,
+    Offset tapPos, {
+    required bool contactAlreadyPlayed,
+  }) async {
     final prompt = quest.journalPrompt;
     if (prompt == null || _journalRouteOpen || quest.doneFor(Clock.now())) {
       return;
@@ -678,7 +667,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     var current = _journalDraftFor(quest, openedAt);
     final trace = current?.trace ?? _journalTraceFor(quest);
     _journalRouteOpen = true;
-    Sfx.instance.playMaterial(MaterialSound.parchment);
+    if (!contactAlreadyPlayed) {
+      Sfx.instance.playMaterial(MaterialSound.parchment);
+    }
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
@@ -747,18 +738,25 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// Entry point from a card tap: timer-proof quests run their countdown
   /// first (proof multiplies, never gates — cancel just backs out).
-  void _completeQuest(Quest q, Offset tapPos) {
+  void _completeQuest(
+    Quest q,
+    Offset tapPos, {
+    bool pressContactPlayed = false,
+  }) {
     if (q.journalPrompt != null) {
-      unawaited(_openQuestJournal(q, tapPos));
+      unawaited(
+        _openQuestJournal(q, tapPos, contactAlreadyPlayed: pressContactPlayed),
+      );
       return;
     }
     if (q.allDay) {
       // honesty by design: an all-day line is only confirmed at night — but
       // the moment of willpower still deserves a beat, not a cold deferral.
-      // The card suppresses its automatic tap so real completions own their
-      // moment, which left this bob silent; a deferred line still answers
-      // with the ordinary clasp (owner, 2026-08-21).
-      Sfx.instance.playInteraction(InteractionSound.open);
+      // A QuestCard already voiced its bob; non-Pressable callers still need
+      // one contact alongside their own accepted visual.
+      if (!pressContactPlayed) {
+        Sfx.instance.playInteraction(InteractionSound.open);
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
@@ -775,7 +773,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (q.workout) {
       // a guided session: walk the user through the runner; its outcome
       // flows back through the normal reward path (RESEARCH-workouts.md)
-      _openWorkout(q, tapPos);
+      _openWorkout(q, tapPos, contactAlreadyPlayed: pressContactPlayed);
       return;
     }
     if (q.verification == Verification.timer && q.effectiveTimerMinutes > 0) {
@@ -797,9 +795,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         ),
       );
       Overlay.of(context).insert(timer);
+      if (!pressContactPlayed) {
+        Sfx.instance.playInteraction(InteractionSound.open);
+      }
       return;
     }
-    _runCompletion(q, tapPos);
+    _runCompletion(q, tapPos, contactAlreadyPlayed: pressContactPlayed);
   }
 
   void _keepQuestReflection(GameState state, Quest quest, String text) {
@@ -820,7 +821,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   }
 
   /// The §3 completion sequence, staged (see DESIGN.md §3).
-  void _runCompletion(Quest q, Offset tapPos, {bool verified = false}) {
+  void _runCompletion(
+    Quest q,
+    Offset tapPos, {
+    bool verified = false,
+    bool contactAlreadyPlayed = false,
+  }) {
     // settle any prior in-flight completion FIRST, so this snapshot reflects
     // it fully committed (never rolled-but-not-committed — the data-loss trap)
     _flushCommit();
@@ -847,9 +853,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     _lastCompleteAt = nowT;
     _maybeOfferReAnchor(q); // "did your Tuesday quest on Thursday? move it?"
     _celebrateDayClearedIfDone(q); // a warm wash when the last ember is lit
-    // The immutable master owns both the accepted contact and its Answered
-    // Detent 75 ms later. QuestCard suppresses its ordinary X for this path.
-    Sfx.instance.playCompletionAccepted(transitionId: q);
+    // A direct QuestCard press already voiced its bob. The audio director then
+    // uses only the locked completion outcome; delayed/non-Pressable paths use
+    // the full atomic contact-to-outcome master.
+    Sfx.instance.playCompletionAccepted(
+      transitionId: q,
+      contactAlreadyPlayed: contactAlreadyPlayed,
+    );
     if (_combo < 2 && !bundle.shieldHeld) Haptics.questComplete();
     // a freeze that held the quiet days gets its own steady double-tap
     if (bundle.shieldHeld) {
@@ -1472,9 +1482,25 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
   /// Open the guided-workout runner for a workout launcher quest. The runner
   /// never rewards itself — its outcome routes back to [_finishWorkout].
-  void _openWorkout(Quest launcher, Offset tapPos) {
+  void _openWorkoutFromOutside(Quest launcher) {
+    final box = context.findRenderObject() as RenderBox?;
+    final anchor = box == null
+        ? MediaQuery.sizeOf(context).center(Offset.zero)
+        : box.localToGlobal(box.size.center(Offset.zero));
+    // The only outside entry is the Pressable Guided Workouts card in Goals.
+    _openWorkout(launcher, anchor, contactAlreadyPlayed: true);
+  }
+
+  void _openWorkout(
+    Quest launcher,
+    Offset tapPos, {
+    required bool contactAlreadyPlayed,
+  }) {
     if (_workoutRunnerOpen) return; // dedupe rapid double-tap (bug-hunt §8)
     _workoutRunnerOpen = true;
+    if (!contactAlreadyPlayed) {
+      Sfx.instance.playInteraction(InteractionSound.open);
+    }
     late final OverlayEntry e;
     e = OverlayEntry(
       builder: (_) => WorkoutFlow(
@@ -1522,6 +1548,21 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     required int workMovesDone,
   }) {
     if (!mounted) return;
+    if (launcher.doneFor(Clock.now())) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Palette.card,
+            content: Text(
+              'Session kept — today’s guided-workout reward already landed.',
+              style: Type.body.copyWith(color: Palette.textHi),
+            ),
+          ),
+        );
+      return;
+    }
     final frac = routine.workMoves == 0
         ? 1.0
         : (workMovesDone / routine.workMoves).clamp(0.25, 1.0);
@@ -2485,7 +2526,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             reduceMotion: _state.reduceMotion,
             lightDirection: _activeLight,
             scrollPosition: _scrollLight,
-            onComplete: (pos) => _completeQuest(q, pos),
+            onComplete: (pos) =>
+                _completeQuest(q, pos, pressContactPlayed: true),
             onManage: () => _manageQuest(q),
           ),
         ),
@@ -2775,7 +2817,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   parallax: _activeParallax,
                 ),
                 NotificationListener<ScrollUpdateNotification>(
-                  onNotification: _trackBoardCoasting,
+                  onNotification: (_) {
+                    // Scrolling over bare board stays silent. Landing on a quest
+                    // voices the same immediate contact as its visible bob,
+                    // whether or not that contact later becomes the drag.
+                    return false;
+                  },
                   child: NestedScrollView(
                     key: const ValueKey('quest-board-scroll'),
                     controller: _boardScroll,
@@ -3312,7 +3359,11 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                 reduceMotion: _state.reduceMotion,
                                 lightDirection: _activeLight,
                                 scrollPosition: _scrollLight,
-                                onComplete: (pos) => _completeQuest(q, pos),
+                                onComplete: (pos) => _completeQuest(
+                                  q,
+                                  pos,
+                                  pressContactPlayed: true,
+                                ),
                                 onManage: () => _manageQuest(q),
                                 // a finished, still-climbable quest offers the next rung
                                 // right on the card

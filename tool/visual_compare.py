@@ -8,6 +8,7 @@ aspect, so a comparison only needs a common height -- never a crop.
     python tool/visual_compare.py focus      # focused control crops
     python tool/visual_compare.py review     # current product-state contact sheet
     python tool/visual_compare.py review-phone # compact handoff sheet
+    python tool/visual_compare.py store-phone # compact App Store handoff sheet
     python tool/visual_compare.py brand-review # old/new icon + store graphic
     python tool/visual_compare.py audit-phone # compact first-run/Me/Journal handoff
     python tool/visual_compare.py rooms       # approved Me target vs current build
@@ -15,6 +16,7 @@ aspect, so a comparison only needs a common height -- never a crop.
     python tool/visual_compare.py social-phone # Me, Circle, and visitor-profile handoff
     python tool/visual_compare.py my-space-cards-phone # card deck + arranger handoff
     python tool/visual_compare.py sharing-journal-phone # sharing/privacy/journal handoff
+    python tool/visual_compare.py space-discovery-phone # opt-in directory + workouts
     python tool/visual_compare.py probe A B  # approved-target/current-build pair
     python tool/visual_compare.py evidence-pair TITLE LABEL_A A LABEL_B B
 
@@ -379,6 +381,33 @@ REVIEW = [
     ("FROM LAST NIGHT", GOLDENS / "store_12_morning_open_1290x2796.png"),
 ]
 
+STORE_PASS = [
+    (
+        "01 QUESTS",
+        APP / "store-assets" / "screenshots" / "app-store" / "01-quests-1290x2796.png",
+    ),
+    (
+        "02 REWARD",
+        APP / "store-assets" / "screenshots" / "app-store" / "02-reward-1290x2796.png",
+    ),
+    (
+        "03 PLANS",
+        APP / "store-assets" / "screenshots" / "app-store" / "03-plans-1290x2796.png",
+    ),
+    (
+        "04 MY SPACE",
+        APP / "store-assets" / "screenshots" / "app-store" / "04-my-space-1290x2796.png",
+    ),
+    (
+        "05 CHANGE SPACE",
+        APP / "store-assets" / "screenshots" / "app-store" / "05-change-space-1290x2796.png",
+    ),
+    (
+        "06 JOURNAL",
+        APP / "store-assets" / "screenshots" / "app-store" / "06-journal-1290x2796.png",
+    ),
+]
+
 CURRENT_PASS = [
     ("QUESTS - READY", GOLDENS / "store_01_quests_1290x2796.png"),
     ("QUESTS - MID SCROLL", GOLDENS / "store_01a_quests_scrolled_1290x2796.png"),
@@ -475,6 +504,31 @@ SHARING_JOURNAL_PASS = [
     ),
 ]
 
+SPACE_DISCOVERY_PASS = [
+    ("ME - DISCOVERABLE", GOLDENS / "space_discovery_me_1290x2796.png"),
+    ("OPT-IN INSIDE SHARE", GOLDENS / "space_discovery_share_1290x2796.png"),
+    (
+        "FINITE OPEN DOORS",
+        GOLDENS / "space_discovery_directory_1290x2796.png",
+    ),
+    (
+        "NAMED VISITOR SPACE",
+        GOLDENS / "space_discovery_visitor_1290x2796.png",
+    ),
+    (
+        "PRIVATE HIDE OR REPORT",
+        GOLDENS / "space_discovery_report_1290x2796.png",
+    ),
+    (
+        "CIRCLE WITHOUT A COUNT CAP",
+        GOLDENS / "space_discovery_unlimited_circle_1290x2796.png",
+    ),
+    (
+        "SEVEN GUIDED SESSIONS",
+        GOLDENS / "guided_workout_picker_1290x2796.png",
+    ),
+]
+
 BRAND_PASS = [
     (
         "OLD PUBLIC MARK",
@@ -509,6 +563,14 @@ def main() -> None:
         image_sheet(
             REVIEW,
             "current-system-review-phone",
+            height=520,
+            per_row=2,
+            webp=True,
+        )
+    elif mode == "store-phone":
+        image_sheet(
+            STORE_PASS,
+            "app-store-build-29-phone",
             height=520,
             per_row=2,
             webp=True,
@@ -585,6 +647,14 @@ def main() -> None:
         image_sheet(
             SHARING_JOURNAL_PASS,
             "sharing-journal-privacy-pass",
+            height=520,
+            per_row=2,
+            webp=True,
+        )
+    elif mode == "space-discovery-phone":
+        image_sheet(
+            SPACE_DISCOVERY_PASS,
+            "space-discovery-and-guided-workouts-phone",
             height=520,
             per_row=2,
             webp=True,

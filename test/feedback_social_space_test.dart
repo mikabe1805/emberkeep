@@ -803,7 +803,11 @@ void main() {
     );
     expect(
       ownerDelete.indexOf('_deleteRoomPrivateChildren(room)'),
-      lessThan(ownerDelete.indexOf('room.delete()')),
+      lessThan(ownerDelete.indexOf('..delete(_discoverableSpaces.doc(clean))')),
+    );
+    expect(
+      ownerDelete.indexOf('..delete(_discoverableSpaces.doc(clean))'),
+      lessThan(ownerDelete.indexOf('batch.commit()')),
     );
     expect(
       privateChildrenMethod,
@@ -814,6 +818,10 @@ void main() {
     expect(cloud, contains('createServerDeletionFence()'));
     expect(cloud, contains('deleteParentAndFenceAtomically()'));
     expect(cloud, contains('..delete(room.reference)'));
+    expect(
+      cloud,
+      contains('..delete(_cloud._discoverableSpaces.doc(room.id))'),
+    );
     expect(cloud, contains('..delete(_lock)'));
     expect(cloud, contains('await _deleteOwnedRoom(cleanRoomCode);'));
     expect(cloud, contains('await _deleteOwnedRoom(code);'));

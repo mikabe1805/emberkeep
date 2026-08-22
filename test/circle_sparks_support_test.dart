@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:emberkeep/audio.dart';
@@ -97,6 +98,7 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 120));
+    expect(tester.takeException(), isNull);
 
     final send = find.text('SEND A NOTE');
     await tester.scrollUntilVisible(
@@ -104,7 +106,7 @@ void main() {
       500,
       scrollable: find
           .descendant(
-            of: find.byType(ListView).first,
+            of: find.byType(CustomScrollView).first,
             matching: find.byType(Scrollable),
           )
           .first,
@@ -185,6 +187,47 @@ void main() {
     expect(tester.takeException(), isNull);
     semantics.dispose();
   });
+
+  testWidgets(
+    'a large Circle fetches progressively with bounded concurrency and lazy cards',
+    (tester) async {
+      final state = GameState();
+      final pending = <String, Completer<Map<String, dynamic>?>>{};
+      final calls = <String>[];
+      final codes = [
+        for (final suffix in 'BCDEFGHJKMNP'.split('')) 'AAA${suffix}22',
+      ];
+      for (final code in codes) {
+        expect(state.addCircleCode(code), isTrue);
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: HearthCircleScreen(
+            state: state,
+            onPersist: () {},
+            roomFetcher: (code) {
+              calls.add(code);
+              return (pending[code] ??= Completer<Map<String, dynamic>?>())
+                  .future;
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 120));
+
+      expect(calls, hasLength(4));
+      expect(find.textContaining(codes.last), findsNothing);
+
+      pending[codes.first]!.complete(roomDisplay(GameState()..level = 3));
+      await tester.pump();
+      await tester.pump();
+
+      expect(calls, hasLength(5));
+      expect(find.textContaining('${codes.first} ·'), findsOneWidget);
+    },
+  );
 
   test('social snackbar opens Circle directly', () {
     final shell = File('lib/screens/shell.dart').readAsStringSync();

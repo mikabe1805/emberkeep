@@ -25,8 +25,10 @@ not part of the release package.
 
 `room/completion/completion-composite.wav` is the immutable accepted Select-2
 contact followed by the selected Answered Detent exactly 75 ms later. The two
-source masters are retained beside it for hash/provenance checks, but runtime
-plays the precomposed file so scheduling jitter cannot change the gesture.
+source masters are retained beside it for hash/provenance checks. Runtime plays
+the precomposed file for delayed or non-Pressable completions; when a visible
+bob already voiced contact, it plays the locked `answered-detent-natural.wav`
+outcome instead of layering another generic tap over the same touch.
 This completion is also deterministic project-authored synthesis and contains
 no third-party or reference-video audio. The 430 ms atomic master is copied
 byte-for-byte from `room-reward-voice-v1/composites/answered-detent/natural.wav`

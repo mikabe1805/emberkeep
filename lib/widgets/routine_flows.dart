@@ -162,7 +162,6 @@ class _NightFlowState extends State<NightFlow> {
           onSecondary: _step == 0
               ? _keepNightReflection
               : () {
-                  Sfx.instance.playMaterial(MaterialSound.glass);
                   setState(() => _step = 0);
                 },
           child: AnimatedSwitcher(

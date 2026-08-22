@@ -52,8 +52,9 @@ can verify the origin and commercial-use status of the bundled sound.
   passed the iPhone 17 gate; unused v4 notes and audition reels are excluded.
 - `completion-composite.wav` preserves accepted Select-2 followed by Answered
   Detent exactly 75 ms later in a 430 ms atomic cue with no study-timeline lead.
-  Its two component masters are bundled solely for provenance and regression
-  verification.
+  `answered-detent-natural.wav` is also a runtime outcome master when a visible
+  Pressable bob already supplied the contact; `accepted-select-2.wav` remains
+  bundled for provenance and regression verification.
 - The release repository retains the deterministic authoring recipes, the
   selected source masters used by byte-for-byte regression checks, and the
   physically approved phone-gate contract and listening result. Rejected

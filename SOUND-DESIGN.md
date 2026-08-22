@@ -203,10 +203,11 @@ Files are half the system; the router is the other half.
   taps may carry D5→A5→E5→D5 over the unchanged mechanism; once per screen,
   90-second global cooldown. The melodic play the owner loves, kept rare
   enough to stay a gift.
-- **Sound waits for the gesture arena** (haptic fires at pointer-down, sound
-  only once Flutter knows it's a tap, not a scroll) — so scrolling never
-  clicks and a caught fling can have its own voice: the quest board plays the
-  softest select when a finger settles a coasting list.
+- **The contact sound begins with the bob** — press depth, haptic, and sound are
+  one pointer-down event. If that press becomes a scroll, the bob releases and
+  the control does not activate, but its already-visible contact is not made
+  mysteriously silent. Bare scrolling and a caught fling with no pressed
+  control remain silent.
 - **A touch that does something is never left unanswered** (owner correction,
   2026-08-21): retapping the active tab acknowledges with a quieter select
   detent; new surfaces wire their verb before they ship.
@@ -268,8 +269,9 @@ intent. Final verdict: "it sounds wonderful! very well done."
   is not approval.
 - **Ship exactly what was approved.** Masters go to runtime byte-identical to
   the audition (the fire_ignite precedent) and are byte-locked by tests that
-  also grep the source for architectural invariants (sound never in
-  pointer-down, callback before sound, completion owning its moment).
+  also grep the source for architectural invariants (every pointer-down bob
+  owns one contact sound, pointer-up does not replay it, and completion owns a
+  distinct accepted outcome).
 
 ## 10. Extending the palette — the short checklist
 

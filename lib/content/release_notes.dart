@@ -50,6 +50,38 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+29',
+    versionLabel: 'VERSION 1.0.4 · BUILD 29',
+    dateLabel: 'AUGUST 2026',
+    title: 'The room keeps pace with you.',
+    introduction:
+        'Quests now sound exactly when they move, guided workouts let you '
+        'choose the session, and your Circle can grow without a ceiling.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.interactionSound,
+        title: 'MOVEMENT YOU CAN HEAR',
+        body:
+            'Every visible quest bob answers once, even when the gesture '
+            'becomes a scroll. A swipe with no pressed quest stays quiet.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'PICK THE SESSION',
+        body:
+            'Guided workouts now open into seven distinct sessions, so you '
+            'can choose what belongs on today’s board.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'A CIRCLE WITHOUT A CEILING',
+        body:
+            'Keep as many trusted spaces as you want. Larger Circles load '
+            'progressively without turning anyone’s progress into a rank.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+28',
     versionLabel: 'VERSION 1.0.4 · BUILD 28',
     dateLabel: 'AUGUST 2026',

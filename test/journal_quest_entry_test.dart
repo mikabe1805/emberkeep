@@ -255,6 +255,89 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('a Journal quest voices each bob without activating on drag', (
+    tester,
+  ) async {
+    final events = <String>[];
+    final sfx = Sfx.instance;
+    sfx.debugResetForTesting();
+    sfx.debugBypassPlayback = true;
+    sfx.debugOnPlay = events.add;
+    addTearDown(sfx.debugResetForTesting);
+    final state = GameState();
+    final quest = _journalQuest();
+    await _pumpBoard(tester, state: state, quests: [quest]);
+
+    final card = find.byKey(ValueKey('card-${quest.title}'));
+    final gesture = await tester.startGesture(tester.getCenter(card));
+    await tester.pump();
+    await gesture.moveBy(const Offset(0, -40));
+    await tester.pump(const Duration(milliseconds: 180));
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(find.byType(JournalEntryScreen), findsNothing);
+    expect(events, ['open']);
+
+    await tester.tap(card);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byType(JournalEntryScreen), findsOneWidget);
+    expect(events, ['open', 'open']);
+  });
+
+  testWidgets('catching a coasting quest board remains silent', (tester) async {
+    final state = GameState();
+    final quests = List<Quest>.generate(
+      8,
+      (i) => Quest(title: 'Quiet quest $i', stat: Stat.foc, difficulty: 2),
+    );
+    await _pumpBoard(tester, state: state, quests: quests);
+    final board = find.byKey(const ValueKey('quest-board-scroll'));
+
+    await tester.fling(board, const Offset(0, -500), 1200);
+    await tester.pump(const Duration(milliseconds: 16));
+
+    final events = <String>[];
+    final sfx = Sfx.instance;
+    sfx.debugResetForTesting();
+    sfx.debugBypassPlayback = true;
+    sfx.debugOnPlay = events.add;
+    addTearDown(sfx.debugResetForTesting);
+    final catchGesture = await tester.startGesture(tester.getCenter(board));
+    await tester.pump();
+    expect(events, isEmpty);
+    await catchGesture.cancel();
+  });
+
+  testWidgets('an ordinary completion voices both bob and accepted outcome', (
+    tester,
+  ) async {
+    final events = <String>[];
+    final sfx = Sfx.instance;
+    sfx.debugResetForTesting();
+    sfx.debugBypassPlayback = true;
+    sfx.debugOnPlay = events.add;
+    addTearDown(sfx.debugResetForTesting);
+    final state = GameState();
+    final quest = Quest(
+      title: 'Read ten pages',
+      stat: Stat.intl,
+      difficulty: 3,
+    );
+    await _pumpBoard(tester, state: state, quests: [quest]);
+
+    await tester.tap(find.byKey(ValueKey('card-${quest.title}')));
+    await tester.pump();
+    expect(quest.doneFor(Clock.now()), isTrue);
+    expect(events, ['open', 'complete']);
+
+    // Drain the existing reward receipt/commit choreography before disposal;
+    // this assertion is intentionally about the two visible tap-time beats.
+    sfx.soundEnabled = false;
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
     'saved writing keeps Quest context and completes through the normal reward once',
     (tester) async {

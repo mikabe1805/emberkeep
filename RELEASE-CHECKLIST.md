@@ -1,41 +1,62 @@
 # Room of Days Release Checklist
 
-Updated August 21, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 22, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.4+28 iOS App Store candidate — supersedes Build 27
+## 1.0.4+29 iOS App Store candidate — supersedes Build 28
 
-Build 27 reached TestFlight from `fe7b973` before the final Plans and Journal
-destination pass. Build 28 carries that candidate forward and gives each page
-its own authored place: the Daybook opens onto a rainlit conservatory, Journal
-settles into a warm archive, and the controls now borrow the material language
-of the page they serve. `pubspec.yaml` is `1.0.4+28`.
+Build 28 reached TestFlight from `6d0781c` before this final interaction and
+Circle pass. Build 29 makes sound belong to visible motion: every quest bob
+answers once even when the press becomes a scroll, blank swipes stay quiet,
+completion adds only its paired outcome, and opening Journal has its own page
+turn. Guided workouts now offer seven sessions instead of claiming one is
+already on the board. A Circle may hold as many trusted spaces as the user
+wants and loads them progressively without ranks. The optional public directory
+and public names remain default-off and are not deployed by the iOS workflow.
+`pubspec.yaml` is `1.0.4+29`.
 
-- [x] Confirm the live App Store Connect high-water is Build 27 and advance the
-  checked-in candidate to Build 28 before starting another archive.
-- [x] Codemagic Build #40 stopped before signing or archive because a
-  source-shape test still expected the superseded Build 25 comment. The test now
-  guards against hard-coded candidate numbers instead; no Build 28 binary was
-  produced or uploaded by that run.
-- [ ] Confirm the existing App Store Version 1.0.4 draft remains unsent, public
-  US distribution and agreements remain in effect, and Build 28 is unused.
+- [x] Confirm Build 28 is the live TestFlight high-water. Codemagic Build #41
+  archived and uploaded it from `6d0781c`; Build 29 therefore has a new identity.
+- [x] Keep Space Discovery and public names unavailable in the ordinary build.
+  No discovery enablement define is passed and Codemagic does not deploy the
+  accompanying Firestore rules or Functions.
+- [ ] Confirm the existing App Store Version 1.0.4 draft remains unsent and
+  public US distribution and agreements remain in effect.
 - [ ] In Codemagic, select `release/room-of-days-1.0.4`, verify the displayed
   commit is the pushed release HEAD, and start exactly one `ios-testflight` run.
 - [ ] Save the emitted IPA, dSYMs, and `release-evidence.txt`; verify the source
   commit, marketing version, build number, signature, and TestFlight upload.
-- [ ] After Apple finishes processing, add Build 28 to the intended internal
-  tester group and install it over Build 27 on a physical iPhone.
-- [ ] Complete `DEVICE-ACCEPTANCE-RUNBOOK.md` before selecting Build 28 in the
+- [ ] After Apple finishes processing, add Build 29 to the intended internal
+  tester group and install it over Build 28 on a physical iPhone.
+- [ ] Complete `DEVICE-ACCEPTANCE-RUNBOOK.md` before selecting Build 29 in the
   App Store Version 1.0.4 draft or making any public submission change.
+- [ ] Replace the prior App Store Connect screenshot set with the refreshed
+  six-frame Build 29 story after final local capture inspection.
+- [x] Regenerate all six Build 29 App Store frames on August 22, 2026. The
+  exporter revalidated 1290×2796 opaque RGB output and the full sequence plus
+  individual originals were opened and visually inspected. Plans and Change
+  Space remained byte-equivalent; Quests, Reward, My Space, and Journal were
+  refreshed.
+
+## 1.0.4+28 internal TestFlight record — superseded by Build 29
+
+Codemagic Build #41 archived and uploaded Build 28 from commit `6d0781c` on
+August 22, 2026. The preserved IPA SHA-256 is
+`97873F289265D64B6DC13CFEF7CE8EB4C4FB589926D6B6551FCDDBFA5F00202D`;
+Apple processing identifier `bf87fd60-65d4-4d8e-a22a-7cf35bda4ed9` was last
+recorded waiting for beta review. Its unfinished device and public-submission
+gates move to Build 29.
 
 ## 1.0.4+27 iOS App Store candidate — supersedes Build 26
 
-Build 26 shipped the sound system to TestFlight; Build 27 adds two owner-noted
+Build 26 shipped the sound system to TestFlight; Build 27 added two owner-noted
 coverage fixes on top: a press that drifts into a drag (press depth and haptic
 fired, then the finger moved past tap slop) now answers with a quiet select
 detent instead of staying silent, and tapping an all-day quest (which bobs and
 defers its completion to the night ledger) answers with the ordinary clasp.
-Everything else is identical to Build 26. `pubspec.yaml` is `1.0.4+27`.
+Everything else is identical to Build 26. This is retained as release history;
+the owner’s August 22 clarification supersedes the drag/coasting behavior in
+Build 28 while preserving the bob. `pubspec.yaml` is `1.0.4+27`.
 
 ## 1.0.4+26 iOS App Store candidate — supersedes Build 25
 
@@ -59,7 +80,7 @@ it is superseded rather than releasable. Build 23 remains the known processed
 fallback; Build 25 was the target of the historical preparation below.
 
 The uncompleted Build 25 release actions were superseded before they ran; the
-active release actions now live in the Build 28 section above.
+active release actions now live in the Build 29 section above.
 
 - [x] Preserve Build 23 as an internal TestFlight fallback. A live Codemagic
   high-water check found the older Build 24 on Apple, so advance the final
@@ -86,11 +107,11 @@ Build 20 evidence in `release-candidate.json` remains unchanged.
 
 - [x] Apple processed Version 1.0.4, Build 23 and made it available to the
   internal `Me` group on August 19, 2026.
-- [x] Keep Build 23 available as the known processed fallback while Build 28 is
-  built and auditioned; do not attach it to the App Store draft unless Build 28
+- [x] Keep Build 23 available as the known processed fallback while Build 29 is
+  built and auditioned; do not attach it to the App Store draft unless Build 29
   is abandoned for a documented release blocker.
 - [ ] Preserve a completed physical-iPhone acceptance receipt if Build 23 was
-  installed and tested; otherwise Build 28 supersedes this unchecked gate.
+  installed and tested; otherwise Build 29 supersedes this unchecked gate.
 
 ## 1.0.4+24 superseded App Store Connect artifact
 
@@ -110,7 +131,7 @@ Build 20 evidence in `release-candidate.json` remains unchanged.
 - [x] Apple processed Version 1.0.3, Build 21 and made it available in
   TestFlight on August 18, 2026.
 - [ ] Preserve a completed physical-iPhone acceptance receipt if Build 21 was
-  installed and tested; otherwise Build 28 supersedes this unchecked gate.
+  installed and tested; otherwise Build 29 supersedes this unchecked gate.
 
 ## 1.0.2+20 release record
 
@@ -154,6 +175,14 @@ Build 20 evidence in `release-candidate.json` remains unchanged.
   erased when a save loads, and visitor rendering ignores legacy profile data.
 - [x] Firestore accepts only generated-only v5 room writes, serves only
   generated-only v5 rooms to code bearers, and denies collection listing.
+- [ ] Space Discovery remains default-off. Before enabling it, deploy and prove
+  the bounded v2 directory rules, exact-code isolation, opt-out/deletion, large
+  Circle behavior, privacy/store disclosures, signed-device behavior, and fresh
+  captures from that candidate.
+- [ ] Public Discovery names remain separately default-off. Before enabling
+  them, deploy both callables, keep and prove App Check enforcement, verify
+  filtering/rate limits/reporting/blocking, staff the moderation runbook, and
+  complete the UGC policy and store-review disclosures.
 - [x] Android notification permission is declared and requested in context.
 - [x] Exact-alarm permission is unnecessary; reminders use inexact scheduling.
 - [x] Journal photos remain local and are excluded from cloud backup and shared
@@ -177,9 +206,10 @@ Build 20 evidence in `release-candidate.json` remains unchanged.
   It intentionally remains empty until Play App Signing supplies the final
   certificate.
 - [x] Google Play 1024×500 feature graphic is ready in `store-assets/`.
-- [x] Five opaque 24-bit RGB App Store screenshots at 1290×2796 and five
+- [x] Six opaque 24-bit RGB App Store screenshots at 1290×2796 and five
   independently rendered Google Play screenshots at 1080×1920 are ready in
-  `store-assets/screenshots/`; every frame was opened and visually accepted.
+  `store-assets/screenshots/`. The iOS set was regenerated and visually
+  accepted on August 22, 2026; the deferred Android set remains unchanged.
 - [x] Android 13+ themed icons use a dedicated monochrome Room of Days mark.
 - [x] Release Gradle tasks cannot fall back to debug signing.
 - [x] No keystore, App Store key/profile, service-account credential, password
@@ -277,12 +307,12 @@ Task 5 documentation commit itself.
 
 ## Verify before every candidate
 
-- [x] Keep the iOS Build 28 record first in `lib/content/release_notes.dart` and
-  match its `1.0.4+28` identity to `pubspec.yaml`. The frozen Android Build 20
+- [x] Keep the iOS Build 29 record first in `lib/content/release_notes.dart` and
+  match its `1.0.4+29` identity to `pubspec.yaml`. The frozen Android Build 20
   manifest remains separate in `release-candidate.json`. The current record
-  and store copy include only factual Plans, Journal, Daybook,
-  quest-management, sound, hearth, companion-copy, and Day Ledger changes in
-  this candidate.
+  and store copy include only factual interaction-sound, guided-workout, Circle,
+  Plans, Journal, Daybook, quest-management, hearth, companion-copy, and Day
+  Ledger changes in this candidate. Default-off Discovery is not advertised.
 - [ ] Install over the previous build and confirm What's New appears once,
   dismisses through both exits, and remains replayable from Me. Confirm a
   fresh install goes directly to onboarding, then inspect the normal,
@@ -552,11 +582,12 @@ Task 5 documentation commit itself.
   meets Apple's criteria; automated semantics and layout tests alone are not
   enough evidence.
 - [x] Create the 1024×500 Google Play feature graphic.
-- [x] Capture and inspect final production screenshots for both store-specific
-  aspect ratios; the old illustrated interface set has been removed.
-- [x] Upload the five final 1290×2796 iPhone screenshots to App Store Connect and
-  verify their persisted order is quests, reward, My Space, room editing, then
-  Journal. Apple reuses the set for the 6.5-inch display.
+- [x] Capture and inspect the refreshed six-frame iOS production set; the old
+  illustrated interface set has been removed. The prior Android production set
+  remains intentionally frozen while publication is deferred.
+- [ ] Upload the refreshed six 1290×2796 iPhone screenshots to App Store Connect
+  and verify their persisted order is Quests, Reward, Plans, My Space, Change
+  Space, then Journal. Apple reuses the set for the 6.5-inch display.
 - [ ] Upload the final Google Play screenshots.
 - [ ] Supply review-only credentials if a reviewer asks to test an existing
   cross-device account.

@@ -357,7 +357,7 @@ void main() {
     expect(persists, 1);
     expect(find.text('IN YOUR CIRCLE'), findsOneWidget);
 
-    final full = GameState()..reduceMotion = true;
+    final largerCircle = GameState()..reduceMotion = true;
     for (final code in const [
       'ABC234',
       'DEF567',
@@ -365,34 +365,37 @@ void main() {
       'KMN234',
       'PQR567',
     ]) {
-      expect(full.addCircleCode(code), isTrue);
+      expect(largerCircle.addCircleCode(code), isTrue);
     }
-    var fullPersists = 0;
+    var largerCirclePersists = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: VisitRoomScreen(
           room: _room(profileVisible: false),
           code: 'STU789',
           lively: false,
-          localState: full,
-          onPersist: () => fullPersists++,
+          localState: largerCircle,
+          onPersist: () => largerCirclePersists++,
         ),
       ),
     );
     await tester.pump();
-    final fullAction = find.byKey(const ValueKey('visit-room-circle-action'));
+    final largerCircleAction = find.byKey(
+      const ValueKey('visit-room-circle-action'),
+    );
     await tester.scrollUntilVisible(
-      fullAction,
+      largerCircleAction,
       220,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump();
 
-    expect(find.text('CIRCLE IS FULL'), findsOneWidget);
-    await tester.tap(fullAction);
+    expect(find.text('KEEP IN MY CIRCLE'), findsOneWidget);
+    await tester.tap(largerCircleAction);
     await tester.pump();
-    expect(full.hearthCircleCodes, isNot(contains('STU789')));
-    expect(fullPersists, 0);
+    expect(largerCircle.hearthCircleCodes, contains('STU789'));
+    expect(largerCircle.hearthCircleCodes, hasLength(6));
+    expect(largerCirclePersists, 1);
     expect(tester.takeException(), isNull);
   });
 
@@ -418,7 +421,7 @@ void main() {
 
     final add = find.text('ADD A SPACE');
     final circleScroll = find.descendant(
-      of: find.byType(ListView).first,
+      of: find.byType(CustomScrollView).first,
       matching: find.byType(Scrollable),
     );
     await tester.scrollUntilVisible(add, 420, scrollable: circleScroll);
@@ -459,11 +462,41 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView).first, const Offset(0, -520));
+    await tester.drag(
+      find.byType(CustomScrollView).first,
+      const Offset(0, -520),
+    );
     await tester.pump();
 
     expect(find.text('Maya'), findsOneWidget);
     expect(find.textContaining('STEADY HAND'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'Circle keeps a discovered public name without changing room data',
+    (tester) async {
+      final state = GameState()..reduceMotion = true;
+      expect(state.addCircleCode('ABC234', publicName: 'Rowan'), isTrue);
+
+      await _pumpCompact(
+        tester,
+        HearthCircleScreen(
+          state: state,
+          onPersist: () {},
+          roomFetcher: (_) async => _room(profileVisible: false),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.byType(CustomScrollView).first,
+        const Offset(0, -520),
+      );
+      await tester.pump();
+
+      expect(find.text('Rowan'), findsOneWidget);
+      expect(find.text('Fellow keeper'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

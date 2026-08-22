@@ -509,8 +509,14 @@ Rules:
 - A six-character room code and its HTTPS invite link are bearer invitations.
   Collection listing stays forbidden, and every visit explains the boundary.
 - A visited room can be kept in the trusted Circle only by an explicit action.
+  Circle is the quiet follow/revisit layer; it has no arbitrary five-space cap,
+  follower counts, popularity ranking, or contact import.
   Validation, loading, not-found, and retry states remain inside the room-code
   dialog so the person never waits on a blank screen.
+- Opt-in Discover is a separately gated finite handful, never an infinite feed.
+  Its generated room projection may include one separately saved optional
+  public name only after filtering, reporting, blocking, moderation, policy,
+  App Check, and device gates are complete. It never copies the private Me name.
 - Keeping a room leaves one private, text-free receipt for its owner. One-way
   support remains fixed-copy and text-free; Circle is not an open chat surface.
 
@@ -605,11 +611,12 @@ same room camera.
 ## Reward, sound, and touch
 
 - The first response to a tap lands inside 100 ms.
-- Press depth and the immediate haptic begin under the finger; the ordinary X
-  clasp sounds only after Flutter recognizes a tap rather than a scroll. A
-  control whose state can still reject or no-op must own its semantic cue or
-  disable the automatic one. A scrolling finger cancels the pressed visual and
-  never voices a control.
+- Press depth, the immediate haptic, and the ordinary contact sound begin
+  together under the finger. That bob may begin even when the gesture later
+  becomes a scroll; once the drag is clear, it releases without activating the
+  control or adding another sound. The invariant is causal rather than
+  outcome-based: every visible bob is voiced, including a quest bob that becomes
+  a drag, while scrolling that never presses a control stays silent.
 - Every foreground cue is a different gesture performed by one imagined cause:
   a close, handmade ledger mechanism inside the warm living room. Its contact,
   damped modal body, bounded pitch field, rounded top edge, and almost-felt
@@ -651,12 +658,13 @@ same room camera.
 - Fantasy comes from causal material, authored transient/body/tail, harmonic
   continuity, and precise sound-motion-haptic timing, never a generic layer of
   sparkles, notification pings, or long fairy-dust reverb.
-- Completion is one immutable atomic plan: suppress the widget's ordinary X,
-  emit accepted Select-2, then begin Answered Detent exactly 75 ms later after
-  the state commits. The 430 ms atomic master begins at contact—never at a
-  parked timestamp inside an audition flow—and prevents scheduling jitter. It
-  belongs to a quest or routine that actually completed; generic saves and
-  button presses do not borrow it.
+- Completion remains a two-stage causal plan. A direct QuestCard press first
+  voices the same contact as its visible bob; once the state commits, the locked
+  Answered Detent voices the check/reward outcome without replaying another
+  generic tap. Delayed or non-Pressable completion paths still use the immutable
+  430 ms accepted Select-2 → Answered Detent composite. Completion belongs to a
+  quest or routine that actually completed; generic saves and button presses do
+  not borrow it.
 - The audio director owns the global take walk, 18 ms ordinary duplicate gate,
   transition-scoped completion dedupe, Paired Return eligibility/screen/cooldown
   state, rapid attenuation and phrase abort, mute settings, high-priority start
@@ -666,17 +674,14 @@ same room camera.
   same X router through a compatibility bridge. That bridge no longer selects
   unrelated prop recordings and is removed as each surface receives its
   explicit interaction verb.
-- A touch that plainly did something is never left unanswered (owner
-  correction, 2026-08-21; supersedes the earlier already-selected-tabs-are-
-  silent rule). Retapping the active dock tab acknowledges with a quieter
-  `select` detent instead of full `navigate` travel weight; the tap that
-  catches a coasting quest board voices the softest `select` even though the
-  scrollable ignore-pointers its children mid-fling; and a press that drifts
-  into a drag — where the pointer-down haptic and press depth already
-  promised a tap — answers with the same quiet detent once the drift passes
-  the point where no tap can be delivered (past the 18 px framework slop).
-  True no-answer silence is reserved for scrolling itself once underway,
-  typing, passive previews, and decline/not-now actions.
+- A sound must arrive with the visual event it voices (owner clarification,
+  2026-08-22, corrected after implementation feedback). Retapping the active
+  dock tab acknowledges with a quieter `select` detent because the dock visibly
+  presses. A pressed quest voices its contact at the same instant it bobs even
+  when that touch becomes a scroll; the drag does not activate the quest or add
+  a second cue. Catching a coasting board where no quest presses, scrolling over
+  bare space, typing, passive previews, and decline/not-now actions remain
+  silent because no paired contact visual occurred.
 - New interactive surfaces wire their interaction verb before they ship. The
   daybook shipped with ~20 silent tappable rows, which read as deadness, not
   restraint — coverage is part of a surface's definition of done.

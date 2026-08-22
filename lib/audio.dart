@@ -342,6 +342,7 @@ class Sfx {
 
   static const _coreAssets = [
     ...InteractionSoundRouter.allAssets,
+    'room/completion/answered-detent-natural',
     'room/completion/completion-composite',
     'streak',
     'crit',
@@ -443,6 +444,24 @@ class Sfx {
 
   /// Sound enabled flag — set from GameState.soundEnabled.
   bool soundEnabled = true;
+
+  /// Test-only probe at the final playback boundary. This records only events
+  /// that survived mute, duplicate, semantic, and completion gates.
+  @visibleForTesting
+  ValueChanged<String>? debugOnPlay;
+
+  /// Keeps widget tests out of the native audio plugin after recording a cue.
+  @visibleForTesting
+  bool debugBypassPlayback = false;
+
+  @visibleForTesting
+  void debugResetForTesting() {
+    debugOnPlay = null;
+    debugBypassPlayback = false;
+    soundEnabled = true;
+    _ordinarySuppressedUntil = null;
+    _interactions.resetBurst();
+  }
 
   Future<void> init() async {
     // Some embedded/automation WebKit builds expose CanvasKit but no Web Audio
@@ -579,6 +598,8 @@ class Sfx {
     required double volume,
     required String eventName,
   }) {
+    debugOnPlay?.call(eventName);
+    if (debugBypassPlayback) return;
     final pool = _pools[asset];
     if (pool != null) {
       pool.start(volume: volume).catchError((Object e) {
@@ -652,10 +673,16 @@ class Sfx {
     return 'room/materials/$lane/$take';
   }
 
-  /// Plays the immutable accepted-contact → Answered Detent master. The 75 ms
-  /// relationship lives inside the file, so callback or frame timing cannot
-  /// turn it into a flam.
-  void playCompletionAccepted({Object? transitionId, double volumeScale = 1}) {
+  /// Plays the accepted completion gesture. A completion reached without a
+  /// Pressable contact uses the immutable accepted-contact → Answered Detent
+  /// composite. When the visible bob already voiced its contact, runtime uses
+  /// the locked Answered Detent outcome master instead of striking a second
+  /// generic contact over the completion visual.
+  void playCompletionAccepted({
+    Object? transitionId,
+    double volumeScale = 1,
+    bool contactAlreadyPlayed = false,
+  }) {
     // The state changed even when the phone is muted. Clear a partially armed
     // return before the availability gate so it cannot resume after unmuting.
     _interactions.resetBurst();
@@ -664,7 +691,9 @@ class Sfx {
     if (!_completions.claim(transitionId, at: now)) return;
     _ordinarySuppressedUntil = now.add(const Duration(milliseconds: 430));
     _playAsset(
-      'room/completion/completion-composite',
+      contactAlreadyPlayed
+          ? 'room/completion/answered-detent-natural'
+          : 'room/completion/completion-composite',
       volume: volumeScale.clamp(0.0, 1.0).toDouble(),
       eventName: 'complete',
     );

@@ -190,6 +190,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   /// is fragile across IndexedStack rebuilds).
   VoidCallback? _flushQuestsCommit;
   void Function(Quest quest, Offset anchor)? _completeQuest;
+  void Function(Quest launcher)? _openGuidedWorkout;
 
   /// Serializes preference writes so a slower old write cannot land after a
   /// newer one. Export and lifecycle flushes await this same tail.
@@ -291,6 +292,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               mediaRoomCode: s.roomCode,
             ),
             code: s.roomCode,
+            discoverable: kSpaceDiscoveryEnabled && s.roomDiscoverable,
           );
         }),
       );
@@ -333,16 +335,55 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Future<void> _refreshPublishedRoom() async {
     final state = _state;
     final cloud = CloudSync.instance;
-    if (state?.roomCode == null || !cloud.available) return;
+    if (state == null || !cloud.available) return;
+    if (state.roomCode == null && !state.roomDiscoveryRemovalPending) return;
     if (!await cloud.ensureSocialSession() || !mounted) return;
+    final currentCode = state.roomCode;
+    final currentDisplay = currentCode == null
+        ? const <String, dynamic>{}
+        : roomDisplay(
+            state,
+            mediaOwnerUid: cloud.socialUid,
+            mediaRoomCode: currentCode,
+          );
+    var removedPendingDiscovery = false;
+    for (final pendingCode in state.roomDiscoveryRemovalCodes) {
+      final removed = await cloud.setRoomDiscoverable(
+        pendingCode,
+        currentDisplay,
+        discoverable: false,
+      );
+      if (!mounted) return;
+      if (!removed) continue;
+      state.confirmRoomDiscoveryRemoval(pendingCode);
+      removedPendingDiscovery = true;
+    }
+    if (removedPendingDiscovery) {
+      await _persistNow(push: false);
+    }
+    if (currentCode == null) return;
     final result = await publishSpaceRoomState(
-      state!,
+      state,
       current: state,
-      code: state.roomCode,
+      code: currentCode,
     );
     final code = result.code;
-    if (code == null || code == state.roomCode) return;
+    if (code == null) return;
+    if (code == state.roomCode) {
+      if (kSpaceDiscoveryEnabled && state.roomDiscoverable) {
+        await cloud.setRoomDiscoverable(
+          code,
+          currentDisplay,
+          discoverable: true,
+        );
+      }
+      return;
+    }
     state.setRoomCode(code);
+    // A recovered code rotation is a new public address. Never silently carry
+    // an old directory opt-in onto it; the keeper can deliberately re-enable
+    // discovery from Share.
+    state.setRoomDiscoverable(false);
     await _persistNow();
     _showSocialNotice(
       'Your restored share code belonged to another session, so a new one was made: $code',
@@ -361,7 +402,28 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (current == null) {
       return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
     }
-    return publishSpaceRoomState(target, current: current, code: code);
+    final result = await publishSpaceRoomState(
+      target,
+      current: current,
+      code: code,
+    );
+    final publishedCode = result.code;
+    if (publishedCode != null &&
+        kSpaceDiscoveryEnabled &&
+        target.roomDiscoverable) {
+      unawaited(
+        CloudSync.instance.setRoomDiscoverable(
+          publishedCode,
+          roomDisplay(
+            target,
+            mediaOwnerUid: CloudSync.instance.socialUid,
+            mediaRoomCode: publishedCode,
+          ),
+          discoverable: true,
+        ),
+      );
+    }
+    return result;
   }
 
   /// Surface Circle receipts without making the owner manually open Circle to
@@ -911,6 +973,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               mediaRoomCode: s.roomCode,
             ),
             code: s.roomCode,
+            discoverable: kSpaceDiscoveryEnabled && s.roomDiscoverable,
           );
         }
         return true;
@@ -1347,6 +1410,29 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     return true;
   }
 
+  void _openGuidedWorkouts() {
+    final quests = _quests;
+    if (quests == null) return;
+    Quest? launcher;
+    for (final quest in quests) {
+      if (quest.workout) {
+        launcher = quest;
+        break;
+      }
+    }
+    if (launcher == null) {
+      final fresh = workoutLauncherQuest();
+      _addQuest(fresh);
+      launcher = fresh;
+    }
+    _selectTab(1);
+    final chosen = launcher;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _openGuidedWorkout?.call(chosen);
+    });
+  }
+
   /// (Re)schedule local reminders from the current prefs + dated plans.
   /// No-ops on web (the native plugin isn't compiled there).
   Future<void> _rescheduleNotifications({bool refreshTimeZone = false}) {
@@ -1551,6 +1637,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                               _flushQuestsCommit = flush,
                                           onBindComplete: (complete) =>
                                               _completeQuest = complete,
+                                          onBindOpenWorkout: (open) =>
+                                              _openGuidedWorkout = open,
                                           onNightClosed: () => unawaited(
                                             _rescheduleNotifications(),
                                           ),
@@ -1569,6 +1657,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           onPersist: _persist,
                                           quests: quests,
                                           onOpenQuests: () => _selectTab(1),
+                                          onOpenGuidedWorkouts:
+                                              _openGuidedWorkouts,
                                           parallax: cameraFor(2),
                                           lightDirection: lightFor(2),
                                         )
@@ -1768,23 +1858,14 @@ class _DockItem extends StatelessWidget {
         // travel between the five pages of the room: the parchment flip lane
         // (falls back to the navigate clasp until the page masters ship)
         material: MaterialSound.parchment,
-        interactionSound: InteractionSound.navigate,
-        soundEnabled: !selected,
+        // A selected tab still bobs, so it gets the quieter contact at the
+        // same instant. Actual travel keeps the fuller navigate weight.
+        interactionSound: selected
+            ? InteractionSound.select
+            : InteractionSound.navigate,
         edgeColor: Colors.transparent,
         semanticLabel: '$label tab',
-        onTapUp: (_) {
-          // Retapping the tab you're already on used to buzz and stay mute,
-          // which read as a dead control (owner, 2026-08-21). It now owns a
-          // quieter select detent: acknowledged, not announced — the full
-          // navigate weight stays reserved for actual travel.
-          if (selected) {
-            Sfx.instance.playInteraction(
-              InteractionSound.select,
-              volumeScale: 0.7,
-            );
-          }
-          onTap();
-        },
+        onTapUp: (_) => onTap(),
         child: AnimatedContainer(
           duration: Motion.quick,
           curve: Motion.respond,

@@ -9,6 +9,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'daybook/services/place_search_identity_removal.dart';
+import 'daybook/services/place_search_access.dart';
+import 'discovery.dart';
 import 'firebase_options.dart';
 import 'platform/test_environment_stub.dart'
     if (dart.library.io) 'platform/test_environment_io.dart';
@@ -30,6 +32,8 @@ enum RoomPublishFailure {
 /// pending note from the same sender — a fact worth telling honestly, and
 /// distinct from a connection that simply failed.
 enum SparkSendResult { sent, alreadyWaiting, failed }
+
+enum DiscoveryPublicNameUpdate { saved, rejected, rateLimited, unavailable }
 
 enum _OwnedRoomDeleteResult { deleted, absent, notOwned, invalid }
 
@@ -218,6 +222,8 @@ class CloudSync extends ChangeNotifier
       ServiceIdentityTransitionGuard();
   final CoalescedIdentityDeletionOperation _anonymousIdentityDeletion =
       CoalescedIdentityDeletionOperation();
+  final FirebasePlaceSearchAppCheck _discoveryAppCheck =
+      FirebasePlaceSearchAppCheck();
   Timer? _debounce;
   Timer? _roomDebounce;
   final RoomPublishQueue _savePushQueue = RoomPublishQueue();
@@ -889,6 +895,9 @@ class CloudSync extends ChangeNotifier
   CollectionReference<Map<String, dynamic>> get _rooms =>
       FirebaseFirestore.instance.collection('rooms');
 
+  CollectionReference<Map<String, dynamic>> get _discoverableSpaces =>
+      FirebaseFirestore.instance.collection('discoverableSpaces');
+
   CollectionReference<Map<String, dynamic>> get _roomDeletionLocks =>
       FirebaseFirestore.instance.collection('roomDeletionLocks');
 
@@ -899,7 +908,11 @@ class CloudSync extends ChangeNotifier
   /// Keep an already-published appearance card fresh without writing on every
   /// tap. Saves remain the source of truth; this is a separate, privacy-safe
   /// five-second debounce for Circle presence and room progress only.
-  void queueRoomUpdate(Map<String, dynamic> display, {required String? code}) {
+  void queueRoomUpdate(
+    Map<String, dynamic> display, {
+    required String? code,
+    bool discoverable = false,
+  }) {
     if (_roomPublishQueue.writesHeld ||
         !socialReady ||
         code == null ||
@@ -912,11 +925,21 @@ class CloudSync extends ChangeNotifier
     final snapshot = Map<String, dynamic>.from(display);
     _roomDebounce = Timer(
       const Duration(seconds: 5),
-      () => shareRoom(snapshot, code: clean),
+      () => unawaited(
+        _refreshRoomAndDirectory(
+          snapshot,
+          code: clean,
+          discoverable: discoverable,
+        ),
+      ),
     );
   }
 
-  void flushRoom(Map<String, dynamic> display, {required String? code}) {
+  void flushRoom(
+    Map<String, dynamic> display, {
+    required String? code,
+    bool discoverable = false,
+  }) {
     if (_roomPublishQueue.writesHeld ||
         !socialReady ||
         code == null ||
@@ -926,7 +949,23 @@ class CloudSync extends ChangeNotifier
     final clean = _cleanRoomCode(code);
     if (clean == null) return;
     _roomDebounce?.cancel();
-    unawaited(shareRoom(Map<String, dynamic>.from(display), code: clean));
+    unawaited(
+      _refreshRoomAndDirectory(
+        Map<String, dynamic>.from(display),
+        code: clean,
+        discoverable: discoverable,
+      ),
+    );
+  }
+
+  Future<void> _refreshRoomAndDirectory(
+    Map<String, dynamic> display, {
+    required String code,
+    required bool discoverable,
+  }) async {
+    final published = await publishRoom(display, code: code);
+    if (!published.ok || published.code != code || !discoverable) return;
+    await setRoomDiscoverable(code, display, discoverable: true);
   }
 
   /// Publish (or update) your space's appearance to a public room doc. Pass the
@@ -1065,6 +1104,166 @@ class CloudSync extends ChangeNotifier
     }
   }
 
+  /// Adds or removes the deliberately tiny discovery projection. This is an
+  /// acknowledged privacy boundary: unlike background room refreshes it does
+  /// not use a feedback timeout, because a timed-out create could later land
+  /// while the local toggle still claimed the room was private.
+  Future<bool> setRoomDiscoverable(
+    String code,
+    Map<String, dynamic> room, {
+    required bool discoverable,
+  }) async {
+    if (!socialReady || _uid == null) return false;
+    final clean = _cleanRoomCode(code);
+    if (clean == null) return false;
+    _roomDebounce?.cancel();
+    _roomDebounce = null;
+    final projection = discoverable
+        ? discoverableSpaceDisplay(room, roomCode: clean)
+        : const <String, dynamic>{};
+    try {
+      final result = await _roomPublishQueue.runWrite<bool>(() async {
+        if (!socialReady || _uid == null) return false;
+        final document = _discoverableSpaces.doc(clean);
+        if (discoverable) {
+          // The owner may refresh generated visuals, but cannot author the
+          // public name directly. Preserve the server-approved name exactly;
+          // a missing v1 value migrates to anonymous v2.
+          await FirebaseFirestore.instance
+              .runTransaction((transaction) async {
+                final existing = await transaction.get(document);
+                final existingName = existing.data()?['publicName'];
+                transaction.set(document, {
+                  ...projection,
+                  'publicName': existingName is String ? existingName : '',
+                  'updatedAt': FieldValue.serverTimestamp(),
+                  'expiresAt': Timestamp.fromDate(
+                    DateTime.now().toUtc().add(discoverableSpaceLease),
+                  ),
+                });
+              })
+              .timeout(const Duration(seconds: 8));
+        } else {
+          await document.delete();
+        }
+        return true;
+      });
+      return result ?? false;
+    } catch (error) {
+      debugPrint('setRoomDiscoverable failed: $error');
+      return false;
+    }
+  }
+
+  Future<bool> _prepareProtectedDiscoveryCall() async {
+    // Activate attestation after Core but before this operation creates or
+    // reuses an anonymous identity. Callable enforcement is a rollout flag on
+    // the server, so pre-release monitor builds use the same real providers.
+    if (!await ensureCoreAvailable() || !await _discoveryAppCheck.activate()) {
+      return false;
+    }
+    if (!await ensureAvailable()) return false;
+    return ensureSocialSession();
+  }
+
+  Future<DiscoveryPublicNameUpdate> setDiscoveryPublicName(
+    String code,
+    String name,
+  ) async {
+    final clean = _cleanRoomCode(code);
+    if (clean == null || !await _prepareProtectedDiscoveryCall()) {
+      return DiscoveryPublicNameUpdate.unavailable;
+    }
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'setDiscoveryPublicName',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 8)),
+      );
+      await callable.call<void>({
+        'code': clean,
+        'publicName': sanitizeDiscoveryPublicName(name),
+      });
+      return DiscoveryPublicNameUpdate.saved;
+    } on FirebaseFunctionsException catch (error) {
+      debugPrint('setDiscoveryPublicName failed: ${error.code}');
+      return switch (error.code) {
+        'invalid-argument' ||
+        'failed-precondition' => DiscoveryPublicNameUpdate.rejected,
+        'resource-exhausted' => DiscoveryPublicNameUpdate.rateLimited,
+        _ => DiscoveryPublicNameUpdate.unavailable,
+      };
+    } catch (error) {
+      debugPrint('setDiscoveryPublicName failed: $error');
+      return DiscoveryPublicNameUpdate.unavailable;
+    }
+  }
+
+  Future<bool> reportDiscoverableSpace(String code, String category) async {
+    final clean = _cleanRoomCode(code);
+    if (clean == null ||
+        !const {
+          'inappropriate_name',
+          'impersonation',
+          'other',
+        }.contains(category) ||
+        !await _prepareProtectedDiscoveryCall()) {
+      return false;
+    }
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'reportDiscoverableSpace',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 8)),
+      );
+      await callable.call<void>({'code': clean, 'category': category});
+      return true;
+    } catch (error) {
+      debugPrint('reportDiscoverableSpace failed: $error');
+      return false;
+    }
+  }
+
+  /// Fetches one finite, shuffled handful. Null means the directory could not
+  /// be reached; an empty list is a real empty directory.
+  Future<List<DiscoverableSpaceSummary>?> fetchDiscoverableSpaces({
+    int limit = 8,
+  }) async {
+    final take = limit.clamp(1, 12);
+    if (!await ensureAvailable() || !await ensureSocialSession()) return null;
+    final pivot = _rng.nextInt(discoverableSpaceBucketCount);
+    try {
+      final freshAfter = Timestamp.fromDate(
+        DateTime.now().toUtc().add(discoverableSpaceQuerySafetyMargin),
+      );
+      final page = await _discoverableSpaces
+          .where('expiresAt', isGreaterThan: freshAfter)
+          .orderBy('expiresAt', descending: true)
+          .limit(12)
+          .get(const GetOptions(source: Source.server))
+          .timeout(const Duration(seconds: 8));
+      final summaries = <DiscoverableSpaceSummary>[];
+      for (final document in page.docs) {
+        final summary = DiscoverableSpaceSummary.fromDocument(
+          document.id,
+          document.data(),
+        );
+        if (summary != null) summaries.add(summary);
+      }
+      summaries.sort((a, b) {
+        final aDistance =
+            (a.bucket - pivot + discoverableSpaceBucketCount) %
+            discoverableSpaceBucketCount;
+        final bDistance =
+            (b.bucket - pivot + discoverableSpaceBucketCount) %
+            discoverableSpaceBucketCount;
+        return aDistance.compareTo(bDistance);
+      });
+      return summaries.take(take).toList(growable: false);
+    } catch (error) {
+      debugPrint('fetchDiscoverableSpaces failed: $error');
+      return null;
+    }
+  }
+
   /// Read a shared space by code (case-insensitive). Null = not found / error.
   Future<Map<String, dynamic>?> fetchRoom(String code) async {
     if (!available) return null;
@@ -1118,7 +1317,10 @@ class CloudSync extends ChangeNotifier
       // Attempt the owner-only destructive path, but propagate every denial:
       // permission failure is not proof that this identity did not own it.
       await _deleteRoomPrivateChildren(room);
-      await room.delete().timeout(const Duration(seconds: 8));
+      final batch = FirebaseFirestore.instance.batch()
+        ..delete(_discoverableSpaces.doc(clean))
+        ..delete(room);
+      await batch.commit().timeout(const Duration(seconds: 8));
       return _OwnedRoomDeleteResult.deleted;
     }
     if (!parent.exists) return _OwnedRoomDeleteResult.absent;
@@ -1136,7 +1338,10 @@ class CloudSync extends ChangeNotifier
       await SharedRoomMediaService.instance.deleteObjectPaths(mediaPaths);
     }
     await _deleteRoomPrivateChildren(room);
-    await room.delete().timeout(const Duration(seconds: 8));
+    final batch = FirebaseFirestore.instance.batch()
+      ..delete(_discoverableSpaces.doc(clean))
+      ..delete(room);
+    await batch.commit().timeout(const Duration(seconds: 8));
     return _OwnedRoomDeleteResult.deleted;
   }
 
@@ -1825,6 +2030,7 @@ final class _CloudOwnedRoomDeletionSteps implements OwnedRoomDeletionSteps {
   Future<void> deleteParentAndFenceAtomically() async {
     await _verify();
     final batch = FirebaseFirestore.instance.batch()
+      ..delete(_cloud._discoverableSpaces.doc(room.id))
       ..delete(room.reference)
       ..delete(_lock);
     await batch.commit();

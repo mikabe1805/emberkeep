@@ -1,3 +1,5 @@
+import 'dart:async' show Timer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -59,7 +61,6 @@ class Pressable extends StatefulWidget {
     this.pressDepth = 4,
     this.material = MaterialSound.wood,
     this.interactionSound,
-    this.soundEnabled = true,
     this.semanticLabel,
     this.semanticHint,
   });
@@ -80,7 +81,6 @@ class Pressable extends StatefulWidget {
   final double pressDepth;
   final MaterialSound material;
   final InteractionSound? interactionSound;
-  final bool soundEnabled;
   final String? semanticLabel;
   final String? semanticHint;
 
@@ -89,75 +89,71 @@ class Pressable extends StatefulWidget {
 }
 
 class _PressableState extends State<Pressable> {
-  static const _slop = 12.0;
-
-  /// A press that drifts past the framework's 18 px touch slop can never be
-  /// delivered as a tap, so by 22 px the gesture is definitively a drag. The
-  /// pointer-down haptic already acknowledged the touch; the aborted press
-  /// answers here with a quieter detent so the promise is kept in sound too
-  /// (owner note, 2026-08-21). Below 18 px nothing plays — a tap released in
-  /// the 12-18 px band still fires normally with its own sound.
-  static const _dragVoiceSlop = 22.0;
   bool _down = false;
   bool _pointerAcknowledged = false;
-  bool _dragVoiced = false;
   Offset _downAt = Offset.zero;
+  Timer? _semanticReleaseTimer;
 
-  void _setDown(bool down) {
-    if (!widget.enabled || _down == down) return;
+  bool _setDown(bool down) {
+    if (!widget.enabled || _down == down) return false;
     setState(() => _down = down);
     if (down) {
       _pointerAcknowledged = true;
       HapticFeedback.selectionClick();
     }
+    return true;
   }
 
-  /// The one sound owner for every Pressable voice — accepted taps at full
-  /// weight, and the aborted press (drag-voice) as a quieter detent.
-  void _playAcceptedSound({
-    required bool soundEnabled,
-    required InteractionSound role,
-    required Object? screenId,
-    double volumeScale = 1,
-  }) {
-    if (!soundEnabled) return;
+  /// One contact, one causal bundle: the sound begins in the same synchronous
+  /// turn as the visible bob and haptic. If that contact becomes a scroll, the
+  /// control releases without activation, but the acknowledgement is not
+  /// retroactively taken away.
+  void _playContactSound() {
     Sfx.instance.playInteraction(
-      role,
-      volumeScale: volumeScale,
-      screenId: screenId,
+      widget.interactionSound ?? interactionForMaterial(widget.material),
+      screenId: InteractionSoundScreenScope.maybeScreenIdOf(context),
       material: widget.material,
     );
   }
 
+  void _beginContact() {
+    if (!_setDown(true)) return;
+    _playContactSound();
+  }
+
   void _activate() {
     if (!widget.enabled || widget.onTapUp == null) return;
-    // Keyboard and accessibility activation have no pointer-down phase. Give
-    // them the same single physical acknowledgement without duplicating touch.
+    // Keyboard and accessibility activation have no physical pointer-down.
+    // Give them the same short bob + sound + haptic causal bundle.
     if (!_pointerAcknowledged) {
-      HapticFeedback.selectionClick();
+      _beginContact();
+      _semanticReleaseTimer?.cancel();
+      _semanticReleaseTimer = Timer(Motion.ack, () {
+        if (mounted) _setDown(false);
+      });
     }
     _pointerAcknowledged = false;
     final box = context.findRenderObject() as RenderBox?;
     final center = box == null
         ? Offset.zero
         : box.localToGlobal(box.size.center(Offset.zero));
-    final callback = widget.onTapUp!;
-    final soundEnabled = widget.soundEnabled;
-    final role =
-        widget.interactionSound ?? interactionForMaterial(widget.material);
-    final screenId = InteractionSoundScreenScope.maybeScreenIdOf(context);
-    callback(center);
-    _playAcceptedSound(
-      soundEnabled: soundEnabled,
-      role: role,
-      screenId: screenId,
-    );
+    widget.onTapUp!(center);
+  }
+
+  @override
+  void dispose() {
+    _semanticReleaseTimer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final radius = widget.borderRadius ?? BorderRadius.circular(14);
     final drop = widget.pressDepth.clamp(0.0, 6.0).toDouble();
+    // Use the same device-aware threshold GestureDetector receives. The bob
+    // must not visually release while Flutter can still accept and voice a tap.
+    final tapSlop =
+        MediaQuery.maybeGestureSettingsOf(context)?.touchSlop ?? 18.0;
     // deep espresso under-edge — warm, never grey
     final edge = widget.edgeColor ?? const Color(0xFF0F0905);
     final shadows = _down
@@ -194,29 +190,13 @@ class _PressableState extends State<Pressable> {
         child: Listener(
           onPointerDown: (e) {
             _downAt = e.position;
-            _dragVoiced = false;
-            _setDown(true);
+            _beginContact();
           },
           onPointerMove: (e) {
             // Pointer drifted into a scroll — release the visual immediately.
-            if ((e.position - _downAt).distance > _slop) {
+            if ((e.position - _downAt).distance > tapSlop) {
               _setDown(false);
               _pointerAcknowledged = false;
-            }
-            if (!_dragVoiced &&
-                widget.enabled &&
-                widget.onTapUp != null &&
-                (e.position - _downAt).distance > _dragVoiceSlop) {
-              _dragVoiced = true;
-              // soundEnabled is forced true here: a control that owns its
-              // accepted-tap cue (quest completion, the dock) still never
-              // owns the aborted press — that acknowledgment is the surface's.
-              _playAcceptedSound(
-                soundEnabled: true,
-                role: InteractionSound.select,
-                screenId: InteractionSoundScreenScope.maybeScreenIdOf(context),
-                volumeScale: 0.7,
-              );
             }
           },
           onPointerUp: (_) {
@@ -234,20 +214,7 @@ class _PressableState extends State<Pressable> {
             excludeFromSemantics: true,
             onTapUp: (d) {
               if (!widget.enabled || widget.onTapUp == null) return;
-              final callback = widget.onTapUp!;
-              final soundEnabled = widget.soundEnabled;
-              final role =
-                  widget.interactionSound ??
-                  interactionForMaterial(widget.material);
-              final screenId = InteractionSoundScreenScope.maybeScreenIdOf(
-                context,
-              );
-              callback(d.globalPosition);
-              _playAcceptedSound(
-                soundEnabled: soundEnabled,
-                role: role,
-                screenId: screenId,
-              );
+              widget.onTapUp!(d.globalPosition);
               _pointerAcknowledged = false;
             },
             onLongPress: widget.onLongPress == null

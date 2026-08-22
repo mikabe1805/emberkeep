@@ -17,6 +17,7 @@ import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/night_reflection_sheet.dart';
+import '../widgets/pressable.dart';
 import 'journal_entry.dart';
 import 'journal_hub.dart';
 import 'weekly_chronicle.dart';
@@ -524,10 +525,14 @@ class InsightsPage extends StatelessWidget {
   /// card into the Journal hub — the fix for "I don't see the notes feature
   /// anywhere." Lives at the top of Insights, where the owner looked for it.
   Widget _journalCard(BuildContext context, int n) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () {
-        Sfx.instance.playMaterial(MaterialSound.parchment);
+    return Pressable(
+      semanticLabel: 'Your Journal',
+      semanticHint: 'Open your Journal',
+      pressDepth: 2,
+      edgeColor: Colors.transparent,
+      material: MaterialSound.parchment,
+      interactionSound: InteractionSound.open,
+      onTapUp: (_) {
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (_) => JournalHubScreen(

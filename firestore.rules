@@ -183,6 +183,80 @@ service cloud.firestore {
       );
     }
 
+    // Discoverability is a deliberately separate, minimal projection.
+    // It must never become a list query over /rooms: room codes remain bearer
+    // keys and the room document contains more context than a directory needs.
+    // The optional public name is the only authored field. Clients may create
+    // it only blank and must preserve it on refresh; only the moderated Admin
+    // callable may change it.
+    function validDiscoverableSpaceShape(code, d) {
+      return code.matches('^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$')
+        && d.keys().hasOnly([
+          'v', 'title', 'level', 'wall', 'floor', 'skin', 'window', 'bucket',
+          'publicName', 'updatedAt', 'expiresAt'
+        ])
+        && d.v == 2
+        && d.title is string && validBuildTitle(d.title)
+        && d.level is int && d.level >= 1 && d.level <= 9999
+        && d.wall in [
+          'wall_conservatory', 'wall_archive',
+          'wall_walnut', 'wall_plum', 'wall_sage', 'wall_clay', 'wall_amber',
+          'wall_indigo', 'wall_berry'
+        ]
+        && d.floor in [
+          'floor_oak', 'floor_ash', 'floor_walnut', 'floor_terra',
+          'floor_maple', 'floor_cherry'
+        ]
+        && d.skin in [
+          'ember_amber', 'rose_quartz', 'mint_glass', 'periwinkle', 'lilac',
+          'sunstone', 'sea_glass', 'moon_pearl', 'slate', 'gilded',
+          'found_ember', 'found_moss', 'found_bloom', 'found_honey',
+          'found_candle', 'found_aurora', 'found_midnight',
+          'found_periwinkle', 'found_plum', 'found_storm', 'found_rosewood',
+          'found_founder', 'found_weeklong', 'found_eternal',
+          'found_spotless', 'found_renaissance', 'found_marathoner'
+        ]
+        && d.window in [
+          'moon', 'city', 'forest', 'mountains', 'rain', 'dawn', 'aurora'
+        ]
+        && d.bucket is int && d.bucket >= 0 && d.bucket <= 999999
+        && d.publicName is string && d.publicName.size() <= 32
+        && d.updatedAt is timestamp
+        && d.expiresAt is timestamp;
+    }
+
+    function validDiscoverableSpaceData(code, d) {
+      return validDiscoverableSpaceShape(code, d)
+        && d.expiresAt > request.time;
+    }
+
+    function validDiscoverableSpace(code) {
+      return validDiscoverableSpaceData(code, request.resource.data)
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.expiresAt
+          <= request.time + duration.value(31, 'd');
+    }
+
+    function ownsRoom(code) {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/rooms/$(code))
+        && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+          == request.auth.uid;
+    }
+
+    function normalRoomRemovalAllowed(code) {
+      return !serviceIdentityDeletionStarted(request.auth.uid)
+        && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code));
+    }
+
+    function fencedRoomRemovalAllowed(code) {
+      return get(/databases/$(database)/documents/roomDeletionLocks/$(code)).data.uid
+          == request.auth.uid
+        && !existsAfter(
+          /databases/$(database)/documents/roomDeletionLocks/$(code)
+        );
+    }
+
     // Each anonymous user may touch exactly one document: their own save.
     match /saves/{uid} {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
@@ -310,6 +384,70 @@ service cloud.firestore {
                     && resource.data.uid == request.auth.uid
                     && !existsAfter(/databases/$(database)/documents/rooms/$(code));
       allow get, list: if false;
+    }
+    // A small, authenticated directory of rooms whose owners explicitly opted
+    // in. The record has no uid, code field, account/profile copy, activity,
+    // journal, quests, streak, or photos. Its document id is only used by the
+    // client after a card tap to open the existing exact-code visitor flow.
+    match /discoverableSpaces/{code} {
+      // The owner may read an expired strict projection only to preserve its
+      // moderated name while renewing the lease. Everyone else loses exact
+      // access at expiry along with directory visibility.
+      allow get: if request.auth != null
+                 && validDiscoverableSpaceShape(code, resource.data)
+                 && (
+                   resource.data.expiresAt > request.time
+                   || ownsRoom(code)
+                 );
+      // Collection-query rules must be provable from the query itself. The
+      // strict projection predicate remains on every client write and exact
+      // get; list access is instead authenticated and tightly bounded. Invalid
+      // Admin-written records are also rejected by the client parser.
+      allow list: if request.auth != null
+                   && request.query.limit != null
+                   && request.query.limit > 0
+                   && request.query.limit <= 12
+                   && resource.data.expiresAt > request.time;
+      allow create: if ownsRoom(code)
+                    && !serviceIdentityDeletionStarted(request.auth.uid)
+                    && !exists(
+                      /databases/$(database)/documents/roomDeletionLocks/$(code)
+                    )
+                    && validDiscoverableSpace(code)
+                    && request.resource.data.publicName == '';
+      allow update: if ownsRoom(code)
+                    && !serviceIdentityDeletionStarted(request.auth.uid)
+                    && !exists(
+                      /databases/$(database)/documents/roomDeletionLocks/$(code)
+                    )
+                    && validDiscoverableSpace(code)
+                    && (
+                      (
+                        resource.data.keys().hasAny(['publicName'])
+                        && request.resource.data.publicName == resource.data.publicName
+                      )
+                      || (
+                        resource.data.v == 1
+                        && !resource.data.keys().hasAny(['publicName'])
+                        && request.resource.data.publicName == ''
+                      )
+                    );
+      // Normal opt-out happens while the room exists. The second branch lets
+      // the account-deletion batch remove the directory, room, and lock in one
+      // fenced commit after the deletion tombstone has started.
+      allow delete: if ownsRoom(code)
+                    && (
+                      normalRoomRemovalAllowed(code)
+                      || fencedRoomRemovalAllowed(code)
+                    );
+    }
+    // Admin-only moderation internals. They are intentionally unavailable to
+    // every client, including the reporter and the room owner.
+    match /discoveryNameChanges/{uid} {
+      allow read, write: if false;
+    }
+    match /discoveryReports/{code}/{document=**} {
+      allow read, write: if false;
     }
     match /serviceIdentityDeletionTombstones/{uid} {
       allow get: if request.auth != null && request.auth.uid == uid;

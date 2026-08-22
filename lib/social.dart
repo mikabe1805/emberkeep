@@ -9,6 +9,7 @@ import 'clock.dart';
 import 'cloud.dart';
 import 'content/creature_skins.dart';
 import 'content/links.dart';
+import 'discovery.dart';
 import 'engine.dart';
 import 'models.dart';
 import 'release_features.dart';
@@ -19,6 +20,7 @@ import 'shared_room_media.dart';
 import 'tokens.dart';
 import 'widgets/facets.dart';
 import 'widgets/glass.dart';
+import 'widgets/glass_switch.dart';
 import 'widgets/honey_button.dart';
 
 bool _sharingSpace = false;
@@ -27,6 +29,8 @@ final RegExp _roomCodePattern = RegExp(
 );
 
 typedef RoomFetcher = Future<Map<String, dynamic>?> Function(String code);
+typedef DiscoveryPublicNameSaver =
+    Future<DiscoveryPublicNameUpdate> Function(String name);
 
 // The single public origin lives in content/links.dart; this alias keeps
 // the existing call sites and the SHARE_BASE_URL dart-define working.
@@ -611,8 +615,10 @@ void _toast(BuildContext context, String msg) {
 Future<void> shareSpace(
   BuildContext context,
   GameState state,
-  VoidCallback onPersist,
-) async {
+  VoidCallback onPersist, {
+  bool spaceDiscoveryEnabled = kSpaceDiscoveryEnabled,
+  bool publicDiscoveryNamesEnabled = kPublicDiscoveryNamesEnabled,
+}) async {
   final cloud = CloudSync.instance;
   if (_sharingSpace) {
     _toast(context, 'Your share is already opening.');
@@ -665,12 +671,42 @@ Future<void> shareSpace(
       mediaOwnerUid: cloud.socialUid,
       mediaRoomCode: code,
     );
+    if (spaceDiscoveryEnabled && state.roomDiscoverable) {
+      await cloud.setRoomDiscoverable(code, sharedRoom, discoverable: true);
+      if (!context.mounted) return;
+    }
     Sfx.instance.play('loot');
     await showShareSpaceDialog(
       context,
       code: code,
       ownerName: roomInviteOwnerName(state),
       rotatedCode: published.rotatedStaleCode,
+      discoverable: state.roomDiscoverable,
+      publicDiscoveryName: state.roomDiscoveryName,
+      onDiscoverableChanged: spaceDiscoveryEnabled
+          ? (next) async {
+              final changed = await cloud.setRoomDiscoverable(
+                code,
+                sharedRoom,
+                discoverable: next,
+              );
+              if (!changed) return false;
+              state.setRoomDiscoverable(next);
+              onPersist();
+              return true;
+            }
+          : null,
+      onPublicDiscoveryNameChanged:
+          spaceDiscoveryEnabled && publicDiscoveryNamesEnabled
+          ? (name) async {
+              final result = await cloud.setDiscoveryPublicName(code, name);
+              if (result == DiscoveryPublicNameUpdate.saved) {
+                state.setRoomDiscoveryName(name);
+                onPersist();
+              }
+              return result;
+            }
+          : null,
       onPreview: () => Navigator.of(context).push<void>(
         MaterialPageRoute(
           builder: (_) => VisitRoomScreen(
@@ -700,6 +736,10 @@ Future<void> showShareSpaceDialog(
   required Future<bool> Function() onStop,
   String? ownerName,
   bool rotatedCode = false,
+  bool discoverable = false,
+  String publicDiscoveryName = '',
+  Future<bool> Function(bool discoverable)? onDiscoverableChanged,
+  DiscoveryPublicNameSaver? onPublicDiscoveryNameChanged,
   VoidCallback? onPreview,
 }) {
   return showDialog<void>(
@@ -709,6 +749,10 @@ Future<void> showShareSpaceDialog(
       code: code,
       ownerName: ownerName,
       rotatedCode: rotatedCode,
+      discoverable: discoverable,
+      publicDiscoveryName: publicDiscoveryName,
+      onDiscoverableChanged: onDiscoverableChanged,
+      onPublicDiscoveryNameChanged: onPublicDiscoveryNameChanged,
       onPreview: onPreview,
       onStop: onStop,
     ),
@@ -793,12 +837,20 @@ class _ShareDialog extends StatefulWidget {
     required this.onStop,
     this.ownerName,
     this.rotatedCode = false,
+    this.discoverable = false,
+    this.publicDiscoveryName = '',
+    this.onDiscoverableChanged,
+    this.onPublicDiscoveryNameChanged,
     this.onPreview,
   });
   final String code;
   final Future<bool> Function() onStop;
   final String? ownerName;
   final bool rotatedCode;
+  final bool discoverable;
+  final String publicDiscoveryName;
+  final Future<bool> Function(bool discoverable)? onDiscoverableChanged;
+  final DiscoveryPublicNameSaver? onPublicDiscoveryNameChanged;
   final VoidCallback? onPreview;
 
   @override
@@ -808,6 +860,25 @@ class _ShareDialog extends StatefulWidget {
 class _ShareDialogState extends State<_ShareDialog> {
   bool _inviting = false;
   bool _stopping = false;
+  bool _changingDiscovery = false;
+  bool _savingPublicName = false;
+  late bool _discoverable;
+  late String _savedPublicName;
+  late final TextEditingController _publicNameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _discoverable = widget.discoverable;
+    _savedPublicName = sanitizeDiscoveryPublicName(widget.publicDiscoveryName);
+    _publicNameController = TextEditingController(text: _savedPublicName);
+  }
+
+  @override
+  void dispose() {
+    _publicNameController.dispose();
+    super.dispose();
+  }
 
   String get _invite =>
       roomInviteText(widget.code, ownerName: widget.ownerName);
@@ -937,6 +1008,170 @@ class _ShareDialogState extends State<_ShareDialog> {
                   ),
                   const SizedBox(height: 8),
                 ],
+                if (widget.onDiscoverableChanged != null) ...[
+                  Container(
+                    key: const ValueKey('share-space-discovery-setting'),
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(12, 11, 10, 12),
+                    decoration: facetedDecoration(
+                      cut: 8,
+                      color: _discoverable
+                          ? Palette.xp.withValues(alpha: 0.10)
+                          : Palette.glassFill,
+                      borderColor: _discoverable
+                          ? Palette.xp.withValues(alpha: 0.45)
+                          : Palette.glassEdge,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Make my space discoverable',
+                                    style: Type.display.copyWith(
+                                      fontSize: 15,
+                                      color: Palette.textHi,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _changingDiscovery
+                                        ? (_discoverable
+                                              ? 'Opening your door…'
+                                              : 'Closing your door…')
+                                        : _discoverable
+                                        ? widget.onPublicDiscoveryNameChanged !=
+                                                  null
+                                              ? 'People can find this room, keep it in their Circle, and return. Only the public name you choose, room style, and level appear.'
+                                              : 'People can find this room, keep it in their Circle, and return. Only its room style and level appear.'
+                                        : 'People with your code can still visit. Turn this on to also appear in Discover.',
+                                    style: Type.body.copyWith(
+                                      fontSize: 11.5,
+                                      height: 1.4,
+                                      color: Palette.textMid,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IgnorePointer(
+                              ignoring: _changingDiscovery,
+                              child: Opacity(
+                                opacity: _changingDiscovery ? 0.65 : 1,
+                                child: GlassSwitch(
+                                  key: const ValueKey(
+                                    'share-space-discovery-switch',
+                                  ),
+                                  value: _discoverable,
+                                  semanticLabel: 'Make my space discoverable',
+                                  onChanged: _changeDiscovery,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_discoverable &&
+                            widget.onPublicDiscoveryNameChanged != null) ...[
+                          const SizedBox(height: 12),
+                          Container(height: 1, color: Palette.glassEdge),
+                          const SizedBox(height: 10),
+                          Text(
+                            'NAME SHOWN IN DISCOVER · OPTIONAL',
+                            style: Type.label.copyWith(
+                              fontSize: Type.minLabel,
+                              color: Palette.textLo,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          TextField(
+                            key: const ValueKey(
+                              'share-space-public-discovery-name',
+                            ),
+                            controller: _publicNameController,
+                            enabled: !_savingPublicName,
+                            maxLength: discoveryPublicNameMaxLength,
+                            maxLines: 1,
+                            textCapitalization: TextCapitalization.words,
+                            textInputAction: TextInputAction.done,
+                            style: Type.body.copyWith(
+                              fontSize: 14,
+                              color: Palette.textHi,
+                            ),
+                            cursorColor: Palette.xp,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              counterText: '',
+                              hintText: 'Stay anonymous',
+                              hintStyle: Type.body.copyWith(
+                                fontSize: 14,
+                                color: Palette.textLo,
+                              ),
+                              enabledBorder: const UnderlineInputBorder(
+                                borderSide: BorderSide(color: Palette.glassRim),
+                              ),
+                              focusedBorder: const UnderlineInputBorder(
+                                borderSide: BorderSide(color: Palette.xp),
+                              ),
+                            ),
+                            onChanged: (_) => setState(() {}),
+                            onSubmitted: (_) => _savePublicName(),
+                          ),
+                          const SizedBox(height: 5),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Separate from your private Me name. Blank stays anonymous.',
+                                  style: Type.body.copyWith(
+                                    fontSize: 10.5,
+                                    height: 1.3,
+                                    color: Palette.textLo,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton(
+                                key: const ValueKey(
+                                  'share-space-save-public-name',
+                                ),
+                                onPressed:
+                                    !_savingPublicName &&
+                                        sanitizeDiscoveryPublicName(
+                                              _publicNameController.text,
+                                            ) !=
+                                            _savedPublicName
+                                    ? _savePublicName
+                                    : null,
+                                child: Text(
+                                  _savingPublicName
+                                      ? 'SAVING…'
+                                      : sanitizeDiscoveryPublicName(
+                                              _publicNameController.text,
+                                            ).isEmpty &&
+                                            _savedPublicName.isNotEmpty
+                                      ? 'CLEAR NAME'
+                                      : 'SAVE NAME',
+                                  style: Type.label.copyWith(
+                                    fontSize: Type.minLabel,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 11),
+                ],
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final stacked =
@@ -1010,7 +1245,7 @@ class _ShareDialogState extends State<_ShareDialog> {
                       const SizedBox(width: 9),
                       Expanded(
                         child: Text(
-                          'Anyone with this link can visit until you stop sharing. They see the room you built and a few small signs of presence, like whether its fire is lit today or a quiet-company timer is running. Your name, writing, photos, quests, Journal pages, and account details stay private.',
+                          'Anyone with this link can visit until you stop sharing. They see the room you built and a few small signs of presence, like whether its fire is lit today or a quiet-company timer is running. Your private Me name, writing, photos, quests, Journal pages, and account details stay private.',
                           style: Type.body.copyWith(
                             fontSize: 11,
                             height: 1.42,
@@ -1127,6 +1362,68 @@ class _ShareDialogState extends State<_ShareDialog> {
         'Couldn’t stop sharing yet — your code is still safe here.',
       );
     }
+  }
+
+  Future<void> _changeDiscovery(bool next) async {
+    final change = widget.onDiscoverableChanged;
+    if (change == null || _changingDiscovery || next == _discoverable) return;
+    final previous = _discoverable;
+    setState(() {
+      _discoverable = next;
+      _changingDiscovery = true;
+    });
+    final changed = await change(next);
+    if (!mounted) return;
+    setState(() {
+      _changingDiscovery = false;
+      if (!changed) {
+        _discoverable = previous;
+      } else if (!next) {
+        _savedPublicName = '';
+        _publicNameController.clear();
+      }
+    });
+    if (!changed) {
+      _toast(
+        context,
+        next
+            ? 'Couldn’t open your door yet — your space is still private.'
+            : 'Couldn’t close your door yet — discovery is still on.',
+      );
+    }
+  }
+
+  Future<void> _savePublicName() async {
+    final save = widget.onPublicDiscoveryNameChanged;
+    if (save == null || !_discoverable || _savingPublicName) return;
+    final clean = sanitizeDiscoveryPublicName(_publicNameController.text);
+    if (clean == _savedPublicName) return;
+    setState(() => _savingPublicName = true);
+    final result = await save(clean);
+    if (!mounted) return;
+    setState(() {
+      _savingPublicName = false;
+      if (result == DiscoveryPublicNameUpdate.saved) {
+        _savedPublicName = clean;
+        _publicNameController.value = TextEditingValue(
+          text: clean,
+          selection: TextSelection.collapsed(offset: clean.length),
+        );
+      }
+    });
+    final message = switch (result) {
+      DiscoveryPublicNameUpdate.saved =>
+        clean.isEmpty
+            ? 'Your space is anonymous in Discover.'
+            : 'Your public name is saved.',
+      DiscoveryPublicNameUpdate.rejected =>
+        'That name can’t be used in Discover. Try a simple name without links or contact details.',
+      DiscoveryPublicNameUpdate.rateLimited =>
+        'That changed a little too quickly. Try again in a minute.',
+      DiscoveryPublicNameUpdate.unavailable =>
+        'Couldn’t save the public name yet. The name already shown is unchanged.',
+    };
+    _toast(context, message);
   }
 }
 

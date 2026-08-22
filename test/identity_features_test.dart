@@ -109,15 +109,31 @@ void main() {
     expect(restored.quietCompanyActive, isTrue);
   });
 
-  test('circle codes are private, bounded, and cannot add your own keep', () {
-    final state = GameState()..roomCode = 'ABC234';
-    expect(state.addCircleCode('ABC234'), isFalse);
-    expect(state.addCircleCode('not-a-code'), isFalse);
-    for (final code in ['DEF567', 'GHJ678', 'KMN789', 'PQR892', 'STU923']) {
-      expect(state.addCircleCode(code), isTrue);
-    }
-    expect(state.addCircleCode('VWX934'), isFalse);
-    expect(state.hearthCircleCodes, hasLength(5));
+  test(
+    'circle codes are private, deduplicated, and cannot add your own keep',
+    () {
+      final state = GameState()..roomCode = 'ABC234';
+      expect(state.addCircleCode('ABC234'), isFalse);
+      expect(state.addCircleCode('not-a-code'), isFalse);
+      for (final code in ['DEF567', 'GHJ678', 'KMN789', 'PQR892', 'STU923']) {
+        expect(state.addCircleCode(code), isTrue);
+      }
+      expect(state.addCircleCode('VWX934'), isTrue);
+      expect(state.addCircleCode(' def567 '), isFalse);
+      expect(state.hearthCircleCodes, hasLength(6));
+    },
+  );
+
+  test('malformed Circle persistence remains safe and deduplicated', () {
+    final restored = GameState.fromJson({
+      'hearthCircleCodes': [' def567 ', 'DEF567', 42, 'not-a-code', 'GHJ678'],
+    });
+
+    expect(restored.hearthCircleCodes, ['DEF567', 'GHJ678']);
+    expect(
+      GameState.fromJson({'hearthCircleCodes': 'not-a-list'}).hearthCircleCodes,
+      isEmpty,
+    );
   });
 
   test(

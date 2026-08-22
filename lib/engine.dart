@@ -10,7 +10,9 @@ import 'content/messages.dart';
 import 'content/space_themes.dart';
 import 'content/stat_ranks.dart';
 import 'content/titles.dart';
+import 'discovery.dart';
 import 'models.dart';
+import 'release_features.dart';
 import 'tokens.dart';
 
 /// The authored pieces that can be arranged on the owner's My Space page.
@@ -107,14 +109,75 @@ class GameState extends ChangeNotifier {
   void setRoomCode(String? code) {
     if (roomCode == code &&
         (code != null ||
-            (spaceProfilePhotoPath.isEmpty && spaceSeasonPhotoPath.isEmpty))) {
+            (spaceProfilePhotoPath.isEmpty &&
+                spaceSeasonPhotoPath.isEmpty &&
+                !roomDiscoverable))) {
       return;
     }
+    final previousCode = roomCode;
+    final changedRoom = roomCode != code;
     roomCode = code;
     if (code == null) {
       spaceProfilePhotoPath = '';
       spaceSeasonPhotoPath = '';
+      roomDiscoverable = false;
+      roomDiscoveryName = '';
+      if (previousCode != null) {
+        _roomDiscoveryRemovalCodes.remove(previousCode);
+      }
+    } else if (changedRoom) {
+      // A rotated ownership code is a new public listing. Keep the explicit
+      // discovery choice, but make the new directory entry anonymous until the
+      // keeper deliberately saves a name again.
+      roomDiscoveryName = '';
     }
+    notifyListeners();
+  }
+
+  /// Whether this already-shared room is listed in the opt-in discovery
+  /// directory. The setting changes only after the server acknowledges the
+  /// corresponding directory create/delete, so the UI never lies offline.
+  bool roomDiscoverable = false;
+
+  /// Durable privacy repairs for discovery opt-ins restored into a build where
+  /// Discovery is unavailable. Codes survive offline saves and room rotation
+  /// until the server confirms each directory deletion.
+  final Set<String> _roomDiscoveryRemovalCodes = {};
+
+  bool get roomDiscoveryRemovalPending => _roomDiscoveryRemovalCodes.isNotEmpty;
+
+  Set<String> get roomDiscoveryRemovalCodes =>
+      Set<String>.unmodifiable(_roomDiscoveryRemovalCodes);
+
+  /// The optional name deliberately published in Discover. It is wholly
+  /// separate from [playerName], blank means anonymous, and it is cleared when
+  /// discovery is disabled so it can never silently return on a later opt-in.
+  String roomDiscoveryName = '';
+
+  void setRoomDiscoverable(bool value) {
+    final next = value && roomCode != null;
+    final currentRemovalPending =
+        roomCode != null && _roomDiscoveryRemovalCodes.contains(roomCode);
+    if (roomDiscoverable == next &&
+        !currentRemovalPending &&
+        (next || roomDiscoveryName.isEmpty)) {
+      return;
+    }
+    roomDiscoverable = next;
+    if (roomCode != null) _roomDiscoveryRemovalCodes.remove(roomCode);
+    if (!next) roomDiscoveryName = '';
+    notifyListeners();
+  }
+
+  void confirmRoomDiscoveryRemoval(String code) {
+    if (!_roomDiscoveryRemovalCodes.remove(code)) return;
+    notifyListeners();
+  }
+
+  void setRoomDiscoveryName(String value) {
+    final next = roomDiscoverable ? sanitizeDiscoveryPublicName(value) : '';
+    if (roomDiscoveryName == next) return;
+    roomDiscoveryName = next;
     notifyListeners();
   }
 
@@ -123,22 +186,47 @@ class GameState extends ChangeNotifier {
   /// dormant visitor-profile capability must remain disabled until its UGC
   /// safety operation exists.
   final List<String> hearthCircleCodes = [];
+  final Map<String, String> hearthCircleNames = {};
+  final Set<String> blockedRoomCodes = {};
 
-  bool addCircleCode(String raw) {
+  bool addCircleCode(String raw, {String publicName = ''}) {
     final code = raw.trim().toUpperCase();
     if (!RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) ||
         code == roomCode ||
-        hearthCircleCodes.contains(code) ||
-        hearthCircleCodes.length >= 5) {
+        blockedRoomCodes.contains(code) ||
+        hearthCircleCodes.contains(code)) {
       return false;
     }
     hearthCircleCodes.add(code);
+    final cleanName = sanitizeDiscoveryPublicName(publicName);
+    if (cleanName.isNotEmpty) hearthCircleNames[code] = cleanName;
     notifyListeners();
     return true;
   }
 
-  void removeCircleCode(String code) {
-    if (hearthCircleCodes.remove(code)) notifyListeners();
+  void removeCircleCode(String raw) {
+    final code = raw.trim().toUpperCase();
+    final removed = hearthCircleCodes.remove(code);
+    final forgotName = hearthCircleNames.remove(code) != null;
+    if (removed || forgotName) notifyListeners();
+  }
+
+  bool blockRoomCode(String raw) {
+    final code = raw.trim().toUpperCase();
+    if (!RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) ||
+        code == roomCode) {
+      return false;
+    }
+    final changed = blockedRoomCodes.add(code);
+    final removed = hearthCircleCodes.remove(code);
+    final forgotName = hearthCircleNames.remove(code) != null;
+    if (changed || removed || forgotName) notifyListeners();
+    return changed || removed || forgotName;
+  }
+
+  void unblockRoomCode(String raw) {
+    final code = raw.trim().toUpperCase();
+    if (blockedRoomCodes.remove(code)) notifyListeners();
   }
 
   /// A private daily capacity lens. It never changes rewards, streaks, or
@@ -1768,7 +1856,16 @@ class GameState extends ChangeNotifier {
     'ownedScenes': ownedScenes.toList(),
     'stageScene': stageScene,
     'roomCode': roomCode,
+    'roomDiscoverable': roomDiscoverable,
+    'roomDiscoveryName': roomDiscoverable ? roomDiscoveryName : '',
+    'roomDiscoveryRemovalCodes': _roomDiscoveryRemovalCodes.toList()..sort(),
     'hearthCircleCodes': hearthCircleCodes,
+    'hearthCircleNames': {
+      for (final code in hearthCircleCodes)
+        if (hearthCircleNames[code]?.isNotEmpty == true)
+          code: hearthCircleNames[code],
+    },
+    'blockedRoomCodes': blockedRoomCodes.toList(),
     'energyWeather': energyWeather.name,
     'energyWeatherDay': energyWeatherDay,
     'energyHistory': {
@@ -1940,12 +2037,56 @@ class GameState extends ChangeNotifier {
     s.ownedScenes.addAll(((j['ownedScenes'] as List?) ?? const []).cast());
     s.stageScene = j['stageScene'] as String? ?? 'hearthside';
     s.roomCode = j['roomCode'] as String?;
-    for (final raw in (j['hearthCircleCodes'] as List?) ?? const []) {
-      final code = raw is String ? raw.trim().toUpperCase() : '';
-      if (RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) &&
-          !s.hearthCircleCodes.contains(code) &&
-          s.hearthCircleCodes.length < 5) {
-        s.hearthCircleCodes.add(code);
+    final storedDiscoverable =
+        s.roomCode != null && j['roomDiscoverable'] == true;
+    final rawRemovalCodes = j['roomDiscoveryRemovalCodes'];
+    if (rawRemovalCodes is List) {
+      for (final raw in rawRemovalCodes.take(16)) {
+        final code = raw is String ? raw.trim().toUpperCase() : '';
+        if (RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code)) {
+          s._roomDiscoveryRemovalCodes.add(code);
+        }
+      }
+    }
+    if (s.roomCode != null &&
+        (j['roomDiscoveryRemovalPending'] == true ||
+            (!kSpaceDiscoveryEnabled && storedDiscoverable))) {
+      s._roomDiscoveryRemovalCodes.add(s.roomCode!);
+    }
+    s.roomDiscoverable =
+        kSpaceDiscoveryEnabled &&
+        storedDiscoverable &&
+        !s._roomDiscoveryRemovalCodes.contains(s.roomCode);
+    s.roomDiscoveryName = s.roomDiscoverable
+        ? sanitizeDiscoveryPublicName(j['roomDiscoveryName'])
+        : '';
+    final rawBlockedCodes = j['blockedRoomCodes'];
+    if (rawBlockedCodes is List) {
+      for (final raw in rawBlockedCodes) {
+        final code = raw is String ? raw.trim().toUpperCase() : '';
+        if (RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) &&
+            code != s.roomCode) {
+          s.blockedRoomCodes.add(code);
+        }
+      }
+    }
+    final rawCircleCodes = j['hearthCircleCodes'];
+    if (rawCircleCodes is List) {
+      for (final raw in rawCircleCodes) {
+        final code = raw is String ? raw.trim().toUpperCase() : '';
+        if (RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) &&
+            !s.blockedRoomCodes.contains(code) &&
+            code != s.roomCode &&
+            !s.hearthCircleCodes.contains(code)) {
+          s.hearthCircleCodes.add(code);
+        }
+      }
+    }
+    final rawCircleNames = j['hearthCircleNames'];
+    if (rawCircleNames is Map) {
+      for (final code in s.hearthCircleCodes) {
+        final name = sanitizeDiscoveryPublicName(rawCircleNames[code]);
+        if (name.isNotEmpty) s.hearthCircleNames[code] = name;
       }
     }
     s.energyWeather = EnergyWeather.values.firstWhere(

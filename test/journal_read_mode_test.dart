@@ -7,6 +7,7 @@ import 'package:emberkeep/screens/insights.dart';
 import 'package:emberkeep/screens/journal_entry.dart';
 import 'package:emberkeep/screens/journal_hub.dart';
 import 'package:emberkeep/tokens.dart';
+import 'package:emberkeep/widgets/pressable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -116,6 +117,51 @@ void main() {
       );
       expect(pageStack.width, 30);
       expect(pageStack.height, greaterThanOrEqualTo(72));
+    },
+  );
+
+  testWidgets(
+    'Your Journal pairs one immediate cue with its visible press bob',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 932));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final events = <String>[];
+      final sfx = Sfx.instance;
+      sfx.debugResetForTesting();
+      sfx.debugBypassPlayback = true;
+      sfx.debugOnPlay = events.add;
+      addTearDown(sfx.debugResetForTesting);
+
+      final state = GameState()..reduceMotion = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: InsightsPage(state: state, quests: const [], onPersist: () {}),
+        ),
+      );
+      await tester.pump();
+
+      final label = find.text('Your Journal');
+      final pressable = find.ancestor(
+        of: label,
+        matching: find.byType(Pressable),
+      );
+      expect(pressable, findsOneWidget);
+      final pressLayer = find
+          .descendant(of: pressable, matching: find.byType(AnimatedContainer))
+          .first;
+      final gesture = await tester.startGesture(tester.getCenter(label));
+      await tester.pump();
+      expect(
+        tester.widget<AnimatedContainer>(pressLayer).transform!.storage[13],
+        2,
+      );
+      expect(events, ['open']);
+
+      await gesture.up();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byType(JournalHubScreen), findsOneWidget);
+      expect(events, ['open']);
     },
   );
 

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
@@ -47,10 +48,16 @@ class HearthCircleScreen extends StatefulWidget {
 
 class _HearthCircleScreenState extends State<HearthCircleScreen>
     with WidgetsBindingObserver {
+  // Circle is intentionally unbounded. Keep its network work quiet enough for
+  // a phone connection while letting the first rooms arrive without waiting
+  // for every saved code.
+  static const _maxConcurrentRoomFetches = 4;
   final Map<String, Map<String, dynamic>> _rooms = {};
+  final Set<String> _loadingRoomCodes = {};
   List<Map<String, dynamic>> _sparks = const [];
   List<Map<String, dynamic>> _circleAdds = const [];
   bool _loading = true;
+  int _loadGeneration = 0;
   Timer? _ticker;
   int _now = Clock.now().millisecondsSinceEpoch;
   bool _wasCounting = false;
@@ -98,29 +105,69 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
       if (mounted) setState(() => _loading = false);
       return;
     }
-    final pairs = await Future.wait([
-      for (final code in _state.hearthCircleCodes)
-        fetcher(code).then((room) => (code, room)),
+    final generation = ++_loadGeneration;
+    final codes = List<String>.of(_state.hearthCircleCodes);
+    if (mounted) {
+      setState(() {
+        _loading = true;
+        _rooms.removeWhere((code, _) => !codes.contains(code));
+        _loadingRoomCodes
+          ..clear()
+          ..addAll(codes);
+      });
+    }
+
+    var nextCode = 0;
+    Future<void> fetchNext() async {
+      while (nextCode < codes.length) {
+        final code = codes[nextCode++];
+        Map<String, dynamic>? room;
+        try {
+          room = await fetcher(code);
+        } catch (_) {
+          // A single stale room should not hold the rest of a Circle hostage.
+        }
+        if (!mounted || generation != _loadGeneration) return;
+        setState(() {
+          _loadingRoomCodes.remove(code);
+          if (!_state.hearthCircleCodes.contains(code) || room == null) {
+            _rooms.remove(code);
+          } else {
+            _rooms[code] = room;
+          }
+        });
+      }
+    }
+
+    final roomLoads = Future.wait([
+      for (
+        var worker = 0;
+        worker < math.min(_maxConcurrentRoomFetches, codes.length);
+        worker++
+      )
+        fetchNext(),
     ]);
     final code = _state.roomCode;
     ({List<Map<String, dynamic>> sparks, List<Map<String, dynamic>> circleAdds})
     inbox = (sparks: const [], circleAdds: const []);
-    if (code != null && widget.socialInboxFetcher != null) {
-      inbox = await widget.socialInboxFetcher!(code);
-    } else if (code != null && CloudSync.instance.available) {
-      await CloudSync.instance.ensureSocialSession();
-      final receipts = await Future.wait([
-        CloudSync.instance.fetchSparks(code),
-        CloudSync.instance.fetchCircleAdds(code),
-      ]);
-      inbox = (sparks: receipts[0], circleAdds: receipts[1]);
-    }
-    if (!mounted) return;
-    setState(() {
-      _rooms.clear();
-      for (final pair in pairs) {
-        if (pair.$2 != null) _rooms[pair.$1] = pair.$2!;
+    final inboxLoad = () async {
+      if (code != null && widget.socialInboxFetcher != null) {
+        return widget.socialInboxFetcher!(code);
       }
+      if (code != null && CloudSync.instance.available) {
+        await CloudSync.instance.ensureSocialSession();
+        final receipts = await Future.wait([
+          CloudSync.instance.fetchSparks(code),
+          CloudSync.instance.fetchCircleAdds(code),
+        ]);
+        return (sparks: receipts[0], circleAdds: receipts[1]);
+      }
+      return inbox;
+    }();
+    inbox = await inboxLoad;
+    await roomLoads;
+    if (!mounted || generation != _loadGeneration) return;
+    setState(() {
       _sparks = inbox.sparks;
       _circleAdds = inbox.circleAdds;
       _loading = false;
@@ -158,11 +205,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
     if (visit == null || !mounted) return;
     final clean = visit.code;
     if (!_state.addCircleCode(clean)) {
-      _toast(
-        _state.hearthCircleCodes.length >= 5
-            ? 'A Circle holds up to five trusted spaces.'
-            : 'That space is already in your Circle.',
-      );
+      _toast('That space is already in your Circle.');
       return;
     }
     widget.onPersist();
@@ -466,151 +509,200 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
                 subtitle:
                     'trusted spaces · quiet encouragement · no leaderboard',
                 accent: Palette.xp,
-                pill: '${_state.hearthCircleCodes.length}/5',
+                pill: null,
               ),
               Expanded(
                 child: RefreshIndicator(
                   color: Palette.xp,
                   backgroundColor: Palette.card,
                   onRefresh: _load,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 40),
-                    children: [
-                      _CircleLantern(lit: _circleLit, total: total),
-                      const SizedBox(height: 12),
-                      if (_sparks.isNotEmpty || _circleAdds.isNotEmpty) ...[
-                        _IncomingSparks(
-                          sparks: _sparks,
-                          circleCount: _circleAdds.length,
-                          onCollect: _collectInbox,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      _QuietCompanyCard(
-                        active: _state.quietCompanyActive,
-                        kind: _state.quietCompanyKind,
-                        remainingMs: (_state.quietCompanyUntil - _now).clamp(
-                          0,
-                          75 * 60 * 1000,
-                        ),
-                        onStart: _openSessionPicker,
-                        onEnd: _endCompany,
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'TRUSTED SPACES',
-                              style: Type.label.copyWith(
-                                fontSize: 11,
-                                color: Palette.textHi,
+                  child: CustomScrollView(
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+                        sliver: SliverToBoxAdapter(
+                          child: Column(
+                            children: [
+                              _CircleLantern(lit: _circleLit, total: total),
+                              const SizedBox(height: 12),
+                              if (_sparks.isNotEmpty ||
+                                  _circleAdds.isNotEmpty) ...[
+                                _IncomingSparks(
+                                  sparks: _sparks,
+                                  circleCount: _circleAdds.length,
+                                  onCollect: _collectInbox,
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                              _QuietCompanyCard(
+                                active: _state.quietCompanyActive,
+                                kind: _state.quietCompanyKind,
+                                remainingMs: (_state.quietCompanyUntil - _now)
+                                    .clamp(0, 75 * 60 * 1000),
+                                onStart: _openSessionPicker,
+                                onEnd: _endCompany,
                               ),
-                            ),
-                          ),
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: _addKeep,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                minWidth: 44,
-                                minHeight: 44,
-                              ),
-                              child: Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                  ),
-                                  child: Text(
-                                    '+ ADD CODE',
-                                    textAlign: TextAlign.center,
-                                    style: Type.label.copyWith(
-                                      fontSize: Type.minLabel,
-                                      color: Palette.xpLight,
+                              const SizedBox(height: 20),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'TRUSTED SPACES',
+                                      style: Type.label.copyWith(
+                                        fontSize: 11,
+                                        color: Palette.textHi,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      if (_loading)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(28),
-                            child: CircularProgressIndicator(
-                              color: Palette.xp,
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        )
-                      else if (_state.hearthCircleCodes.isEmpty)
-                        _EmptyCircle(
-                          state: _state,
-                          parallax: widget.parallax,
-                          onAdd: _addKeep,
-                          onShare: () =>
-                              shareSpace(context, _state, widget.onPersist),
-                        )
-                      else
-                        for (final code in _state.hearthCircleCodes) ...[
-                          _CircleKeepCard(
-                            code: code,
-                            room: _rooms[code],
-                            nowMs: _now,
-                            parallax: widget.parallax,
-                            onVisit: _rooms[code] == null
-                                ? null
-                                : () => Navigator.of(context)
-                                      .push(
-                                        MaterialPageRoute(
-                                          builder: (_) => VisitRoomScreen(
-                                            room: _rooms[code]!,
-                                            code: code,
-                                            themeId: _state.canvasTheme,
-                                            lively: !_state.reduceMotion,
-                                            parallax: widget.parallax,
-                                            localState: _state,
-                                            onPersist: widget.onPersist,
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTap: _addKeep,
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(
+                                        minWidth: 44,
+                                        minHeight: 44,
+                                      ),
+                                      child: Center(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                          ),
+                                          child: Text(
+                                            '+ ADD CODE',
+                                            textAlign: TextAlign.center,
+                                            style: Type.label.copyWith(
+                                              fontSize: Type.minLabel,
+                                              color: Palette.xpLight,
+                                            ),
                                           ),
                                         ),
-                                      )
-                                      // Fresh presence on the way back — the
-                                      // room may have lit or sat down while
-                                      // you were inside it.
-                                      .then((_) {
-                                        if (mounted) _load();
-                                      }),
-                            onSpark: _rooms[code] == null
-                                ? null
-                                : () => _chooseSpark(code),
-                            onJoin:
-                                _rooms[code] != null &&
-                                    ((_rooms[code]!['focusUntil'] as num?)
-                                                ?.toInt() ??
-                                            0) >
-                                        _now
-                                ? () => _joinCompany(code, _rooms[code]!)
-                                : null,
-                            onRemove: () {
-                              _state.removeCircleCode(code);
-                              widget.onPersist();
-                              setState(() => _rooms.remove(code));
-                            },
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              if (_loading &&
+                                  _state.hearthCircleCodes.isNotEmpty)
+                                const _CircleLoadingNotice(),
+                            ],
                           ),
-                          const SizedBox(height: 10),
-                        ],
-                      const SizedBox(height: 8),
-                      Text(
-                        'You see the spaces you keep here. They see yours only if they hold your code too. Your quests and Journal stay private.',
-                        textAlign: TextAlign.center,
-                        style: Type.body.copyWith(
-                          fontSize: 11,
-                          height: 1.4,
-                          fontStyle: FontStyle.italic,
-                          color: Palette.textLo,
+                        ),
+                      ),
+                      if (_state.hearthCircleCodes.isEmpty)
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                          sliver: SliverToBoxAdapter(
+                            child: _loading
+                                ? const Center(
+                                    child: Padding(
+                                      padding: EdgeInsets.all(28),
+                                      child: CircularProgressIndicator(
+                                        color: Palette.xp,
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  )
+                                : _EmptyCircle(
+                                    state: _state,
+                                    parallax: widget.parallax,
+                                    onAdd: _addKeep,
+                                    onShare: () => shareSpace(
+                                      context,
+                                      _state,
+                                      widget.onPersist,
+                                    ),
+                                  ),
+                          ),
+                        )
+                      else
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                          sliver: SliverList(
+                            delegate: SliverChildBuilderDelegate((
+                              context,
+                              index,
+                            ) {
+                              final code = _state.hearthCircleCodes[index];
+                              final room = _rooms[code];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: _CircleKeepCard(
+                                  code: code,
+                                  publicName:
+                                      _state.hearthCircleNames[code] ?? '',
+                                  room: room,
+                                  loading: _loadingRoomCodes.contains(code),
+                                  nowMs: _now,
+                                  parallax: widget.parallax,
+                                  onVisit: room == null
+                                      ? null
+                                      : () => Navigator.of(context)
+                                            .push(
+                                              MaterialPageRoute(
+                                                builder: (_) => VisitRoomScreen(
+                                                  room: room,
+                                                  code: code,
+                                                  themeId: _state.canvasTheme,
+                                                  lively: !_state.reduceMotion,
+                                                  parallax: widget.parallax,
+                                                  localState: _state,
+                                                  onPersist: widget.onPersist,
+                                                  discoveryPublicName:
+                                                      _state
+                                                          .hearthCircleNames[code] ??
+                                                      '',
+                                                ),
+                                              ),
+                                            )
+                                            // Fresh presence on the way back — the
+                                            // room may have lit or sat down while
+                                            // you were inside it.
+                                            .then((_) {
+                                              if (mounted) _load();
+                                            }),
+                                  onSpark: room == null
+                                      ? null
+                                      : () => _chooseSpark(code),
+                                  onJoin:
+                                      room != null &&
+                                          ((room['focusUntil'] as num?)
+                                                      ?.toInt() ??
+                                                  0) >
+                                              _now
+                                      ? () => _joinCompany(code, room)
+                                      : null,
+                                  onRemove: () {
+                                    _state.removeCircleCode(code);
+                                    widget.onPersist();
+                                    setState(() {
+                                      _rooms.remove(code);
+                                      _loadingRoomCodes.remove(code);
+                                    });
+                                  },
+                                ),
+                              );
+                            }, childCount: _state.hearthCircleCodes.length),
+                          ),
+                        ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                        sliver: SliverToBoxAdapter(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 8),
+                              Text(
+                                'You see the spaces you keep here. They see yours only if they hold your code too. Your quests and Journal stay private.',
+                                textAlign: TextAlign.center,
+                                style: Type.body.copyWith(
+                                  fontSize: 11,
+                                  height: 1.4,
+                                  fontStyle: FontStyle.italic,
+                                  color: Palette.textLo,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -686,6 +778,30 @@ class _CircleLantern extends StatelessWidget {
             ),
     );
   }
+}
+
+class _CircleLoadingNotice extends StatelessWidget {
+  const _CircleLoadingNotice();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      children: [
+        const SizedBox.square(
+          dimension: 18,
+          child: CircularProgressIndicator(color: Palette.xp, strokeWidth: 2),
+        ),
+        const SizedBox(width: 9),
+        Expanded(
+          child: Text(
+            'Warming your Circle…',
+            style: Type.body.copyWith(fontSize: 12, color: Palette.textLo),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _IncomingSparks extends StatelessWidget {
@@ -934,7 +1050,9 @@ class _QuietCompanyCard extends StatelessWidget {
 class _CircleKeepCard extends StatelessWidget {
   const _CircleKeepCard({
     required this.code,
+    required this.publicName,
     required this.room,
+    required this.loading,
     required this.nowMs,
     required this.parallax,
     required this.onVisit,
@@ -943,7 +1061,9 @@ class _CircleKeepCard extends StatelessWidget {
     required this.onRemove,
   });
   final String code;
+  final String publicName;
   final Map<String, dynamic>? room;
+  final bool loading;
   final int nowMs;
   final ValueListenable<Offset> parallax;
   final VoidCallback? onVisit;
@@ -959,11 +1079,22 @@ class _CircleKeepCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            const Icon(Icons.cloud_off_outlined, color: Palette.textLo),
+            if (loading)
+              const SizedBox.square(
+                dimension: 20,
+                child: CircularProgressIndicator(
+                  color: Palette.xp,
+                  strokeWidth: 2,
+                ),
+              )
+            else
+              const Icon(Icons.cloud_off_outlined, color: Palette.textLo),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                '$code · space unavailable',
+                loading
+                    ? '$code · tending the fire…'
+                    : '$code · space unavailable',
                 style: Type.body.copyWith(fontSize: 13, color: Palette.textLo),
               ),
             ),
@@ -990,7 +1121,9 @@ class _CircleKeepCard extends StatelessWidget {
     final sharedName = data['profileVisible'] == true
         ? string('displayName', '', 40)
         : '';
-    final keeperName = sharedName.isNotEmpty
+    final keeperName = publicName.isNotEmpty
+        ? publicName
+        : sharedName.isNotEmpty
         ? sharedName
         : string('name', 'Fellow keeper', 40);
     final buildTitle = string('title', 'KEEPER', 64);

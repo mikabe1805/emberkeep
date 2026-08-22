@@ -237,6 +237,12 @@ void main() {
   testWidgets('pressable acknowledges pointer-down before tap release', (
     tester,
   ) async {
+    final events = <String>[];
+    final sfx = Sfx.instance;
+    sfx.debugResetForTesting();
+    sfx.debugBypassPlayback = true;
+    sfx.debugOnPlay = events.add;
+    addTearDown(sfx.debugResetForTesting);
     var tapped = false;
     await tester.pumpWidget(
       MaterialApp(
@@ -262,17 +268,145 @@ void main() {
 
     expect(tester.getTopLeft(target).dy, before + 3);
     expect(tapped, isFalse);
+    expect(events, ['open']);
 
     await gesture.up();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 180));
     expect(tester.getTopLeft(target).dy, before);
     expect(tapped, isTrue);
+    expect(events, ['open']);
+  });
+
+  testWidgets('pressable keeps the bob for movement Flutter still accepts', (
+    tester,
+  ) async {
+    final events = <String>[];
+    final sfx = Sfx.instance;
+    sfx.debugResetForTesting();
+    sfx.debugBypassPlayback = true;
+    sfx.debugOnPlay = events.add;
+    addTearDown(sfx.debugResetForTesting);
+    var activations = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Pressable(
+              pressDepth: 3,
+              onTapUp: (_) => activations++,
+              child: const SizedBox(
+                key: ValueKey('tap-slop-target'),
+                width: 120,
+                height: 52,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final target = find.byKey(const ValueKey('tap-slop-target'));
+    final pressLayer = find
+        .descendant(
+          of: find.byType(Pressable),
+          matching: find.byType(AnimatedContainer),
+        )
+        .first;
+    double pressOffset() =>
+        tester.widget<AnimatedContainer>(pressLayer).transform!.storage[13];
+
+    final gesture = await tester.startGesture(tester.getCenter(target));
+    await tester.pump();
+    await gesture.moveBy(const Offset(13, 0));
+    await tester.pump();
+    expect(pressOffset(), 3);
+    expect(events, ['open']);
+
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(pressOffset(), 0);
+    expect(activations, 1);
+    expect(events, ['open']);
+  });
+
+  testWidgets('pressable pairs one sound with a bob that becomes a scroll', (
+    tester,
+  ) async {
+    final events = <String>[];
+    final sfx = Sfx.instance;
+    sfx.debugResetForTesting();
+    sfx.debugBypassPlayback = true;
+    sfx.debugOnPlay = events.add;
+    addTearDown(sfx.debugResetForTesting);
+
+    final scroll = ScrollController();
+    addTearDown(scroll.dispose);
+    var activations = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ListView(
+            controller: scroll,
+            children: [
+              const SizedBox(height: 80),
+              Center(
+                child: Pressable(
+                  pressDepth: 3,
+                  onTapUp: (_) => activations++,
+                  child: const SizedBox(
+                    key: ValueKey('scroll-touch-target'),
+                    width: 120,
+                    height: 52,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 900),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final target = find.byKey(const ValueKey('scroll-touch-target'));
+    final pressLayer = find
+        .descendant(
+          of: find.byType(Pressable),
+          matching: find.byType(AnimatedContainer),
+        )
+        .first;
+    double pressOffset() =>
+        tester.widget<AnimatedContainer>(pressLayer).transform!.storage[13];
+
+    final gesture = await tester.startGesture(tester.getCenter(target));
+    await tester.pump();
+    expect(pressOffset(), 3);
+    expect(events, ['open']);
+
+    await gesture.moveBy(const Offset(0, -50));
+    await tester.pump();
+    await gesture.moveBy(const Offset(0, -30));
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(pressOffset(), 0);
+    expect(scroll.offset, greaterThan(0));
+    expect(activations, 0);
+    expect(events, ['open']);
+
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(activations, 0);
+    expect(events, ['open']);
   });
 
   testWidgets(
     'pressable semantic activation still completes without a pointer',
     (tester) async {
+      final events = <String>[];
+      final sfx = Sfx.instance;
+      sfx.debugResetForTesting();
+      sfx.debugBypassPlayback = true;
+      sfx.debugOnPlay = events.add;
+      addTearDown(sfx.debugResetForTesting);
       var activations = 0;
       await tester.pumpWidget(
         MaterialApp(
@@ -290,6 +424,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pump();
       expect(activations, 1);
+      expect(events, ['open']);
     },
   );
 

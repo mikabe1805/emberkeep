@@ -55,13 +55,13 @@ void main() {
     await tester.pump();
 
     expect(find.text('A few new things'), findsOneWidget);
-    expect(find.text('Two pages became places.'), findsOneWidget);
-    expect(find.text('PLANS WITH A VIEW'), findsOneWidget);
-    expect(find.text('A PLACE TO WRITE'), findsOneWidget);
-    expect(find.text('CONTROLS THAT BELONG'), findsOneWidget);
+    expect(find.text('The room keeps pace with you.'), findsOneWidget);
+    expect(find.text('MOVEMENT YOU CAN HEAR'), findsOneWidget);
+    expect(find.text('PICK THE SESSION'), findsOneWidget);
+    expect(find.text('A CIRCLE WITHOUT A CEILING'), findsOneWidget);
     expect(find.text('KEEP GOING'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+28')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+29')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -153,7 +153,7 @@ void main() {
     await tester.pump();
 
     final currentTop = tester.getTopLeft(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+28')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+29')),
     );
     final olderTop = tester.getTopLeft(
       find.byKey(const ValueKey('whats-new-release-1.0.0+12')),

@@ -207,7 +207,7 @@ void main() {
       expect(tester.takeException(), isNull);
 
       final list = find.descendant(
-        of: find.byType(ListView).first,
+        of: find.byType(CustomScrollView).first,
         matching: find.byType(Scrollable),
       );
       await tester.scrollUntilVisible(
@@ -240,7 +240,7 @@ void main() {
       await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
 
-      await tester.drag(find.byType(ListView), const Offset(0, 900));
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 900));
       await tester.pump();
       await tester.scrollUntilVisible(
         find.text('VISIT'),
