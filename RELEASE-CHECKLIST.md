@@ -13,6 +13,10 @@ of the page they serve. `pubspec.yaml` is `1.0.4+28`.
 
 - [x] Confirm the live App Store Connect high-water is Build 27 and advance the
   checked-in candidate to Build 28 before starting another archive.
+- [x] Codemagic Build #40 stopped before signing or archive because a
+  source-shape test still expected the superseded Build 25 comment. The test now
+  guards against hard-coded candidate numbers instead; no Build 28 binary was
+  produced or uploaded by that run.
 - [ ] Confirm the existing App Store Version 1.0.4 draft remains unsent, public
   US distribution and agreements remain in effect, and Build 28 is unused.
 - [ ] In Codemagic, select `release/room-of-days-1.0.4`, verify the displayed

@@ -585,7 +585,8 @@ void main() {
       expect(workflow, contains('Verify signed IPA contents'));
       expect(workflow, contains('PUBSPEC_BUILD'));
       expect(workflow, contains('PUBSPEC_VERSION'));
-      expect(workflow, contains('Build 25 for 1.0.4'));
+      expect(workflow, contains('Keep the checked-in version+build exact.'));
+      expect(workflow, isNot(matches(RegExp(r'Build \d+ for \d+\.\d+\.\d+'))));
       expect(workflow, contains(r'NEXT_BUILD=$PUBSPEC_BUILD'));
       expect(
         workflow,
