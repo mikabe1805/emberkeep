@@ -655,6 +655,12 @@ void main() {
         workflow,
         contains('com.apple.developer.devicecheck.appattest-environment'),
       );
+      expect(
+        RegExp(r"grep -Eq '\(\^\|\[\[:space:\]\]\)production")
+            .allMatches(workflow)
+            .length,
+        greaterThanOrEqualTo(2),
+      );
       expect(workflow, contains('app_attest_environment=production'));
       expect(workflow, contains('release-evidence.txt'));
       expect(workflow, contains('Runner.xcarchive/dSYMs/*.dSYM'));

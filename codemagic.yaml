@@ -113,9 +113,13 @@ workflows:
           /usr/libexec/PlistBuddy -c \
             'Print :Entitlements:com.apple.developer.associated-domains' \
             "$PROFILE_PLIST" >/dev/null
-          test "$(/usr/libexec/PlistBuddy -c \
+          PROFILE_APP_ATTEST=$(/usr/libexec/PlistBuddy -c \
             'Print :Entitlements:com.apple.developer.devicecheck.appattest-environment' \
-            "$PROFILE_PLIST")" = "production"
+            "$PROFILE_PLIST")
+          # Apple profiles encode this allowlist as either the scalar
+          # "production" or an array containing both environments.
+          grep -Eq '(^|[[:space:]])production([[:space:]]|$)' \
+            <<< "$PROFILE_APP_ATTEST"
 
           keychain add-certificates
           # use-profiles wires the fetched profile into the Runner target AND writes
@@ -245,9 +249,11 @@ workflows:
           /usr/libexec/PlistBuddy -c \
             'Print :Entitlements:com.apple.developer.associated-domains' \
             "$VERIFY_DIR/profile.plist" >/dev/null
-          test "$(/usr/libexec/PlistBuddy -c \
+          PROFILE_APP_ATTEST=$(/usr/libexec/PlistBuddy -c \
             'Print :Entitlements:com.apple.developer.devicecheck.appattest-environment' \
-            "$VERIFY_DIR/profile.plist")" = "production"
+            "$VERIFY_DIR/profile.plist")
+          grep -Eq '(^|[[:space:]])production([[:space:]]|$)' \
+            <<< "$PROFILE_APP_ATTEST"
           grep -q "$APPLE_TEAM_ID.$BUNDLE_ID" \
             web/.well-known/apple-app-site-association
 
