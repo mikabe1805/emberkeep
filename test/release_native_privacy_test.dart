@@ -71,6 +71,8 @@ void main() {
     final worker = _source('web/room_of_days_service_worker.js');
     final preparer = _source('tool/prepare_web_offline.dart');
     final downloadVerifier = _source('tool/verify_public_downloads.mjs');
+    final marketingRoot = _source('tool/marketing_root.mjs');
+    final introductionOverlay = _source('tool/overlay_introduction.mjs');
     final audio = _source('lib/audio.dart');
     final webAudioSupport = _source('lib/platform/audio_support_web.dart');
     final hosting =
@@ -113,6 +115,10 @@ void main() {
     expect(downloadVerifier, contains('api.github.com/repos/'));
     expect(downloadVerifier, contains('asset.digest'));
     expect(downloadVerifier, contains('VITE_APP_STORE_URL'));
+    expect(downloadVerifier, contains('resolveMarketingRoot(appRoot)'));
+    expect(introductionOverlay, contains('resolveMarketingRoot(appRoot)'));
+    expect(marketingRoot, contains('ROOM_OF_DAYS_MARKETING_ROOT'));
+    expect(marketingRoot, contains('depth < 6'));
     expect(
       audio,
       contains('kIsWeb && !browserAudioAvailable'),

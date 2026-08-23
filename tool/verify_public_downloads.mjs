@@ -6,8 +6,10 @@ import {readFile, stat} from "node:fs/promises";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
 
+import {resolveMarketingRoot} from "./marketing_root.mjs";
+
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const marketingRoot = path.resolve(appRoot, "..", "marketing_site");
+const marketingRoot = resolveMarketingRoot(appRoot);
 const expectedAndroidRoute = "https://roomofdays.com/android";
 
 function fail(message) {

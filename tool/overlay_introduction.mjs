@@ -18,8 +18,10 @@ import { cpSync, existsSync, mkdirSync, copyFileSync, rmSync, readdirSync, statS
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import {resolveMarketingRoot} from "./marketing_root.mjs";
+
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const siteRoot = path.resolve(appRoot, "..", "marketing_site");
+const siteRoot = resolveMarketingRoot(appRoot);
 const buildWeb = path.join(appRoot, "build", "web");
 const built = path.join(siteRoot, "dist", "client");
 const target = path.join(buildWeb, "introduction");
@@ -31,7 +33,6 @@ function fail(message) {
   process.exit(1);
 }
 
-if (!existsSync(siteRoot)) fail(`marketing_site not found at ${siteRoot}`);
 if (!existsSync(buildWeb)) fail(`${buildWeb} is missing — run the Flutter web build first.`);
 
 if (skip) {

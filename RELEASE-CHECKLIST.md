@@ -32,7 +32,9 @@ discovery flags. `pubspec.yaml` is `1.0.4+30`.
   attestation or callable enforcement is not healthy.
 - [ ] Deploy the exact checked-in Firestore rules and discovery Functions,
   configure TTL for `discoverableSpaces.expiresAt`, and publish the matching
-  privacy, terms, community, and support pages.
+  privacy, terms, community, and support pages. The rules and four public pages
+  went live on August 23; Functions and TTL still await the Firebase billing
+  link.
 - [ ] Smoke the live directory with two signed identities: opt in, set/clear a
   name, browse, open, keep in Circle, report, block, rotate a code, unblock, opt
   out, and verify expired/removed listings are unreadable.
