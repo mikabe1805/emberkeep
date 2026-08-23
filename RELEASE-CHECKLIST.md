@@ -6,7 +6,9 @@ not replace a signed device build or store-console review.
 ## 1.0.4+31 iOS App Store candidate — supersedes Build 30
 
 Build 30 reached TestFlight from `696c47f` through Codemagic Build #44 and was
-approved for the internal Me group. Build 31 corrects the two interaction gaps
+approved for the internal Me group. Build 31 was built from `d5ff394` through
+Codemagic Build #45, uploaded successfully, and is approved for the same
+internal group. It corrects the two interaction gaps
 found on that physical build: a fresh private owner no longer has to infer that
 generic code sharing hides the Discover opt-in, and the old Themes swatches no
 longer change an obscured background. My Space and Discover now expose the
@@ -38,17 +40,25 @@ Change Space remains the full-room chooser. `pubspec.yaml` is `1.0.4+31`.
   packet verifier. Four stable one-channel Plans-hero golden baselines were
   reviewed together and refreshed; their layout, copy, and geometry are
   unchanged.
-- [ ] Commit and push the reviewed Build 31 source, then start exactly one
-  `ios-testflight` workflow from that immutable commit.
-- [ ] Preserve the IPA, dSYMs, and `release-evidence.txt`; verify the receipt
+- [x] Commit and push the reviewed Build 31 source, then start exactly one
+  `ios-testflight` workflow from that immutable commit. Codemagic Build #45
+  (`6a8b537c129a68f9b097693c`) ran from exact commit
+  `d5ff3941eb594de1232325f5a4a317910a58f68e` and finished successfully.
+- [x] Preserve the IPA, dSYMs, and `release-evidence.txt`; verify the receipt
   names Build 31, the exact commit, both discovery flags, and a successful
-  TestFlight upload.
+  TestFlight upload. The archived IPA hash matches the emitted evidence, every
+  downloaded ZIP opens successfully, and Apple processed Build 31 as
+  `Approved` for the internal `Me` group.
 - [ ] Install Build 31 over Build 30 on a physical iPhone. Complete the revised
   Discover and Ambient Light checks in `DEVICE-ACCEPTANCE-RUNBOOK.md`, including
   a positive signed App Attest exchange and a second signed identity.
-- [ ] Replace the App Store Version 1.0.4 draft's seven screenshots with the
+- [x] Replace the App Store Version 1.0.4 draft's seven screenshots with the
   inspected Build 31 set, but do not select a build or submit the version until
-  the physical-device gate passes.
+  the physical-device gate passes. A cold App Store Connect reload confirmed
+  the persisted order as Quests, Reward, Plans, My Space, Change Space,
+  Journal, Discover and confirmed the Build 31 What's New copy. The draft
+  remains `Prepare for Submission` with `Add Build` still present, manual
+  release selected, and no binary attached.
 
 ## 1.0.4+30 iOS App Store candidate — supersedes Build 29
 
