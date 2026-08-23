@@ -30,10 +30,12 @@ discovery flags. `pubspec.yaml` is `1.0.4+30`.
 - [x] Link the Firebase project to Blaze, add a low budget alert, enable the
   required APIs, register iOS App Attest, and keep public names unavailable if
   attestation or callable enforcement is not healthy. Billing, a $10 monthly
-  budget, APIs, Firebase App Check/App Attest registration, Apple Team/App Store
-  identity, server enforcement, Apple’s production capability, and the
-  regenerated distribution profile are proven. A positive App Attest exchange
-  from the signed app on a physical iPhone remains a separate gate below.
+  alerts-only budget with 50/90/100 percent thresholds, APIs, Firebase App
+  Check/App Attest registration, Apple Team/App Store identity, server
+  enforcement, Apple’s production capability, and the regenerated distribution
+  profile are proven. The budget warns rather than caps spending. A positive App
+  Attest exchange from the signed app on a physical iPhone remains a separate
+  gate below.
 - [x] Deploy the exact checked-in Firestore rules and discovery Functions,
   configure TTL for `discoverableSpaces.expiresAt`, and publish the matching
   privacy, terms, community, and support pages. The rules and four public pages
