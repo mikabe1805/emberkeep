@@ -543,7 +543,7 @@ five moments in one consistent account:
 - App Store icon: `web/icons/Icon-1024.png`.
 - Google Play icon: `web/icons/Icon-512.png` (512×512 PNG).
 - Google Play feature graphic: `store-assets/google-play-feature-graphic-1024x500.png`.
-- App Store phone screenshots: six opaque 24-bit RGB PNGs at Apple's accepted
+- App Store phone screenshots: seven opaque 24-bit RGB PNGs at Apple's accepted
   1290×2796 iPhone 6.9-inch class are in
   `store-assets/screenshots/app-store/`.
 - The App Store sequence adds a real Plans/Daybook frame between Reward and My

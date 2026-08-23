@@ -27,12 +27,13 @@ discovery flags. `pubspec.yaml` is `1.0.4+30`.
 - [x] Update privacy, terms, reviewer notes, data-safety guidance, and age-rating
   guidance for the optional public name rather than describing the release as
   code-only.
-- [ ] Link the Firebase project to Blaze, add a low budget alert, enable the
+- [x] Link the Firebase project to Blaze, add a low budget alert, enable the
   required APIs, register iOS App Attest, and keep public names unavailable if
   attestation or callable enforcement is not healthy. Billing, a $10 monthly
-  budget, APIs, Firebase App Attest registration, Apple Team/App Store identity,
-  and server enforcement are live; the production Apple capability/profile and
-  signed-iPhone attestation still need proof.
+  budget, APIs, Firebase App Check/App Attest registration, Apple Team/App Store
+  identity, server enforcement, Apple’s production capability, and the
+  regenerated distribution profile are proven. A positive App Attest exchange
+  from the signed app on a physical iPhone remains a separate gate below.
 - [x] Deploy the exact checked-in Firestore rules and discovery Functions,
   configure TTL for `discoverableSpaces.expiresAt`, and publish the matching
   privacy, terms, community, and support pages. The rules and four public pages
@@ -49,13 +50,25 @@ discovery flags. `pubspec.yaml` is `1.0.4+30`.
   the exact feature-on Build 30 source. Preserve frames 1–6 in their existing
   order. The August 23 seven-frame sheet and focused Discover/Me/share/report/
   Circle/workout sheet were both opened at full production geometry.
-- [ ] Confirm the App Store Version 1.0.4 draft remains unsent, update its UGC
-  age-rating answer and reviewer notes, and replace the screenshot set with the
-  seven-frame Build 30 story.
-- [ ] Commit and push the reviewed release HEAD, then start exactly one
-  `ios-testflight` workflow from that commit.
-- [ ] Save the IPA, dSYMs, and `release-evidence.txt`; verify the evidence says
+- [x] Confirm the App Store Version 1.0.4 draft remains unsent, save the Build
+  30 listing changes, and replace the screenshot set with the seven-frame story.
+  The refreshed seven-frame set is saved in the draft in the order Quests,
+  Reward, Plans, My Space, Change Space, Journal, Discover. Apple’s questionnaire
+  now records User-Generated Content Yes, fixed Messaging/Chat Yes, Social Media
+  No, and a recalculated 9+ result.
+- [x] Commit and push the reviewed release HEAD, then start exactly one
+  `ios-testflight` workflow from commit `696c47f`.
+- [x] Save the IPA, dSYMs, and `release-evidence.txt`; verify the evidence says
   Build 30 with both discovery flags enabled and confirms TestFlight upload.
+  Codemagic Build #44 artifacts and receipt are preserved under
+  `../release-artifacts/room-of-days/1.0.4+30/codemagic-build-44-696c47f/`.
+  TestFlight finished beta review as `Approved` and is available to the existing
+  internal `Me` group.
+- [x] Save the Build 30 TestFlight description, review notes, and per-build What
+  to Test instructions. Hide the invitation sheet’s approved-screenshot feed
+  while it can only use the stale Ready-for-Distribution 1.0 set; turn it back
+  on after 1.0.4 reaches Ready for Distribution and the seven new frames become
+  eligible.
 - [ ] Install over Build 29 on a physical iPhone and complete
   `DEVICE-ACCEPTANCE-RUNBOOK.md` before selecting Build 30 in the App Store draft
   or making a public submission change.
@@ -263,10 +276,10 @@ Build 20 evidence in `release-candidate.json` remains unchanged.
   It intentionally remains empty until Play App Signing supplies the final
   certificate.
 - [x] Google Play 1024×500 feature graphic is ready in `store-assets/`.
-- [x] Six opaque 24-bit RGB App Store screenshots at 1290×2796 and five
+- [x] Seven opaque 24-bit RGB App Store screenshots at 1290×2796 and five
   independently rendered Google Play screenshots at 1080×1920 are ready in
   `store-assets/screenshots/`. The iOS set was regenerated and visually
-  accepted on August 22, 2026; the deferred Android set remains unchanged.
+  accepted on August 23, 2026; the deferred Android set remains unchanged.
 - [x] Android 13+ themed icons use a dedicated monochrome Room of Days mark.
 - [x] Release Gradle tasks cannot fall back to debug signing.
 - [x] No keystore, App Store key/profile, service-account credential, password
@@ -630,21 +643,22 @@ Task 5 documentation commit itself.
   to distribute in the EU`; App Store Connect now reports all current DSA
   regulatory requirements complete and the 27-country compliance record
   `Active` without public trader contact details.
-- [ ] Re-open Apple’s age-rating questionnaire for Build 30. Keep Health or
+- [x] Re-open Apple’s age-rating questionnaire for Build 30. Keep Health or
   Wellness Topics and fixed Messaging/Chat, answer User-Generated Content Yes
-  for the optional public name, and accept Apple’s recalculated rating.
+  for the optional public name, and accept Apple’s recalculated rating. Apple
+  saved those answers on August 23, 2026 and recalculated the app at 9+.
 - [ ] After the physical-iPhone accessibility pass, prepare App Store
   Accessibility Nutrition Labels. Publish only features whose every common task
   meets Apple's criteria; automated semantics and layout tests alone are not
   enough evidence.
 - [x] Create the 1024×500 Google Play feature graphic.
-- [ ] Capture and inspect the refreshed seven-frame iOS production set; the old
+- [x] Capture and inspect the refreshed seven-frame iOS production set; the old
   illustrated interface set stays removed. The prior Android production set
   remains intentionally frozen while publication is deferred.
-- [ ] Upload the refreshed seven 1290×2796 iPhone screenshots to App Store
+- [x] Upload the refreshed seven 1290×2796 iPhone screenshots to App Store
   Connect and verify their persisted order is Quests, Reward, Plans, My Space,
-  Change Space, Journal, then Discover. Apple reuses the set for the 6.5-inch
-  display.
+  Change Space, Journal, then Discover. The saved 6.9-inch set contains seven
+  screenshots and Apple reuses it for the 6.5-inch display.
 - [ ] Upload the final Google Play screenshots.
 - [ ] Supply review-only credentials if a reviewer asks to test an existing
   cross-device account.
