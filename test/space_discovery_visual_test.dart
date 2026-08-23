@@ -80,6 +80,27 @@ Map<String, dynamic> _sharedRoom(DiscoverableSpaceSummary space) => {
   'uid': 'owner-${space.code}',
 };
 
+Widget _meScreen(GameState state) => MePage(
+  state: state,
+  quests: [workoutLauncherQuest()],
+  onPersist: () {},
+  onPublishRoom: (target, {required code}) async =>
+      RoomPublishResult.success(code),
+  onAddQuest: (_) => true,
+  onExport: () async => true,
+  onImport: (_) async => true,
+  onReset: () async => null,
+  onNotifyChanged: () async {},
+  onEnableCloud: () async => null,
+  onLinkAccount: (_, _) async => null,
+  onSignIn: (_, _) async => null,
+  onSignOut: () async {},
+  onDeleteAccount: (_) async => null,
+  onRemovePrivateServiceIdentity: () async => null,
+  onManageDiscovery: () async {},
+  spaceDiscoveryEnabled: true,
+);
+
 void main() {
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
@@ -147,26 +168,85 @@ void main() {
 
     await _captureScreen(
       tester,
-      MePage(
-        state: state,
-        quests: [workoutLauncherQuest()],
-        onPersist: () {},
-        onPublishRoom: (target, {required code}) async =>
-            RoomPublishResult.success(code),
-        onAddQuest: (_) => true,
-        onExport: () async => true,
-        onImport: (_) async => true,
-        onReset: () async => null,
-        onNotifyChanged: () async {},
-        onEnableCloud: () async => null,
-        onLinkAccount: (_, _) async => null,
-        onSignIn: (_, _) async => null,
-        onSignOut: () async {},
-        onDeleteAccount: (_) async => null,
-        onRemovePrivateServiceIdentity: () async => null,
-        spaceDiscoveryEnabled: true,
-      ),
+      _meScreen(state),
       'space_discovery_me_1290x2796',
+    );
+
+    final privateState = GameState.fromJson(state.toJson())
+      ..roomCode = null
+      ..roomDiscoverable = false
+      ..roomDiscoveryName = '';
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: const Color(0xFF1B1411),
+          body: _meScreen(privateState),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    final privateManage = find.byKey(
+      const ValueKey('space-page-manage-discovery'),
+    );
+    await tester.scrollUntilVisible(
+      privateManage,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(privateManage);
+    await tester.pump();
+    await expectLater(
+      find.byType(Scaffold).first,
+      matchesGoldenFile(
+        'goldens/space_discovery_private_me_controls_1290x2796.png',
+      ),
+    );
+
+    await _captureScreen(
+      tester,
+      DiscoverSpacesScreen(
+        state: privateState,
+        onPersist: () {},
+        onManageOwnListing: () async {},
+        fetchSpaces: () async => const <DiscoverableSpaceSummary>[],
+        publicDiscoveryNamesEnabled: true,
+      ),
+      'space_discovery_empty_private_1290x2796',
+    );
+
+    privateState.level = 18;
+    privateState.canvasTheme = 'walnut';
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          backgroundColor: const Color(0xFF1B1411),
+          body: _meScreen(privateState),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    final ambientPreview = find.byKey(
+      const ValueKey('me-theme-ambient-preview'),
+    );
+    await tester.scrollUntilVisible(
+      ambientPreview,
+      430,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(ambientPreview);
+    await tester.drag(find.byType(ListView).first, const Offset(0, 110));
+    await tester.pump();
+    await expectLater(
+      find.byType(Scaffold).first,
+      matchesGoldenFile('goldens/ambient_light_walnut_1290x2796.png'),
+    );
+    privateState.setTheme('sea');
+    await tester.pump();
+    await expectLater(
+      find.byType(Scaffold).first,
+      matchesGoldenFile('goldens/ambient_light_sea_1290x2796.png'),
     );
 
     await tester.pumpWidget(
@@ -202,6 +282,40 @@ void main() {
       matchesGoldenFile('goldens/space_discovery_share_1290x2796.png'),
     );
     Navigator.of(tester.element(find.text('DONE'))).pop();
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => Center(
+              child: FilledButton(
+                onPressed: () => showShareSpaceDialog(
+                  context,
+                  code: 'DAY234',
+                  discoveryFirst: true,
+                  discoverable: false,
+                  onDiscoverableChanged: (_) async => true,
+                  onPublicDiscoveryNameChanged: (_) async =>
+                      DiscoveryPublicNameUpdate.saved,
+                  onPreview: () {},
+                  onStop: () async => true,
+                ),
+                child: const Text('Manage discovery'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Manage discovery'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(Dialog),
+      matchesGoldenFile('goldens/space_discovery_manage_1290x2796.png'),
+    );
+    Navigator.of(tester.element(find.byType(Dialog))).pop();
     await tester.pumpAndSettle();
 
     final spaces = [

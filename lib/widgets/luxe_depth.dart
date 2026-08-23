@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
+import '../content/themes.dart';
 import '../platform/motion_stub.dart'
     if (dart.library.js_interop) '../platform/motion_web.dart';
 import '../tokens.dart';
@@ -279,6 +280,7 @@ class LuxeCustomPageList extends StatefulWidget {
     required this.icon,
     required this.reduceMotion,
     required this.children,
+    this.ambientThemeId,
     this.trailing,
     this.heroHeight = 275,
     this.heroAspect,
@@ -290,6 +292,10 @@ class LuxeCustomPageList extends StatefulWidget {
   final IconData icon;
   final bool reduceMotion;
   final List<Widget> children;
+
+  /// The surrounding canvas light. The authored room remains intact; this
+  /// controls the night around it and the fade that joins it to live content.
+  final String? ambientThemeId;
   final Widget? trailing;
   final double heroHeight;
 
@@ -316,10 +322,36 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
     final still =
         widget.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    final ambient = canvasThemeById(widget.ambientThemeId);
     return Stack(
       fit: StackFit.expand,
       children: [
-        const ColoredBox(color: Color(0xFF100D0B)),
+        AnimatedContainer(
+          key: const ValueKey('luxe-custom-ambient-canvas'),
+          duration: still ? Duration.zero : const Duration(milliseconds: 520),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [ambient.top, ambient.bottom],
+            ),
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                top: 140,
+                right: -110,
+                child: _AmbientPool(color: ambient.glows[1], size: 330),
+              ),
+              Positioned(
+                bottom: 120,
+                left: -100,
+                child: _AmbientPool(color: ambient.glows[2], size: 300),
+              ),
+            ],
+          ),
+        ),
         Positioned(
           top: 0,
           left: -12,
@@ -353,16 +385,16 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
                             child: hero,
                           ),
                         ),
-                      const DecoratedBox(
+                      DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Color(0x10000000),
-                              Color(0x00000000),
-                              Color(0x3A100D0B),
-                              Color(0xF8100D0B),
+                              const Color(0x10000000),
+                              const Color(0x00000000),
+                              ambient.top.withValues(alpha: 0.30),
+                              ambient.bottom.withValues(alpha: 0.97),
                             ],
                             stops: [0, 0.55, 0.80, 1],
                           ),
@@ -375,7 +407,12 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
             ),
           ),
         ),
-        _LuxeScrollVeil(controller: _scroll, height: widget.heroHeight + 16),
+        _LuxeScrollVeil(
+          controller: _scroll,
+          height: widget.heroHeight + 16,
+          topColor: ambient.top,
+          bottomColor: ambient.bottom,
+        ),
         ListView(
           controller: _scroll,
           physics: const BouncingScrollPhysics(
@@ -395,6 +432,29 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _AmbientPool extends StatelessWidget {
+  const _AmbientPool({required this.color, required this.size});
+
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: SizedBox.square(
+        dimension: size,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              colors: [color, color.withValues(alpha: 0)],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -739,10 +799,17 @@ class _HeroFirePainter extends CustomPainter {
 /// where the blur transition is a signature interaction, uses its dedicated
 /// pre-softened registered room instead.
 class _LuxeScrollVeil extends StatelessWidget {
-  const _LuxeScrollVeil({required this.controller, required this.height});
+  const _LuxeScrollVeil({
+    required this.controller,
+    required this.height,
+    this.topColor = const Color(0xFF1D120C),
+    this.bottomColor = const Color(0xFF100D0B),
+  });
 
   final ScrollController controller;
   final double height;
+  final Color topColor;
+  final Color bottomColor;
 
   @override
   Widget build(BuildContext context) {
@@ -766,9 +833,13 @@ class _LuxeScrollVeil extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFF1D120C).withValues(alpha: 0.05 * strength),
-                    const Color(0xFF1A100B).withValues(alpha: 0.22 * strength),
-                    const Color(0xFF100D0B).withValues(alpha: 0.60 * strength),
+                    topColor.withValues(alpha: 0.05 * strength),
+                    Color.lerp(
+                      topColor,
+                      bottomColor,
+                      0.45,
+                    )!.withValues(alpha: 0.22 * strength),
+                    bottomColor.withValues(alpha: 0.60 * strength),
                   ],
                   stops: const [0, 0.62, 1],
                 ),

@@ -3,10 +3,10 @@
 These are direct production-UI captures from one deterministic account. They
 have no device frame, overlay copy, alpha channel, or transparency.
 
-The seven-frame iOS set was freshly regenerated from the feature-on `1.0.4+30`
+The seven-frame iOS set was freshly regenerated from the feature-on `1.0.4+31`
 candidate and opened for visual inspection on August 23, 2026. Its compact
 review sheet is
-`design/comparisons/2026-08-23/app-store-build-30-phone.webp`.
+`design/comparisons/2026-08-23/app-store-build-31-phone.webp`.
 
 - `app-store/` contains Apple's accepted 1290×2796 iPhone 6.9-inch class.
 - `google-play/` contains Google's recommended 1080×1920 portrait class. A

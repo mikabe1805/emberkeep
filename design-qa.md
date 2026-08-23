@@ -130,6 +130,87 @@ final result: passed
 
 ---
 
+# Design QA — Discover entry and Ambient Light response (2026-08-23)
+
+This pass responds to the owner's physical Build 30 screenshots. It corrects
+the two false affordances they exposed without expanding the public projection
+or recoloring the authored room paintings as generic skins.
+
+**Observed source states**
+
+- Build 30 physical iPhone: My Space showed a static `PRIVATE PAGE` badge and
+  no nearby route to public discovery. The actual switch existed only after
+  publishing through `Share my space` and scrolling the resulting dialog.
+- Build 30 physical iPhone: Sea Cave was selected under `THEMES`, but Me's
+  fixed dark canvas covered the selected background and offered no live
+  response at the point of choice.
+- Viewport: the supplied frames are 589 x 1280; current production evidence is
+  the matching 430 x 932 logical iPhone class at DPR 3.
+
+**Corrections**
+
+1. My Space now turns its truthful private/listed state into a direct
+   `OPEN TO DISCOVER` / `MANAGE LISTING` control.
+2. Discover now gives the owner a separate private/listed management card
+   above the finite directory, including its empty state. The old decorative
+   `OPT-IN` pill became truthful `PRIVATE`, `LISTED`, or `CLOSING` state.
+3. Both routes open the existing explicit switch in view. They may establish
+   the private share code first, but they never opt the keeper in automatically.
+4. `THEMES` became `AMBIENT LIGHT`. The panel explains that Change Space owns
+   the whole room, adds a live selected-light preview, and carries that light
+   into Me's surrounding canvas and room-to-content fade.
+5. Saved light ids are validated. Locked lights cannot be selected before
+   level 5, malformed ids recover to Walnut Night, and valid choices persist.
+
+**Deliberately rejected**
+
+- Auto-enabling discovery from either new action: discoverability remains a
+  separate informed opt-in.
+- Calling the color choices room skins or tinting every painting heavily: the
+  authored room remains coherent; Ambient Light changes the environment around
+  it, while Change Space remains the materially honest identity change.
+
+**Rendered evidence**
+
+- Owner-reported before/current discovery pair:
+  `design/comparisons/2026-08-23/evidence-discovery-control.png`.
+- Owner-reported before/current Sea Cave pair:
+  `design/comparisons/2026-08-23/evidence-ambient-light-response.png`.
+- Phone handoff covering private, listed, empty, manage, both lights, visitor,
+  report, unlimited Circle, and workouts:
+  `design/comparisons/2026-08-23/space-discovery-and-guided-workouts-phone.webp`.
+- Fresh seven-frame store sheet:
+  `design/comparisons/2026-08-23/app-store-build-31-phone.webp`.
+
+P0 remaining: none in rendered or automated evidence.
+
+P1 remaining: signed-device directory publication and physical Ambient Light
+response remain acceptance gates; they are not certified by widget renders.
+
+P2 remaining: none in the inspected 430 x 932, 320 x 568, and 1.6x text states.
+
+**Verification**
+
+- Focused discovery, My Space, canvas persistence, and motion/accessibility
+  suites: passed.
+- Full Flutter regression suite: 794/794 passed.
+- Feature-on discovery suite: 22 passed, with its deliberate feature-off
+  assertion skipped for this invocation.
+- `flutter analyze`: passed with no issues.
+- Feature-on production screenshot story and seven-frame iOS export: passed;
+  every affected frame and both focused before/current comparisons were opened.
+- Four pre-existing Plans-hero golden baselines differed only by stable
+  one-channel raster rounding. Their unchanged geometry and copy were inspected,
+  the four baselines were refreshed together, and the 20/20 academic visual
+  suite then passed.
+- Feature-on `flutter build web --release`: passed; Wasm dry run passed.
+- iOS store-submission verifier: passed for version, release notes, copy, icon,
+  and all seven RGB screenshots.
+
+candidate result: locally coherent; physical Build 31 gate still open
+
+---
+
 # Design QA — Plans conservatory and Journal archive (2026-08-21)
 
 **Comparison target**

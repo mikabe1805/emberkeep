@@ -279,6 +279,7 @@ class _HighlightRow extends StatelessWidget {
     ReleaseHighlightKind.interactionSound => Icons.graphic_eq_rounded,
     ReleaseHighlightKind.questControl => Icons.edit_note_rounded,
     ReleaseHighlightKind.spaceDiscovery => Icons.travel_explore_rounded,
+    ReleaseHighlightKind.ambientLight => Icons.light_mode_outlined,
   };
 
   @override

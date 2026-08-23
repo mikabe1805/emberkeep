@@ -29,6 +29,7 @@ Widget _mePage(
   bool visitorPhotoSharingEnabled = false,
   bool visitorProfileSharingEnabled = true,
   bool spaceDiscoveryEnabled = false,
+  Future<void> Function()? onManageDiscovery,
 }) => Scaffold(
   body: MePage(
     state: state,
@@ -49,6 +50,7 @@ Widget _mePage(
     visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
     visitorProfileSharingEnabled: visitorProfileSharingEnabled,
     spaceDiscoveryEnabled: spaceDiscoveryEnabled,
+    onManageDiscovery: onManageDiscovery,
   ),
 );
 
@@ -61,6 +63,8 @@ Future<void> _pumpMe(
   bool visitorPhotoSharingEnabled = false,
   bool visitorProfileSharingEnabled = true,
   bool spaceDiscoveryEnabled = false,
+  bool systemReduceMotion = false,
+  Future<void> Function()? onManageDiscovery,
 }) async {
   tester.view.physicalSize = _phoneSize;
   tester.view.devicePixelRatio = 1;
@@ -68,17 +72,26 @@ Future<void> _pumpMe(
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
   });
+  final page = _mePage(
+    state,
+    onPersist,
+    onPublishRoom: onPublishRoom,
+    onReset: onReset,
+    visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+    visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+    spaceDiscoveryEnabled: spaceDiscoveryEnabled,
+    onManageDiscovery: onManageDiscovery,
+  );
   await tester.pumpWidget(
     MaterialApp(
-      home: _mePage(
-        state,
-        onPersist,
-        onPublishRoom: onPublishRoom,
-        onReset: onReset,
-        visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
-        visitorProfileSharingEnabled: visitorProfileSharingEnabled,
-        spaceDiscoveryEnabled: spaceDiscoveryEnabled,
-      ),
+      home: systemReduceMotion
+          ? MediaQuery(
+              data: MediaQueryData.fromView(
+                tester.view,
+              ).copyWith(disableAnimations: true),
+              child: page,
+            )
+          : page,
     ),
   );
   await tester.pump();
@@ -217,6 +230,39 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('a fresh private owner can open Discover settings from Me', (
+    tester,
+  ) async {
+    final state = GameState()..reduceMotion = true;
+    var opened = 0;
+
+    await _pumpMe(
+      tester,
+      state,
+      () {},
+      spaceDiscoveryEnabled: true,
+      onManageDiscovery: () async => opened++,
+    );
+
+    expect(state.roomCode, isNull);
+    expect(state.roomDiscoverable, isFalse);
+    final manage = find.byKey(const ValueKey('space-page-manage-discovery'));
+    await tester.scrollUntilVisible(
+      manage,
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(manage);
+    await tester.pump();
+    expect(manage, findsOneWidget);
+    expect(find.text('PRIVATE PAGE\nOPEN TO DISCOVER'), findsOneWidget);
+
+    await tester.tap(manage);
+    await tester.pump();
+    expect(opened, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('discoverable My Space keeps its private-card status readable', (
     tester,
   ) async {
@@ -229,9 +275,109 @@ void main() {
     final status = find.byKey(
       const ValueKey('space-profile-visibility-status'),
     );
-    expect(find.text('ROOM LISTED\nCARDS PRIVATE'), findsOneWidget);
-    expect(tester.getSize(status).width, lessThanOrEqualTo(150));
+    expect(find.text('IN DISCOVER\nMANAGE LISTING'), findsOneWidget);
+    expect(tester.getSize(status).width, lessThanOrEqualTo(200));
     expect(find.text('MY SPACE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ambient light selection visibly updates and persists in state', (
+    tester,
+  ) async {
+    final state = GameState()
+      ..reduceMotion = true
+      ..level = 5;
+
+    await _pumpMe(tester, state, () {});
+    final sea = find.text('Sea Cave');
+    await tester.scrollUntilVisible(
+      sea,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(sea);
+    await tester.pump();
+
+    expect(find.text('AMBIENT LIGHT'), findsOneWidget);
+    expect(find.text('Walnut Night'), findsWidgets);
+    await tester.tap(sea);
+    await tester.pump();
+
+    expect(state.canvasTheme, 'sea');
+    expect(find.text('NOW LIT BY'), findsOneWidget);
+    expect(find.text('Sea Cave'), findsWidgets);
+    final preview = tester.widget<AnimatedContainer>(
+      find.byKey(const ValueKey('me-theme-ambient')),
+    );
+    final decoration = preview.decoration! as ShapeDecoration;
+    final colors = (decoration.gradient! as LinearGradient).colors;
+    expect(colors, const [Color(0xFF101A1C), Color(0xFF162428)]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('ambient light changes the Me canvas and hero treatment', (
+    tester,
+  ) async {
+    final state = GameState()
+      ..reduceMotion = true
+      ..level = 5;
+
+    await _pumpMe(tester, state, () {});
+    final canvas = find.byKey(const ValueKey('luxe-custom-ambient-canvas'));
+    final walnut = tester.widget<AnimatedContainer>(canvas);
+    final walnutColors =
+        (walnut.decoration! as BoxDecoration).gradient! as LinearGradient;
+    expect(walnutColors.colors, const [Color(0xFF191210), Color(0xFF231A20)]);
+
+    state.setTheme('sea');
+    await tester.pump();
+
+    final sea = tester.widget<AnimatedContainer>(canvas);
+    final seaColors =
+        (sea.decoration! as BoxDecoration).gradient! as LinearGradient;
+    expect(seaColors.colors, const [Color(0xFF101A1C), Color(0xFF162428)]);
+    expect(seaColors.colors, isNot(walnutColors.colors));
+
+    final expectedHeroFade = const Color(0xFF162428).withValues(alpha: 0.97);
+    final heroFades = tester
+        .widgetList<DecoratedBox>(
+          find.descendant(
+            of: find.byKey(const ValueKey('luxe-custom-hero-transform')),
+            matching: find.byType(DecoratedBox),
+          ),
+        )
+        .map((box) => box.decoration)
+        .whereType<BoxDecoration>()
+        .map((decoration) => decoration.gradient)
+        .whereType<LinearGradient>();
+    expect(
+      heroFades.any((gradient) => gradient.colors.contains(expectedHeroFade)),
+      isTrue,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('system Reduce Motion parks the ambient-light preview', (
+    tester,
+  ) async {
+    final state = GameState()..level = 5;
+    await _pumpMe(tester, state, () {}, systemReduceMotion: true);
+
+    final sea = find.text('Sea Cave');
+    await tester.scrollUntilVisible(
+      sea,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(sea);
+    await tester.pump();
+    await tester.tap(sea);
+    await tester.pump();
+
+    final preview = tester.widget<AnimatedContainer>(
+      find.byKey(const ValueKey('me-theme-ambient')),
+    );
+    expect(preview.duration, Duration.zero);
     expect(tester.takeException(), isNull);
   });
 

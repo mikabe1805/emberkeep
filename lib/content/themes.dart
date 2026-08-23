@@ -128,3 +128,6 @@ CanvasTheme canvasThemeById(String? id) {
   }
   return canvasThemes.first;
 }
+
+bool isCanvasThemeId(String? id) =>
+    id != null && canvasThemes.any((theme) => theme.id == id);

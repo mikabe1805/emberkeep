@@ -40,6 +40,7 @@ class DiscoverSpacesScreen extends StatefulWidget {
     this.fetchSpaces,
     this.fetchRoom,
     this.reportSpace,
+    this.onManageOwnListing,
     this.publicDiscoveryNamesEnabled = kPublicDiscoveryNamesEnabled,
   });
 
@@ -49,6 +50,7 @@ class DiscoverSpacesScreen extends StatefulWidget {
   final DiscoverableSpacesFetcher? fetchSpaces;
   final DiscoverableRoomFetcher? fetchRoom;
   final DiscoverableSpaceReporter? reportSpace;
+  final Future<void> Function()? onManageOwnListing;
   final bool publicDiscoveryNamesEnabled;
 
   @override
@@ -59,6 +61,7 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
   var _loading = true;
   String? _error;
   String? _openingCode;
+  var _managingOwnListing = false;
   List<DiscoverableSpaceSummary> _spaces = const [];
 
   @override
@@ -188,6 +191,28 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
     fetcher: widget.fetchRoom,
   );
 
+  Future<void> _manageOwnListing() async {
+    if (_managingOwnListing) return;
+    setState(() => _managingOwnListing = true);
+    try {
+      final injected = widget.onManageOwnListing;
+      if (injected != null) {
+        await injected();
+      } else {
+        await shareSpace(
+          context,
+          widget.state,
+          widget.onPersist,
+          spaceDiscoveryEnabled: true,
+          publicDiscoveryNamesEnabled: widget.publicDiscoveryNamesEnabled,
+          discoveryFirst: true,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _managingOwnListing = false);
+    }
+  }
+
   Future<void> _manageHidden() async {
     final owners = widget.state.blockedDiscoveryOwners.entries.toList()
       ..sort((a, b) => a.value.compareTo(b.value));
@@ -295,6 +320,10 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ownCode = widget.state.roomCode;
+    final cleanupPending =
+        ownCode != null &&
+        widget.state.roomDiscoveryRemovalCodes.contains(ownCode);
     return Scaffold(
       backgroundColor: Palette.parchment,
       body: WarmBackground(
@@ -305,11 +334,15 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
             key: const ValueKey('discover-spaces-list'),
             padding: const EdgeInsets.only(bottom: 36),
             children: [
-              const DetailHeader(
+              DetailHeader(
                 title: 'Discover spaces',
                 accent: Palette.xp,
                 subtitle: 'a few open doors',
-                pill: 'OPT-IN',
+                pill: cleanupPending
+                    ? 'CLOSING'
+                    : widget.state.roomDiscoverable
+                    ? 'LISTED'
+                    : 'PRIVATE',
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -318,6 +351,13 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
                   children: [
                     _PrivacyNote(
                       publicNamesEnabled: widget.publicDiscoveryNamesEnabled,
+                    ),
+                    const SizedBox(height: 12),
+                    _OwnerListingCard(
+                      discoverable: widget.state.roomDiscoverable,
+                      cleanupPending: cleanupPending,
+                      busy: _managingOwnListing,
+                      onTap: _manageOwnListing,
                     ),
                     const SizedBox(height: 14),
                     if (_loading)
@@ -335,7 +375,7 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
                         icon: Icons.meeting_room_outlined,
                         title: 'No open doors yet',
                         body:
-                            'When other keepers choose to be discoverable, a small handful will appear here.',
+                            'When other keepers open their spaces, a small handful will appear here. Your own listing controls are just above.',
                         action: 'LOOK AGAIN',
                         onAction: _load,
                       )
@@ -446,6 +486,124 @@ class _PrivacyNote extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _OwnerListingCard extends StatelessWidget {
+  const _OwnerListingCard({
+    required this.discoverable,
+    required this.cleanupPending,
+    required this.busy,
+    required this.onTap,
+  });
+
+  final bool discoverable;
+  final bool cleanupPending;
+  final bool busy;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final open = discoverable && !cleanupPending;
+    final title = cleanupPending
+        ? 'YOUR DOOR IS CLOSING'
+        : open
+        ? 'YOUR SPACE IS IN DISCOVER'
+        : 'YOUR SPACE IS PRIVATE';
+    final body = cleanupPending
+        ? 'Cleanup will finish when the connection returns. Sharing by code still works.'
+        : open
+        ? 'Choose the public name people see, or close your listing.'
+        : 'Open your door to let other keepers find your room without a code.';
+    final action = busy
+        ? 'OPENING…'
+        : open || cleanupPending
+        ? 'MANAGE LISTING'
+        : 'OPEN TO DISCOVER';
+    return Pressable(
+      key: const ValueKey('discover-manage-own-listing'),
+      enabled: !busy,
+      material: MaterialSound.glass,
+      interactionSound: InteractionSound.open,
+      semanticLabel: open
+          ? 'Manage Discover listing'
+          : 'Open my space to Discover',
+      semanticHint:
+          'Opens the optional public listing and public name controls',
+      onTapUp: (_) => onTap(),
+      pressDepth: 3,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 92),
+        padding: const EdgeInsets.fromLTRB(14, 13, 12, 13),
+        decoration: facetedDecoration(
+          cut: 10,
+          color: open ? Palette.xp.withValues(alpha: 0.11) : Palette.glassFill,
+          borderColor: open
+              ? Palette.xp.withValues(alpha: 0.50)
+              : Palette.glassEdge,
+        ),
+        child: Row(
+          children: [
+            FacetMedallion(
+              size: 42,
+              accent: open ? Palette.xp : Palette.textLo,
+              glow: open,
+              child: Icon(
+                open ? Icons.door_front_door_outlined : Icons.lock_open_rounded,
+                size: 20,
+                color: open ? Palette.xpLight : Palette.textMid,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      color: open ? Palette.xpLight : Palette.textMid,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    body,
+                    style: Type.body.copyWith(
+                      fontSize: 11.5,
+                      height: 1.35,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          action,
+                          maxLines: 2,
+                          overflow: TextOverflow.fade,
+                          style: Type.label.copyWith(
+                            fontSize: Type.minLabel,
+                            color: Palette.xpLight,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 16,
+                        color: Palette.xpLight,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _LoadingDoors extends StatelessWidget {

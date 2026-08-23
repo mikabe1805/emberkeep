@@ -9,6 +9,7 @@ import 'content/evidence.dart';
 import 'content/messages.dart';
 import 'content/space_themes.dart';
 import 'content/stat_ranks.dart';
+import 'content/themes.dart';
 import 'content/titles.dart';
 import 'discovery.dart';
 import 'models.dart';
@@ -1077,6 +1078,9 @@ class GameState extends ChangeNotifier {
   String canvasTheme = 'walnut';
 
   void setTheme(String id) {
+    if (!isCanvasThemeId(id)) return;
+    final choice = canvasThemeById(id);
+    if (choice.locked && level < 5) return;
     if (canvasTheme == id) return;
     canvasTheme = id;
     notifyListeners();
@@ -2322,7 +2326,13 @@ class GameState extends ChangeNotifier {
     s.collectedLoot.addAll(((j['collectedLoot'] as List?) ?? const []).cast());
     s.equippedSkin = j['equippedSkin'] as String?;
     s.seenEvidence.addAll(((j['seenEvidence'] as List?) ?? const []).cast());
-    s.canvasTheme = j['canvasTheme'] as String? ?? 'walnut';
+    final savedCanvasTheme = j['canvasTheme'] as String?;
+    final savedCanvasChoice = canvasThemeById(savedCanvasTheme);
+    s.canvasTheme =
+        isCanvasThemeId(savedCanvasTheme) &&
+            (!savedCanvasChoice.locked || s.level >= 5)
+        ? savedCanvasTheme!
+        : 'walnut';
     final savedDesk = j['questDeskStyle'] as String? ?? 'wall_walnut';
     s.questDeskStyle = switch (savedDesk) {
       'wall_sage' => 'wall_conservatory',

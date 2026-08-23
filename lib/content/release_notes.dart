@@ -11,6 +11,7 @@ enum ReleaseHighlightKind {
   interactionSound,
   questControl,
   spaceDiscovery,
+  ambientLight,
 }
 
 class ReleaseHighlight {
@@ -50,6 +51,38 @@ class RoomReleaseNotes {
 /// Newest first. A user-facing build is not ready to release until its record
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
+  RoomReleaseNotes(
+    id: '1.0.4+31',
+    versionLabel: 'VERSION 1.0.4 · BUILD 31',
+    dateLabel: 'AUGUST 2026',
+    title: 'The open door is finally in the open.',
+    introduction:
+        'Your public listing now has a clear home, and ambient-light choices '
+        'visibly relight the space around you.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.spaceDiscovery,
+        title: 'OPEN FROM MY SPACE',
+        body:
+            'Private and listed spaces now carry a direct Open to Discover or '
+            'Manage Listing control. You never have to guess that sharing a code comes first.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.spaceDiscovery,
+        title: 'YOUR LISTING LIVES IN DISCOVER',
+        body:
+            'Discover shows your own privacy state and listing action above '
+            'its open doors, including the optional public-name control.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.ambientLight,
+        title: 'LIGHT YOU CAN ACTUALLY SEE',
+        body:
+            'Themes are now Ambient Light, with a live preview and a visible '
+            'canvas change. Change Space remains the way to replace the whole room.',
+      ),
+    ],
+  ),
   RoomReleaseNotes(
     id: '1.0.4+30',
     versionLabel: 'VERSION 1.0.4 · BUILD 30',

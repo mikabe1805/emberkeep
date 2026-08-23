@@ -1693,6 +1693,7 @@ class MePage extends StatelessWidget {
     this.onWithdrawPlaceSearchConsent,
     this.cloudAccountView,
     this.onSelectTab,
+    this.onManageDiscovery,
     this.parallax = const AlwaysStoppedAnimation(Offset.zero),
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
     this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
@@ -1760,6 +1761,10 @@ class MePage extends StatelessWidget {
   /// directly constructed test/demo pages; the production shell always sets it.
   final ValueChanged<int>? onSelectTab;
 
+  /// Opens the owner's Discover listing controls. Production falls back to
+  /// the real publish/share flow; tests can inject a connection-free action.
+  final Future<void> Function()? onManageDiscovery;
+
   /// Shared room perspective. Text and controls stay anchored while the
   /// authored plate and light respond beneath them.
   final ValueListenable<Offset> parallax;
@@ -1826,6 +1831,7 @@ class MePage extends StatelessWidget {
     return ListenableBuilder(
       listenable: state,
       builder: (context, _) => LuxeCustomPageList(
+        ambientThemeId: state.canvasTheme,
         heroAspect: 1.5,
         hero: HomeRoom(
           aspect: 1.5,
@@ -2067,9 +2073,24 @@ class MePage extends StatelessWidget {
 
           _PersonalSpacePanel(
             state: state,
+            discoveryEnabled: spaceDiscoveryEnabled,
             directoryListed: spaceDiscoveryEnabled && state.roomDiscoverable,
+            discoveryClosing:
+                state.roomCode != null &&
+                state.roomDiscoveryRemovalCodes.contains(state.roomCode),
             visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
             visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+            onManageDiscovery: spaceDiscoveryEnabled
+                ? () => onManageDiscovery != null
+                      ? onManageDiscovery!()
+                      : shareSpace(
+                          context,
+                          state,
+                          onPersist,
+                          spaceDiscoveryEnabled: true,
+                          discoveryFirst: true,
+                        )
+                : null,
             onEdit: () => _personalizeSpace(
               context,
               state,
@@ -2650,13 +2671,14 @@ class MePage extends StatelessWidget {
 
   // ── settings panels (grouped at the bottom; the page leads with identity) ──
   Widget _themesPanel() {
+    final activeTheme = canvasThemeById(state.canvasTheme);
     return GlassPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text('THEMES', style: Type.label.copyWith(fontSize: 11)),
+              Text('AMBIENT LIGHT', style: Type.label.copyWith(fontSize: 11)),
               const Spacer(),
               if (state.level < 5)
                 Row(
@@ -2681,8 +2703,8 @@ class MePage extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             state.level < 5
-                ? 'pick your candlelit canvas — opens at level 5'
-                : 'pick the night you build by',
+                ? 'changes the light around your room — opens at level 5'
+                : 'changes your space and canvas-backed pages · Change Space replaces the room itself',
             style: Type.body.copyWith(
               fontSize: 11,
               fontStyle: FontStyle.italic,
@@ -2690,6 +2712,12 @@ class MePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
+          _AmbientLightPreview(
+            key: const ValueKey('me-theme-ambient-preview'),
+            theme: activeTheme,
+            reduceMotion: state.reduceMotion,
+          ),
+          const SizedBox(height: 14),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -3601,15 +3629,21 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
 class _PersonalSpacePanel extends StatelessWidget {
   const _PersonalSpacePanel({
     required this.state,
+    required this.discoveryEnabled,
     required this.directoryListed,
+    required this.discoveryClosing,
     required this.onEdit,
+    required this.onManageDiscovery,
     required this.visitorPhotoSharingEnabled,
     required this.visitorProfileSharingEnabled,
   });
 
   final GameState state;
+  final bool discoveryEnabled;
   final bool directoryListed;
+  final bool discoveryClosing;
   final VoidCallback onEdit;
+  final VoidCallback? onManageDiscovery;
   final bool visitorPhotoSharingEnabled;
   final bool visitorProfileSharingEnabled;
 
@@ -3658,10 +3692,13 @@ class _PersonalSpacePanel extends StatelessWidget {
       children: [
         _SpaceDeckHeading(
           sharedCount: sharedCount,
+          discoveryEnabled: discoveryEnabled,
           directoryListed: directoryListed,
+          discoveryClosing: discoveryClosing,
           visitorPageOpen:
               visitorProfileSharingEnabled && state.shareSpaceProfile,
           onEdit: onEdit,
+          onManageDiscovery: onManageDiscovery,
         ),
         const SizedBox(height: 10),
         if (visibleOrder.isEmpty)
@@ -3708,15 +3745,21 @@ class _PersonalSpacePanel extends StatelessWidget {
 class _SpaceDeckHeading extends StatelessWidget {
   const _SpaceDeckHeading({
     required this.sharedCount,
+    required this.discoveryEnabled,
     required this.directoryListed,
+    required this.discoveryClosing,
     required this.visitorPageOpen,
     required this.onEdit,
+    required this.onManageDiscovery,
   });
 
   final int sharedCount;
+  final bool discoveryEnabled;
   final bool directoryListed;
+  final bool discoveryClosing;
   final bool visitorPageOpen;
   final VoidCallback onEdit;
+  final VoidCallback? onManageDiscovery;
 
   @override
   Widget build(BuildContext context) {
@@ -3748,14 +3791,16 @@ class _SpaceDeckHeading extends StatelessWidget {
           ],
         );
         final publiclyVisible = visitorPageOpen || directoryListed;
-        final status = Container(
+        final statusSurface = Container(
           key: const ValueKey('space-profile-visibility-status'),
           constraints: BoxConstraints(
             minHeight: 48,
             maxWidth: compact
                 ? constraints.maxWidth
                 : directoryListed
-                ? 150
+                ? 200
+                : discoveryEnabled
+                ? 200
                 : 220,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
@@ -3781,10 +3826,12 @@ class _SpaceDeckHeading extends StatelessWidget {
               const SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  directoryListed
-                      ? visitorPageOpen
-                            ? 'ROOM LISTED\n$sharedCount SHARED'
-                            : 'ROOM LISTED\nCARDS PRIVATE'
+                  discoveryClosing
+                      ? 'CLOSING LISTING\nMANAGE'
+                      : directoryListed
+                      ? 'IN DISCOVER\nMANAGE LISTING'
+                      : discoveryEnabled
+                      ? 'PRIVATE PAGE\nOPEN TO DISCOVER'
                       : visitorPageOpen
                       ? '$sharedCount SHARED'
                       : 'PRIVATE PAGE',
@@ -3797,9 +3844,32 @@ class _SpaceDeckHeading extends StatelessWidget {
                   ),
                 ),
               ),
+              if (discoveryEnabled) ...[
+                const SizedBox(width: 3),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 16,
+                  color: publiclyVisible ? Palette.xpLight : Palette.textLo,
+                ),
+              ],
             ],
           ),
         );
+        final status = discoveryEnabled && onManageDiscovery != null
+            ? Pressable(
+                key: const ValueKey('space-page-manage-discovery'),
+                material: MaterialSound.glass,
+                interactionSound: InteractionSound.open,
+                pressDepth: 2,
+                semanticLabel: directoryListed
+                    ? 'Manage Discover listing'
+                    : 'Make my space discoverable',
+                semanticHint:
+                    'Opens the optional public listing and public name controls',
+                onTapUp: (_) => onManageDiscovery!(),
+                child: statusSurface,
+              )
+            : statusSurface;
         final edit = TextButton.icon(
           key: const ValueKey('space-page-open-arranger'),
           onPressed: onEdit,
@@ -3823,7 +3893,7 @@ class _SpaceDeckHeading extends StatelessWidget {
           runSpacing: 2,
           children: [status, edit],
         );
-        if (compact || directoryListed) {
+        if (compact || directoryListed || discoveryEnabled) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [title, const SizedBox(height: 5), actions],
@@ -5102,8 +5172,8 @@ class _TrophyTile extends StatelessWidget {
   }
 }
 
-/// A candlelit theme swatch — its canvas gradient under a glow dot, ringed
-/// when worn, dimmed-with-lock until the Lv-5 unlock.
+/// A candlelit ambient-light swatch — its canvas gradient under a glow dot,
+/// ringed when active, dimmed-with-lock until the Lv-5 unlock.
 class _ThemeSwatch extends StatelessWidget {
   const _ThemeSwatch({
     required this.theme,
@@ -5118,81 +5188,196 @@ class _ThemeSwatch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 78,
-        child: Column(
-          children: [
-            Container(
-              width: 64,
-              height: 44,
-              decoration: facetedDecoration(
-                cut: 8,
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [theme.top, theme.bottom],
-                ),
-                borderColor: selected
-                    ? Palette.xpLight.withValues(alpha: 0.9)
-                    : Palette.glassEdge,
-                borderWidth: selected ? 1.8 : 1,
-                shadows: selected
-                    ? const [
-                        BoxShadow(color: Palette.honeyGlow, blurRadius: 12),
-                      ]
-                    : const [],
-              ),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 8,
-                    top: 8,
-                    child: Container(
-                      width: 16,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            theme.glows[0].withValues(alpha: 1),
-                            theme.glows[0].withValues(alpha: 0),
-                          ],
+    return Semantics(
+      button: true,
+      selected: selected,
+      enabled: !locked,
+      label: '${theme.name} ambient light',
+      hint: locked ? 'Unlocks at level 5' : 'Changes the room’s ambient light',
+      onTap: locked ? null : onTap,
+      child: ExcludeSemantics(
+        child: GestureDetector(
+          onTap: onTap,
+          child: SizedBox(
+            width: 78,
+            child: Column(
+              children: [
+                Container(
+                  width: 64,
+                  height: 44,
+                  decoration: facetedDecoration(
+                    cut: 8,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [theme.top, theme.bottom],
+                    ),
+                    borderColor: selected
+                        ? Palette.xpLight.withValues(alpha: 0.9)
+                        : Palette.glassEdge,
+                    borderWidth: selected ? 1.8 : 1,
+                    shadows: selected
+                        ? const [
+                            BoxShadow(color: Palette.honeyGlow, blurRadius: 12),
+                          ]
+                        : const [],
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: 8,
+                        top: 8,
+                        child: Container(
+                          width: 16,
+                          height: 16,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                theme.glows[0].withValues(alpha: 1),
+                                theme.glows[0].withValues(alpha: 0),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
+                      if (locked)
+                        const Center(
+                          child: Icon(
+                            Icons.lock_outline,
+                            size: 16,
+                            color: Palette.textLo,
+                          ),
+                        ),
+                      if (selected)
+                        const Positioned(
+                          right: 4,
+                          bottom: 4,
+                          child: Icon(
+                            Icons.check_circle,
+                            size: 13,
+                            color: Palette.xpLight,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  theme.name,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: 11,
+                    color: selected ? Palette.xpLight : Palette.textLo,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AmbientLightPreview extends StatelessWidget {
+  const _AmbientLightPreview({
+    super.key,
+    required this.theme,
+    required this.reduceMotion,
+  });
+
+  final CanvasTheme theme;
+  final bool reduceMotion;
+
+  @override
+  Widget build(BuildContext context) {
+    final still =
+        reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    return Semantics(
+      container: true,
+      label: '${theme.name} ambient light is active',
+      child: AnimatedContainer(
+        key: const ValueKey('me-theme-ambient'),
+        duration: still ? Duration.zero : const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+        height: 72,
+        width: double.infinity,
+        decoration: facetedDecoration(
+          cut: 10,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [theme.top, theme.bottom],
+          ),
+          borderColor: theme.glows[1].withValues(alpha: 0.72),
+          shadows: [
+            BoxShadow(
+              color: theme.glows[1].withValues(alpha: 0.34),
+              blurRadius: 20,
+              offset: const Offset(0, 7),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -26,
+              top: -50,
+              child: IgnorePointer(
+                child: Container(
+                  width: 170,
+                  height: 170,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        theme.glows[1].withValues(alpha: 0.55),
+                        theme.glows[1].withValues(alpha: 0),
+                      ],
                     ),
                   ),
-                  if (locked)
-                    const Center(
-                      child: Icon(
-                        Icons.lock_outline,
-                        size: 16,
-                        color: Palette.textLo,
-                      ),
-                    ),
-                  if (selected)
-                    const Positioned(
-                      right: 4,
-                      bottom: 4,
-                      child: Icon(
-                        Icons.check_circle,
-                        size: 13,
-                        color: Palette.xpLight,
-                      ),
-                    ),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              theme.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Type.label.copyWith(
-                fontSize: 11,
-                color: selected ? Palette.xpLight : Palette.textLo,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.light_mode_outlined,
+                    size: 20,
+                    color: theme.glows.first.withValues(alpha: 0.96),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'NOW LIT BY',
+                          style: Type.label.copyWith(
+                            fontSize: Type.minLabel,
+                            color: Palette.textLo,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          theme.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Type.display.copyWith(
+                            fontSize: 16,
+                            color: Palette.textHi,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

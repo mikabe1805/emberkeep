@@ -3,6 +3,53 @@
 Updated August 23, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
+## 1.0.4+31 iOS App Store candidate — supersedes Build 30
+
+Build 30 reached TestFlight from `696c47f` through Codemagic Build #44 and was
+approved for the internal Me group. Build 31 corrects the two interaction gaps
+found on that physical build: a fresh private owner no longer has to infer that
+generic code sharing hides the Discover opt-in, and the old Themes swatches no
+longer change an obscured background. My Space and Discover now expose the
+owner's private/listed state as a direct action. The renamed Ambient Light
+control has a live preview and visibly relights the surrounding canvas while
+Change Space remains the full-room chooser. `pubspec.yaml` is `1.0.4+31`.
+
+- [x] Preserve Build 30 as the processed internal fallback and advance to the
+  unused iOS build number 31.
+- [x] Give a fresh owner with no room code a direct **Open to Discover** action
+  beside My Space and another owner-listing action at the top of Discover.
+- [x] Keep publication explicitly opt-in. The action may create the private
+  share code as an implementation detail, but it opens with the Discover switch
+  visible and never turns the switch on by itself.
+- [x] Replace the decorative Discover `OPT-IN` pill with truthful `PRIVATE`,
+  `LISTED`, or `CLOSING` state and keep the optional public-name control in the
+  same management surface.
+- [x] Rename Themes to Ambient Light, explain its boundary from Change Space,
+  add an immediate live preview, visibly carry the selected light through Me's
+  canvas and room-to-content fade, and reject invalid or locked selections.
+- [x] Add fresh-owner route tests, empty-directory routing, discovery-first
+  dialog visibility, ambient selection/persistence/validation, large-text
+  reflow, and fresh rendered evidence for both owner-reported states.
+- [x] Regenerate and inspect all seven opaque 1290×2796 App Store captures from
+  the feature-on Build 31 source. My Space now shows **Open to Discover** and
+  the Discover frame gives the private owner an explicit listing action.
+- [x] Pass the 794-test regression suite, the 22-test feature-on discovery
+  suite, `flutter analyze`, the feature-on release web build, and the iOS store
+  packet verifier. Four stable one-channel Plans-hero golden baselines were
+  reviewed together and refreshed; their layout, copy, and geometry are
+  unchanged.
+- [ ] Commit and push the reviewed Build 31 source, then start exactly one
+  `ios-testflight` workflow from that immutable commit.
+- [ ] Preserve the IPA, dSYMs, and `release-evidence.txt`; verify the receipt
+  names Build 31, the exact commit, both discovery flags, and a successful
+  TestFlight upload.
+- [ ] Install Build 31 over Build 30 on a physical iPhone. Complete the revised
+  Discover and Ambient Light checks in `DEVICE-ACCEPTANCE-RUNBOOK.md`, including
+  a positive signed App Attest exchange and a second signed identity.
+- [ ] Replace the App Store Version 1.0.4 draft's seven screenshots with the
+  inspected Build 31 set, but do not select a build or submit the version until
+  the physical-device gate passes.
+
 ## 1.0.4+30 iOS App Store candidate — supersedes Build 29
 
 Build 29 reached TestFlight from `e2df153` through Codemagic Build #42. Build 30
@@ -152,7 +199,7 @@ it is superseded rather than releasable. Build 23 remains the known processed
 fallback; Build 25 was the target of the historical preparation below.
 
 The uncompleted Build 25 release actions were superseded before they ran; the
-active release actions now live in the Build 30 section above.
+active release actions now live in the Build 31 section above.
 
 - [x] Preserve Build 23 as an internal TestFlight fallback. A live Codemagic
   high-water check found the older Build 24 on Apple, so advance the final
@@ -379,8 +426,8 @@ Task 5 documentation commit itself.
 
 ## Verify before every candidate
 
-- [x] Keep the iOS Build 30 record first in `lib/content/release_notes.dart` and
-  match its `1.0.4+30` identity to `pubspec.yaml`. The frozen Android Build 20
+- [x] Keep the iOS Build 31 record first in `lib/content/release_notes.dart` and
+  match its `1.0.4+31` identity to `pubspec.yaml`. The frozen Android Build 20
   manifest remains separate in `release-candidate.json`. The current record and
   store copy truthfully include enabled, opt-in Discover and its privacy/safety
   controls alongside the already shipped sound, workout, and Circle changes.

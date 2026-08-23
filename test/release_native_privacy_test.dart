@@ -656,9 +656,9 @@ void main() {
         contains('com.apple.developer.devicecheck.appattest-environment'),
       );
       expect(
-        RegExp(r"grep -Eq '\(\^\|\[\[:space:\]\]\)production")
-            .allMatches(workflow)
-            .length,
+        RegExp(
+          r"grep -Eq '\(\^\|\[\[:space:\]\]\)production",
+        ).allMatches(workflow).length,
         greaterThanOrEqualTo(2),
       );
       expect(workflow, contains('app_attest_environment=production'));
@@ -731,7 +731,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+30'));
+    expect(pubspec, contains('version: 1.0.4+31'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

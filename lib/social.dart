@@ -632,6 +632,7 @@ Future<void> shareSpace(
   VoidCallback onPersist, {
   bool spaceDiscoveryEnabled = kSpaceDiscoveryEnabled,
   bool publicDiscoveryNamesEnabled = kPublicDiscoveryNamesEnabled,
+  bool discoveryFirst = false,
 }) async {
   final cloud = CloudSync.instance;
   if (_sharingSpace) {
@@ -720,6 +721,7 @@ Future<void> shareSpace(
           state.roomCode != null &&
           state.roomDiscoveryRemovalCodes.contains(state.roomCode),
       publicDiscoveryName: state.roomDiscoveryName,
+      discoveryFirst: discoveryFirst,
       onDiscoverableChanged: spaceDiscoveryEnabled
           ? (next) async {
               final changed = await cloud.setRoomDiscoverable(
@@ -776,6 +778,7 @@ Future<void> showShareSpaceDialog(
   bool discoverable = false,
   bool discoveryCleanupPending = false,
   String publicDiscoveryName = '',
+  bool discoveryFirst = false,
   Future<bool> Function(bool discoverable)? onDiscoverableChanged,
   DiscoveryPublicNameSaver? onPublicDiscoveryNameChanged,
   VoidCallback? onPreview,
@@ -790,6 +793,7 @@ Future<void> showShareSpaceDialog(
       discoverable: discoverable,
       discoveryCleanupPending: discoveryCleanupPending,
       publicDiscoveryName: publicDiscoveryName,
+      discoveryFirst: discoveryFirst,
       onDiscoverableChanged: onDiscoverableChanged,
       onPublicDiscoveryNameChanged: onPublicDiscoveryNameChanged,
       onPreview: onPreview,
@@ -887,6 +891,7 @@ class _ShareDialog extends StatefulWidget {
     this.discoverable = false,
     this.discoveryCleanupPending = false,
     this.publicDiscoveryName = '',
+    this.discoveryFirst = false,
     this.onDiscoverableChanged,
     this.onPublicDiscoveryNameChanged,
     this.onPreview,
@@ -898,6 +903,7 @@ class _ShareDialog extends StatefulWidget {
   final bool discoverable;
   final bool discoveryCleanupPending;
   final String publicDiscoveryName;
+  final bool discoveryFirst;
   final Future<bool> Function(bool discoverable)? onDiscoverableChanged;
   final DiscoveryPublicNameSaver? onPublicDiscoveryNameChanged;
   final VoidCallback? onPreview;
@@ -914,6 +920,7 @@ class _ShareDialogState extends State<_ShareDialog> {
   late bool _discoverable;
   late String _savedPublicName;
   late final TextEditingController _publicNameController;
+  final GlobalKey _discoverySettingFocusKey = GlobalKey();
 
   @override
   void initState() {
@@ -921,6 +928,18 @@ class _ShareDialogState extends State<_ShareDialog> {
     _discoverable = widget.discoverable;
     _savedPublicName = sanitizeDiscoveryPublicName(widget.publicDiscoveryName);
     _publicNameController = TextEditingController(text: _savedPublicName);
+    if (widget.discoveryFirst && widget.onDiscoverableChanged != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final discoveryContext = _discoverySettingFocusKey.currentContext;
+        if (discoveryContext == null) return;
+        Scrollable.ensureVisible(
+          discoveryContext,
+          alignment: 0.04,
+          duration: Duration.zero,
+        );
+      });
+    }
   }
 
   @override
@@ -1058,167 +1077,172 @@ class _ShareDialogState extends State<_ShareDialog> {
                   const SizedBox(height: 8),
                 ],
                 if (widget.onDiscoverableChanged != null) ...[
-                  Container(
-                    key: const ValueKey('share-space-discovery-setting'),
-                    width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(12, 11, 10, 12),
-                    decoration: facetedDecoration(
-                      cut: 8,
-                      color: _discoverable
-                          ? Palette.xp.withValues(alpha: 0.10)
-                          : Palette.glassFill,
-                      borderColor: _discoverable
-                          ? Palette.xp.withValues(alpha: 0.45)
-                          : Palette.glassEdge,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Make my space discoverable',
-                                    style: Type.display.copyWith(
-                                      fontSize: 15,
-                                      color: Palette.textHi,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _changingDiscovery
-                                        ? (_discoverable
-                                              ? 'Opening your door…'
-                                              : 'Closing your door…')
-                                        : _discoverable
-                                        ? widget.onPublicDiscoveryNameChanged !=
-                                                  null
-                                              ? 'People can find this room, keep it in their Circle, and return. Only the public name you choose, its generated title, room style, and level appear.'
-                                              : 'People can find this room, keep it in their Circle, and return. Only its generated title, room style, and level appear.'
-                                        : widget.discoveryCleanupPending
-                                        ? 'Discover could not confirm this room. Cleanup will retry when you reconnect; sharing by code still works.'
-                                        : 'People with your code can still visit. Turn this on to also appear in Discover.',
-                                    style: Type.body.copyWith(
-                                      fontSize: 11.5,
-                                      height: 1.4,
-                                      color: Palette.textMid,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            IgnorePointer(
-                              ignoring: _changingDiscovery,
-                              child: Opacity(
-                                opacity: _changingDiscovery ? 0.65 : 1,
-                                child: GlassSwitch(
-                                  key: const ValueKey(
-                                    'share-space-discovery-switch',
-                                  ),
-                                  value: _discoverable,
-                                  semanticLabel: 'Make my space discoverable',
-                                  onChanged: _changeDiscovery,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (_discoverable &&
-                            widget.onPublicDiscoveryNameChanged != null) ...[
-                          const SizedBox(height: 12),
-                          Container(height: 1, color: Palette.glassEdge),
-                          const SizedBox(height: 10),
-                          Text(
-                            'NAME SHOWN IN DISCOVER · OPTIONAL',
-                            style: Type.label.copyWith(
-                              fontSize: Type.minLabel,
-                              color: Palette.textLo,
-                            ),
-                          ),
-                          const SizedBox(height: 5),
-                          TextField(
-                            key: const ValueKey(
-                              'share-space-public-discovery-name',
-                            ),
-                            controller: _publicNameController,
-                            enabled: !_savingPublicName,
-                            maxLength: discoveryPublicNameMaxLength,
-                            maxLines: 1,
-                            textCapitalization: TextCapitalization.words,
-                            textInputAction: TextInputAction.done,
-                            style: Type.body.copyWith(
-                              fontSize: 14,
-                              color: Palette.textHi,
-                            ),
-                            cursorColor: Palette.xp,
-                            decoration: InputDecoration(
-                              isDense: true,
-                              counterText: '',
-                              hintText: 'Stay anonymous',
-                              hintStyle: Type.body.copyWith(
-                                fontSize: 14,
-                                color: Palette.textLo,
-                              ),
-                              enabledBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(color: Palette.glassRim),
-                              ),
-                              focusedBorder: const UnderlineInputBorder(
-                                borderSide: BorderSide(color: Palette.xp),
-                              ),
-                            ),
-                            onChanged: (_) => setState(() {}),
-                            onSubmitted: (_) => _savePublicName(),
-                          ),
-                          const SizedBox(height: 5),
+                  KeyedSubtree(
+                    key: _discoverySettingFocusKey,
+                    child: Container(
+                      key: const ValueKey('share-space-discovery-setting'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(12, 11, 10, 12),
+                      decoration: facetedDecoration(
+                        cut: 8,
+                        color: _discoverable
+                            ? Palette.xp.withValues(alpha: 0.10)
+                            : Palette.glassFill,
+                        borderColor: _discoverable
+                            ? Palette.xp.withValues(alpha: 0.45)
+                            : Palette.glassEdge,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
-                                child: Text(
-                                  'Separate from your private Me name. Blank stays anonymous.',
-                                  style: Type.body.copyWith(
-                                    fontSize: 10.5,
-                                    height: 1.3,
-                                    color: Palette.textLo,
-                                  ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Make my space discoverable',
+                                      style: Type.display.copyWith(
+                                        fontSize: 15,
+                                        color: Palette.textHi,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _changingDiscovery
+                                          ? (_discoverable
+                                                ? 'Opening your door…'
+                                                : 'Closing your door…')
+                                          : _discoverable
+                                          ? widget.onPublicDiscoveryNameChanged !=
+                                                    null
+                                                ? 'People can find this room, keep it in their Circle, and return. Only the public name you choose, its generated title, room style, and level appear.'
+                                                : 'People can find this room, keep it in their Circle, and return. Only its generated title, room style, and level appear.'
+                                          : widget.discoveryCleanupPending
+                                          ? 'Discover could not confirm this room. Cleanup will retry when you reconnect; sharing by code still works.'
+                                          : 'People with your code can still visit. Turn this on to also appear in Discover.',
+                                      style: Type.body.copyWith(
+                                        fontSize: 11.5,
+                                        height: 1.4,
+                                        color: Palette.textMid,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              TextButton(
-                                key: const ValueKey(
-                                  'share-space-save-public-name',
-                                ),
-                                onPressed:
-                                    !_savingPublicName &&
-                                        sanitizeDiscoveryPublicName(
-                                              _publicNameController.text,
-                                            ) !=
-                                            _savedPublicName
-                                    ? _savePublicName
-                                    : null,
-                                child: Text(
-                                  _savingPublicName
-                                      ? 'SAVING…'
-                                      : sanitizeDiscoveryPublicName(
-                                              _publicNameController.text,
-                                            ).isEmpty &&
-                                            _savedPublicName.isNotEmpty
-                                      ? 'CLEAR NAME'
-                                      : 'SAVE NAME',
-                                  style: Type.label.copyWith(
-                                    fontSize: Type.minLabel,
+                              IgnorePointer(
+                                ignoring: _changingDiscovery,
+                                child: Opacity(
+                                  opacity: _changingDiscovery ? 0.65 : 1,
+                                  child: GlassSwitch(
+                                    key: const ValueKey(
+                                      'share-space-discovery-switch',
+                                    ),
+                                    value: _discoverable,
+                                    semanticLabel: 'Make my space discoverable',
+                                    onChanged: _changeDiscovery,
                                   ),
                                 ),
                               ),
                             ],
                           ),
+                          if (_discoverable &&
+                              widget.onPublicDiscoveryNameChanged != null) ...[
+                            const SizedBox(height: 12),
+                            Container(height: 1, color: Palette.glassEdge),
+                            const SizedBox(height: 10),
+                            Text(
+                              'NAME SHOWN IN DISCOVER · OPTIONAL',
+                              style: Type.label.copyWith(
+                                fontSize: Type.minLabel,
+                                color: Palette.textLo,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            TextField(
+                              key: const ValueKey(
+                                'share-space-public-discovery-name',
+                              ),
+                              controller: _publicNameController,
+                              enabled: !_savingPublicName,
+                              maxLength: discoveryPublicNameMaxLength,
+                              maxLines: 1,
+                              textCapitalization: TextCapitalization.words,
+                              textInputAction: TextInputAction.done,
+                              style: Type.body.copyWith(
+                                fontSize: 14,
+                                color: Palette.textHi,
+                              ),
+                              cursorColor: Palette.xp,
+                              decoration: InputDecoration(
+                                isDense: true,
+                                counterText: '',
+                                hintText: 'Stay anonymous',
+                                hintStyle: Type.body.copyWith(
+                                  fontSize: 14,
+                                  color: Palette.textLo,
+                                ),
+                                enabledBorder: const UnderlineInputBorder(
+                                  borderSide: BorderSide(
+                                    color: Palette.glassRim,
+                                  ),
+                                ),
+                                focusedBorder: const UnderlineInputBorder(
+                                  borderSide: BorderSide(color: Palette.xp),
+                                ),
+                              ),
+                              onChanged: (_) => setState(() {}),
+                              onSubmitted: (_) => _savePublicName(),
+                            ),
+                            const SizedBox(height: 5),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Separate from your private Me name. Blank stays anonymous.',
+                                    style: Type.body.copyWith(
+                                      fontSize: 10.5,
+                                      height: 1.3,
+                                      color: Palette.textLo,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                TextButton(
+                                  key: const ValueKey(
+                                    'share-space-save-public-name',
+                                  ),
+                                  onPressed:
+                                      !_savingPublicName &&
+                                          sanitizeDiscoveryPublicName(
+                                                _publicNameController.text,
+                                              ) !=
+                                              _savedPublicName
+                                      ? _savePublicName
+                                      : null,
+                                  child: Text(
+                                    _savingPublicName
+                                        ? 'SAVING…'
+                                        : sanitizeDiscoveryPublicName(
+                                                _publicNameController.text,
+                                              ).isEmpty &&
+                                              _savedPublicName.isNotEmpty
+                                        ? 'CLEAR NAME'
+                                        : 'SAVE NAME',
+                                    style: Type.label.copyWith(
+                                      fontSize: Type.minLabel,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
-                      ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 11),

@@ -214,6 +214,37 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('an empty directory leads its owner to listing controls', (
+    tester,
+  ) async {
+    final state = GameState()..reduceMotion = true;
+    var opened = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DiscoverSpacesScreen(
+          state: state,
+          onPersist: () {},
+          fetchSpaces: () async => const <DiscoverableSpaceSummary>[],
+          onManageOwnListing: () async => opened++,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(state.roomCode, isNull);
+    expect(state.roomDiscoverable, isFalse);
+    expect(find.text('No open doors yet'), findsOneWidget);
+    expect(find.text('YOUR SPACE IS PRIVATE'), findsOneWidget);
+    final manage = find.byKey(const ValueKey('discover-manage-own-listing'));
+    expect(manage, findsOneWidget);
+
+    await tester.tap(manage);
+    await tester.pump();
+    expect(opened, 1);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'hide and report choices remain readable on a small large-text phone',
     (tester) async {
@@ -422,4 +453,40 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('discovery-first share opens with its switch on screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () => showShareSpaceDialog(
+                context,
+                code: 'ABC234',
+                discoveryFirst: true,
+                onDiscoverableChanged: (_) async => true,
+                onStop: () async => true,
+              ),
+              child: const Text('Open discovery'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open discovery'));
+    await tester.pumpAndSettle();
+
+    final switchFinder = find.byKey(
+      const ValueKey('share-space-discovery-switch'),
+    );
+    expect(switchFinder, findsOneWidget);
+    final rect = tester.getRect(switchFinder);
+    expect(rect.top, greaterThanOrEqualTo(0));
+    expect(rect.bottom, lessThanOrEqualTo(568));
+    expect(tester.takeException(), isNull);
+  });
 }

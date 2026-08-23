@@ -2,9 +2,10 @@
 
 Space Discovery is implemented as an opt-in preview behind
 `--dart-define=SPACE_DISCOVERY=true`. Optional public names have a second,
-independent gate: `--dart-define=PUBLIC_DISCOVERY_NAMES=true`. Ordinary
-TestFlight, Play, web, and App Store builds keep both absent until every
-applicable gate below is complete.
+independent gate: `--dart-define=PUBLIC_DISCOVERY_NAMES=true`. The iOS
+TestFlight workflow intentionally compiles both gates on after the server,
+policy, billing, moderation, and App Check preparation completed. Other build
+paths remain default-off unless they explicitly make and verify the same choice.
 
 ## Product boundary
 
@@ -18,6 +19,10 @@ applicable gate below is complete.
   characters.
 - Public names start blank, are separate from the private Me name, are never
   copied into exact-code invites or `/rooms`, and require a deliberate save.
+- A private owner can reach the switch directly from **Open to Discover** in My
+  Space or from the owner card at the top of Discover. Creating the exact-code
+  room is an implementation detail; neither route turns the listing on without
+  the keeper explicitly changing the separate switch.
 - It never contains a uid, email, room code field, quests, goals, Journal text
   or photos, streak, memories, daily activity, weather, focus status, or
   user-authored profile.
@@ -71,13 +76,16 @@ applicable gate below is complete.
    name/moderation gates pass. Do not reuse captures from a default-off or
    generated-only candidate.
 
-Until those gates are complete, the current store statement that rooms are
-reachable only by link/code remains accurate for the default release build.
+The feature-on iOS candidate uses this boundary. A default-off build still
+removes the directory surface and retains exact-code sharing only.
 
 ## Local visual evidence
 
-The August 22 source-render review is preserved in
-[`space-discovery-and-guided-workouts-phone.webp`](../design/comparisons/2026-08-22/space-discovery-and-guided-workouts-phone.webp).
+The current August 23 source-render review, including the fresh private-owner
+route and direct management surface, is preserved in
+[`space-discovery-and-guided-workouts-phone.webp`](../design/comparisons/2026-08-23/space-discovery-and-guided-workouts-phone.webp).
+The owner-reported Build 30 versus Build 31 entry-point correction is
+[`evidence-discovery-control.png`](../design/comparisons/2026-08-23/evidence-discovery-control.png).
 The separate generated-only versus optional-public-name comparison is
 [`evidence-discovery-name-opt-in.png`](../design/comparisons/2026-08-22/evidence-discovery-name-opt-in.png).
 These renders verify authored states and copy; they are not signed-device or

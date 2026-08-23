@@ -509,8 +509,22 @@ SHARING_JOURNAL_PASS = [
 ]
 
 SPACE_DISCOVERY_PASS = [
+    (
+        "PRIVATE OWNER ENTRY",
+        GOLDENS / "space_discovery_private_me_controls_1290x2796.png",
+    ),
+    (
+        "EMPTY DISCOVER + OWNER ACTION",
+        GOLDENS / "space_discovery_empty_private_1290x2796.png",
+    ),
+    (
+        "DIRECT LISTING CONTROLS",
+        GOLDENS / "space_discovery_manage_1290x2796.png",
+    ),
+    ("AMBIENT LIGHT - WALNUT", GOLDENS / "ambient_light_walnut_1290x2796.png"),
+    ("AMBIENT LIGHT - SEA CAVE", GOLDENS / "ambient_light_sea_1290x2796.png"),
     ("ME - DISCOVERABLE", GOLDENS / "space_discovery_me_1290x2796.png"),
-    ("OPT-IN INSIDE SHARE", GOLDENS / "space_discovery_share_1290x2796.png"),
+    ("SHARE + DISCOVER SETTINGS", GOLDENS / "space_discovery_share_1290x2796.png"),
     (
         "FINITE OPEN DOORS",
         GOLDENS / "space_discovery_directory_1290x2796.png",
@@ -574,7 +588,7 @@ def main() -> None:
     elif mode == "store-phone":
         image_sheet(
             STORE_PASS,
-            "app-store-build-30-phone",
+            "app-store-build-31-phone",
             height=520,
             per_row=2,
             webp=True,

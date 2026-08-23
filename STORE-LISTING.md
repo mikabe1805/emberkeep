@@ -20,20 +20,19 @@ productivity language.
 
 ## App Store What's New — Version 1.0.4
 
-Open the door, on your terms.
+The open door is finally in the open.
 
-Discover now offers a small, shuffled handful of rooms whose keepers chose to
-be found. Make your own room discoverable only when you want to, choose a
-separate optional public name, and keep interesting spaces in your Circle
-without exchanging codes first. Quests, Journal pages, streaks, private Me
-cards, and account details stay out of the directory.
+My Space now gives you a direct Open to Discover or Manage Listing action, and
+Discover shows your own private or listed state above its open doors. You no
+longer have to guess that code sharing is where the public opt-in lives.
 
-You can block a keeper across future room-code changes or send a private
-report. Public names are filtered and rate-limited, and community rules are
-available from Discover.
+Themes are now Ambient Light. Each choice has a live preview and visibly
+changes the light around your room; Change Space remains the way to replace the
+whole room.
 
-This build also keeps the new seven-session guided-workout chooser and pairs
-every quest sound with the visible movement that caused it.
+Discover remains optional and private by default. Only an optional public name,
+generated room style, title, and level appear there — never quests, Journal
+pages, streaks, private Me cards, or account details.
 
 ## Full description
 
@@ -82,15 +81,22 @@ It is built to be kind. Nothing takes damage, days away cost nothing, and
 coming back after a break is rewarded. Every cosmetic is earned. There are no
 ads, subscriptions, or paywalls.
 
-This build makes the optional public room directory available. Discover shows
-a finite, shuffled handful of rooms whose keepers explicitly opted in. A keeper
-may choose a separate optional public name; quests, Journal pages, streaks,
-private Me cards, email, and account details stay out of the directory. Visitors
-can privately report or block a keeper across future room-code changes, and can
-keep as many trusted spaces as they want in their private Circle. Public names
-are filtered, rate-limited, and protected by App Check. This build also includes
-the seven-session guided-workout chooser and the final movement-linked quest
-sound behavior. Protected Google place search remains intentionally off.
+This build puts the optional public-room controls where people can actually
+find them. My Space exposes Open to Discover or Manage Listing directly, and
+Discover shows the owner's private/listed state and management action above the
+finite room directory. Enabling the listing remains a separate explicit switch;
+the app never opts someone in automatically. A keeper may choose a separate
+optional public name; quests, Journal pages, streaks, private Me cards, email,
+and account details stay out of the directory. Visitors can privately report or
+block a keeper across future room-code changes, and can keep as many trusted
+spaces as they want in their private Circle. Public names are filtered,
+rate-limited, and protected by App Check.
+
+The old Themes control is now Ambient Light. A live preview and the surrounding
+canvas visibly respond to every choice, while Change Space remains the full-room
+chooser. This build also retains the seven-session guided-workout chooser and
+movement-linked quest sound behavior. Protected Google place search remains
+intentionally off.
 
 Feedback on clarity, warmth, performance, and anything that gets between you
 and doing what matters is especially useful.
@@ -99,12 +105,19 @@ and doing what matters is especially useful.
 
 - Install over the previous TestFlight build and confirm your quests, goals,
   journal, room, and settings remain.
-- In Me, open **Share my space**, switch on **Make my space discoverable**, and
-  save or clear a separate public name. Confirm Me says **ROOM LISTED · CARDS
-  PRIVATE**, then turn discovery off and confirm the listing state closes.
+- Begin with a private room and no code. In My Space, tap **OPEN TO DISCOVER**
+  without opening Share my space first. Confirm the listing switch is visible
+  and still off, then turn it on and save or clear a separate public name.
+  Confirm My Space says **IN DISCOVER · MANAGE LISTING**, then turn discovery
+  off and confirm the listing closes.
 - Open **Discover spaces**. Refresh the finite set, open a room, keep it in your
-  Circle, and return without entering a code. Confirm private quests, Journal
-  pages, streaks, and account details never appear on a directory card.
+  Circle, and return without entering a code. Confirm the top owner card says
+  **PRIVATE** or **LISTED** truthfully and opens the same listing controls.
+  Private quests, Journal pages, streaks, and account details must never appear
+  on a directory card.
+- In Me settings, change **Ambient Light** from Walnut Night to Sea Cave.
+  Confirm the live preview and surrounding canvas visibly change, the selected
+  light survives a relaunch, and **Change Space** still replaces the whole room.
 - From a discovered room, block the keeper and confirm all of their current
   cards disappear. Unblock from **Manage hidden spaces**. Send a private test
   report and verify the success/failure message is honest.
