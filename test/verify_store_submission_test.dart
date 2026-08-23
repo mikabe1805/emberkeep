@@ -20,9 +20,10 @@ void main() {
       expect(verifier, contains('if (!iosOnly) {'));
       expect(verifier, contains("'03-plans-1290x2796.png'"));
       expect(verifier, contains("'06-journal-1290x2796.png'"));
+      expect(verifier, contains("'07-discover-1290x2796.png'"));
       expect(
         verifier,
-        contains('App Store icon and six-image screenshot set are RGB'),
+        contains('App Store icon and seven-image screenshot set are RGB'),
       );
     },
   );

@@ -16,6 +16,7 @@ DiscoverableSpaceSummary _space(
   int level = 12,
   String wall = 'wall_walnut',
   String publicName = '',
+  String? ownerKey,
 }) => DiscoverableSpaceSummary(
   code: code,
   buildTitle: title,
@@ -25,6 +26,7 @@ DiscoverableSpaceSummary _space(
   skin: 'ember_amber',
   window: 'moon',
   bucket: 1,
+  ownerKey: ownerKey ?? discoveryOwnerKey('owner-$code'),
   publicName: publicName,
 );
 
@@ -37,6 +39,7 @@ Map<String, dynamic> _room(DiscoverableSpaceSummary summary) => {
   'skin': summary.skin,
   'window': summary.window,
   'furniture': <String>[],
+  'uid': 'owner-${summary.code}',
   'profileVisible': false,
 };
 
@@ -77,8 +80,16 @@ void main() {
     expect(find.text('ABC234'), findsNothing);
     expect(find.text('DEF234'), findsNothing);
     expect(find.textContaining('Quests, Journal pages'), findsOneWidget);
+    expect(
+      find.textContaining('A block still works if a keeper changes room codes'),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('discover-refresh')), findsOneWidget);
     expect(find.byKey(const ValueKey('discover-enter-code')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('discover-community-rules')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -161,6 +172,7 @@ void main() {
 
     expect(reports, ['DEF234:inappropriate_name']);
     expect(state.blockedRoomCodes, contains('DEF234'));
+    expect(state.blockedDiscoveryOwners, {visible.ownerKey: 'DEF234'});
     expect(find.text('No open doors yet'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -242,14 +254,104 @@ void main() {
       await tester.tap(action);
       await tester.pumpAndSettle();
 
-      expect(find.text('Hide or report this space?'), findsOneWidget);
-      expect(find.text('HIDE FROM DISCOVER'), findsOneWidget);
+      expect(find.text('Block or report this keeper?'), findsOneWidget);
+      expect(find.text('BLOCK THIS KEEPER'), findsOneWidget);
       expect(find.text('REPORT THIS NAME'), findsOneWidget);
       expect(find.text('REPORT IMPERSONATION'), findsOneWidget);
       expect(find.text('REPORT SOMETHING ELSE'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('rejects a directory room whose fetched owner does not match', (
+    tester,
+  ) async {
+    final summary = _space('DEF234');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DiscoverSpacesScreen(
+          state: GameState()..reduceMotion = true,
+          onPersist: () {},
+          fetchSpaces: () async => [summary],
+          fetchRoom: (_) async => {..._room(summary), 'uid': 'another-owner'},
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('discover-space-DEF234')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('changed before it could open'), findsOneWidget);
+    expect(find.text('No open doors yet'), findsOneWidget);
+    expect(find.byType(VisitRoomScreen), findsNothing);
+  });
+
+  testWidgets(
+    'blocking one keeper removes every one of their directory cards',
+    (tester) async {
+      final first = _space('DEF234');
+      final second = _space('GHJ234', ownerKey: first.ownerKey);
+      final state = GameState()..reduceMotion = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: DiscoverSpacesScreen(
+            state: state,
+            onPersist: () {},
+            fetchSpaces: () async => [first, second],
+            fetchRoom: (_) async => _room(first),
+            reportSpace: (_, _) async => true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('discover-space-DEF234')));
+      await tester.pumpAndSettle();
+      final action = find.byKey(const ValueKey('discover-report-or-hide'));
+      await tester.scrollUntilVisible(
+        action,
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('discover-hide-space')));
+      await tester.pumpAndSettle();
+
+      expect(state.blockedDiscoveryOwners, {first.ownerKey: first.code});
+      expect(find.byKey(const ValueKey('discover-space-GHJ234')), findsNothing);
+    },
+  );
+
+  testWidgets('an exact code cannot open a blocked keeper', (tester) async {
+    final state = GameState()..reduceMotion = true;
+    final ownerKey = discoveryOwnerKey('blocked-owner');
+    state.blockDiscoveryOwner(ownerKey, 'DEF234');
+    final room = {..._room(_space('DEF234')), 'uid': 'blocked-owner'};
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () => visitSpace(
+                context,
+                state: state,
+                fetcher: (_) async => room,
+                initialCode: 'DEF234',
+                autoSubmit: true,
+              ),
+              child: const Text('Visit blocked keeper'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Visit blocked keeper'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('That keeper is hidden on this device.'), findsOneWidget);
+    expect(find.byType(VisitRoomScreen), findsNothing);
+  });
 
   testWidgets(
     'discoverability toggle confirms success and rolls back failure',

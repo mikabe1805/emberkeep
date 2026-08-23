@@ -406,6 +406,10 @@ STORE_PASS = [
         "06 JOURNAL",
         APP / "store-assets" / "screenshots" / "app-store" / "06-journal-1290x2796.png",
     ),
+    (
+        "07 DISCOVER",
+        APP / "store-assets" / "screenshots" / "app-store" / "07-discover-1290x2796.png",
+    ),
 ]
 
 CURRENT_PASS = [
@@ -570,7 +574,7 @@ def main() -> None:
     elif mode == "store-phone":
         image_sheet(
             STORE_PASS,
-            "app-store-build-29-phone",
+            "app-store-build-30-phone",
             height=520,
             per_row=2,
             webp=True,

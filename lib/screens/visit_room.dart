@@ -44,6 +44,7 @@ class VisitRoomScreen extends StatelessWidget {
     this.photoUrlLoader,
     this.sparkSender,
     this.discoveryPublicName = '',
+    this.discoveryOwnerKey = '',
     this.onReportDiscoverableSpace,
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
     this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
@@ -69,6 +70,7 @@ class VisitRoomScreen extends StatelessWidget {
   final bool visitorPhotoSharingEnabled;
   final bool visitorProfileSharingEnabled;
   final String discoveryPublicName;
+  final String discoveryOwnerKey;
   final DiscoverySpaceReporter? onReportDiscoverableSpace;
 
   /// Test seam for the leave-a-note action; the real path acquires the
@@ -328,6 +330,7 @@ class VisitRoomScreen extends StatelessWidget {
                   child: _KeepInCircleAction(
                     code: code,
                     publicName: directoryName,
+                    ownerKey: discoveryOwnerKey,
                     state: localState!,
                     onPersist: onPersist!,
                   ),
@@ -341,6 +344,7 @@ class VisitRoomScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _ReportOrHideAction(
                     code: code,
+                    ownerKey: discoveryOwnerKey,
                     state: localState!,
                     onPersist: onPersist!,
                     onReport: onReportDiscoverableSpace!,
@@ -862,12 +866,14 @@ class _KeepInCircleAction extends StatelessWidget {
   const _KeepInCircleAction({
     required this.code,
     required this.publicName,
+    required this.ownerKey,
     required this.state,
     required this.onPersist,
   });
 
   final String code;
   final String publicName;
+  final String ownerKey;
   final GameState state;
   final VoidCallback onPersist;
 
@@ -907,7 +913,11 @@ class _KeepInCircleAction extends StatelessWidget {
 
         void add() {
           if (!enabled ||
-              !state.addCircleCode(normalized, publicName: publicName)) {
+              !state.addCircleCode(
+                normalized,
+                publicName: publicName,
+                ownerKey: ownerKey,
+              )) {
             return;
           }
           onPersist();
@@ -998,12 +1008,14 @@ class _KeepInCircleAction extends StatelessWidget {
 class _ReportOrHideAction extends StatelessWidget {
   const _ReportOrHideAction({
     required this.code,
+    required this.ownerKey,
     required this.state,
     required this.onPersist,
     required this.onReport,
   });
 
   final String code;
+  final String ownerKey;
   final GameState state;
   final VoidCallback onPersist;
   final DiscoverySpaceReporter onReport;
@@ -1017,14 +1029,14 @@ class _ReportOrHideAction extends StatelessWidget {
         backgroundColor: Palette.dialogSurface,
         shape: const FacetedBorder(cut: 12),
         title: Text(
-          'Hide or report this space?',
+          'Block or report this keeper?',
           style: Type.display.copyWith(fontSize: 20, color: Palette.textHi),
         ),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Hiding removes it from Discover on this device. Reports are private and never tell the room owner who sent them.',
+              'Blocking hides this room and any future public room from the same keeper on this device. Reports are private and never tell them who sent one.',
               style: Type.body.copyWith(
                 fontSize: 13,
                 height: 1.4,
@@ -1037,7 +1049,7 @@ class _ReportOrHideAction extends StatelessWidget {
             _DiscoverySafetyChoice(
               key: const ValueKey('discover-hide-space'),
               icon: Icons.visibility_off_outlined,
-              label: 'HIDE FROM DISCOVER',
+              label: 'BLOCK THIS KEEPER',
               color: Palette.xpLight,
               onTap: () => Navigator.of(dialogContext).pop('hide'),
             ),
@@ -1082,7 +1094,7 @@ class _ReportOrHideAction extends StatelessWidget {
     if (choice == null || !context.mounted) return;
 
     final normalized = code.trim().toUpperCase();
-    state.blockRoomCode(normalized);
+    state.blockDiscoveryOwner(ownerKey, normalized);
     onPersist();
     final reported = choice == 'hide'
         ? null
@@ -1098,10 +1110,10 @@ class _ReportOrHideAction extends StatelessWidget {
           backgroundColor: Palette.card,
           content: Text(
             choice == 'hide'
-                ? 'Hidden from Discover on this device.'
+                ? 'This keeper is blocked in Discover on this device.'
                 : reported == true
-                ? 'Hidden. Your private report was sent.'
-                : 'Hidden on this device. The report could not be sent yet.',
+                ? 'Blocked. Your private report was sent.'
+                : 'Blocked on this device. The report could not be sent yet.',
             style: Type.body.copyWith(color: Palette.textHi),
           ),
         ),
@@ -1114,7 +1126,7 @@ class _ReportOrHideAction extends StatelessWidget {
     onPressed: () => _open(context),
     icon: const Icon(Icons.visibility_off_outlined, size: 15),
     label: Text(
-      'HIDE OR REPORT THIS SPACE',
+      'BLOCK OR REPORT THIS KEEPER',
       style: Type.label.copyWith(fontSize: Type.minLabel),
     ),
     style: TextButton.styleFrom(

@@ -24,6 +24,7 @@ import 'package:emberkeep/content/furniture.dart';
 import 'package:emberkeep/content/release_notes.dart';
 import 'package:emberkeep/content/routines.dart';
 import 'package:emberkeep/content/space_themes.dart';
+import 'package:emberkeep/discovery.dart';
 import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:emberkeep/widgets/share_moment_card.dart';
 import 'package:emberkeep/widgets/streak_freeze_status.dart';
@@ -34,6 +35,7 @@ import 'package:emberkeep/main.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/release_notes_preferences.dart';
 import 'package:emberkeep/screens/about.dart';
+import 'package:emberkeep/screens/discover_spaces.dart';
 import 'package:emberkeep/screens/journal_entry.dart';
 import 'package:emberkeep/screens/journal_hub.dart';
 import 'package:emberkeep/screens/hearth_circle.dart';
@@ -2313,5 +2315,88 @@ void main() {
       );
     });
     await _storeShot(tester, '13_share_moment_1290x2796');
+  });
+
+  testWidgets('store screenshot story: Discover', (tester) async {
+    // Keep this in the canonical store harness: 430×932 logical points at 3×
+    // produces Apple's required 1290×2796 submission class without upscaling.
+    tester.view.devicePixelRatio = 3;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+
+    final state = GameState()
+      ..onboarded = true
+      ..setPlayerName('Alex')
+      ..level = 18
+      ..totalXp = 4280
+      ..embers = 340
+      ..reduceMotion = true
+      ..soundEnabled = false
+      ..wallStyle = 'wall_walnut'
+      ..floorStyle = 'floor_oak'
+      ..windowScene = 'moon'
+      ..creatureSkin = 'sunstone';
+    final spaces = <DiscoverableSpaceSummary>[
+      const DiscoverableSpaceSummary(
+        code: 'ARC234',
+        buildTitle: 'DEEP CURRENT',
+        level: 21,
+        wall: 'wall_archive',
+        floor: 'floor_cherry',
+        skin: 'moon_pearl',
+        window: 'aurora',
+        bucket: 1,
+        ownerKey:
+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        publicName: 'Rowan',
+      ),
+      const DiscoverableSpaceSummary(
+        code: 'GRN234',
+        buildTitle: 'EVERGREEN',
+        level: 14,
+        wall: 'wall_conservatory',
+        floor: 'floor_maple',
+        skin: 'sea_glass',
+        window: 'rain',
+        bucket: 2,
+        ownerKey:
+            'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+        publicName: 'Juniper',
+      ),
+      const DiscoverableSpaceSummary(
+        code: 'WRM234',
+        buildTitle: 'STEADY HAND',
+        level: 9,
+        wall: 'wall_walnut',
+        floor: 'floor_oak',
+        skin: 'sunstone',
+        window: 'moon',
+        bucket: 3,
+        ownerKey:
+            'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: DiscoverSpacesScreen(
+          state: state,
+          onPersist: () {},
+          fetchSpaces: () async => spaces,
+          fetchRoom: (_) async => null,
+          publicDiscoveryNamesEnabled: true,
+        ),
+      ),
+    );
+    await _storeShot(tester, '07_discover_1290x2796');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
   });
 }

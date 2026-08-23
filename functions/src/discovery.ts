@@ -1,7 +1,9 @@
+import {createHash} from "node:crypto";
 import {FieldValue} from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/v2/https";
 
 export const ROOM_CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
+export const ownerKeyForUid = (uid: string): string => createHash("sha256").update(uid, "utf8").digest("hex");
 const MAX_NAME_CODE_POINTS = 32;
 const NAME_COOLDOWN_MS = 60_000;
 const DAILY_NAME_LIMIT = 10;
@@ -41,6 +43,8 @@ const authUid = (request: CallableRequest): string => {
   if (!request.auth?.uid) throw new HttpsError("unauthenticated", "Authentication is required.");
   return request.auth.uid;
 };
+
+const ownerKey = (uid: string): string => ownerKeyForUid(uid);
 
 const code = (value: unknown): string => {
   if (typeof value !== "string" || !ROOM_CODE.test(value)) return invalid("code must be a valid six-character room code.");
@@ -96,11 +100,15 @@ export const setDiscoveryPublicNameHandler = async (
   const directoryRef = dependencies.store.collection("discoverableSpaces").doc(roomCode);
   const limitRef = dependencies.store.collection("discoveryNameChanges").doc(uid);
   await dependencies.store.runTransaction(async (transaction) => {
-    const [room, directory, limit] = await Promise.all([
-      transaction.get(roomRef), transaction.get(directoryRef), transaction.get(limitRef),
+    const [room, directory, ban, limit] = await Promise.all([
+      transaction.get(roomRef), transaction.get(directoryRef),
+      transaction.get(dependencies.store.collection("discoveryBans").doc(ownerKey(uid))),
+      transaction.get(limitRef),
     ]);
     if (!room.exists || room.data()?.uid !== uid) throw new HttpsError("permission-denied", "You do not own this room.");
     if (!directory.exists) throw new HttpsError("failed-precondition", "This room is not discoverable.");
+    if (directory.data()?.ownerKey !== ownerKey(uid)) throw new HttpsError("failed-precondition", "This room's discovery record is stale.");
+    if (ban.exists) throw new HttpsError("permission-denied", "This room is not eligible for public names.");
     const prior = limit.data();
     const last = readMillis(prior?.lastChangedAt);
     const day = now.toISOString().slice(0, 10);
@@ -108,7 +116,7 @@ export const setDiscoveryPublicNameHandler = async (
     if (last !== undefined && now.getTime() - last < NAME_COOLDOWN_MS) throw new HttpsError("resource-exhausted", "Please wait before changing your public name again.");
     if (count >= DAILY_NAME_LIMIT) throw new HttpsError("resource-exhausted", "The daily public-name change limit has been reached.");
     // Keep the field present even for anonymous rooms: directory reads and
-    // client refreshes share one strict v2 schema.
+    // client refreshes share one strict v3 schema.
     transaction.set(directoryRef, {publicName}, {merge: true});
     transaction.set(limitRef, {dayBucket: day, dayCount: count + 1, lastChangedAt: now}, {merge: true});
   });
@@ -137,7 +145,12 @@ export const reportDiscoverableSpaceHandler = async (
       transaction.get(limitRef),
     ]);
     if (!room.exists || !directory.exists) throw new HttpsError("not-found", "This room is not discoverable.");
-    if (room.data()?.uid === uid) throw new HttpsError("failed-precondition", "You cannot report your own room.");
+    const roomOwnerUid = room.data()?.uid;
+    if (typeof roomOwnerUid !== "string") throw new HttpsError("not-found", "This room is not discoverable.");
+    const roomOwnerKey = ownerKey(roomOwnerUid);
+    if (directory.data()?.ownerKey !== roomOwnerKey) throw new HttpsError("failed-precondition", "This room's discovery record is stale.");
+    if (roomOwnerUid === uid) throw new HttpsError("failed-precondition", "You cannot report your own room.");
+    if (existing.exists) throw new HttpsError("already-exists", "You have already reported this room.");
     const prior = limit.data();
     const last = readMillis(prior?.lastReportedAt);
     const day = now.toISOString().slice(0, 10);
@@ -152,6 +165,8 @@ export const reportDiscoverableSpaceHandler = async (
     transaction.set(reportRef, {
       category: body.category,
       publicName: typeof publicName === "string" ? publicName : null,
+      ownerKey: roomOwnerKey,
+      ownerUid: roomOwnerUid,
       state: "pending",
       updatedAt: FieldValue.serverTimestamp(),
       ...(existing.exists ? {} : {createdAt: FieldValue.serverTimestamp()}),

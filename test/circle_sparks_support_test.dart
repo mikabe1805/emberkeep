@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:emberkeep/audio.dart';
+import 'package:emberkeep/discovery.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/screens/hearth_circle.dart';
 import 'package:emberkeep/screens/shell.dart';
@@ -186,6 +187,32 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     semantics.dispose();
+  });
+
+  testWidgets('Circle refresh learns and persists a fetched keeper key', (
+    tester,
+  ) async {
+    final state = GameState()..addCircleCode('DEF234');
+    var persists = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HearthCircleScreen(
+          state: state,
+          onPersist: () => persists++,
+          roomFetcher: (_) async => {
+            ...roomDisplay(GameState()),
+            'uid': 'circle-owner',
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(state.hearthCircleOwnerKeys, {
+      'DEF234': discoveryOwnerKey('circle-owner'),
+    });
+    expect(persists, 1);
   });
 
   testWidgets(

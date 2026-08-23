@@ -8,8 +8,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'daybook/services/place_search_identity_removal.dart';
 import 'daybook/services/place_search_access.dart';
+import 'daybook/services/place_search_identity_removal.dart';
 import 'discovery.dart';
 import 'firebase_options.dart';
 import 'platform/test_environment_stub.dart'
@@ -1119,16 +1119,15 @@ class CloudSync extends ChangeNotifier
     _roomDebounce?.cancel();
     _roomDebounce = null;
     final projection = discoverable
-        ? discoverableSpaceDisplay(room, roomCode: clean)
+        ? discoverableSpaceDisplay(room, roomCode: clean, ownerUid: _uid!)
         : const <String, dynamic>{};
     try {
       final result = await _roomPublishQueue.runWrite<bool>(() async {
         if (!socialReady || _uid == null) return false;
         final document = _discoverableSpaces.doc(clean);
         if (discoverable) {
-          // The owner may refresh generated visuals, but cannot author the
-          // public name directly. Preserve the server-approved name exactly;
-          // a missing v1 value migrates to anonymous v2.
+          // Generated visuals refresh without changing the separately saved
+          // public name. Cooldown state stays in an admin-only server record.
           await FirebaseFirestore.instance
               .runTransaction((transaction) async {
                 final existing = await transaction.get(document);
@@ -1156,9 +1155,6 @@ class CloudSync extends ChangeNotifier
   }
 
   Future<bool> _prepareProtectedDiscoveryCall() async {
-    // Activate attestation after Core but before this operation creates or
-    // reuses an anonymous identity. Callable enforcement is a rollout flag on
-    // the server, so pre-release monitor builds use the same real providers.
     if (!await ensureCoreAvailable() || !await _discoveryAppCheck.activate()) {
       return false;
     }
@@ -1171,7 +1167,11 @@ class CloudSync extends ChangeNotifier
     String name,
   ) async {
     final clean = _cleanRoomCode(code);
-    if (clean == null || !await _prepareProtectedDiscoveryCall()) {
+    final publicName = sanitizeDiscoveryPublicName(name);
+    if (clean == null || !isAllowedDiscoveryPublicName(publicName)) {
+      return DiscoveryPublicNameUpdate.rejected;
+    }
+    if (!await _prepareProtectedDiscoveryCall()) {
       return DiscoveryPublicNameUpdate.unavailable;
     }
     try {
@@ -1179,10 +1179,7 @@ class CloudSync extends ChangeNotifier
         'setDiscoveryPublicName',
         options: HttpsCallableOptions(timeout: const Duration(seconds: 8)),
       );
-      await callable.call<void>({
-        'code': clean,
-        'publicName': sanitizeDiscoveryPublicName(name),
-      });
+      await callable.call<void>({'code': clean, 'publicName': publicName});
       return DiscoveryPublicNameUpdate.saved;
     } on FirebaseFunctionsException catch (error) {
       debugPrint('setDiscoveryPublicName failed: ${error.code}');

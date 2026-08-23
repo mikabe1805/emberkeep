@@ -37,6 +37,7 @@ DiscoverableSpaceSummary _space({
   skin: skin,
   window: window,
   bucket: bucket,
+  ownerKey: discoveryOwnerKey('owner-$code'),
   publicName: publicName,
 );
 
@@ -76,6 +77,7 @@ Map<String, dynamic> _sharedRoom(DiscoverableSpaceSummary space) => {
   'focusKind': 'none',
   'focusUntil': 0,
   'profileVisible': false,
+  'uid': 'owner-${space.code}',
 };
 
 void main() {

@@ -35,13 +35,14 @@ void main() {
       'window',
       'bucket',
       'publicName',
+      'ownerKey',
       'updatedAt',
       'expiresAt',
     ]) {
       expect(schema, contains("'$field'"));
     }
     expect(schema, contains('d.keys().hasOnly(['));
-    expect(schema, contains('d.v == 2'));
+    expect(schema, contains('d.v == 3'));
     expect(schema, contains('validBuildTitle(d.title)'));
     expect(
       schema,
@@ -53,6 +54,16 @@ void main() {
     expect(
       schema,
       contains('d.publicName is string && d.publicName.size() <= 32'),
+    );
+    expect(
+      schema,
+      contains(r"d.ownerKey is string && d.ownerKey.matches('^[a-f0-9]{64}$')"),
+    );
+    expect(
+      schema,
+      contains(
+        'request.resource.data.ownerKey == ownerKeyFor(request.auth.uid)',
+      ),
     );
     expect(schema, contains('request.resource.data.updatedAt == request.time'));
     expect(schema, contains("request.time + duration.value(31, 'd')"));

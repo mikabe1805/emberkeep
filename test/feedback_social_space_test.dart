@@ -1055,6 +1055,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('share dialog names an unconfirmed Discover cleanup honestly', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () => showShareSpaceDialog(
+                context,
+                code: 'ABC234',
+                discoveryCleanupPending: true,
+                onDiscoverableChanged: (_) async => true,
+                onStop: () async => true,
+              ),
+              child: const Text('Open share'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open share'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Cleanup will retry when you reconnect'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('share preview is explicit and stop sharing asks first', (
     tester,
   ) async {

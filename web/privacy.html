@@ -22,7 +22,7 @@
 <body>
 <main>
   <h1>Privacy at Room of Days</h1>
-  <p>Last updated August 18, 2026</p>
+  <p>Last updated August 23, 2026</p>
   <div class="card"><strong>Your device is the source of truth.</strong>
     Room of Days works without an account, advertising, or analytics.</div>
 
@@ -132,17 +132,47 @@
     remain marked for expiration based on their last update and Firestore
     deletes them asynchronously.</p>
 
-  <h2>Shared spaces</h2>
+  <h2>Shared spaces and Discover</h2>
   <p>Sharing is optional. A shared space contains your level, an app-generated
     build title, preset room appearance, and broad app-generated activity
-    signals. The first store release does not publish your display name, profile
-    cards, goals, journal writing, season writing, or photos to visitors. Shared
-    spaces also exclude quest details, streak history, email, sign-in
-    credentials, and account-profile details. The backend room record carries
-    an anonymous Firebase owner ID so security rules can restrict changes to its
-    owner. Room of Days does not display that ID as profile identity. Anyone
-    with the room link can view the generated room until you stop sharing from
-    the same controls that show your code.</p>
+    signals. It does not publish your private Me display name, profile cards,
+    goals, journal writing, season writing, or photos to visitors. Shared spaces
+    also exclude quest details, streak history, email, sign-in credentials, and
+    account-profile details. The backend room record carries an anonymous
+    Firebase owner ID so security rules can restrict changes to its owner. Room
+    of Days does not display that ID as profile identity. Anyone with the room
+    link can view the generated room until you stop sharing from the same
+    controls that show your code.</p>
+
+  <p>Discover is a separate opt-in. Turning on <em>Make my space
+    discoverable</em> adds a small directory card containing the room code used
+    to open the shared space, an optional public name that you enter separately,
+    app-generated title and level, preset room appearance, a randomizing bucket,
+    an opaque stable keeper key derived from the anonymous owner ID, and update
+    and expiration times. The keeper key is not shown in the interface; it lets
+    a block continue to hide the same keeper if their room code changes. It is
+    not used for advertising or analytics. Quests, Journal pages, streaks,
+    private Me cards, email, and account details are never copied into the
+    directory.</p>
+
+  <p>Opening Discover creates or reuses an anonymous Firebase session and
+    retrieves a small, shuffled handful of unexpired directory cards. Tapping a
+    card then retrieves that shared room. A listing is marked to expire 30 days
+    after it is created or refreshed, and Firestore deletes expired listings
+    asynchronously. Turning Discover off or stopping sharing removes the
+    listing immediately when the request succeeds.</p>
+
+  <p>A public name is optional, may be cleared, and is separate from the name on
+    your private Me page. The protected name service normalizes and filters
+    names, rejects links and contact details, limits how quickly they can be
+    changed, and uses Firebase App Check for abuse prevention. People can block
+    a keeper on their device or privately report an inappropriate name,
+    impersonation, or another safety problem. A report stores the reporting
+    Firebase identity, room and owner identifiers, category, relevant public
+    name snapshot, and timestamps needed for human review. Reports are not
+    shown to the reported keeper and are retained only as needed to investigate
+    abuse, enforce the rules, and protect the service. See the
+    <a href="/community">community rules and safety guide</a>.</p>
 
   <p>If you keep someone else’s room in your Circle or send a preset support
     signal, Firestore stores a fixed, text-free receipt with a timestamp and your

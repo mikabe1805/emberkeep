@@ -237,12 +237,11 @@ void main() {
     );
   });
 
-  test('public privacy copy covers v1 sharing and collection boundaries', () {
+  test('public privacy copy covers sharing and discovery boundaries', () {
     final privacy = _source('web/privacy.html');
     final compact = privacy.replaceAll(RegExp(r'\s+'), ' ');
 
-    expect(compact, contains('first store release does not publish'));
-    expect(compact, contains('display name'));
+    expect(compact, contains('does not publish your private Me display name'));
     expect(compact, contains('profile cards'));
     expect(compact, contains('journal writing'));
     expect(compact, contains('season writing'));
@@ -264,6 +263,12 @@ void main() {
     expect(compact, contains('Anyone with the room link'));
     expect(compact, contains('merely opening a room code does not'));
     expect(compact, contains('turns on full-save backup'));
+    expect(compact, contains('Discover is a separate opt-in'));
+    expect(compact, contains('opaque stable keeper key'));
+    expect(compact, contains('expire 30 days'));
+    expect(compact, contains('optional public name'));
+    expect(compact, contains('privately report'));
+    expect(compact, contains('community rules and safety guide'));
   });
 
   test('place search review policies cover end-user terms and retention', () {
@@ -489,6 +494,7 @@ void main() {
     final hosting = _source('firebase.json');
     final links = _source('lib/content/links.dart');
     final support = _source('web/support.html');
+    final community = _source('web/community.html');
     final deletion = _source('web/delete-account.html');
     final recovery = _source(
       'ACCOUNT-RECOVERY-RUNBOOK.md',
@@ -497,10 +503,17 @@ void main() {
     expect(hosting, contains('"cleanUrls": true'));
     expect(links, contains("defaultValue: 'https://roomofdays.com'"));
     expect(links, contains("'\$_base/privacy'"));
+    expect(links, contains("'\$_base/community'"));
+    expect(links, contains("'\$_base/terms'"));
     expect(links, contains("'\$_base/delete-account'"));
     expect(links, contains("'\$_base/support'"));
     expect(support, contains('support@roomofdays.com'));
     expect(support, contains('https://roomofdays.com/support'));
+    expect(community, contains('https://roomofdays.com/community'));
+    expect(community, contains('reviews the report queue every day'));
+    expect(community, contains('within 24 hours'));
+    expect(community, contains('current and future public rooms'));
+    expect(community, contains('support@roomofdays.com'));
     expect(
       deletion,
       contains(
@@ -686,7 +699,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+29'));
+    expect(pubspec, contains('version: 1.0.4+30'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

@@ -28,6 +28,7 @@ Widget _mePage(
   Future<String?> Function() onReset = _resetSuccessfully,
   bool visitorPhotoSharingEnabled = false,
   bool visitorProfileSharingEnabled = true,
+  bool spaceDiscoveryEnabled = false,
 }) => Scaffold(
   body: MePage(
     state: state,
@@ -47,6 +48,7 @@ Widget _mePage(
     onRemovePrivateServiceIdentity: () async => null,
     visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
     visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+    spaceDiscoveryEnabled: spaceDiscoveryEnabled,
   ),
 );
 
@@ -58,6 +60,7 @@ Future<void> _pumpMe(
   Future<String?> Function() onReset = _resetSuccessfully,
   bool visitorPhotoSharingEnabled = false,
   bool visitorProfileSharingEnabled = true,
+  bool spaceDiscoveryEnabled = false,
 }) async {
   tester.view.physicalSize = _phoneSize;
   tester.view.devicePixelRatio = 1;
@@ -74,6 +77,7 @@ Future<void> _pumpMe(
         onReset: onReset,
         visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
         visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+        spaceDiscoveryEnabled: spaceDiscoveryEnabled,
       ),
     ),
   );
@@ -212,6 +216,41 @@ void main() {
     expect(find.text('THIS SEASON'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('discoverable My Space keeps its private-card status readable', (
+    tester,
+  ) async {
+    final state = GameState()
+      ..reduceMotion = true
+      ..roomDiscoverable = true;
+
+    await _pumpMe(tester, state, () {}, spaceDiscoveryEnabled: true);
+
+    final status = find.byKey(
+      const ValueKey('space-profile-visibility-status'),
+    );
+    expect(find.text('ROOM LISTED\nCARDS PRIVATE'), findsOneWidget);
+    expect(tester.getSize(status).width, lessThanOrEqualTo(150));
+    expect(find.text('MY SPACE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'Me names a pending Discover cleanup instead of claiming listed',
+    (tester) async {
+      final state = GameState()
+        ..reduceMotion = true
+        ..setRoomCode('ABC234')
+        ..setRoomDiscoverable(true)
+        ..markRoomDiscoveryRemovalPending('ABC234');
+
+      await _pumpMe(tester, state, () {}, spaceDiscoveryEnabled: true);
+
+      expect(find.text('Closing Discover · ABC234'), findsOneWidget);
+      expect(find.textContaining('Discoverable ·'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('My Space renders saved order and leaves hidden cards out', (
     tester,

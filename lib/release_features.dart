@@ -22,18 +22,17 @@ const bool kVisitorProfileSharingEnabled = bool.fromEnvironment(
   defaultValue: false,
 );
 
-/// Opt-in browsing of a tiny, app-generated room directory. This stays absent
-/// from ordinary store builds until the directory rules are deployed and the
-/// privacy/store review plus fresh device captures are complete.
+/// Opt-in browsing of a tiny room directory. Release workflows must choose
+/// this explicitly so a local/debug build never implies that the production
+/// rules, moderation, and policy operation are already live.
 const bool kSpaceDiscoveryEnabled = bool.fromEnvironment(
   'SPACE_DISCOVERY',
   defaultValue: false,
 );
 
-/// Optional names in Discover are the first user-authored text on the public
-/// directory. Keep them independently gated until the server filter, App
-/// Check, reporting, blocking, moderation runbook, and policy disclosures are
-/// all deployed and verified. Discovery itself can remain generated-only.
+/// Optional names in Discover are the only user-authored text on the public
+/// directory. They stay independently gated because generated-only discovery
+/// remains a safe fallback if the protected name service is unavailable.
 const bool kPublicDiscoveryNamesEnabled =
     kSpaceDiscoveryEnabled &&
     bool.fromEnvironment('PUBLIC_DISCOVERY_NAMES', defaultValue: false);

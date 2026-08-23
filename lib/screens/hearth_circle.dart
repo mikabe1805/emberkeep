@@ -10,6 +10,7 @@ import '../clock.dart';
 import '../cloud.dart';
 import '../content/creature_skins.dart';
 import '../content/room_styles.dart';
+import '../discovery.dart';
 import '../engine.dart';
 import '../models.dart';
 import '../social.dart';
@@ -128,6 +129,18 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
           // A single stale room should not hold the rest of a Circle hostage.
         }
         if (!mounted || generation != _loadGeneration) return;
+        var persist = false;
+        final ownerKey = room == null ? null : discoveryOwnerKeyFromRoom(room);
+        if (ownerKey != null &&
+            _state.blockedDiscoveryOwners.containsKey(ownerKey)) {
+          _state.removeCircleCode(code);
+          persist = true;
+          room = null;
+        } else if (ownerKey != null &&
+            _state.rememberCircleOwnerKey(code, ownerKey)) {
+          persist = true;
+        }
+        if (persist) widget.onPersist();
         setState(() {
           _loadingRoomCodes.remove(code);
           if (!_state.hearthCircleCodes.contains(code) || room == null) {
@@ -204,7 +217,13 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
     );
     if (visit == null || !mounted) return;
     final clean = visit.code;
-    if (!_state.addCircleCode(clean)) {
+    final ownerKey = discoveryOwnerKeyFromRoom(visit.room);
+    if (ownerKey != null &&
+        _state.blockedDiscoveryOwners.containsKey(ownerKey)) {
+      _toast('That keeper is hidden on this device.');
+      return;
+    }
+    if (!_state.addCircleCode(clean, ownerKey: ownerKey ?? '')) {
       _toast('That space is already in your Circle.');
       return;
     }
@@ -648,6 +667,10 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
                                                   parallax: widget.parallax,
                                                   localState: _state,
                                                   onPersist: widget.onPersist,
+                                                  discoveryOwnerKey:
+                                                      _state
+                                                          .hearthCircleOwnerKeys[code] ??
+                                                      '',
                                                   discoveryPublicName:
                                                       _state
                                                           .hearthCircleNames[code] ??

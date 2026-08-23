@@ -15,6 +15,8 @@ abstract final class PublicLinks {
   static const String home = _base;
 
   static const String privacy = '$_base/privacy';
+  static const String community = '$_base/community';
+  static const String terms = '$_base/terms';
   static const String deleteAccount = '$_base/delete-account';
   static const String support = '$_base/support';
 }

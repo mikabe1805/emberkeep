@@ -1,9 +1,11 @@
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../audio.dart';
 import '../cloud.dart';
 import '../content/creature_skins.dart';
+import '../content/links.dart';
 import '../content/room_styles.dart';
 import '../content/space_themes.dart';
 import '../discovery.dart';
@@ -87,9 +89,7 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
         final ownCode = widget.state.roomCode?.trim().toUpperCase();
         _spaces = [
           for (final space in result)
-            if (space.code != ownCode &&
-                !widget.state.blockedRoomCodes.contains(space.code))
-              space,
+            if (space.code != ownCode && !_isHidden(space)) space,
         ];
       }
     });
@@ -117,6 +117,29 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
         );
       return;
     }
+    final ownerKey = discoveryOwnerKeyFromRoom(room);
+    if (ownerKey != summary.ownerKey) {
+      setState(
+        () => _spaces = [
+          for (final space in _spaces)
+            if (space.code != summary.code) space,
+        ],
+      );
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Palette.card,
+            content: Text(
+              'That door changed before it could open. Try another space.',
+              style: Type.body.copyWith(color: Palette.textHi),
+            ),
+          ),
+        );
+      return;
+    }
+    if (_isHidden(summary)) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => VisitRoomScreen(
@@ -127,6 +150,7 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
           parallax: widget.parallax,
           localState: widget.state,
           onPersist: widget.onPersist,
+          discoveryOwnerKey: summary.ownerKey,
           discoveryPublicName: widget.publicDiscoveryNamesEnabled
               ? summary.publicName
               : '',
@@ -135,15 +159,24 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
         ),
       ),
     );
-    if (mounted && widget.state.blockedRoomCodes.contains(summary.code)) {
+    if (mounted && _isHidden(summary)) {
       setState(
         () => _spaces = [
           for (final space in _spaces)
-            if (space.code != summary.code) space,
+            if (widget.state.blockedDiscoveryOwners.containsKey(
+                  summary.ownerKey,
+                )
+                ? space.ownerKey != summary.ownerKey
+                : space.code != summary.code)
+              space,
         ],
       );
     }
   }
+
+  bool _isHidden(DiscoverableSpaceSummary space) =>
+      widget.state.blockedRoomCodes.contains(space.code) ||
+      widget.state.blockedDiscoveryOwners.containsKey(space.ownerKey);
 
   Future<void> _enterCode() => visitSpace(
     context,
@@ -156,7 +189,21 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
   );
 
   Future<void> _manageHidden() async {
-    final hidden = widget.state.blockedRoomCodes.toList()..sort();
+    final owners = widget.state.blockedDiscoveryOwners.entries.toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    final ownerCodes = owners.map((entry) => entry.value).toSet();
+    final legacyCodes = [
+      for (final code in widget.state.blockedRoomCodes)
+        if (!ownerCodes.contains(code)) code,
+    ]..sort();
+    final hidden = <({String id, String label})>[
+      for (final owner in owners)
+        (
+          id: 'owner:${owner.key}',
+          label: 'KEEPER · LAST SEEN AT ${owner.value}',
+        ),
+      for (final code in legacyCodes) (id: 'code:$code', label: 'SPACE $code'),
+    ];
     if (hidden.isEmpty) return;
     final unhide = await showDialog<String>(
       context: context,
@@ -176,20 +223,20 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
             separatorBuilder: (_, _) =>
                 const Divider(height: 1, color: Palette.glassEdge),
             itemBuilder: (_, index) {
-              final code = hidden[index];
+              final entry = hidden[index];
               return ListTile(
                 dense: true,
                 contentPadding: EdgeInsets.zero,
                 title: Text(
-                  'SPACE $code',
+                  entry.label,
                   style: Type.label.copyWith(
                     fontSize: Type.minLabel,
                     color: Palette.textMid,
                   ),
                 ),
                 trailing: TextButton(
-                  key: ValueKey('discover-unhide-$code'),
-                  onPressed: () => Navigator.of(dialogContext).pop(code),
+                  key: ValueKey('discover-unhide-${entry.id}'),
+                  onPressed: () => Navigator.of(dialogContext).pop(entry.id),
                   child: Text(
                     'UNHIDE',
                     style: Type.label.copyWith(
@@ -217,9 +264,33 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
       ),
     );
     if (unhide == null || !mounted) return;
-    widget.state.unblockRoomCode(unhide);
+    if (unhide.startsWith('owner:')) {
+      widget.state.unblockDiscoveryOwner(unhide.substring('owner:'.length));
+    } else if (unhide.startsWith('code:')) {
+      widget.state.unblockRoomCode(unhide.substring('code:'.length));
+    }
     widget.onPersist();
     await _load();
+  }
+
+  Future<void> _openCommunityRules(BuildContext context) async {
+    var opened = false;
+    try {
+      opened = await launchUrl(Uri.parse(PublicLinks.community));
+    } catch (_) {
+      // A missing browser should not make the directory feel broken.
+    }
+    if (!context.mounted || opened) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Palette.card,
+        content: Text(
+          'Couldn’t open the community rules. Try again when a browser is available.',
+          style: Type.body.copyWith(color: Palette.textHi),
+        ),
+      ),
+    );
   }
 
   @override
@@ -305,7 +376,8 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
                         foregroundColor: Palette.xpLight,
                       ),
                     ),
-                    if (widget.state.blockedRoomCodes.isNotEmpty)
+                    if (widget.state.blockedRoomCodes.isNotEmpty ||
+                        widget.state.blockedDiscoveryOwners.isNotEmpty)
                       TextButton.icon(
                         key: const ValueKey('discover-manage-hidden'),
                         onPressed: _manageHidden,
@@ -322,6 +394,19 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
                           foregroundColor: Palette.textLo,
                         ),
                       ),
+                    TextButton.icon(
+                      key: const ValueKey('discover-community-rules'),
+                      onPressed: () => _openCommunityRules(context),
+                      icon: const Icon(Icons.gavel_outlined, size: 15),
+                      label: Text(
+                        'COMMUNITY RULES & SAFETY',
+                        style: Type.label.copyWith(fontSize: Type.minLabel),
+                      ),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size.fromHeight(44),
+                        foregroundColor: Palette.textLo,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -349,8 +434,8 @@ class _PrivacyNote extends StatelessWidget {
         Expanded(
           child: Text(
             publicNamesEnabled
-                ? 'Only an optional public name, room style, and level appear here. Quests, Journal pages, streaks, and account details stay private.'
-                : 'Only room style and level appear here. Quests, Journal pages, streaks, and account details stay private.',
+                ? 'Only an optional public name, the room’s generated title, room style, and level appear here. Quests, Journal pages, streaks, and account details stay private. A block still works if a keeper changes room codes.'
+                : 'Only the room’s generated title, room style, and level appear here. Quests, Journal pages, streaks, and account details stay private. A block still works if a keeper changes room codes.',
             style: Type.body.copyWith(
               fontSize: 12,
               height: 1.42,

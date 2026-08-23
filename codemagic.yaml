@@ -68,6 +68,13 @@ workflows:
           set -euo pipefail
           flutter analyze --no-pub
           flutter test --no-pub
+          flutter test --no-pub \
+            --dart-define=SPACE_DISCOVERY=true \
+            --dart-define=PUBLIC_DISCOVERY_NAMES=true \
+            test/discovery_projection_test.dart \
+            test/discovery_state_test.dart \
+            test/discover_spaces_test.dart \
+            test/space_discovery_visual_test.dart
           dart run tool/verify_store_submission.dart --ios-only
       - name: Set up code signing (fetch + create App Store profile, key-safe)
         script: |
@@ -150,6 +157,8 @@ workflows:
             --build-name="$PUBSPEC_VERSION" \
             --build-number="$NEXT_BUILD" \
             --dart-define=COFFEE_URL= \
+            --dart-define=SPACE_DISCOVERY=true \
+            --dart-define=PUBLIC_DISCOVERY_NAMES=true \
             --export-options-plist="$HOME/export_options.plist"
       - name: Verify signed IPA contents
         script: |
@@ -265,6 +274,8 @@ workflows:
             echo "profile_expiration=$PROFILE_EXPIRATION"
             echo "signing_authority=$SIGNING_AUTHORITY"
             echo "associated_domain=applinks:roomofdays.com"
+            echo "space_discovery=true"
+            echo "public_discovery_names=true"
           } > "$EVIDENCE"
           cat "$EVIDENCE"
     artifacts:

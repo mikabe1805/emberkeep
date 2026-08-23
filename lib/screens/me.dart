@@ -1881,6 +1881,11 @@ class MePage extends StatelessWidget {
                 icon: Icons.ios_share,
                 label: state.roomCode == null
                     ? 'Share my space'
+                    : spaceDiscoveryEnabled &&
+                          state.roomDiscoveryRemovalCodes.contains(
+                            state.roomCode,
+                          )
+                    ? 'Closing Discover · ${state.roomCode}'
                     : spaceDiscoveryEnabled && state.roomDiscoverable
                     ? 'Discoverable · ${state.roomCode}'
                     : 'Shared · ${state.roomCode}',
@@ -2062,6 +2067,7 @@ class MePage extends StatelessWidget {
 
           _PersonalSpacePanel(
             state: state,
+            directoryListed: spaceDiscoveryEnabled && state.roomDiscoverable,
             visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
             visitorProfileSharingEnabled: visitorProfileSharingEnabled,
             onEdit: () => _personalizeSpace(
@@ -3595,12 +3601,14 @@ void _showSkinPreview(BuildContext context, GameState state, String loot) {
 class _PersonalSpacePanel extends StatelessWidget {
   const _PersonalSpacePanel({
     required this.state,
+    required this.directoryListed,
     required this.onEdit,
     required this.visitorPhotoSharingEnabled,
     required this.visitorProfileSharingEnabled,
   });
 
   final GameState state;
+  final bool directoryListed;
   final VoidCallback onEdit;
   final bool visitorPhotoSharingEnabled;
   final bool visitorProfileSharingEnabled;
@@ -3650,6 +3658,7 @@ class _PersonalSpacePanel extends StatelessWidget {
       children: [
         _SpaceDeckHeading(
           sharedCount: sharedCount,
+          directoryListed: directoryListed,
           visitorPageOpen:
               visitorProfileSharingEnabled && state.shareSpaceProfile,
           onEdit: onEdit,
@@ -3699,11 +3708,13 @@ class _PersonalSpacePanel extends StatelessWidget {
 class _SpaceDeckHeading extends StatelessWidget {
   const _SpaceDeckHeading({
     required this.sharedCount,
+    required this.directoryListed,
     required this.visitorPageOpen,
     required this.onEdit,
   });
 
   final int sharedCount;
+  final bool directoryListed;
   final bool visitorPageOpen;
   final VoidCallback onEdit;
 
@@ -3736,19 +3747,24 @@ class _SpaceDeckHeading extends StatelessWidget {
             ),
           ],
         );
+        final publiclyVisible = visitorPageOpen || directoryListed;
         final status = Container(
           key: const ValueKey('space-profile-visibility-status'),
           constraints: BoxConstraints(
             minHeight: 48,
-            maxWidth: compact ? constraints.maxWidth : 220,
+            maxWidth: compact
+                ? constraints.maxWidth
+                : directoryListed
+                ? 150
+                : 220,
           ),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: facetedDecoration(
             cut: 7,
-            color: visitorPageOpen
+            color: publiclyVisible
                 ? Palette.xp.withValues(alpha: 0.11)
                 : Palette.glassFill,
-            borderColor: visitorPageOpen
+            borderColor: publiclyVisible
                 ? Palette.xp.withValues(alpha: 0.40)
                 : Palette.glassEdge,
           ),
@@ -3756,22 +3772,28 @@ class _SpaceDeckHeading extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                visitorPageOpen
+                publiclyVisible
                     ? Icons.visibility_outlined
                     : Icons.lock_outline_rounded,
                 size: 14,
-                color: visitorPageOpen ? Palette.xpLight : Palette.textLo,
+                color: publiclyVisible ? Palette.xpLight : Palette.textLo,
               ),
               const SizedBox(width: 5),
               Flexible(
                 child: Text(
-                  visitorPageOpen ? '$sharedCount SHARED' : 'PRIVATE PAGE',
+                  directoryListed
+                      ? visitorPageOpen
+                            ? 'ROOM LISTED\n$sharedCount SHARED'
+                            : 'ROOM LISTED\nCARDS PRIVATE'
+                      : visitorPageOpen
+                      ? '$sharedCount SHARED'
+                      : 'PRIVATE PAGE',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Type.label.copyWith(
                     fontSize: Type.minLabel,
                     letterSpacing: 0.8,
-                    color: visitorPageOpen ? Palette.xpLight : Palette.textLo,
+                    color: publiclyVisible ? Palette.xpLight : Palette.textLo,
                   ),
                 ),
               ),
@@ -3801,7 +3823,7 @@ class _SpaceDeckHeading extends StatelessWidget {
           runSpacing: 2,
           children: [status, edit],
         );
-        if (compact) {
+        if (compact || directoryListed) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [title, const SizedBox(height: 5), actions],

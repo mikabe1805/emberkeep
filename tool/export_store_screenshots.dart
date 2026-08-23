@@ -49,6 +49,12 @@ const _assets = <_Asset>[
     2796,
   ),
   _Asset(
+    'test/goldens/store_07_discover_1290x2796.png',
+    'store-assets/screenshots/app-store/07-discover-1290x2796.png',
+    1290,
+    2796,
+  ),
+  _Asset(
     'test/goldens/play_01_quests_1080x1920.png',
     'store-assets/screenshots/google-play/01-quests-1080x1920.png',
     1080,

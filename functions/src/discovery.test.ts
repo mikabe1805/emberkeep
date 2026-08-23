@@ -1,6 +1,7 @@
 import {HttpsError} from "firebase-functions/v2/https";
 
 import {
+  ownerKeyForUid,
   reportDiscoverableSpaceHandler,
   setDiscoveryPublicNameHandler,
   type DiscoveryStore,
@@ -37,7 +38,7 @@ const request = (data: unknown, uid = "owner") => ({data, auth: {uid}});
 const publicNamesOn = {publicNamesEnabled: () => true};
 const owned = {
   "rooms/ABC234": {uid: "owner", secret: "preserve"},
-  "discoverableSpaces/ABC234": {publicName: "old name", theme: "walnut"},
+  "discoverableSpaces/ABC234": {publicName: "old name", ownerKey: ownerKeyForUid("owner"), theme: "walnut"},
 };
 
 describe("discovery callables", () => {
@@ -98,8 +99,9 @@ describe("discovery callables", () => {
     const {store, docs} = makeStore(owned);
     const result = await reportDiscoverableSpaceHandler(request({code: "ABC234", category: "impersonation"}, "reporter"), {store, now: () => new Date("2026-08-22T12:00:00Z")});
     expect(result).toEqual({reported: true});
-    expect(docs.get("discoveryReports/ABC234/reporters/reporter")).toMatchObject({category: "impersonation", publicName: "old name", state: "pending"});
+    expect(docs.get("discoveryReports/ABC234/reporters/reporter")).toMatchObject({category: "impersonation", publicName: "old name", state: "pending", ownerKey: ownerKeyForUid("owner"), ownerUid: "owner"});
     expect(docs.get("discoveryReports/ABC234/reporters/reporter")).not.toHaveProperty("narrative");
+    await expect(reportDiscoverableSpaceHandler(request({code: "ABC234", category: "other"}, "reporter"), {store})).rejects.toMatchObject({code: "already-exists"});
   });
 
   test("rejects self-reports before writing a private report", async () => {
@@ -108,11 +110,24 @@ describe("discovery callables", () => {
     expect(docs.has("discoveryReports/ABC234/reporters/owner")).toBe(false);
   });
 
+  test("rejects public-name changes for banned owners", async () => {
+    const {store, docs} = makeStore({
+      ...owned,
+      [`discoveryBans/${ownerKeyForUid("owner")}`]: {state: "active"},
+    });
+    await expect(setDiscoveryPublicNameHandler(request({code: "ABC234", publicName: "new name"}), {store, ...publicNamesOn})).rejects.toMatchObject({code: "permission-denied"});
+    expect(docs.get("discoverableSpaces/ABC234")?.publicName).toBe("old name");
+  });
+
   test("rate limits reports per account and caps the day", async () => {
     const now = new Date("2026-08-22T12:00:00Z");
-    const {store} = makeStore(owned);
+    const {store} = makeStore({
+      ...owned,
+      "rooms/DEF234": {uid: "other-owner"},
+      "discoverableSpaces/DEF234": {publicName: "other", ownerKey: ownerKeyForUid("other-owner")},
+    });
     await reportDiscoverableSpaceHandler(request({code: "ABC234", category: "other"}, "reporter"), {store, now: () => now});
-    await expect(reportDiscoverableSpaceHandler(request({code: "ABC234", category: "impersonation"}, "reporter"), {store, now: () => new Date(now.getTime() + 10_000)})).rejects.toMatchObject({code: "resource-exhausted"});
+    await expect(reportDiscoverableSpaceHandler(request({code: "DEF234", category: "impersonation"}, "reporter"), {store, now: () => new Date(now.getTime() + 10_000)})).rejects.toMatchObject({code: "resource-exhausted"});
 
     const capped = makeStore({
       ...owned,

@@ -188,14 +188,27 @@ service cloud.firestore {
     // keys and the room document contains more context than a directory needs.
     // The optional public name is the only authored field. Clients may create
     // it only blank and must preserve it on refresh; only the moderated Admin
-    // callable may change it.
+    // callable may change it. ownerKey is a stable, non-reversible SHA-256
+    // projection of the room owner's UID, used for bans without exposing UID.
+    function ownerKeyFor(uid) {
+      // Rules hashing consumes UTF-8 bytes; this is the Rules-valid form of
+      // the SHA-256(uid) contract.
+      return hashing.sha256(uid.toUtf8()).toHexString().lower();
+    }
+
+    function ownerIsNotBanned(ownerKey) {
+      return !exists(
+        /databases/$(database)/documents/discoveryBans/$(ownerKey)
+      );
+    }
+
     function validDiscoverableSpaceShape(code, d) {
       return code.matches('^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$')
         && d.keys().hasOnly([
           'v', 'title', 'level', 'wall', 'floor', 'skin', 'window', 'bucket',
-          'publicName', 'updatedAt', 'expiresAt'
+          'publicName', 'ownerKey', 'updatedAt', 'expiresAt'
         ])
-        && d.v == 2
+        && d.v == 3
         && d.title is string && validBuildTitle(d.title)
         && d.level is int && d.level >= 1 && d.level <= 9999
         && d.wall in [
@@ -221,6 +234,7 @@ service cloud.firestore {
         ]
         && d.bucket is int && d.bucket >= 0 && d.bucket <= 999999
         && d.publicName is string && d.publicName.size() <= 32
+        && d.ownerKey is string && d.ownerKey.matches('^[a-f0-9]{64}$')
         && d.updatedAt is timestamp
         && d.expiresAt is timestamp;
     }
@@ -232,6 +246,8 @@ service cloud.firestore {
 
     function validDiscoverableSpace(code) {
       return validDiscoverableSpaceData(code, request.resource.data)
+        && request.resource.data.ownerKey == ownerKeyFor(request.auth.uid)
+        && ownerIsNotBanned(request.resource.data.ownerKey)
         && request.resource.data.updatedAt == request.time
         && request.resource.data.expiresAt
           <= request.time + duration.value(31, 'd');

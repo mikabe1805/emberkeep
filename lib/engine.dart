@@ -174,6 +174,21 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void markRoomDiscoveryRemovalPending(String rawCode) {
+    final code = rawCode.trim().toUpperCase();
+    if (!RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code)) {
+      return;
+    }
+    final changed =
+        roomDiscoverable ||
+        roomDiscoveryName.isNotEmpty ||
+        !_roomDiscoveryRemovalCodes.contains(code);
+    roomDiscoverable = false;
+    roomDiscoveryName = '';
+    _roomDiscoveryRemovalCodes.add(code);
+    if (changed) notifyListeners();
+  }
+
   void setRoomDiscoveryName(String value) {
     final next = roomDiscoverable ? sanitizeDiscoveryPublicName(value) : '';
     if (roomDiscoveryName == next) return;
@@ -187,19 +202,29 @@ class GameState extends ChangeNotifier {
   /// safety operation exists.
   final List<String> hearthCircleCodes = [];
   final Map<String, String> hearthCircleNames = {};
+  final Map<String, String> hearthCircleOwnerKeys = {};
   final Set<String> blockedRoomCodes = {};
+  final Map<String, String> blockedDiscoveryOwners = {};
 
-  bool addCircleCode(String raw, {String publicName = ''}) {
+  bool addCircleCode(
+    String raw, {
+    String publicName = '',
+    String ownerKey = '',
+  }) {
     final code = raw.trim().toUpperCase();
+    final cleanOwnerKey = isValidDiscoveryOwnerKey(ownerKey) ? ownerKey : '';
     if (!RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) ||
         code == roomCode ||
         blockedRoomCodes.contains(code) ||
+        (cleanOwnerKey.isNotEmpty &&
+            blockedDiscoveryOwners.containsKey(cleanOwnerKey)) ||
         hearthCircleCodes.contains(code)) {
       return false;
     }
     hearthCircleCodes.add(code);
     final cleanName = sanitizeDiscoveryPublicName(publicName);
     if (cleanName.isNotEmpty) hearthCircleNames[code] = cleanName;
+    if (cleanOwnerKey.isNotEmpty) hearthCircleOwnerKeys[code] = cleanOwnerKey;
     notifyListeners();
     return true;
   }
@@ -208,7 +233,23 @@ class GameState extends ChangeNotifier {
     final code = raw.trim().toUpperCase();
     final removed = hearthCircleCodes.remove(code);
     final forgotName = hearthCircleNames.remove(code) != null;
-    if (removed || forgotName) notifyListeners();
+    final forgotOwner = hearthCircleOwnerKeys.remove(code) != null;
+    if (removed || forgotName || forgotOwner) notifyListeners();
+  }
+
+  /// Learns the stable owner identity after a trusted Circle code is fetched.
+  /// Older saved keeps have no owner key until their next successful refresh.
+  bool rememberCircleOwnerKey(String raw, String ownerKey) {
+    final code = raw.trim().toUpperCase();
+    if (!hearthCircleCodes.contains(code) ||
+        !isValidDiscoveryOwnerKey(ownerKey) ||
+        blockedDiscoveryOwners.containsKey(ownerKey) ||
+        hearthCircleOwnerKeys[code] == ownerKey) {
+      return false;
+    }
+    hearthCircleOwnerKeys[code] = ownerKey;
+    notifyListeners();
+    return true;
   }
 
   bool blockRoomCode(String raw) {
@@ -220,13 +261,47 @@ class GameState extends ChangeNotifier {
     final changed = blockedRoomCodes.add(code);
     final removed = hearthCircleCodes.remove(code);
     final forgotName = hearthCircleNames.remove(code) != null;
-    if (changed || removed || forgotName) notifyListeners();
-    return changed || removed || forgotName;
+    final forgotOwner = hearthCircleOwnerKeys.remove(code) != null;
+    if (changed || removed || forgotName || forgotOwner) notifyListeners();
+    return changed || removed || forgotName || forgotOwner;
   }
 
   void unblockRoomCode(String raw) {
     final code = raw.trim().toUpperCase();
     if (blockedRoomCodes.remove(code)) notifyListeners();
+  }
+
+  bool blockDiscoveryOwner(String ownerKey, String rawCode) {
+    if (!isValidDiscoveryOwnerKey(ownerKey)) return blockRoomCode(rawCode);
+    final code = rawCode.trim().toUpperCase();
+    if (!RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) ||
+        code == roomCode) {
+      return false;
+    }
+    var changed = blockedDiscoveryOwners[ownerKey] != code;
+    blockedDiscoveryOwners[ownerKey] = code;
+    changed = blockedRoomCodes.add(code) || changed;
+    final matchingCodes = [
+      for (final entry in hearthCircleOwnerKeys.entries)
+        if (entry.value == ownerKey) entry.key,
+    ];
+    for (final matchingCode in matchingCodes) {
+      changed = hearthCircleCodes.remove(matchingCode) || changed;
+      changed = hearthCircleNames.remove(matchingCode) != null || changed;
+      changed = hearthCircleOwnerKeys.remove(matchingCode) != null || changed;
+    }
+    changed = hearthCircleCodes.remove(code) || changed;
+    changed = hearthCircleNames.remove(code) != null || changed;
+    changed = hearthCircleOwnerKeys.remove(code) != null || changed;
+    if (changed) notifyListeners();
+    return changed;
+  }
+
+  void unblockDiscoveryOwner(String ownerKey) {
+    final code = blockedDiscoveryOwners.remove(ownerKey);
+    if (code == null) return;
+    blockedRoomCodes.remove(code);
+    notifyListeners();
   }
 
   /// A private daily capacity lens. It never changes rewards, streaks, or
@@ -1865,7 +1940,13 @@ class GameState extends ChangeNotifier {
         if (hearthCircleNames[code]?.isNotEmpty == true)
           code: hearthCircleNames[code],
     },
+    'hearthCircleOwnerKeys': {
+      for (final code in hearthCircleCodes)
+        if (isValidDiscoveryOwnerKey(hearthCircleOwnerKeys[code]))
+          code: hearthCircleOwnerKeys[code],
+    },
     'blockedRoomCodes': blockedRoomCodes.toList(),
+    'blockedDiscoveryOwners': blockedDiscoveryOwners,
     'energyWeather': energyWeather.name,
     'energyWeatherDay': energyWeatherDay,
     'energyHistory': {
@@ -2070,15 +2151,39 @@ class GameState extends ChangeNotifier {
         }
       }
     }
+    final rawBlockedOwners = j['blockedDiscoveryOwners'];
+    if (rawBlockedOwners is Map) {
+      for (final entry in rawBlockedOwners.entries.take(100)) {
+        final ownerKey = entry.key;
+        final code = entry.value is String
+            ? (entry.value as String).trim().toUpperCase()
+            : '';
+        if (isValidDiscoveryOwnerKey(ownerKey) &&
+            RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) &&
+            code != s.roomCode) {
+          s.blockedDiscoveryOwners[ownerKey as String] = code;
+          s.blockedRoomCodes.add(code);
+        }
+      }
+    }
+    final rawCircleOwnerKeys = j['hearthCircleOwnerKeys'];
     final rawCircleCodes = j['hearthCircleCodes'];
     if (rawCircleCodes is List) {
       for (final raw in rawCircleCodes) {
         final code = raw is String ? raw.trim().toUpperCase() : '';
+        final ownerKey = rawCircleOwnerKeys is Map
+            ? rawCircleOwnerKeys[code]
+            : null;
         if (RegExp(r'^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$').hasMatch(code) &&
             !s.blockedRoomCodes.contains(code) &&
+            (!isValidDiscoveryOwnerKey(ownerKey) ||
+                !s.blockedDiscoveryOwners.containsKey(ownerKey)) &&
             code != s.roomCode &&
             !s.hearthCircleCodes.contains(code)) {
           s.hearthCircleCodes.add(code);
+          if (isValidDiscoveryOwnerKey(ownerKey)) {
+            s.hearthCircleOwnerKeys[code] = ownerKey as String;
+          }
         }
       }
     }

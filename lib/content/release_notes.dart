@@ -10,6 +10,7 @@ enum ReleaseHighlightKind {
   roomGuide,
   interactionSound,
   questControl,
+  spaceDiscovery,
 }
 
 class ReleaseHighlight {
@@ -49,6 +50,38 @@ class RoomReleaseNotes {
 /// Newest first. A user-facing build is not ready to release until its record
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
+  RoomReleaseNotes(
+    id: '1.0.4+30',
+    versionLabel: 'VERSION 1.0.4 · BUILD 30',
+    dateLabel: 'AUGUST 2026',
+    title: 'Open the door, on your terms.',
+    introduction:
+        'You can now find other keepers through Discover — or list your own '
+        'room with a separate public name, only when you choose.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.spaceDiscovery,
+        title: 'A FEW OPEN DOORS',
+        body:
+            'Discover offers a small, shuffled handful of rooms whose keepers '
+            'chose to be found. No code exchange is needed.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.streakSafety,
+        title: 'YOUR PRIVATE LIFE STAYS PRIVATE',
+        body:
+            'Listing a room shows only an optional public name, its generated '
+            'style, title, and level — never quests, Journal pages, or account details.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'KEEP UP WITHOUT KEEPING SCORE',
+        body:
+            'Keep a space in your Circle to return. Progress is never ranked, '
+            'and blocking a keeper hides their future rooms too.',
+      ),
+    ],
+  ),
   RoomReleaseNotes(
     id: '1.0.4+29',
     versionLabel: 'VERSION 1.0.4 · BUILD 29',

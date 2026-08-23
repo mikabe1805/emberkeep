@@ -3,9 +3,10 @@
 These are direct production-UI captures from one deterministic account. They
 have no device frame, overlay copy, alpha channel, or transparency.
 
-The six-frame iOS set was freshly regenerated from the `1.0.4+29` candidate and
-opened for visual inspection on August 22, 2026. Its compact review sheet is
-`design/comparisons/2026-08-22/app-store-build-29-phone.webp`.
+The seven-frame iOS set was freshly regenerated from the feature-on `1.0.4+30`
+candidate and opened for visual inspection on August 23, 2026. Its compact
+review sheet is
+`design/comparisons/2026-08-23/app-store-build-30-phone.webp`.
 
 - `app-store/` contains Apple's accepted 1290×2796 iPhone 6.9-inch class.
 - `google-play/` contains Google's recommended 1080×1920 portrait class. A
@@ -21,6 +22,7 @@ The App Store sequence is:
 4. My Space — the authored room, earned Glimmers, level, and milestones.
 5. Change Space — a full-room preview and the no-cost room-switching promise.
 6. Journal — a private local entry shown in its then-and-now context.
+7. Discover — a finite, opt-in directory of rooms with optional public names.
 
 Google Play remains the earlier five-image core story without the Plans frame;
 Android publication is deferred, so those files stay unchanged in this iOS pass.

@@ -20,21 +20,20 @@ productivity language.
 
 ## App Store What's New — Version 1.0.4
 
-Your whole day has a place now.
+Open the door, on your terms.
 
-Plans now holds personal events and tasks without asking you to set up a
-course. Month, Week, 3 Days, and Day bring plans, classes, deadlines, and
-chosen quests into one calm view. Save a location and open directions in Apple
-Maps or Google Maps. Streak freezes make returning gentler after a day away.
+Discover now offers a small, shuffled handful of rooms whose keepers chose to
+be found. Make your own room discoverable only when you want to, choose a
+separate optional public name, and keep interesting spaces in your Circle
+without exchanging codes first. Quests, Journal pages, streaks, private Me
+cards, and account details stay out of the directory.
 
-Quests are easier to change: take one back, choose it again, or move a weekly
-quest to another day without losing it.
+You can block a keeper across future room-code changes or send a private
+report. Public names are filtered and rate-limited, and community rules are
+available from Discover.
 
-Clicking around the room now has a crisp, varied voice. A rare melodic reply
-can surface during a natural rhythm, while rapid taps and quest completions
-stay clear and uncluttered. The hearth still wakes with one small ignition when
-a visit begins. Room of Days also has a brighter Day Ledger icon, drawn from
-the daily quest ledger at the heart of the app.
+This build also keeps the new seven-session guided-workout chooser and pairs
+every quest sound with the visible movement that caused it.
 
 ## Full description
 
@@ -59,7 +58,9 @@ With Room of Days you can:
 - see patterns in your progress without being judged by them;
 - keep a private journal with optional on-device photos;
 - back up across devices with an optional account; and
-- share a six-character code so a friend can visit the room you built.
+- share a six-character code so a friend can visit the room you built;
+- optionally list your room in Discover with a separate public name; and
+- find a few open rooms and keep as many as you want in your private Circle.
 
 Room of Days works without an account. Your device is the source of truth, cloud
 backup is optional, and manual export is always available. There are no ads,
@@ -81,17 +82,15 @@ It is built to be kind. Nothing takes damage, days away cost nothing, and
 coming back after a break is rewarded. Every cosmetic is earned. There are no
 ads, subscriptions, or paywalls.
 
-This build adds a general Daybook for events and tasks, keeps School as an
-optional lane, brings personal plans and classes into the same calendar views,
-keeps fixed plans, deadlines, and chosen quests visually distinct, and opens
-directions from manually saved locations. Goals now lets you take back and
-reselect adopted quests or move a weekly quest to another day. A new cohesive
-interaction-sound system keeps ordinary clicks crisp and varied, reserves a
-short melodic reply for a rare natural rhythm, and gives quest completion clear
-priority. The one-time hearth ignition, calmer rotating Quest companion lines,
-and brighter Day Ledger app icon remain part of the same polish pass. Protected
-Google place search remains intentionally off in this build; manual locations
-do not require an account or device-location permission.
+This build makes the optional public room directory available. Discover shows
+a finite, shuffled handful of rooms whose keepers explicitly opted in. A keeper
+may choose a separate optional public name; quests, Journal pages, streaks,
+private Me cards, email, and account details stay out of the directory. Visitors
+can privately report or block a keeper across future room-code changes, and can
+keep as many trusted spaces as they want in their private Circle. Public names
+are filtered, rate-limited, and protected by App Check. This build also includes
+the seven-session guided-workout chooser and the final movement-linked quest
+sound behavior. Protected Google place search remains intentionally off.
 
 Feedback on clarity, warmth, performance, and anything that gets between you
 and doing what matters is especially useful.
@@ -100,6 +99,17 @@ and doing what matters is especially useful.
 
 - Install over the previous TestFlight build and confirm your quests, goals,
   journal, room, and settings remain.
+- In Me, open **Share my space**, switch on **Make my space discoverable**, and
+  save or clear a separate public name. Confirm Me says **ROOM LISTED · CARDS
+  PRIVATE**, then turn discovery off and confirm the listing state closes.
+- Open **Discover spaces**. Refresh the finite set, open a room, keep it in your
+  Circle, and return without entering a code. Confirm private quests, Journal
+  pages, streaks, and account details never appear on a directory card.
+- From a discovered room, block the keeper and confirm all of their current
+  cards disappear. Unblock from **Manage hidden spaces**. Send a private test
+  report and verify the success/failure message is honest.
+- Open **Community rules & safety** from Discover and confirm the hosted page,
+  support address, and appeal route work.
 - In Plans, add an all-day event, a timed event, and a task. Edit, complete,
   undo, and delete them; then force-quit and confirm the saved entries return.
 - Try Month, Week, 3 Days, and Day. Check Today's marker, longer titles, and
@@ -151,15 +161,22 @@ that makes returning after a break feel harder than it should.
   purchase, paid entitlement, subscription, or in-app donation flow. Android
   and web may link to the owner's voluntary tip-only Ko-fi page; tips unlock
   nothing in Room of Days.
-- **Shared spaces:** Code-gated and read-only to visitors. They contain preset
-  room appearance, level, app-generated title, and broad app-generated activity
-  signals. The v1 store candidate does not publish a display name, profile
-  cards, goals, journal or season writing, or photos to visitors. Quest details,
-  streak history, email, sign-in credentials, and account-profile details also
-  stay private.
-  The backend room record carries a pseudonymous Firebase owner ID solely so
-  security rules can restrict changes to its owner; the app does not display it
-  as profile identity.
+- **Shared spaces and Discover:** Exact-code rooms remain read-only to visitors.
+  Discover is a separate, explicit opt-in and returns only a finite shuffled
+  handful. Directory cards contain a separate optional public name, preset room
+  appearance, level, app-generated title, and an opaque stable keeper key used
+  for owner-level blocking. They do not contain quests, Journal pages, streaks,
+  private Me cards, email, sign-in credentials, or account-profile details.
+  Opening a card fetches the same shared room by its bearer code.
+- **Public-name safety:** Names are limited to 32 characters, normalized,
+  filtered for abusive language, links, handles, and contact cues, rate-limited,
+  and written only through an App Check-protected callable. Every discovered
+  room exposes **Block or report this keeper**. Blocking persists locally across
+  room-code changes; reports are private and enter a developer-reviewed queue.
+  Community rules and the monitored support/appeal address are published at
+  `https://roomofdays.com/community`. The developer reviews the queue daily and
+  targets action within 24 hours; if that operation cannot be maintained,
+  public names are disabled until review resumes.
 - **Review account:** OWNER REQUIRED before Google Play review. Create one
   dedicated, reusable review-only account, store its credentials outside the
   repository, and enter them only in the store consoles. Google should receive
@@ -442,9 +459,9 @@ and [Play developer account types](https://support.google.com/googleplay/android
 
 - No violence, gambling, sexual content, controlled substances, or mature
   themes.
-- No free-form chat, feed, public discovery, or user-generated content displayed
-  to other users in the v1 store candidate. A room code exposes app-generated
-  room and presence fields only; Circle and Sparks are fixed, text-free signals.
+- No free-form chat or post feed. Discover displays one optional, filtered
+  public name plus app-generated room fields. Circle and Sparks remain private,
+  fixed-purpose interactions rather than a follower count or public ranking.
 - Wellness/productivity framing only. Do not claim to diagnose, treat, cure, or
   prevent ADHD or any medical condition.
 - Complete Apple’s updated age-rating questionnaire in App Store Connect before
@@ -454,7 +471,9 @@ and [Play developer account types](https://support.google.com/googleplay/android
 
 - **Parental Controls / Age Assurance:** No / No.
 - **Unrestricted Web Access / User-Generated Content / Social Media /
-  Advertising:** No / No / No / No.
+  Advertising:** No / Yes / No / No. User-generated content is limited to the
+  optional public name in Discover and has filtering, reporting, blocking, and
+  human moderation.
 - **Messaging and Chat:** Yes, conservatively, because one person can send a
   fixed preset Spark or Circle receipt to a room owner. There is no free-form
   message, reply thread, public post, or sender profile.
@@ -467,9 +486,9 @@ and [Play developer account types](https://support.google.com/googleplay/android
 - **Contests and simulated gambling:** None. **Gambling:** No. **Loot Boxes:**
   No; Room of Days sells nothing, and Apple defines loot boxes as randomized
   virtual items for purchase.
-- **Made for Kids / Override:** Not Applicable. Expected global result: **9+**
-  because of health and wellness topics; accept Apple’s calculated regional
-  results rather than forcing a lower rating.
+- **Made for Kids / Override:** Not Applicable. Accept Apple’s recalculated
+  regional results after answering User-Generated Content truthfully; do not
+  preserve the prior 9+ result by withholding the new public-name surface.
 
 Apple’s current definitions are in the
 [age-rating reference](https://developer.apple.com/help/app-store-connect/reference/app-information/age-ratings-values-and-definitions).
@@ -499,10 +518,11 @@ and [label management](https://developer.apple.com/help/app-store-connect/manage
 - Ads, purchases, gambling, simulated gambling, paid randomized items,
   violence, sexual content, profanity, drugs, and unrestricted web browsing:
   **No**.
-- User-shared text/photos/audio and public UGC discovery: **No**.
-- User interaction: **Yes**, if the questionnaire counts fixed Circle/Spark
-  receipts; explain that interaction is preset, one-way, text-free, and has no
-  chat or public profile.
+- User-shared text: **Yes**, limited to an optional filtered public name.
+  User-shared photos/audio: **No**. Public UGC discovery: **Yes**.
+- User interaction: **Yes**. Explain that Discover has no chat, comments,
+  public follower graph, or ranking; Circle/Spark receipts remain preset and
+  text-free, while public names have report, block, and moderation controls.
 - Account required: **No**. Optional account creation and deletion are both
   available.
 

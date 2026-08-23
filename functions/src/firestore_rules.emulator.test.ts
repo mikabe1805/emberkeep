@@ -23,7 +23,7 @@ const describeWithEmulator = process.env.FIRESTORE_EMULATOR_HOST ?
   describe : describe.skip;
 
 const projection = (bucket: number) => ({
-  v: 2,
+  v: 3,
   title: "KEEPER",
   level: 4,
   wall: "wall_conservatory",
@@ -32,6 +32,7 @@ const projection = (bucket: number) => ({
   window: "moon",
   bucket,
   publicName: "",
+  ownerKey: "4c1029697ee358715d3a14a2add817c4b01651440de808371f78165ac90dc581",
   updatedAt: Timestamp.now(),
   expiresAt: Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000),
 });
@@ -128,5 +129,20 @@ describeWithEmulator("discoverableSpaces Firestore rules", () => {
       expiresAt: Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000),
     }));
     await assertSucceeds(getDoc(doc(database, "discoverableSpaces", "XYZ234")));
+  });
+
+  test("rejects an owner create or refresh while its stable owner key is banned", async () => {
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const database = context.firestore();
+      await setDoc(doc(database, "rooms", "NEW234"), {uid: "owner"});
+      await setDoc(doc(database, "discoveryBans", "4c1029697ee358715d3a14a2add817c4b01651440de808371f78165ac90dc581"), {state: "active"});
+    });
+    const owner = environment.authenticatedContext("owner").firestore();
+    await assertFails(setDoc(doc(owner, "discoverableSpaces", "NEW234"), projection(250000)));
+    await assertFails(setDoc(doc(owner, "discoverableSpaces", "XYZ234"), {
+      ...projection(100000),
+      updatedAt: serverTimestamp(),
+      expiresAt: Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    }));
   });
 });

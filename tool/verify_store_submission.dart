@@ -12,6 +12,7 @@ const _appStoreScreenshots = <String>[
   '04-my-space-1290x2796.png',
   '05-change-space-1290x2796.png',
   '06-journal-1290x2796.png',
+  '07-discover-1290x2796.png',
 ];
 
 const _playScreenshots = <String>[
@@ -86,6 +87,8 @@ Future<void> main(List<String> arguments) async {
     }
     for (final path in const [
       'web/privacy.html',
+      'web/terms.html',
+      'web/community.html',
       'web/delete-account.html',
       'web/support.html',
       'ACCOUNT-RECOVERY-RUNBOOK.md',
@@ -94,6 +97,9 @@ Future<void> main(List<String> arguments) async {
     }
     final privacyCopy = (await File(
       'web/privacy.html',
+    ).readAsString()).replaceAll(RegExp(r'\s+'), ' ');
+    final communityCopy = (await File(
+      'web/community.html',
     ).readAsString()).replaceAll(RegExp(r'\s+'), ' ');
     final recoveryRunbook = (await File(
       'ACCOUNT-RECOVERY-RUNBOOK.md',
@@ -281,6 +287,15 @@ Future<void> main(List<String> arguments) async {
       privacyCopy,
       'does not diagnose, treat, cure, or prevent any medical condition',
     );
+    for (final disclosure in const [
+      'Block and report',
+      'current and future public rooms',
+      'reviews the report queue every day',
+      'within 24 hours',
+      'support@roomofdays.com',
+    ]) {
+      _expectContains('community safety page', communityCopy, disclosure);
+    }
     _pass(
       'public URLs, local pages, privacy/health and console declarations, '
       '${iosOnly ? 'current in-app release notes' : 'candidate permissions'}, '
@@ -329,6 +344,7 @@ Future<void> main(List<String> arguments) async {
       '4. My Space',
       '5. Change Space',
       '6. Journal',
+      '7. Discover',
     ]) {
       _expectContains('screenshot README', screenshotReadme, item);
     }
@@ -341,7 +357,7 @@ Future<void> main(List<String> arguments) async {
     }
     _pass(
       iosOnly
-          ? 'App Store icon and six-image screenshot set are RGB'
+          ? 'App Store icon and seven-image screenshot set are RGB'
           : 'icons, feature graphic, and both five-image screenshot sets are RGB',
     );
 

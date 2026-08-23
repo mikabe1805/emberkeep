@@ -1,9 +1,57 @@
 # Room of Days Release Checklist
 
-Updated August 22, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 23, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.4+29 iOS App Store candidate — supersedes Build 28
+## 1.0.4+30 iOS App Store candidate — supersedes Build 29
+
+Build 29 reached TestFlight from `e2df153` through Codemagic Build #42. Build 30
+turns the approved social direction into an actual release surface: keepers can
+explicitly list a room with a separate optional public name, Discover offers a
+finite shuffled handful without a code exchange, and Circle remains private and
+uncapped. A stable opaque keeper key makes blocks survive room-code rotation;
+private reports, server filters, rate limits, bans, community rules, and a daily
+moderation queue form one safety boundary. My Space now distinguishes a listed
+room from still-private cards. The iOS workflow explicitly compiles both
+discovery flags. `pubspec.yaml` is `1.0.4+30`.
+
+- [x] Keep Build 29 available as the processed TestFlight fallback and give the
+  enabled candidate a new build identity.
+- [x] Compile `SPACE_DISCOVERY=true` and `PUBLIC_DISCOVERY_NAMES=true` into the
+  sole Codemagic IPA command and run focused feature-on tests before archive.
+- [x] Make opt-in/listed/private states truthful in Me and the share dialog;
+  keep the public name separate from the private Me name.
+- [x] Add keeper-level block persistence, report/block copy, code-rotation
+  verification, server-side filters/rate limits/bans, and app-accessible
+  community rules with a monitored support and appeal route.
+- [x] Update privacy, terms, reviewer notes, data-safety guidance, and age-rating
+  guidance for the optional public name rather than describing the release as
+  code-only.
+- [ ] Link the Firebase project to Blaze, add a low budget alert, enable the
+  required APIs, register iOS App Attest, and keep public names unavailable if
+  attestation or callable enforcement is not healthy.
+- [ ] Deploy the exact checked-in Firestore rules and discovery Functions,
+  configure TTL for `discoverableSpaces.expiresAt`, and publish the matching
+  privacy, terms, community, and support pages.
+- [ ] Smoke the live directory with two signed identities: opt in, set/clear a
+  name, browse, open, keep in Circle, report, block, rotate a code, unblock, opt
+  out, and verify expired/removed listings are unreadable.
+- [x] Generate and inspect the appended seventh 1290×2796 Discover capture from
+  the exact feature-on Build 30 source. Preserve frames 1–6 in their existing
+  order. The August 23 seven-frame sheet and focused Discover/Me/share/report/
+  Circle/workout sheet were both opened at full production geometry.
+- [ ] Confirm the App Store Version 1.0.4 draft remains unsent, update its UGC
+  age-rating answer and reviewer notes, and replace the screenshot set with the
+  seven-frame Build 30 story.
+- [ ] Commit and push the reviewed release HEAD, then start exactly one
+  `ios-testflight` workflow from that commit.
+- [ ] Save the IPA, dSYMs, and `release-evidence.txt`; verify the evidence says
+  Build 30 with both discovery flags enabled and confirms TestFlight upload.
+- [ ] Install over Build 29 on a physical iPhone and complete
+  `DEVICE-ACCEPTANCE-RUNBOOK.md` before selecting Build 30 in the App Store draft
+  or making a public submission change.
+
+## 1.0.4+29 internal TestFlight record — superseded by Build 30
 
 Build 28 reached TestFlight from `6d0781c` before this final interaction and
 Circle pass. Build 29 makes sound belong to visible motion: every quest bob
@@ -22,10 +70,10 @@ and public names remain default-off and are not deployed by the iOS workflow.
   accompanying Firestore rules or Functions.
 - [ ] Confirm the existing App Store Version 1.0.4 draft remains unsent and
   public US distribution and agreements remain in effect.
-- [ ] In Codemagic, select `release/room-of-days-1.0.4`, verify the displayed
-  commit is the pushed release HEAD, and start exactly one `ios-testflight` run.
-- [ ] Save the emitted IPA, dSYMs, and `release-evidence.txt`; verify the source
-  commit, marketing version, build number, signature, and TestFlight upload.
+- [x] Codemagic Build #42 archived and uploaded Build 29 from `e2df153` through
+  the `ios-testflight` workflow.
+- [x] Preserve its emitted IPA, dSYMs, and release evidence in Codemagic as the
+  processed fallback for Build 30.
 - [ ] After Apple finishes processing, add Build 29 to the intended internal
   tester group and install it over Build 28 on a physical iPhone.
 - [ ] Complete `DEVICE-ACCEPTANCE-RUNBOOK.md` before selecting Build 29 in the
@@ -80,7 +128,7 @@ it is superseded rather than releasable. Build 23 remains the known processed
 fallback; Build 25 was the target of the historical preparation below.
 
 The uncompleted Build 25 release actions were superseded before they ran; the
-active release actions now live in the Build 29 section above.
+active release actions now live in the Build 30 section above.
 
 - [x] Preserve Build 23 as an internal TestFlight fallback. A live Codemagic
   high-water check found the older Build 24 on Apple, so advance the final
@@ -307,12 +355,11 @@ Task 5 documentation commit itself.
 
 ## Verify before every candidate
 
-- [x] Keep the iOS Build 29 record first in `lib/content/release_notes.dart` and
-  match its `1.0.4+29` identity to `pubspec.yaml`. The frozen Android Build 20
-  manifest remains separate in `release-candidate.json`. The current record
-  and store copy include only factual interaction-sound, guided-workout, Circle,
-  Plans, Journal, Daybook, quest-management, hearth, companion-copy, and Day
-  Ledger changes in this candidate. Default-off Discovery is not advertised.
+- [x] Keep the iOS Build 30 record first in `lib/content/release_notes.dart` and
+  match its `1.0.4+30` identity to `pubspec.yaml`. The frozen Android Build 20
+  manifest remains separate in `release-candidate.json`. The current record and
+  store copy truthfully include enabled, opt-in Discover and its privacy/safety
+  controls alongside the already shipped sound, workout, and Circle changes.
 - [ ] Install over the previous build and confirm What's New appears once,
   dismisses through both exits, and remains replayable from Me. Confirm a
   fresh install goes directly to onboarding, then inspect the normal,
@@ -574,20 +621,21 @@ Task 5 documentation commit itself.
   to distribute in the EU`; App Store Connect now reports all current DSA
   regulatory requirements complete and the 27-country compliance record
   `Active` without public trader contact details.
-- [x] Complete Apple’s current age-rating questionnaire. The saved result is 9+:
-  Health or Wellness Topics and fixed in-app Messaging and Chat are present;
-  the other surveyed content is absent.
+- [ ] Re-open Apple’s age-rating questionnaire for Build 30. Keep Health or
+  Wellness Topics and fixed Messaging/Chat, answer User-Generated Content Yes
+  for the optional public name, and accept Apple’s recalculated rating.
 - [ ] After the physical-iPhone accessibility pass, prepare App Store
   Accessibility Nutrition Labels. Publish only features whose every common task
   meets Apple's criteria; automated semantics and layout tests alone are not
   enough evidence.
 - [x] Create the 1024×500 Google Play feature graphic.
-- [x] Capture and inspect the refreshed six-frame iOS production set; the old
-  illustrated interface set has been removed. The prior Android production set
+- [ ] Capture and inspect the refreshed seven-frame iOS production set; the old
+  illustrated interface set stays removed. The prior Android production set
   remains intentionally frozen while publication is deferred.
-- [ ] Upload the refreshed six 1290×2796 iPhone screenshots to App Store Connect
-  and verify their persisted order is Quests, Reward, Plans, My Space, Change
-  Space, then Journal. Apple reuses the set for the 6.5-inch display.
+- [ ] Upload the refreshed seven 1290×2796 iPhone screenshots to App Store
+  Connect and verify their persisted order is Quests, Reward, Plans, My Space,
+  Change Space, Journal, then Discover. Apple reuses the set for the 6.5-inch
+  display.
 - [ ] Upload the final Google Play screenshots.
 - [ ] Supply review-only credentials if a reviewer asks to test an existing
   cross-device account.
@@ -615,6 +663,11 @@ Do not submit while any of these are true:
 - Firebase account email exposes the retired name/project identity, or the
   review account has not completed a real password-reset cycle.
 - Firebase rules in production differ from the checked-in rules.
+- `SPACE_DISCOVERY` is enabled before the directory rules, TTL policy, live
+  opt-in/opt-out smoke, and hosted privacy/community pages are verified.
+- `PUBLIC_DISCOVERY_NAMES` is enabled before App Check enforcement, the name and
+  report callables, owner-level bans, the daily moderation queue, and the
+  truthful User-Generated Content store answers are all live.
 - `VISITOR_PHOTO_SHARING` is enabled without an inspected Storage bucket,
   deployed rules, full production smoke, and matching privacy declarations.
 - `VISITOR_PROFILE_SHARING` is enabled without the complete reviewed UGC safety

@@ -1,6 +1,7 @@
 import 'dart:collection';
 
-import 'package:flutter/foundation.dart' show ChangeNotifier, ValueListenable;
+import 'package:flutter/foundation.dart'
+    show ChangeNotifier, ValueListenable, visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -31,6 +32,19 @@ final RegExp _roomCodePattern = RegExp(
 typedef RoomFetcher = Future<Map<String, dynamic>?> Function(String code);
 typedef DiscoveryPublicNameSaver =
     Future<DiscoveryPublicNameUpdate> Function(String name);
+
+@visibleForTesting
+bool reconcileDiscoveryAfterRoomPublish({
+  required GameState state,
+  required bool roomCodeChanged,
+  required bool directoryRefreshed,
+}) {
+  if (!roomCodeChanged || !state.roomDiscoverable || directoryRefreshed) {
+    return false;
+  }
+  state.markRoomDiscoveryRemovalPending(state.roomCode ?? '');
+  return true;
+}
 
 // The single public origin lives in content/links.dart; this alias keeps
 // the existing call sites and the SHARE_BASE_URL dart-define working.
@@ -626,6 +640,7 @@ Future<void> shareSpace(
   }
   _sharingSpace = true;
   try {
+    final previousRoomCode = state.roomCode;
     if (!await cloud.ensureAvailable()) {
       if (context.mounted) {
         _toast(context, 'Sharing needs a connection — try again in a moment.');
@@ -662,7 +677,8 @@ Future<void> shareSpace(
       _toast(context, message);
       return;
     }
-    if (state.roomCode != code) {
+    final roomCodeChanged = previousRoomCode != code;
+    if (roomCodeChanged) {
       state.setRoomCode(code);
       onPersist();
     }
@@ -672,7 +688,25 @@ Future<void> shareSpace(
       mediaRoomCode: code,
     );
     if (spaceDiscoveryEnabled && state.roomDiscoverable) {
-      await cloud.setRoomDiscoverable(code, sharedRoom, discoverable: true);
+      final directoryRefreshed = await cloud.setRoomDiscoverable(
+        code,
+        sharedRoom,
+        discoverable: true,
+      );
+      final discoveryDisabled = reconcileDiscoveryAfterRoomPublish(
+        state: state,
+        roomCodeChanged: roomCodeChanged,
+        directoryRefreshed: directoryRefreshed,
+      );
+      if (discoveryDisabled) {
+        onPersist();
+        if (context.mounted) {
+          _toast(
+            context,
+            'Discover could not confirm the new room, so cleanup will retry. Sharing by code still works.',
+          );
+        }
+      }
       if (!context.mounted) return;
     }
     Sfx.instance.play('loot');
@@ -682,6 +716,9 @@ Future<void> shareSpace(
       ownerName: roomInviteOwnerName(state),
       rotatedCode: published.rotatedStaleCode,
       discoverable: state.roomDiscoverable,
+      discoveryCleanupPending:
+          state.roomCode != null &&
+          state.roomDiscoveryRemovalCodes.contains(state.roomCode),
       publicDiscoveryName: state.roomDiscoveryName,
       onDiscoverableChanged: spaceDiscoveryEnabled
           ? (next) async {
@@ -737,6 +774,7 @@ Future<void> showShareSpaceDialog(
   String? ownerName,
   bool rotatedCode = false,
   bool discoverable = false,
+  bool discoveryCleanupPending = false,
   String publicDiscoveryName = '',
   Future<bool> Function(bool discoverable)? onDiscoverableChanged,
   DiscoveryPublicNameSaver? onPublicDiscoveryNameChanged,
@@ -750,6 +788,7 @@ Future<void> showShareSpaceDialog(
       ownerName: ownerName,
       rotatedCode: rotatedCode,
       discoverable: discoverable,
+      discoveryCleanupPending: discoveryCleanupPending,
       publicDiscoveryName: publicDiscoveryName,
       onDiscoverableChanged: onDiscoverableChanged,
       onPublicDiscoveryNameChanged: onPublicDiscoveryNameChanged,
@@ -809,6 +848,13 @@ Future<void> visitSpace(
     autoSubmit: autoSubmit,
   );
   if (result == null || !context.mounted) return;
+  final ownerKey = discoveryOwnerKeyFromRoom(result.room);
+  if (state != null &&
+      ownerKey != null &&
+      state.blockedDiscoveryOwners.containsKey(ownerKey)) {
+    _toast(context, 'That keeper is hidden on this device.');
+    return;
+  }
   await Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => VisitRoomScreen(
@@ -819,6 +865,7 @@ Future<void> visitSpace(
         parallax: parallax,
         localState: state,
         onPersist: onPersist,
+        discoveryOwnerKey: ownerKey ?? '',
       ),
     ),
   );
@@ -838,6 +885,7 @@ class _ShareDialog extends StatefulWidget {
     this.ownerName,
     this.rotatedCode = false,
     this.discoverable = false,
+    this.discoveryCleanupPending = false,
     this.publicDiscoveryName = '',
     this.onDiscoverableChanged,
     this.onPublicDiscoveryNameChanged,
@@ -848,6 +896,7 @@ class _ShareDialog extends StatefulWidget {
   final String? ownerName;
   final bool rotatedCode;
   final bool discoverable;
+  final bool discoveryCleanupPending;
   final String publicDiscoveryName;
   final Future<bool> Function(bool discoverable)? onDiscoverableChanged;
   final DiscoveryPublicNameSaver? onPublicDiscoveryNameChanged;
@@ -1048,8 +1097,10 @@ class _ShareDialogState extends State<_ShareDialog> {
                                         : _discoverable
                                         ? widget.onPublicDiscoveryNameChanged !=
                                                   null
-                                              ? 'People can find this room, keep it in their Circle, and return. Only the public name you choose, room style, and level appear.'
-                                              : 'People can find this room, keep it in their Circle, and return. Only its room style and level appear.'
+                                              ? 'People can find this room, keep it in their Circle, and return. Only the public name you choose, its generated title, room style, and level appear.'
+                                              : 'People can find this room, keep it in their Circle, and return. Only its generated title, room style, and level appear.'
+                                        : widget.discoveryCleanupPending
+                                        ? 'Discover could not confirm this room. Cleanup will retry when you reconnect; sharing by code still works.'
                                         : 'People with your code can still visit. Turn this on to also appear in Discover.',
                                     style: Type.body.copyWith(
                                       fontSize: 11.5,

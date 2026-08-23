@@ -31,6 +31,7 @@ migrate_working_dir/
 .env
 .env.*
 !.env.example
+!functions/.env.emberkeep-5b33b
 **/key.properties
 **/*.jks
 **/*.keystore

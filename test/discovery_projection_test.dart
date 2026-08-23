@@ -6,27 +6,31 @@ void main() {
   const code = 'ABC234';
 
   test('directory projection is an allowlist with no private activity', () {
-    final display = discoverableSpaceDisplay({
-      'title': 'MIGHTY MAKER',
-      'level': 42,
-      'wall': 'wall_archive',
-      'floor': 'floor_cherry',
-      'skin': 'ember_amber',
-      'window': 'aurora',
-      'uid': 'private-uid',
-      'name': 'private name',
-      'email': 'private@example.com',
-      'presence': true,
-      'todayLit': true,
-      'weather': 'bright',
-      'focusKind': 'study',
-      'focusUntil': 999999,
-      'memories': 500,
-      'quests': ['private quest'],
-      'journal': ['private journal'],
-      'streak': 20,
-      'profileVisible': true,
-    }, roomCode: code);
+    final display = discoverableSpaceDisplay(
+      {
+        'title': 'MIGHTY MAKER',
+        'level': 42,
+        'wall': 'wall_archive',
+        'floor': 'floor_cherry',
+        'skin': 'ember_amber',
+        'window': 'aurora',
+        'uid': 'private-uid',
+        'name': 'private name',
+        'email': 'private@example.com',
+        'presence': true,
+        'todayLit': true,
+        'weather': 'bright',
+        'focusKind': 'study',
+        'focusUntil': 999999,
+        'memories': 500,
+        'quests': ['private quest'],
+        'journal': ['private journal'],
+        'streak': 20,
+        'profileVisible': true,
+      },
+      roomCode: code,
+      ownerUid: 'owner-one',
+    );
 
     expect(display.keys, {
       'v',
@@ -37,12 +41,14 @@ void main() {
       'skin',
       'window',
       'bucket',
+      'ownerKey',
       'publicName',
     });
     expect(display['v'], discoverableSpaceVersion);
     expect(display['title'], 'MIGHTY MAKER');
     expect(display['wall'], 'wall_archive');
     expect(display['bucket'], discoverableSpaceBucket(code));
+    expect(display['ownerKey'], discoveryOwnerKey('owner-one'));
     expect(display['publicName'], isEmpty);
     expect(display.values.join(' '), isNot(contains('private')));
   });
@@ -58,25 +64,30 @@ void main() {
       discoveryPublicNameMaxLength,
     );
     expect(
-      discoverableSpaceDisplay({
-        'playerName': 'PRIVATE MIKA',
-        'displayName': 'ALSO PRIVATE',
-      }, roomCode: code)['publicName'],
+      discoverableSpaceDisplay(
+        {'playerName': 'PRIVATE MIKA', 'displayName': 'ALSO PRIVATE'},
+        roomCode: code,
+        ownerUid: 'owner-one',
+      )['publicName'],
       isEmpty,
     );
   });
 
   test('authored space themes survive the strict wall projection', () {
     expect(
-      discoverableSpaceDisplay({
-        'wall': 'wall_archive',
-      }, roomCode: code)['wall'],
+      discoverableSpaceDisplay(
+        {'wall': 'wall_archive'},
+        roomCode: code,
+        ownerUid: 'owner-one',
+      )['wall'],
       'wall_archive',
     );
     expect(
-      discoverableSpaceDisplay({
-        'wall': 'wall_conservatory',
-      }, roomCode: code)['wall'],
+      discoverableSpaceDisplay(
+        {'wall': 'wall_conservatory'},
+        roomCode: code,
+        ownerUid: 'owner-one',
+      )['wall'],
       'wall_conservatory',
     );
   });
@@ -90,7 +101,7 @@ void main() {
   test('summary rejects incompatible documents and safely renders bad ids', () {
     final now = DateTime.utc(2026, 8, 22);
     final summary = DiscoverableSpaceSummary.fromDocument('abc234', {
-      'v': 2,
+      'v': 3,
       'title': '  DEEP CURRENT  ',
       'level': 0,
       'wall': 'unknown_wall',
@@ -98,6 +109,7 @@ void main() {
       'skin': 'unknown_skin',
       'window': 'unknown_window',
       'bucket': 9,
+      'ownerKey': discoveryOwnerKey('owner-one'),
       'publicName': '  Rowan  ',
       'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
       'uid': 'never accepted into the model',
@@ -122,8 +134,9 @@ void main() {
     );
     expect(
       DiscoverableSpaceSummary.fromDocument(code, {
-        'v': 2,
+        'v': 3,
         'bucket': -1,
+        'ownerKey': discoveryOwnerKey('owner-one'),
         'publicName': '',
         'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
       }, now: now),
@@ -131,8 +144,9 @@ void main() {
     );
     expect(
       DiscoverableSpaceSummary.fromDocument('invalid', {
-        'v': 2,
+        'v': 3,
         'bucket': 1,
+        'ownerKey': discoveryOwnerKey('owner-one'),
         'publicName': '',
         'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
       }, now: now),
@@ -140,8 +154,9 @@ void main() {
     );
     expect(
       DiscoverableSpaceSummary.fromDocument(code, {
-        'v': 2,
+        'v': 3,
         'bucket': 1,
+        'ownerKey': discoveryOwnerKey('owner-one'),
         'publicName': '',
         'expiresAt': Timestamp.fromDate(now),
       }, now: now),

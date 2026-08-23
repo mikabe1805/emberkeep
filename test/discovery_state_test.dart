@@ -1,16 +1,20 @@
 import 'package:emberkeep/engine.dart';
+import 'package:emberkeep/discovery.dart';
 import 'package:emberkeep/release_features.dart';
+import 'package:emberkeep/social.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('space discovery is absent from ordinary release builds', () {
-    if (kSpaceDiscoveryEnabled) {
+  test(
+    'space discovery is absent from ordinary release builds',
+    () {
+      expect(kSpaceDiscoveryEnabled, isFalse);
       expect(kPublicDiscoveryNamesEnabled, isFalse);
-      return;
-    }
-    expect(kSpaceDiscoveryEnabled, isFalse);
-    expect(kPublicDiscoveryNamesEnabled, isFalse);
-  });
+    },
+    skip: kSpaceDiscoveryEnabled
+        ? 'This invocation deliberately verifies the feature-on candidate.'
+        : false,
+  );
 
   test(
     'discoverability defaults private and round-trips only when enabled',
@@ -80,6 +84,41 @@ void main() {
     },
   );
 
+  test('failed relist after a room-code rotation clears the listed claim', () {
+    final failed = GameState()
+      ..setRoomCode('ABC234')
+      ..setRoomDiscoverable(true)
+      ..setRoomDiscoveryName('Rowan')
+      ..setRoomCode('DEF234');
+
+    expect(
+      reconcileDiscoveryAfterRoomPublish(
+        state: failed,
+        roomCodeChanged: true,
+        directoryRefreshed: false,
+      ),
+      isTrue,
+    );
+    expect(failed.roomDiscoverable, isFalse);
+    expect(failed.roomDiscoveryName, isEmpty);
+    expect(failed.roomDiscoveryRemovalPending, isTrue);
+    expect(failed.roomDiscoveryRemovalCodes, {'DEF234'});
+
+    final acknowledged = GameState()
+      ..setRoomCode('ABC234')
+      ..setRoomDiscoverable(true)
+      ..setRoomCode('DEF234');
+    expect(
+      reconcileDiscoveryAfterRoomPublish(
+        state: acknowledged,
+        roomCodeChanged: true,
+        directoryRefreshed: true,
+      ),
+      isFalse,
+    );
+    expect(acknowledged.roomDiscoverable, isTrue);
+  });
+
   test(
     'Circle remembers discovered names locally and blocking removes them',
     () {
@@ -98,4 +137,21 @@ void main() {
       expect(restored.addCircleCode('DEF234'), isFalse);
     },
   );
+
+  test('owner blocks survive code rotation and Circle learns owner keys', () {
+    final ownerKey = discoveryOwnerKey('friend-uid');
+    final state = GameState();
+    expect(state.addCircleCode('DEF234'), isTrue);
+    expect(state.rememberCircleOwnerKey('DEF234', ownerKey), isTrue);
+    expect(state.blockDiscoveryOwner(ownerKey, 'DEF234'), isTrue);
+    expect(state.hearthCircleCodes, isEmpty);
+    expect(state.blockedDiscoveryOwners, {ownerKey: 'DEF234'});
+    expect(state.addCircleCode('GHJ234', ownerKey: ownerKey), isFalse);
+
+    final restored = GameState.fromJson(state.toJson());
+    expect(restored.blockedDiscoveryOwners, {ownerKey: 'DEF234'});
+    restored.unblockDiscoveryOwner(ownerKey);
+    expect(restored.blockedDiscoveryOwners, isEmpty);
+    expect(restored.addCircleCode('GHJ234', ownerKey: ownerKey), isTrue);
+  });
 }
