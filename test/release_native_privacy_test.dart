@@ -277,6 +277,16 @@ void main() {
     expect(compact, contains('community rules and safety guide'));
   });
 
+  test('production discovery deployment stays fail-closed', () {
+    final environment = _source('functions/.env.emberkeep-5b33b');
+    final firebase = _source('firebase.json');
+
+    expect(environment, contains('DISCOVERY_ENFORCE_APP_CHECK=true'));
+    expect(environment, contains('DISCOVERY_PUBLIC_NAMES_ENABLED=true'));
+    expect(environment, contains('PLACES_ENFORCE_APP_CHECK=false'));
+    expect(firebase, contains('"runtime": "nodejs22"'));
+  });
+
   test('place search review policies cover end-user terms and retention', () {
     final privacy = _source('web/privacy.html').replaceAll(RegExp(r'\s+'), ' ');
     final terms = _source('web/terms.html').replaceAll(RegExp(r'\s+'), ' ');
@@ -579,6 +589,11 @@ void main() {
     expect(manifest, isNot(contains('android:pathPrefix="/space"')));
     expect(manifest, isNot(contains('android:pathPrefix="/room"')));
     expect(entitlements, contains('applinks:roomofdays.com'));
+    expect(
+      entitlements,
+      contains('com.apple.developer.devicecheck.appattest-environment'),
+    );
+    expect(entitlements, contains('<string>production</string>'));
     expect(manifest, isNot(contains('www.roomofdays.com')));
     expect(entitlements, isNot(contains('www.roomofdays.com')));
     expect(association, contains('{ "/": "/space",'));
@@ -636,6 +651,11 @@ void main() {
       expect(workflow, contains('iphoneos26'));
       expect(workflow, contains('embedded.mobileprovision'));
       expect(workflow, contains(r'$APPLE_TEAM_ID.$BUNDLE_ID'));
+      expect(
+        workflow,
+        contains('com.apple.developer.devicecheck.appattest-environment'),
+      );
+      expect(workflow, contains('app_attest_environment=production'));
       expect(workflow, contains('release-evidence.txt'));
       expect(workflow, contains('Runner.xcarchive/dSYMs/*.dSYM'));
       expect(appDelegate, contains('import UserNotifications'));

@@ -19,8 +19,8 @@
 #      the PERSISTED Distribution cert's private key with `--certificate-key
 #      @env:CERTIFICATE_PRIVATE_KEY` makes --create reuse the existing cert.
 #   3. The workflow verifies that the App ID has Associated Domains enabled and
-#      verifies the fetched profile contains the corresponding entitlement before
-#      spending time on an archive.
+#      verifies the fetched profile contains both the corresponding entitlement
+#      and production App Attest before spending time on an archive.
 #   Do NOT also add an `environment.ios_signing` block — mixing the two re-triggers
 #   "No matching profiles found".
 #
@@ -113,6 +113,9 @@ workflows:
           /usr/libexec/PlistBuddy -c \
             'Print :Entitlements:com.apple.developer.associated-domains' \
             "$PROFILE_PLIST" >/dev/null
+          test "$(/usr/libexec/PlistBuddy -c \
+            'Print :Entitlements:com.apple.developer.devicecheck.appattest-environment' \
+            "$PROFILE_PLIST")" = "production"
 
           keychain add-certificates
           # use-profiles wires the fetched profile into the Runner target AND writes
@@ -220,6 +223,9 @@ workflows:
           codesign -d --entitlements :- "$APP" > "$VERIFY_DIR/entitlements.plist" 2>/dev/null
           plutil -lint "$VERIFY_DIR/entitlements.plist"
           grep -q 'applinks:roomofdays.com' "$VERIFY_DIR/entitlements.plist"
+          test "$(/usr/libexec/PlistBuddy -c \
+            'Print :com.apple.developer.devicecheck.appattest-environment' \
+            "$VERIFY_DIR/entitlements.plist")" = "production"
           test "$(/usr/libexec/PlistBuddy -c 'Print :get-task-allow' "$VERIFY_DIR/entitlements.plist")" = "false"
           test "$(/usr/libexec/PlistBuddy -c \
             'Print :com.apple.developer.team-identifier' "$VERIFY_DIR/entitlements.plist")" = "$APPLE_TEAM_ID"
@@ -239,6 +245,9 @@ workflows:
           /usr/libexec/PlistBuddy -c \
             'Print :Entitlements:com.apple.developer.associated-domains' \
             "$VERIFY_DIR/profile.plist" >/dev/null
+          test "$(/usr/libexec/PlistBuddy -c \
+            'Print :Entitlements:com.apple.developer.devicecheck.appattest-environment' \
+            "$VERIFY_DIR/profile.plist")" = "production"
           grep -q "$APPLE_TEAM_ID.$BUNDLE_ID" \
             web/.well-known/apple-app-site-association
 
@@ -274,6 +283,7 @@ workflows:
             echo "profile_expiration=$PROFILE_EXPIRATION"
             echo "signing_authority=$SIGNING_AUTHORITY"
             echo "associated_domain=applinks:roomofdays.com"
+            echo "app_attest_environment=production"
             echo "space_discovery=true"
             echo "public_discovery_names=true"
           } > "$EVIDENCE"

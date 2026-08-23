@@ -29,15 +29,22 @@ discovery flags. `pubspec.yaml` is `1.0.4+30`.
   code-only.
 - [ ] Link the Firebase project to Blaze, add a low budget alert, enable the
   required APIs, register iOS App Attest, and keep public names unavailable if
-  attestation or callable enforcement is not healthy.
-- [ ] Deploy the exact checked-in Firestore rules and discovery Functions,
+  attestation or callable enforcement is not healthy. Billing, a $10 monthly
+  budget, APIs, Firebase App Attest registration, Apple Team/App Store identity,
+  and server enforcement are live; the production Apple capability/profile and
+  signed-iPhone attestation still need proof.
+- [x] Deploy the exact checked-in Firestore rules and discovery Functions,
   configure TTL for `discoverableSpaces.expiresAt`, and publish the matching
   privacy, terms, community, and support pages. The rules and four public pages
-  went live on August 23; Functions and TTL still await the Firebase billing
-  link.
+  went live on August 23. Both Node 22 callables are active with App Check
+  required, their negative tests return 401, TTL is active, and seven-day
+  container-image cleanup is configured.
 - [ ] Smoke the live directory with two signed identities: opt in, set/clear a
   name, browse, open, keep in Circle, report, block, rotate a code, unblock, opt
-  out, and verify expired/removed listings are unreadable.
+  out, and verify expired/removed listings are unreadable. A temporary
+  two-identity live smoke proved public-name persistence, private report
+  metadata, report creation, cleanup, and valid debug App Check; the complete
+  signed-device interaction pass remains open.
 - [x] Generate and inspect the appended seventh 1290×2796 Discover capture from
   the exact feature-on Build 30 source. Preserve frames 1–6 in their existing
   order. The August 23 seven-frame sheet and focused Discover/Me/share/report/
