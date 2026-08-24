@@ -55,6 +55,15 @@ generated-only. `pubspec.yaml` is `1.0.4+32`.
   TestFlight beta-review submission, last observed `WAITING_FOR_REVIEW`. The
   IPA, every dSYM, release evidence, hashes, and receipt are preserved under
   `../release-artifacts/room-of-days/1.0.4+32/codemagic-build-46-7186cc3/`.
+- [x] Repair the first Discover opt-in rules deadlock exposed by the signed
+  device flow. The client transaction read an absent directory entry before
+  creating it, while the exact-get rule required an existing valid entry. The
+  regression failed on the old rule, then passed with 12/12 Firestore emulator
+  authorization tests after commit `ca3d7c1` narrowly allowed only the eligible
+  owner to observe that absence. Production ruleset
+  `e9b19bc7-4ecd-4a8e-9f30-2def2a01d691` was released at
+  `2026-08-24T06:45:26Z` and its fetched source matches the tested rule exactly;
+  Build 32 can retry without another binary.
 - [ ] Install Build 32 over processed Build 31 and repeat with a fresh install.
   Verify the Discover switch stays on after server acknowledgement, then use a
   second signed identity to prove Anyone, one-way Circle, reciprocal Mutuals,
