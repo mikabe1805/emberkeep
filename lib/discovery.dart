@@ -136,12 +136,12 @@ String discoveryOwnerKey(String uid) =>
 bool isValidDiscoveryOwnerKey(Object? value) =>
     value is String && _discoveryOwnerKey.hasMatch(value);
 
-/// Returns the stable owner key for a fetched room without exposing its
-/// private Firebase uid to a caller or renderer.
+/// Returns the stable owner key carried by a fetched room. Rooms intentionally
+/// never expose their Firebase uid: the key is the only cross-room identity
+/// handle a visitor may receive.
 String? discoveryOwnerKeyFromRoom(Map<String, dynamic> room) {
-  final uid = room['uid'];
-  if (uid is! String || uid.trim().isEmpty) return null;
-  return discoveryOwnerKey(uid);
+  final ownerKey = room['ownerKey'];
+  return isValidDiscoveryOwnerKey(ownerKey) ? ownerKey as String : null;
 }
 
 /// Mirrors the public-name policy enforced by Firestore Rules.
@@ -170,7 +170,6 @@ bool isAllowedDiscoveryPublicName(Object? value) {
 Map<String, dynamic> discoverableSpaceDisplay(
   Map<String, dynamic> room, {
   required String roomCode,
-  required String ownerUid,
 }) => {
   'v': discoverableSpaceVersion,
   'title': _safeTitle(room['title']),
@@ -180,7 +179,7 @@ Map<String, dynamic> discoverableSpaceDisplay(
   'skin': _safeId(room['skin'], _skinIds, 'ember_amber'),
   'window': _safeId(room['window'], _windowIds, 'moon'),
   'bucket': discoverableSpaceBucket(roomCode),
-  'ownerKey': discoveryOwnerKey(ownerUid),
+  'ownerKey': room['ownerKey'],
   // Owners may create the directory projection only in anonymous form.
   // Ordinary visual refreshes preserve the existing server-approved value.
   'publicName': '',

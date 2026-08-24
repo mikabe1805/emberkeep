@@ -588,7 +588,7 @@ def main() -> None:
     elif mode == "store-phone":
         image_sheet(
             STORE_PASS,
-            "app-store-build-31-phone",
+            "app-store-build-32-phone",
             height=520,
             per_row=2,
             webp=True,

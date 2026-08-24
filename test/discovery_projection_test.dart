@@ -6,31 +6,28 @@ void main() {
   const code = 'ABC234';
 
   test('directory projection is an allowlist with no private activity', () {
-    final display = discoverableSpaceDisplay(
-      {
-        'title': 'MIGHTY MAKER',
-        'level': 42,
-        'wall': 'wall_archive',
-        'floor': 'floor_cherry',
-        'skin': 'ember_amber',
-        'window': 'aurora',
-        'uid': 'private-uid',
-        'name': 'private name',
-        'email': 'private@example.com',
-        'presence': true,
-        'todayLit': true,
-        'weather': 'bright',
-        'focusKind': 'study',
-        'focusUntil': 999999,
-        'memories': 500,
-        'quests': ['private quest'],
-        'journal': ['private journal'],
-        'streak': 20,
-        'profileVisible': true,
-      },
-      roomCode: code,
-      ownerUid: 'owner-one',
-    );
+    final display = discoverableSpaceDisplay({
+      'title': 'MIGHTY MAKER',
+      'level': 42,
+      'wall': 'wall_archive',
+      'floor': 'floor_cherry',
+      'skin': 'ember_amber',
+      'window': 'aurora',
+      'ownerKey': discoveryOwnerKey('owner-one'),
+      'uid': 'private-uid',
+      'name': 'private name',
+      'email': 'private@example.com',
+      'presence': true,
+      'todayLit': true,
+      'weather': 'bright',
+      'focusKind': 'study',
+      'focusUntil': 999999,
+      'memories': 500,
+      'quests': ['private quest'],
+      'journal': ['private journal'],
+      'streak': 20,
+      'profileVisible': true,
+    }, roomCode: code);
 
     expect(display.keys, {
       'v',
@@ -64,30 +61,28 @@ void main() {
       discoveryPublicNameMaxLength,
     );
     expect(
-      discoverableSpaceDisplay(
-        {'playerName': 'PRIVATE MIKA', 'displayName': 'ALSO PRIVATE'},
-        roomCode: code,
-        ownerUid: 'owner-one',
-      )['publicName'],
+      discoverableSpaceDisplay({
+        'ownerKey': discoveryOwnerKey('owner-one'),
+        'playerName': 'PRIVATE MIKA',
+        'displayName': 'ALSO PRIVATE',
+      }, roomCode: code)['publicName'],
       isEmpty,
     );
   });
 
   test('authored space themes survive the strict wall projection', () {
     expect(
-      discoverableSpaceDisplay(
-        {'wall': 'wall_archive'},
-        roomCode: code,
-        ownerUid: 'owner-one',
-      )['wall'],
+      discoverableSpaceDisplay({
+        'ownerKey': discoveryOwnerKey('owner-one'),
+        'wall': 'wall_archive',
+      }, roomCode: code)['wall'],
       'wall_archive',
     );
     expect(
-      discoverableSpaceDisplay(
-        {'wall': 'wall_conservatory'},
-        roomCode: code,
-        ownerUid: 'owner-one',
-      )['wall'],
+      discoverableSpaceDisplay({
+        'ownerKey': discoveryOwnerKey('owner-one'),
+        'wall': 'wall_conservatory',
+      }, roomCode: code)['wall'],
       'wall_conservatory',
     );
   });

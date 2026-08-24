@@ -22,6 +22,8 @@ import 'tokens.dart';
 /// presentation copy changes so a saved arrangement survives app updates.
 enum SpaceCardKind { about, rightNow, pinnedMoments, thisSeason }
 
+enum SpaceAudience { onlyMe, mutuals, anyone }
+
 const defaultSpaceCardOrder = <SpaceCardKind>[
   SpaceCardKind.about,
   SpaceCardKind.rightNow,
@@ -363,10 +365,26 @@ class GameState extends ChangeNotifier {
   /// or kept locally visible while private to them. The legacy default
   /// preserves the two cards older builds could share; the visitor-page master
   /// switch still defaults off.
-  final Set<SpaceCardKind> visitorSpaceCards = {
-    SpaceCardKind.about,
-    SpaceCardKind.rightNow,
+  /// Audience per card. Missing entries are always private.
+  final Map<SpaceCardKind, SpaceAudience> spaceCardAudiences = {
+    for (final kind in SpaceCardKind.values) kind: SpaceAudience.onlyMe,
   };
+
+  /// Deprecated compatibility bridge for older callers. New saves serialize
+  /// the audience map; this set is only a temporary caller-side adapter.
+  final Set<SpaceCardKind> visitorSpaceCards = {};
+
+  SpaceAudience spaceAudienceFor(SpaceCardKind kind) {
+    final audience = spaceCardAudiences[kind] ?? SpaceAudience.onlyMe;
+    // A few internal/test callers from the dormant pre-release implementation
+    // still mutate the legacy set directly. Honor that as Anyone until every
+    // caller has moved to the audience map; new persisted saves never use it
+    // as authority.
+    if (audience == SpaceAudience.onlyMe && visitorSpaceCards.contains(kind)) {
+      return SpaceAudience.anyone;
+    }
+    return audience;
+  }
 
   /// The private arrangement of the My Space deck. The first three entries
   /// reproduce the page that existed before cards became arrangeable; the
@@ -458,6 +476,7 @@ class GameState extends ChangeNotifier {
     required Iterable<SpaceCardKind> order,
     required Iterable<SpaceCardKind> hidden,
     Iterable<SpaceCardKind>? visitorVisible,
+    Map<SpaceCardKind, SpaceAudience>? audiences,
     required String intro,
     required Iterable<String> featuredGoalTitles,
     required String seasonText,
@@ -484,6 +503,24 @@ class GameState extends ChangeNotifier {
         ..clear()
         ..addAll(cleanVisitor);
     }
+    final cleanAudiences = <SpaceCardKind, SpaceAudience>{
+      for (final kind in SpaceCardKind.values)
+        kind:
+            audiences?[kind] ??
+            (cleanVisitor?.contains(kind) == true
+                ? SpaceAudience.anyone
+                : SpaceAudience.onlyMe),
+    };
+    spaceCardAudiences
+      ..clear()
+      ..addAll(cleanAudiences);
+    visitorSpaceCards
+      ..clear()
+      ..addAll(
+        cleanAudiences.entries
+            .where((entry) => entry.value != SpaceAudience.onlyMe)
+            .map((entry) => entry.key),
+      );
     spaceIntro = _cleanSpaceIntro(intro);
     spaceSeasonText = _cleanSpaceSeasonText(seasonText);
     spaceProfilePhotoNoteId = _cleanSpaceSeasonPhotoNoteId(profilePhotoNoteId);
@@ -514,6 +551,7 @@ class GameState extends ChangeNotifier {
       order: spaceCardOrder,
       hidden: hiddenSpaceCards,
       visitorVisible: visitorSpaceCards,
+      audiences: spaceCardAudiences,
       intro: intro,
       featuredGoalTitles: goals,
       seasonText: spaceSeasonText,
@@ -565,6 +603,7 @@ class GameState extends ChangeNotifier {
     final changed =
         shareSpaceProfile ||
         visitorSpaceCards.isNotEmpty ||
+        spaceCardAudiences.values.any((a) => a != SpaceAudience.onlyMe) ||
         shareSpaceProfilePhoto ||
         shareSpaceSeasonPhoto ||
         spaceProfilePhotoPath.isNotEmpty ||
@@ -572,6 +611,9 @@ class GameState extends ChangeNotifier {
     if (!changed) return false;
     shareSpaceProfile = false;
     visitorSpaceCards.clear();
+    for (final kind in SpaceCardKind.values) {
+      spaceCardAudiences[kind] = SpaceAudience.onlyMe;
+    }
     shareSpaceProfilePhoto = false;
     shareSpaceSeasonPhoto = false;
     spaceProfilePhotoPath = '';
@@ -1966,10 +2008,10 @@ class GameState extends ChangeNotifier {
       for (final kind in SpaceCardKind.values)
         if (hiddenSpaceCards.contains(kind)) kind.name,
     ],
-    'visitorSpaceCards': [
+    'spaceCardAudiences': {
       for (final kind in SpaceCardKind.values)
-        if (visitorSpaceCards.contains(kind)) kind.name,
-    ],
+        kind.name: spaceAudienceFor(kind).name,
+    },
     'spaceSeasonText': spaceSeasonText,
     if (spaceProfilePhotoNoteId != null)
       'spaceProfilePhotoNoteId': spaceProfilePhotoNoteId,
@@ -2235,11 +2277,21 @@ class GameState extends ChangeNotifier {
         _cleanSpaceCardOrder(_spaceCardKindsFromJson(j['spaceCardOrder'])),
       );
     s.hiddenSpaceCards.addAll(_spaceCardKindsFromJson(j['hiddenSpaceCards']));
-    if (j.containsKey('visitorSpaceCards')) {
-      s.visitorSpaceCards
-        ..clear()
-        ..addAll(_spaceCardKindsFromJson(j['visitorSpaceCards']));
+    final savedAudiences = j['spaceCardAudiences'];
+    s.spaceCardAudiences
+      ..clear()
+      ..addAll({
+        for (final kind in SpaceCardKind.values) kind: SpaceAudience.onlyMe,
+      });
+    if (savedAudiences is Map) {
+      for (final kind in SpaceCardKind.values) {
+        final value = savedAudiences[kind.name];
+        for (final audience in SpaceAudience.values) {
+          if (audience.name == value) s.spaceCardAudiences[kind] = audience;
+        }
+      }
     }
+    s.visitorSpaceCards.clear();
     s.spaceSeasonText = _cleanSpaceSeasonText(
       j['spaceSeasonText'] is String ? j['spaceSeasonText'] as String : '',
     );

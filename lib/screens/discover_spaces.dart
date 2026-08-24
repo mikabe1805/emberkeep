@@ -289,12 +289,40 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
       ),
     );
     if (unhide == null || !mounted) return;
+    var serverUnblocked = true;
     if (unhide.startsWith('owner:')) {
-      widget.state.unblockDiscoveryOwner(unhide.substring('owner:'.length));
+      final ownerKey = unhide.substring('owner:'.length);
+      final code = widget.state.blockedDiscoveryOwners[ownerKey] ?? '';
+      widget.state.unblockDiscoveryOwner(ownerKey);
+      serverUnblocked = await CloudSync.instance.setSpaceBlock(
+        code,
+        ownerKey: ownerKey,
+        blocked: false,
+      );
     } else if (unhide.startsWith('code:')) {
-      widget.state.unblockRoomCode(unhide.substring('code:'.length));
+      final code = unhide.substring('code:'.length);
+      widget.state.unblockRoomCode(code);
+      serverUnblocked = await CloudSync.instance.setSpaceBlock(
+        code,
+        blocked: false,
+      );
     }
     widget.onPersist();
+    if (!mounted) return;
+    if (!serverUnblocked) {
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Palette.card,
+            content: Text(
+              'Visible on this device. Reconnect later to finish restoring mutual access.',
+              style: Type.body.copyWith(color: Palette.textHi),
+            ),
+          ),
+        );
+    }
     await _load();
   }
 

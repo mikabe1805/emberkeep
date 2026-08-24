@@ -12,11 +12,12 @@ const bool kVisitorPhotoSharingEnabled = bool.fromEnvironment(
   defaultValue: false,
 );
 
-/// User-authored visitor profiles require a complete UGC safety operation:
-/// posting filters, terms, reporting, blocking, and timely human moderation.
-/// The first store release keeps My Space writing private and shares only the
-/// app-generated room/presence payload. Do not enable this flag in a store build
-/// until those controls and the moderation workflow have been reviewed.
+/// Audience-specific My Space profiles. Store builds opt in only when the
+/// protected profile publisher, public/mutual Firestore projections, Circle
+/// relationship checks, posting filter, report/block path, and moderation
+/// operation with timely human moderation are deployed together. The
+/// local/default build remains off so it cannot imply that a backend
+/// environment is ready when it is not.
 const bool kVisitorProfileSharingEnabled = bool.fromEnvironment(
   'VISITOR_PROFILE_SHARING',
   defaultValue: false,
@@ -53,9 +54,10 @@ const bool kPlaceSearchEnabled = bool.fromEnvironment(
 const bool kAnonymousServiceIdentityRemovalEnabled =
     kPlaceSearchEnabled && !kIsWeb;
 
-/// Public reCAPTCHA v3 site key used only by App Check in web builds. This is
-/// not a Google Places credential. An enabled web build remains unavailable
-/// when the key is absent rather than making unattested callable requests.
+/// Public reCAPTCHA v3 site key used by App Check in web builds, including
+/// protected social writes and visitor-profile reads. This is not a Google
+/// Places credential. An enabled web build remains unavailable when the key is
+/// absent rather than making unattested requests.
 const String kPlaceSearchAppCheckWebSiteKey = String.fromEnvironment(
   'PLACE_SEARCH_APP_CHECK_WEB_SITE_KEY',
   defaultValue: '',

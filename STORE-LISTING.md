@@ -18,7 +18,7 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4
+## App Store What's New — Version 1.0.4 (Build 32)
 
 The open door is finally in the open.
 
@@ -30,9 +30,11 @@ Themes are now Ambient Light. Each choice has a live preview and visibly
 changes the light around your room; Change Space remains the way to replace the
 whole room.
 
-Discover remains optional and private by default. Only an optional public name,
-generated room style, title, and level appear there — never quests, Journal
-pages, streaks, private Me cards, or account details.
+Discover remains optional and private by default. Its directory contains only
+an optional public name and generated room style, title, and level. A separate
+visitor page can share only owner-selected cards: Anyone cards for exact-code
+visitors, plus Mutuals cards after both people choose each other in Circle.
+Journal photos, private cards, and account details stay private.
 
 ## Full description
 
@@ -58,7 +60,8 @@ With Room of Days you can:
 - keep a private journal with optional on-device photos;
 - back up across devices with an optional account; and
 - share a six-character code so a friend can visit the room you built;
-- optionally list your room in Discover with a separate public name; and
+- optionally list your room in Discover with a separate public name;
+- separately choose a few visitor cards for Anyone or Mutuals; and
 - find a few open rooms and keep as many as you want in your private Circle.
 
 Room of Days works without an account. Your device is the source of truth, cloud
@@ -81,16 +84,19 @@ It is built to be kind. Nothing takes damage, days away cost nothing, and
 coming back after a break is rewarded. Every cosmetic is earned. There are no
 ads, subscriptions, or paywalls.
 
-This build puts the optional public-room controls where people can actually
-find them. My Space exposes Open to Discover or Manage Listing directly, and
-Discover shows the owner's private/listed state and management action above the
-finite room directory. Enabling the listing remains a separate explicit switch;
-the app never opts someone in automatically. A keeper may choose a separate
-optional public name; quests, Journal pages, streaks, private Me cards, email,
-and account details stay out of the directory. Visitors can privately report or
-block a keeper across future room-code changes, and can keep as many trusted
-spaces as they want in their private Circle. Public names are filtered,
-rate-limited, and protected by App Check.
+Build 32 keeps the generated room and visitor page separate. My Space exposes
+Open to Discover or Manage Listing directly, and Discover shows the owner's
+private/listed state and management action above the finite room directory.
+Enabling a listing remains a separate explicit switch; the app never opts
+someone in automatically. The directory contains only a separate optional
+public name and generated room fields, never visitor-card text. A keeper can
+separately publish a bounded set of chosen cards: Anyone cards appear to
+exact-code and Discover visitors, while Mutuals cards require reciprocal Circle
+choices. Only-me cards are never sent. Journal photos, private Me cards, email,
+and account details stay private. Visible names and cards are filtered; links
+and contact details are prohibited. Visitors can privately report or block a
+keeper across future room-code changes, and can keep as many trusted spaces as
+they want in their private Circle.
 
 The old Themes control is now Ambient Light. A live preview and the surrounding
 canvas visibly respond to every choice, while Change Space remains the full-room
@@ -115,6 +121,11 @@ and doing what matters is especially useful.
   **PRIVATE** or **LISTED** truthfully and opens the same listing controls.
   Private quests, Journal pages, streaks, and account details must never appear
   on a directory card.
+- From an exact-code room and from a Discover room, verify that only Anyone
+  cards appear. Create reciprocal Circle choices from two accounts and verify
+  that Mutuals cards then appear in addition; remove either choice or block and
+  verify that Mutuals cards disappear. Verify Only me cards and Journal photos
+  never reach either visitor.
 - In Me settings, change **Ambient Light** from Walnut Night to Sea Cave.
   Confirm the live preview and surrounding canvas visibly change, the selected
   light survives a relaunch, and **Change Space** still replaces the whole room.
@@ -174,18 +185,25 @@ that makes returning after a break feel harder than it should.
   purchase, paid entitlement, subscription, or in-app donation flow. Android
   and web may link to the owner's voluntary tip-only Ko-fi page; tips unlock
   nothing in Room of Days.
-- **Shared spaces and Discover:** Exact-code rooms remain read-only to visitors.
-  Discover is a separate, explicit opt-in and returns only a finite shuffled
-  handful. Directory cards contain a separate optional public name, preset room
-  appearance, level, app-generated title, and an opaque stable keeper key used
-  for owner-level blocking. They do not contain quests, Journal pages, streaks,
-  private Me cards, email, sign-in credentials, or account-profile details.
-  Opening a card fetches the same shared room by its bearer code.
-- **Public-name safety:** Names are limited to 32 characters, normalized,
-  filtered for abusive language, links, handles, and contact cues, rate-limited,
-  and written only through an App Check-protected callable. Every discovered
-  room exposes **Block or report this keeper**. Blocking persists locally across
-  room-code changes; reports are private and enter a developer-reviewed queue.
+- **Shared spaces, visitor pages, and Discover:** Exact-code rooms remain
+  generated-only and read-only to visitors. The optional visitor page is a
+  separate projection with only a bounded set of owner-selected card content
+  and an opaque owner key, never a raw Firebase UID. Anyone cards are readable
+  by exact-code and Discover visitors; Mutuals cards additionally require
+  reciprocal Circle choices with no block in either direction; Only me cards
+  are never sent. A public name appears for an audience only when that audience
+  has at least one visible card. Discover is a separate explicit opt-in and
+  returns only a finite shuffled handful. Directory cards contain an optional
+  public name, preset room appearance, level, app-generated title, and opaque
+  stable keeper key used for owner-level blocking—not visitor-card text.
+  Journal photos, quests, Journal pages, streaks, private Me cards, email,
+  sign-in credentials, and account-profile details do not appear there.
+- **Visible-content safety:** Public names and visitor-card content are
+  normalized and filtered for abusive language, links, handles, and contact
+  cues. Every discovered room or visitor page exposes **Block or report this
+  keeper**. Blocking persists locally across room-code changes, removes Mutuals
+  access, and relationships/blocks remain private. Reports are private and
+  enter a developer-reviewed queue.
   Community rules and the monitored support/appeal address are published at
   `https://roomofdays.com/community`. The developer reviews the queue daily and
   targets action within 24 hours; if that operation cannot be maintained,
@@ -277,7 +295,7 @@ and [regulated-medical-device status](https://developer.apple.com/help/app-store
   services.
 - **News and Magazine apps:** No.
 - **COVID-19 contact tracing or status app:** No.
-- **Advertising ID:** No. The exact Build 11 permission inventory contains no
+- **Advertising ID:** No. The exact Build 32 permission inventory contains no
   `com.google.android.gms.permission.AD_ID`, and the app performs no advertising
   or analytics.
 - **Photo and video permissions:** No broad-media declaration is expected. The
@@ -289,13 +307,14 @@ and [regulated-medical-device status](https://developer.apple.com/help/app-store
   location, broad media, exact-alarm, install-package, VPN, or accessibility
   service permission.
 - **Child Safety Standards / age-restricted chat:** Not in scope. Room of Days
-  is not a Social or Dating app and has no anonymous chat, random chat,
-  free-form messaging, public profiles, or visitor-visible user-generated
-  content. Fixed Circle/Spark receipts and generated-only code-gated rooms do
-  not change that answer.
+  is not a Social or Dating app and has no anonymous chat, random chat, or
+  free-form messaging. Optional visitor pages contain only bounded,
+  owner-selected, filtered user content; they have no comments, reply thread,
+  public follower graph, or contact/link fields. Fixed Circle/Spark receipts
+  remain text-free and private.
 
 After completing the forms, open both `Needs attention` and `Actioned` on the
-App content page. Resolve every card Play Console actually shows for Build 11;
+App content page. Resolve every card Play Console actually shows for Build 32;
 policy cards can change and the console is authoritative about which forms are
 pending.
 
@@ -335,8 +354,9 @@ feature is optional.
   published to shared-room visitors.
 - **Other user content:** Custom quests and goals, journal text, My Space
   writing, and related save content are included in the optional full cloud
-  backup; linked to the Firebase identity; used only for app functionality;
-  never published to shared-room visitors in the v1 candidate.
+  backup; linked to the Firebase identity; used only for app functionality.
+  Separately, a person may explicitly publish bounded selected visitor-card
+  content to Anyone or Mutuals; this is not copied into Discover’s directory.
 - **Social interactions:** Keeping a room in Circle or sending preset support
   can store a fixed signal kind, timestamp, and anonymous sender ID for that
   room’s owner. There is no custom message body or public sender list.
@@ -393,8 +413,9 @@ and [Firebase Apple disclosure guidance](https://firebase.google.com/docs/ios/ap
   the person back to the app, and explains verification and the seven-day
   completion window.
 - **Data shared with third parties:** No. Firebase is the service provider;
-  generated room sharing and fixed support signals are deliberate user actions,
-  not advertising, data-broker, or analytics sharing.
+  generated room sharing, explicitly published bounded visitor-card content,
+  and fixed support signals are deliberate user actions, not advertising,
+  data-broker, or analytics sharing.
 - **Independent security review:** No.
 
 Create these collected-data rows:
@@ -473,7 +494,9 @@ and [Play developer account types](https://support.google.com/googleplay/android
 - No violence, gambling, sexual content, controlled substances, or mature
   themes.
 - No free-form chat or post feed. Discover displays one optional, filtered
-  public name plus app-generated room fields. Circle and Sparks remain private,
+  public name plus app-generated room fields; it does not display visitor-card
+  text. Separate visitor pages may display bounded selected, filtered card
+  content to Anyone or Mutuals. Circle and Sparks remain private,
   fixed-purpose interactions rather than a follower count or public ranking.
 - Wellness/productivity framing only. Do not claim to diagnose, treat, cure, or
   prevent ADHD or any medical condition.
@@ -484,9 +507,10 @@ and [Play developer account types](https://support.google.com/googleplay/android
 
 - **Parental Controls / Age Assurance:** No / No.
 - **Unrestricted Web Access / User-Generated Content / Social Media /
-  Advertising:** No / Yes / No / No. User-generated content is limited to the
-  optional public name in Discover and has filtering, reporting, blocking, and
-  human moderation.
+  Advertising:** No / Yes / No / No. User-generated content is limited to an
+  optional public name in Discover and bounded selected visitor cards, with
+  filtering, reporting, blocking, and human moderation. There are no links,
+  contact fields, comments, or direct messages.
 - **Messaging and Chat:** Yes, conservatively, because one person can send a
   fixed preset Spark or Circle receipt to a room owner. There is no free-form
   message, reply thread, public post, or sender profile.
@@ -531,11 +555,13 @@ and [label management](https://developer.apple.com/help/app-store-connect/manage
 - Ads, purchases, gambling, simulated gambling, paid randomized items,
   violence, sexual content, profanity, drugs, and unrestricted web browsing:
   **No**.
-- User-shared text: **Yes**, limited to an optional filtered public name.
+- User-shared text: **Yes**, limited to an optional filtered public name in
+  Discover and bounded filtered visitor-card text on a separate visitor page.
   User-shared photos/audio: **No**. Public UGC discovery: **Yes**.
 - User interaction: **Yes**. Explain that Discover has no chat, comments,
-  public follower graph, or ranking; Circle/Spark receipts remain preset and
-  text-free, while public names have report, block, and moderation controls.
+  public follower graph, or ranking, and contains no visitor-card text.
+  Circle/Spark receipts remain preset and text-free; visitor-card text and
+  public names have report, block, and moderation controls.
 - Account required: **No**. Optional account creation and deletion are both
   available.
 

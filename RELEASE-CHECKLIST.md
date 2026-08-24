@@ -1,7 +1,54 @@
 # Room of Days Release Checklist
 
-Updated August 23, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 24, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
+
+## 1.0.4+32 iOS App Store candidate — supersedes Build 31
+
+Build 31 reached TestFlight but its physical-device pass exposed two connected
+gaps: the Discover switch could return to off instead of finishing its protected
+save, and My Space had no per-card visitor audiences. Build 32 makes the visitor
+page a real authored profile: every card can be **Only me**, **Mutuals**, or
+**Anyone**, while the page itself remains a separate explicit opt-in. Mutuals
+requires both keepers to keep each other in Circle. Public, mutual, and private
+content are stored and authorized separately; the room-code document remains
+generated-only. `pubspec.yaml` is `1.0.4+32`.
+
+- [x] Advance from processed Build 31 to the unused iOS build number 32 and add
+  a newest-first in-app What’s New record.
+- [x] Initialize Firebase App Check before protected discovery/profile writes,
+  serialize explicit and background publication, and prevent an older queued
+  snapshot from restoring a superseded audience choice.
+- [x] Add a master **Publish my visitor page** choice plus per-card **Only me**,
+  **Mutuals**, and **Anyone** controls. Keep owner layout visibility independent
+  from visitor audience and name the public preview honestly.
+- [x] Render separate public and reciprocal-mutual visitor projections with
+  quiet loading, closed-page, and intentionally-empty states. Keep quests,
+  unselected Journal writing, photos, account data, and daily energy private.
+- [x] Add acknowledged Circle removal, stable keeper-level block/relationship
+  cleanup, code-only report access, and room-deletion projection cleanup.
+- [x] Pass the focused 96-test Flutter privacy/discovery suite, 110 Functions
+  unit tests, 11 Firestore emulator authorization tests, Functions lint/build,
+  and `flutter analyze` before release metadata work.
+- [x] Generate and inspect fresh owner, editor, public, mutual, and 320×568 at
+  200-percent-text captures. The public view contains only Anyone cards; the
+  mutual view adds the expected Mutuals-only card without exposing Only me.
+- [x] Finish the final privacy review findings, rerun the complete feature-on
+  Flutter suite (817 passed, one expected skip), and preserve a clean
+  exact-golden pass on canonical Windows.
+- [ ] Deploy the exact checked-in Functions and Firestore rules to
+  `emberkeep-5b33b`, then smoke the App Check-protected discovery/profile
+  callables before compiling the enabled client.
+- [x] Regenerate and inspect the seven opaque 1290×2796 App Store frames from
+  the exact Build 32 source, update the store screenshot evidence, and leave the
+  App Store draft unsubmitted until the device gate passes.
+- [ ] Commit and push the reviewed Build 32 source, start exactly one manual
+  `ios-testflight` Codemagic workflow from that immutable commit, and preserve
+  the IPA, dSYMs, build receipt, exact commit, and SHA-256 evidence.
+- [ ] Install Build 32 over processed Build 31 and repeat with a fresh install.
+  Verify the Discover switch stays on after server acknowledgement, then use a
+  second signed identity to prove Anyone, one-way Circle, reciprocal Mutuals,
+  removal, block, code rotation, and report behavior on a physical iPhone.
 
 ## 1.0.4+31 iOS App Store candidate — supersedes Build 30
 

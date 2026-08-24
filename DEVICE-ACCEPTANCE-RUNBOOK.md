@@ -20,7 +20,7 @@ journal.
 
 ### iPhone
 
-- Install only the processed Room of Days `1.0.4` (Build 31) from TestFlight.
+- Install only the processed Room of Days `1.0.4` (Build 32) from TestFlight.
   It must come from the final release commit through the manual Codemagic
   `ios-testflight` workflow; do not substitute a local debug/profile build.
 - Keep the emitted IPA, matching Runner dSYM, Codemagic log, and
@@ -28,7 +28,7 @@ journal.
   exists; do not copy Build 19's hash into the new receipt.
 - Confirm the installed version/build match that evidence, which must name the
   final release commit and Team ID `D63Z4RBRT8`.
-- Keep processed Build 30 installed long enough to perform the
+- Keep processed Build 31 installed long enough to perform the
   upgrade-preservation pass before the separate fresh-install pass.
 
 Record before testing:
@@ -63,10 +63,10 @@ Run the upgrade check before uninstalling anything:
 - [ ] Uninstall Room of Days, then install the verified Build 12 APK fresh.
   Confirm the old test data is gone and onboarding begins normally.
 
-For iPhone, first install Build 31 over processed Build 30 without
+For iPhone, first install Build 32 over processed Build 31 without
 deleting Room of Days. Confirm the save, journal, room, Daybook, settings, and
 account state remain and What's New appears once. Then delete the app, install
-Build 31 fresh, and confirm onboarding starts with no prior test data.
+Build 32 fresh, and confirm onboarding starts with no prior test data.
 
 ## 2. First launch and core story
 
@@ -162,17 +162,33 @@ Use the other phone or a private browser window as the visitor:
   opening Share my space. Tap it and confirm the Discover switch is on-screen
   and still off; the app must not publish the listing without that second,
   explicit choice.
-- [ ] Turn the switch on and save or clear the optional public name. Confirm Me
-  changes to **IN DISCOVER · MANAGE LISTING** and Discover changes from
-  `PRIVATE` to `LISTED`, with the same management action at the top of the page.
+- [ ] Turn the switch on and save or clear the optional public name. Keep the
+  sheet open while the protected write is pending. Confirm the switch never
+  snaps back to off before a terminal result; after success, Me changes to
+  **IN DISCOVER · MANAGE LISTING** and Discover changes from `PRIVATE` to
+  `LISTED`, with the same management action at the top of the page.
+- [ ] In **Edit space**, turn on **Publish my visitor page**. Set **About** to
+  **Anyone**, **Right now** to **Mutuals**, **Pinned moments** to **Only me**,
+  and **This season** to **Anyone**. Save, close, reopen, and confirm every
+  audience persists independently while all four owner cards remain visible.
 - [ ] From a second signed identity, refresh Discover and open the listed room.
   Confirm the optional public name and generated room projection are visible,
   then turn the owner listing off and confirm it disappears.
 - [ ] Share the room for the first time and open its exact
-  `https://roomofdays.com/space/<CODE>` link. The browser visitor sees the
-  generated room and broad presence only.
-- [ ] Confirm the visitor cannot see an email, display name, goal/Quest text,
-  Journal or My Space writing, Journal photos, account details, or sender list.
+  `https://roomofdays.com/space/<CODE>` link. A visitor who is not in Circle
+  sees the generated room plus the **Anyone** About and This season cards, but
+  not the Mutuals Right now card or the Only me Pinned moments card.
+- [ ] Add the visitor to the owner's Circle only. Confirm the one-way keep does
+  not reveal Mutuals. Then keep the owner from the visitor's Circle too and
+  confirm Right now appears without refreshing private owner content into the
+  public view.
+- [ ] Remove either side of the reciprocal Circle relationship and confirm the
+  Mutuals card disappears after the acknowledged removal. Block the owner from
+  the visitor and confirm the room/profile can no longer be opened; unblock and
+  verify only the currently authorized projection returns.
+- [ ] Confirm no audience can see an email, unselected goal/Quest text,
+  unselected Journal or My Space writing, Journal photos, daily energy,
+  account details, Firebase identity, or sender list.
 - [ ] Send one fixed Spark/Circle sign from the visitor. The owner receives only
   the preset, text-free support signal.
 - [ ] Open the exact link from Notes, Messages, or Mail on each installed phone.

@@ -67,14 +67,14 @@ service cloud.firestore {
             && d.season == ''));
     }
 
-    function validSharedPhotoPath(path, uid, code, slot) {
+    function validSharedPhotoPath(path, ownerKey, code, slot) {
       let parts = path.split('/');
       return path == ''
         // Legacy pre-release objects remain valid until their next edit.
-        || path == 'shared_rooms/' + uid + '/' + code + '/' + slot
+        || path == 'shared_rooms/' + ownerKey + '/' + code + '/' + slot
         || (parts.size() == 5
           && parts[0] == 'shared_rooms'
-          && parts[1] == uid
+          && parts[1] == ownerKey
           && parts[2] == code
           && parts[3] == slot
           && parts[4].matches('^[A-Za-z0-9_-]{22}$'));
@@ -84,8 +84,8 @@ service cloud.firestore {
       return d.keys().hasAll(['profilePhotoPath', 'seasonPhotoPath'])
         && d.profilePhotoPath is string && d.profilePhotoPath.size() <= 192
         && d.seasonPhotoPath is string && d.seasonPhotoPath.size() <= 192
-        && validSharedPhotoPath(d.profilePhotoPath, d.uid, code, 'profile')
-        && validSharedPhotoPath(d.seasonPhotoPath, d.uid, code, 'season')
+        && validSharedPhotoPath(d.profilePhotoPath, d.ownerKey, code, 'profile')
+        && validSharedPhotoPath(d.seasonPhotoPath, d.ownerKey, code, 'season')
         && (d.profileVisible
           || (d.profilePhotoPath == '' && d.seasonPhotoPath == ''))
         && (d.cardOrder.hasAny(['thisSeason']) || d.seasonPhotoPath == '');
@@ -95,14 +95,14 @@ service cloud.firestore {
       let d = request.resource.data;
       return code.matches('^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$')
         && d.keys().hasOnly([
-          'uid', 'name', 'title', 'level', 'furniture', 'wall', 'floor',
+          'ownerKey', 'name', 'title', 'level', 'furniture', 'wall', 'floor',
           'skin', 'window', 'awake', 'memories', 'weather', 'todayLit',
           'focusKind', 'focusUntil', 'profileVisible', 'displayName', 'about',
           'featuredGoals', 'cardOrder', 'pinnedMoments', 'season', 'v',
           'profilePhotoPath', 'seasonPhotoPath',
           'updatedAt'
         ])
-        && d.uid == request.auth.uid
+        && d.ownerKey == ownerKeyFor(request.auth.uid)
         && d.name == 'Fellow keeper'
         && d.title is string && validBuildTitle(d.title)
         && d.level is int && d.level >= 1 && d.level <= 9999
@@ -164,13 +164,13 @@ service cloud.firestore {
             && !d.keys().hasAny(['profilePhotoPath', 'seasonPhotoPath'])
           )
           ||
-          (d.v == 5
+          (d.v == 6
             && validPresence(d)
             && validSharedProfile(d)
             && validSharedCards(d)
             && validSharedPhotos(d, code)
-            // The first store release shares generated room/presence only.
-            // User-authored profiles remain dormant until UGC moderation exists.
+            // The bearer room remains generated-only. Moderated, bounded
+            // authored cards live in the separate audience projections below.
             && d.profileVisible == false
           )
         )
@@ -247,6 +247,7 @@ service cloud.firestore {
     function validDiscoverableSpace(code) {
       return validDiscoverableSpaceData(code, request.resource.data)
         && request.resource.data.ownerKey == ownerKeyFor(request.auth.uid)
+        && discoverableSpaceHasLiveAnchor(code, request.resource.data)
         && ownerIsNotBanned(request.resource.data.ownerKey)
         && request.resource.data.updatedAt == request.time
         && request.resource.data.expiresAt
@@ -256,8 +257,31 @@ service cloud.firestore {
     function ownsRoom(code) {
       return request.auth != null
         && exists(/databases/$(database)/documents/rooms/$(code))
-        && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+        && exists(/databases/$(database)/documents/roomOwners/$(code))
+        && get(/databases/$(database)/documents/roomOwners/$(code)).data.uid
           == request.auth.uid;
+    }
+
+    // Build 31 stored ownership only inside its v5 room. Let that exact owner
+    // read it and replace it once with v6 plus the private registry in the same
+    // atomic batch. Visitors never receive the legacy document or raw uid.
+    function migratesOwnedLegacyRoom(code) {
+      return request.auth != null
+        && resource.data.v == 5
+        && resource.data.uid == request.auth.uid;
+    }
+
+    // A directory record is readable only while both public room projections
+    // still point at the same opaque owner generation. This makes a stale
+    // record immediately disappear from Discover when a short code is reused
+    // by another account, even before the deletion trigger runs.
+    function discoverableSpaceHasLiveAnchor(code, d) {
+      return exists(/databases/$(database)/documents/rooms/$(code))
+        && get(/databases/$(database)/documents/rooms/$(code)).data.v == 6
+        && get(/databases/$(database)/documents/rooms/$(code)).data.profileVisible == false
+        && get(/databases/$(database)/documents/rooms/$(code)).data.ownerKey == d.ownerKey
+        && exists(/databases/$(database)/documents/roomOwners/$(code))
+        && get(/databases/$(database)/documents/roomOwners/$(code)).data.ownerKey == d.ownerKey;
     }
 
     function normalRoomRemovalAllowed(code) {
@@ -273,6 +297,66 @@ service cloud.firestore {
         );
     }
 
+    // Authenticated Functions write these two projections. They deliberately
+    // sit outside /rooms: Firestore grants a document read as a whole and
+    // therefore cannot safely redact Mutuals-only cards from a public room.
+    function validSpaceProfile(d) {
+      return d.keys().hasOnly([
+          'v', 'ownerKey', 'displayName', 'cardOrder', 'about',
+          'featuredGoals', 'pinnedMoments', 'season', 'roomUpdatedAt', 'updatedAt'
+        ])
+        && d.keys().hasAll([
+          'v', 'ownerKey', 'displayName', 'cardOrder', 'about',
+          'featuredGoals', 'pinnedMoments', 'season', 'roomUpdatedAt', 'updatedAt'
+        ])
+        && d.v == 2
+        && d.ownerKey is string && d.ownerKey.matches('^[a-f0-9]{64}$')
+        && d.displayName is string && d.displayName.size() <= 40
+        && d.cardOrder is list && d.cardOrder.size() <= 4
+        && d.cardOrder.hasOnly(['about', 'rightNow', 'pinnedMoments', 'thisSeason'])
+        && d.cardOrder.toSet().size() == d.cardOrder.size()
+        && (d.cardOrder.size() > 0 || d.displayName == '')
+        && d.about is string && d.about.size() <= 180
+        && d.featuredGoals is list && d.featuredGoals.size() <= 3
+        && (d.featuredGoals.size() < 1
+          || (d.featuredGoals[0] is string && d.featuredGoals[0].size() <= 100))
+        && (d.featuredGoals.size() < 2
+          || (d.featuredGoals[1] is string && d.featuredGoals[1].size() <= 100))
+        && (d.featuredGoals.size() < 3
+          || (d.featuredGoals[2] is string && d.featuredGoals[2].size() <= 100))
+        && d.pinnedMoments is list && d.pinnedMoments.size() <= 4
+        && (d.pinnedMoments.size() < 1 || validPinnedMoment(d.pinnedMoments[0]))
+        && (d.pinnedMoments.size() < 2 || validPinnedMoment(d.pinnedMoments[1]))
+        && (d.pinnedMoments.size() < 3 || validPinnedMoment(d.pinnedMoments[2]))
+        && (d.pinnedMoments.size() < 4 || validPinnedMoment(d.pinnedMoments[3]))
+        && d.season is string && d.season.size() <= 180
+        && (d.cardOrder.hasAny(['about']) || d.about == '')
+        && (d.cardOrder.hasAny(['rightNow']) || d.featuredGoals.size() == 0)
+        && (d.cardOrder.hasAny(['pinnedMoments']) || d.pinnedMoments.size() == 0)
+        && (d.cardOrder.hasAny(['thisSeason']) || d.season == '')
+        && d.roomUpdatedAt is timestamp
+        && d.updatedAt is timestamp;
+    }
+
+    function profileMatchesLiveRoom(code, d) {
+      return exists(/databases/$(database)/documents/rooms/$(code))
+        && get(/databases/$(database)/documents/rooms/$(code)).data.v == 6
+        && get(/databases/$(database)/documents/rooms/$(code)).data.profileVisible == false
+        && get(/databases/$(database)/documents/rooms/$(code)).data.ownerKey == d.ownerKey
+        && get(/databases/$(database)/documents/rooms/$(code)).data.updatedAt == d.roomUpdatedAt
+        && exists(/databases/$(database)/documents/roomOwners/$(code))
+        && get(/databases/$(database)/documents/roomOwners/$(code)).data.ownerKey == d.ownerKey;
+    }
+
+    function reciprocalCircle(ownerKey) {
+      return request.auth != null
+        && ownerKey != ownerKeyFor(request.auth.uid)
+        && exists(/databases/$(database)/documents/circleRelationships/$(ownerKeyFor(request.auth.uid))/outgoing/$(ownerKey))
+        && exists(/databases/$(database)/documents/circleRelationships/$(ownerKey)/outgoing/$(ownerKeyFor(request.auth.uid)))
+        && !exists(/databases/$(database)/documents/spaceBlocks/$(ownerKeyFor(request.auth.uid))/blocked/$(ownerKey))
+        && !exists(/databases/$(database)/documents/spaceBlocks/$(ownerKey)/blocked/$(ownerKeyFor(request.auth.uid)));
+    }
+
     // Each anonymous user may touch exactly one document: their own save.
     match /saves/{uid} {
       allow read, delete: if request.auth != null && request.auth.uid == uid;
@@ -281,7 +365,7 @@ service cloud.firestore {
                             && !serviceIdentityDeletionStarted(uid);
     }
     // Shared "spaces" (round-52, social): a public, read-only-to-others room
-    // card keyed by a short bearer code. The v1 store service accepts only v5
+    // card keyed by a short bearer code. The current service accepts only v6
     // generated appearance/presence documents with every user-authored profile
     // and photo field empty. Older schema validation remains solely to document
     // migrations; it is not accepted at the write boundary. Only the owner may
@@ -291,28 +375,32 @@ service cloud.firestore {
       // visitor to enable cloud backup. The only list shape is a bounded query
       // for the signed-in owner's own uid, used to prove anonymous deletion.
       // Legacy pre-release profile documents remain stored for their owners,
-      // but code bearers cannot read them. Only the generated-only v5 shape is
-      // visible in the first store release.
-      allow get: if resource.data.v == 5
-                 && resource.data.profileVisible == false;
-      allow list: if request.auth != null
-                  && resource.data.uid == request.auth.uid
-                  && request.query.limit != null
-                  && request.query.limit <= 100;
+      // but code bearers cannot read them. Only the generated-only v6 shape is
+      // visitor-readable; authored cards use audience-specific documents.
+      allow get: if (
+                   resource.data.v == 6
+                   && resource.data.profileVisible == false
+                 ) || (
+                   request.auth != null
+                   && resource.data.v == 5
+                   && resource.data.uid == request.auth.uid
+                 );
+      allow list: if false;
       allow create: if request.auth != null
                     && !serviceIdentityDeletionStarted(request.auth.uid)
-                    && request.resource.data.v == 5
+                    && request.resource.data.v == 6
                     && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
+                    && getAfter(/databases/$(database)/documents/roomOwners/$(code)).data.uid == request.auth.uid
                     && validRoom(code);
       allow update: if request.auth != null
-                    && resource.data.uid == request.auth.uid
+                    && (migratesOwnedLegacyRoom(code) || ownsRoom(code))
                     && !serviceIdentityDeletionStarted(request.auth.uid)
-                    && request.resource.data.v == 5
+                    && request.resource.data.v == 6
                     && request.resource.data.v >= resource.data.v
                     && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
                     && validRoom(code);
       allow delete: if request.auth != null
-                    && resource.data.uid == request.auth.uid
+                    && ownsRoom(code)
                     && (
                       (
                         !serviceIdentityDeletionStarted(request.auth.uid)
@@ -336,10 +424,10 @@ service cloud.firestore {
                       && !serviceIdentityDeletionStarted(request.auth.uid)
                       && exists(/databases/$(database)/documents/rooms/$(code))
                       && !serviceIdentityDeletionStarted(
-                        get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                        get(/databases/$(database)/documents/roomOwners/$(code)).data.uid
                       )
                       && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
-                      && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                      && get(/databases/$(database)/documents/roomOwners/$(code)).data.uid
                          != request.auth.uid
                       && request.resource.data.keys().hasOnly([
                         'sender', 'kind', 'sentAt'
@@ -350,7 +438,7 @@ service cloud.firestore {
                       ]
                       && request.resource.data.sentAt == request.time;
         allow read, delete: if request.auth != null
-                            && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                            && get(/databases/$(database)/documents/roomOwners/$(code)).data.uid
                                == request.auth.uid;
         allow update: if false;
       }
@@ -363,10 +451,10 @@ service cloud.firestore {
                       && !serviceIdentityDeletionStarted(request.auth.uid)
                       && exists(/databases/$(database)/documents/rooms/$(code))
                       && !serviceIdentityDeletionStarted(
-                        get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                        get(/databases/$(database)/documents/roomOwners/$(code)).data.uid
                       )
                       && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code))
-                      && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                      && get(/databases/$(database)/documents/roomOwners/$(code)).data.uid
                          != request.auth.uid
                       && request.resource.data.keys().hasOnly([
                         'sender', 'kind', 'sentAt'
@@ -375,10 +463,54 @@ service cloud.firestore {
                       && request.resource.data.kind == 'circle_added'
                       && request.resource.data.sentAt == request.time;
         allow read, delete: if request.auth != null
-                            && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                            && get(/databases/$(database)/documents/roomOwners/$(code)).data.uid
                                == request.auth.uid;
         allow update: if false;
       }
+    }
+    // Anyone cards are available to the same exact-code visitors who can see
+    // a generated room. Mutual cards require reciprocal Circle choices and no
+    // block in either direction. No client can enumerate, create, or alter a
+    // profile/edge/block document; Functions are the only write boundary.
+    match /roomOwners/{code} {
+      // The only raw Firebase uid for a room is never visitor-readable. It is
+      // created atomically with the v6 room and consulted only by Rules/Admin.
+      allow get: if request.auth != null && resource.data.uid == request.auth.uid;
+      allow list: if request.auth != null
+                  && request.query.limit != null
+                  && request.query.limit <= 100
+                  && resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasOnly(['uid', 'ownerKey', 'updatedAt'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.ownerKey == ownerKeyFor(request.auth.uid)
+                    && existsAfter(/databases/$(database)/documents/rooms/$(code));
+      allow update: if request.auth != null
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.ownerKey == ownerKeyFor(request.auth.uid);
+      allow delete: if request.auth != null
+                    && resource.data.uid == request.auth.uid
+                    && !existsAfter(/databases/$(database)/documents/rooms/$(code));
+    }
+    match /publicSpaceProfiles/{code} {
+      allow get: if validSpaceProfile(resource.data)
+                 && profileMatchesLiveRoom(code, resource.data);
+      allow list, create, update, delete: if false;
+    }
+    match /mutualSpaceProfiles/{code} {
+      allow get: if validSpaceProfile(resource.data)
+                 && profileMatchesLiveRoom(code, resource.data)
+                 && request.auth != null
+                 && (ownerKeyFor(request.auth.uid) == resource.data.ownerKey
+                   || reciprocalCircle(resource.data.ownerKey));
+      allow list, create, update, delete: if false;
+    }
+    match /circleRelationships/{ownerKey}/outgoing/{otherOwnerKey} {
+      allow read, write: if false;
+    }
+    match /spaceBlocks/{ownerKey}/blocked/{otherOwnerKey} {
+      allow read, write: if false;
     }
     match /roomDeletionLocks/{code} {
       allow create: if request.auth != null
@@ -386,7 +518,7 @@ service cloud.firestore {
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.createdAt == request.time
                     && exists(/databases/$(database)/documents/rooms/$(code))
-                    && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                    && get(/databases/$(database)/documents/roomOwners/$(code)).data.uid
                        == request.auth.uid;
       allow update: if request.auth != null
                     && resource.data.uid == request.auth.uid
@@ -394,7 +526,7 @@ service cloud.firestore {
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.createdAt == request.time
                     && exists(/databases/$(database)/documents/rooms/$(code))
-                    && get(/databases/$(database)/documents/rooms/$(code)).data.uid
+                    && get(/databases/$(database)/documents/roomOwners/$(code)).data.uid
                        == request.auth.uid;
       allow delete: if request.auth != null
                     && resource.data.uid == request.auth.uid
@@ -411,6 +543,7 @@ service cloud.firestore {
       // access at expiry along with directory visibility.
       allow get: if request.auth != null
                  && validDiscoverableSpaceShape(code, resource.data)
+                 && discoverableSpaceHasLiveAnchor(code, resource.data)
                  && (
                    resource.data.expiresAt > request.time
                    || ownsRoom(code)
@@ -437,6 +570,7 @@ service cloud.firestore {
                       /databases/$(database)/documents/roomDeletionLocks/$(code)
                     )
                     && validDiscoverableSpace(code)
+                    && resource.data.ownerKey == request.resource.data.ownerKey
                     && (
                       (
                         resource.data.keys().hasAny(['publicName'])
@@ -453,6 +587,8 @@ service cloud.firestore {
       // fenced commit after the deletion tombstone has started.
       allow delete: if ownsRoom(code)
                     && (
+                      !discoverableSpaceHasLiveAnchor(code, resource.data)
+                      ||
                       normalRoomRemovalAllowed(code)
                       || fencedRoomRemovalAllowed(code)
                     );

@@ -69,26 +69,45 @@ Future<void> _changePlayerName(
   final next = await showDialog<String>(
     context: context,
     builder: (dialogContext) => AlertDialog(
+      scrollable: true,
       backgroundColor: Palette.card,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
         'What should we call you?',
         style: Type.display.copyWith(fontSize: 20, color: Palette.textHi),
       ),
-      content: TextFormField(
-        key: const ValueKey('space-name-field'),
-        initialValue: editedName,
-        autofocus: true,
-        maxLength: 40,
-        textCapitalization: TextCapitalization.words,
-        textInputAction: TextInputAction.done,
-        style: Type.body.copyWith(color: Palette.textHi),
-        decoration: const InputDecoration(
-          labelText: 'Your name',
-          hintText: 'Name or nickname',
-        ),
-        onChanged: (value) => editedName = value,
-        onFieldSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            key: const ValueKey('space-name-field'),
+            initialValue: editedName,
+            autofocus: true,
+            maxLength: 40,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.done,
+            style: Type.body.copyWith(color: Palette.textHi),
+            decoration: const InputDecoration(
+              labelText: 'Your name',
+              hintText: 'Name or nickname',
+            ),
+            onChanged: (value) => editedName = value,
+            onFieldSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+          ),
+          if (visitorProfileSharingEnabled && state.shareSpaceProfile) ...[
+            const SizedBox(height: 8),
+            Text(
+              'This name appears only to audiences who can see at least one of your visitor-page cards.',
+              key: const ValueKey('space-name-audience-note'),
+              style: Type.body.copyWith(
+                fontSize: 11.5,
+                height: 1.35,
+                color: Palette.textLo,
+              ),
+            ),
+          ],
+        ],
       ),
       actions: [
         TextButton(
@@ -108,18 +127,27 @@ Future<void> _changePlayerName(
   final code = state.roomCode;
   RoomPublishResult? published;
   if (code != null &&
-      jsonEncode(
-            roomDisplay(
+      visitorProfileSharingEnabled &&
+      jsonEncode({
+            'public': spaceProfileDisplay(
               state,
-              visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+              audience: SpaceAudience.anyone,
             ),
-          ) !=
-          jsonEncode(
-            roomDisplay(
+            'mutual': spaceProfileDisplay(
+              state,
+              audience: SpaceAudience.mutuals,
+            ),
+          }) !=
+          jsonEncode({
+            'public': spaceProfileDisplay(
               draft,
-              visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+              audience: SpaceAudience.anyone,
             ),
-          )) {
+            'mutual': spaceProfileDisplay(
+              draft,
+              audience: SpaceAudience.mutuals,
+            ),
+          })) {
     final progress = showDialog<void>(
       context: context,
       barrierDismissible: false,
@@ -252,7 +280,7 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
   late final TextEditingController _season;
   late final List<SpaceCardKind> _order;
   late final Set<SpaceCardKind> _hidden;
-  late final Set<SpaceCardKind> _visitorVisible;
+  late final Map<SpaceCardKind, SpaceAudience> _audiences;
   late final Set<String> _featuredGoals;
   late final Set<String> _pinnedMoments;
   final Set<SpaceCardKind> _expanded = {SpaceCardKind.about};
@@ -274,9 +302,12 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       if (!_order.contains(kind)) _order.add(kind);
     }
     _hidden = widget.state.hiddenSpaceCards.toSet();
-    _visitorVisible = widget.visitorProfileSharingEnabled
-        ? widget.state.visitorSpaceCards.toSet()
-        : <SpaceCardKind>{};
+    _audiences = {
+      for (final kind in SpaceCardKind.values)
+        kind: widget.visitorProfileSharingEnabled
+            ? widget.state.spaceAudienceFor(kind)
+            : SpaceAudience.onlyMe,
+    };
     _featuredGoals = widget.state.featuredGoalTitles.toSet();
     _pinnedMoments = widget.state.memoryPins.toSet();
     _profilePhotoNoteId = widget.state.spaceProfilePhotoNoteId;
@@ -310,9 +341,12 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
     target.setSpacePage(
       order: _order,
       hidden: _hidden,
-      visitorVisible: widget.visitorProfileSharingEnabled
-          ? _visitorVisible
-          : const <SpaceCardKind>[],
+      audiences: {
+        for (final kind in SpaceCardKind.values)
+          kind: widget.visitorProfileSharingEnabled
+              ? _audiences[kind] ?? SpaceAudience.onlyMe
+              : SpaceAudience.onlyMe,
+      },
       intro: _intro.text,
       featuredGoalTitles: _featuredGoals,
       seasonText: _season.text,
@@ -345,7 +379,7 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
     widget.state.setSpacePage(
       order: draft.spaceCardOrder,
       hidden: draft.hiddenSpaceCards,
-      visitorVisible: draft.visitorSpaceCards,
+      audiences: draft.spaceCardAudiences,
       intro: draft.spaceIntro,
       featuredGoalTitles: draft.featuredGoalTitles,
       seasonText: draft.spaceSeasonText,
@@ -370,16 +404,14 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
     // reduction.
     final draft = GameState.fromJson(widget.state.toJson());
     _applyDraft(draft);
-    final currentDisplay = roomDisplay(
-      widget.state,
-      visitorPhotoSharingEnabled: widget.visitorPhotoSharingEnabled,
-      visitorProfileSharingEnabled: widget.visitorProfileSharingEnabled,
-    );
-    final nextDisplay = roomDisplay(
-      draft,
-      visitorPhotoSharingEnabled: widget.visitorPhotoSharingEnabled,
-      visitorProfileSharingEnabled: widget.visitorProfileSharingEnabled,
-    );
+    String profileIntent(GameState state) => jsonEncode({
+      'public': widget.visitorProfileSharingEnabled
+          ? spaceProfileDisplay(state, audience: SpaceAudience.anyone)
+          : const <String, dynamic>{},
+      'mutual': widget.visitorProfileSharingEnabled
+          ? spaceProfileDisplay(state, audience: SpaceAudience.mutuals)
+          : const <String, dynamic>{},
+    });
     String photoIntent(GameState state) => jsonEncode({
       for (final entry in selectedSharedRoomPhotoFiles(
         state,
@@ -392,7 +424,7 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
     RoomPublishResult? published;
 
     if (code != null &&
-        (jsonEncode(currentDisplay) != jsonEncode(nextDisplay) ||
+        (profileIntent(widget.state) != profileIntent(draft) ||
             photoIntent(widget.state) != photoIntent(draft))) {
       setState(() {
         _saving = true;
@@ -407,11 +439,16 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       if (!published.ok) {
         setState(() {
           _saving = false;
-          _saveError = published?.failure == RoomPublishFailure.media
-              ? 'Couldn\u2019t share that photo. Choose another JPEG, PNG, or '
-                    'WebP under 3 MB, then try again.'
-              : 'Couldn\u2019t update the live visitor page. Its previous version '
-                    'may still be visible. Reconnect and try again.';
+          _saveError = switch (published?.failure) {
+            RoomPublishFailure.media =>
+              'Couldn\u2019t share that photo. Choose another JPEG, PNG, or '
+                  'WebP under 3 MB, then try again.',
+            RoomPublishFailure.profileRejected =>
+              'A card marked Anyone or Mutuals contains a link, contact detail, or wording that can\u2019t be published. Your saved page is unchanged.',
+            _ =>
+              'Couldn\u2019t update the live visitor page. Its previous version '
+                  'may still be visible. Reconnect and try again.',
+          };
         });
         return;
       }
@@ -510,7 +547,9 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       selectedNoteId: _seasonPhotoNoteId,
       sharePhoto: _shareSeasonPhoto,
       visitorPageEnabled: _shared,
-      visitorCardSelected: _visitorVisible.contains(SpaceCardKind.thisSeason),
+      visitorCardSelected:
+          (_audiences[SpaceCardKind.thisSeason] ?? SpaceAudience.onlyMe) !=
+          SpaceAudience.onlyMe,
       visitorPhotoSharingEnabled: widget.visitorPhotoSharingEnabled,
       onPhotoChanged: (id) => setState(() {
         _seasonPhotoNoteId = id;
@@ -571,7 +610,7 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
                         kind: kind,
                         index: index,
                         hidden: _hidden.contains(kind),
-                        visitorVisible: _visitorVisible.contains(kind),
+                        audience: _audiences[kind] ?? SpaceAudience.onlyMe,
                         visitorPageEnabled: _shared,
                         visitorProfileSharingEnabled:
                             widget.visitorProfileSharingEnabled,
@@ -582,10 +621,8 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
                         onVisibilityChanged: () => setState(() {
                           if (!_hidden.remove(kind)) _hidden.add(kind);
                         }),
-                        onVisitorVisibilityChanged: () => setState(() {
-                          if (!_visitorVisible.remove(kind)) {
-                            _visitorVisible.add(kind);
-                          }
+                        onAudienceChanged: (audience) => setState(() {
+                          _audiences[kind] = audience;
                         }),
                         child: _editorFor(kind),
                       );
@@ -699,7 +736,7 @@ class _SpaceSharingPanel extends StatelessWidget {
               value: shared,
               activeTrackColor: Palette.xp.withValues(alpha: 0.72),
               title: Text(
-                'Open my visitor page',
+                'Publish my visitor page',
                 style: Type.body.copyWith(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w700,
@@ -708,7 +745,7 @@ class _SpaceSharingPanel extends StatelessWidget {
               ),
               subtitle: Text(
                 shared
-                    ? 'Your name and only the cards marked for visitors appear when someone opens your room.'
+                    ? 'Each card follows the audience you choose below.'
                     : 'Your room can still be shared; every profile card stays private.',
                 style: Type.body.copyWith(
                   fontSize: 11.5,
@@ -723,7 +760,9 @@ class _SpaceSharingPanel extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
-              'Choose each card’s audience below. A profile or This season photo is separate: select it, then explicitly let visitors see it. Drag the brass grips to set the order.',
+              shared
+                  ? 'The eye controls your own page only. The audience controls who sees a card when they visit. Mutuals means you both keep each other in Circle; Anyone includes code and Discover visitors. Photos stay private in this release. Drag the brass grips to set the order.'
+                  : 'Choose audiences now if you like—they are saved for later. Nobody can see any card until you publish this page. The eye only hides a card from your own page. Photos stay private in this release.',
               style: Type.body.copyWith(
                 fontSize: 11.5,
                 height: 1.35,
@@ -782,26 +821,26 @@ class _SpaceArrangerCard extends StatelessWidget {
     required this.kind,
     required this.index,
     required this.hidden,
-    required this.visitorVisible,
+    required this.audience,
     required this.visitorPageEnabled,
     required this.visitorProfileSharingEnabled,
     required this.expanded,
     required this.onExpand,
     required this.onVisibilityChanged,
-    required this.onVisitorVisibilityChanged,
+    required this.onAudienceChanged,
     required this.child,
   });
 
   final SpaceCardKind kind;
   final int index;
   final bool hidden;
-  final bool visitorVisible;
+  final SpaceAudience audience;
   final bool visitorPageEnabled;
   final bool visitorProfileSharingEnabled;
   final bool expanded;
   final VoidCallback onExpand;
   final VoidCallback onVisibilityChanged;
-  final VoidCallback onVisitorVisibilityChanged;
+  final ValueChanged<SpaceAudience> onAudienceChanged;
   final Widget child;
 
   @override
@@ -924,10 +963,10 @@ class _SpaceArrangerCard extends StatelessWidget {
               if (visitorProfileSharingEnabled)
                 _VisitorScopeControl(
                   kind: kind,
-                  selected: visitorVisible,
+                  audience: audience,
                   visitorPageEnabled: visitorPageEnabled,
                   accent: accent,
-                  onChanged: onVisitorVisibilityChanged,
+                  onChanged: onAudienceChanged,
                 ),
               if (expanded)
                 Container(
@@ -952,68 +991,204 @@ class _SpaceArrangerCard extends StatelessWidget {
 class _VisitorScopeControl extends StatelessWidget {
   const _VisitorScopeControl({
     required this.kind,
-    required this.selected,
+    required this.audience,
     required this.visitorPageEnabled,
     required this.accent,
     required this.onChanged,
   });
 
   final SpaceCardKind kind;
-  final bool selected;
+  final SpaceAudience audience;
   final bool visitorPageEnabled;
   final Color accent;
-  final VoidCallback onChanged;
+  final ValueChanged<SpaceAudience> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final active = selected && visitorPageEnabled;
-    final status = active
-        ? 'VISITORS CAN SEE THIS CARD'
-        : selected
-        ? 'SELECTED · VISITOR PAGE CLOSED'
-        : 'ONLY YOU CAN SEE THIS CARD';
-    return InkWell(
-      key: ValueKey('space-card-share-${kind.name}'),
-      onTap: onChanged,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 48),
-        padding: const EdgeInsets.fromLTRB(14, 7, 8, 7),
-        decoration: BoxDecoration(
-          color: selected
-              ? accent.withValues(alpha: visitorPageEnabled ? 0.09 : 0.04)
-              : Palette.glassFill,
-          border: Border(
-            top: BorderSide(color: accent.withValues(alpha: 0.16)),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              active
-                  ? Icons.door_front_door_outlined
-                  : Icons.lock_outline_rounded,
-              size: 16,
-              color: active ? accent : Palette.textLo,
+    final detail = switch (audience) {
+      SpaceAudience.onlyMe => 'Stays on your own page.',
+      SpaceAudience.mutuals =>
+        'Nothing is shared until you and another keeper each keep the other in Circle.',
+      SpaceAudience.anyone => 'Anyone who opens your space can see it.',
+    };
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked =
+            constraints.maxWidth < 340 ||
+            MediaQuery.textScalerOf(context).scale(1) > 1.15;
+        final stateDetail = visitorPageEnabled
+            ? detail
+            : switch (audience) {
+                SpaceAudience.onlyMe =>
+                  'Only me keeps this private. Saved for later—nobody can see it until you publish.',
+                SpaceAudience.mutuals =>
+                  'Mutuals requires both keepers to choose each other. Saved for later—your page is private.',
+                SpaceAudience.anyone =>
+                  'Anyone includes code and Discover visitors. Saved for later—your page is private.',
+              };
+        return Container(
+          key: ValueKey('space-card-share-${kind.name}'),
+          padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
+          decoration: BoxDecoration(
+            color: audience == SpaceAudience.onlyMe
+                ? Palette.glassFill
+                : accent.withValues(alpha: visitorPageEnabled ? 0.08 : 0.04),
+            border: Border(
+              top: BorderSide(color: accent.withValues(alpha: 0.16)),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                status,
-                maxLines: 2,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'WHO CAN SEE THIS?',
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        letterSpacing: 0.8,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ),
+                  if (!visitorPageEnabled)
+                    Text(
+                      'SAVED · PAGE PRIVATE',
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        letterSpacing: 0.55,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 7),
+              if (stacked)
+                for (final option in SpaceAudience.values) ...[
+                  _AudienceChoice(
+                    key: ValueKey(
+                      'space-card-audience-${kind.name}-${option.name}',
+                    ),
+                    audience: option,
+                    selected: audience == option,
+                    accent: accent,
+                    onTap: () => onChanged(option),
+                    fullWidth: true,
+                  ),
+                  if (option != SpaceAudience.anyone) const SizedBox(height: 6),
+                ]
+              else
+                Row(
+                  children: [
+                    for (final option in SpaceAudience.values) ...[
+                      if (option != SpaceAudience.onlyMe)
+                        const SizedBox(width: 6),
+                      Expanded(
+                        child: _AudienceChoice(
+                          key: ValueKey(
+                            'space-card-audience-${kind.name}-${option.name}',
+                          ),
+                          audience: option,
+                          selected: audience == option,
+                          accent: accent,
+                          onTap: () => onChanged(option),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              const SizedBox(height: 7),
+              Text(
+                stateDetail,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
-                style: Type.label.copyWith(
-                  fontSize: Type.minLabel,
-                  letterSpacing: 0.75,
-                  color: active ? accent : Palette.textLo,
+                style: Type.body.copyWith(
+                  fontSize: 11.2,
+                  height: 1.3,
+                  color: audience == SpaceAudience.onlyMe
+                      ? Palette.textLo
+                      : Palette.textMid,
                 ),
               ),
-            ),
-            Switch.adaptive(
-              value: selected,
-              activeTrackColor: accent.withValues(alpha: 0.72),
-              onChanged: (_) => onChanged(),
-            ),
-          ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AudienceChoice extends StatelessWidget {
+  const _AudienceChoice({
+    super.key,
+    required this.audience,
+    required this.selected,
+    required this.accent,
+    required this.onTap,
+    this.fullWidth = false,
+  });
+
+  final SpaceAudience audience;
+  final bool selected;
+  final Color accent;
+  final VoidCallback onTap;
+  final bool fullWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = switch (audience) {
+      SpaceAudience.onlyMe => 'ONLY ME',
+      SpaceAudience.mutuals => 'MUTUALS',
+      SpaceAudience.anyone => 'ANYONE',
+    };
+    final icon = switch (audience) {
+      SpaceAudience.onlyMe => Icons.lock_outline_rounded,
+      SpaceAudience.mutuals => Icons.people_outline_rounded,
+      SpaceAudience.anyone => Icons.public_rounded,
+    };
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label audience',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(9),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          constraints: const BoxConstraints(minHeight: 42),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 7),
+          decoration: facetedDecoration(
+            cut: 6,
+            color: selected
+                ? accent.withValues(alpha: 0.16)
+                : Palette.glassFill,
+            borderColor: selected
+                ? accent.withValues(alpha: 0.68)
+                : Palette.glassEdge,
+          ),
+          child: Row(
+            mainAxisAlignment: fullWidth
+                ? MainAxisAlignment.start
+                : MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: selected ? accent : Palette.textLo),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: false,
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    letterSpacing: 0.45,
+                    color: selected ? accent : Palette.textLo,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1595,6 +1770,7 @@ class _SpaceArrangerActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compactLabels = MediaQuery.textScalerOf(context).scale(14) >= 22;
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 9, 12, 10),
       decoration: const BoxDecoration(
@@ -1631,34 +1807,57 @@ class _SpaceArrangerActions extends StatelessWidget {
           Row(
             children: [
               TextButton(
+                key: const ValueKey('space-arranger-cancel'),
                 onPressed: onCancel,
                 style: TextButton.styleFrom(
                   minimumSize: const Size(72, 52),
                   foregroundColor: Palette.textMid,
                 ),
-                child: const Text('Cancel'),
+                child: Text(
+                  'CANCEL',
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    color: Palette.textMid,
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: FilledButton.icon(
-                  key: const ValueKey('space-arranger-save'),
-                  onPressed: onSave,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(52),
-                    backgroundColor: Palette.xp,
-                    foregroundColor: Palette.onHoney,
-                  ),
-                  icon: busy
-                      ? const SizedBox.square(
-                          dimension: 17,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Palette.onHoney,
-                          ),
-                        )
-                      : const Icon(Icons.check_rounded),
-                  label: Text(
-                    busy ? 'Updating visitor page\u2026' : 'Save page',
+                child: Semantics(
+                  label: busy ? 'Updating visitor page' : 'Save page',
+                  button: true,
+                  enabled: onSave != null,
+                  excludeSemantics: true,
+                  child: FilledButton.icon(
+                    key: const ValueKey('space-arranger-save'),
+                    onPressed: onSave,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(52),
+                      backgroundColor: Palette.xp,
+                      foregroundColor: Palette.onHoney,
+                    ),
+                    icon: busy
+                        ? const SizedBox.square(
+                            dimension: 17,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Palette.onHoney,
+                            ),
+                          )
+                        : const Icon(Icons.check_rounded),
+                    label: Text(
+                      busy
+                          ? compactLabels
+                                ? 'SAVING\u2026'
+                                : 'Updating visitor page\u2026'
+                          : compactLabels
+                          ? 'SAVE'
+                          : 'SAVE PAGE',
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        color: Palette.onHoney,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -3680,12 +3879,16 @@ class _PersonalSpacePanel extends StatelessWidget {
                 seasonPhoto != null))
           kind,
     ];
-    bool shared(SpaceCardKind kind) =>
-        visitorProfileSharingEnabled &&
-        state.shareSpaceProfile &&
-        state.visitorSpaceCards.contains(kind);
+    SpaceAudience audience(SpaceCardKind kind) =>
+        visitorProfileSharingEnabled && state.shareSpaceProfile
+        ? state.spaceAudienceFor(kind)
+        : SpaceAudience.onlyMe;
     final sharedCount = visitorProfileSharingEnabled && state.shareSpaceProfile
-        ? state.visitorSpaceCards.length
+        ? SpaceCardKind.values
+              .where(
+                (kind) => state.spaceAudienceFor(kind) != SpaceAudience.onlyMe,
+              )
+              .length
         : 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3709,7 +3912,7 @@ class _PersonalSpacePanel extends StatelessWidget {
             switch (visibleOrder[index]) {
               SpaceCardKind.about => _AboutSpaceCard(
                 intro: state.spaceIntro,
-                shared: shared(SpaceCardKind.about),
+                audience: audience(SpaceCardKind.about),
                 photo: profilePhoto,
                 photoShared:
                     visitorProfileSharingEnabled &&
@@ -3719,20 +3922,21 @@ class _PersonalSpacePanel extends StatelessWidget {
               ),
               SpaceCardKind.rightNow => _RightNowSpaceCard(
                 goals: goals,
-                shared: shared(SpaceCardKind.rightNow),
+                audience: audience(SpaceCardKind.rightNow),
               ),
               SpaceCardKind.pinnedMoments => _PinnedMomentsSpaceCard(
                 moments: moments,
-                shared: shared(SpaceCardKind.pinnedMoments),
+                audience: audience(SpaceCardKind.pinnedMoments),
               ),
               SpaceCardKind.thisSeason => _ThisSeasonSpaceCard(
                 text: state.spaceSeasonText,
                 photo: seasonPhoto,
-                shared: shared(SpaceCardKind.thisSeason),
+                audience: audience(SpaceCardKind.thisSeason),
                 photoShared:
                     visitorProfileSharingEnabled &&
                     visitorPhotoSharingEnabled &&
-                    shared(SpaceCardKind.thisSeason) &&
+                    audience(SpaceCardKind.thisSeason) !=
+                        SpaceAudience.onlyMe &&
                     state.shareSpaceSeasonPhoto,
               ),
             },
@@ -3954,9 +4158,9 @@ class _EmptySpaceDeck extends StatelessWidget {
 }
 
 class _SpaceCardPrivacyMark extends StatelessWidget {
-  const _SpaceCardPrivacyMark({required this.visitorEligible});
+  const _SpaceCardPrivacyMark({required this.audience});
 
-  final bool visitorEligible;
+  final SpaceAudience audience;
 
   @override
   Widget build(BuildContext context) {
@@ -3967,18 +4171,22 @@ class _SpaceCardPrivacyMark extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            visitorEligible
-                ? Icons.door_front_door_outlined
-                : Icons.lock_outline,
+            switch (audience) {
+              SpaceAudience.onlyMe => Icons.lock_outline,
+              SpaceAudience.mutuals => Icons.people_outline_rounded,
+              SpaceAudience.anyone => Icons.public_rounded,
+            },
             size: 12,
             color: Palette.textMid,
           ),
           const SizedBox(width: 4),
           Flexible(
             child: Text(
-              visitorEligible
-                  ? (largeText ? 'VISITORS CAN SEE' : 'SHARED WITH VISITORS')
-                  : 'ONLY YOU',
+              switch (audience) {
+                SpaceAudience.onlyMe => 'ONLY YOU',
+                SpaceAudience.mutuals => 'MUTUALS',
+                SpaceAudience.anyone => largeText ? 'ANYONE' : 'ANYONE',
+              },
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Type.label.copyWith(
@@ -3999,13 +4207,13 @@ class _SpaceDeckCardHeader extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.accent,
-    required this.visitorEligible,
+    required this.audience,
   });
 
   final IconData icon;
   final String title;
   final Color accent;
-  final bool visitorEligible;
+  final SpaceAudience audience;
 
   @override
   Widget build(BuildContext context) {
@@ -4039,7 +4247,7 @@ class _SpaceDeckCardHeader extends StatelessWidget {
             children: [
               identity,
               const SizedBox(height: 6),
-              _SpaceCardPrivacyMark(visitorEligible: visitorEligible),
+              _SpaceCardPrivacyMark(audience: audience),
             ],
           );
         }
@@ -4047,7 +4255,7 @@ class _SpaceDeckCardHeader extends StatelessWidget {
           children: [
             Expanded(child: identity),
             const SizedBox(width: 8),
-            _SpaceCardPrivacyMark(visitorEligible: visitorEligible),
+            _SpaceCardPrivacyMark(audience: audience),
           ],
         );
       },
@@ -4058,13 +4266,13 @@ class _SpaceDeckCardHeader extends StatelessWidget {
 class _AboutSpaceCard extends StatelessWidget {
   const _AboutSpaceCard({
     required this.intro,
-    required this.shared,
+    required this.audience,
     required this.photo,
     required this.photoShared,
   });
 
   final String intro;
-  final bool shared;
+  final SpaceAudience audience;
   final Note? photo;
   final bool photoShared;
 
@@ -4110,7 +4318,7 @@ class _AboutSpaceCard extends StatelessWidget {
                 icon: Icons.auto_stories_outlined,
                 title: 'ABOUT',
                 accent: Palette.xpLight,
-                visitorEligible: shared,
+                audience: audience,
               ),
               const SizedBox(height: 12),
               Container(
@@ -4154,7 +4362,7 @@ class _AboutSpaceCard extends StatelessWidget {
                 const SizedBox(height: 9),
                 _SpacePhotoVisibilityMark(shared: photoShared),
               ],
-              if (shared) ...[
+              if (audience != SpaceAudience.onlyMe) ...[
                 const SizedBox(height: 10),
                 Text(
                   'shown when this card is visible to visitors',
@@ -4173,10 +4381,10 @@ class _AboutSpaceCard extends StatelessWidget {
 }
 
 class _RightNowSpaceCard extends StatelessWidget {
-  const _RightNowSpaceCard({required this.goals, required this.shared});
+  const _RightNowSpaceCard({required this.goals, required this.audience});
 
   final List<Goal> goals;
-  final bool shared;
+  final SpaceAudience audience;
 
   @override
   Widget build(BuildContext context) {
@@ -4217,7 +4425,7 @@ class _RightNowSpaceCard extends StatelessWidget {
                   icon: Icons.flag_outlined,
                   title: 'RIGHT NOW',
                   accent: Palette.success,
-                  visitorEligible: shared,
+                  audience: audience,
                 ),
                 const SizedBox(height: 9),
                 if (goals.isEmpty)
@@ -4276,7 +4484,7 @@ class _RightNowSpaceCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                if (shared) ...[
+                if (audience != SpaceAudience.onlyMe) ...[
                   const SizedBox(height: 9),
                   Text(
                     'shown when this card is visible to visitors',
@@ -4296,10 +4504,13 @@ class _RightNowSpaceCard extends StatelessWidget {
 }
 
 class _PinnedMomentsSpaceCard extends StatelessWidget {
-  const _PinnedMomentsSpaceCard({required this.moments, required this.shared});
+  const _PinnedMomentsSpaceCard({
+    required this.moments,
+    required this.audience,
+  });
 
   final List<Note> moments;
-  final bool shared;
+  final SpaceAudience audience;
 
   @override
   Widget build(BuildContext context) {
@@ -4321,7 +4532,7 @@ class _PinnedMomentsSpaceCard extends StatelessWidget {
             icon: Icons.push_pin_outlined,
             title: 'PINNED MOMENTS',
             accent: Color(0xFFDDB296),
-            visitorEligible: shared,
+            audience: audience,
           ),
           const SizedBox(height: 10),
           if (moments.isEmpty)
@@ -4427,13 +4638,13 @@ class _ThisSeasonSpaceCard extends StatelessWidget {
   const _ThisSeasonSpaceCard({
     required this.text,
     required this.photo,
-    required this.shared,
+    required this.audience,
     required this.photoShared,
   });
 
   final String text;
   final Note? photo;
-  final bool shared;
+  final SpaceAudience audience;
   final bool photoShared;
 
   @override
@@ -4483,7 +4694,7 @@ class _ThisSeasonSpaceCard extends StatelessWidget {
               icon: Icons.filter_vintage_outlined,
               title: 'THIS SEASON',
               accent: Palette.unlock,
-              visitorEligible: shared,
+              audience: audience,
             ),
           ),
           Padding(

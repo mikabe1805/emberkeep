@@ -157,7 +157,7 @@ void main() {
       expect(
         ownership,
         contains(
-          r'get(/databases/$(database)/documents/rooms/$(code)).data.uid',
+          r'get(/databases/$(database)/documents/roomOwners/$(code)).data.uid',
         ),
       );
       expect(ownership, contains('== request.auth.uid'));
@@ -172,10 +172,13 @@ void main() {
       'match /roomDeletionLocks/{code}',
     );
 
-    expect(rooms, contains('allow get: if resource.data.v == 5'));
-    expect(rooms, contains('allow list: if request.auth != null'));
+    expect(rooms, contains('resource.data.v == 6'));
+    expect(rooms, contains('resource.data.profileVisible == false'));
+    expect(rooms, contains('request.auth != null'));
+    expect(rooms, contains('resource.data.v == 5'));
     expect(rooms, contains('resource.data.uid == request.auth.uid'));
-    expect(rooms, contains('request.query.limit <= 100'));
+    expect(rooms, contains('migratesOwnedLegacyRoom(code)'));
+    expect(rooms, contains('allow list: if false'));
     expect(rooms, isNot(contains('allow list: if true')));
   });
 

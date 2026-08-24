@@ -71,6 +71,7 @@ workflows:
           flutter test --no-pub \
             --dart-define=SPACE_DISCOVERY=true \
             --dart-define=PUBLIC_DISCOVERY_NAMES=true \
+            --dart-define=VISITOR_PROFILE_SHARING=true \
             test/discovery_projection_test.dart \
             test/discovery_state_test.dart \
             test/discover_spaces_test.dart \
@@ -166,6 +167,7 @@ workflows:
             --dart-define=COFFEE_URL= \
             --dart-define=SPACE_DISCOVERY=true \
             --dart-define=PUBLIC_DISCOVERY_NAMES=true \
+            --dart-define=VISITOR_PROFILE_SHARING=true \
             --export-options-plist="$HOME/export_options.plist"
       - name: Verify signed IPA contents
         script: |

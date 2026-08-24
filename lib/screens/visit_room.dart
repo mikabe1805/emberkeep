@@ -25,6 +25,10 @@ import '../widgets/visitor_shared_room_photo.dart';
 
 typedef DiscoverySpaceReporter =
     Future<bool> Function(String code, String category);
+typedef SpaceProfileFetcher =
+    Future<Map<String, dynamic>?> Function(String code, {bool includeMutual});
+typedef SpaceRelationshipSetter =
+    Future<bool> Function(String code, {String ownerKey, required bool active});
 
 /// A read-only look at someone else's "Your Space" (round-52, social). Built
 /// only from its bounded public room document. The v1 candidate accepts preset
@@ -46,6 +50,9 @@ class VisitRoomScreen extends StatelessWidget {
     this.discoveryPublicName = '',
     this.discoveryOwnerKey = '',
     this.onReportDiscoverableSpace,
+    this.visitorProfile,
+    this.spaceProfileFetcher,
+    this.relationshipSetter,
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
     this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
   });
@@ -72,6 +79,9 @@ class VisitRoomScreen extends StatelessWidget {
   final String discoveryPublicName;
   final String discoveryOwnerKey;
   final DiscoverySpaceReporter? onReportDiscoverableSpace;
+  final Map<String, dynamic>? visitorProfile;
+  final SpaceProfileFetcher? spaceProfileFetcher;
+  final SpaceRelationshipSetter? relationshipSetter;
 
   /// Test seam for the leave-a-note action; the real path acquires the
   /// anonymous social session only on the explicit send.
@@ -314,6 +324,26 @@ class VisitRoomScreen extends StatelessWidget {
                   ),
                 ),
               ],
+              if (!profileVisible && visitorProfileSharingEnabled)
+                _VisitorProfileLoader(
+                  code: code,
+                  initialProfile: visitorProfile,
+                  includeMutual:
+                      localState?.hearthCircleCodes.contains(
+                        code.trim().toUpperCase(),
+                      ) ==
+                      true,
+                  fetcher:
+                      spaceProfileFetcher ??
+                      CloudSync.instance.fetchSpaceProfile,
+                  relationshipSetter:
+                      relationshipSetter ??
+                      (spaceProfileFetcher == null
+                          ? CloudSync.instance.setCircleRelationship
+                          : null),
+                  ownerKey: discoveryOwnerKey,
+                  photoUrlLoader: photoUrlLoader,
+                ),
               // The visit ends with something to give, not just something to
               // keep — the same fixed, text-free note the Circle sends.
               if (localState?.roomCode != code.trim().toUpperCase()) ...[
@@ -338,7 +368,7 @@ class VisitRoomScreen extends StatelessWidget {
               ],
               if (localState != null &&
                   onPersist != null &&
-                  onReportDiscoverableSpace != null) ...[
+                  localState!.roomCode != code.trim().toUpperCase()) ...[
                 const SizedBox(height: 4),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -347,28 +377,170 @@ class VisitRoomScreen extends StatelessWidget {
                     ownerKey: discoveryOwnerKey,
                     state: localState!,
                     onPersist: onPersist!,
-                    onReport: onReportDiscoverableSpace!,
+                    onReport: onReportDiscoverableSpace,
                   ),
                 ),
               ],
               const SizedBox(height: 18),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  profileVisible
-                      ? 'Only the cards and photos they chose are here. Every other Journal page, photo, quest, and account detail stays private.'
-                      : 'Only the room they built and a few signs of presence are here. Their writing, photos, quests, and account details stay private.',
-                  textAlign: TextAlign.center,
-                  style: Type.body.copyWith(
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                    color: Palette.textLo,
-                  ),
-                ),
-              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _VisitorProfileLoader extends StatefulWidget {
+  const _VisitorProfileLoader({
+    required this.code,
+    required this.initialProfile,
+    required this.includeMutual,
+    required this.fetcher,
+    required this.relationshipSetter,
+    required this.ownerKey,
+    required this.photoUrlLoader,
+  });
+
+  final String code;
+  final Map<String, dynamic>? initialProfile;
+  final bool includeMutual;
+  final SpaceProfileFetcher fetcher;
+  final SpaceRelationshipSetter? relationshipSetter;
+  final String ownerKey;
+  final VisitorPhotoUrlLoader? photoUrlLoader;
+
+  @override
+  State<_VisitorProfileLoader> createState() => _VisitorProfileLoaderState();
+}
+
+class _VisitorProfileLoaderState extends State<_VisitorProfileLoader> {
+  Future<Map<String, dynamic>?>? _profile;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialProfile == null) _profile = _fetch();
+  }
+
+  @override
+  void didUpdateWidget(covariant _VisitorProfileLoader oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialProfile != oldWidget.initialProfile ||
+        widget.code != oldWidget.code ||
+        widget.includeMutual != oldWidget.includeMutual ||
+        widget.fetcher != oldWidget.fetcher ||
+        widget.relationshipSetter != oldWidget.relationshipSetter ||
+        widget.ownerKey != oldWidget.ownerKey) {
+      _profile = widget.initialProfile == null ? _fetch() : null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> _fetch() async {
+    final relationshipSetter = widget.relationshipSetter;
+    if (widget.includeMutual && relationshipSetter != null) {
+      await relationshipSetter(
+        widget.code,
+        ownerKey: widget.ownerKey,
+        active: true,
+      );
+    }
+    return widget.fetcher(widget.code, includeMutual: widget.includeMutual);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = widget.initialProfile;
+    if (initial != null) return _buildProfile(context, initial);
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _profile,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const _VisitorProfileStatus(
+            key: ValueKey('visitor-profile-loading'),
+            message: 'Opening their page…',
+          );
+        }
+        final profile = snapshot.data;
+        return profile == null
+            ? const _VisitorProfileStatus(
+                key: ValueKey('visitor-profile-absent'),
+                message: 'This keeper has not opened a visitor page.',
+              )
+            : _buildProfile(context, profile);
+      },
+    );
+  }
+
+  Widget _buildProfile(BuildContext context, Map<String, dynamic> profile) {
+    String safeString(String key, [int maximum = 180]) {
+      final value = profile[key];
+      if (value is! String) return '';
+      return String.fromCharCodes(value.trim().runes.take(maximum));
+    }
+
+    final cardOrder = <SpaceCardKind>[];
+    final rawOrder = profile['cardOrder'];
+    if (rawOrder is List) {
+      for (final raw in rawOrder) {
+        if (raw is! String) continue;
+        final match = SpaceCardKind.values.where((kind) => kind.name == raw);
+        if (match.isEmpty || cardOrder.contains(match.first)) continue;
+        cardOrder.add(match.first);
+        if (cardOrder.length == SpaceCardKind.values.length) break;
+      }
+    }
+    if (cardOrder.isEmpty) {
+      return const _VisitorProfileStatus(
+        key: ValueKey('visitor-profile-empty'),
+        message:
+            'Their page is open, but they have not placed anything here yet.',
+      );
+    }
+
+    final featuredGoals = <String>[];
+    final rawGoals = profile['featuredGoals'];
+    if (rawGoals is List) {
+      for (final raw in rawGoals) {
+        if (raw is! String) continue;
+        final value = String.fromCharCodes(raw.trim().runes.take(100));
+        if (value.isEmpty || featuredGoals.contains(value)) continue;
+        featuredGoals.add(value);
+        if (featuredGoals.length == 3) break;
+      }
+    }
+
+    final pinnedMoments = <({String text, DateTime at})>[];
+    final rawMoments = profile['pinnedMoments'];
+    if (rawMoments is List) {
+      for (final raw in rawMoments) {
+        if (raw is! Map) continue;
+        final textValue = raw['text'];
+        final atValue = raw['at'];
+        if (textValue is! String || atValue is! num) continue;
+        final text = String.fromCharCodes(textValue.trim().runes.take(240));
+        final at = atValue.toInt();
+        if (text.isEmpty || at < 0 || at > 9999999999999) continue;
+        pinnedMoments.add((
+          text: text,
+          at: DateTime.fromMillisecondsSinceEpoch(at),
+        ));
+        if (pinnedMoments.length == 4) break;
+      }
+    }
+
+    return Padding(
+      key: const ValueKey('visitor-external-profile'),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      child: _VisitorProfileDeck(
+        displayName: safeString('displayName', 40),
+        cardOrder: cardOrder,
+        about: safeString('about'),
+        featuredGoals: featuredGoals,
+        pinnedMoments: pinnedMoments,
+        season: safeString('season'),
+        profilePhotoPath: '',
+        seasonPhotoPath: '',
+        photoUrlLoader: widget.photoUrlLoader,
       ),
     );
   }
@@ -399,6 +571,22 @@ class _VisitorProfileDeck extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final visibleCards = [
+      for (final kind in cardOrder)
+        if (kind == SpaceCardKind.about && about.isNotEmpty ||
+            kind == SpaceCardKind.rightNow && featuredGoals.isNotEmpty ||
+            kind == SpaceCardKind.pinnedMoments && pinnedMoments.isNotEmpty ||
+            kind == SpaceCardKind.thisSeason &&
+                (season.isNotEmpty || seasonPhotoPath.isNotEmpty))
+          kind,
+    ];
+    if (visibleCards.isEmpty) {
+      return const _VisitorProfileStatus(
+        key: ValueKey('visitor-profile-empty'),
+        message:
+            'Their page is open, but they have not placed anything here yet.',
+      );
+    }
     return Column(
       key: const ValueKey('visitor-profile-card'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -498,154 +686,177 @@ class _VisitorProfileDeck extends StatelessWidget {
             },
           ),
         ),
-        if (cardOrder.isEmpty) ...[
+        for (final kind in visibleCards) ...[
           const SizedBox(height: 10),
-          GlassPanel(
+          switch (kind) {
+            SpaceCardKind.about => _VisitorSharedCard(
+              icon: Icons.auto_stories_outlined,
+              title: 'ABOUT',
+              accent: Palette.xpLight,
+              child: Text(
+                about,
+                style: Type.body.copyWith(
+                  fontSize: 14,
+                  height: 1.45,
+                  color: Palette.textHi,
+                ),
+              ),
+            ),
+            SpaceCardKind.rightNow => _VisitorSharedCard(
+              icon: Icons.flag_outlined,
+              title: 'RIGHT NOW',
+              accent: Palette.success,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var i = 0; i < featuredGoals.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 8),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.arrow_right_rounded,
+                          size: 18,
+                          color: Palette.success,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            featuredGoals[i],
+                            style: Type.body.copyWith(
+                              fontSize: 13,
+                              color: Palette.textHi,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            SpaceCardKind.pinnedMoments => _VisitorSharedCard(
+              icon: Icons.push_pin_outlined,
+              title: 'PINNED MOMENTS',
+              accent: const Color(0xFFDDB296),
+              child: Column(
+                children: [
+                  for (var i = 0; i < pinnedMoments.length; i++) ...[
+                    if (i > 0)
+                      const Divider(height: 17, color: Palette.glassEdge),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        pinnedMoments[i].text,
+                        maxLines: 5,
+                        overflow: TextOverflow.ellipsis,
+                        style: Type.body.copyWith(
+                          fontSize: 13,
+                          height: 1.4,
+                          color: Palette.textHi,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        MaterialLocalizations.of(
+                          context,
+                        ).formatMediumDate(pinnedMoments[i].at),
+                        style: Type.label.copyWith(
+                          fontSize: Type.minLabel,
+                          color: Palette.textLo,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            SpaceCardKind.thisSeason => _VisitorSharedCard(
+              icon: Icons.filter_vintage_outlined,
+              title: 'THIS SEASON',
+              accent: Palette.unlock,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (seasonPhotoPath.isNotEmpty) ...[
+                    VisitorSharedRoomPhoto(
+                      key: const ValueKey('visitor-season-photo'),
+                      objectPath: seasonPhotoPath,
+                      semanticLabel: 'Shared This season photo',
+                      height: 190,
+                      borderRadius: 13,
+                      urlLoader: photoUrlLoader,
+                    ),
+                    const SizedBox(height: 11),
+                  ],
+                  if (season.isNotEmpty)
+                    Text(
+                      season,
+                      style: Type.body.copyWith(
+                        fontSize: 14,
+                        height: 1.45,
+                        color: Palette.textHi,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          },
+        ],
+        const SizedBox(height: 14),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text(
+            'Only the cards they chose for your audience appear here. Every other Journal page, photo, quest, streak, and account detail stays private.',
+            textAlign: TextAlign.center,
+            style: Type.body.copyWith(
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+              color: Palette.textLo,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _VisitorProfileStatus extends StatelessWidget {
+  const _VisitorProfileStatus({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+    child: GlassPanel(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.auto_stories_outlined,
+            size: 18,
+            color: Palette.textLo,
+          ),
+          const SizedBox(width: 9),
+          Expanded(
             child: Text(
-              'This keeper opened the door without putting any profile cards on display.',
+              message,
               style: Type.body.copyWith(
-                fontSize: 13,
+                fontSize: 12.5,
+                height: 1.35,
                 fontStyle: FontStyle.italic,
                 color: Palette.textLo,
               ),
             ),
           ),
-        ] else
-          for (final kind in cardOrder) ...[
-            const SizedBox(height: 10),
-            switch (kind) {
-              SpaceCardKind.about => _VisitorSharedCard(
-                icon: Icons.auto_stories_outlined,
-                title: 'ABOUT',
-                accent: Palette.xpLight,
-                child: Text(
-                  about.isEmpty ? 'They left this card quiet.' : about,
-                  style: Type.body.copyWith(
-                    fontSize: 14,
-                    height: 1.45,
-                    fontStyle: about.isEmpty ? FontStyle.italic : null,
-                    color: about.isEmpty ? Palette.textLo : Palette.textHi,
-                  ),
-                ),
-              ),
-              SpaceCardKind.rightNow => _VisitorSharedCard(
-                icon: Icons.flag_outlined,
-                title: 'RIGHT NOW',
-                accent: Palette.success,
-                child: featuredGoals.isEmpty
-                    ? _QuietVisitorCardCopy('No goals shared in this card.')
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          for (var i = 0; i < featuredGoals.length; i++) ...[
-                            if (i > 0) const SizedBox(height: 8),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(
-                                  Icons.arrow_right_rounded,
-                                  size: 18,
-                                  color: Palette.success,
-                                ),
-                                const SizedBox(width: 5),
-                                Expanded(
-                                  child: Text(
-                                    featuredGoals[i],
-                                    style: Type.body.copyWith(
-                                      fontSize: 13,
-                                      color: Palette.textHi,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-              ),
-              SpaceCardKind.pinnedMoments => _VisitorSharedCard(
-                icon: Icons.push_pin_outlined,
-                title: 'PINNED MOMENTS',
-                accent: const Color(0xFFDDB296),
-                child: pinnedMoments.isEmpty
-                    ? _QuietVisitorCardCopy('No written moments were shared.')
-                    : Column(
-                        children: [
-                          for (var i = 0; i < pinnedMoments.length; i++) ...[
-                            if (i > 0)
-                              const Divider(
-                                height: 17,
-                                color: Palette.glassEdge,
-                              ),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                pinnedMoments[i].text,
-                                maxLines: 5,
-                                overflow: TextOverflow.ellipsis,
-                                style: Type.body.copyWith(
-                                  fontSize: 13,
-                                  height: 1.4,
-                                  color: Palette.textHi,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                MaterialLocalizations.of(
-                                  context,
-                                ).formatMediumDate(pinnedMoments[i].at),
-                                style: Type.label.copyWith(
-                                  fontSize: Type.minLabel,
-                                  color: Palette.textLo,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-              ),
-              SpaceCardKind.thisSeason => _VisitorSharedCard(
-                icon: Icons.filter_vintage_outlined,
-                title: 'THIS SEASON',
-                accent: Palette.unlock,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (seasonPhotoPath.isNotEmpty) ...[
-                      VisitorSharedRoomPhoto(
-                        key: const ValueKey('visitor-season-photo'),
-                        objectPath: seasonPhotoPath,
-                        semanticLabel: 'Shared This season photo',
-                        height: 190,
-                        borderRadius: 13,
-                        urlLoader: photoUrlLoader,
-                      ),
-                      const SizedBox(height: 11),
-                    ],
-                    if (season.isEmpty)
-                      const _QuietVisitorCardCopy(
-                        'No writing shared in this card.',
-                      )
-                    else
-                      Text(
-                        season,
-                        style: Type.body.copyWith(
-                          fontSize: 14,
-                          height: 1.45,
-                          color: Palette.textHi,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            },
-          ],
-      ],
-    );
-  }
+        ],
+      ),
+    ),
+  );
 }
 
 class _VisitorSharedCard extends StatelessWidget {
@@ -707,21 +918,6 @@ class _VisitorSharedCard extends StatelessWidget {
         const SizedBox(height: 10),
         child,
       ],
-    ),
-  );
-}
-
-class _QuietVisitorCardCopy extends StatelessWidget {
-  const _QuietVisitorCardCopy(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(
-    text,
-    style: Type.body.copyWith(
-      fontSize: 13,
-      fontStyle: FontStyle.italic,
-      color: Palette.textLo,
     ),
   );
 }
@@ -877,12 +1073,18 @@ class _KeepInCircleAction extends StatelessWidget {
   final GameState state;
   final VoidCallback onPersist;
 
-  Future<void> _notifyOwner(String normalized) async {
+  Future<bool> _notifyOwner(String normalized) async {
     final cloud = CloudSync.instance;
     if (!await cloud.ensureAvailable() || !await cloud.ensureSocialSession()) {
-      return;
+      return false;
     }
-    await cloud.sendCircleAdd(normalized);
+    final related = await cloud.setCircleRelationship(
+      normalized,
+      ownerKey: ownerKey,
+      active: true,
+    );
+    if (related) unawaited(cloud.sendCircleAdd(normalized));
+    return related;
   }
 
   @override
@@ -911,7 +1113,7 @@ class _KeepInCircleAction extends StatelessWidget {
             : Icons.bookmark_add_outlined;
         final accent = enabled ? Palette.xpLight : Palette.textLo;
 
-        void add() {
+        Future<void> add() async {
           if (!enabled ||
               !state.addCircleCode(
                 normalized,
@@ -921,13 +1123,16 @@ class _KeepInCircleAction extends StatelessWidget {
             return;
           }
           onPersist();
-          unawaited(_notifyOwner(normalized));
+          final synced = await _notifyOwner(normalized);
+          if (!context.mounted) return;
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
             ..showSnackBar(
               SnackBar(
                 content: Text(
-                  'Kept in your Circle',
+                  synced
+                      ? 'Kept in your Circle. Mutual cards unlock when they keep you too.'
+                      : 'Kept on this device. Reconnect later to enable mutual cards.',
                   style: Type.body.copyWith(color: Palette.textHi),
                 ),
                 backgroundColor: Palette.card,
@@ -1018,7 +1223,7 @@ class _ReportOrHideAction extends StatelessWidget {
   final String ownerKey;
   final GameState state;
   final VoidCallback onPersist;
-  final DiscoverySpaceReporter onReport;
+  final DiscoverySpaceReporter? onReport;
 
   Future<void> _open(BuildContext context) async {
     final choice = await showDialog<String>(
@@ -1053,28 +1258,30 @@ class _ReportOrHideAction extends StatelessWidget {
               color: Palette.xpLight,
               onTap: () => Navigator.of(dialogContext).pop('hide'),
             ),
-            _DiscoverySafetyChoice(
-              key: const ValueKey('discover-report-name'),
-              icon: Icons.flag_outlined,
-              label: 'REPORT THIS NAME',
-              color: Palette.danger,
-              onTap: () =>
-                  Navigator.of(dialogContext).pop('inappropriate_name'),
-            ),
-            _DiscoverySafetyChoice(
-              key: const ValueKey('discover-report-impersonation'),
-              icon: Icons.badge_outlined,
-              label: 'REPORT IMPERSONATION',
-              color: Palette.danger,
-              onTap: () => Navigator.of(dialogContext).pop('impersonation'),
-            ),
-            _DiscoverySafetyChoice(
-              key: const ValueKey('discover-report-other'),
-              icon: Icons.report_outlined,
-              label: 'REPORT SOMETHING ELSE',
-              color: Palette.danger,
-              onTap: () => Navigator.of(dialogContext).pop('other'),
-            ),
+            if (onReport != null) ...[
+              _DiscoverySafetyChoice(
+                key: const ValueKey('discover-report-name'),
+                icon: Icons.flag_outlined,
+                label: 'REPORT THIS NAME',
+                color: Palette.danger,
+                onTap: () =>
+                    Navigator.of(dialogContext).pop('inappropriate_name'),
+              ),
+              _DiscoverySafetyChoice(
+                key: const ValueKey('discover-report-impersonation'),
+                icon: Icons.badge_outlined,
+                label: 'REPORT IMPERSONATION',
+                color: Palette.danger,
+                onTap: () => Navigator.of(dialogContext).pop('impersonation'),
+              ),
+              _DiscoverySafetyChoice(
+                key: const ValueKey('discover-report-other'),
+                icon: Icons.report_outlined,
+                label: 'REPORT THIS PAGE',
+                color: Palette.danger,
+                onTap: () => Navigator.of(dialogContext).pop('other'),
+              ),
+            ],
           ],
         ),
         actions: [
@@ -1096,9 +1303,14 @@ class _ReportOrHideAction extends StatelessWidget {
     final normalized = code.trim().toUpperCase();
     state.blockDiscoveryOwner(ownerKey, normalized);
     onPersist();
-    final reported = choice == 'hide'
+    final serverBlocked = await CloudSync.instance.setSpaceBlock(
+      normalized,
+      ownerKey: ownerKey,
+      blocked: true,
+    );
+    final reported = choice == 'hide' || onReport == null
         ? null
-        : await onReport(normalized, choice);
+        : await onReport!(normalized, choice);
     if (!context.mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
@@ -1110,10 +1322,14 @@ class _ReportOrHideAction extends StatelessWidget {
           backgroundColor: Palette.card,
           content: Text(
             choice == 'hide'
-                ? 'This keeper is blocked in Discover on this device.'
+                ? serverBlocked
+                      ? 'This keeper is blocked. Mutual access was removed.'
+                      : 'This keeper is hidden on this device. Reconnect to finish blocking mutual access.'
                 : reported == true
-                ? 'Blocked. Your private report was sent.'
-                : 'Blocked on this device. The report could not be sent yet.',
+                ? serverBlocked
+                      ? 'Blocked. Your private report was sent.'
+                      : 'Hidden here and reported. Reconnect to finish blocking mutual access.'
+                : 'Hidden on this device. The report or mutual-access block could not be sent yet.',
             style: Type.body.copyWith(color: Palette.textHi),
           ),
         ),
@@ -1126,7 +1342,7 @@ class _ReportOrHideAction extends StatelessWidget {
     onPressed: () => _open(context),
     icon: const Icon(Icons.visibility_off_outlined, size: 15),
     label: Text(
-      'BLOCK OR REPORT THIS KEEPER',
+      onReport == null ? 'BLOCK THIS KEEPER' : 'BLOCK OR REPORT THIS KEEPER',
       style: Type.label.copyWith(fontSize: Type.minLabel),
     ),
     style: TextButton.styleFrom(

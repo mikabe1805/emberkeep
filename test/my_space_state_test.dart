@@ -20,10 +20,10 @@ void main() {
 
       expect(restored.spaceCardOrder, defaultSpaceCardOrder);
       expect(restored.hiddenSpaceCards, isEmpty);
-      expect(restored.visitorSpaceCards, {
-        SpaceCardKind.about,
-        SpaceCardKind.rightNow,
-      });
+      expect(
+        restored.spaceCardAudiences.values,
+        everyElement(SpaceAudience.onlyMe),
+      );
       expect(restored.spaceSeasonText, isEmpty);
       expect(restored.spaceSeasonPhotoNoteId, isNull);
       expect(restored.spaceSeasonPhotoNote, isNull);
@@ -138,7 +138,10 @@ void main() {
           SpaceCardKind.pinnedMoments,
         ]);
         expect(restored.hiddenSpaceCards, {SpaceCardKind.rightNow});
-        expect(restored.visitorSpaceCards, {SpaceCardKind.pinnedMoments});
+        expect(
+          restored.spaceCardAudiences.values,
+          everyElement(SpaceAudience.onlyMe),
+        );
         expect(restored.spaceSeasonText, 'a quiet\nsemester');
         expect(restored.spaceSeasonPhotoNoteId, 'deleted-note');
         expect(restored.spaceSeasonPhotoNote, isNull);
@@ -185,13 +188,18 @@ void main() {
         'rightNow',
       ]);
       expect(encoded['hiddenSpaceCards'], const ['about']);
-      expect(encoded['visitorSpaceCards'], const [
-        'pinnedMoments',
-        'thisSeason',
-      ]);
+      expect(encoded['spaceCardAudiences'], isA<Map>());
+      expect(encoded['spaceCardAudiences']['pinnedMoments'], 'anyone');
       expect(restored.spaceCardOrder, state.spaceCardOrder);
       expect(restored.hiddenSpaceCards, state.hiddenSpaceCards);
-      expect(restored.visitorSpaceCards, state.visitorSpaceCards);
+      expect(
+        restored.spaceCardAudiences[SpaceCardKind.pinnedMoments],
+        SpaceAudience.anyone,
+      );
+      expect(
+        restored.spaceCardAudiences[SpaceCardKind.thisSeason],
+        SpaceAudience.anyone,
+      );
       expect(restored.spaceSeasonText, state.spaceSeasonText);
       expect(restored.spaceSeasonPhotoNoteId, photo.id);
       expect(restored.spaceSeasonPhotoNote?.id, photo.id);

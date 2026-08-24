@@ -1158,7 +1158,10 @@ void main() {
       ..floorStyle = 'floor_oak'
       ..questDeskStyle = 'wall_indigo'
       ..windowScene = 'moon'
-      ..creatureSkin = 'sunstone';
+      ..creatureSkin = 'sunstone'
+      ..roomCode = 'DAY234'
+      ..roomDiscoverable = true
+      ..roomDiscoveryName = 'Alex';
     final keptNote = Note(
       at: DateTime(2026, 7, 16, 20, 10),
       text: 'The first evening this room began to feel like mine.',
@@ -1256,7 +1259,25 @@ void main() {
           'Building a calmer home, keeping my promises small, and making time '
           'for the people I love.',
       goals: {'Build a walking habit', 'Make the apartment feel calm'},
-      shared: false,
+      shared: true,
+    );
+    state.setSpacePage(
+      order: state.spaceCardOrder,
+      hidden: state.hiddenSpaceCards,
+      audiences: const {
+        SpaceCardKind.about: SpaceAudience.anyone,
+        SpaceCardKind.rightNow: SpaceAudience.mutuals,
+        SpaceCardKind.pinnedMoments: SpaceAudience.onlyMe,
+        SpaceCardKind.thisSeason: SpaceAudience.anyone,
+      },
+      intro: state.spaceIntro,
+      featuredGoalTitles: state.featuredGoalTitles,
+      seasonText: state.spaceSeasonText,
+      profilePhotoNoteId: state.spaceProfilePhotoNoteId,
+      seasonPhotoNoteId: state.spaceSeasonPhotoNoteId,
+      shareProfilePhoto: false,
+      shareSeasonPhoto: false,
+      shareProfile: true,
     );
     for (var i = 0; i < 72; i++) {
       if (i % 9 == 4 || i % 13 == 7) continue;
@@ -2004,6 +2025,9 @@ void main() {
       ..streakDays = 8
       ..reduceMotion = true
       ..soundEnabled = false
+      ..roomCode = 'DAY234'
+      ..roomDiscoverable = true
+      ..roomDiscoveryName = 'Mika'
       ..journal = [firstMoment, secondMoment]
       ..memoryPins.addAll({firstMoment.id, secondMoment.id});
     state.goals.addAll([
@@ -2029,6 +2053,12 @@ void main() {
     state.setSpacePage(
       order: defaultSpaceCardOrder,
       hidden: const [],
+      audiences: const {
+        SpaceCardKind.about: SpaceAudience.anyone,
+        SpaceCardKind.rightNow: SpaceAudience.mutuals,
+        SpaceCardKind.pinnedMoments: SpaceAudience.onlyMe,
+        SpaceCardKind.thisSeason: SpaceAudience.anyone,
+      },
       intro:
           'I make things, care for people, and keep trying to notice the days while they are here.',
       featuredGoalTitles: state.goals.map((goal) => goal.title),
@@ -2038,7 +2068,7 @@ void main() {
       seasonPhotoNoteId: null,
       shareProfilePhoto: false,
       shareSeasonPhoto: false,
-      shareProfile: false,
+      shareProfile: true,
     );
 
     await tester.pumpWidget(

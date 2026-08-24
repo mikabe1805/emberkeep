@@ -285,6 +285,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           // completions from the cloud mirror.
           CloudSync.instance.flush();
           final cloud = CloudSync.instance;
+          final syncProfile =
+              kVisitorProfileSharingEnabled && s.shareSpaceProfile;
+          final publicProfile = syncProfile
+              ? spaceProfileDisplay(s, audience: SpaceAudience.anyone)
+              : const <String, dynamic>{};
+          final mutualProfile = syncProfile
+              ? spaceProfileDisplay(s, audience: SpaceAudience.mutuals)
+              : const <String, dynamic>{};
           cloud.flushRoom(
             roomDisplay(
               s,
@@ -293,6 +301,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             ),
             code: s.roomCode,
             discoverable: kSpaceDiscoveryEnabled && s.roomDiscoverable,
+            syncSpaceProfile: syncProfile,
+            publicProfile: publicProfile.isEmpty ? null : publicProfile,
+            mutualProfile: mutualProfile.isEmpty ? null : mutualProfile,
           );
         }),
       );
@@ -966,6 +977,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         }
         if (push) {
           cloud.push();
+          final syncProfile =
+              kVisitorProfileSharingEnabled && s.shareSpaceProfile;
+          final publicProfile = syncProfile
+              ? spaceProfileDisplay(s, audience: SpaceAudience.anyone)
+              : const <String, dynamic>{};
+          final mutualProfile = syncProfile
+              ? spaceProfileDisplay(s, audience: SpaceAudience.mutuals)
+              : const <String, dynamic>{};
           cloud.queueRoomUpdate(
             roomDisplay(
               s,
@@ -974,6 +993,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             ),
             code: s.roomCode,
             discoverable: kSpaceDiscoveryEnabled && s.roomDiscoverable,
+            syncSpaceProfile: syncProfile,
+            publicProfile: publicProfile.isEmpty ? null : publicProfile,
+            mutualProfile: mutualProfile.isEmpty ? null : mutualProfile,
           );
         }
         return true;

@@ -460,14 +460,20 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('space-card-toggle-rightNow')));
     await tester.pump();
     final sharePinned = find.byKey(
-      const ValueKey('space-card-share-pinnedMoments'),
+      const ValueKey('space-card-audience-pinnedMoments-mutuals'),
     );
-    await tester.ensureVisible(sharePinned);
+    await tester.scrollUntilVisible(
+      sharePinned,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.drag(find.byType(ReorderableListView), const Offset(0, -120));
+    await tester.pump();
     await tester.tap(sharePinned);
     await tester.pump();
     await _moveRightNowBeforeAbout(tester);
 
-    await tester.tap(find.text('Cancel'));
+    await tester.tap(find.byKey(const ValueKey('space-arranger-cancel')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('space-arranger')), findsNothing);
@@ -501,11 +507,17 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('space-card-toggle-rightNow')));
     await tester.pump();
-    final sharePinned = find.byKey(
-      const ValueKey('space-card-share-pinnedMoments'),
+    final mutualPinned = find.byKey(
+      const ValueKey('space-card-audience-pinnedMoments-mutuals'),
     );
-    await tester.ensureVisible(sharePinned);
-    await tester.tap(sharePinned);
+    await tester.scrollUntilVisible(
+      mutualPinned,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.drag(find.byType(ReorderableListView), const Offset(0, -120));
+    await tester.pump();
+    await tester.tap(mutualPinned);
     await tester.pump();
     await _moveRightNowBeforeAbout(tester);
 
@@ -520,13 +532,62 @@ void main() {
       SpaceCardKind.thisSeason,
     ]);
     expect(state.hiddenSpaceCards, {SpaceCardKind.rightNow});
-    expect(state.visitorSpaceCards, {
-      SpaceCardKind.about,
-      SpaceCardKind.rightNow,
-      SpaceCardKind.pinnedMoments,
-    });
+    expect(
+      state.spaceAudienceFor(SpaceCardKind.pinnedMoments),
+      SpaceAudience.mutuals,
+    );
+    expect(state.spaceAudienceFor(SpaceCardKind.about), SpaceAudience.onlyMe);
+    expect(
+      state.spaceAudienceFor(SpaceCardKind.rightNow),
+      SpaceAudience.onlyMe,
+    );
     expect(state.spaceIntro, 'I am building a kinder semester.');
     expect(notifications, 1);
+    expect(persists, 1);
+  });
+
+  testWidgets('each card offers Only me, Mutuals, and Anyone', (tester) async {
+    final state = GameState()..reduceMotion = true;
+    var persists = 0;
+
+    await _pumpMe(tester, state, () => persists++);
+    await _openArranger(tester);
+
+    for (final audience in SpaceAudience.values) {
+      expect(
+        find.byKey(ValueKey('space-card-audience-about-${audience.name}')),
+        findsOneWidget,
+      );
+    }
+
+    await tester.tap(find.byKey(const ValueKey('space-profile-share-toggle')));
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('space-card-audience-about-anyone')),
+    );
+    await tester.pump();
+    expect(
+      find.textContaining('Anyone who opens your space can see it.'),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('space-card-audience-about-mutuals')),
+    );
+    await tester.pump();
+    expect(
+      find.textContaining('Nothing is shared until you and another keeper'),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('space-card-audience-about-anyone')),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('space-arranger-save')));
+    await tester.pumpAndSettle();
+
+    expect(state.shareSpaceProfile, isTrue);
+    expect(state.spaceAudienceFor(SpaceCardKind.about), SpaceAudience.anyone);
+    expect(find.text('ANYONE'), findsOneWidget);
     expect(persists, 1);
   });
 
@@ -624,6 +685,7 @@ void main() {
         ..roomCode = 'ABC234'
         ..shareSpaceProfile = true
         ..spaceIntro = 'This is currently public.';
+      state.spaceCardAudiences[SpaceCardKind.about] = SpaceAudience.anyone;
       var persists = 0;
       var notifications = 0;
       var publishes = 0;
@@ -636,14 +698,19 @@ void main() {
         () => persists++,
         onPublishRoom: (target, {required code}) async {
           publishes++;
-          attempted = roomDisplay(target);
+          attempted = spaceProfileDisplay(
+            target,
+            audience: SpaceAudience.anyone,
+          );
           expect(code, 'ABC234');
           return const RoomPublishResult.failed(RoomPublishFailure.network);
         },
       );
       await _openArranger(tester);
 
-      final audience = find.byKey(const ValueKey('space-card-share-about'));
+      final audience = find.byKey(
+        const ValueKey('space-card-audience-about-onlyMe'),
+      );
       await tester.ensureVisible(audience);
       await tester.tap(audience);
       await tester.pump();
@@ -651,7 +718,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(publishes, 1);
-      expect(attempted?['about'], isEmpty);
+      // An intentionally open page with no public cards still publishes a
+      // bounded empty projection so visitors see the authored empty state.
+      expect(attempted?['about'], '');
       expect(attempted?['cardOrder'], isNot(contains('about')));
       expect(find.byKey(const ValueKey('space-arranger')), findsOneWidget);
       expect(
@@ -659,7 +728,7 @@ void main() {
         findsOneWidget,
       );
       expect(state.shareSpaceProfile, isTrue);
-      expect(state.visitorSpaceCards, contains(SpaceCardKind.about));
+      expect(state.spaceAudienceFor(SpaceCardKind.about), SpaceAudience.anyone);
       expect(state.spaceIntro, 'This is currently public.');
       expect(notifications, 0);
       expect(persists, 0);
@@ -674,6 +743,7 @@ void main() {
         ..roomCode = 'ABC234'
         ..shareSpaceProfile = true
         ..spaceIntro = 'This is currently public.';
+      state.spaceCardAudiences[SpaceCardKind.about] = SpaceAudience.anyone;
       final response = Completer<RoomPublishResult>();
       var publishes = 0;
       var persists = 0;
@@ -687,17 +757,19 @@ void main() {
         onPublishRoom: (target, {required code}) {
           publishes++;
           expect(code, 'ABC234');
-          final display = roomDisplay(
+          final display = spaceProfileDisplay(
             target,
-            visitorProfileSharingEnabled: true,
+            audience: SpaceAudience.anyone,
           );
-          expect(display['about'], isEmpty);
+          expect(display['about'], '');
           return response.future;
         },
       );
       await _openArranger(tester);
 
-      final audience = find.byKey(const ValueKey('space-card-share-about'));
+      final audience = find.byKey(
+        const ValueKey('space-card-audience-about-onlyMe'),
+      );
       await tester.ensureVisible(audience);
       await tester.tap(audience);
       await tester.pump();
@@ -709,7 +781,7 @@ void main() {
       expect(publishes, 1);
       expect(notifications, 0);
       expect(persists, 0);
-      expect(state.visitorSpaceCards, contains(SpaceCardKind.about));
+      expect(state.spaceAudienceFor(SpaceCardKind.about), SpaceAudience.anyone);
 
       await tester.tap(save);
       await tester.pump();
@@ -719,7 +791,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('space-arranger')), findsNothing);
-      expect(state.visitorSpaceCards, isNot(contains(SpaceCardKind.about)));
+      expect(state.spaceAudienceFor(SpaceCardKind.about), SpaceAudience.onlyMe);
       expect(state.roomCode, 'DEF234');
       expect(persists, 1);
     },
@@ -732,6 +804,7 @@ void main() {
       ..reduceMotion = true
       ..roomCode = 'ABC234'
       ..shareSpaceProfile = true;
+    state.spaceCardAudiences[SpaceCardKind.about] = SpaceAudience.anyone;
     var publishes = 0;
     var persists = 0;
 
@@ -749,7 +822,11 @@ void main() {
     final rightNowToggle = find.byKey(
       const ValueKey('space-card-toggle-rightNow'),
     );
-    await tester.ensureVisible(rightNowToggle);
+    await tester.scrollUntilVisible(
+      rightNowToggle,
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pump();
     await tester.tap(rightNowToggle);
     await tester.pump();
@@ -770,6 +847,7 @@ void main() {
       ..playerName = 'Old name'
       ..roomCode = 'ABC234'
       ..shareSpaceProfile = true;
+    state.spaceCardAudiences[SpaceCardKind.about] = SpaceAudience.anyone;
     final response = Completer<RoomPublishResult>();
     var publishes = 0;
     var persists = 0;
@@ -781,7 +859,10 @@ void main() {
       onPublishRoom: (target, {required code}) {
         publishes++;
         expect(code, 'ABC234');
-        final display = roomDisplay(target, visitorProfileSharingEnabled: true);
+        final display = spaceProfileDisplay(
+          target,
+          audience: SpaceAudience.anyone,
+        );
         expect(display['displayName'], 'New name');
         return response.future;
       },
@@ -789,6 +870,10 @@ void main() {
 
     await tester.tap(find.byTooltip('Change your name'));
     await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('space-name-audience-note')),
+      findsOneWidget,
+    );
     await tester.enterText(
       find.byKey(const ValueKey('space-name-field')),
       'New name',

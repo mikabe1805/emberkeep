@@ -3,6 +3,7 @@ import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/content/routines.dart';
 import 'package:emberkeep/discovery.dart';
 import 'package:emberkeep/engine.dart';
+import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/discover_spaces.dart';
 import 'package:emberkeep/screens/hearth_circle.dart';
 import 'package:emberkeep/screens/me.dart';
@@ -98,8 +99,51 @@ Widget _meScreen(GameState state) => MePage(
   onDeleteAccount: (_) async => null,
   onRemovePrivateServiceIdentity: () async => null,
   onManageDiscovery: () async {},
+  visitorProfileSharingEnabled: true,
   spaceDiscoveryEnabled: true,
 );
+
+GameState _profileStateFrom(GameState state) {
+  final profileState = GameState.fromJson(state.toJson());
+  profileState.goals.addAll([
+    Goal(
+      title: 'Keep a journal three nights this week',
+      stat: Stat.intl,
+      target: 3,
+      progress: 1,
+    ),
+    Goal(
+      title: 'Move with a guided workout',
+      stat: Stat.vit,
+      target: 4,
+      progress: 2,
+    ),
+  ]);
+  profileState.setSpacePage(
+    order: defaultSpaceCardOrder,
+    hidden: const <SpaceCardKind>{},
+    audiences: const {
+      SpaceCardKind.about: SpaceAudience.anyone,
+      SpaceCardKind.rightNow: SpaceAudience.mutuals,
+      SpaceCardKind.pinnedMoments: SpaceAudience.onlyMe,
+      SpaceCardKind.thisSeason: SpaceAudience.anyone,
+    },
+    intro:
+        'Building a calmer room one ordinary day at a time. Come see what is taking shape.',
+    featuredGoalTitles: const [
+      'Keep a journal three nights this week',
+      'Move with a guided workout',
+    ],
+    seasonText:
+        'Making evenings gentler and showing up for the work that matters.',
+    profilePhotoNoteId: null,
+    seasonPhotoNoteId: null,
+    shareProfilePhoto: false,
+    shareSeasonPhoto: false,
+    shareProfile: true,
+  );
+  return profileState;
+}
 
 void main() {
   setUpAll(() async {
@@ -142,6 +186,7 @@ void main() {
     addTearDown(() {
       tester.view.resetDevicePixelRatio();
       tester.binding.setSurfaceSize(null);
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
     });
 
     final state = GameState()
@@ -171,6 +216,55 @@ void main() {
       _meScreen(state),
       'space_discovery_me_1290x2796',
     );
+
+    final profileState = _profileStateFrom(state);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          fontFamily: 'Inter',
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          backgroundColor: const Color(0xFF1B1411),
+          body: _meScreen(profileState),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    final ownerAbout = find.text('ABOUT');
+    await tester.scrollUntilVisible(
+      ownerAbout,
+      320,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(ownerAbout);
+    await tester.pump();
+    await expectLater(
+      find.byType(Scaffold).first,
+      matchesGoldenFile('goldens/space_profile_owner_audiences_1290x2796.png'),
+    );
+
+    final openArranger = find.byKey(const ValueKey('space-page-open-arranger'));
+    await tester.ensureVisible(openArranger);
+    await tester.pump();
+    await tester.tap(openArranger);
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byKey(const ValueKey('space-arranger')),
+      matchesGoldenFile('goldens/space_profile_editor_1290x2796.png'),
+    );
+    Navigator.of(
+      tester.element(find.byKey(const ValueKey('space-arranger'))),
+    ).pop();
+    await tester.pumpAndSettle();
 
     final privateState = GameState.fromJson(state.toJson())
       ..roomCode = null
@@ -391,6 +485,52 @@ void main() {
       'space_discovery_visitor_1290x2796',
     );
 
+    Future<void> captureProfileVisit({
+      required SpaceAudience audience,
+      required String name,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: VisitRoomScreen(
+            room: _sharedRoom(spaces.first),
+            code: spaces.first.code,
+            themeId: state.canvasTheme,
+            lively: false,
+            discoveryPublicName: profileState.playerName ?? '',
+            visitorProfile: spaceProfileDisplay(
+              profileState,
+              audience: audience,
+            ),
+            spaceProfileFetcher: (_, {includeMutual = false}) async => null,
+            visitorProfileSharingEnabled: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final profile = find.byKey(const ValueKey('visitor-external-profile'));
+      await tester.scrollUntilVisible(
+        profile,
+        360,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.ensureVisible(profile);
+      await tester.pump();
+      await expectLater(
+        find.byType(Scaffold).first,
+        matchesGoldenFile('goldens/$name.png'),
+      );
+    }
+
+    await captureProfileVisit(
+      audience: SpaceAudience.anyone,
+      name: 'space_profile_public_1290x2796',
+    );
+    await captureProfileVisit(
+      audience: SpaceAudience.mutuals,
+      name: 'space_profile_mutual_1290x2796',
+    );
+
     await tester.pumpWidget(
       RepaintBoundary(
         key: const ValueKey('space-discovery-report-capture'),
@@ -471,5 +611,80 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
+  });
+
+  testWidgets('space profile controls fit a narrow large-text phone', (
+    tester,
+  ) async {
+    if (!_capture) return;
+    tester.view.devicePixelRatio = 2;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+
+    final profileState = _profileStateFrom(
+      GameState()
+        ..onboarded = true
+        ..playerName = 'Alex'
+        ..level = 18
+        ..reduceMotion = true
+        ..soundEnabled = false
+        ..wallStyle = 'wall_walnut'
+        ..floorStyle = 'floor_oak'
+        ..windowScene = 'moon'
+        ..creatureSkin = 'sunstone'
+        ..roomCode = 'DAY234',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          fontFamily: 'Inter',
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          backgroundColor: const Color(0xFF1B1411),
+          body: _meScreen(profileState),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final open = find.byKey(const ValueKey('space-page-open-arranger'));
+    await tester.scrollUntilVisible(
+      open,
+      260,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(open);
+    await tester.pump();
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+
+    final anyone = find.byKey(
+      const ValueKey('space-card-audience-about-anyone'),
+    );
+    await tester.scrollUntilVisible(
+      anyone,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(anyone);
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    await expectLater(
+      find.byKey(const ValueKey('space-arranger')),
+      matchesGoldenFile('goldens/space_profile_editor_320x568_text_2x.png'),
+    );
   });
 }

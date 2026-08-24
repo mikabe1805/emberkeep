@@ -228,42 +228,73 @@ Map<SharedRoomMediaSlot, String> selectedSharedRoomPhotoFiles(
   return Map.unmodifiable(selected);
 }
 
-String _sharedPhotoPath({
-  required Map<SharedRoomMediaSlot, String> selected,
-  required Map<SharedRoomMediaSlot, String> objectPaths,
-  required SharedRoomMediaSlot slot,
-  required String? ownerUid,
-  required String? roomCode,
+/// Builds one bounded authored-page projection for a specific visitor
+/// audience. The public projection contains only cards marked [SpaceAudience.anyone];
+/// the mutual projection contains those cards plus cards marked
+/// [SpaceAudience.mutuals]. Cards marked [SpaceAudience.onlyMe] never enter
+/// either map.
+///
+/// These projections are stored separately from the bearer-readable room
+/// document. Firestore authorizes whole documents, not individual fields, so
+/// mixing Mutuals and Anyone content into `/rooms/{code}` would make the
+/// privacy labels cosmetic rather than enforceable.
+Map<String, dynamic> spaceProfileDisplay(
+  GameState s, {
+  required SpaceAudience audience,
 }) {
-  if (!selected.containsKey(slot)) return '';
-  final objectPath = objectPaths[slot];
-  if (objectPath == null || objectPath.isEmpty) return '';
-  try {
-    final location = SharedRoomMediaLocation.fromObjectPath(objectPath);
-    if (location.slot != slot ||
-        (ownerUid != null && location.ownerUid != ownerUid) ||
-        (roomCode != null &&
-            location.roomCode != roomCode.trim().toUpperCase())) {
-      return '';
-    }
-    return location.objectPath;
-  } on SharedRoomMediaException {
-    return '';
+  if (!s.shareSpaceProfile || audience == SpaceAudience.onlyMe) {
+    return const <String, dynamic>{};
   }
+
+  bool visibleToAudience(SpaceCardKind kind) {
+    final selected = s.spaceAudienceFor(kind);
+    return selected == SpaceAudience.anyone ||
+        (audience == SpaceAudience.mutuals &&
+            selected == SpaceAudience.mutuals);
+  }
+
+  final sharedCards = <SpaceCardKind>[
+    for (final kind in s.spaceCardOrder)
+      if (visibleToAudience(kind)) kind,
+  ];
+
+  final aboutVisible = sharedCards.contains(SpaceCardKind.about);
+  final rightNowVisible = sharedCards.contains(SpaceCardKind.rightNow);
+  final momentsVisible = sharedCards.contains(SpaceCardKind.pinnedMoments);
+  final seasonVisible = sharedCards.contains(SpaceCardKind.thisSeason);
+  return <String, dynamic>{
+    // An open page with no cards for this audience gets an intentional empty
+    // state without leaking the keeper's private Me name as a bare header.
+    'displayName': sharedCards.isEmpty
+        ? ''
+        : _sharedProfileText(s.playerName, 40),
+    'cardOrder': [for (final kind in sharedCards) kind.name],
+    'about': aboutVisible ? _sharedProfileText(s.spaceIntro, 180) : '',
+    'featuredGoals': rightNowVisible
+        ? <String>[
+            for (final title in s.featuredGoalTitles)
+              _sharedProfileText(title, 100),
+          ].where((title) => title.isNotEmpty).toSet().take(3).toList()
+        : const <String>[],
+    'pinnedMoments': momentsVisible
+        ? <Map<String, dynamic>>[
+            for (final note in s.journal.reversed)
+              if (s.memoryPins.contains(note.id) &&
+                  _sharedProfileText(note.text, 240).isNotEmpty)
+                <String, dynamic>{
+                  'text': _sharedProfileText(note.text, 240),
+                  'at': note.at.millisecondsSinceEpoch,
+                },
+          ].take(4).toList()
+        : const <Map<String, dynamic>>[],
+    'season': seasonVisible ? _sharedProfileText(s.spaceSeasonText, 180) : '',
+  };
 }
 
-Map<SharedRoomMediaSlot, String> _stateSharedRoomPhotoPaths(GameState state) =>
-    {
-      if (state.spaceProfilePhotoPath.isNotEmpty)
-        SharedRoomMediaSlot.profile: state.spaceProfilePhotoPath,
-      if (state.spaceSeasonPhotoPath.isNotEmpty)
-        SharedRoomMediaSlot.season: state.spaceSeasonPhotoPath,
-    };
-
-/// The bounded payload published for a shared space. Account data, quest
-/// history, and unselected Journal pages stay out. A photo contributes only a
-/// exact, versioned Storage object path after separate consent; local
-/// filenames, download URLs, and bytes never enter this map.
+/// The bounded generated-room payload published for a shared space. Account
+/// data, authored profile cards, quest history, Journal pages, and visitor
+/// photos stay out; authored text is published only through the separate
+/// audience-specific profile projections below.
 Map<String, dynamic> roomDisplay(
   GameState s, {
   String? mediaOwnerUid,
@@ -287,60 +318,13 @@ Map<String, dynamic> roomDisplay(
       s.unlockedAchievements.length +
       milestoneGoals +
       hearthMemories;
-  final profileVisible = visitorProfileSharingEnabled && s.shareSpaceProfile;
-  // Energy weather is a private daily capacity lens (engine.dart). It leaves
-  // the device only through the same door as the rest of the person: the
-  // explicit visitor-profile opt-in. Code bearers without that opt-in see
-  // 'unknown', same as an unset day.
-  final weather = profileVisible && s.energyWeatherDay == Days.key(Clock.now())
-      ? s.energyWeather.name
-      : 'unknown';
-  final sharedCards = profileVisible
-      ? <SpaceCardKind>[
-          for (final kind in s.spaceCardOrder)
-            if (s.visitorSpaceCards.contains(kind)) kind,
-        ]
-      : const <SpaceCardKind>[];
-  final aboutVisible = sharedCards.contains(SpaceCardKind.about);
-  final rightNowVisible = sharedCards.contains(SpaceCardKind.rightNow);
-  final momentsVisible = sharedCards.contains(SpaceCardKind.pinnedMoments);
-  final seasonVisible = sharedCards.contains(SpaceCardKind.thisSeason);
-  final displayName = profileVisible
-      ? _sharedProfileText(s.playerName, 40)
-      : '';
-  final about = profileVisible && aboutVisible
-      ? _sharedProfileText(s.spaceIntro, 180)
-      : '';
-  final featuredGoals = profileVisible && rightNowVisible
-      ? <String>[
-          for (final title in s.featuredGoalTitles)
-            _sharedProfileText(title, 100),
-        ].where((title) => title.isNotEmpty).toSet().take(3).toList()
-      : const <String>[];
-  final pinnedMoments = momentsVisible
-      ? <Map<String, dynamic>>[
-          for (final note in s.journal.reversed)
-            if (s.memoryPins.contains(note.id) &&
-                _sharedProfileText(note.text, 240).isNotEmpty)
-              {
-                'text': _sharedProfileText(note.text, 240),
-                'at': note.at.millisecondsSinceEpoch,
-              },
-        ].take(4).toList()
-      : const <Map<String, dynamic>>[];
-  final season = seasonVisible
-      ? _sharedProfileText(s.spaceSeasonText, 180)
-      : '';
-  final selectedPhotos = selectedSharedRoomPhotoFiles(
-    s,
-    visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
-    visitorProfileSharingEnabled: visitorProfileSharingEnabled,
-  );
-  final publishedPhotoPaths = mediaObjectPaths ?? _stateSharedRoomPhotoPaths(s);
   return {
-    // The legacy fixed field remains for older clients; bounded, deliberately
-    // selected profile writing lives only in the explicit v4 fields below.
+    // The fixed generated-room name remains for older clients; deliberately
+    // selected profile writing lives only in the audience projections.
     'name': 'Fellow keeper',
+    // A visitor can receive this stable opaque key for blocking and Circle;
+    // Firebase ownership stays in the unreadable roomOwners registry.
+    if (mediaOwnerUid != null) 'ownerKey': discoveryOwnerKey(mediaOwnerUid),
     'title': s.buildTitle,
     'level': s.level,
     'furniture': s.ownedFurniture.toList(),
@@ -350,38 +334,37 @@ Map<String, dynamic> roomDisplay(
     'window': s.windowScene,
     'awake': s.streakDays > 0,
     'memories': memories.clamp(0, 9999),
-    'weather': weather,
+    'weather': 'unknown',
     'todayLit': (s.history[Days.key(Clock.now())] ?? 0) > 0,
     'focusKind': s.quietCompanyActive ? s.quietCompanyKind : 'none',
     'focusUntil': s.quietCompanyActive ? s.quietCompanyUntil : 0,
-    'profileVisible': profileVisible,
-    'displayName': displayName,
-    'cardOrder': [for (final kind in sharedCards) kind.name],
-    'about': about,
-    'featuredGoals': featuredGoals,
-    'pinnedMoments': pinnedMoments,
-    'season': season,
-    'profilePhotoPath': _sharedPhotoPath(
-      selected: selectedPhotos,
-      objectPaths: publishedPhotoPaths,
-      slot: SharedRoomMediaSlot.profile,
-      ownerUid: mediaOwnerUid,
-      roomCode: mediaRoomCode,
-    ),
-    'seasonPhotoPath': _sharedPhotoPath(
-      selected: selectedPhotos,
-      objectPaths: publishedPhotoPaths,
-      slot: SharedRoomMediaSlot.season,
-      ownerUid: mediaOwnerUid,
-      roomCode: mediaRoomCode,
-    ),
-    'v': 5,
+    // Authored page content is published to audience-specific documents. Keep
+    // this v6 room generated-only so its code remains a bounded bearer key and
+    // older visitors never receive Mutuals content by accident.
+    'profileVisible': false,
+    'displayName': '',
+    'cardOrder': const <String>[],
+    'about': '',
+    'featuredGoals': const <String>[],
+    'pinnedMoments': const <Map<String, dynamic>>[],
+    'season': '',
+    'profilePhotoPath': '',
+    'seasonPhotoPath': '',
+    'v': 6,
   };
 }
 
 /// Narrow, injectable boundary for the acknowledged visitor-page transaction.
 /// Production delegates to [CloudSync]; tests can prove ordering without a
 /// Firebase app or a second private CloudSync constructor.
+typedef RoomAndSpaceProfilePublisher =
+    Future<RoomPublishResult> Function(
+      Map<String, dynamic> display, {
+      String? code,
+      required Map<String, dynamic>? publicProfile,
+      required Map<String, dynamic>? mutualProfile,
+    });
+
 class RoomPublicationClient {
   const RoomPublicationClient({
     required this.ensureAvailable,
@@ -390,6 +373,7 @@ class RoomPublicationClient {
     required this.fetchRoom,
     required this.publishRoom,
     required this.unshareRoom,
+    this.publishRoomWithSpaceProfile,
   });
 
   factory RoomPublicationClient.cloud(CloudSync cloud) => RoomPublicationClient(
@@ -398,6 +382,7 @@ class RoomPublicationClient {
     ownerUid: () => cloud.socialUid,
     fetchRoom: cloud.fetchRoom,
     publishRoom: (display, {code}) => cloud.publishRoom(display, code: code),
+    publishRoomWithSpaceProfile: cloud.publishRoomWithSpaceProfile,
     unshareRoom: cloud.unshareRoom,
   );
 
@@ -410,39 +395,13 @@ class RoomPublicationClient {
     String? code,
   })
   publishRoom;
+  final RoomAndSpaceProfilePublisher? publishRoomWithSpaceProfile;
   final Future<bool> Function(String code) unshareRoom;
 }
 
-Map<SharedRoomMediaSlot, String> _publishedRoomPhotoPaths(
-  Map<String, dynamic>? room, {
-  required String ownerUid,
-  required String roomCode,
-}) {
-  if (room?['uid'] != ownerUid) return const {};
-  final paths = <SharedRoomMediaSlot, String>{};
-  for (final entry in const {
-    SharedRoomMediaSlot.profile: 'profilePhotoPath',
-    SharedRoomMediaSlot.season: 'seasonPhotoPath',
-  }.entries) {
-    final raw = room?[entry.value];
-    if (raw is! String || raw.isEmpty) continue;
-    try {
-      final location = SharedRoomMediaLocation.fromObjectPath(raw);
-      if (location.ownerUid == ownerUid &&
-          location.roomCode == roomCode &&
-          location.slot == entry.key) {
-        paths[entry.key] = location.objectPath;
-      }
-    } on SharedRoomMediaException {
-      // A malformed restored/public value is never copied into a new write.
-    }
-  }
-  return Map.unmodifiable(paths);
-}
-
-/// Publishes one exact visitor-page state while coordinating its two optional
-/// Storage objects. The current public state is refreshed first so a failed
-/// photo operation cannot accidentally publish an uncommitted text edit.
+/// Publishes one exact visitor-page state. Build 32 keeps visitor photos
+/// dormant, so this path coordinates only the generated room and the two
+/// audience-specific text projections.
 Future<RoomPublishResult> publishSpaceRoomState(
   GameState target, {
   required GameState current,
@@ -450,11 +409,22 @@ Future<RoomPublishResult> publishSpaceRoomState(
   CloudSync? cloudSync,
   SharedRoomMediaService? mediaService,
   RoomPublicationClient? publicationClient,
+  Future<SpaceProfilePublishResult> Function(
+    String code, {
+    required Map<String, dynamic>? publicProfile,
+    required Map<String, dynamic>? mutualProfile,
+  })?
+  profilePublisher,
   bool visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
   bool visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
 }) async {
   final cloud = cloudSync ?? CloudSync.instance;
   final publication = publicationClient ?? RoomPublicationClient.cloud(cloud);
+  if (publicationClient == null) {
+    // This is an acknowledged, user-intended state. Fence off a five-second
+    // background snapshot before it can revive an older audience selection.
+    cloud.invalidatePendingRoomRefreshes();
+  }
   if (!await publication.ensureAvailable() ||
       !await publication.ensureSocialSession()) {
     return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
@@ -464,153 +434,109 @@ Future<RoomPublishResult> publishSpaceRoomState(
     return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
   }
 
-  // The v1 store candidate takes this route. It writes a complete v5 room with
-  // no user-authored profile or photo handles in one acknowledged Firestore
-  // operation and never constructs a Firebase Storage client. A successful
-  // write also forgets stale pre-release consent so a later opt-in build cannot
-  // revive it without a new deliberate choice.
-  if (!visitorProfileSharingEnabled || !visitorPhotoSharingEnabled) {
-    final display = roomDisplay(
+  final publishProfile =
+      profilePublisher ??
+      (publicationClient == null
+          ? cloud.publishSpaceProfile
+          : (
+              String _, {
+              required Map<String, dynamic>? publicProfile,
+              required Map<String, dynamic>? mutualProfile,
+            }) async => SpaceProfilePublishResult.saved);
+
+  Future<RoomPublishResult?> publishAuthoredPage(String publishedCode) async {
+    if (!visitorProfileSharingEnabled) return null;
+    final publicProfile = spaceProfileDisplay(
       target,
-      mediaOwnerUid: ownerUid,
-      mediaRoomCode: code,
-      visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
-      visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+      audience: SpaceAudience.anyone,
     );
-    final published = await publication.publishRoom(display, code: code);
-    if (published.ok) {
-      if (!visitorProfileSharingEnabled) {
-        target.disableVisitorProfileSharing();
-      } else if (!visitorPhotoSharingEnabled) {
-        target.disableVisitorPhotoSharing();
-      }
-    }
-    return published;
+    final mutualProfile = spaceProfileDisplay(
+      target,
+      audience: SpaceAudience.mutuals,
+    );
+    final result = await publishProfile(
+      publishedCode,
+      publicProfile: publicProfile.isEmpty ? null : publicProfile,
+      mutualProfile: mutualProfile.isEmpty ? null : mutualProfile,
+    );
+    return switch (result) {
+      SpaceProfilePublishResult.saved => null,
+      SpaceProfilePublishResult.rejected => const RoomPublishResult.failed(
+        RoomPublishFailure.profileRejected,
+      ),
+      SpaceProfilePublishResult.permissionDenied =>
+        const RoomPublishResult.failed(RoomPublishFailure.permissionDenied),
+      SpaceProfilePublishResult.timedOut => const RoomPublishResult.failed(
+        RoomPublishFailure.timedOut,
+      ),
+      SpaceProfilePublishResult.unavailable => const RoomPublishResult.failed(
+        RoomPublishFailure.unavailable,
+      ),
+    };
   }
 
-  final normalizedInputCode = code?.trim().toUpperCase();
-  final existingRoom =
-      normalizedInputCode != null &&
-          _roomCodePattern.hasMatch(normalizedInputCode)
-      ? await publication.fetchRoom(normalizedInputCode)
-      : null;
-  final pathSource =
-      existingRoom ??
-      {
-        'uid': ownerUid,
-        'profilePhotoPath': current.spaceProfilePhotoPath,
-        'seasonPhotoPath': current.spaceSeasonPhotoPath,
-      };
-  var previousPaths = normalizedInputCode == null
-      ? const <SharedRoomMediaSlot, String>{}
-      : _publishedRoomPhotoPaths(
-          pathSource,
-          ownerUid: ownerUid,
-          roomCode: normalizedInputCode,
-        );
-  final currentDisplay = roomDisplay(
-    current,
-    mediaOwnerUid: ownerUid,
-    mediaRoomCode: normalizedInputCode,
-    mediaObjectPaths: previousPaths,
-    visitorPhotoSharingEnabled: true,
-    visitorProfileSharingEnabled: true,
-  );
-  final reserved = await publication.publishRoom(currentDisplay, code: code);
-  final finalCode = reserved.code;
-  if (finalCode == null) return reserved;
-
-  final createdNew =
-      normalizedInputCode == null || normalizedInputCode != finalCode;
-  if (createdNew) previousPaths = const {};
-  final previousFiles = createdNew
-      ? const <SharedRoomMediaSlot, String>{}
-      : selectedSharedRoomPhotoFiles(
-          current,
-          visitorPhotoSharingEnabled: true,
-          visitorProfileSharingEnabled: true,
-        );
-  final selected = selectedSharedRoomPhotoFiles(
-    target,
-    visitorPhotoSharingEnabled: true,
-    visitorProfileSharingEnabled: true,
-  );
-  final changed = <SharedRoomMediaSlot, String>{
-    for (final entry in selected.entries)
-      if (createdNew ||
-          previousFiles[entry.key] != entry.value ||
-          !previousPaths.containsKey(entry.key))
-        entry.key: entry.value,
-  };
-  final media = mediaService ?? SharedRoomMediaService.instance;
-  var uploaded = const <SharedRoomMediaSlot, String>{};
-
-  Future<void> abandonNewRoom() async {
-    if (createdNew) await publication.unshareRoom(finalCode);
-  }
-
-  Future<void> removeUploaded() async {
-    if (uploaded.isEmpty) return;
-    try {
-      await media.deleteObjectPaths(uploaded.values);
-    } on SharedRoomMediaException {
-      // The paths are unreferenced and unguessable. Preserve the primary
-      // failure; a future owner cleanup can remove any rare orphan.
-    }
-  }
-
-  try {
-    if (changed.isNotEmpty) {
-      uploaded = await media.syncSelected(
-        ownerUid: ownerUid,
-        roomCode: finalCode,
-        selectedLocalFilenames: changed,
+  Future<RoomPublishResult> publishRoomAndAuthoredPage(
+    Map<String, dynamic> display, {
+    required String? requestedCode,
+  }) async {
+    final combinedPublisher = publication.publishRoomWithSpaceProfile;
+    if (visitorProfileSharingEnabled &&
+        profilePublisher == null &&
+        combinedPublisher != null) {
+      final publicProfile = spaceProfileDisplay(
+        target,
+        audience: SpaceAudience.anyone,
+      );
+      final mutualProfile = spaceProfileDisplay(
+        target,
+        audience: SpaceAudience.mutuals,
+      );
+      return combinedPublisher(
+        display,
+        code: requestedCode,
+        publicProfile: publicProfile.isEmpty ? null : publicProfile,
+        mutualProfile: mutualProfile.isEmpty ? null : mutualProfile,
       );
     }
-    // Remove replaced/revoked public bytes before the room document changes.
-    // If the final publish fails, the previous card can show a missing image,
-    // but it can never expose the uncommitted replacement.
-    final supersededPaths = <String>{
-      for (final entry in previousPaths.entries)
-        if (!selected.containsKey(entry.key) || changed.containsKey(entry.key))
-          entry.value,
-    };
-    if (supersededPaths.isNotEmpty) {
-      await media.deleteObjectPaths(supersededPaths);
+
+    final published = await publication.publishRoom(
+      display,
+      code: requestedCode,
+    );
+    if (!published.ok) return published;
+    final profileFailure = await publishAuthoredPage(published.code!);
+    if (profileFailure == null) return published;
+    if (requestedCode == null ||
+        requestedCode.trim().toUpperCase() != published.code) {
+      await publication.unshareRoom(published.code!);
     }
-  } on SharedRoomMediaException {
-    await removeUploaded();
-    await abandonNewRoom();
-    return const RoomPublishResult.failed(RoomPublishFailure.media);
+    return profileFailure;
   }
 
-  final finalPaths = <SharedRoomMediaSlot, String>{};
-  for (final slot in selected.keys) {
-    final path = uploaded[slot] ?? previousPaths[slot];
-    if (path != null) finalPaths[slot] = path;
-  }
+  // The generated v6 room/profile split intentionally has no visitor-readable
+  // storage-path projection. Keep image publication dormant until its opaque
+  // storage ownership model is implemented. This path never constructs a
+  // Firebase Storage client, and only clears stale consent after the room
+  // publish is acknowledged so a failed publish cannot discard a local choice.
   final display = roomDisplay(
     target,
     mediaOwnerUid: ownerUid,
-    mediaRoomCode: finalCode,
-    mediaObjectPaths: finalPaths,
-    visitorPhotoSharingEnabled: true,
-    visitorProfileSharingEnabled: true,
+    mediaRoomCode: code,
+    visitorPhotoSharingEnabled: false,
+    visitorProfileSharingEnabled: visitorProfileSharingEnabled,
   );
-  final published = await publication.publishRoom(display, code: finalCode);
-  if (!published.ok) {
-    await removeUploaded();
-    await abandonNewRoom();
-    return published;
+  final published = await publishRoomAndAuthoredPage(
+    display,
+    requestedCode: code,
+  );
+  if (published.ok) {
+    if (!visitorProfileSharingEnabled) {
+      target.disableVisitorProfileSharing();
+    } else {
+      target.disableVisitorPhotoSharing();
+    }
   }
-  target.setSharedRoomPhotoPaths(
-    profilePath: finalPaths[SharedRoomMediaSlot.profile] ?? '',
-    seasonPath: finalPaths[SharedRoomMediaSlot.season] ?? '',
-  );
-  return RoomPublishResult.success(
-    published.code!,
-    rotatedStaleCode: reserved.rotatedStaleCode || published.rotatedStaleCode,
-  );
+  return published;
 }
 
 void _toast(BuildContext context, String msg) {
@@ -671,6 +597,8 @@ Future<void> shareSpace(
           'The connection went quiet. Your space is safe — try again.',
         RoomPublishFailure.media =>
           'That photo could not be shared. Try another JPEG, PNG, or WebP under 3 MB.',
+        RoomPublishFailure.profileRejected =>
+          'One of your shared cards contains a link, contact detail, or wording that cannot be published. Your private page is unchanged.',
         RoomPublishFailure.exhaustedCodes =>
           'Couldn’t reserve a share code. Please try once more.',
         _ => 'Couldn’t share right now — try again.',
@@ -721,6 +649,8 @@ Future<void> shareSpace(
           state.roomCode != null &&
           state.roomDiscoveryRemovalCodes.contains(state.roomCode),
       publicDiscoveryName: state.roomDiscoveryName,
+      visitorPagePublished:
+          kVisitorProfileSharingEnabled && state.shareSpaceProfile,
       discoveryFirst: discoveryFirst,
       onDiscoverableChanged: spaceDiscoveryEnabled
           ? (next) async {
@@ -753,6 +683,9 @@ Future<void> shareSpace(
             code: code,
             themeId: state.canvasTheme,
             lively: !state.reduceMotion,
+            visitorProfile: kVisitorProfileSharingEnabled
+                ? spaceProfileDisplay(state, audience: SpaceAudience.anyone)
+                : null,
           ),
         ),
       ),
@@ -779,6 +712,7 @@ Future<void> showShareSpaceDialog(
   bool discoveryCleanupPending = false,
   String publicDiscoveryName = '',
   bool discoveryFirst = false,
+  bool visitorPagePublished = false,
   Future<bool> Function(bool discoverable)? onDiscoverableChanged,
   DiscoveryPublicNameSaver? onPublicDiscoveryNameChanged,
   VoidCallback? onPreview,
@@ -794,6 +728,7 @@ Future<void> showShareSpaceDialog(
       discoveryCleanupPending: discoveryCleanupPending,
       publicDiscoveryName: publicDiscoveryName,
       discoveryFirst: discoveryFirst,
+      visitorPagePublished: visitorPagePublished,
       onDiscoverableChanged: onDiscoverableChanged,
       onPublicDiscoveryNameChanged: onPublicDiscoveryNameChanged,
       onPreview: onPreview,
@@ -859,6 +794,12 @@ Future<void> visitSpace(
     _toast(context, 'That keeper is hidden on this device.');
     return;
   }
+  if (state != null &&
+      ownerKey != null &&
+      state.hearthCircleCodes.contains(result.code) &&
+      state.rememberCircleOwnerKey(result.code, ownerKey)) {
+    onPersist?.call();
+  }
   await Navigator.of(context).push(
     MaterialPageRoute(
       builder: (_) => VisitRoomScreen(
@@ -870,6 +811,7 @@ Future<void> visitSpace(
         localState: state,
         onPersist: onPersist,
         discoveryOwnerKey: ownerKey ?? '',
+        onReportDiscoverableSpace: CloudSync.instance.reportDiscoverableSpace,
       ),
     ),
   );
@@ -892,6 +834,7 @@ class _ShareDialog extends StatefulWidget {
     this.discoveryCleanupPending = false,
     this.publicDiscoveryName = '',
     this.discoveryFirst = false,
+    this.visitorPagePublished = false,
     this.onDiscoverableChanged,
     this.onPublicDiscoveryNameChanged,
     this.onPreview,
@@ -904,6 +847,7 @@ class _ShareDialog extends StatefulWidget {
   final bool discoveryCleanupPending;
   final String publicDiscoveryName;
   final bool discoveryFirst;
+  final bool visitorPagePublished;
   final Future<bool> Function(bool discoverable)? onDiscoverableChanged;
   final DiscoveryPublicNameSaver? onPublicDiscoveryNameChanged;
   final VoidCallback? onPreview;
@@ -1070,7 +1014,10 @@ class _ShareDialogState extends State<_ShareDialog> {
                   _ShareUtilityAction(
                     key: const Key('share-space-preview'),
                     icon: Icons.visibility_outlined,
-                    label: 'PREVIEW WHAT VISITORS SEE',
+                    // This preview deliberately uses the Anyone projection.
+                    // Mutuals can receive additional cards, so naming it a
+                    // generic visitor preview would over-promise parity.
+                    label: 'PREVIEW PUBLIC VIEW',
                     onTap: widget.onPreview!,
                     expand: true,
                   ),
@@ -1320,7 +1267,9 @@ class _ShareDialogState extends State<_ShareDialog> {
                       const SizedBox(width: 9),
                       Expanded(
                         child: Text(
-                          'Anyone with this link can visit until you stop sharing. They see the room you built and a few small signs of presence, like whether its fire is lit today or a quiet-company timer is running. Your private Me name, writing, photos, quests, Journal pages, and account details stay private.',
+                          widget.visitorPagePublished
+                              ? 'Anyone with this link can visit until you stop sharing. Your visitor page follows the audience on each card: Anyone cards open by code or Discover, while Mutuals cards need both keepers to choose each other in Circle. Photos, unpinned Journal pages, quests, streak details, and account information stay private.'
+                              : 'Anyone with this link can visit until you stop sharing. They see the room you built and a few small signs of presence, like whether its fire is lit today or a quiet-company timer is running. Your Me name, writing, photos, quests, Journal pages, and account details stay private.',
                           style: Type.body.copyWith(
                             fontSize: 11,
                             height: 1.42,

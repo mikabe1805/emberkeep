@@ -10,6 +10,14 @@ import {
 type AnyDoc = Record<string, unknown>;
 const makeStore = (initial: Record<string, AnyDoc> = {}) => {
   const docs = new Map(Object.entries(initial));
+  for (const [path, room] of [...docs.entries()]) {
+    if (!path.startsWith("rooms/") || typeof room.uid !== "string") continue;
+    docs.set(`roomOwners/${path.slice("rooms/".length)}`, {
+      uid: room.uid,
+      ownerKey: room.ownerKey,
+      updatedAt: room.updatedAt,
+    });
+  }
   const key = (path: string, id: string) => `${path}/${id}`;
   const store: DiscoveryStore = {
     collection(path) {
@@ -37,9 +45,34 @@ const makeStore = (initial: Record<string, AnyDoc> = {}) => {
 const request = (data: unknown, uid = "owner") => ({data, auth: {uid}});
 const publicNamesOn = {publicNamesEnabled: () => true};
 const owned = {
-  "rooms/ABC234": {uid: "owner", secret: "preserve"},
+  "rooms/ABC234": {
+    uid: "owner",
+    ownerKey: ownerKeyForUid("owner"),
+    v: 6,
+    profileVisible: false,
+    updatedAt: new Date("2026-08-24T12:00:00.000Z"),
+    secret: "preserve",
+  },
   "discoverableSpaces/ABC234": {publicName: "old name", ownerKey: ownerKeyForUid("owner"), theme: "walnut"},
 };
+const liveRoom = (uid: string, ownerKey = ownerKeyForUid(uid)) => ({
+  uid,
+  ownerKey,
+  v: 6,
+  profileVisible: false,
+  updatedAt: new Date("2026-08-24T12:00:00.000Z"),
+});
+const liveProfile = (ownerKey: string, generation = new Date("2026-08-24T12:00:00.000Z")) => ({
+  v: 2,
+  ownerKey,
+  displayName: "Mika",
+  cardOrder: [],
+  about: "",
+  featuredGoals: [],
+  pinnedMoments: [],
+  season: "",
+  roomUpdatedAt: generation,
+});
 
 describe("discovery callables", () => {
   test("normalizes Unicode names and preserves directory data", async () => {
@@ -61,7 +94,7 @@ describe("discovery callables", () => {
     await setDiscoveryPublicNameHandler(request({code: "ABC234", publicName: "   "}), {store, ...publicNamesOn});
     expect(docs.get("discoverableSpaces/ABC234")?.publicName).toBe("");
     await expect(setDiscoveryPublicNameHandler(request({code: "ABC234", publicName: "x"}, "intruder"), {store, ...publicNamesOn})).rejects.toBeInstanceOf(HttpsError);
-    const missing = makeStore({"rooms/ABC234": {uid: "owner"}}).store;
+    const missing = makeStore({"rooms/ABC234": liveRoom("owner")}).store;
     await expect(setDiscoveryPublicNameHandler(request({code: "ABC234", publicName: "x"}), {store: missing, ...publicNamesOn})).rejects.toBeInstanceOf(HttpsError);
   });
 
@@ -99,9 +132,85 @@ describe("discovery callables", () => {
     const {store, docs} = makeStore(owned);
     const result = await reportDiscoverableSpaceHandler(request({code: "ABC234", category: "impersonation"}, "reporter"), {store, now: () => new Date("2026-08-22T12:00:00Z")});
     expect(result).toEqual({reported: true});
-    expect(docs.get("discoveryReports/ABC234/reporters/reporter")).toMatchObject({category: "impersonation", publicName: "old name", state: "pending", ownerKey: ownerKeyForUid("owner"), ownerUid: "owner"});
+    expect(docs.get("discoveryReports/ABC234/reporters/reporter")).toMatchObject({category: "impersonation", publicName: "old name", state: "pending", ownerKey: ownerKeyForUid("owner")});
     expect(docs.get("discoveryReports/ABC234/reporters/reporter")).not.toHaveProperty("narrative");
     await expect(reportDiscoverableSpaceHandler(request({code: "ABC234", category: "other"}, "reporter"), {store})).rejects.toMatchObject({code: "already-exists"});
+  });
+
+  test("allows a code-only report for a live public profile", async () => {
+    const {store, docs} = makeStore({
+      "rooms/ABC234": liveRoom("owner"),
+      "publicSpaceProfiles/ABC234": liveProfile(ownerKeyForUid("owner")),
+    });
+
+    await expect(reportDiscoverableSpaceHandler(
+      request({code: "ABC234", category: "other"}, "reporter"),
+      {store},
+    )).resolves.toEqual({reported: true});
+    expect(docs.get("discoveryReports/ABC234/reporters/reporter")).toMatchObject({
+      category: "other",
+      publicName: null,
+      ownerKey: ownerKeyForUid("owner"),
+    });
+  });
+
+  test("permits a Mutuals-only report only for reciprocal, unblocked Circle choices", async () => {
+    const base = {
+      "rooms/ABC234": liveRoom("owner"),
+      "mutualSpaceProfiles/ABC234": liveProfile(ownerKeyForUid("owner")),
+      [`circleRelationships/${ownerKeyForUid("reporter")}/outgoing/${ownerKeyForUid("owner")}`]: {edge: true},
+      [`circleRelationships/${ownerKeyForUid("owner")}/outgoing/${ownerKeyForUid("reporter")}`]: {edge: true},
+    };
+    const {store, docs} = makeStore(base);
+    await expect(reportDiscoverableSpaceHandler(
+      request({code: "ABC234", category: "other"}, "reporter"),
+      {store},
+    )).resolves.toEqual({reported: true});
+    expect(docs.has("discoveryReports/ABC234/reporters/reporter")).toBe(true);
+
+    const missingReciprocity = makeStore({...base});
+    missingReciprocity.docs.delete(`circleRelationships/${ownerKeyForUid("owner")}/outgoing/${ownerKeyForUid("reporter")}`);
+    await expect(reportDiscoverableSpaceHandler(
+      request({code: "ABC234", category: "other"}, "reporter"),
+      {store: missingReciprocity.store},
+    )).rejects.toMatchObject({code: "not-found"});
+
+    const blocked = makeStore({
+      ...base,
+      [`spaceBlocks/${ownerKeyForUid("owner")}/blocked/${ownerKeyForUid("reporter")}`]: {blocked: true},
+    });
+    await expect(reportDiscoverableSpaceHandler(
+      request({code: "ABC234", category: "other"}, "reporter"),
+      {store: blocked.store},
+    )).rejects.toMatchObject({code: "not-found"});
+  });
+
+  test("does not accept a stale profile whose owner disagrees with its room", async () => {
+    const {store, docs} = makeStore({
+      "rooms/ABC234": liveRoom("owner"),
+      "publicSpaceProfiles/ABC234": liveProfile(ownerKeyForUid("someone-else")),
+    });
+    await expect(reportDiscoverableSpaceHandler(
+      request({code: "ABC234", category: "other"}, "reporter"),
+      {store},
+    )).rejects.toMatchObject({code: "not-found"});
+    expect(docs.has("discoveryReports/ABC234/reporters/reporter")).toBe(false);
+  });
+
+  test("does not attach a stale directory name to a profile-only report", async () => {
+    const {store, docs} = makeStore({
+      "rooms/ABC234": liveRoom("owner"),
+      "publicSpaceProfiles/ABC234": liveProfile(ownerKeyForUid("owner")),
+      "discoverableSpaces/ABC234": {
+        ownerKey: ownerKeyForUid("someone-else"),
+        publicName: "Stale name",
+      },
+    });
+    await reportDiscoverableSpaceHandler(
+      request({code: "ABC234", category: "other"}, "reporter"),
+      {store},
+    );
+    expect(docs.get("discoveryReports/ABC234/reporters/reporter")?.publicName).toBeNull();
   });
 
   test("rejects self-reports before writing a private report", async () => {
@@ -123,7 +232,7 @@ describe("discovery callables", () => {
     const now = new Date("2026-08-22T12:00:00Z");
     const {store} = makeStore({
       ...owned,
-      "rooms/DEF234": {uid: "other-owner"},
+      "rooms/DEF234": liveRoom("other-owner"),
       "discoverableSpaces/DEF234": {publicName: "other", ownerKey: ownerKeyForUid("other-owner")},
     });
     await reportDiscoverableSpaceHandler(request({code: "ABC234", category: "other"}, "reporter"), {store, now: () => now});
@@ -145,5 +254,21 @@ describe("discovery callables", () => {
     await expect(reportDiscoverableSpaceHandler({data: {code: "ABC234", category: "other"}}, {store})).rejects.toBeInstanceOf(HttpsError);
     await expect(reportDiscoverableSpaceHandler(request({code: "ABC234", category: "spam"}), {store})).rejects.toBeInstanceOf(HttpsError);
     await expect(reportDiscoverableSpaceHandler(request({code: "ABC234", category: "other"}, "reporter"), {store: makeStore().store})).rejects.toBeInstanceOf(HttpsError);
+  });
+
+  test.each([
+    {uid: "owner", ownerKey: ownerKeyForUid("owner"), v: 5, profileVisible: false},
+    {uid: "owner", ownerKey: ownerKeyForUid("owner"), v: 6, profileVisible: true},
+  ])("does not report a legacy or profile-visible room anchor", async (room) => {
+    const {store, docs} = makeStore({
+      "rooms/ABC234": room,
+      "discoverableSpaces/ABC234": {publicName: "old name", ownerKey: ownerKeyForUid("owner")},
+      "publicSpaceProfiles/ABC234": liveProfile(ownerKeyForUid("owner")),
+    });
+    await expect(reportDiscoverableSpaceHandler(
+      request({code: "ABC234", category: "other"}, "reporter"),
+      {store},
+    )).rejects.toMatchObject({code: "not-found"});
+    expect(docs.has("discoveryReports/ABC234/reporters/reporter")).toBe(false);
   });
 });

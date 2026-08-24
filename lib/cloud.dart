@@ -24,6 +24,7 @@ enum RoomPublishFailure {
   timedOut,
   network,
   media,
+  profileRejected,
   exhaustedCodes,
   unknown,
 }
@@ -34,6 +35,14 @@ enum RoomPublishFailure {
 enum SparkSendResult { sent, alreadyWaiting, failed }
 
 enum DiscoveryPublicNameUpdate { saved, rejected, rateLimited, unavailable }
+
+enum SpaceProfilePublishResult {
+  saved,
+  rejected,
+  permissionDenied,
+  timedOut,
+  unavailable,
+}
 
 enum _OwnedRoomDeleteResult { deleted, absent, notOwned, invalid }
 
@@ -171,6 +180,61 @@ class RoomPublishQueue {
   }
 }
 
+/// A tiny generation fence for debounced room snapshots. Timer cancellation
+/// alone is not enough once its callback has entered the event queue.
+@visibleForTesting
+class RoomRefreshFence {
+  int _epoch = 0;
+
+  int schedule() => ++_epoch;
+
+  void invalidate() => _epoch++;
+
+  bool accepts(int epoch) => epoch == _epoch;
+}
+
+/// Establishes the three credentials a protected discovery write needs before
+/// Firestore sees it.  The in-flight preparation is shared, but a completed
+/// preparation is deliberately not cached: auth can change between listings.
+@visibleForTesting
+class DiscoveryWritePreparation {
+  DiscoveryWritePreparation({
+    required this.ensureCore,
+    required this.activateAppCheck,
+    required this.ensureAvailable,
+    required this.ensureSocialSession,
+  });
+
+  final Future<bool> Function() ensureCore;
+  final Future<bool> Function() activateAppCheck;
+  final Future<bool> Function() ensureAvailable;
+  final Future<bool> Function() ensureSocialSession;
+  Future<bool>? _preparing;
+
+  Future<bool> prepare() {
+    final active = _preparing;
+    if (active != null) return active;
+    late final Future<bool> attempt;
+    attempt = _prepareOnce().whenComplete(() {
+      if (identical(_preparing, attempt)) _preparing = null;
+    });
+    _preparing = attempt;
+    return attempt;
+  }
+
+  Future<bool> run(Future<bool> Function() protectedWrite) async {
+    if (!await prepare()) return false;
+    return protectedWrite();
+  }
+
+  Future<bool> _prepareOnce() async {
+    if (!await ensureCore()) return false;
+    if (!await activateAppCheck()) return false;
+    if (!await ensureAvailable()) return false;
+    return ensureSocialSession();
+  }
+}
+
 /// Cloud backup (round-9): an anonymous-auth Firestore mirror of the local
 /// save. Local is ALWAYS the source of truth — the cloud exists so a purged
 /// browser or lost phone can't erase a life. Fully failure-tolerant: if
@@ -224,8 +288,16 @@ class CloudSync extends ChangeNotifier
       CoalescedIdentityDeletionOperation();
   final FirebasePlaceSearchAppCheck _discoveryAppCheck =
       FirebasePlaceSearchAppCheck();
+  late final DiscoveryWritePreparation _discoveryWritePreparation =
+      DiscoveryWritePreparation(
+        ensureCore: ensureCoreAvailable,
+        activateAppCheck: _discoveryAppCheck.activate,
+        ensureAvailable: ensureAvailable,
+        ensureSocialSession: ensureSocialSession,
+      );
   Timer? _debounce;
   Timer? _roomDebounce;
+  final RoomRefreshFence _roomRefreshFence = RoomRefreshFence();
   final RoomPublishQueue _savePushQueue = RoomPublishQueue();
   final RoomPublishQueue _roomPublishQueue = RoomPublishQueue();
   bool _savePushHeld = false;
@@ -834,7 +906,17 @@ class CloudSync extends ChangeNotifier
   /// Cancel any pending push (used around a reset that will re-push fresh).
   void cancelPending() {
     _debounce?.cancel();
+    invalidatePendingRoomRefreshes();
+  }
+
+  /// Cancels the five-second background appearance refresh and invalidates a
+  /// callback that may already have been posted to the event loop. Explicit
+  /// privacy edits call this before their acknowledged write so an older
+  /// Anyone projection cannot be published after a newer Only-me choice.
+  void invalidatePendingRoomRefreshes() {
     _roomDebounce?.cancel();
+    _roomDebounce = null;
+    _roomRefreshFence.invalidate();
   }
 
   Future<void> _pushNow() async {
@@ -895,8 +977,20 @@ class CloudSync extends ChangeNotifier
   CollectionReference<Map<String, dynamic>> get _rooms =>
       FirebaseFirestore.instance.collection('rooms');
 
+  /// Private ownership is deliberately split from the bearer-readable room
+  /// projection. Rules consult this registry for owner writes/deletion while
+  /// visitors only ever receive the opaque ownerKey in /rooms.
+  CollectionReference<Map<String, dynamic>> get _roomOwners =>
+      FirebaseFirestore.instance.collection('roomOwners');
+
   CollectionReference<Map<String, dynamic>> get _discoverableSpaces =>
       FirebaseFirestore.instance.collection('discoverableSpaces');
+
+  CollectionReference<Map<String, dynamic>> get _publicSpaceProfiles =>
+      FirebaseFirestore.instance.collection('publicSpaceProfiles');
+
+  CollectionReference<Map<String, dynamic>> get _mutualSpaceProfiles =>
+      FirebaseFirestore.instance.collection('mutualSpaceProfiles');
 
   CollectionReference<Map<String, dynamic>> get _roomDeletionLocks =>
       FirebaseFirestore.instance.collection('roomDeletionLocks');
@@ -912,6 +1006,9 @@ class CloudSync extends ChangeNotifier
     Map<String, dynamic> display, {
     required String? code,
     bool discoverable = false,
+    bool syncSpaceProfile = false,
+    Map<String, dynamic>? publicProfile,
+    Map<String, dynamic>? mutualProfile,
   }) {
     if (_roomPublishQueue.writesHeld ||
         !socialReady ||
@@ -922,6 +1019,7 @@ class CloudSync extends ChangeNotifier
     final clean = _cleanRoomCode(code);
     if (clean == null) return;
     _roomDebounce?.cancel();
+    final refreshEpoch = _roomRefreshFence.schedule();
     final snapshot = Map<String, dynamic>.from(display);
     _roomDebounce = Timer(
       const Duration(seconds: 5),
@@ -930,6 +1028,10 @@ class CloudSync extends ChangeNotifier
           snapshot,
           code: clean,
           discoverable: discoverable,
+          syncSpaceProfile: syncSpaceProfile,
+          publicProfile: publicProfile,
+          mutualProfile: mutualProfile,
+          refreshEpoch: refreshEpoch,
         ),
       ),
     );
@@ -939,6 +1041,9 @@ class CloudSync extends ChangeNotifier
     Map<String, dynamic> display, {
     required String? code,
     bool discoverable = false,
+    bool syncSpaceProfile = false,
+    Map<String, dynamic>? publicProfile,
+    Map<String, dynamic>? mutualProfile,
   }) {
     if (_roomPublishQueue.writesHeld ||
         !socialReady ||
@@ -949,11 +1054,16 @@ class CloudSync extends ChangeNotifier
     final clean = _cleanRoomCode(code);
     if (clean == null) return;
     _roomDebounce?.cancel();
+    final refreshEpoch = _roomRefreshFence.schedule();
     unawaited(
       _refreshRoomAndDirectory(
         Map<String, dynamic>.from(display),
         code: clean,
         discoverable: discoverable,
+        syncSpaceProfile: syncSpaceProfile,
+        publicProfile: publicProfile,
+        mutualProfile: mutualProfile,
+        refreshEpoch: refreshEpoch,
       ),
     );
   }
@@ -962,10 +1072,34 @@ class CloudSync extends ChangeNotifier
     Map<String, dynamic> display, {
     required String code,
     required bool discoverable,
+    required bool syncSpaceProfile,
+    required Map<String, dynamic>? publicProfile,
+    required Map<String, dynamic>? mutualProfile,
+    required int refreshEpoch,
   }) async {
-    final published = await publishRoom(display, code: code);
-    if (!published.ok || published.code != code || !discoverable) return;
-    await setRoomDiscoverable(code, display, discoverable: true);
+    await _roomPublishQueue.runWrite<void>(() async {
+      if (!_roomRefreshFence.accepts(refreshEpoch)) return;
+      final published = await _publishRoomNow(
+        display,
+        code: code,
+        skipCurrentVersion: false,
+      );
+      if (!published.ok ||
+          published.code != code ||
+          !_roomRefreshFence.accepts(refreshEpoch)) {
+        return;
+      }
+      if (syncSpaceProfile) {
+        await _publishSpaceProfileNow(
+          code,
+          publicProfile: publicProfile,
+          mutualProfile: mutualProfile,
+        );
+      }
+      if (discoverable && _roomRefreshFence.accepts(refreshEpoch)) {
+        await _setRoomDiscoverableNow(code, display, discoverable: true);
+      }
+    });
   }
 
   /// Publish (or update) your space's appearance to a public room doc. Pass the
@@ -1003,6 +1137,58 @@ class CloudSync extends ChangeNotifier
         const RoomPublishResult.failed(RoomPublishFailure.unavailable);
   }
 
+  /// Publishes the generated room and its authored audience projections as one
+  /// ordered operation. Every older background sync finishes before this
+  /// begins, and no older profile continuation can be appended afterward.
+  Future<RoomPublishResult> publishRoomWithSpaceProfile(
+    Map<String, dynamic> display, {
+    String? code,
+    required Map<String, dynamic>? publicProfile,
+    required Map<String, dynamic>? mutualProfile,
+  }) async {
+    final snapshot = Map<String, dynamic>.from(display);
+    final result = await _roomPublishQueue.runWrite<RoomPublishResult>(() async {
+      final published = await _publishRoomNow(
+        snapshot,
+        code: code,
+        skipCurrentVersion: false,
+      );
+      final publishedCode = published.code;
+      if (!published.ok || publishedCode == null) return published;
+      final profile = await _publishSpaceProfileNow(
+        publishedCode,
+        publicProfile: publicProfile,
+        mutualProfile: mutualProfile,
+      );
+      final combined = switch (profile) {
+        SpaceProfilePublishResult.saved => published,
+        SpaceProfilePublishResult.rejected => const RoomPublishResult.failed(
+          RoomPublishFailure.profileRejected,
+        ),
+        SpaceProfilePublishResult.permissionDenied =>
+          const RoomPublishResult.failed(RoomPublishFailure.permissionDenied),
+        SpaceProfilePublishResult.timedOut => const RoomPublishResult.failed(
+          RoomPublishFailure.timedOut,
+        ),
+        SpaceProfilePublishResult.unavailable => const RoomPublishResult.failed(
+          RoomPublishFailure.unavailable,
+        ),
+      };
+      if (!combined.ok && _cleanRoomCode(code ?? '') != publishedCode) {
+        // A failed first profile publish must not strand a generated room whose
+        // code the local save never received. The delete trigger also clears a
+        // callable that may have completed after a client timeout.
+        await _deleteOwnedRoom(publishedCode);
+      }
+      return combined;
+    });
+    if (_roomPublishQueue.writesHeld) {
+      return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
+    }
+    return result ??
+        const RoomPublishResult.failed(RoomPublishFailure.unavailable);
+  }
+
   Future<RoomPublishResult> _publishRoomNow(
     Map<String, dynamic> display, {
     String? code,
@@ -1011,11 +1197,23 @@ class CloudSync extends ChangeNotifier
     if (!socialReady || _uid == null) {
       return const RoomPublishResult.failed(RoomPublishFailure.unavailable);
     }
+    final ownerUid = _uid!;
     final data = {
       ...display,
-      'uid': _uid,
+      'ownerKey': discoveryOwnerKey(ownerUid),
       'updatedAt': FieldValue.serverTimestamp(),
     };
+    Future<void> writeOwnedRoom(String roomCode, Map<String, dynamic> room) {
+      final batch = FirebaseFirestore.instance.batch()
+        ..set(_rooms.doc(roomCode), room)
+        ..set(_roomOwners.doc(roomCode), {
+          'uid': ownerUid,
+          'ownerKey': discoveryOwnerKey(ownerUid),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      return batch.commit();
+    }
+
     var rotatedStaleCode = false;
     try {
       if (code != null && code.isNotEmpty) {
@@ -1027,14 +1225,17 @@ class CloudSync extends ChangeNotifier
                 .get()
                 .timeout(const Duration(seconds: 8));
             final existingData = existing.data();
-            final owner = existingData?['uid'];
-            if (!existing.exists || owner == _uid) {
+            final owner = existingData?['ownerKey'];
+            final legacyOwner = existingData?['uid'];
+            if (!existing.exists ||
+                owner == discoveryOwnerKey(ownerUid) ||
+                legacyOwner == ownerUid) {
               if (existing.exists &&
                   skipCurrentVersion &&
                   existingData?['v'] == display['v']) {
                 return RoomPublishResult.success(clean);
               }
-              await _rooms.doc(clean).set(data);
+              await writeOwnedRoom(clean, data);
               return RoomPublishResult.success(clean);
             }
           } on FirebaseException catch (error) {
@@ -1063,7 +1264,7 @@ class CloudSync extends ChangeNotifier
           if (newRoomData.containsKey('seasonPhotoPath')) {
             newRoomData['seasonPhotoPath'] = '';
           }
-          await _rooms.doc(candidateCode).set(newRoomData);
+          await writeOwnedRoom(candidateCode, newRoomData);
         },
         shouldRetry: (error) =>
             error is FirebaseException && error.code == 'permission-denied',
@@ -1113,53 +1314,221 @@ class CloudSync extends ChangeNotifier
     Map<String, dynamic> room, {
     required bool discoverable,
   }) async {
-    if (!socialReady || _uid == null) return false;
     final clean = _cleanRoomCode(code);
     if (clean == null) return false;
-    _roomDebounce?.cancel();
-    _roomDebounce = null;
-    final projection = discoverable
-        ? discoverableSpaceDisplay(room, roomCode: clean, ownerUid: _uid!)
-        : const <String, dynamic>{};
+    invalidatePendingRoomRefreshes();
     try {
       final result = await _roomPublishQueue.runWrite<bool>(() async {
-        if (!socialReady || _uid == null) return false;
-        final document = _discoverableSpaces.doc(clean);
-        if (discoverable) {
-          // Generated visuals refresh without changing the separately saved
-          // public name. Cooldown state stays in an admin-only server record.
-          await FirebaseFirestore.instance
-              .runTransaction((transaction) async {
-                final existing = await transaction.get(document);
-                final existingName = existing.data()?['publicName'];
-                transaction.set(document, {
-                  ...projection,
-                  'publicName': existingName is String ? existingName : '',
-                  'updatedAt': FieldValue.serverTimestamp(),
-                  'expiresAt': Timestamp.fromDate(
-                    DateTime.now().toUtc().add(discoverableSpaceLease),
-                  ),
-                });
-              })
-              .timeout(const Duration(seconds: 8));
-        } else {
-          await document.delete();
-        }
-        return true;
+        return _setRoomDiscoverableNow(clean, room, discoverable: discoverable);
       });
       return result ?? false;
+    } on FirebaseException catch (error) {
+      debugPrint('setRoomDiscoverable failed: firebase=${error.code}');
+      return false;
     } catch (error) {
-      debugPrint('setRoomDiscoverable failed: $error');
+      debugPrint('setRoomDiscoverable failed: ${error.runtimeType}');
       return false;
     }
   }
 
+  Future<bool> _setRoomDiscoverableNow(
+    String clean,
+    Map<String, dynamic> room, {
+    required bool discoverable,
+  }) => _discoveryWritePreparation.run(() async {
+    if (!socialReady || _uid == null) return false;
+    final projection = discoverable
+        ? discoverableSpaceDisplay(room, roomCode: clean)
+        : const <String, dynamic>{};
+    final document = _discoverableSpaces.doc(clean);
+    if (discoverable) {
+      // Generated visuals refresh without changing the separately saved public
+      // name. Cooldown state stays in an admin-only server record.
+      // Do not add a UI feedback timeout to this write. A Firestore timeout
+      // does not cancel the transaction: it could still commit after the UI
+      // has rolled the switch back to private. The caller keeps this
+      // acknowledged privacy boundary pending until Firestore resolves.
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final existing = await transaction.get(document);
+        final existingName = existing.data()?['publicName'];
+        transaction.set(document, {
+          ...projection,
+          'publicName': existingName is String ? existingName : '',
+          'updatedAt': FieldValue.serverTimestamp(),
+          'expiresAt': Timestamp.fromDate(
+            DateTime.now().toUtc().add(discoverableSpaceLease),
+          ),
+        });
+      });
+    } else {
+      await document.delete();
+    }
+    return true;
+  });
+
   Future<bool> _prepareProtectedDiscoveryCall() async {
-    if (!await ensureCoreAvailable() || !await _discoveryAppCheck.activate()) {
+    return _discoveryWritePreparation.prepare();
+  }
+
+  /// Publishes the two audience-specific authored-page projections through an
+  /// authenticated, App-Check-protected callable. `null` deletes an audience
+  /// projection; Only-me cards never reach this boundary at all.
+  Future<SpaceProfilePublishResult> publishSpaceProfile(
+    String code, {
+    required Map<String, dynamic>? publicProfile,
+    required Map<String, dynamic>? mutualProfile,
+  }) async {
+    final clean = _cleanRoomCode(code);
+    if (clean == null) {
+      return SpaceProfilePublishResult.unavailable;
+    }
+    final result = await _roomPublishQueue.runWrite<SpaceProfilePublishResult>(
+      () => _publishSpaceProfileNow(
+        clean,
+        publicProfile: publicProfile,
+        mutualProfile: mutualProfile,
+      ),
+    );
+    return result ?? SpaceProfilePublishResult.unavailable;
+  }
+
+  Future<SpaceProfilePublishResult> _publishSpaceProfileNow(
+    String clean, {
+    required Map<String, dynamic>? publicProfile,
+    required Map<String, dynamic>? mutualProfile,
+  }) async {
+    if (!await _prepareProtectedDiscoveryCall()) {
+      return SpaceProfilePublishResult.unavailable;
+    }
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        'publishSpaceProfile',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 10)),
+      );
+      await callable.call<void>({
+        'code': clean,
+        'publicProfile': publicProfile,
+        'mutualProfile': mutualProfile,
+      });
+      return SpaceProfilePublishResult.saved;
+    } on FirebaseFunctionsException catch (error) {
+      debugPrint('publishSpaceProfile failed: ${error.code}');
+      return switch (error.code) {
+        'invalid-argument' ||
+        'failed-precondition' => SpaceProfilePublishResult.rejected,
+        'permission-denied' => SpaceProfilePublishResult.permissionDenied,
+        'deadline-exceeded' => SpaceProfilePublishResult.timedOut,
+        _ => SpaceProfilePublishResult.unavailable,
+      };
+    } on TimeoutException {
+      return SpaceProfilePublishResult.timedOut;
+    } catch (error) {
+      debugPrint('publishSpaceProfile failed: ${error.runtimeType}');
+      return SpaceProfilePublishResult.unavailable;
+    }
+  }
+
+  /// Fetches the public authored page without creating an identity. A Mutuals
+  /// read is attempted only for a room this device already keeps in Circle;
+  /// failure quietly falls back to the public projection.
+  Future<Map<String, dynamic>?> fetchSpaceProfile(
+    String code, {
+    bool includeMutual = false,
+  }) async {
+    final clean = _cleanRoomCode(code);
+    if (clean == null ||
+        !await ensureCoreAvailable() ||
+        !await _discoveryAppCheck.activate() ||
+        !await ensureAvailable()) {
+      return null;
+    }
+
+    Map<String, dynamic>? publicProfile;
+    try {
+      final publicSnapshot = await _publicSpaceProfiles
+          .doc(clean)
+          .get(const GetOptions(source: Source.server))
+          .timeout(const Duration(seconds: 8));
+      publicProfile = publicSnapshot.data();
+    } on FirebaseException catch (error) {
+      if (error.code != 'not-found' && error.code != 'permission-denied') {
+        debugPrint('fetchSpaceProfile public failed: ${error.code}');
+      }
+    } catch (error) {
+      debugPrint('fetchSpaceProfile public failed: ${error.runtimeType}');
+    }
+    if (!includeMutual || !await ensureSocialSession()) return publicProfile;
+
+    try {
+      final mutualSnapshot = await _mutualSpaceProfiles
+          .doc(clean)
+          .get(const GetOptions(source: Source.server))
+          .timeout(const Duration(seconds: 8));
+      return mutualSnapshot.data() ?? publicProfile;
+    } on FirebaseException catch (error) {
+      // Permission denied is the ordinary one-way-Circle case, not an error to
+      // surface. It simply means the public projection is the correct page.
+      if (error.code != 'permission-denied' && error.code != 'not-found') {
+        debugPrint('fetchSpaceProfile mutual failed: ${error.code}');
+      }
+      return publicProfile;
+    } catch (error) {
+      debugPrint('fetchSpaceProfile mutual failed: ${error.runtimeType}');
+      return publicProfile;
+    }
+  }
+
+  Future<bool> setCircleRelationship(
+    String code, {
+    String ownerKey = '',
+    required bool active,
+  }) => _setSpaceRelationshipCallable(
+    'setCircleRelationship',
+    code,
+    ownerKey: ownerKey,
+    valueKey: 'active',
+    value: active,
+  );
+
+  Future<bool> setSpaceBlock(
+    String code, {
+    String ownerKey = '',
+    required bool blocked,
+  }) => _setSpaceRelationshipCallable(
+    'setSpaceBlock',
+    code,
+    ownerKey: ownerKey,
+    valueKey: 'blocked',
+    value: blocked,
+  );
+
+  Future<bool> _setSpaceRelationshipCallable(
+    String callableName,
+    String code, {
+    required String ownerKey,
+    required String valueKey,
+    required bool value,
+  }) async {
+    final clean = _cleanRoomCode(code);
+    if (clean == null || !await _prepareProtectedDiscoveryCall()) return false;
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable(
+        callableName,
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 8)),
+      );
+      await callable.call<void>({
+        'code': clean,
+        if (isValidDiscoveryOwnerKey(ownerKey)) 'ownerKey': ownerKey,
+        valueKey: value,
+      });
+      return true;
+    } on FirebaseFunctionsException catch (error) {
+      debugPrint('$callableName failed: ${error.code}');
+      return false;
+    } catch (error) {
+      debugPrint('$callableName failed: ${error.runtimeType}');
       return false;
     }
-    if (!await ensureAvailable()) return false;
-    return ensureSocialSession();
   }
 
   Future<DiscoveryPublicNameUpdate> setDiscoveryPublicName(
@@ -1284,8 +1653,7 @@ class CloudSync extends ChangeNotifier
     // A five-second appearance refresh must never outlive Stop Sharing. Queue
     // the delete behind any refresh whose timer already fired; otherwise that
     // stale write could recreate the room after the UI cleared its code.
-    _roomDebounce?.cancel();
-    _roomDebounce = null;
+    invalidatePendingRoomRefreshes();
     return _roomPublishQueue.run(() async {
       try {
         final removed = await _deleteOwnedRoom(code);
@@ -1305,6 +1673,7 @@ class CloudSync extends ChangeNotifier
     final clean = _cleanRoomCode(code);
     if (clean == null) return _OwnedRoomDeleteResult.invalid;
     final room = _rooms.doc(clean);
+    final owner = _roomOwners.doc(clean);
     late final DocumentSnapshot<Map<String, dynamic>> parent;
     try {
       parent = await room.get().timeout(const Duration(seconds: 8));
@@ -1316,12 +1685,14 @@ class CloudSync extends ChangeNotifier
       await _deleteRoomPrivateChildren(room);
       final batch = FirebaseFirestore.instance.batch()
         ..delete(_discoverableSpaces.doc(clean))
+        ..delete(owner)
         ..delete(room);
       await batch.commit().timeout(const Duration(seconds: 8));
       return _OwnedRoomDeleteResult.deleted;
     }
     if (!parent.exists) return _OwnedRoomDeleteResult.absent;
-    if (parent.data()?['uid'] != _uid) {
+    final ownerSnapshot = await owner.get().timeout(const Duration(seconds: 8));
+    if (!ownerSnapshot.exists || ownerSnapshot.data()?['uid'] != _uid) {
       return _OwnedRoomDeleteResult.notOwned;
     }
     final parentData = parent.data();
@@ -1337,6 +1708,7 @@ class CloudSync extends ChangeNotifier
     await _deleteRoomPrivateChildren(room);
     final batch = FirebaseFirestore.instance.batch()
       ..delete(_discoverableSpaces.doc(clean))
+      ..delete(owner)
       ..delete(room);
     await batch.commit().timeout(const Duration(seconds: 8));
     return _OwnedRoomDeleteResult.deleted;
@@ -1940,17 +2312,21 @@ final class _CloudOwnedRoomCleanupDirectory
   Future<List<DocumentSnapshot<Map<String, dynamic>>>> listOwnedRooms({
     required String ownerUid,
   }) async {
-    final page = await _cloud._rooms
+    final ownerPage = await _cloud._roomOwners
         .where('uid', isEqualTo: ownerUid)
         .limit(100)
         .get(const GetOptions(source: Source.server))
         .timeout(const Duration(seconds: 8));
-    for (final room in page.docs) {
-      if (room.data()['uid'] != ownerUid) {
-        throw StateError('Owner query returned a room for another identity.');
-      }
+    final rooms = await Future.wait([
+      for (final owner in ownerPage.docs)
+        _cloud._rooms
+            .doc(owner.id)
+            .get(const GetOptions(source: Source.server)),
+    ]);
+    if (rooms.any((room) => !room.exists)) {
+      throw StateError('Owned-room registry referenced a missing room.');
     }
-    return List<DocumentSnapshot<Map<String, dynamic>>>.unmodifiable(page.docs);
+    return List<DocumentSnapshot<Map<String, dynamic>>>.unmodifiable(rooms);
   }
 
   @override
@@ -1988,7 +2364,8 @@ final class _CloudOwnedRoomDeletionSteps implements OwnedRoomDeletionSteps {
       ownerUid: ownerUid,
       expectedUser: _expectedUser,
     );
-    if (room.data()?['uid'] != ownerUid) {
+    final owner = await _cloud._roomOwners.doc(room.id).get();
+    if (owner.data()?['uid'] != ownerUid) {
       throw StateError('The room owner changed during identity cleanup.');
     }
   }
@@ -2028,6 +2405,7 @@ final class _CloudOwnedRoomDeletionSteps implements OwnedRoomDeletionSteps {
     await _verify();
     final batch = FirebaseFirestore.instance.batch()
       ..delete(_cloud._discoverableSpaces.doc(room.id))
+      ..delete(_cloud._roomOwners.doc(room.id))
       ..delete(room.reference)
       ..delete(_lock);
     await batch.commit();

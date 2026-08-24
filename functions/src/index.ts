@@ -1,12 +1,28 @@
 import {getApps, initializeApp} from "firebase-admin/app";
 import {getFirestore} from "firebase-admin/firestore";
 import {defineBoolean, defineSecret} from "firebase-functions/params";
+import {onDocumentDeleted} from "firebase-functions/v2/firestore";
 import {onCall} from "firebase-functions/v2/https";
+import {user} from "firebase-functions/v1/auth";
 import {
   reportDiscoverableSpaceHandler,
   setDiscoveryPublicNameHandler,
   type DiscoveryStore,
 } from "./discovery";
+import {
+  publishSpaceProfileHandler,
+  setCircleRelationshipHandler,
+  setSpaceBlockHandler,
+  type SpaceProfileStore,
+} from "./space_profile";
+import {
+  cleanupDeletedSpaceHandler,
+  type SpaceCleanupStore,
+} from "./space_cleanup";
+import {
+  cleanupDeletedIdentityRelationshipsHandler,
+  firestoreIdentityRelationshipCleanupStore,
+} from "./identity_relationship_cleanup";
 
 import {
   FirestoreCostGuard,
@@ -92,4 +108,51 @@ export const setDiscoveryPublicName = onCall(
 export const reportDiscoverableSpace = onCall(
   {enforceAppCheck: enforceDiscoveryAppCheck, timeoutSeconds: 15},
   async (request) => reportDiscoverableSpaceHandler(request, {store: firestore as unknown as DiscoveryStore}),
+);
+
+// Profile content remains outside the generated room document. These are the
+// only client entry points for publishing audience projections and recording
+// relationship state used by the mutual-audience rules.
+export const publishSpaceProfile = onCall(
+  {enforceAppCheck: enforceDiscoveryAppCheck, timeoutSeconds: 15},
+  async (request) => publishSpaceProfileHandler(request, {store: firestore as unknown as SpaceProfileStore}),
+);
+
+export const setCircleRelationship = onCall(
+  {enforceAppCheck: enforceDiscoveryAppCheck, timeoutSeconds: 15},
+  async (request) => setCircleRelationshipHandler(request, {store: firestore as unknown as SpaceProfileStore}),
+);
+
+export const setSpaceBlock = onCall(
+  {enforceAppCheck: enforceDiscoveryAppCheck, timeoutSeconds: 15},
+  async (request) => setSpaceBlockHandler(request, {store: firestore as unknown as SpaceProfileStore}),
+);
+
+// A room code is the availability anchor for both authored projections. This
+// trigger removes their stored bytes even when an offline client, account
+// deletion, or older build deletes the room without first calling the profile
+// publisher.
+export const cleanupDeletedSpace = onDocumentDeleted(
+  "rooms/{code}",
+  async (event) => {
+    await cleanupDeletedSpaceHandler(
+      event.params.code,
+      firestore as unknown as SpaceCleanupStore,
+      event.data?.data() ?? {},
+    );
+  },
+);
+
+// Room deletion deliberately preserves the opaque relationship graph: a
+// keeper may stop sharing or rotate a code without losing Circle/block state.
+// Auth deletion is the separate irreversible account-deletion signal, so
+// remove both outgoing and incoming edges only at that boundary. This covers
+// anonymous resets and password-confirmed linked-account deletion alike.
+export const cleanupDeletedServiceIdentityRelationships = user().onDelete(
+  async (authUser) => {
+    await cleanupDeletedIdentityRelationshipsHandler(
+      authUser.uid,
+      firestoreIdentityRelationshipCleanupStore(firestore),
+    );
+  },
 );

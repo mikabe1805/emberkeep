@@ -159,7 +159,7 @@ void main() {
 
       final room = roomDisplay(state);
 
-      expect(room['v'], 5);
+      expect(room['v'], 6);
       expect(room['profileVisible'], isFalse);
       expect(room['displayName'], isEmpty);
       expect(room['about'], isEmpty);
@@ -168,9 +168,9 @@ void main() {
       expect(room['pinnedMoments'], isEmpty);
       expect(room['season'], isEmpty);
       expect(room['todayLit'], isTrue);
-      // Energy weather is a private daily capacity lens (engine.dart); it
-      // travels only behind the explicit visitor-profile opt-in, unlike the
-      // fixed presence facts above.
+      // Energy weather is a private daily capacity lens (engine.dart). It
+      // never enters the bearer-readable room document; audience-specific
+      // authored cards live in separately protected projections.
       expect(room['weather'], 'unknown');
       expect(room['focusKind'], 'study');
       expect(room['memories'], greaterThan(0));
@@ -181,7 +181,7 @@ void main() {
       expect(roomDisplay(state)['weather'], 'unknown');
       expect(
         roomDisplay(state, visitorProfileSharingEnabled: true)['weather'],
-        'steady',
+        'unknown',
       );
     },
   );

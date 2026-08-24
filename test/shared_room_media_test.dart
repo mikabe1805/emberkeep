@@ -398,6 +398,7 @@ void main() {
           code: 'ABC234',
           mediaService: service,
           publicationClient: client(publishes: publishes, failFinal: false),
+          visitorProfileSharingEnabled: false,
         );
 
         expect(result.ok, isTrue);
@@ -426,7 +427,7 @@ void main() {
     );
 
     test(
-      'failed final publish never leaves replacement bytes public',
+      'an enabled pre-release photo flag still never starts a Storage upload',
       () async {
         final (current, target) = states();
         final publishes = <Map<String, dynamic>>[];
@@ -447,32 +448,20 @@ void main() {
           visitorProfileSharingEnabled: true,
         );
 
-        expect(result.ok, isFalse);
-        expect(uploaded, hasLength(1));
-        final replacement = uploaded.single;
-        expect(
-          SharedRoomMediaLocation.fromObjectPath(replacement).generation,
-          isNotNull,
-        );
-        expect(publishes, hasLength(2));
-        expect(
-          publishes.first['profilePhotoPath'],
-          'shared_rooms/owner/ABC234/profile/$_revision',
-        );
-        expect(publishes.last['profilePhotoPath'], replacement);
-        expect(deleted, [
-          'shared_rooms/owner/ABC234/profile/$_revision',
-          replacement,
-        ]);
-        expect(
-          target.spaceProfilePhotoPath,
-          'shared_rooms/owner/ABC234/profile/$_revision',
-        );
+        expect(result.ok, isTrue);
+        expect(uploaded, isEmpty);
+        expect(deleted, isEmpty);
+        expect(publishes, hasLength(1));
+        expect(publishes.single['profilePhotoPath'], isEmpty);
+        expect(publishes.single['seasonPhotoPath'], isEmpty);
+        expect(target.shareSpaceProfile, isTrue);
+        expect(target.shareSpaceProfilePhoto, isFalse);
+        expect(target.spaceProfilePhotoPath, isEmpty);
       },
     );
 
     test(
-      'successful final publish records only the new immutable path',
+      'dormant photo publication clears stale handles only after acknowledgement',
       () async {
         final (current, target) = states();
         final publishes = <Map<String, dynamic>>[];
@@ -494,9 +483,51 @@ void main() {
         );
 
         expect(result.ok, isTrue);
-        expect(target.spaceProfilePhotoPath, uploaded.single);
-        expect(publishes.last['profilePhotoPath'], uploaded.single);
-        expect(deleted, ['shared_rooms/owner/ABC234/profile/$_revision']);
+        expect(uploaded, isEmpty);
+        expect(deleted, isEmpty);
+        expect(publishes, hasLength(1));
+        expect(target.spaceProfilePhotoPath, isEmpty);
+        expect(target.shareSpaceProfilePhoto, isFalse);
+        expect(publishes.single['profilePhotoPath'], isEmpty);
+      },
+    );
+
+    test(
+      'a failed room publish preserves stale photo intent for retry',
+      () async {
+        final (current, target) = states();
+        var mediaCalls = 0;
+        final service = _service(
+          upload: (_) async => mediaCalls++,
+          deleteObject: (_) async => mediaCalls++,
+        );
+        final publication = RoomPublicationClient(
+          ensureAvailable: () async => true,
+          ensureSocialSession: () async => true,
+          ownerUid: () => 'owner',
+          fetchRoom: (_) async => null,
+          publishRoom: (_, {code}) async =>
+              const RoomPublishResult.failed(RoomPublishFailure.network),
+          unshareRoom: (_) async => true,
+        );
+
+        final result = await publishSpaceRoomState(
+          target,
+          current: current,
+          code: 'ABC234',
+          mediaService: service,
+          publicationClient: publication,
+          visitorPhotoSharingEnabled: true,
+          visitorProfileSharingEnabled: true,
+        );
+
+        expect(result.ok, isFalse);
+        expect(mediaCalls, 0);
+        expect(target.shareSpaceProfilePhoto, isTrue);
+        expect(
+          target.spaceProfilePhotoPath,
+          'shared_rooms/owner/ABC234/profile/$_revision',
+        );
       },
     );
 

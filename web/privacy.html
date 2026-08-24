@@ -132,17 +132,29 @@
     remain marked for expiration based on their last update and Firestore
     deletes them asynchronously.</p>
 
-  <h2>Shared spaces and Discover</h2>
+  <h2>Shared spaces, visitor pages, and Discover</h2>
   <p>Sharing is optional. A shared space contains your level, an app-generated
     build title, preset room appearance, and broad app-generated activity
-    signals. It does not publish your private Me display name, profile cards,
-    goals, journal writing, season writing, or photos to visitors. Shared spaces
-    also exclude quest details, streak history, email, sign-in credentials, and
-    account-profile details. The backend room record carries an anonymous
-    Firebase owner ID so security rules can restrict changes to its owner. Room
-    of Days does not display that ID as profile identity. Anyone with the room
+    signals. The room itself is generated-only: it does not publish your
+    private Me display name, profile-card text, goals, Journal writing, season
+    writing, or photos to visitors. Shared spaces also exclude quest details,
+    streak history, email, sign-in credentials, and account-profile details.
+    The visitor-readable room carries an opaque keeper key. A separate private
+    ownership record carries the Firebase owner ID so security rules can
+    restrict changes; visitors never receive that raw ID. Anyone with the room
     link can view the generated room until you stop sharing from the same
     controls that show your code.</p>
+
+  <p>A visitor page is a separate, optional publication. You choose which
+    bounded cards to publish and choose an audience for them. Anyone who opens
+    the exact room code, including someone arriving from Discover, can see only
+    your <em>Anyone</em> cards. <em>Mutuals</em> cards are added only after both
+    people have independently kept each other in Circle; a block in either
+    direction removes that access. <em>Only me</em> cards are never sent to a
+    visitor. Your public name is included for an audience only when that
+    audience can see at least one selected card. Visitor-page projections carry
+    the selected, bounded card content and an opaque owner key, never your raw
+    Firebase UID. Journal photos remain private.</p>
 
   <p>Discover is a separate opt-in. Turning on <em>Make my space
     discoverable</em> adds a small directory card containing the room code used
@@ -151,9 +163,9 @@
     an opaque stable keeper key derived from the anonymous owner ID, and update
     and expiration times. The keeper key is not shown in the interface; it lets
     a block continue to hide the same keeper if their room code changes. It is
-    not used for advertising or analytics. Quests, Journal pages, streaks,
-    private Me cards, email, and account details are never copied into the
-    directory.</p>
+    not used for advertising or analytics. The directory never contains
+    visitor-profile card text. Quests, Journal pages, streaks, private Me
+    cards, email, and account details are never copied into it.</p>
 
   <p>Opening Discover creates or reuses an anonymous Firebase session and
     retrieves a small, shuffled handful of unexpired directory cards. Tapping a
@@ -163,15 +175,16 @@
     listing immediately when the request succeeds.</p>
 
   <p>A public name is optional, may be cleared, and is separate from the name on
-    your private Me page. The protected name service normalizes and filters
-    names, rejects links and contact details, limits how quickly they can be
-    changed, and uses Firebase App Check for abuse prevention. People can block
-    a keeper on their device or privately report an inappropriate name,
-    impersonation, or another safety problem. A report stores the reporting
-    Firebase identity, room and owner identifiers, category, relevant public
-    name snapshot, and timestamps needed for human review. Reports are not
-    shown to the reported keeper and are retained only as needed to investigate
-    abuse, enforce the rules, and protect the service. See the
+    your private Me page. Public names and visitor-card content are normalized
+    and filtered; links and contact details are prohibited. The protected
+    services limit how quickly public names can change and use Firebase App
+    Check for abuse prevention. People can block a keeper on their device or
+    privately report inappropriate visible content, impersonation, or another
+    safety problem. Relationship and block data remain private. A report stores
+    the reporting Firebase identity, room and owner identifiers, category,
+    relevant visible-content snapshot, and timestamps needed for human review.
+    Reports are not shown to the reported keeper and are retained only as needed
+    to investigate abuse, enforce the rules, and protect the service. See the
     <a href="/community">community rules and safety guide</a>.</p>
 
   <p>If you keep someone else’s room in your Circle or send a preset support

@@ -201,7 +201,7 @@ void main() {
           onPersist: () => persists++,
           roomFetcher: (_) async => {
             ...roomDisplay(GameState()),
-            'uid': 'circle-owner',
+            'ownerKey': discoveryOwnerKey('circle-owner'),
           },
         ),
       ),

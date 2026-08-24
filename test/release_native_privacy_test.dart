@@ -127,7 +127,12 @@ void main() {
     expect(webAudioSupport, contains("'AudioContext'.toJS"));
     expect(hostingConfig['predeploy'], [
       'node tool/verify_public_downloads.mjs',
-      'flutter build web --release --wasm',
+      'flutter build web --release --wasm '
+          '--dart-define=SPACE_DISCOVERY=true '
+          '--dart-define=PUBLIC_DISCOVERY_NAMES=true '
+          '--dart-define=VISITOR_PROFILE_SHARING=true '
+          '--dart-define=PLACE_SEARCH_APP_CHECK_WEB_SITE_KEY='
+          '6L1SoM-jCpoiyD9A99Y41P6zHtY',
       'dart run tool/prepare_web_offline.dart',
       'node tool/overlay_introduction.mjs',
     ]);
@@ -248,7 +253,7 @@ void main() {
     final compact = privacy.replaceAll(RegExp(r'\s+'), ' ');
 
     expect(compact, contains('does not publish your private Me display name'));
-    expect(compact, contains('profile cards'));
+    expect(compact, contains('profile-card text'));
     expect(compact, contains('journal writing'));
     expect(compact, contains('season writing'));
     expect(compact, contains('generated room'));
@@ -397,7 +402,7 @@ void main() {
     expect(checklist, contains('storage.rules'));
   });
 
-  test('v1 visitor UGC capabilities are compile-time and default off', () {
+  test('visitor publication capabilities are compile-time and default closed', () {
     final feature = _source('lib/release_features.dart');
     final cloud = _source('lib/cloud.dart');
     final plist = _source('ios/Runner/Info.plist');
@@ -405,7 +410,20 @@ void main() {
     expect(feature, contains("'VISITOR_PHOTO_SHARING'"));
     expect(feature, contains("'VISITOR_PROFILE_SHARING'"));
     expect(kVisitorPhotoSharingEnabled, isFalse);
-    expect(kVisitorProfileSharingEnabled, isFalse);
+    expect(
+      kVisitorProfileSharingEnabled,
+      const bool.fromEnvironment(
+        'VISITOR_PROFILE_SHARING',
+        defaultValue: false,
+      ),
+    );
+    expect(
+      feature,
+      contains(
+        "'VISITOR_PROFILE_SHARING',\n"
+        '  defaultValue: false,',
+      ),
+    );
     expect(kAnonymousServiceIdentityRemovalEnabled, isFalse);
     expect(
       RegExp(
@@ -510,7 +528,9 @@ void main() {
     final hosting = _source('firebase.json');
     final links = _source('lib/content/links.dart');
     final support = _source('web/support.html');
-    final community = _source('web/community.html');
+    final community = _source(
+      'web/community.html',
+    ).replaceAll(RegExp(r'\s+'), ' ');
     final deletion = _source('web/delete-account.html');
     final recovery = _source(
       'ACCOUNT-RECOVERY-RUNBOOK.md',
@@ -731,7 +751,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+31'));
+    expect(pubspec, contains('version: 1.0.4+32'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

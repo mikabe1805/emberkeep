@@ -52,6 +52,38 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+32',
+    versionLabel: 'VERSION 1.0.4 · BUILD 32',
+    dateLabel: 'AUGUST 2026',
+    title: 'My Space is yours to open.',
+    introduction:
+        'Discovery now stays where you set it, and every card on your page '
+        'has its own audience.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.spaceDiscovery,
+        title: 'OPEN MEANS OPEN',
+        body:
+            'Turning on Discover now waits for a confirmed protected save, '
+            'so the door cannot quietly snap shut or disagree with the live listing.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.spaceDiscovery,
+        title: 'EVERY CARD, YOUR CALL',
+        body:
+            'About, Right now, Pinned moments, and This season can each be '
+            'Only me, Mutuals, or Anyone. Your private page layout remains yours.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'MUTUAL REALLY MEANS MUTUAL',
+        body:
+            'Mutual cards appear only when you both keep each other in Circle. '
+            'The public preview now says exactly which view it is showing.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+31',
     versionLabel: 'VERSION 1.0.4 · BUILD 31',
     dateLabel: 'AUGUST 2026',

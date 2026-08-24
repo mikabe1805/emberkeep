@@ -108,19 +108,96 @@ void main() {
     },
   );
 
+  test(
+    'newer privacy projection is final across a delayed old refresh',
+    () async {
+      final queue = RoomPublishQueue();
+      final releaseOldRoom = Completer<void>();
+      final roomStarted = Completer<void>();
+      final profiles = <String>[];
+
+      Future<void> sync({
+        required String label,
+        required String profile,
+        Future<void>? roomGate,
+      }) async {
+        await queue.runWrite<void>(() async {
+          if (!roomStarted.isCompleted) roomStarted.complete();
+          if (roomGate != null) await roomGate;
+          profiles.add('$label:$profile');
+        });
+      }
+
+      final stale = sync(
+        label: 'old',
+        profile: 'anyone',
+        roomGate: releaseOldRoom.future,
+      );
+      await roomStarted.future;
+      final current = sync(label: 'new', profile: '<deleted>');
+      releaseOldRoom.complete();
+      await Future.wait([stale, current]);
+
+      expect(profiles, ['old:anyone', 'new:<deleted>']);
+      expect(profiles.last, 'new:<deleted>');
+    },
+  );
+
+  test('invalidating a debounced room refresh rejects its stale epoch', () {
+    final fence = RoomRefreshFence();
+    final oldEpoch = fence.schedule();
+
+    fence.invalidate();
+
+    expect(fence.accepts(oldEpoch), isFalse);
+    expect(fence.accepts(fence.schedule()), isTrue);
+  });
+
   test('Stop Sharing cannot race a queued room refresh', () {
     final source = File('lib/cloud.dart').readAsStringSync();
     final unshare = source.substring(
       source.indexOf('Future<bool> unshareRoom'),
       source.indexOf('Future<_OwnedRoomDeleteResult> _deleteOwnedRoom'),
     );
-    final cancel = unshare.indexOf('_roomDebounce?.cancel()');
+    final cancel = unshare.indexOf('invalidatePendingRoomRefreshes()');
     final queue = unshare.indexOf('_roomPublishQueue.run');
     final remove = unshare.indexOf('_deleteOwnedRoom(code)');
 
     expect(cancel, greaterThanOrEqualTo(0));
     expect(queue, greaterThan(cancel));
     expect(remove, greaterThan(queue));
+  });
+
+  test('background room and profile refresh stay in one ordered operation', () {
+    final source = File('lib/cloud.dart').readAsStringSync();
+    final refresh = source.substring(
+      source.indexOf('Future<void> _refreshRoomAndDirectory'),
+      source.indexOf('/// Publish (or update) your space'),
+    );
+
+    expect(refresh, contains('_roomPublishQueue.runWrite<void>'));
+    expect(refresh, contains('_publishRoomNow('));
+    expect(refresh, contains('_publishSpaceProfileNow('));
+    expect(refresh, isNot(contains('await publishRoom(')));
+    expect(refresh, isNot(contains('await publishSpaceProfile(')));
+  });
+
+  test('code and Circle visits retain the profile report path', () {
+    final social = File('lib/social.dart').readAsStringSync();
+    final visit = social.substring(
+      social.indexOf('Future<void> visitSpace('),
+      social.indexOf('class SharedRoomVisit'),
+    );
+    final circle = File('lib/screens/hearth_circle.dart').readAsStringSync();
+
+    expect(
+      visit,
+      contains(
+        'onReportDiscoverableSpace: CloudSync.instance.reportDiscoverableSpace',
+      ),
+    );
+    expect(circle, contains('onReportDiscoverableSpace:'));
+    expect(circle, contains('.reportDiscoverableSpace'));
   });
 
   group('shared-space payload contract', () {
@@ -132,7 +209,9 @@ void main() {
       ).firstMatch(rules);
       expect(keyBlock, isNotNull);
       final ruleKeys = _singleQuotedValues(keyBlock!.group(1)!);
-      final payloadKeys = ruleKeys.difference(const {'uid', 'updatedAt'});
+      // CloudSync adds the private-identity-derived ownerKey and server time at
+      // the write boundary; roomDisplay itself remains pure generated content.
+      final payloadKeys = ruleKeys.difference(const {'ownerKey', 'updatedAt'});
 
       final wallBlock = RegExp(
         r'&&\s+d\.wall\s+in\s+\[(.*?)\]',
@@ -148,7 +227,7 @@ void main() {
         expect(payload['wall'], theme.id, reason: theme.name);
         expect(allowedWalls, contains(theme.id), reason: theme.name);
         expect(payload.keys.toSet(), payloadKeys, reason: theme.name);
-        expect(payload['v'], 5, reason: theme.name);
+        expect(payload['v'], 6, reason: theme.name);
       }
     });
 
@@ -187,7 +266,7 @@ void main() {
         final payload = roomDisplay(state);
         final encoded = jsonEncode(payload);
 
-        expect(payload['v'], 5);
+        expect(payload['v'], 6);
         expect(payload['name'], 'Fellow keeper');
         expect(payload['profileVisible'], isFalse);
         expect(payload['displayName'], isEmpty);
@@ -204,7 +283,7 @@ void main() {
       },
     );
 
-    test('visitor photo paths require separate slot and card consent', () {
+    test('authored profile photos never enter the bearer room document', () {
       const profileLocal = 'journal/local-profile.jpg';
       const seasonLocal = 'journal/local-season.webp';
       final profile = Note(
@@ -246,10 +325,7 @@ void main() {
         visitorPhotoSharingEnabled: true,
         visitorProfileSharingEnabled: true,
       );
-      expect(
-        payload['profilePhotoPath'],
-        'shared_rooms/owner_123/ABC234/profile/ABCDEFGHIJKLMNOPQRSTUV',
-      );
+      expect(payload['profilePhotoPath'], isEmpty);
       expect(payload['seasonPhotoPath'], isEmpty);
 
       state.visitorSpaceCards.add(SpaceCardKind.thisSeason);
@@ -260,10 +336,7 @@ void main() {
         visitorPhotoSharingEnabled: true,
         visitorProfileSharingEnabled: true,
       );
-      expect(
-        payload['seasonPhotoPath'],
-        'shared_rooms/owner_123/ABC234/season/ABCDEFGHIJKLMNOPQRSTUV',
-      );
+      expect(payload['seasonPhotoPath'], isEmpty);
       expect(jsonEncode(payload), isNot(contains(profileLocal)));
       expect(jsonEncode(payload), isNot(contains(seasonLocal)));
 
@@ -290,11 +363,16 @@ void main() {
           '  A third goal  ',
           'A fourth goal that must not publish',
         ]);
+      state.spaceCardAudiences
+        ..[SpaceCardKind.about] = SpaceAudience.anyone
+        ..[SpaceCardKind.rightNow] = SpaceAudience.anyone;
 
-      final payload = roomDisplay(state, visitorProfileSharingEnabled: true);
+      final payload = spaceProfileDisplay(
+        state,
+        audience: SpaceAudience.anyone,
+      );
       final goals = (payload['featuredGoals'] as List).cast<String>();
 
-      expect(payload['profileVisible'], isTrue);
       expect(payload['displayName'], startsWith('Mika '));
       expect(
         (payload['displayName'] as String).runes.length,
@@ -310,34 +388,81 @@ void main() {
       expect(goals, isNot(contains('A fourth goal that must not publish')));
     });
 
+    test('Anyone and Mutuals receive separate complete projections', () {
+      final state = GameState()
+        ..shareSpaceProfile = true
+        ..playerName = 'Mika'
+        ..spaceIntro = 'Public hello'
+        ..featuredGoalTitles.add('Mutual goal')
+        ..spaceSeasonText = 'Private season';
+      state.spaceCardAudiences
+        ..[SpaceCardKind.about] = SpaceAudience.anyone
+        ..[SpaceCardKind.rightNow] = SpaceAudience.mutuals
+        ..[SpaceCardKind.thisSeason] = SpaceAudience.onlyMe;
+
+      final publicProfile = spaceProfileDisplay(
+        state,
+        audience: SpaceAudience.anyone,
+      );
+      final mutualProfile = spaceProfileDisplay(
+        state,
+        audience: SpaceAudience.mutuals,
+      );
+
+      expect(publicProfile['cardOrder'], ['about']);
+      expect(publicProfile['about'], 'Public hello');
+      expect(publicProfile['featuredGoals'], isEmpty);
+      expect(mutualProfile['cardOrder'], ['about', 'rightNow']);
+      expect(mutualProfile['about'], 'Public hello');
+      expect(mutualProfile['featuredGoals'], ['Mutual goal']);
+      expect(jsonEncode(mutualProfile), isNot(contains('Private season')));
+      expect(jsonEncode(roomDisplay(state)), isNot(contains('Public hello')));
+    });
+
+    test('an open page can be intentionally empty for an audience', () {
+      final state = GameState()
+        ..shareSpaceProfile = true
+        ..playerName = 'Private name';
+
+      final publicProfile = spaceProfileDisplay(
+        state,
+        audience: SpaceAudience.anyone,
+      );
+
+      expect(publicProfile, isNotEmpty);
+      expect(publicProfile['displayName'], isEmpty);
+      expect(publicProfile['cardOrder'], isEmpty);
+      expect(jsonEncode(publicProfile), isNot(contains('Private name')));
+    });
+
     test('owner layout and visitor audience stay independent', () {
       final state = GameState()
         ..shareSpaceProfile = true
         ..playerName = 'Mika'
         ..spaceIntro = 'A room for making things.'
         ..featuredGoalTitles.add('Finish this room');
+      state.spaceCardAudiences
+        ..[SpaceCardKind.about] = SpaceAudience.anyone
+        ..[SpaceCardKind.rightNow] = SpaceAudience.anyone;
 
       state.hiddenSpaceCards.add(SpaceCardKind.about);
-      var payload = roomDisplay(state, visitorProfileSharingEnabled: true);
-      expect(payload['profileVisible'], isTrue);
+      var payload = spaceProfileDisplay(state, audience: SpaceAudience.anyone);
       expect(payload['displayName'], 'Mika');
       expect(payload['about'], 'A room for making things.');
       expect(payload['featuredGoals'], ['Finish this room']);
 
-      state.visitorSpaceCards.remove(SpaceCardKind.about);
-      payload = roomDisplay(state, visitorProfileSharingEnabled: true);
-      expect(payload['profileVisible'], isTrue);
+      state.spaceCardAudiences[SpaceCardKind.about] = SpaceAudience.onlyMe;
+      payload = spaceProfileDisplay(state, audience: SpaceAudience.anyone);
       expect(payload['displayName'], 'Mika');
       expect(payload['about'], isEmpty);
       expect(payload['featuredGoals'], ['Finish this room']);
       expect(payload['cardOrder'], ['rightNow']);
 
       state.hiddenSpaceCards.clear();
-      state.visitorSpaceCards
-        ..clear()
-        ..add(SpaceCardKind.about);
-      payload = roomDisplay(state, visitorProfileSharingEnabled: true);
-      expect(payload['profileVisible'], isTrue);
+      state.spaceCardAudiences
+        ..[SpaceCardKind.about] = SpaceAudience.anyone
+        ..[SpaceCardKind.rightNow] = SpaceAudience.onlyMe;
+      payload = spaceProfileDisplay(state, audience: SpaceAudience.anyone);
       expect(payload['displayName'], 'Mika');
       expect(payload['about'], 'A room for making things.');
       expect(payload['featuredGoals'], isEmpty);
@@ -453,7 +578,10 @@ void main() {
           shareProfile: true,
         );
 
-        final payload = roomDisplay(state, visitorProfileSharingEnabled: true);
+        final payload = spaceProfileDisplay(
+          state,
+          audience: SpaceAudience.anyone,
+        );
         final moments = (payload['pinnedMoments'] as List).cast<Map>();
         final encoded = jsonEncode(payload);
 
@@ -477,14 +605,14 @@ void main() {
       },
     );
 
-    test('legacy schemas stay documented but only generated v5 is public', () {
+    test('legacy schemas stay documented but only generated v6 is writable', () {
       final rules = _firestoreRules();
 
       expect(rules, contains('(d.v == 1'));
       expect(rules, contains('(d.v == 2'));
       expect(rules, contains('(d.v == 3'));
       expect(rules, contains('(d.v == 4'));
-      expect(rules, contains('(d.v == 5'));
+      expect(rules, contains('(d.v == 6'));
       expect(rules, contains('d.profileVisible is bool'));
       expect(rules, contains('d.displayName.size() <= 40'));
       expect(rules, contains('d.about.size() <= 180'));
@@ -497,27 +625,39 @@ void main() {
       expect(
         rules,
         contains(
-          "validSharedPhotoPath(d.profilePhotoPath, d.uid, code, 'profile')",
+          "validSharedPhotoPath(d.profilePhotoPath, d.ownerKey, code, 'profile')",
         ),
       );
       expect(
         rules,
         contains(
-          "validSharedPhotoPath(d.seasonPhotoPath, d.uid, code, 'season')",
+          "validSharedPhotoPath(d.seasonPhotoPath, d.ownerKey, code, 'season')",
         ),
       );
       expect(rules, contains("parts[4].matches('^[A-Za-z0-9_-]{22}\$')"));
       expect(rules, contains('d.profileVisible == false'));
       expect(
-        RegExp(r'request\.resource\.data\.v\s*==\s*5').allMatches(rules),
+        RegExp(r'request\.resource\.data\.v\s*==\s*6').allMatches(rules),
         hasLength(2),
       );
       expect(rules, contains('request.resource.data.v >= resource.data.v'));
       expect(
         rules,
-        contains(
-          'allow get: if resource.data.v == 5\n'
-          '                 && resource.data.profileVisible == false;',
+        matches(
+          RegExp(
+            r'allow\s+get:\s*if\s*\(\s*resource\.data\.v\s*==\s*6\s*'
+            r'&&\s*resource\.data\.profileVisible\s*==\s*false',
+          ),
+        ),
+      );
+      expect(
+        rules,
+        matches(
+          RegExp(
+            r'request\.auth\s*!=\s*null\s*'
+            r'&&\s*resource\.data\.v\s*==\s*5\s*'
+            r'&&\s*resource\.data\.uid\s*==\s*request\.auth\.uid',
+          ),
         ),
       );
     });
@@ -632,22 +772,12 @@ void main() {
       roomRules,
       matches(
         RegExp(
-          r'allow\s+get:\s*if\s+resource\.data\.v\s*==\s*5\s*'
-          r'&&\s*resource\.data\.profileVisible\s*==\s*false;',
+          r'allow\s+get:\s*if\s*\(\s*resource\.data\.v\s*==\s*6\s*'
+          r'&&\s*resource\.data\.profileVisible\s*==\s*false',
         ),
       ),
     );
-    expect(
-      roomRules,
-      matches(
-        RegExp(
-          r'allow\s+list:\s*if\s+request\.auth\s*!=\s*null\s*'
-          r'&&\s*resource\.data\.uid\s*==\s*request\.auth\.uid\s*'
-          r'&&\s*request\.query\.limit\s*!=\s*null\s*'
-          r'&&\s*request\.query\.limit\s*<=\s*100;',
-        ),
-      ),
-    );
+    expect(roomRules, matches(RegExp(r'allow\s+list:\s*if\s*false;')));
     expect(roomRules, isNot(matches(RegExp(r'allow\s+list:\s*if\s+true;'))));
 
     final cloud = File('lib/cloud.dart').readAsStringSync();
@@ -756,7 +886,10 @@ void main() {
       expect(end, greaterThan(start));
 
       final reservation = cloud.substring(start, end);
-      expect(reservation, contains('.set(newRoomData)'));
+      expect(
+        reservation,
+        contains('writeOwnedRoom(candidateCode, newRoomData)'),
+      );
       expect(reservation, isNot(contains('.get()')));
     },
   );
@@ -794,7 +927,7 @@ void main() {
       helper,
       contains('if (clean == null) return _OwnedRoomDeleteResult.invalid;'),
     );
-    expect(helper, contains("parent.data()?['uid'] != _uid"));
+    expect(helper, contains("ownerSnapshot.data()?['uid'] != _uid"));
     expect(privateChildren, contains("const ['sparks', 'circleAdds']"));
     expect(privateChildren, contains('batch.delete(doc.reference)'));
     expect(
@@ -875,14 +1008,18 @@ void main() {
     expect(fetchRoom, isNot(anyOf(contains('socialReady'), contains('_uid'))));
 
     final visitorReceipt = visitor.substring(
-      visitor.indexOf('Future<void> _notifyOwner(String normalized)'),
+      visitor.indexOf('Future<bool> _notifyOwner(String normalized)'),
       visitor.indexOf(
         '@override',
-        visitor.indexOf('Future<void> _notifyOwner'),
+        visitor.indexOf('Future<bool> _notifyOwner'),
       ),
     );
     expect(
       visitorReceipt.indexOf('ensureSocialSession()'),
+      lessThan(visitorReceipt.indexOf('setCircleRelationship(')),
+    );
+    expect(
+      visitorReceipt.indexOf('setCircleRelationship('),
       lessThan(visitorReceipt.indexOf('sendCircleAdd(normalized)')),
     );
 
@@ -1085,6 +1222,37 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('share dialog tells the truth when a visitor page is published', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () => showShareSpaceDialog(
+                context,
+                code: 'ABC234',
+                visitorPagePublished: true,
+                onStop: () async => true,
+              ),
+              child: const Text('Open share'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open share'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('follows the audience on each card'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Your Me name, writing'), findsNothing);
   });
 
   testWidgets('share preview is explicit and stop sharing asks first', (

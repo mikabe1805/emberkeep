@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/cloud.dart';
 import 'package:emberkeep/discovery.dart';
@@ -31,7 +33,7 @@ DiscoverableSpaceSummary _space(
 );
 
 Map<String, dynamic> _room(DiscoverableSpaceSummary summary) => {
-  'v': 5,
+  'v': 6,
   'title': summary.buildTitle,
   'level': summary.level,
   'wall': summary.wall,
@@ -39,7 +41,7 @@ Map<String, dynamic> _room(DiscoverableSpaceSummary summary) => {
   'skin': summary.skin,
   'window': summary.window,
   'furniture': <String>[],
-  'uid': 'owner-${summary.code}',
+  'ownerKey': summary.ownerKey,
   'profileVisible': false,
 };
 
@@ -289,7 +291,7 @@ void main() {
       expect(find.text('BLOCK THIS KEEPER'), findsOneWidget);
       expect(find.text('REPORT THIS NAME'), findsOneWidget);
       expect(find.text('REPORT IMPERSONATION'), findsOneWidget);
-      expect(find.text('REPORT SOMETHING ELSE'), findsOneWidget);
+      expect(find.text('REPORT THIS PAGE'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
@@ -304,7 +306,10 @@ void main() {
           state: GameState()..reduceMotion = true,
           onPersist: () {},
           fetchSpaces: () async => [summary],
-          fetchRoom: (_) async => {..._room(summary), 'uid': 'another-owner'},
+          fetchRoom: (_) async => {
+            ..._room(summary),
+            'ownerKey': discoveryOwnerKey('another-owner'),
+          },
         ),
       ),
     );
@@ -357,7 +362,7 @@ void main() {
     final state = GameState()..reduceMotion = true;
     final ownerKey = discoveryOwnerKey('blocked-owner');
     state.blockDiscoveryOwner(ownerKey, 'DEF234');
-    final room = {..._room(_space('DEF234')), 'uid': 'blocked-owner'};
+    final room = {..._room(_space('DEF234')), 'ownerKey': ownerKey};
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -450,6 +455,61 @@ void main() {
       await tester.pump();
       expect(names, ['Rowan']);
       expect(find.textContaining('public name is saved'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'discoverability write stays acknowledged and pending until it resolves',
+    (tester) async {
+      final write = Completer<bool>();
+      var calls = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => FilledButton(
+                onPressed: () => showShareSpaceDialog(
+                  context,
+                  code: 'ABC234',
+                  discoverable: false,
+                  onDiscoverableChanged: (_) {
+                    calls += 1;
+                    return write.future;
+                  },
+                  onStop: () async => true,
+                ),
+                child: const Text('Open share'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open share'));
+      await tester.pumpAndSettle();
+
+      final toggle = find.byKey(const ValueKey('share-space-discovery-switch'));
+      await tester.tap(toggle);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 9));
+
+      expect(calls, 1);
+      expect(tester.widget<GlassSwitch>(toggle).value, isTrue);
+      final guard = find.ancestor(
+        of: toggle,
+        matching: find.byType(IgnorePointer),
+      );
+      expect(tester.widget<IgnorePointer>(guard.first).ignoring, isTrue);
+      expect(find.text('Opening your door…'), findsOneWidget);
+      expect(find.textContaining('Couldn’t open your door yet'), findsNothing);
+
+      write.complete(true);
+      await tester.pump();
+      await tester.pump();
+
+      expect(tester.widget<GlassSwitch>(toggle).value, isTrue);
+      expect(find.text('Opening your door…'), findsNothing);
+      expect(find.textContaining('People can find this room'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

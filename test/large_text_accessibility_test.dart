@@ -142,6 +142,7 @@ void main() {
           onSignOut: () async {},
           onDeleteAccount: (_) async => null,
           onRemovePrivateServiceIdentity: () async => null,
+          visitorProfileSharingEnabled: false,
         ),
       ),
     );
@@ -180,7 +181,7 @@ void main() {
     expect(tester.takeException(), isNull);
     await _capture(tester, 'personalize_dialog_320x568_2x');
 
-    final save = _ancestorOfType(find.text('Save page'), FilledButton);
+    final save = find.byKey(const ValueKey('space-arranger-save'));
     await tester.ensureVisible(save);
     await tester.pump();
     _expectComfortableTarget(tester, save);
@@ -188,6 +189,105 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Personalize your space'), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('My Space audience controls reflow at 320x568 with 2x text', (
+    tester,
+  ) async {
+    final state = GameState()
+      ..reduceMotion = true
+      ..roomCode = 'ABC234'
+      ..playerName = 'A deliberately long chosen name';
+    state.goals.add(
+      Goal(
+        title: 'Make the room welcoming without rushing the work',
+        stat: Stat.soc,
+        target: 8,
+      ),
+    );
+    state.setSpacePage(
+      order: defaultSpaceCardOrder,
+      hidden: const <SpaceCardKind>{},
+      audiences: const {
+        SpaceCardKind.about: SpaceAudience.anyone,
+        SpaceCardKind.rightNow: SpaceAudience.mutuals,
+        SpaceCardKind.pinnedMoments: SpaceAudience.onlyMe,
+        SpaceCardKind.thisSeason: SpaceAudience.anyone,
+      },
+      intro:
+          'A long introduction that should remain readable while its audience choices stack vertically.',
+      featuredGoalTitles: const [
+        'Make the room welcoming without rushing the work',
+      ],
+      seasonText:
+          'Trying to make the quiet parts of the week feel intentional.',
+      profilePhotoNoteId: null,
+      seasonPhotoNoteId: null,
+      shareProfilePhoto: false,
+      shareSeasonPhoto: false,
+      shareProfile: true,
+    );
+
+    await _pumpAtLargestText(
+      tester,
+      Scaffold(
+        body: MePage(
+          state: state,
+          quests: const [],
+          onPersist: () {},
+          onPublishRoom: (_, {required code}) async =>
+              RoomPublishResult.success(code),
+          onAddQuest: (_) => true,
+          onExport: () async => true,
+          onImport: (_) async => true,
+          onReset: () async => null,
+          onNotifyChanged: () async {},
+          onEnableCloud: () async => null,
+          onLinkAccount: (_, _) async => null,
+          onSignIn: (_, _) async => null,
+          onSignOut: () async {},
+          onDeleteAccount: (_) async => null,
+          onRemovePrivateServiceIdentity: () async => null,
+          onManageDiscovery: () async {},
+          visitorProfileSharingEnabled: true,
+          spaceDiscoveryEnabled: true,
+        ),
+      ),
+    );
+
+    final open = find.byKey(const ValueKey('space-page-open-arranger'));
+    await tester.scrollUntilVisible(
+      open,
+      260,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(open);
+    await tester.pump();
+    await tester.tap(open);
+    await tester.pumpAndSettle();
+
+    final anyone = find.byKey(
+      const ValueKey('space-card-audience-about-anyone'),
+    );
+    await tester.scrollUntilVisible(
+      anyone,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(anyone);
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('space-card-audience-about-onlyMe')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('space-card-audience-about-mutuals')),
+      findsOneWidget,
+    );
+    expect(anyone, findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await _capture(tester, 'profile_audiences_320x568_2x');
   });
 
   testWidgets(

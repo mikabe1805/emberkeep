@@ -31,7 +31,7 @@ const _assets = <_Asset>[
     2796,
   ),
   _Asset(
-    'test/goldens/store_02_keep_1290x2796.png',
+    'test/goldens/store_14_my_space_cards_1290x2796.png',
     'store-assets/screenshots/app-store/04-my-space-1290x2796.png',
     1290,
     2796,

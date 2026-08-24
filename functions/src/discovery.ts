@@ -80,6 +80,29 @@ const readMillis = (value: unknown): number | undefined => {
   return undefined;
 };
 
+const sameMoment = (left: unknown, right: unknown): boolean => {
+  const leftMillis = readMillis(left);
+  const rightMillis = readMillis(right);
+  return leftMillis !== undefined && rightMillis !== undefined &&
+    leftMillis === rightMillis;
+};
+
+/// Profile projections are written only by the protected profile publisher.
+/// A report is not a profile read: verify just the ownership anchor here so a
+/// stale/deleted room or a forged Admin-side document cannot create a report
+/// target for somebody else's page.
+const isLiveProfileForOwner = (
+  snapshot: Snapshot,
+  roomOwnerKey: string,
+  roomUpdatedAt: unknown,
+): boolean => {
+  const data = snapshot.data();
+  return snapshot.exists &&
+    data?.v === 2 &&
+    data.ownerKey === roomOwnerKey &&
+    sameMoment(data.roomUpdatedAt, roomUpdatedAt);
+};
+
 export const setDiscoveryPublicNameHandler = async (
   request: CallableRequest,
   dependencies: PublicNameDependencies,
@@ -105,7 +128,7 @@ export const setDiscoveryPublicNameHandler = async (
       transaction.get(dependencies.store.collection("discoveryBans").doc(ownerKey(uid))),
       transaction.get(limitRef),
     ]);
-    if (!room.exists || room.data()?.uid !== uid) throw new HttpsError("permission-denied", "You do not own this room.");
+    if (!room.exists || room.data()?.v !== 6 || room.data()?.ownerKey !== ownerKey(uid)) throw new HttpsError("permission-denied", "You do not own this room.");
     if (!directory.exists) throw new HttpsError("failed-precondition", "This room is not discoverable.");
     if (directory.data()?.ownerKey !== ownerKey(uid)) throw new HttpsError("failed-precondition", "This room's discovery record is stale.");
     if (ban.exists) throw new HttpsError("permission-denied", "This room is not eligible for public names.");
@@ -135,21 +158,68 @@ export const reportDiscoverableSpaceHandler = async (
   const now = (dependencies.now ?? (() => new Date()))();
   const roomRef = dependencies.store.collection("rooms").doc(roomCode);
   const directoryRef = dependencies.store.collection("discoverableSpaces").doc(roomCode);
+  const publicProfileRef = dependencies.store.collection("publicSpaceProfiles").doc(roomCode);
+  const mutualProfileRef = dependencies.store.collection("mutualSpaceProfiles").doc(roomCode);
   const reportRef = dependencies.store.collection(`discoveryReports/${roomCode}/reporters`).doc(uid);
   const limitRef = dependencies.store.collection("discoveryReportLimits").doc(uid);
   await dependencies.store.runTransaction(async (transaction) => {
-    const [room, directory, existing, limit] = await Promise.all([
+    const [room, directory, publicProfile, mutualProfile, existing, limit] = await Promise.all([
       transaction.get(roomRef),
       transaction.get(directoryRef),
+      transaction.get(publicProfileRef),
+      transaction.get(mutualProfileRef),
       transaction.get(reportRef),
       transaction.get(limitRef),
     ]);
-    if (!room.exists || !directory.exists) throw new HttpsError("not-found", "This room is not discoverable.");
-    const roomOwnerUid = room.data()?.uid;
-    if (typeof roomOwnerUid !== "string") throw new HttpsError("not-found", "This room is not discoverable.");
-    const roomOwnerKey = ownerKey(roomOwnerUid);
-    if (directory.data()?.ownerKey !== roomOwnerKey) throw new HttpsError("failed-precondition", "This room's discovery record is stale.");
-    if (roomOwnerUid === uid) throw new HttpsError("failed-precondition", "You cannot report your own room.");
+    const roomData = room.data();
+    if (!room.exists || roomData?.v !== 6 || roomData?.profileVisible !== false) {
+      throw new HttpsError("not-found", "This shared space is unavailable.");
+    }
+    const roomOwnerKey = roomData.ownerKey;
+    if (typeof roomOwnerKey !== "string") throw new HttpsError("not-found", "This shared space is unavailable.");
+    if (roomOwnerKey === ownerKey(uid)) throw new HttpsError("failed-precondition", "You cannot report your own room.");
+
+    const directoryIsLive = directory.exists &&
+      directory.data()?.ownerKey === roomOwnerKey;
+    const publicProfileIsLive = isLiveProfileForOwner(
+      publicProfile,
+      roomOwnerKey,
+      roomData.updatedAt,
+    );
+    const mutualProfileIsLive = isLiveProfileForOwner(
+      mutualProfile,
+      roomOwnerKey,
+      roomData.updatedAt,
+    );
+
+    // A Mutuals-only page must not become a reporting oracle. Its report path
+    // is available only to the same reciprocal, unblocked relationship that
+    // may read it under Firestore rules.
+    let reciprocalMutual = false;
+    if (mutualProfileIsLive) {
+      const reporterOwnerKey = ownerKey(uid);
+      const [reporterEdge, ownerEdge, reporterBlock, ownerBlock] = await Promise.all([
+        transaction.get(
+          dependencies.store.collection(`circleRelationships/${reporterOwnerKey}/outgoing`).doc(roomOwnerKey),
+        ),
+        transaction.get(
+          dependencies.store.collection(`circleRelationships/${roomOwnerKey}/outgoing`).doc(reporterOwnerKey),
+        ),
+        transaction.get(
+          dependencies.store.collection(`spaceBlocks/${reporterOwnerKey}/blocked`).doc(roomOwnerKey),
+        ),
+        transaction.get(
+          dependencies.store.collection(`spaceBlocks/${roomOwnerKey}/blocked`).doc(reporterOwnerKey),
+        ),
+      ]);
+      reciprocalMutual = reporterEdge.exists && ownerEdge.exists &&
+        !reporterBlock.exists && !ownerBlock.exists;
+    }
+
+    if (!directoryIsLive && !publicProfileIsLive &&
+        !(mutualProfileIsLive && reciprocalMutual)) {
+      throw new HttpsError("not-found", "This shared page is unavailable.");
+    }
     if (existing.exists) throw new HttpsError("already-exists", "You have already reported this room.");
     const prior = limit.data();
     const last = readMillis(prior?.lastReportedAt);
@@ -161,12 +231,13 @@ export const reportDiscoverableSpaceHandler = async (
     if (count >= DAILY_REPORT_LIMIT) {
       throw new HttpsError("resource-exhausted", "The daily report limit has been reached.");
     }
-    const publicName = directory.data()?.publicName;
+    // A profile-only report must never inherit a name from a stale directory
+    // document that belongs to a different room owner.
+    const publicName = directoryIsLive ? directory.data()?.publicName : null;
     transaction.set(reportRef, {
       category: body.category,
       publicName: typeof publicName === "string" ? publicName : null,
       ownerKey: roomOwnerKey,
-      ownerUid: roomOwnerUid,
       state: "pending",
       updatedAt: FieldValue.serverTimestamp(),
       ...(existing.exists ? {} : {createdAt: FieldValue.serverTimestamp()}),

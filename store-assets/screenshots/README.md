@@ -3,10 +3,10 @@
 These are direct production-UI captures from one deterministic account. They
 have no device frame, overlay copy, alpha channel, or transparency.
 
-The seven-frame iOS set was freshly regenerated from the feature-on `1.0.4+31`
-candidate and opened for visual inspection on August 23, 2026. Its compact
+The seven-frame iOS set was freshly regenerated from the feature-on `1.0.4+32`
+candidate and opened for visual inspection on August 24, 2026. Its compact
 review sheet is
-`design/comparisons/2026-08-23/app-store-build-31-phone.webp`.
+`design/comparisons/2026-08-24/app-store-build-32-phone.webp`.
 
 - `app-store/` contains Apple's accepted 1290×2796 iPhone 6.9-inch class.
 - `google-play/` contains Google's recommended 1080×1920 portrait class. A
@@ -19,7 +19,8 @@ The App Store sequence is:
 2. Reward — a completed quest becoming XP, Glimmers, a stat gain, and streak
    progress.
 3. Plans — the Daybook, next class, and calendar sharing one warm desk.
-4. My Space — the authored room, earned Glimmers, level, and milestones.
+4. My Space — the authored visitor page with explicit Anyone, Mutuals, and
+   Only me audiences.
 5. Change Space — a full-room preview and the no-cost room-switching promise.
 6. Journal — a private local entry shown in its then-and-now context.
 7. Discover — a finite, opt-in directory of rooms with optional public names.

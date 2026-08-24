@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/screens/hearth_circle.dart';
 import 'package:emberkeep/screens/visit_room.dart';
@@ -125,6 +127,157 @@ void main() {
       expect(find.textContaining('Private name'), findsNothing);
       expect(find.text('Private introduction'), findsNothing);
       expect(find.text('Private goal'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('audience profile loads outside the bearer room document', (
+    tester,
+  ) async {
+    var requestedMutual = true;
+    await _pumpCompact(
+      tester,
+      VisitRoomScreen(
+        room: _room(profileVisible: false),
+        code: 'ABC234',
+        lively: false,
+        visitorProfileSharingEnabled: true,
+        spaceProfileFetcher: (code, {includeMutual = false}) async {
+          expect(code, 'ABC234');
+          requestedMutual = includeMutual;
+          return {
+            'displayName': 'Mika',
+            'cardOrder': const ['about'],
+            'about': 'A public page, separate from the room key.',
+            'featuredGoals': const <String>[],
+            'pinnedMoments': const <Map<String, dynamic>>[],
+            'season': '',
+          };
+        },
+      ),
+    );
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -520));
+    await tester.pumpAndSettle();
+
+    expect(requestedMutual, isFalse);
+    expect(
+      find.byKey(const ValueKey('visitor-external-profile')),
+      findsOneWidget,
+    );
+    expect(
+      find.text('A public page, separate from the room key.'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Circle visits request the mutual projection', (tester) async {
+    final local = GameState()..addCircleCode('ABC234');
+    bool? requestedMutual;
+    final events = <String>[];
+    await _pumpCompact(
+      tester,
+      VisitRoomScreen(
+        room: _room(profileVisible: false),
+        code: 'ABC234',
+        lively: false,
+        localState: local,
+        onPersist: () {},
+        discoveryOwnerKey: List.filled(64, 'b').join(),
+        visitorProfileSharingEnabled: true,
+        relationshipSetter: (code, {ownerKey = '', required active}) async {
+          expect(code, 'ABC234');
+          expect(ownerKey, hasLength(64));
+          expect(active, isTrue);
+          events.add('relationship');
+          return true;
+        },
+        spaceProfileFetcher: (code, {includeMutual = false}) async {
+          events.add('profile');
+          requestedMutual = includeMutual;
+          return {
+            'displayName': 'A mutual',
+            'cardOrder': const ['rightNow'],
+            'about': '',
+            'featuredGoals': const ['Mutual-only goal'],
+            'pinnedMoments': const <Map<String, dynamic>>[],
+            'season': '',
+          };
+        },
+      ),
+    );
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -520));
+    await tester.pumpAndSettle();
+
+    expect(requestedMutual, isTrue);
+    expect(events, ['relationship', 'profile']);
+    expect(find.text('Mutual-only goal'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'visitor page explains loading, absence, and an empty deck quietly',
+    (tester) async {
+      final pending = Completer<Map<String, dynamic>?>();
+      await _pumpCompact(
+        tester,
+        VisitRoomScreen(
+          room: _room(profileVisible: false),
+          code: 'ABC234',
+          lively: false,
+          visitorProfileSharingEnabled: true,
+          spaceProfileFetcher: (_, {includeMutual = false}) => pending.future,
+        ),
+      );
+      final loading = find.byKey(const ValueKey('visitor-profile-loading'));
+      await tester.scrollUntilVisible(
+        loading,
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(loading, findsOneWidget);
+      expect(find.text('Opening their page…'), findsOneWidget);
+
+      pending.complete(null);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('visitor-profile-absent')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('This keeper has not opened a visitor page.'),
+        findsOneWidget,
+      );
+
+      await _pumpCompact(
+        tester,
+        VisitRoomScreen(
+          room: _room(profileVisible: false),
+          code: 'ABC234',
+          lively: false,
+          visitorProfileSharingEnabled: true,
+          visitorProfile: {
+            'displayName': 'Mika',
+            'cardOrder': const ['about', 'rightNow'],
+            'about': '',
+            'featuredGoals': const <String>[],
+            'pinnedMoments': const <Map<String, dynamic>>[],
+            'season': '',
+          },
+        ),
+      );
+      final empty = find.byKey(const ValueKey('visitor-profile-empty'));
+      await tester.scrollUntilVisible(
+        empty,
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(empty, findsOneWidget);
+      expect(find.text('ABOUT'), findsNothing);
+      expect(
+        find.textContaining('Only the cards they chose for your audience'),
+        findsNothing,
+      );
       expect(tester.takeException(), isNull);
     },
   );
@@ -499,4 +652,77 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('Circle removal waits for server revocation before forgetting', (
+    tester,
+  ) async {
+    final state = GameState()..reduceMotion = true;
+    final ownerKey = List.filled(64, 'a').join();
+    expect(state.addCircleCode('ABC234', ownerKey: ownerKey), isTrue);
+    var persists = 0;
+    var attempts = 0;
+
+    await _pumpCompact(
+      tester,
+      HearthCircleScreen(
+        state: state,
+        onPersist: () => persists++,
+        roomFetcher: (_) async => _room(profileVisible: false),
+        relationshipSetter: (code, {ownerKey = '', required active}) async {
+          attempts++;
+          expect(code, 'ABC234');
+          expect(ownerKey, hasLength(64));
+          expect(active, isFalse);
+          return false;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+    final remove = find.byKey(const ValueKey('circle-remove-ABC234'));
+    await tester.scrollUntilVisible(
+      remove,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(remove);
+    await tester.pumpAndSettle();
+    await tester.tap(remove);
+    await tester.pumpAndSettle();
+
+    expect(attempts, 1);
+    expect(state.hearthCircleCodes, contains('ABC234'));
+    expect(persists, 0);
+    expect(find.textContaining('Nothing changed'), findsOneWidget);
+  });
+
+  testWidgets('confirmed Circle removal ends the local keep', (tester) async {
+    final state = GameState()..reduceMotion = true;
+    expect(state.addCircleCode('ABC234'), isTrue);
+    var persists = 0;
+
+    await _pumpCompact(
+      tester,
+      HearthCircleScreen(
+        state: state,
+        onPersist: () => persists++,
+        roomFetcher: (_) async => _room(profileVisible: false),
+        relationshipSetter: (_, {ownerKey = '', required active}) async => true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final remove = find.byKey(const ValueKey('circle-remove-ABC234'));
+    await tester.scrollUntilVisible(
+      remove,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(remove);
+    await tester.pumpAndSettle();
+    await tester.tap(remove);
+    await tester.pumpAndSettle();
+
+    expect(state.hearthCircleCodes, isNot(contains('ABC234')));
+    expect(persists, 1);
+    expect(find.textContaining('Mutual page access ended'), findsOneWidget);
+  });
 }

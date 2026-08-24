@@ -25,6 +25,9 @@ import 'visit_room.dart';
 
 export '../widgets/spark_picker.dart';
 
+typedef CircleRelationshipSetter =
+    Future<bool> Function(String code, {String ownerKey, required bool active});
+
 class HearthCircleScreen extends StatefulWidget {
   const HearthCircleScreen({
     super.key,
@@ -34,6 +37,7 @@ class HearthCircleScreen extends StatefulWidget {
     this.roomFetcher,
     this.sparkSender,
     this.socialInboxFetcher,
+    this.relationshipSetter,
   });
 
   final GameState state;
@@ -42,6 +46,7 @@ class HearthCircleScreen extends StatefulWidget {
   final RoomFetcher? roomFetcher;
   final SparkSender? sparkSender;
   final SocialInboxFetcher? socialInboxFetcher;
+  final CircleRelationshipSetter? relationshipSetter;
 
   @override
   State<HearthCircleScreen> createState() => _HearthCircleScreenState();
@@ -55,6 +60,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
   static const _maxConcurrentRoomFetches = 4;
   final Map<String, Map<String, dynamic>> _rooms = {};
   final Set<String> _loadingRoomCodes = {};
+  final Set<String> _removingRoomCodes = {};
   List<Map<String, dynamic>> _sparks = const [];
   List<Map<String, dynamic>> _circleAdds = const [];
   bool _loading = true;
@@ -64,6 +70,56 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
   bool _wasCounting = false;
 
   GameState get _state => widget.state;
+
+  Future<void> _removeFromCircle(String code) async {
+    if (_removingRoomCodes.contains(code)) return;
+    final ownerKey = _state.hearthCircleOwnerKeys[code] ?? '';
+    setState(() => _removingRoomCodes.add(code));
+    final setter =
+        widget.relationshipSetter ?? CloudSync.instance.setCircleRelationship;
+    // Pre-feature Circle saves have no owner key and therefore could never
+    // have created a server relationship. They can be forgotten locally.
+    final removed = ownerKey.isEmpty
+        ? true
+        : await setter(code, ownerKey: ownerKey, active: false);
+    if (!mounted) return;
+    if (!removed) {
+      setState(() => _removingRoomCodes.remove(code));
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Palette.card,
+            content: Text(
+              'Couldn’t remove this space yet. Nothing changed — reconnect and try again.',
+              style: Type.body.copyWith(color: Palette.textHi),
+            ),
+          ),
+        );
+      return;
+    }
+
+    _state.removeCircleCode(code);
+    widget.onPersist();
+    setState(() {
+      _removingRoomCodes.remove(code);
+      _rooms.remove(code);
+      _loadingRoomCodes.remove(code);
+    });
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Palette.card,
+          content: Text(
+            'Removed from your Circle. Mutual page access ended too.',
+            style: Type.body.copyWith(color: Palette.textHi),
+          ),
+        ),
+      );
+  }
 
   @override
   void initState() {
@@ -652,6 +708,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
                                       _state.hearthCircleNames[code] ?? '',
                                   room: room,
                                   loading: _loadingRoomCodes.contains(code),
+                                  removing: _removingRoomCodes.contains(code),
                                   nowMs: _now,
                                   parallax: widget.parallax,
                                   onVisit: room == null
@@ -675,6 +732,10 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
                                                       _state
                                                           .hearthCircleNames[code] ??
                                                       '',
+                                                  onReportDiscoverableSpace:
+                                                      CloudSync
+                                                          .instance
+                                                          .reportDiscoverableSpace,
                                                 ),
                                               ),
                                             )
@@ -695,14 +756,8 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
                                               _now
                                       ? () => _joinCompany(code, room)
                                       : null,
-                                  onRemove: () {
-                                    _state.removeCircleCode(code);
-                                    widget.onPersist();
-                                    setState(() {
-                                      _rooms.remove(code);
-                                      _loadingRoomCodes.remove(code);
-                                    });
-                                  },
+                                  onRemove: () =>
+                                      unawaited(_removeFromCircle(code)),
                                 ),
                               );
                             }, childCount: _state.hearthCircleCodes.length),
@@ -1076,6 +1131,7 @@ class _CircleKeepCard extends StatelessWidget {
     required this.publicName,
     required this.room,
     required this.loading,
+    required this.removing,
     required this.nowMs,
     required this.parallax,
     required this.onVisit,
@@ -1087,6 +1143,7 @@ class _CircleKeepCard extends StatelessWidget {
   final String publicName;
   final Map<String, dynamic>? room;
   final bool loading;
+  final bool removing;
   final int nowMs;
   final ValueListenable<Offset> parallax;
   final VoidCallback? onVisit;
@@ -1122,12 +1179,25 @@ class _CircleKeepCard extends StatelessWidget {
               ),
             ),
             GestureDetector(
+              key: ValueKey('circle-remove-$code'),
               behavior: HitTestBehavior.opaque,
-              onTap: onRemove,
-              child: const SizedBox.square(
+              onTap: removing ? null : onRemove,
+              child: SizedBox.square(
                 dimension: 44,
                 child: Center(
-                  child: Icon(Icons.close, size: 17, color: Palette.textLo),
+                  child: removing
+                      ? const SizedBox.square(
+                          dimension: 16,
+                          child: CircularProgressIndicator(
+                            color: Palette.textLo,
+                            strokeWidth: 1.5,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.close,
+                          size: 17,
+                          color: Palette.textLo,
+                        ),
                 ),
               ),
             ),
@@ -1218,12 +1288,25 @@ class _CircleKeepCard extends StatelessWidget {
                 ),
               ],
               GestureDetector(
+                key: ValueKey('circle-remove-$code'),
                 behavior: HitTestBehavior.opaque,
-                onTap: onRemove,
-                child: const SizedBox.square(
+                onTap: removing ? null : onRemove,
+                child: SizedBox.square(
                   dimension: 44,
                   child: Center(
-                    child: Icon(Icons.close, size: 16, color: Palette.textLo),
+                    child: removing
+                        ? const SizedBox.square(
+                            dimension: 16,
+                            child: CircularProgressIndicator(
+                              color: Palette.textLo,
+                              strokeWidth: 1.5,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.close,
+                            size: 16,
+                            color: Palette.textLo,
+                          ),
                   ),
                 ),
               ),
