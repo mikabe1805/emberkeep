@@ -36,9 +36,13 @@ generated-only. `pubspec.yaml` is `1.0.4+32`.
 - [x] Finish the final privacy review findings, rerun the complete feature-on
   Flutter suite (817 passed, one expected skip), and preserve a clean
   exact-golden pass on canonical Windows.
-- [ ] Deploy the exact checked-in Functions and Firestore rules to
-  `emberkeep-5b33b`, then smoke the App Check-protected discovery/profile
-  callables before compiling the enabled client.
+- [x] Deploy commit `a11bffa`'s Functions, Firestore rules, and feature-on web
+  visitor build to `emberkeep-5b33b`. The live default and custom domains both
+  report `1.0.4+32` and match the local `main.dart.js` SHA-256. With a disposable
+  valid anonymous identity, all five protected discovery/profile callables
+  returned HTTP 401 when App Check was deliberately omitted; the identity was
+  then deleted. Positive Apple App Attest handoff remains part of the physical
+  Build 32 gate below.
 - [x] Regenerate and inspect the seven opaque 1290×2796 App Store frames from
   the exact Build 32 source, update the store screenshot evidence, and leave the
   App Store draft unsubmitted until the device gate passes.
