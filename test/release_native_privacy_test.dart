@@ -127,15 +127,18 @@ void main() {
     expect(webAudioSupport, contains("'AudioContext'.toJS"));
     expect(hostingConfig['predeploy'], [
       'node tool/verify_public_downloads.mjs',
-      'flutter build web --release --wasm '
-          '--dart-define=SPACE_DISCOVERY=true '
-          '--dart-define=PUBLIC_DISCOVERY_NAMES=true '
-          '--dart-define=VISITOR_PROFILE_SHARING=true '
-          '--dart-define=PLACE_SEARCH_APP_CHECK_WEB_SITE_KEY='
-          '6L1SoM-jCpoiyD9A99Y41P6zHtY',
+      'node tool/build_release_web.mjs',
       'dart run tool/prepare_web_offline.dart',
       'node tool/overlay_introduction.mjs',
     ]);
+    final hostedWebBuilder = _source('tool/build_release_web.mjs');
+    expect(hostedWebBuilder, contains('SPACE_DISCOVERY=true'));
+    expect(hostedWebBuilder, contains('PUBLIC_DISCOVERY_NAMES=true'));
+    expect(hostedWebBuilder, contains('VISITOR_PROFILE_SHARING=true'));
+    expect(
+      hostedWebBuilder,
+      contains('PLACE_SEARCH_APP_CHECK_WEB_SITE_KEY=6L1SoM-jCpoiyD9A99Y41P6zHtY'),
+    );
     expect(
       headers.any(
         (header) =>

@@ -3,7 +3,7 @@
     "public": "build/web",
     "predeploy": [
       "node tool/verify_public_downloads.mjs",
-      "flutter build web --release --wasm --dart-define=SPACE_DISCOVERY=true --dart-define=PUBLIC_DISCOVERY_NAMES=true --dart-define=VISITOR_PROFILE_SHARING=true --dart-define=PLACE_SEARCH_APP_CHECK_WEB_SITE_KEY=6L1SoM-jCpoiyD9A99Y41P6zHtY",
+      "node tool/build_release_web.mjs",
       "dart run tool/prepare_web_offline.dart",
       "node tool/overlay_introduction.mjs"
     ],
