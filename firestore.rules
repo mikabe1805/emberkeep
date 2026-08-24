@@ -284,6 +284,23 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/roomOwners/$(code)).data.ownerKey == d.ownerKey;
     }
 
+    // The first opt-in is a transaction that reads the directory document
+    // before creating it so an existing server-moderated public name can never
+    // be overwritten. Permit only an eligible room owner to observe that exact
+    // absence; existing malformed records and every non-owner remain denied.
+    function mayPrepareFirstDiscoverableSpace(code) {
+      return request.auth != null
+        && !exists(
+          /databases/$(database)/documents/discoverableSpaces/$(code)
+        )
+        && ownsRoom(code)
+        && !serviceIdentityDeletionStarted(request.auth.uid)
+        && !exists(
+          /databases/$(database)/documents/roomDeletionLocks/$(code)
+        )
+        && ownerIsNotBanned(ownerKeyFor(request.auth.uid));
+    }
+
     function normalRoomRemovalAllowed(code) {
       return !serviceIdentityDeletionStarted(request.auth.uid)
         && !exists(/databases/$(database)/documents/roomDeletionLocks/$(code));
@@ -541,12 +558,15 @@ service cloud.firestore {
       // The owner may read an expired strict projection only to preserve its
       // moderated name while renewing the lease. Everyone else loses exact
       // access at expiry along with directory visibility.
-      allow get: if request.auth != null
-                 && validDiscoverableSpaceShape(code, resource.data)
-                 && discoverableSpaceHasLiveAnchor(code, resource.data)
-                 && (
-                   resource.data.expiresAt > request.time
-                   || ownsRoom(code)
+      allow get: if mayPrepareFirstDiscoverableSpace(code)
+                 || (
+                   request.auth != null
+                   && validDiscoverableSpaceShape(code, resource.data)
+                   && discoverableSpaceHasLiveAnchor(code, resource.data)
+                   && (
+                     resource.data.expiresAt > request.time
+                     || ownsRoom(code)
+                   )
                  );
       // Collection-query rules must be provable from the query itself. The
       // strict projection predicate remains on every client write and exact

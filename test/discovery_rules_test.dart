@@ -94,7 +94,15 @@ void main() {
       'match /serviceIdentityDeletionTombstones/{uid}',
     );
 
-    expect(directory, contains('allow get: if request.auth != null'));
+    expect(
+      directory,
+      matches(
+        RegExp(
+          r'allow get: if mayPrepareFirstDiscoverableSpace\(code\)\s*'
+          r'\|\| \(\s*request\.auth != null',
+        ),
+      ),
+    );
     expect(
       RegExp(
         r'validDiscoverableSpaceShape\(code, resource\.data\)',
@@ -116,6 +124,31 @@ void main() {
       ),
     );
     expect(directory, isNot(contains('allow get, list: if true')));
+
+    final firstOptIn = _block(
+      _rules(),
+      'function mayPrepareFirstDiscoverableSpace(code)',
+      'function normalRoomRemovalAllowed(code)',
+    );
+    expect(
+      firstOptIn,
+      matches(
+        RegExp(
+          r'!exists\(\s*'
+          r'/databases/\$\(database\)/documents/discoverableSpaces/\$\(code\)\s*'
+          r'\)',
+        ),
+      ),
+    );
+    expect(firstOptIn, contains('ownsRoom(code)'));
+    expect(
+      firstOptIn,
+      contains('!serviceIdentityDeletionStarted(request.auth.uid)'),
+    );
+    expect(
+      firstOptIn,
+      contains('ownerIsNotBanned(ownerKeyFor(request.auth.uid))'),
+    );
   });
 
   test(

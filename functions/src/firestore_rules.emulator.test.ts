@@ -14,6 +14,7 @@ import {
   limit,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   Timestamp,
@@ -214,6 +215,31 @@ describeWithEmulator("discoverableSpaces Firestore rules", () => {
     await assertSucceeds(getDoc(doc(database, "discoverableSpaces", "XYZ234")));
   });
 
+  test("lets only the owner read the absent directory entry needed for first opt-in", async () => {
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const database = context.firestore();
+      await Promise.all([
+        setDoc(doc(database, "rooms", "NEW234"), room()),
+        setDoc(doc(database, "roomOwners", "NEW234"), roomOwner()),
+      ]);
+    });
+
+    const reader = environment.authenticatedContext("reader").firestore();
+    await assertFails(getDoc(doc(reader, "discoverableSpaces", "NEW234")));
+
+    const owner = environment.authenticatedContext("owner").firestore();
+    const directoryEntry = doc(owner, "discoverableSpaces", "NEW234");
+    await assertSucceeds(runTransaction(owner, async (transaction) => {
+      const existing = await transaction.get(directoryEntry);
+      expect(existing.exists()).toBe(false);
+      transaction.set(directoryEntry, {
+        ...projection(375000),
+        updatedAt: serverTimestamp(),
+      });
+    }));
+    await assertSucceeds(getDoc(directoryEntry));
+  });
+
   test("rejects an owner create or refresh while its stable owner key is banned", async () => {
     await environment.withSecurityRulesDisabled(async (context) => {
       const database = context.firestore();
@@ -222,6 +248,7 @@ describeWithEmulator("discoverableSpaces Firestore rules", () => {
       await setDoc(doc(database, "discoveryBans", "4c1029697ee358715d3a14a2add817c4b01651440de808371f78165ac90dc581"), {state: "active"});
     });
     const owner = environment.authenticatedContext("owner").firestore();
+    await assertFails(getDoc(doc(owner, "discoverableSpaces", "NEW234")));
     await assertFails(setDoc(doc(owner, "discoverableSpaces", "NEW234"), projection(250000)));
     await assertFails(setDoc(doc(owner, "discoverableSpaces", "XYZ234"), {
       ...projection(100000),
