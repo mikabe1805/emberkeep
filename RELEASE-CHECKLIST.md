@@ -46,9 +46,15 @@ generated-only. `pubspec.yaml` is `1.0.4+32`.
 - [x] Regenerate and inspect the seven opaque 1290×2796 App Store frames from
   the exact Build 32 source, update the store screenshot evidence, and leave the
   App Store draft unsubmitted until the device gate passes.
-- [ ] Commit and push the reviewed Build 32 source, start exactly one manual
-  `ios-testflight` Codemagic workflow from that immutable commit, and preserve
-  the IPA, dSYMs, build receipt, exact commit, and SHA-256 evidence.
+- [x] Commit and push the reviewed Build 32 source, then start exactly one
+  manual `ios-testflight` workflow from that immutable commit. Codemagic Build
+  #46 (`6a8be012fb3e411dc3580505`) ran from exact commit
+  `7186cc3b65aa7f99de0391ea4e82dc222cd65acc`, passed every CI gate, and
+  uploaded Version 1.0.4, Build 32 with no errors. Apple finished processing
+  delivery `e38fe4bd-2b66-4df3-a07f-f879d5095e2f` and Codemagic created its
+  TestFlight beta-review submission, last observed `WAITING_FOR_REVIEW`. The
+  IPA, every dSYM, release evidence, hashes, and receipt are preserved under
+  `../release-artifacts/room-of-days/1.0.4+32/codemagic-build-46-7186cc3/`.
 - [ ] Install Build 32 over processed Build 31 and repeat with a fresh install.
   Verify the Discover switch stays on after server acknowledgement, then use a
   second signed identity to prove Anyone, one-way Circle, reciprocal Mutuals,
