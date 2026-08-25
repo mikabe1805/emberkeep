@@ -1543,7 +1543,7 @@ class _VisitPromptState extends State<_VisitPrompt> {
     final code = _c.text.trim().toUpperCase();
     if (!_roomCodePattern.hasMatch(code)) {
       setState(() {
-        _error = 'Enter the full six-character code. Codes skip I, O, 0 and 1.';
+        _error = 'Enter 6 characters. No I, O, 0, or 1.';
       });
       return;
     }

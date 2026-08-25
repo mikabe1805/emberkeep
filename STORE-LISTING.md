@@ -18,7 +18,7 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 32)
+## App Store What's New — Version 1.0.4 (Build 33)
 
 The open door is finally in the open.
 
@@ -35,6 +35,9 @@ an optional public name and generated room style, title, and level. A separate
 visitor page can share only owner-selected cards: Anyone cards for exact-code
 visitors, plus Mutuals cards after both people choose each other in Circle.
 Journal photos, private cards, and account details stay private.
+
+Room-code guidance now remains readable above Visit and Cancel at the largest
+text sizes on a small screen.
 
 ## Full description
 
@@ -84,7 +87,7 @@ It is built to be kind. Nothing takes damage, days away cost nothing, and
 coming back after a break is rewarded. Every cosmetic is earned. There are no
 ads, subscriptions, or paywalls.
 
-Build 32 keeps the generated room and visitor page separate. My Space exposes
+Build 33 keeps the generated room and visitor page separate. My Space exposes
 Open to Discover or Manage Listing directly, and Discover shows the owner's
 private/listed state and management action above the finite room directory.
 Enabling a listing remains a separate explicit switch; the app never opts
@@ -101,8 +104,9 @@ they want in their private Circle.
 The old Themes control is now Ambient Light. A live preview and the surrounding
 canvas visibly respond to every choice, while Change Space remains the full-room
 chooser. This build also retains the seven-session guided-workout chooser and
-movement-linked quest sound behavior. Protected Google place search remains
-intentionally off.
+movement-linked quest sound behavior. Room-code validation stays clear above
+the dialog actions at the largest text sizes. Protected Google place search
+remains intentionally off.
 
 Feedback on clarity, warmth, performance, and anything that gets between you
 and doing what matters is especially useful.
@@ -158,6 +162,8 @@ and doing what matters is especially useful.
   the completed honey mark should catch the eye without losing the book.
 - Repeat important flows offline, with Reduce Motion, Larger Text, and
   VoiceOver.
+- At the largest text size on a small phone, enter a short room code and confirm
+  its guidance remains fully readable above Visit and Cancel.
 
 Report anything confusing, slow, visually cold, or unrewarding, plus anything
 that makes returning after a break feel harder than it should.
@@ -295,7 +301,7 @@ and [regulated-medical-device status](https://developer.apple.com/help/app-store
   services.
 - **News and Magazine apps:** No.
 - **COVID-19 contact tracing or status app:** No.
-- **Advertising ID:** No. The exact Build 32 permission inventory contains no
+- **Advertising ID:** No. The exact Build 33 permission inventory contains no
   `com.google.android.gms.permission.AD_ID`, and the app performs no advertising
   or analytics.
 - **Photo and video permissions:** No broad-media declaration is expected. The
@@ -314,7 +320,7 @@ and [regulated-medical-device status](https://developer.apple.com/help/app-store
   remain text-free and private.
 
 After completing the forms, open both `Needs attention` and `Actioned` on the
-App content page. Resolve every card Play Console actually shows for Build 32;
+App content page. Resolve every card Play Console actually shows for Build 33;
 policy cards can change and the console is authoritative about which forms are
 pending.
 

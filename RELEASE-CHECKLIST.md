@@ -1,9 +1,37 @@
 # Room of Days Release Checklist
 
-Updated August 24, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 25, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.4+32 iOS App Store candidate — supersedes Build 31
+## 1.0.4+33 iOS App Store candidate — supersedes Build 32
+
+Build 33 keeps Build 32's visitor-page, Discover, and server authorization work
+intact while closing one release-polish defect found by rendering the required
+320×568 phone state at 200-percent text with the real shipping fonts. An invalid
+room code could paint its guidance underneath Visit and Cancel. The shorter,
+equally complete guidance now stays above both actions, and the regression checks
+their geometry directly. `pubspec.yaml` is `1.0.4+33`.
+
+- [x] Advance to the unused iOS build number 33 and add a newest-first in-app
+  What's New record that preserves the full 1.0.4 story.
+- [x] Load the shipping fonts in the large-text visual harness, expose the real
+  dialog instead of Ahem test-font blocks, and reproduce the action overlap.
+- [x] Keep the complete invalid-code guidance readable above Visit and Cancel
+  at 320×568 and 200-percent text, with a direct no-overlap regression.
+- [x] Regenerate and inspect the exact Build 33 visual story, large-text states,
+  and seven opaque 1290×2796 App Store frames.
+- [x] Pass the complete 818-test Flutter suite, analyzer, iOS store-packet verifier,
+  Firestore emulator authorization suite, and repository consistency checks.
+- [ ] Commit and push the reviewed Build 33 source, then start exactly one manual
+  `ios-testflight` workflow from that immutable commit.
+- [ ] Confirm Apple processes and approves Build 33 for the internal `Me` group,
+  preserve the signed artifacts and receipt, then install it over Build 32.
+- [ ] Repeat the fresh-install and signed two-identity physical iPhone gate:
+  Discover acknowledgement and persistence, Anyone, one-way Circle, reciprocal
+  Mutuals, removal, block, code rotation, report, positive App Attest, native
+  handoffs, offline persistence, accessibility, sound, and warm performance.
+
+## 1.0.4+32 internal TestFlight record — superseded by Build 33
 
 Build 31 reached TestFlight but its physical-device pass exposed two connected
 gaps: the Discover switch could return to off instead of finishing its protected
@@ -52,7 +80,9 @@ generated-only. `pubspec.yaml` is `1.0.4+32`.
   `7186cc3b65aa7f99de0391ea4e82dc222cd65acc`, passed every CI gate, and
   uploaded Version 1.0.4, Build 32 with no errors. Apple finished processing
   delivery `e38fe4bd-2b66-4df3-a07f-f879d5095e2f` and Codemagic created its
-  TestFlight beta-review submission, last observed `WAITING_FOR_REVIEW`. The
+  TestFlight beta-review submission. A live August 25 check found it `Approved`
+  for the internal `Me` group, installed on an iPhone 17 and iPad (8th generation),
+  with two installs and no recorded crashes. The
   IPA, every dSYM, release evidence, hashes, and receipt are preserved under
   `../release-artifacts/room-of-days/1.0.4+32/codemagic-build-46-7186cc3/`.
 - [x] Repair the first Discover opt-in rules deadlock exposed by the signed
@@ -64,10 +94,8 @@ generated-only. `pubspec.yaml` is `1.0.4+32`.
   `e9b19bc7-4ecd-4a8e-9f30-2def2a01d691` was released at
   `2026-08-24T06:45:26Z` and its fetched source matches the tested rule exactly;
   Build 32 can retry without another binary.
-- [ ] Install Build 32 over processed Build 31 and repeat with a fresh install.
-  Verify the Discover switch stays on after server acknowledgement, then use a
-  second signed identity to prove Anyone, one-way Circle, reciprocal Mutuals,
-  removal, block, code rotation, and report behavior on a physical iPhone.
+- [x] Preserve Build 32 as the approved internal fallback. Its open signed-device
+  acceptance work carries forward to Build 33 rather than being claimed complete.
 
 ## 1.0.4+31 iOS App Store candidate — supersedes Build 30
 

@@ -59,9 +59,10 @@ void main() {
     expect(find.text('OPEN MEANS OPEN'), findsOneWidget);
     expect(find.text('EVERY CARD, YOUR CALL'), findsOneWidget);
     expect(find.text('MUTUAL REALLY MEANS MUTUAL'), findsOneWidget);
+    expect(find.text('ROOM CODES STAY CLEAR'), findsOneWidget);
     expect(find.text('KEEP GOING'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+32')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+33')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -153,7 +154,7 @@ void main() {
     await tester.pump();
 
     final currentTop = tester.getTopLeft(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+32')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+33')),
     );
     final olderTop = tester.getTopLeft(
       find.byKey(const ValueKey('whats-new-release-1.0.0+12')),

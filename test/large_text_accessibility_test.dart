@@ -12,7 +12,9 @@ import 'package:emberkeep/social.dart';
 import 'package:emberkeep/tokens.dart' show Stat;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 const _phoneSize = Size(320, 568);
 const _captureLargeText = bool.fromEnvironment('CAPTURE_LARGE_TEXT');
@@ -83,6 +85,36 @@ Map<String, dynamic> _sharedRoom() => {
 };
 
 void main() {
+  setUpAll(() async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final icons = FontLoader('MaterialIcons')
+      ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
+    final fraunces = FontLoader('Fraunces')
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-Bold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Fraunces-SemiBold.ttf'))
+      ..addFont(
+        rootBundle.load('assets/google_fonts/Fraunces-SemiBoldItalic.ttf'),
+      );
+    final inter = FontLoader('Inter')
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Regular.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Medium.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-SemiBold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Bold.ttf'))
+      ..addFont(rootBundle.load('assets/google_fonts/Inter-Italic.ttf'));
+    final mono = FontLoader('JetBrainsMono')
+      ..addFont(
+        rootBundle.load('assets/google_fonts/JetBrainsMono-SemiBold.ttf'),
+      )
+      ..addFont(rootBundle.load('assets/google_fonts/JetBrainsMono-Bold.ttf'));
+    await Future.wait([
+      icons.load(),
+      fraunces.load(),
+      inter.load(),
+      mono.load(),
+    ]);
+    GoogleFonts.config.allowRuntimeFetching = false;
+  });
+
   setUp(() {
     Sfx.instance.soundEnabled = false;
     Clock.freeze(DateTime(2026, 8, 3, 10));
@@ -389,7 +421,13 @@ void main() {
     _expectComfortableTarget(tester, submit);
     await tester.tap(submit);
     await tester.pump();
-    expect(find.byKey(const Key('visit-space-error')), findsOneWidget);
+    final error = find.byKey(const Key('visit-space-error'));
+    expect(error, findsOneWidget);
+    expect(
+      tester.getRect(error).overlaps(tester.getRect(submit)),
+      false,
+      reason: 'validation copy must not paint underneath the dialog actions',
+    );
     expect(tester.takeException(), isNull);
     await _capture(tester, 'visit_error_320x568_2x');
 

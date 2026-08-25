@@ -137,7 +137,9 @@ void main() {
     expect(hostedWebBuilder, contains('VISITOR_PROFILE_SHARING=true'));
     expect(
       hostedWebBuilder,
-      contains('PLACE_SEARCH_APP_CHECK_WEB_SITE_KEY=6L1SoM-jCpoiyD9A99Y41P6zHtY'),
+      contains(
+        'PLACE_SEARCH_APP_CHECK_WEB_SITE_KEY=6L1SoM-jCpoiyD9A99Y41P6zHtY',
+      ),
     );
     expect(
       headers.any(
@@ -754,7 +756,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+32'));
+    expect(pubspec, contains('version: 1.0.4+33'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 
