@@ -331,7 +331,15 @@ hearth). Continuous room ambience is a *removed* feature, not an unbuilt one:
 `hearth_room.wav` was retired on every platform and its bytes left the bundle
 on 2026-08-25 (`tool/prepare_web_offline.dart` still refuses to cache it for
 stale clients). Whether an optional, extremely-low hearth loop returns — as
-DESIGN-BIBLE.md still specs — is an open owner decision, as is authoring a
-notification cue from this world (system reminders currently play the stock
-OS sound). The rejected Gen-1 palette (`tap_*`, `tick*`, `complete.wav`) was
-also removed from the bundle; provenance stays in `assets/sfx/SOURCES.md`.
+DESIGN-BIBLE.md still specs — is an open owner decision. The rejected Gen-1
+palette (`tap_*`, `tick*`, `complete.wav`) was also removed from the bundle;
+provenance stays in `assets/sfx/SOURCES.md`.
+
+**The reminder notification now speaks the world's language.** The
+`room-notification-voice-v1` study ("the room knocks") auditioned four
+candidates composed from the shared chain; the owner selected `knock-paced`
+("i think two knocks rising", 2026-08-25). It ships byte-identical on both
+platforms — the iOS Runner bundle and the Android `emberkeep_reminders_v2`
+channel (channels bake their sound at creation, so the voice required a new
+channel id) — and is byte-locked by test. Its final gate is a real
+lock-screen delivery on the next TestFlight build.

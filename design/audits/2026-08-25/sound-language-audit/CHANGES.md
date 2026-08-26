@@ -73,12 +73,22 @@ the playback boundary to observe resolved paths.
   unrecorded facts (fire_ignite/hearth 0.68 exception; ambience is a removed
   feature, not an unbuilt one).
 
-## Open owner decisions (not acted on)
+## Open owner decisions
 
 1. **Hearth ambience** — DESIGN-BIBLE.md still specs an optional loop;
    `hearth.wav` and its plumbing wait. Build it as a study, or delete the
    spec and the stub.
-2. **Notification voice** — reminders play the stock OS sound; candidates can
-   be composed from the approved world for a phone audition.
-3. **`glass/open` lane** — two surfaces naturally want it; authoring it would
+2. **`glass/open` lane** — two surfaces naturally want it; authoring it would
    let them return to their declared verb.
+
+## Notification voice — selected and wired (2026-08-25)
+
+The `room-notification-voice-v1` audition ran the same day; owner verdict:
+"i think two knocks rising" → `knock-paced` selected. Wired byte-identical on
+both platforms (`ios/Runner/knock_paced.wav` in the Xcode Resources phase +
+`DarwinNotificationDetails(sound:)`; Android raw resource on the new
+`emberkeep_reminders_v2` channel, old channel deleted at init since channels
+bake their sound at creation), byte-locked by test. **Remaining gate:** a
+real lock-screen delivery on the next TestFlight build; if either platform
+balks at the 48 kHz/24-bit master, the fallback is a 16-bit conversion round
+re-auditioned before shipping.

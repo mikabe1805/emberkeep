@@ -1002,6 +1002,33 @@ void main() {
     // Brass stays exclusive to gold; the keepsake cabinet has none.
     expect(memoryCabinet, isNot(contains('MaterialSound.brass')));
 
+    // The reminder notification ships the owner-selected knock-paced master
+    // byte-identical on both platforms, and iOS actually bundles it — a
+    // Dart-side sound name with no bundled resource plays nothing.
+    final approvedKnock = File(
+      'design/audits/2026-08-25/room-notification-voice-v1/'
+      'candidates/knock-paced.wav',
+    ).readAsBytesSync();
+    for (final path in [
+      'ios/Runner/knock_paced.wav',
+      'android/app/src/main/res/raw/knock_paced.wav',
+    ]) {
+      expect(
+        File(path).readAsBytesSync(),
+        orderedEquals(approvedKnock),
+        reason: '$path must stay byte-identical to the audition master',
+      );
+    }
+    final notifications = source('lib/platform/notifications_native.dart');
+    expect(notifications, contains("sound: 'knock_paced.wav'"));
+    expect(
+      notifications,
+      contains("RawResourceAndroidNotificationSound('knock_paced')"),
+    );
+    expect(notifications, contains("'emberkeep_reminders_v2'"));
+    final pbxproj = source('ios/Runner.xcodeproj/project.pbxproj');
+    expect(pbxproj, contains('knock_paced.wav in Resources'));
+
     // Each daybook editor's Close answers with the glass detent.
     for (final path in [
       'lib/daybook/widgets/daybook_event_actions.dart',
