@@ -65,6 +65,7 @@ Future<void> _changePlayerName(
   SpaceRoomPublisher onPublishRoom,
   bool visitorProfileSharingEnabled,
 ) async {
+  Sfx.instance.playMaterial(MaterialSound.glass);
   var editedName = state.playerName ?? '';
   final next = await showDialog<String>(
     context: context,
@@ -93,7 +94,13 @@ Future<void> _changePlayerName(
               hintText: 'Name or nickname',
             ),
             onChanged: (value) => editedName = value,
-            onFieldSubmitted: (value) => Navigator.of(dialogContext).pop(value),
+            onFieldSubmitted: (value) {
+              Sfx.instance.playInteraction(
+                InteractionSound.place,
+                material: MaterialSound.glass,
+              );
+              Navigator.of(dialogContext).pop(value);
+            },
           ),
           if (visitorProfileSharingEnabled && state.shareSpaceProfile) ...[
             const SizedBox(height: 8),
@@ -115,7 +122,13 @@ Future<void> _changePlayerName(
           child: const Text('Cancel'),
         ),
         FilledButton(
-          onPressed: () => Navigator.of(dialogContext).pop(editedName),
+          onPressed: () {
+            Sfx.instance.playInteraction(
+              InteractionSound.place,
+              material: MaterialSound.glass,
+            );
+            Navigator.of(dialogContext).pop(editedName);
+          },
           child: const Text('Save name'),
         ),
       ],
@@ -219,6 +232,7 @@ Future<void> _personalizeSpace(
   bool visitorPhotoSharingEnabled,
   bool visitorProfileSharingEnabled,
 ) async {
+  Sfx.instance.playMaterial(MaterialSound.parchment);
   await Navigator.of(context).push<void>(
     MaterialPageRoute(
       fullscreenDialog: true,
@@ -935,7 +949,10 @@ class _SpaceArrangerCard extends StatelessWidget {
                       minWidth: 48,
                       minHeight: 48,
                     ),
-                    onPressed: onVisibilityChanged,
+                    onPressed: () {
+                      Sfx.instance.playMaterial(MaterialSound.glass);
+                      onVisibilityChanged();
+                    },
                     icon: Icon(
                       hidden
                           ? Icons.visibility_off_outlined
@@ -1433,7 +1450,13 @@ class _JournalMomentChoice extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Checkbox(value: selected, onChanged: (_) => onTap()),
+                  Checkbox(
+                    value: selected,
+                    onChanged: (_) {
+                      Sfx.instance.playInteraction(InteractionSound.select);
+                      onTap();
+                    },
+                  ),
                 ],
               ),
             ),
@@ -2094,12 +2117,15 @@ class MePage extends StatelessWidget {
                     : spaceDiscoveryEnabled && state.roomDiscoverable
                     ? 'Discoverable · ${state.roomCode}'
                     : 'Shared · ${state.roomCode}',
-                onTap: () => shareSpace(
-                  context,
-                  state,
-                  onPersist,
-                  spaceDiscoveryEnabled: spaceDiscoveryEnabled,
-                ),
+                onTap: () {
+                  Sfx.instance.playMaterial(MaterialSound.glass);
+                  shareSpace(
+                    context,
+                    state,
+                    onPersist,
+                    spaceDiscoveryEnabled: spaceDiscoveryEnabled,
+                  );
+                },
               ),
               _SpaceLink(
                 icon: Icons.travel_explore,
@@ -2107,23 +2133,29 @@ class MePage extends StatelessWidget {
                     ? 'Discover spaces'
                     : 'Visit a space',
                 onTap: spaceDiscoveryEnabled
-                    ? () => Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (_) => DiscoverSpacesScreen(
-                            state: state,
-                            onPersist: onPersist,
-                            parallax: parallax,
+                    ? () {
+                        Sfx.instance.playMaterial(MaterialSound.parchment);
+                        Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) => DiscoverSpacesScreen(
+                              state: state,
+                              onPersist: onPersist,
+                              parallax: parallax,
+                            ),
                           ),
-                        ),
-                      )
-                    : () => visitSpace(
-                        context,
-                        state: state,
-                        onPersist: onPersist,
-                        themeId: state.canvasTheme,
-                        lively: !state.reduceMotion,
-                        parallax: parallax,
-                      ),
+                        );
+                      }
+                    : () {
+                        Sfx.instance.playMaterial(MaterialSound.glass);
+                        visitSpace(
+                          context,
+                          state: state,
+                          onPersist: onPersist,
+                          themeId: state.canvasTheme,
+                          lively: !state.reduceMotion,
+                          parallax: parallax,
+                        );
+                      },
               ),
             ],
           ),
@@ -4062,8 +4094,10 @@ class _SpaceDeckHeading extends StatelessWidget {
         final status = discoveryEnabled && onManageDiscovery != null
             ? Pressable(
                 key: const ValueKey('space-page-manage-discovery'),
+                // glass/open is not a shipped material lane; select keeps the
+                // declared glass body audible instead of falling back to wood.
                 material: MaterialSound.glass,
-                interactionSound: InteractionSound.open,
+                interactionSound: InteractionSound.select,
                 pressDepth: 2,
                 semanticLabel: directoryListed
                     ? 'Manage Discover listing'

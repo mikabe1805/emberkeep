@@ -450,6 +450,11 @@ class Sfx {
   @visibleForTesting
   ValueChanged<String>? debugOnPlay;
 
+  /// Test-only probe for the resolved asset path (material take included),
+  /// recorded at the same gate-surviving boundary as [debugOnPlay].
+  @visibleForTesting
+  ValueChanged<String>? debugOnPlayAsset;
+
   /// Keeps widget tests out of the native audio plugin after recording a cue.
   @visibleForTesting
   bool debugBypassPlayback = false;
@@ -457,9 +462,11 @@ class Sfx {
   @visibleForTesting
   void debugResetForTesting() {
     debugOnPlay = null;
+    debugOnPlayAsset = null;
     debugBypassPlayback = false;
     soundEnabled = true;
     _ordinarySuppressedUntil = null;
+    _lastMaterialTake.clear();
     _interactions.resetBurst();
   }
 
@@ -599,6 +606,7 @@ class Sfx {
     required String eventName,
   }) {
     debugOnPlay?.call(eventName);
+    debugOnPlayAsset?.call(asset);
     if (debugBypassPlayback) return;
     final pool = _pools[asset];
     if (pool != null) {
@@ -652,6 +660,12 @@ class Sfx {
     );
   }
 
+  /// Last take played per material lane. The ordinary walk guarantees no two
+  /// consecutive variants repeat, but folding five variants onto three takes
+  /// collapses distinct variants (2,5 and 1,4) onto the same file — without
+  /// this, ~3 in 14 consecutive same-lane taps replay an identical master.
+  final Map<String, int> _lastMaterialTake = <String, int>{};
+
   /// Resolves the router's ordinary selection onto a shipped material lane.
   /// The router still owns the walk, rapid gains, and Paired Return — a
   /// material only substitutes which body answers, never the grammar.
@@ -669,7 +683,11 @@ class Sfx {
     final lane = '$folder/${role.name}';
     if (!_shippedMaterialLanes.contains(lane)) return selection.asset;
     final variant = int.parse(selection.asset.split('/').last);
-    final take = (variant - 1) % _materialTakeCount + 1;
+    var take = (variant - 1) % _materialTakeCount + 1;
+    if (take == _lastMaterialTake[lane]) {
+      take = take % _materialTakeCount + 1;
+    }
+    _lastMaterialTake[lane] = take;
     return 'room/materials/$lane/$take';
   }
 

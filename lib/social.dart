@@ -1018,7 +1018,10 @@ class _ShareDialogState extends State<_ShareDialog> {
                     // Mutuals can receive additional cards, so naming it a
                     // generic visitor preview would over-promise parity.
                     label: 'PREVIEW PUBLIC VIEW',
-                    onTap: widget.onPreview!,
+                    onTap: () {
+                      Sfx.instance.playMaterial(MaterialSound.glass);
+                      widget.onPreview!();
+                    },
                     expand: true,
                   ),
                   const SizedBox(height: 8),
@@ -1308,7 +1311,10 @@ class _ShareDialogState extends State<_ShareDialog> {
                         key: const Key('share-space-done'),
                         onPressed: _stopping
                             ? null
-                            : () => Navigator.of(context).pop(),
+                            : () {
+                                Sfx.instance.playMaterial(MaterialSound.glass);
+                                Navigator.of(context).pop();
+                              },
                         style: TextButton.styleFrom(
                           minimumSize: const Size(48, 48),
                           foregroundColor: Palette.xpLight,
@@ -1333,6 +1339,7 @@ class _ShareDialogState extends State<_ShareDialog> {
   }
 
   Future<void> _stopSharing() async {
+    Sfx.instance.playMaterial(MaterialSound.glass);
     final confirmed = await showDialog<bool>(
       context: context,
       barrierColor: Palette.dialogBarrier,
@@ -1361,7 +1368,13 @@ class _ShareDialogState extends State<_ShareDialog> {
           ),
           TextButton(
             key: const Key('share-space-confirm-stop'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
+            onPressed: () {
+              Sfx.instance.playInteraction(
+                InteractionSound.place,
+                material: MaterialSound.glass,
+              );
+              Navigator.of(dialogContext).pop(true);
+            },
             child: Text(
               'STOP SHARING',
               style: Type.label.copyWith(

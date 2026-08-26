@@ -491,7 +491,10 @@ class _DaybookPlaceFieldsState extends State<DaybookPlaceFields> {
     width: double.infinity,
     child: TextButton(
       key: ValueKey('${widget.keyPrefix}-manual-replacement'),
-      onPressed: _useManualReplacement,
+      onPressed: () {
+        Sfx.instance.playInteraction(InteractionSound.select);
+        _useManualReplacement();
+      },
       style: TextButton.styleFrom(
         minimumSize: const Size.fromHeight(44),
         alignment: Alignment.centerLeft,
