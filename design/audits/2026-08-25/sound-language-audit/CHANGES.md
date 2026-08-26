@@ -73,6 +73,43 @@ the playback boundary to observe resolved paths.
   unrecorded facts (fire_ignite/hearth 0.68 exception; ambience is a removed
   feature, not an unbuilt one).
 
+## Second pass — sound meaning (the wrong-type strain, 2026-08-25)
+
+Owner report: "tapping but not completing a quest plays the wrong type of
+sound rn." Diagnosis: the quest card pressed with a **parchment page-flip**
+(travel language) for every outcome. The strain: material declarations from
+the 2026-08-19 pre-texture era never got a semantic review against the
+mapping principle; a full sweep of all ~110 declarations found 19 more
+mismatches plus a second strain — the reward tier firing unearned.
+
+**The reported bug:** the quest press is now the everyday wood clasp ("tapping
+around is the current sound"); the parchment flip moved to the moment a
+Journal page or the workout runner *actually opens*; completion still answers
+with the detent. Invariant tests pin all three.
+
+**Material fixes (22):** brass returned to gold-only (abandon arms → glass,
+honor-claim → glass place, WHY chip → slate select, quick-add + spark-dismiss
+→ glass to match siblings, publish-space + send-spark → glass place); wood on
+page travel → parchment (Hearth Circle link, Room Guide panel + its rows,
+Keepsakes card); parchment off travel → its true surface (weekday/preset
+chips → slate select, daybook/academic completion toggles and saves → the
+place seat, add-daybook dialog → glass, slip-log → select, not-yet → glass);
+two heavy verbs aligned (delete-arm and target chips → select).
+
+**Reward tier re-earned (13 sites):** `streak` no longer plays for saving a
+task/event/class edit, adding a catalog or bonus quest, or copying text;
+`levelup` no longer plays for backup import, sign-in, kit lighting, or
+space-arrangement publish. All are now the confirmed place seat (glass-tinted
+in dialogs) or the glass copy detent. Deliberately LEFT earned: levelup on
+real level-ups and the rung climb (`_rise`), streak on real streaks, timer
+completions, and the social spark/quiet-company receipts (borderline — flag
+if they feel wrong).
+
+**Remaining gate:** the phone pass. Every changed surface plays an existing
+approved master, but which sound plays where is taste — tap through quests
+(complete / all-day / journal / workout), a daybook save, an abandon arm, and
+a backup action on the next build.
+
 ## Open owner decisions
 
 1. **Hearth ambience** — DESIGN-BIBLE.md still specs an optional loop;

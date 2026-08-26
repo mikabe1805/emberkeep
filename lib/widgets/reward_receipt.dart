@@ -242,7 +242,10 @@ class _RewardReceiptState extends State<RewardReceipt>
     _c.stop();
     setState(() => _heldForSheet = true);
     s.markEvidenceSeen([card.title]);
-    Sfx.instance.playMaterial(MaterialSound.brass);
+    Sfx.instance.playInteraction(
+      InteractionSound.select,
+      material: MaterialSound.stone,
+    );
     Haptics.tap();
     showModalBottomSheet<void>(
       context: context,

@@ -613,7 +613,10 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
           break;
       }
       widget.onPersist();
-      Sfx.instance.play('levelup');
+      Sfx.instance.playInteraction(
+        InteractionSound.place,
+        material: MaterialSound.glass,
+      );
       HapticFeedback.mediumImpact();
     } else {
       Sfx.instance.play('boing');

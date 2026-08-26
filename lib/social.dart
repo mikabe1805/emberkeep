@@ -580,7 +580,10 @@ Future<void> shareSpace(
       }
       return;
     }
-    Sfx.instance.playMaterial(MaterialSound.brass);
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     final published = await publishSpaceRoomState(
       state,
       current: state,

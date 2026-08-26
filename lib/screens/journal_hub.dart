@@ -596,7 +596,7 @@ class _JournalHubScreenState extends State<JournalHubScreen> {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          Sfx.instance.playMaterial(MaterialSound.wood);
+          Sfx.instance.playMaterial(MaterialSound.parchment);
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) =>

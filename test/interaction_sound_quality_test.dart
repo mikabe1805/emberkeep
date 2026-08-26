@@ -826,9 +826,21 @@ void main() {
       'void _openWorkout',
       'void _finishWorkout',
     );
-    expect(workoutOpen, contains('required bool contactAlreadyPlayed'));
-    expect(workoutOpen, contains('if (!contactAlreadyPlayed)'));
+    // Travel into a flow voices the parchment flip with the visual event;
+    // the launching press owns its own contact separately.
+    expect(workoutOpen, contains('playMaterial(MaterialSound.parchment)'));
     expect(workoutOpen, isNot(contains('HapticFeedback')));
+
+    // The quest press is the everyday clasp, never page travel — the flip
+    // belongs to a Journal or workout flow actually opening.
+    expect(questCard, isNot(contains('MaterialSound.parchment')));
+    expect(questCard, contains('material: MaterialSound.wood'));
+    final journalOpen = _between(
+      quests,
+      'Future<void> _openQuestJournal',
+      'void _completeQuest(',
+    );
+    expect(journalOpen, contains('playMaterial(MaterialSound.parchment)'));
 
     final themeOpen = _between(
       shop,

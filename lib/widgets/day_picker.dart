@@ -65,7 +65,10 @@ class _WeekdaySheetState extends State<_WeekdaySheet> {
   late int _sel = widget.initial;
 
   void _chooseDay(int day) {
-    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Sfx.instance.playInteraction(
+      InteractionSound.select,
+      material: MaterialSound.stone,
+    );
     setState(() => _sel = day);
   }
 

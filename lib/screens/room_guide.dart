@@ -30,14 +30,17 @@ class RoomGuideScreen extends StatelessWidget {
   final ValueChanged<int> onSelectTab;
 
   void _openTab(BuildContext context, int tab) {
-    Sfx.instance.playMaterial(MaterialSound.wood);
+    Sfx.instance.playInteraction(
+      InteractionSound.navigate,
+      material: MaterialSound.parchment,
+    );
     Haptics.tap();
     Navigator.of(context).pop();
     onSelectTab(tab);
   }
 
   void _openHelp(BuildContext context) {
-    Sfx.instance.playMaterial(MaterialSound.wood);
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     Haptics.tap();
     Navigator.of(context).push(
       MaterialPageRoute(

@@ -474,7 +474,10 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       widget.state.setRoomCode(publishedCode);
     }
     widget.onPersist();
-    Sfx.instance.play('levelup');
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     HapticFeedback.mediumImpact();
     if (mounted) Navigator.of(context).pop();
   }
@@ -2285,7 +2288,7 @@ class MePage extends StatelessWidget {
                   count: state.hearthCircleCodes.length,
                   active: state.quietCompanyActive,
                   onTap: () {
-                    Sfx.instance.playMaterial(MaterialSound.wood);
+                    Sfx.instance.playMaterial(MaterialSound.parchment);
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => HearthCircleScreen(
@@ -2632,7 +2635,7 @@ class MePage extends StatelessWidget {
           const SizedBox(height: 14),
           _RoomGuidePanel(
             onTap: () {
-              Sfx.instance.playMaterial(MaterialSound.wood);
+              Sfx.instance.playMaterial(MaterialSound.parchment);
               Haptics.tap();
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -5136,7 +5139,7 @@ class _ShareCardDialogState extends State<_ShareCardDialog> {
 
   void _copyText() {
     Clipboard.setData(ClipboardData(text: widget.summary));
-    Sfx.instance.play('streak');
+    Sfx.instance.playMaterial(MaterialSound.glass);
     final messenger = ScaffoldMessenger.of(context);
     Navigator.of(context).pop();
     messenger.showSnackBar(
@@ -5962,7 +5965,7 @@ class _CorruptRecoveryState extends State<_CorruptRecovery> {
                       onTap: () async {
                         await Clipboard.setData(ClipboardData(text: raw));
                         if (!context.mounted) return;
-                        Sfx.instance.play('streak');
+                        Sfx.instance.playMaterial(MaterialSound.glass);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             behavior: SnackBarBehavior.floating,
@@ -6138,7 +6141,10 @@ class _RestoreDialogState extends State<_RestoreDialog> {
       });
       return;
     }
-    Sfx.instance.play('levelup');
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     Navigator.of(context).pop();
   }
 
@@ -6935,7 +6941,10 @@ class _AccountDialogState extends State<_AccountDialog> {
       });
       return;
     }
-    Sfx.instance.play('levelup');
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     HapticFeedback.mediumImpact();
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(

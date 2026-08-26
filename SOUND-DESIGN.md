@@ -335,6 +335,17 @@ DESIGN-BIBLE.md still specs — is an open owner decision. The rejected Gen-1
 palette (`tap_*`, `tick*`, `complete.wav`) was also removed from the bundle;
 provenance stays in `assets/sfx/SOURCES.md`.
 
+**The meaning pass (same day, owner-reported).** "tapping but not completing
+a quest plays the wrong type of sound rn" exposed a second drift: the quest
+card pressed as a parchment page-flip, and a sweep found 19 more pre-texture
+declarations breaking the mapping principle plus a reward tier firing
+unearned (streak on saves and clipboard copies, levelup on backup and
+sign-in). All repaired: the quest press is the everyday clasp with the flip
+moved to a flow actually opening, brass is gold-only again, travel is
+parchment, commits seat as place, and streak/levelup play only for what §4
+says they mean. The full ledger is in
+`design/audits/2026-08-25/sound-language-audit/CHANGES.md`.
+
 **The reminder notification now speaks the world's language.** The
 `room-notification-voice-v1` study ("the room knocks") auditioned four
 candidates composed from the shared chain; the owner selected `knock-paced`

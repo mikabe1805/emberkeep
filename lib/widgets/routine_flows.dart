@@ -602,7 +602,7 @@ class _NightFlowState extends State<NightFlow> {
 
   /// Shame-free slip logging: no XP, no loss, no red — tomorrow is fresh.
   void _logSlip(Quest q) {
-    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Sfx.instance.playInteraction(InteractionSound.select);
     setState(() => _slipped.add(q));
   }
 
@@ -679,7 +679,7 @@ class _NightFlowState extends State<NightFlow> {
   }
 
   void _notYet(Quest q) {
-    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Sfx.instance.playMaterial(MaterialSound.glass);
     // ask again after a couple more honest completions — never nag
     setState(() => q.risingStreak = Quest.risesAt - 2);
     widget.onPersist();

@@ -421,7 +421,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return;
     }
     if (!mounted) return;
-    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Sfx.instance.playInteraction(InteractionSound.place);
     setState(() => _academicSchedule = next);
   }
 
@@ -502,7 +502,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return;
     }
     if (!mounted) return;
-    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Sfx.instance.playInteraction(InteractionSound.place);
     setState(() => _academicSchedule = next);
   }
 
@@ -636,7 +636,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!mounted) return false;
-    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Sfx.instance.playInteraction(InteractionSound.place);
     setState(() => _academicSchedule = next);
     return true;
   }
@@ -667,7 +667,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return;
     }
     if (!mounted) return;
-    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Sfx.instance.playInteraction(InteractionSound.place);
     setState(() => _academicSchedule = next);
   }
 
@@ -1186,7 +1186,7 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Future<void> _showAddDaybook(BuildContext context) async {
-    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Sfx.instance.playMaterial(MaterialSound.glass);
     final target = await showDialog<DaybookAddTarget>(
       context: context,
       barrierColor: Palette.dialogBarrier,
@@ -2657,7 +2657,10 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     ({String label, String title, Stat stat, double difficulty, IconData icon})
     preset,
   ) {
-    Sfx.instance.playMaterial(MaterialSound.parchment);
+    Sfx.instance.playInteraction(
+      InteractionSound.select,
+      material: MaterialSound.stone,
+    );
     HapticFeedback.selectionClick();
     setState(() {
       _title.text = preset.title;
@@ -2699,7 +2702,10 @@ class _AddEventDialogState extends State<_AddEventDialog> {
       setState(() => _error = 'already on your quest list');
       return;
     }
-    Sfx.instance.play('streak');
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     HapticFeedback.mediumImpact();
     Navigator.of(context).pop();
   }
