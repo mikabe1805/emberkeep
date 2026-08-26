@@ -1,10 +1,14 @@
 # Sound-effect sources
 
-> **Current status (2026-08-21):** the production everyday family is the
-> phone-approved X clasp under `room/ordinary/`. The older `tap_*` and `tick*`
-> files are archived compatibility assets: the user rejected their sound
-> quality and near-static note variation, and runtime no longer routes to
-> them. Do not extend the archived recipe.
+> **Current status (2026-08-25):** the production everyday family is the
+> phone-approved X clasp under `room/ordinary/`. The older `tap_*`, `tick*`,
+> `complete.wav`, and `hearth_room.wav` files were archived compatibility
+> assets: the user rejected their sound quality and near-static note
+> variation, and runtime no longer routed to them. On 2026-08-25 their bytes
+> were removed from the bundle entirely (~0.6 MB); this provenance record and
+> the approved-study archives under `design/audits/` remain the reference.
+> Do not extend the archived recipe. `hearth.wav` stays bundled pending the
+> owner's decision on optional hearth ambience (see DESIGN-BIBLE.md).
 
 ## Production Room interaction family
 
