@@ -1,0 +1,31 @@
+{
+  "study": "room-completion-voice-v2",
+  "level_reference": "shipped composite",
+  "candidates": {
+    "control": {
+      "sha256": "7caf33eb445f49d63fcaa90fa7d27a3236e67658f5fa4ba5844634a67a0ecad2",
+      "seconds": 0.43,
+      "peak": 0.290816
+    },
+    "polish": {
+      "sha256": "992f62e8ed551c1c2c9f04e13e6eea1c9d59960672c7ad6ccbc92d792cfac8ca",
+      "seconds": 0.43,
+      "peak": 0.202621
+    },
+    "deeper-seat": {
+      "sha256": "8d774497437b193a9ad609040c495006656f7b8c348a51eb9fb5b37e17af0339",
+      "seconds": 0.43,
+      "peak": 0.20293
+    },
+    "weighted-answer": {
+      "sha256": "029727179f9e47e78f189892e84393b110d1941692f1584ba6c11d45deaf8844",
+      "seconds": 0.43,
+      "peak": 0.20357
+    },
+    "longer-settle": {
+      "sha256": "986fe040b1e6889463f03a22baf16a8bac29da5239dd862e57a3cf49a747fa54",
+      "seconds": 0.46,
+      "peak": 0.189554
+    }
+  }
+}
