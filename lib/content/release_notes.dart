@@ -52,6 +52,38 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+34',
+    versionLabel: 'VERSION 1.0.4 · BUILD 34',
+    dateLabel: 'AUGUST 2026',
+    title: 'Your semester can come in together.',
+    introduction:
+        'Choose the Room of Days .ics file, review every course, and bring '
+        'the full schedule into Plans in one go.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.academicDaybook,
+        title: 'BRING THE WHOLE SEMESTER',
+        body:
+            'Import a Room of Days class file instead of rebuilding every '
+            'lecture, lab, exception, and recess by hand.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.calendarViews,
+        title: 'CHECK BEFORE IT LANDS',
+        body:
+            'See the term, course list, weekly meeting count, and final class '
+            'count before anything is saved.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'YOUR CALENDAR STAYS YOURS',
+        body:
+            'The import is one-way: it never edits the source calendar, and '
+            're-importing leaves your manual class changes alone.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+33',
     versionLabel: 'VERSION 1.0.4 · BUILD 33',
     dateLabel: 'AUGUST 2026',

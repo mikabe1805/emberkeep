@@ -7,8 +7,11 @@ import 'package:flutter/services.dart';
 import '../academic_calendar/data/academic_calendar_preferences.dart';
 import '../academic_calendar/data/academic_schedule_repository.dart';
 import '../academic_calendar/domain/academic_schedule.dart';
+import '../academic_calendar/import/academic_schedule_file_picker.dart';
+import '../academic_calendar/import/academic_schedule_ics_import.dart';
 import '../academic_calendar/services/notebook_handoff.dart';
 import '../academic_calendar/widgets/academic_calendar_sections.dart';
+import '../academic_calendar/widgets/academic_schedule_import_dialog.dart';
 import '../audio.dart';
 import '../clock.dart';
 import '../daybook/data/daybook_preferences.dart';
@@ -77,6 +80,7 @@ class CalendarPage extends StatefulWidget {
     this.directionsLauncher,
     this.daybookPreferences,
     this.timeZoneIdProvider,
+    this.academicScheduleFilePicker,
     this.placeSearchFactory = const ProductionDaybookPlaceSearchFactory(),
   });
 
@@ -92,6 +96,7 @@ class CalendarPage extends StatefulWidget {
   final DirectionsLauncher? directionsLauncher;
   final DaybookPreferences? daybookPreferences;
   final TimeZoneIdProvider? timeZoneIdProvider;
+  final AcademicScheduleFilePicker? academicScheduleFilePicker;
   final DaybookPlaceSearchFactory placeSearchFactory;
 
   @override
@@ -108,6 +113,7 @@ class _CalendarPageState extends State<CalendarPage> {
   late final NotebookHandoff _notebookHandoff;
   late final DirectionsLauncher _directionsLauncher;
   late final DaybookPreferences _daybookPreferences;
+  late final AcademicScheduleFilePicker _academicScheduleFilePicker;
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
   AcademicCalendarMode _academicMode = AcademicCalendarMode.month;
   bool _academicLoading = true;
@@ -131,6 +137,9 @@ class _CalendarPageState extends State<CalendarPage> {
         widget.directionsLauncher ?? const ExternalDirectionsLauncher();
     _daybookPreferences =
         widget.daybookPreferences ?? LocalDaybookPreferences();
+    _academicScheduleFilePicker =
+        widget.academicScheduleFilePicker ??
+        const PlatformAcademicScheduleFilePicker();
     unawaited(_loadAcademicCalendar());
   }
 
@@ -446,6 +455,33 @@ class _CalendarPageState extends State<CalendarPage> {
       setState(() => _academicSchedule = next);
       _persistAcademicView();
     }
+    return true;
+  }
+
+  Future<bool> _saveAcademicScheduleImport(
+    AcademicScheduleImportDraft draft,
+  ) async {
+    late final AcademicSchedule next;
+    try {
+      next = draft.applyTo(_academicSchedule, updatedAt: Clock.now().toUtc());
+    } on ArgumentError {
+      return false;
+    } on FormatException {
+      return false;
+    }
+    if (!await _scheduleRepository.save(next)) return false;
+    if (!mounted) return true;
+
+    final selected = CivilDate.fromDateTime(_selected);
+    setState(() {
+      _academicSchedule = next;
+      if (!selected.isWithin(draft.term.startDate, draft.term.endDate)) {
+        _selected = draft.term.startDate.dateArithmeticValue;
+        _month = DateTime(_selected.year, _selected.month);
+        _threeDayStart = draft.term.startDate;
+      }
+    });
+    _persistAcademicView();
     return true;
   }
 
@@ -1225,6 +1261,15 @@ class _CalendarPageState extends State<CalendarPage> {
             selectedDay: _selected,
             placeSearchFactory: widget.placeSearchFactory,
             onSave: _saveAcademicMeeting,
+          ),
+        );
+      case DaybookAddTarget.importClasses:
+        await showDialog<void>(
+          context: context,
+          barrierColor: Palette.dialogBarrier,
+          builder: (_) => AcademicScheduleImportDialog(
+            filePicker: _academicScheduleFilePicker,
+            onImport: _saveAcademicScheduleImport,
           ),
         );
       case DaybookAddTarget.assignment || DaybookAddTarget.exam:

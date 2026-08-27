@@ -18,7 +18,17 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 33)
+## App Store What's New — Version 1.0.4 (Build 34)
+
+Your semester can come in together.
+
+Plans can now import the Room of Days class `.ics` file. Choose it from the
+Daybook add menu, review the term and every course, then bring the full schedule
+in at once—including designated class days, recess, and holiday exceptions.
+
+The import is one-way and local. It does not connect to or change the source
+calendar, repeated imports do not create duplicates, and your manual changes to
+individual class meetings stay yours.
 
 The open door is finally in the open.
 

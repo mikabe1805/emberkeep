@@ -5,7 +5,14 @@ import '../../tokens.dart';
 import '../../widgets/facets.dart';
 import '../../widgets/glass.dart';
 
-enum DaybookAddTarget { event, task, classMeeting, assignment, exam }
+enum DaybookAddTarget {
+  event,
+  task,
+  classMeeting,
+  importClasses,
+  assignment,
+  exam,
+}
 
 class DaybookAddChoiceDialog extends StatelessWidget {
   const DaybookAddChoiceDialog({super.key});
@@ -101,6 +108,15 @@ class DaybookAddChoiceDialog extends StatelessWidget {
                 subtitle: 'A lecture, lab, meeting, or recurring class',
                 onTap: () =>
                     Navigator.of(context).pop(DaybookAddTarget.classMeeting),
+              ),
+              const SizedBox(height: 7),
+              _DaybookAddChoice(
+                key: const ValueKey('academic-add-choice-import'),
+                icon: Icons.upload_file_outlined,
+                title: 'IMPORT CLASSES',
+                subtitle: 'Review an .ics schedule before adding it',
+                onTap: () =>
+                    Navigator.of(context).pop(DaybookAddTarget.importClasses),
               ),
               const SizedBox(height: 7),
               _DaybookAddChoice(

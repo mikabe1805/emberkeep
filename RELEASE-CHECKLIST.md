@@ -1,7 +1,41 @@
 # Room of Days Release Checklist
 
-Updated August 25, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 27, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
+
+## 1.0.4+34 internal TestFlight candidate — supersedes Build 33
+
+Build 34 starts from the exact source that produced approved internal Build 33
+and adds one focused path in Plans: a review-first, one-way import for a Room of
+Days class `.ics` file. The review names every course and shows the term, weekly
+meeting count, and final occurrence count before local storage changes. The
+import includes calendar exceptions, does not write back to the source calendar,
+does not duplicate records when repeated, and preserves manually adjusted class
+occurrences. `pubspec.yaml` is `1.0.4+34`.
+
+- [x] Reconstruct the approved importer on immutable Build 33 source commit
+  `af489f22ea8e23bc0477efd22313f9f06df1d330`, excluding unrelated development
+  and sound work.
+- [x] Add a native/web `.ics` picker, deterministic academic parser, review
+  dialog, and Daybook entry point without broad calendar permissions or sync.
+- [x] Verify the Rutgers Fall 2026 fixture produces six courses, twelve weekly
+  meeting series, 168 live occurrences, both designated class days, recess and
+  holiday exceptions, Eastern time across DST, and idempotent re-import.
+- [x] Preserve manual moved/cancelled class occurrences when the same source
+  exception appears again, with a direct regression test.
+- [x] Advance the candidate and in-app What's New record to Build 34.
+- [x] Pass the complete 830-test Flutter suite, analyzer, iOS store-packet
+  verifier, and exact diff/repository checks on the clean candidate.
+- [ ] Commit and push the exact reviewed source, then start exactly one manual
+  `ios-testflight` workflow after confirming branch, workflow, commit, and
+  version in Codemagic.
+- [ ] Preserve the signed IPA, dSYMs, release evidence, hashes, and receipt; then
+  confirm Apple has processed Build 34 and made it available to the intended
+  internal group.
+- [ ] Install Build 34 on a physical iPhone and exercise the Files picker,
+  review scrolling, import, designated class days, relaunch persistence,
+  re-import preservation, largest text, VoiceOver, haptics, sound, and warm
+  performance. A successful cloud build does not close this owner-device gate.
 
 ## 1.0.4+33 iOS App Store candidate — supersedes Build 32
 
