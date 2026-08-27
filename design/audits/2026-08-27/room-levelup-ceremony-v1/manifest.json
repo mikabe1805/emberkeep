@@ -1,0 +1,30 @@
+{
+  "study": "room-levelup-ceremony-v1",
+  "level_reference": "shipped levelup.wav",
+  "candidates": {
+    "control": {
+      "sha256": "45c3317df4d79fff17ecbca23a5a20be823b0af485534a4bacb89cb50b48f01e",
+      "seconds": 0.95,
+      "peak": 0.501187,
+      "phone_band_rms_dbfs": -26.6
+    },
+    "procession": {
+      "sha256": "ec8d36d81ac0bbe9bf7ff81607cbee2293cf6ba8b1730999ba49c1781a15a9a9",
+      "seconds": 1.9,
+      "peak": 0.501187,
+      "phone_band_rms_dbfs": -27.65
+    },
+    "peal": {
+      "sha256": "da0b95d2a71962c1aa5b4dcf3f5c6305c829881c9e510335e6affbcb3a552685",
+      "seconds": 2.15,
+      "peak": 0.501187,
+      "phone_band_rms_dbfs": -29.26
+    },
+    "crown-echo": {
+      "sha256": "8258a5ce9c1b5f08c5064a9ee282d6970aa894ff6e877d61fb58bfc68c204a75",
+      "seconds": 2.4,
+      "peak": 0.501187,
+      "phone_band_rms_dbfs": -30.39
+    }
+  }
+}

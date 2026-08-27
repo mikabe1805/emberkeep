@@ -151,26 +151,37 @@ void main() {
   });
 
   test('runtime preserves the locked completion and its two sources', () {
-    const componentNames = [
+    // The accepted contact stays the immutable v3 master; the detent and
+    // composite are the longer-settle voice the owner approved 2026-08-27
+    // ("the longer settle sounds good!").
+    final acceptedRuntime = File(
+      'assets/sfx/room/completion/accepted-select-2.wav',
+    );
+    final acceptedApproved = File(
+      'design/audits/2026-08-20/room-c-gesture-v3/locked/'
       'accepted-select-2.wav',
-      'answered-detent-natural.wav',
-    ];
-    for (final name in componentNames) {
-      final runtime = File('assets/sfx/room/completion/$name');
-      final approved = File(
-        'design/audits/2026-08-20/room-c-gesture-v3/locked/$name',
-      );
-      expect(
-        runtime.readAsBytesSync(),
-        orderedEquals(approved.readAsBytesSync()),
-      );
-    }
+    );
+    expect(
+      acceptedRuntime.readAsBytesSync(),
+      orderedEquals(acceptedApproved.readAsBytesSync()),
+    );
+    final detentRuntime = File(
+      'assets/sfx/room/completion/answered-detent-natural.wav',
+    );
+    final detentApproved = File(
+      'design/audits/2026-08-27/room-completion-voice-v2/locked/'
+      'answered-detent-longer-settle.wav',
+    );
+    expect(
+      detentRuntime.readAsBytesSync(),
+      orderedEquals(detentApproved.readAsBytesSync()),
+    );
     final runtimeComposite = File(
       'assets/sfx/room/completion/completion-composite.wav',
     );
     final approvedComposite = File(
-      'design/audits/2026-08-20/room-reward-voice-v1/'
-      'composites/answered-detent/natural.wav',
+      'design/audits/2026-08-27/room-completion-voice-v2/'
+      'candidates/longer-settle.wav',
     );
     expect(
       runtimeComposite.readAsBytesSync(),
@@ -178,11 +189,11 @@ void main() {
     );
     expect(
       sha256.convert(runtimeComposite.readAsBytesSync()).toString(),
-      '7caf33eb445f49d63fcaa90fa7d27a3236e67658f5fa4ba5844634a67a0ecad2',
-      reason: 'this digest pins the approved Select-2 → +75 ms Detent master',
+      '986fe040b1e6889463f03a22baf16a8bac29da5239dd862e57a3cf49a747fa54',
+      reason: 'this digest pins the approved longer-settle completion master',
     );
     final wave = _readWave(runtimeComposite);
-    expect(wave.durationMs, closeTo(430, 0.01));
+    expect(wave.durationMs, closeTo(460, 0.01));
     expect(
       wave.onsetMs,
       lessThan(1),

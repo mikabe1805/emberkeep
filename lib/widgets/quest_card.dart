@@ -1214,7 +1214,9 @@ class _CheckRingState extends State<_CheckRing>
     with SingleTickerProviderStateMixin {
   late final AnimationController _resolve = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 430),
+    // Matched to the 460 ms longer-settle completion master so the ring
+    // finishes resolving as the sound finishes settling.
+    duration: const Duration(milliseconds: 460),
   );
 
   @override

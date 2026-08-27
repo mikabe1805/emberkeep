@@ -707,7 +707,7 @@ class Sfx {
     if (!soundEnabled || (kIsWeb && !browserAudioAvailable)) return;
     final now = DateTime.now();
     if (!_completions.claim(transitionId, at: now)) return;
-    _ordinarySuppressedUntil = now.add(const Duration(milliseconds: 430));
+    _ordinarySuppressedUntil = now.add(const Duration(milliseconds: 460));
     _playAsset(
       contactAlreadyPlayed
           ? 'room/completion/answered-detent-natural'

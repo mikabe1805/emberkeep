@@ -34,9 +34,11 @@ the precomposed file for delayed or non-Pressable completions; when a visible
 bob already voiced contact, it plays the locked `answered-detent-natural.wav`
 outcome instead of layering another generic tap over the same touch.
 This completion is also deterministic project-authored synthesis and contains
-no third-party or reference-video audio. The 430 ms atomic master is copied
-byte-for-byte from `room-reward-voice-v1/composites/answered-detent/natural.wav`
-and is sample-equal to the two v3 component masters placed at 0 and +75 ms.
+no third-party or reference-video audio. The 460 ms atomic master is copied
+byte-for-byte from `room-completion-voice-v2/candidates/longer-settle.wav`
+(owner-approved 2026-08-27: "the longer settle sounds good!") — the same
+gesture re-rendered under render-polish discipline with a 0.36 s settle; the
+bare detent ships as its `locked/answered-detent-longer-settle.wav` twin.
 The similarly named v3 `locked/completion-composite.wav` is a 6.1-second study
 flow with its completion parked at 5.3 seconds; it is audit evidence, never a
 runtime cue.

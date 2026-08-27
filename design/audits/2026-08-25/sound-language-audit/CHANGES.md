@@ -110,6 +110,18 @@ approved master, but which sound plays where is taste — tap through quests
 (complete / all-day / journal / workout), a daybook save, an abandon arm, and
 a backup action on the next build.
 
+## Completion re-voiced — longer-settle shipped (2026-08-27)
+
+`room-completion-voice-v2` verdict: "the longer settle sounds good!" —
+`longer-settle` shipped byte-identical (composite 430→460 ms, the same
+gesture under render-polish with a 0.36 s detent settle). Synced changes:
+the completion owns-the-air window and the quest card's check-ring resolve
+both moved 430→460 ms; byte-locks and the SHA-256 pin updated; SOURCES.md /
+SOUND-DESIGN.md / DESIGN-BIBLE.md timings corrected. The same owner message
+directed a longer celebratory tier — `room-levelup-ceremony-v1` (three
+ceremonies, 1.9–2.4 s, grown from the shipped phrase) awaits verdict; its
+winner ships with an extended suppression window.
+
 ## Open owner decisions
 
 1. **Hearth ambience** — DESIGN-BIBLE.md still specs an optional loop;

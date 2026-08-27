@@ -162,7 +162,7 @@ The reward tier was the last part still voiced by bare sine blips — the
   stat sweep literally plays the field.
 - **completion** (pre-existing, untouched) — permanence, not reward: the
   accepted contact, then the Answered Detent exactly 75 ms later, baked into
-  one 430 ms file so frame timing can never flam it.
+  one atomic file (460 ms since the 2026-08-27 longer-settle re-voice) so frame timing can never flam it.
 
 ---
 
@@ -198,7 +198,7 @@ Files are half the system; the router is the other half.
 - **Rapid attenuation** — fast tapping softens on the measured ladder
   1 / 0.93 / 0.93 / 0.885 instead of building an accidental drum roll.
 - **Reward suppression** — an earned sound mutes ordinary taps for 140 ms
-  (430 ms for completion) so the moment that matters owns the air.
+  (460 ms for completion) so the moment that matters owns the air.
 - **Paired Return** — after four well-paced accepted actions, the next four
   taps may carry D5→A5→E5→D5 over the unchanged mechanism; once per screen,
   90-second global cooldown. The melodic play the owner loves, kept rare
