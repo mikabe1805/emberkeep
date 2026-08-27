@@ -26,12 +26,19 @@ occurrences. `pubspec.yaml` is `1.0.4+34`.
 - [x] Advance the candidate and in-app What's New record to Build 34.
 - [x] Pass the complete 830-test Flutter suite, analyzer, iOS store-packet
   verifier, and exact diff/repository checks on the clean candidate.
-- [ ] Commit and push the exact reviewed source, then start exactly one manual
+- [x] Commit and push the exact reviewed source, then start exactly one manual
   `ios-testflight` workflow after confirming branch, workflow, commit, and
-  version in Codemagic.
-- [ ] Preserve the signed IPA, dSYMs, release evidence, hashes, and receipt; then
-  confirm Apple has processed Build 34 and made it available to the intended
-  internal group.
+  version in Codemagic. Codemagic Build #48 (`6a906faf93ce6bdf2875dbe9`)
+  ran from exact commit `00844fce45a2fbaf4ad85ccd8bf3530869cfc3f6` on
+  `release/room-of-days-1.0.4-build-34` and passed every build step.
+- [x] Preserve the signed IPA, every dSYM, release evidence, hashes, and receipt,
+  and confirm Apple processes Build 34. Apple processed delivery
+  `d6860006-14a7-47c0-9fba-6d3debcfe311`; the archived IPA SHA-256 is
+  `57696F187E8184167F5101EE7BA5C37808A226AB35576000ABB09E77005D5EBD`.
+- [ ] Confirm Build 34 is attached to the internal `Me` group and save the exact
+  Build 34 What to Test packet. Codemagic submitted the processed build to
+  TestFlight beta review, which was `WAITING_FOR_REVIEW` at handoff; direct
+  App Store Connect verification requires a refreshed Apple sign-in.
 - [ ] Install Build 34 on a physical iPhone and exercise the Files picker,
   review scrolling, import, designated class days, relaunch persistence,
   re-import preservation, largest text, VoiceOver, haptics, sound, and warm

@@ -154,6 +154,14 @@ and doing what matters is especially useful.
   larger text.
 - If you use School, add a class, assignment, or exam beside personal plans. If
   you do not, confirm nothing asks you to set up a term or course.
+- In Plans, open the add menu, choose **Import class schedule**, and select the
+  provided Rutgers Fall 2026 `.ics` file. Before importing, confirm the review
+  shows six courses, twelve weekly meeting series, and 168 class meetings.
+- Import, relaunch, and inspect the designated Monday on September 8 and the
+  designated Friday on November 25. Confirm Labor Day, Thanksgiving recess,
+  and the other source exceptions do not leave stray class meetings.
+- Re-import the same file and confirm it adds no duplicates. Move or cancel one
+  imported meeting, re-import once more, and confirm that manual change stays.
 - Add a manual location and routing address, tap **Get Directions**, and try
   Apple Maps and Google Maps. Confirm the remembered choice and change option
   behave clearly.
