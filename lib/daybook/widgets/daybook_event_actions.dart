@@ -279,7 +279,10 @@ class _ActionDialogFrame extends StatelessWidget {
                   ),
                   IconButton(
                     tooltip: 'Close',
-                    onPressed: () => Navigator.of(context).maybePop(),
+                    onPressed: () {
+                      Sfx.instance.playMaterial(MaterialSound.glass);
+                      Navigator.of(context).maybePop();
+                    },
                     icon: const Icon(
                       Icons.close_rounded,
                       color: Palette.textLo,

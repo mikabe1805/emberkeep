@@ -188,10 +188,12 @@ class _QuestCardState extends State<QuestCard>
               : '${opensJournal ? 'Activate to open a dedicated Journal entry' : 'Activate to complete'}${widget.onManage == null ? '' : '; use Manage to edit'}',
           onTapUp: _handleTap,
           onLongPress: widget.onManage,
-          // Every visible quest bob owns this immediate page-contact cue, even
-          // if the gesture later becomes a scroll. QuestsPage separately owns
-          // a real accepted outcome such as completion.
-          material: MaterialSound.parchment,
+          // Every visible quest bob owns this immediate everyday-clasp cue,
+          // even if the gesture later becomes a scroll. The press itself is
+          // not page travel — QuestsPage voices the actual outcome (the
+          // completion detent, or the parchment flip when a Journal or
+          // workout flow really opens).
+          material: MaterialSound.wood,
           interactionSound: InteractionSound.open,
           shape: const FacetedBorder(cut: 11),
           child: AnimatedContainer(
@@ -1212,7 +1214,9 @@ class _CheckRingState extends State<_CheckRing>
     with SingleTickerProviderStateMixin {
   late final AnimationController _resolve = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 430),
+    // Matched to the 460 ms longer-settle completion master so the ring
+    // finishes resolving as the sound finishes settling.
+    duration: const Duration(milliseconds: 460),
   );
 
   @override

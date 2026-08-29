@@ -1,10 +1,14 @@
 # Sound-effect sources
 
-> **Current status (2026-08-21):** the production everyday family is the
-> phone-approved X clasp under `room/ordinary/`. The older `tap_*` and `tick*`
-> files are archived compatibility assets: the user rejected their sound
-> quality and near-static note variation, and runtime no longer routes to
-> them. Do not extend the archived recipe.
+> **Current status (2026-08-25):** the production everyday family is the
+> phone-approved X clasp under `room/ordinary/`. The older `tap_*`, `tick*`,
+> `complete.wav`, and `hearth_room.wav` files were archived compatibility
+> assets: the user rejected their sound quality and near-static note
+> variation, and runtime no longer routed to them. On 2026-08-25 their bytes
+> were removed from the bundle entirely (~0.6 MB); this provenance record and
+> the approved-study archives under `design/audits/` remain the reference.
+> Do not extend the archived recipe. `hearth.wav` stays bundled pending the
+> owner's decision on optional hearth ambience (see DESIGN-BIBLE.md).
 
 ## Production Room interaction family
 
@@ -30,9 +34,11 @@ the precomposed file for delayed or non-Pressable completions; when a visible
 bob already voiced contact, it plays the locked `answered-detent-natural.wav`
 outcome instead of layering another generic tap over the same touch.
 This completion is also deterministic project-authored synthesis and contains
-no third-party or reference-video audio. The 430 ms atomic master is copied
-byte-for-byte from `room-reward-voice-v1/composites/answered-detent/natural.wav`
-and is sample-equal to the two v3 component masters placed at 0 and +75 ms.
+no third-party or reference-video audio. The 460 ms atomic master is copied
+byte-for-byte from `room-completion-voice-v2/candidates/longer-settle.wav`
+(owner-approved 2026-08-27: "the longer settle sounds good!") — the same
+gesture re-rendered under render-polish discipline with a 0.36 s settle; the
+bare detent ships as its `locked/answered-detent-longer-settle.wav` twin.
 The similarly named v3 `locked/completion-composite.wav` is a 6.1-second study
 flow with its completion parked at 5.3 seconds; it is audit evidence, never a
 runtime cue.

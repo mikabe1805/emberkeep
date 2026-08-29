@@ -261,7 +261,10 @@ class _DaybookEventEditorState extends State<DaybookEventEditor> {
       });
       return;
     }
-    Sfx.instance.play('streak');
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     HapticFeedback.mediumImpact();
     if (Navigator.of(context).canPop()) Navigator.of(context).pop(event);
   }
@@ -489,7 +492,10 @@ Widget _editorHeader(BuildContext context, String title) => Row(
     ),
     IconButton(
       tooltip: 'Close',
-      onPressed: () => Navigator.of(context).maybePop(),
+      onPressed: () {
+        Sfx.instance.playMaterial(MaterialSound.glass);
+        Navigator.of(context).maybePop();
+      },
       icon: const Icon(Icons.close_rounded, color: Palette.textLo),
     ),
   ],

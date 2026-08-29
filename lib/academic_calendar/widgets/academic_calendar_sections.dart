@@ -2409,7 +2409,10 @@ class _AcademicOccurrenceAdjustDialogState
       });
       return;
     }
-    Sfx.instance.play('streak');
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     HapticFeedback.mediumImpact();
     Navigator.of(context).pop();
   }
@@ -2976,7 +2979,10 @@ class _AddAcademicMeetingDialogState extends State<AddAcademicMeetingDialog> {
       });
       return;
     }
-    Sfx.instance.play('streak');
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     HapticFeedback.mediumImpact();
     Navigator.of(context).pop();
   }
@@ -3458,7 +3464,10 @@ class _AddAcademicWorkDialogState extends State<AddAcademicWorkDialog> {
       });
       return;
     }
-    Sfx.instance.play('streak');
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     HapticFeedback.mediumImpact();
     Navigator.of(context).pop();
   }
@@ -3759,7 +3768,10 @@ class _AcademicStudyPlannerDialogState
       });
       return;
     }
-    Sfx.instance.play('streak');
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     HapticFeedback.mediumImpact();
     Navigator.of(context).pop();
   }

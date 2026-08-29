@@ -60,6 +60,18 @@ class Notifications {
     } catch (e) {
       debugPrint('Notifications init (continuing): $e');
     }
+    // Android bakes a channel's sound at creation, so the room's reminder
+    // voice ships on the v2 channel; drop the old default-sound channel so
+    // settings don't show two entries both named Reminders.
+    try {
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.deleteNotificationChannel('emberkeep_reminders');
+    } catch (e) {
+      debugPrint('Notifications channel cleanup (continuing): $e');
+    }
   }
 
   /// Refreshes the wall-clock zone after the app resumes. A phone may travel
@@ -139,14 +151,18 @@ class Notifications {
     return ReminderPermissionStatus.unknown;
   }
 
+  /// Every reminder speaks the room's own voice: "two knocks, rising"
+  /// (room-notification-voice-v1, owner-selected 2026-08-25), byte-identical
+  /// to the audition master on both platforms and byte-locked by test.
   static NotificationDetails _details() => const NotificationDetails(
-    iOS: DarwinNotificationDetails(),
+    iOS: DarwinNotificationDetails(sound: 'knock_paced.wav'),
     android: AndroidNotificationDetails(
-      'emberkeep_reminders',
+      'emberkeep_reminders_v2',
       'Reminders',
       channelDescription: 'Quest, plan, and night routine reminders',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
+      sound: RawResourceAndroidNotificationSound('knock_paced'),
     ),
   );
 

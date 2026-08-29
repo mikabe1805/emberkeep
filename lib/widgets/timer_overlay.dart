@@ -201,7 +201,10 @@ class _TimerOverlayState extends State<TimerOverlay>
                     // proof multiplies, never gates — honor path always open
                     GestureDetector(
                       onTap: () {
-                        Sfx.instance.playMaterial(MaterialSound.brass);
+                        Sfx.instance.playInteraction(
+                          InteractionSound.place,
+                          material: MaterialSound.glass,
+                        );
                         widget.onHonor();
                       },
                       child: Container(

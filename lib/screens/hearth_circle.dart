@@ -403,7 +403,10 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
   }
 
   Future<void> _sendSpark(String code, String kind) async {
-    Sfx.instance.playMaterial(MaterialSound.brass);
+    Sfx.instance.playInteraction(
+      InteractionSound.place,
+      material: MaterialSound.glass,
+    );
     final sender = widget.sparkSender;
     if (sender == null && !await CloudSync.instance.ensureSocialSession()) {
       if (mounted) _toast('Couldn’t connect your note right now.');

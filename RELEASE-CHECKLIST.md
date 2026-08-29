@@ -63,10 +63,17 @@ their geometry directly. `pubspec.yaml` is `1.0.4+33`.
   and seven opaque 1290×2796 App Store frames.
 - [x] Pass the complete 818-test Flutter suite, analyzer, iOS store-packet verifier,
   Firestore emulator authorization suite, and repository consistency checks.
-- [ ] Commit and push the reviewed Build 33 source, then start exactly one manual
-  `ios-testflight` workflow from that immutable commit.
-- [ ] Confirm Apple processes and approves Build 33 for the internal `Me` group,
-  preserve the signed artifacts and receipt, then install it over Build 32.
+- [x] Commit and push the reviewed Build 33 source, then start exactly one manual
+  `ios-testflight` workflow from that immutable commit. Codemagic Build #47
+  (`6a8de37a9c6701a77a0dcddf`) ran from exact commit
+  `af489f22ea8e23bc0477efd22313f9f06df1d330`, passed the complete CI gate,
+  verified the signed IPA, and uploaded Version 1.0.4, Build 33 with no errors.
+- [x] Confirm Apple processes and approves Build 33 for the internal `Me` group.
+  Apple approved delivery `0f0de786-e81f-4fc2-b95d-f17b86814880`; the exact
+  What to Test packet is saved, and the IPA, every dSYM, release evidence,
+  hashes, and receipt are preserved under
+  `../release-artifacts/room-of-days/1.0.4+33/codemagic-build-47-af489f2/`.
+- [ ] Install Build 33 over Build 32 and as a fresh install on physical iPhones.
 - [ ] Repeat the fresh-install and signed two-identity physical iPhone gate:
   Discover acknowledgement and persistence, Anyone, one-way Circle, reciprocal
   Mutuals, removal, block, code rotation, report, positive App Attest, native

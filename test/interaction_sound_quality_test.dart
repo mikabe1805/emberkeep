@@ -151,26 +151,37 @@ void main() {
   });
 
   test('runtime preserves the locked completion and its two sources', () {
-    const componentNames = [
+    // The accepted contact stays the immutable v3 master; the detent and
+    // composite are the longer-settle voice the owner approved 2026-08-27
+    // ("the longer settle sounds good!").
+    final acceptedRuntime = File(
+      'assets/sfx/room/completion/accepted-select-2.wav',
+    );
+    final acceptedApproved = File(
+      'design/audits/2026-08-20/room-c-gesture-v3/locked/'
       'accepted-select-2.wav',
-      'answered-detent-natural.wav',
-    ];
-    for (final name in componentNames) {
-      final runtime = File('assets/sfx/room/completion/$name');
-      final approved = File(
-        'design/audits/2026-08-20/room-c-gesture-v3/locked/$name',
-      );
-      expect(
-        runtime.readAsBytesSync(),
-        orderedEquals(approved.readAsBytesSync()),
-      );
-    }
+    );
+    expect(
+      acceptedRuntime.readAsBytesSync(),
+      orderedEquals(acceptedApproved.readAsBytesSync()),
+    );
+    final detentRuntime = File(
+      'assets/sfx/room/completion/answered-detent-natural.wav',
+    );
+    final detentApproved = File(
+      'design/audits/2026-08-27/room-completion-voice-v2/locked/'
+      'answered-detent-longer-settle.wav',
+    );
+    expect(
+      detentRuntime.readAsBytesSync(),
+      orderedEquals(detentApproved.readAsBytesSync()),
+    );
     final runtimeComposite = File(
       'assets/sfx/room/completion/completion-composite.wav',
     );
     final approvedComposite = File(
-      'design/audits/2026-08-20/room-reward-voice-v1/'
-      'composites/answered-detent/natural.wav',
+      'design/audits/2026-08-27/room-completion-voice-v2/'
+      'candidates/longer-settle.wav',
     );
     expect(
       runtimeComposite.readAsBytesSync(),
@@ -178,11 +189,11 @@ void main() {
     );
     expect(
       sha256.convert(runtimeComposite.readAsBytesSync()).toString(),
-      '7caf33eb445f49d63fcaa90fa7d27a3236e67658f5fa4ba5844634a67a0ecad2',
-      reason: 'this digest pins the approved Select-2 → +75 ms Detent master',
+      '986fe040b1e6889463f03a22baf16a8bac29da5239dd862e57a3cf49a747fa54',
+      reason: 'this digest pins the approved longer-settle completion master',
     );
     final wave = _readWave(runtimeComposite);
-    expect(wave.durationMs, closeTo(430, 0.01));
+    expect(wave.durationMs, closeTo(460, 0.01));
     expect(
       wave.onsetMs,
       lessThan(1),
@@ -826,9 +837,21 @@ void main() {
       'void _openWorkout',
       'void _finishWorkout',
     );
-    expect(workoutOpen, contains('required bool contactAlreadyPlayed'));
-    expect(workoutOpen, contains('if (!contactAlreadyPlayed)'));
+    // Travel into a flow voices the parchment flip with the visual event;
+    // the launching press owns its own contact separately.
+    expect(workoutOpen, contains('playMaterial(MaterialSound.parchment)'));
     expect(workoutOpen, isNot(contains('HapticFeedback')));
+
+    // The quest press is the everyday clasp, never page travel — the flip
+    // belongs to a Journal or workout flow actually opening.
+    expect(questCard, isNot(contains('MaterialSound.parchment')));
+    expect(questCard, contains('material: MaterialSound.wood'));
+    final journalOpen = _between(
+      quests,
+      'Future<void> _openQuestJournal',
+      'void _completeQuest(',
+    );
+    expect(journalOpen, contains('playMaterial(MaterialSound.parchment)'));
 
     final themeOpen = _between(
       shop,
@@ -845,6 +868,206 @@ void main() {
 
     expect(reflection, isNot(contains('Sfx.instance')));
     expect(reflection, isNot(contains('Haptics.')));
+  });
+
+  test('material lanes never replay the identical take back to back', () {
+    // The ordinary walk guarantees distinct consecutive variants, but the
+    // five-onto-three take fold used to collapse variants (2,5) and (1,4)
+    // onto one file — an identical-master repeat on ~3 in 14 pairs.
+    final sfx = Sfx.instance;
+    sfx.debugResetForTesting();
+    sfx.debugBypassPlayback = true;
+    final assets = <String>[];
+    sfx.debugOnPlayAsset = assets.add;
+    addTearDown(sfx.debugResetForTesting);
+
+    // Paced slower than the Paired Return window so only the plain
+    // material-shaded walk is exercised.
+    var now = DateTime(2026, 8, 25, 12);
+    for (var i = 0; i < 42; i++) {
+      sfx.playInteraction(
+        InteractionSound.navigate,
+        at: now,
+        material: MaterialSound.stone,
+      );
+      now = now.add(const Duration(milliseconds: 900));
+    }
+
+    expect(assets, hasLength(42));
+    expect(assets.first, startsWith('room/materials/slate/navigate/'));
+    for (var i = 1; i < assets.length; i++) {
+      expect(
+        assets[i],
+        isNot(assets[i - 1]),
+        reason: 'taps ${i - 1}→$i replayed the identical material master',
+      );
+    }
+    expect(assets.toSet(), hasLength(3));
+  });
+
+  test('every declared Pressable material/verb pair is a shipped lane', () {
+    // A declared material whose lane never shipped falls back silently to
+    // wood — the code reads as textured while the phone plays the plain
+    // clasp. Declaring one is an authoring error, not a graceful upgrade.
+    const materialFolders = {
+      'stone': 'slate',
+      'parchment': 'page',
+      'glass': 'glass',
+      'brass': 'brass',
+    };
+    const shippedLanes = {
+      'slate/select',
+      'slate/navigate',
+      'slate/place',
+      'page/navigate',
+      'page/open',
+      'glass/select',
+      'glass/place',
+      'brass/select',
+      'brass/place',
+    };
+    final material = RegExp(r'material:\s*MaterialSound\.(\w+)');
+    final verb = RegExp(r'interactionSound:\s*InteractionSound\.(\w+)');
+    final offenders = <String>[];
+    final files = Directory('lib')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((f) => f.path.endsWith('.dart'));
+    for (final file in files) {
+      final src = file.readAsStringSync().replaceAll('\r\n', '\n');
+      for (var at = src.indexOf('Pressable(');
+          at >= 0;
+          at = src.indexOf('Pressable(', at + 1)) {
+        final window = src.substring(
+          at,
+          math.min(src.length, at + 700),
+        );
+        final m = material.firstMatch(window);
+        final v = verb.firstMatch(window);
+        if (m == null || v == null) continue;
+        final lane = '${materialFolders[m.group(1)]}/${v.group(1)}';
+        if (m.group(1) == 'wood') continue;
+        if (!shippedLanes.contains(lane)) {
+          offenders.add('${file.path}: $lane');
+        }
+      }
+    }
+    expect(
+      offenders,
+      isEmpty,
+      reason: 'Pressables declaring unshipped material lanes (silent '
+          'wood fallback): $offenders',
+    );
+  });
+
+  test('social, discovery, and daybook surfaces wire their verbs', () {
+    String source(String path) =>
+        File(path).readAsStringSync().replaceAll('\r\n', '\n');
+
+    final discover = source('lib/screens/discover_spaces.dart');
+    final social = source('lib/social.dart');
+    final me = source('lib/screens/me.dart');
+    final memoryCabinet = source('lib/screens/memory_cabinet.dart');
+
+    // Discover: code entry and hidden-space management voice glass; the
+    // directory card travels as parchment.
+    final enterCode = _between(
+      discover,
+      'Future<void> _enterCode()',
+      'Future<void> _manageOwnListing()',
+    );
+    expect(enterCode, contains('playMaterial(MaterialSound.glass)'));
+    final manageHidden = _between(
+      discover,
+      'Future<void> _manageHidden()',
+      'Future<void> _openCommunityRules(',
+    );
+    expect(manageHidden, contains('playMaterial(MaterialSound.glass)'));
+    final spaceCardAt = discover.indexOf('class _DiscoverableSpaceCard');
+    expect(spaceCardAt, isNonNegative);
+    expect(
+      discover.substring(spaceCardAt),
+      contains('material: MaterialSound.parchment'),
+    );
+
+    // Share sheet: preview voices glass like its copy siblings; stopping is
+    // a glass place; only declines stay silent.
+    final preview = _between(
+      social,
+      "label: 'PREVIEW PUBLIC VIEW'",
+      "key: const ValueKey('share-space-discovery-setting')",
+    );
+    expect(preview, contains('playMaterial(MaterialSound.glass)'));
+    final stopSharing = _between(
+      social,
+      'Future<void> _stopSharing()',
+      'Future<void> _changeDiscovery(',
+    );
+    expect(stopSharing, contains('playMaterial(MaterialSound.glass)'));
+    expect(stopSharing, contains('InteractionSound.place'));
+
+    // My Space: the arranger opens as parchment travel; the name flow is a
+    // glass dialog whose save seats as place.
+    final personalize = _between(
+      me,
+      'Future<void> _personalizeSpace(',
+      'class ',
+    );
+    expect(personalize, contains('playMaterial(MaterialSound.parchment)'));
+    final changeName = _between(
+      me,
+      'Future<void> _changePlayerName(',
+      'Future<void> _personalizeSpace(',
+    );
+    expect(changeName, contains('playMaterial(MaterialSound.glass)'));
+    expect(changeName, contains('InteractionSound.place'));
+
+    // Brass stays exclusive to gold; the keepsake cabinet has none.
+    expect(memoryCabinet, isNot(contains('MaterialSound.brass')));
+
+    // The reminder notification ships the owner-selected knock-paced master
+    // byte-identical on both platforms, and iOS actually bundles it — a
+    // Dart-side sound name with no bundled resource plays nothing.
+    final approvedKnock = File(
+      'design/audits/2026-08-25/room-notification-voice-v1/'
+      'candidates/knock-paced.wav',
+    ).readAsBytesSync();
+    for (final path in [
+      'ios/Runner/knock_paced.wav',
+      'android/app/src/main/res/raw/knock_paced.wav',
+    ]) {
+      expect(
+        File(path).readAsBytesSync(),
+        orderedEquals(approvedKnock),
+        reason: '$path must stay byte-identical to the audition master',
+      );
+    }
+    final notifications = source('lib/platform/notifications_native.dart');
+    expect(notifications, contains("sound: 'knock_paced.wav'"));
+    expect(
+      notifications,
+      contains("RawResourceAndroidNotificationSound('knock_paced')"),
+    );
+    expect(notifications, contains("'emberkeep_reminders_v2'"));
+    final pbxproj = source('ios/Runner.xcodeproj/project.pbxproj');
+    expect(pbxproj, contains('knock_paced.wav in Resources'));
+
+    // Each daybook editor's Close answers with the glass detent.
+    for (final path in [
+      'lib/daybook/widgets/daybook_event_actions.dart',
+      'lib/daybook/widgets/daybook_add_choice_dialog.dart',
+      'lib/daybook/widgets/daybook_task_editor.dart',
+      'lib/daybook/widgets/daybook_event_editor.dart',
+    ]) {
+      final src = source(path);
+      final closeAt = src.indexOf("tooltip: 'Close'");
+      expect(closeAt, isNonNegative, reason: '$path lost its Close button');
+      expect(
+        src.substring(closeAt, math.min(src.length, closeAt + 300)),
+        contains('playMaterial(MaterialSound.glass)'),
+        reason: '$path Close must not dismiss silently',
+      );
+    }
   });
 }
 

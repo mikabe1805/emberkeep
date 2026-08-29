@@ -81,7 +81,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
 
   void _chooseTarget(int target) {
     Sfx.instance.playInteraction(
-      InteractionSound.place,
+      InteractionSound.select,
       material: MaterialSound.stone,
     );
     setState(() => _target = target);

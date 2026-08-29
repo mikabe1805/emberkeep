@@ -652,11 +652,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Opens (or resumes) the one dedicated page for this Quest today. Merely
   /// looking at the prompt earns nothing; once meaningful writing has actually
   /// autosaved, returning to the board uses the ordinary reward pipeline once.
-  Future<void> _openQuestJournal(
-    Quest quest,
-    Offset tapPos, {
-    required bool contactAlreadyPlayed,
-  }) async {
+  Future<void> _openQuestJournal(Quest quest, Offset tapPos) async {
     final prompt = quest.journalPrompt;
     if (prompt == null || _journalRouteOpen || quest.doneFor(Clock.now())) {
       return;
@@ -667,9 +663,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     var current = _journalDraftFor(quest, openedAt);
     final trace = current?.trace ?? _journalTraceFor(quest);
     _journalRouteOpen = true;
-    if (!contactAlreadyPlayed) {
-      Sfx.instance.playMaterial(MaterialSound.parchment);
-    }
+    // The page flip voices the page actually opening — the press already
+    // voiced its own everyday contact under the finger.
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     try {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
@@ -744,9 +740,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     bool pressContactPlayed = false,
   }) {
     if (q.journalPrompt != null) {
-      unawaited(
-        _openQuestJournal(q, tapPos, contactAlreadyPlayed: pressContactPlayed),
-      );
+      unawaited(_openQuestJournal(q, tapPos));
       return;
     }
     if (q.allDay) {
@@ -773,7 +767,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     if (q.workout) {
       // a guided session: walk the user through the runner; its outcome
       // flows back through the normal reward path (RESEARCH-workouts.md)
-      _openWorkout(q, tapPos, contactAlreadyPlayed: pressContactPlayed);
+      _openWorkout(q, tapPos);
       return;
     }
     if (q.verification == Verification.timer && q.effectiveTimerMinutes > 0) {
@@ -1346,7 +1340,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   onTap: () {
                     if (!armed) {
                       Sfx.instance.playInteraction(
-                        InteractionSound.place,
+                        InteractionSound.select,
                         material: MaterialSound.stone,
                       );
                       setDialog(() => armed = true);
@@ -1414,7 +1408,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// Quick capture for real life ("laundry, today, no schedule"): one
   /// field, smart defaults, lands at the top of today as a due event.
   void _quickAdd() async {
-    Sfx.instance.playMaterial(MaterialSound.brass);
+    Sfx.instance.playMaterial(MaterialSound.glass);
     HapticFeedback.selectionClick();
     final q = await showEmberSheet(
       context,
@@ -1488,19 +1482,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         ? MediaQuery.sizeOf(context).center(Offset.zero)
         : box.localToGlobal(box.size.center(Offset.zero));
     // The only outside entry is the Pressable Guided Workouts card in Goals.
-    _openWorkout(launcher, anchor, contactAlreadyPlayed: true);
+    _openWorkout(launcher, anchor);
   }
 
-  void _openWorkout(
-    Quest launcher,
-    Offset tapPos, {
-    required bool contactAlreadyPlayed,
-  }) {
+  void _openWorkout(Quest launcher, Offset tapPos) {
     if (_workoutRunnerOpen) return; // dedupe rapid double-tap (bug-hunt §8)
     _workoutRunnerOpen = true;
-    if (!contactAlreadyPlayed) {
-      Sfx.instance.playInteraction(InteractionSound.open);
-    }
+    // The guided runner is travel into a mode: the parchment flip voices it
+    // opening, on top of whichever contact the launching press already made.
+    Sfx.instance.playMaterial(MaterialSound.parchment);
     late final OverlayEntry e;
     e = OverlayEntry(
       builder: (_) => WorkoutFlow(
@@ -2362,7 +2352,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               const SizedBox(width: 6),
               GestureDetector(
                 onTap: () {
-                  Sfx.instance.playMaterial(MaterialSound.brass);
+                  Sfx.instance.playMaterial(MaterialSound.glass);
                   HapticFeedback.selectionClick();
                   setState(() => _state.sparkSeenDay = today);
                   widget.onPersist();
@@ -4506,7 +4496,7 @@ class _MomentumSheetState extends State<_MomentumSheet> {
       setState(() => _note = '“$title” is already on the board');
       return;
     }
-    Sfx.instance.play('streak');
+    Sfx.instance.playInteraction(InteractionSound.place);
     HapticFeedback.mediumImpact();
     setState(() {
       _spawned.add(title);

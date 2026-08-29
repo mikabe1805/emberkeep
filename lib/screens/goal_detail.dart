@@ -571,7 +571,7 @@ class GoalDetailScreen extends StatelessWidget {
                     GestureDetector(
                       onTap: () {
                         if (!armed) {
-                          Sfx.instance.playMaterial(MaterialSound.brass);
+                          Sfx.instance.playMaterial(MaterialSound.glass);
                           setDialog(() => armed = true);
                           return;
                         }

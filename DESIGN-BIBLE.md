@@ -662,7 +662,7 @@ same room camera.
   voices the same contact as its visible bob; once the state commits, the locked
   Answered Detent voices the check/reward outcome without replaying another
   generic tap. Delayed or non-Pressable completion paths still use the immutable
-  430 ms accepted Select-2 → Answered Detent composite. Completion belongs to a
+  460 ms accepted Select-2 → Answered Detent composite (the longer-settle voice, approved 2026-08-27). Completion belongs to a
   quest or routine that actually completed; generic saves and button presses do
   not borrow it.
 - The audio director owns the global take walk, 18 ms ordinary duplicate gate,

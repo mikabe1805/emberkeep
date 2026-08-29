@@ -162,7 +162,7 @@ The reward tier was the last part still voiced by bare sine blips — the
   stat sweep literally plays the field.
 - **completion** (pre-existing, untouched) — permanence, not reward: the
   accepted contact, then the Answered Detent exactly 75 ms later, baked into
-  one 430 ms file so frame timing can never flam it.
+  one atomic file (460 ms since the 2026-08-27 longer-settle re-voice) so frame timing can never flam it.
 
 ---
 
@@ -198,7 +198,7 @@ Files are half the system; the router is the other half.
 - **Rapid attenuation** — fast tapping softens on the measured ladder
   1 / 0.93 / 0.93 / 0.885 instead of building an accidental drum roll.
 - **Reward suppression** — an earned sound mutes ordinary taps for 140 ms
-  (430 ms for completion) so the moment that matters owns the air.
+  (460 ms for completion) so the moment that matters owns the air.
 - **Paired Return** — after four well-paced accepted actions, the next four
   taps may carry D5→A5→E5→D5 over the unchanged mechanism; once per screen,
   90-second global cooldown. The melodic play the owner loves, kept rare
@@ -286,3 +286,71 @@ intent. Final verdict: "it sounds wonderful! very well done."
 5. Record the verdict verbatim; ship byte-identical; extend the byte-locks.
 6. Silence remains part of the system: scrolling, typing, passive previews,
    and decline/not-now stay quiet — a touch that does something never does.
+
+---
+
+## 11. Addendum — the 2026-08-25 language audit and repairs
+
+A full system audit (`design/audits/2026-08-25/sound-language-audit/AUDIT.md`)
+found the grammar sound but the app drifting out of it. Repairs shipped the
+same day; this section records what changed and what this file had previously
+left unsaid.
+
+**Coverage repaired.** Builds 30–33 shipped the discovery/social surfaces
+almost entirely silent — `discover_spaces.dart` had zero sound calls — against
+§10.1's own rule. Seventeen surfaces were wired with existing approved masters
+(glass for dialogs and dismissals, parchment for page travel, place for
+commits, the plain clasp for light actions), including the four separate
+daybook Close buttons that had each shipped silent. The invariant test now
+greps these surfaces so the same regression fails CI instead of waiting for an
+audit.
+
+**The take-fold repeat is fixed.** The global walk guarantees distinct
+consecutive *variants*, but folding five variants onto three material takes
+collapsed (2,5) and (1,4) onto the same file — about 3 in 14 consecutive
+same-lane taps replayed an identical master, precisely the machine-tell §6
+exists to prevent. The router now tracks the last take per lane and bumps on
+collision; a test walks 42 shaded taps and asserts no back-to-back repeat.
+
+**Declared lanes must ship.** Two surfaces declared `glass/open`, a lane that
+never shipped, so the phone silently played wood while the code read glass.
+Both were re-voiced onto shipped lanes, and a new test fails any `Pressable`
+declaring an unshipped material/verb pair. When demand justifies a new lane
+(`glass/open` has two natural call sites; `page/select` is next), grow it
+through the §10 study cycle.
+
+**Brass means gold again.** The keepsake-removal control was the one brass
+voice on a non-gold surface; it now plays glass.
+
+**What this file had not recorded.** `fire_ignite` (the once-per-session
+hearth ignition, gated by `AppSessionIgnitionGate`) and the reserved `hearth`
+cue were never part of §4's grammar; they are events of the same world,
+played at a deliberate 0.68 runtime scale — the one documented exception to
+"masters play at 1.0" (full volume is reserved for a genuinely revived
+hearth). Continuous room ambience is a *removed* feature, not an unbuilt one:
+`hearth_room.wav` was retired on every platform and its bytes left the bundle
+on 2026-08-25 (`tool/prepare_web_offline.dart` still refuses to cache it for
+stale clients). Whether an optional, extremely-low hearth loop returns — as
+DESIGN-BIBLE.md still specs — is an open owner decision. The rejected Gen-1
+palette (`tap_*`, `tick*`, `complete.wav`) was also removed from the bundle;
+provenance stays in `assets/sfx/SOURCES.md`.
+
+**The meaning pass (same day, owner-reported).** "tapping but not completing
+a quest plays the wrong type of sound rn" exposed a second drift: the quest
+card pressed as a parchment page-flip, and a sweep found 19 more pre-texture
+declarations breaking the mapping principle plus a reward tier firing
+unearned (streak on saves and clipboard copies, levelup on backup and
+sign-in). All repaired: the quest press is the everyday clasp with the flip
+moved to a flow actually opening, brass is gold-only again, travel is
+parchment, commits seat as place, and streak/levelup play only for what §4
+says they mean. The full ledger is in
+`design/audits/2026-08-25/sound-language-audit/CHANGES.md`.
+
+**The reminder notification now speaks the world's language.** The
+`room-notification-voice-v1` study ("the room knocks") auditioned four
+candidates composed from the shared chain; the owner selected `knock-paced`
+("i think two knocks rising", 2026-08-25). It ships byte-identical on both
+platforms — the iOS Runner bundle and the Android `emberkeep_reminders_v2`
+channel (channels bake their sound at creation, so the voice required a new
+channel id) — and is byte-locked by test. Its final gate is a real
+lock-screen delivery on the next TestFlight build.

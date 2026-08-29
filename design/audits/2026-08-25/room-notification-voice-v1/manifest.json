@@ -1,0 +1,34 @@
+{
+  "study": "room-notification-voice-v1",
+  "render_version": "room-notification-author-v1",
+  "contact_master": "design/audits/2026-08-20/room-sonic-world-v1/shared/contact-master.wav",
+  "contact_master_sha256": "f9360a3dc476b2bc6764c4165e07908326512b28a8a91603bf623fd908539885",
+  "target_phone_band_dbfs": -27.0,
+  "excitation_gain": 0.09,
+  "candidates": {
+    "knock-once": {
+      "sha256": "09588acfba55174b56d27865e719c0afa879462935ee6e6f090d957c6ed93850",
+      "seconds": 0.44,
+      "peak": 0.483142,
+      "phone_band_rms_dbfs": -27.0
+    },
+    "knock-paced": {
+      "sha256": "b1ba73190fd7acecc3b7ba18d6e79b273c397a971ea15ac259f514444ce2b9a3",
+      "seconds": 0.62,
+      "peak": 0.501187,
+      "phone_band_rms_dbfs": -27.05
+    },
+    "knock-settle": {
+      "sha256": "36cab58a6e6440904a22c35b5de2b923cfb7edf80acebfa148bcc7acdd674174",
+      "seconds": 0.62,
+      "peak": 0.494512,
+      "phone_band_rms_dbfs": -27.0
+    },
+    "field-call": {
+      "sha256": "39fb28f80be0ed15144903eff9557189af4f3d4383de158b6ba8be2c38488af3",
+      "seconds": 0.7,
+      "peak": 0.434348,
+      "phone_band_rms_dbfs": -27.0
+    }
+  }
+}

@@ -339,7 +339,7 @@ class _MemoryCard extends StatelessWidget {
             button: true,
             label: 'Remove ${memory.title} from Keepsakes',
             onTap: () {
-              Sfx.instance.playMaterial(MaterialSound.brass);
+              Sfx.instance.playMaterial(MaterialSound.glass);
               HapticFeedback.selectionClick();
               onRemove!();
             },
@@ -347,7 +347,7 @@ class _MemoryCard extends StatelessWidget {
               excludeFromSemantics: true,
               behavior: HitTestBehavior.opaque,
               onTap: () {
-                Sfx.instance.playMaterial(MaterialSound.brass);
+                Sfx.instance.playMaterial(MaterialSound.glass);
                 HapticFeedback.selectionClick();
                 onRemove!();
               },

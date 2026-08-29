@@ -763,7 +763,7 @@ class _YourGoals extends StatelessWidget {
                       child: GestureDetector(
                         onTap: () {
                           if (!armed) {
-                            Sfx.instance.playMaterial(MaterialSound.brass);
+                            Sfx.instance.playMaterial(MaterialSound.glass);
                             setDialog(() => armed = true);
                             return;
                           }
@@ -1385,7 +1385,7 @@ class _TemplateRowState extends State<_TemplateRow> {
     if (!mounted) return;
     final ok = widget.onAdd(quest);
     if (ok) {
-      Sfx.instance.play('streak');
+      Sfx.instance.playInteraction(InteractionSound.place);
       HapticFeedback.selectionClick();
     }
     ScaffoldMessenger.of(context).showSnackBar(

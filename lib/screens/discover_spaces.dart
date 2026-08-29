@@ -181,15 +181,18 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
       widget.state.blockedRoomCodes.contains(space.code) ||
       widget.state.blockedDiscoveryOwners.containsKey(space.ownerKey);
 
-  Future<void> _enterCode() => visitSpace(
-    context,
-    state: widget.state,
-    onPersist: widget.onPersist,
-    themeId: widget.state.canvasTheme,
-    lively: !widget.state.reduceMotion,
-    parallax: widget.parallax,
-    fetcher: widget.fetchRoom,
-  );
+  Future<void> _enterCode() {
+    Sfx.instance.playMaterial(MaterialSound.glass);
+    return visitSpace(
+      context,
+      state: widget.state,
+      onPersist: widget.onPersist,
+      themeId: widget.state.canvasTheme,
+      lively: !widget.state.reduceMotion,
+      parallax: widget.parallax,
+      fetcher: widget.fetchRoom,
+    );
+  }
 
   Future<void> _manageOwnListing() async {
     if (_managingOwnListing) return;
@@ -214,6 +217,7 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
   }
 
   Future<void> _manageHidden() async {
+    Sfx.instance.playMaterial(MaterialSound.glass);
     final owners = widget.state.blockedDiscoveryOwners.entries.toList()
       ..sort((a, b) => a.value.compareTo(b.value));
     final ownerCodes = owners.map((entry) => entry.value).toSet();
@@ -261,7 +265,10 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
                 ),
                 trailing: TextButton(
                   key: ValueKey('discover-unhide-${entry.id}'),
-                  onPressed: () => Navigator.of(dialogContext).pop(entry.id),
+                  onPressed: () {
+                    Sfx.instance.playMaterial(MaterialSound.glass);
+                    Navigator.of(dialogContext).pop(entry.id);
+                  },
                   child: Text(
                     'UNHIDE',
                     style: Type.label.copyWith(
@@ -276,7 +283,10 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
+            onPressed: () {
+              Sfx.instance.playMaterial(MaterialSound.glass);
+              Navigator.of(dialogContext).pop();
+            },
             child: Text(
               'DONE',
               style: Type.label.copyWith(
@@ -327,6 +337,7 @@ class _DiscoverSpacesScreenState extends State<DiscoverSpacesScreen> {
   }
 
   Future<void> _openCommunityRules(BuildContext context) async {
+    Sfx.instance.playInteraction(InteractionSound.open);
     var opened = false;
     try {
       opened = await launchUrl(Uri.parse(PublicLinks.community));
@@ -550,8 +561,10 @@ class _OwnerListingCard extends StatelessWidget {
     return Pressable(
       key: const ValueKey('discover-manage-own-listing'),
       enabled: !busy,
+      // glass/open is not a shipped material lane; select keeps the declared
+      // glass body actually audible instead of silently falling back to wood.
       material: MaterialSound.glass,
-      interactionSound: InteractionSound.open,
+      interactionSound: InteractionSound.select,
       semanticLabel: open
           ? 'Manage Discover listing'
           : 'Open my space to Discover',
@@ -680,7 +693,10 @@ class _DirectoryMessage extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         TextButton(
-          onPressed: onAction,
+          onPressed: () {
+            Sfx.instance.playInteraction(InteractionSound.open);
+            onAction();
+          },
           style: TextButton.styleFrom(minimumSize: const Size(120, 48)),
           child: Text(action, style: Type.label.copyWith(fontSize: 11)),
         ),
@@ -716,6 +732,7 @@ class _DiscoverableSpaceCard extends StatelessWidget {
     return Pressable(
       key: ValueKey('discover-space-${summary.code}'),
       enabled: !busy,
+      material: MaterialSound.parchment,
       interactionSound: InteractionSound.open,
       semanticLabel:
           '$primary, ${summary.buildTitle}, level ${summary.level}. Open this space.',
