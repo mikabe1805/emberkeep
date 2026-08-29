@@ -12,6 +12,7 @@ import 'content/stat_ranks.dart';
 import 'content/themes.dart';
 import 'content/titles.dart';
 import 'discovery.dart';
+import 'goal_planner.dart';
 import 'models.dart';
 import 'release_features.dart';
 import 'tokens.dart';
@@ -1534,9 +1535,14 @@ class GameState extends ChangeNotifier {
   /// Pure roll: computes the reward and marks the quest done for its
   /// period, but does NOT mutate xp/stats — [commit] does that later so the
   /// bar fill and chip pulses can be staged after the reward receipt.
-  RewardBundle roll(Quest q, {bool verified = false}) {
+  RewardBundle roll(Quest q, {bool verified = false, Quest? progressionQuest}) {
     final now = Clock.now();
     final nowKey = Days.key(now);
+    // A threshold completion pays for and names the prescription the person
+    // actually finished. Its authored ladder may rise only after that truth is
+    // captured for the receipt and ledger.
+    final completedTitle = q.displayTitle;
+    final completedDifficulty = q.difficulty;
     // How a gap (if any) resolves: freezes bridge it quietly, otherwise
     // it's a true lapse and the return earns a warm comeback bonus. Read
     // before we stamp anything (mirrors [commit]'s decision).
@@ -1553,7 +1559,6 @@ class GameState extends ChangeNotifier {
     final dayOne = _dayOneDamp(q, nowKey);
 
     q.lastDoneDay = nowKey;
-    if (q.rising) q.risingStreak++;
 
     // A comeback resets the streak to 1 in commit — pay this completion at the
     // POST-reset multiplier, not the stale lapsed streak (else a broken 30-day
@@ -1617,6 +1622,9 @@ class GameState extends ChangeNotifier {
     final freezeProgressAfter = freezeEarnedAfterCommit
         ? 0
         : min(freezeCadenceAfter - 1, streakFreezeProgress + 1);
+    // Guided sessions reward a temporary routine Quest but build permanent
+    // mastery on the launcher the person chose. Ordinary completions use q.
+    final progress = (progressionQuest ?? q).recordCompletionProgress();
 
     return RewardBundle(
       xp: earned.round(),
@@ -1625,7 +1633,7 @@ class GameState extends ChangeNotifier {
       embers: max(1, earned.round() ~/ 3),
       stat: q.stat,
       statGain: max(1, gain.round() + (q.dread ? 3 : 0)),
-      questTitle: q.displayTitle,
+      questTitle: completedTitle,
       message: RewardMessages.pick(
         q.stat,
         _rng,
@@ -1634,11 +1642,13 @@ class GameState extends ChangeNotifier {
         countToday: (history[nowKey] ?? 0) + 1,
         comeback: isComeback,
       ),
-      difficulty: q.difficulty,
+      difficulty: completedDifficulty,
       dread: q.dread,
       custom: q.custom,
       isEvent: q.isEvent,
       goalTitle: q.goalTitle,
+      goalPlanStepId: q.goalPlanStepId,
+      goalPlanRevision: q.goalPlanRevision,
       critMult: crit,
       // report the multiplier actually applied (post-reset on a comeback)
       streakMult: isComeback
@@ -1657,6 +1667,9 @@ class GameState extends ChangeNotifier {
           evidenceForStat(q.stat) != null &&
           !seenEvidence.contains(evidenceForStat(q.stat)!.title),
       questKey: q.title,
+      masteryCompletionsAfter: progress.completionsAfter,
+      masteryTierReached: progress.tierReached,
+      risenToTitle: progress.risenToTitle,
     );
   }
 
@@ -1774,9 +1787,72 @@ class GameState extends ChangeNotifier {
     // goal progress: linked completions inch the bar toward full
     if (b.goalTitle != null) {
       for (final g in goals) {
-        if (g.title == b.goalTitle && !g.complete) {
-          g.progress++;
-          if (g.progress >= g.target) {
+        if (g.title.trim().toLowerCase() == b.goalTitle!.trim().toLowerCase() &&
+            !g.complete) {
+          // A goal's first proof is earned only by a real linked completion.
+          // Creation, scheduling, reflections, and a later unlinked receipt
+          // never get to claim this moment on the person's behalf.
+          if (g.firstProofTitle == null || g.firstProofDay == null) {
+            g.firstProofTitle = b.questTitle;
+            g.firstProofDay = today;
+          }
+          final plan = g.plan;
+          final stepId = b.goalPlanStepId;
+          var routeAdvanced = false;
+          var routeFinished = false;
+          if (plan == null) {
+            g.progress++;
+          } else if (stepId != null && b.goalPlanRevision == plan.revision) {
+            final stepIndex = plan.steps.indexWhere(
+              (step) => step.id == stepId,
+            );
+            // Completing an action from later in the route is still honest
+            // evidence, but it cannot silently skip the owned route order.
+            if (stepIndex == plan.currentStepIndex &&
+                !plan.steps[stepIndex].complete) {
+              final step = plan.steps[stepIndex];
+              final completions = step.completions + 1;
+              final completed = completions >= step.requiredCompletions;
+              final masteryCompletions =
+                  b.masteryCompletionsAfter > step.masteryCompletions
+                  ? b.masteryCompletionsAfter
+                  : step.masteryCompletions;
+              final updatedSteps = [...plan.steps];
+              final routeMarker = step.resumeAfterRecovery;
+              updatedSteps[stepIndex] = routeMarker != null && !completed
+                  ? routeMarker.copyWith(
+                      completions: completions,
+                      masteryCompletions: masteryCompletions,
+                      clearCompletedDay: true,
+                      clearResumeAfterRecovery: true,
+                    )
+                  : step.copyWith(
+                      completions: completions,
+                      masteryCompletions: masteryCompletions,
+                      completedDay: completed ? today : null,
+                      clearResumeAfterRecovery: true,
+                    );
+              var updatedPlan = plan.copyWith(
+                steps: updatedSteps,
+                lastSignal: GoalPlanSignal.completed,
+              );
+              routeAdvanced = true;
+              routeFinished = updatedPlan.complete;
+              g.progress++;
+              if (routeFinished && updatedPlan.type == GoalRouteType.routine) {
+                updatedPlan = GoalPlanner.continueRoutine(updatedPlan);
+                routeFinished = false;
+              }
+              g.plan = updatedPlan;
+            }
+          }
+          if (plan != null &&
+              routeAdvanced &&
+              routeFinished &&
+              plan.type != GoalRouteType.routine) {
+            g.achievedDay = today;
+            _achievedQ.add(g);
+          } else if (plan == null && g.progress >= g.target) {
             if (g.kind == GoalKind.achieve) {
               // finish line crossed — celebrate, then it rests in honor
               g.achievedDay = today;
@@ -1928,6 +2004,65 @@ class GameState extends ChangeNotifier {
     // checks lived on the quest screen, so this could look permanently broken.
     if (checkAchievements().isEmpty) notifyListeners();
     return true;
+  }
+
+  /// Updates the optional, user-authored support around a goal. These fields
+  /// are deliberately editable and clearable: a reason or hard-day plan is a
+  /// tool the person owns, never a pledge the app locks them into.
+  void updateGoalSupport(
+    Goal goal, {
+    required String? why,
+    required String? fallbackCue,
+    required String? fallbackAction,
+  }) {
+    if (!goals.contains(goal)) return;
+    goal.why = why;
+    goal.fallbackCue = fallbackCue;
+    goal.fallbackAction = fallbackAction;
+    notifyListeners();
+  }
+
+  /// Replaces an owned route after creation or a no-guilt recalibration.
+  /// Historical goal progress and proof stay untouched.
+  void updateGoalPlan(Goal goal, GoalPlan plan) {
+    if (!goals.contains(goal)) return;
+    final previousPlan = goal.plan;
+    final previousRouteProgress =
+        previousPlan?.steps.fold<int>(
+          0,
+          (total, step) =>
+              total + step.completions.clamp(0, step.requiredCompletions),
+        ) ??
+        0;
+    final historicalProgress = (goal.progress - previousRouteProgress).clamp(
+      0,
+      goal.progress,
+    );
+    goal.plan = plan;
+    goal.fallbackCue = plan.obstacleCue;
+    goal.fallbackAction = plan.fallbackAction;
+    if (plan.type != GoalRouteType.routine) {
+      final routeTarget = plan.steps.fold(
+        0,
+        (total, step) => total + step.requiredCompletions,
+      );
+      final routeProgress = plan.steps.fold(
+        0,
+        (total, step) =>
+            total + step.completions.clamp(0, step.requiredCompletions),
+      );
+      goal.target = historicalProgress + routeTarget;
+      goal.progress = historicalProgress + routeProgress;
+    }
+    notifyListeners();
+  }
+
+  /// Completes the one-time opening only after the person accepts its exact
+  /// first move. Leaving the opening early keeps it resumable.
+  void completeGoalOpening(Goal goal) {
+    if (!goals.contains(goal) || goal.openingSeen) return;
+    goal.openingSeen = true;
+    notifyListeners();
   }
 
   /// Abandons a goal. Caller also removes its linked quests.

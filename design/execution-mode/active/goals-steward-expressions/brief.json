@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "id": "goals-steward-expressions-2026-08-28",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "slice_ready_for_owner",
+  "locked_at": "2026-08-29T12:00:00-04:00",
+  "surface": "The visible workshop steward in the returnable tavern register and selected-goal bench",
+  "scope": "Preserve the owner-accepted tavern and locked steward, then replace the rejected full-scene expression set with one rear tavern plane, one transparent foreground counter plane, and five registered transparent steward poses. Each pose reacts only to meaningful workshop state: empty-handed welcome, reading a route, offering an exact cut, empty-handed acknowledgement, and filing route closure. Use cleaner graphite contour and broad warm wash with sparse shadow hatching; preload every plane, share restrained depth with the Goals arrival, honor Reduced Motion, keep one accessible semantic description, and preserve the existing planner, acceptance, cancellation, repair, and Quest identity contracts.",
+  "user_job": "Read the steward's attention as part of what the workshop is doing now, so route shaping, a defensible cut, an owned Quest, and completion feel acknowledged without turning the workshop into a chat system or adding work before the next action.",
+  "active_sources": [
+    {
+      "id": "v2-layered-pose-direction",
+      "kind": "visual_target",
+      "location": "design/audits/2026-08-29/goals-steward-layered-v2/comparison-five-poses-v2-430x932.png",
+      "content_sha256": "7c731102b147a61c3d8d59c9daf77357f37296c08125a3b9cc7bdee730d88509",
+      "approved_at": "2026-08-29",
+      "judged_state": "Direct owner corrections require visibly different poses, a note only when relevant, cleaner surfaces without dense crosshatching, and a character separated from the room for shared Goals depth. This comparison is the current implementation target pending the fresh owner checkpoint.",
+      "viewport": "Five 430x932 state crops plus exact registered 852x1847 planes",
+      "priority": 1
+    },
+    {
+      "id": "steward-character-lock",
+      "kind": "visual_target",
+      "location": "design/visual-targets/2026-08-28/steward-character/CHARACTER-LOCK.md",
+      "content_sha256": "5e07d832ed3e77fde7a0d66d1150319dfc875b45794119170f19b97bcaa56974",
+      "approved_at": "2026-08-28",
+      "judged_state": "Exact adult male identity, face ratios, tied hair, left earring, outfit construction, left sleeve patch, high left-chest pocket, and exactly two recognizable sharpened wooden pencils across every regeneration.",
+      "viewport": "Full-resolution source plates and 430x932 runtime crop",
+      "priority": 2
+    },
+    {
+      "id": "steward-workshop-contract",
+      "kind": "interaction_target",
+      "location": "design/visual-targets/2026-08-28/goals-steward-workshop-contract.md",
+      "content_sha256": "c20d5c90ea950158b19fea1b32fac6ab543d6ce442f68e81bc5668bcd9c9e2a8",
+      "approved_at": "2026-08-28",
+      "judged_state": "Steward presence is reserved for consequential creation, planning, repair, and rare closure; no dialogue tree, greeting loop, relationship meter, praise inflation, forced wait, or Quest-authority drift.",
+      "viewport": "Workshop index, selected bench, and return flow",
+      "priority": 3
+    },
+    {
+      "id": "separated-room-planes",
+      "kind": "visual_target",
+      "location": "design/source-assets/runtime-originals/assets/pages/goals-workshop-tavern-back-v2.png",
+      "content_sha256": "a49c29783ebe083d6de4a9910906aa5e0059e3a2779a01186134010f3a29c81b",
+      "approved_at": "2026-08-29",
+      "judged_state": "Rear room authority paired with a separately registered transparent foreground counter and five transparent steward pose sources. All seven canvases are 852x1847 and share the same crop.",
+      "viewport": "852x1847 source",
+      "priority": 4
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/audits/2026-08-28/goals-steward-expressions-pass/comparison-expression-identity-and-pencils.png",
+      "reason": "The owner said 'there's hardly a difference in expression, also maybe lose the super cross hatched over look, i think it makes it look a bit odd'. The later correction also requires different poses, the offered note only when relevant, and the steward separated from the room for multilayer depth. The v1 full-scene pass evidence is historical only."
+    },
+    {
+      "location": "design/source-assets/runtime-originals/assets/pages/goals-workshop-tavern-steward-v1.png",
+      "reason": "The full-scene tavern plate remains an identity and room reference but is superseded as a production runtime surface by the v2 rear room, transparent pose, and foreground counter planes."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "The steward's expression communicates the workshop's actual planning state and never becomes a companion meter, decorative chatter layer, or second source of progress truth.",
+      "proof": "The register and selected bench resolve from the existing route inventory and exact Quest ownership while the same acceptance, cancellation, and repair tests remain green."
+    },
+    "interaction": {
+      "decision": "Poses change only on meaningful state boundaries, preload before interaction, crossfade for 220 ms while three registered planes carry only a few pixels of shared depth, swap and hold still in Reduced Motion, and never create, accept, delay, or duplicate a Quest.",
+      "proof": "Resolver, asset, Reduced Motion, semantics, rapid-repeat, cancellation, repair, and exact-Quest regression tests pass together."
+    },
+    "visual": {
+      "decision": "Five transparent registered poses preserve the same exact attractive man, outfit, left-side details, and exactly two real sharpened wooden pencils while making each state readable through head, gaze, shoulder, and motivated hand action. Clean contours and broad warm wash replace dense all-over crosshatching. A route card appears only while he reads, offers, or files it.",
+      "proof": "A source-resolution identity and alpha comparison, an unlabeled 430x932 pose comparison, and fresh Goals arrival and Workshop renders pass direct and independent review with no actionable drift, layer seam, or face/UI collision."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Cycle expressions on a timer or whenever the screen rebuilds",
+      "why": "That would make the steward perform for attention instead of making a real planning event legible."
+    },
+    {
+      "fallback": "Add a dialogue tree, greeting loop, praise copy, relationship meter, or forced reaction pause",
+      "why": "That would turn one useful workshop host into a mascot system and add ceremony before action."
+    },
+    {
+      "fallback": "Generate merely similar attractive men or use pasted facial overlays",
+      "why": "Identity drift, ghosted hair and hands, mirrored outfit details, or generic tools would break the character the owner selected."
+    },
+    {
+      "fallback": "Make the emotion legible with a broad smile, hostility, flirtation, open mouth, or exaggerated brows",
+      "why": "The emotional range is attention changing, with warmth earned only by a concrete accepted Quest or completed route."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "A person enters a workshop containing a route to shape, opens an exact cut waiting for acceptance, then reopens an already-owned exact Quest.",
+    "real_inputs": "Production-equivalent GoalPlan and Quest fixtures with needs-route, cut-waiting, and exact-Quest-owned states.",
+    "user_action": "Enter Workshop, choose the waiting route, return, and choose the owned Quest.",
+    "expected_outcome": "The same steward visibly reads a cut, turns to offer it, and later relaxes empty-handed in acknowledgement while the rear tavern and foreground counter remain spatially continuous and all live words and Quest actions remain exact.",
+    "state_boundary": "Expression state is local and derived; explicit acceptance remains the only Quest ownership boundary and no reaction adds a delay.",
+    "required_states": [
+      {
+        "id": "considering-register",
+        "state": "The register contains a route that still needs shaping",
+        "why_can_disprove": "A neutral or congratulatory face would make unfinished planning feel ignored or falsely praised."
+      },
+      {
+        "id": "ready-cut",
+        "state": "The selected exact cut is waiting for explicit acceptance",
+        "why_can_disprove": "If he remains preoccupied or celebrates early, the ownership boundary becomes emotionally dishonest."
+      },
+      {
+        "id": "acknowledging-owned",
+        "state": "The selected exact Quest is already on the board",
+        "why_can_disprove": "If the response becomes a broad smile or stays identical to waiting, the promised expression payoff is either inflated or absent."
+      },
+      {
+        "id": "identity-and-pencils",
+        "state": "All five transparent sprites and both room planes compared at original resolution",
+        "why_can_disprove": "A similar face, mirrored detail, non-pencil tool, bad alpha edge, or misregistered foreground can survive phone scale while still breaking the locked character and depth effect."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "workshop-register",
+      "surface_or_primitive": "GoalWorkshopScreen register background",
+      "state": "Empty, needs route, cut waiting, Quest on board, route complete, and mixed inventories",
+      "expected_effect": "A deterministic priority foregrounds the most immediate real workshop state without changing the register's job.",
+      "verification_plan": "Resolver priority tests plus fresh normal and compact register renders.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "selected-bench",
+      "surface_or_primitive": "GoalOpeningScreen arrival and GoalRoomTravelBackdrop destination",
+      "state": "Unowned cut, exact Quest owned, and meaningful cut editing",
+      "expected_effect": "Ready, acknowledging, and considering sprites crossfade between the same registered rear tavern and foreground counter behind unchanged live folios.",
+      "verification_plan": "Exact-Quest integration tests and 430x932 waiting/owned rendered comparison.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "preload-and-motion",
+      "surface_or_primitive": "Shared GoalStewardArtwork and travel destination",
+      "state": "Normal motion, Reduced Motion, direct workshop entry, and one-time spatial arrival",
+      "expected_effect": "All seven assets are ready before interaction; normal mode uses restrained plane depth and a short pose crossfade while Reduced Motion swaps immediately and holds every plane still.",
+      "verification_plan": "Asset registry, Reduced Motion widget test, pointer-depth inspection, and affected opening render stories.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "accessibility",
+      "surface_or_primitive": "Steward image semantics",
+      "state": "Every expression and compact large-text workshop",
+      "expected_effect": "Exactly one state-aware semantic image description and no duplicate raster semantics; live controls remain reachable below the face.",
+      "verification_plan": "Semantics widget test plus 320x568 at 1.5 text render story.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Only Mika using the current build can establish whether the different poses make the steward feel alive without becoming performative, and only the physical iPhone can establish the final OLED separation, alpha-edge, and motion feel.",
+  "decisive_check": {
+    "method": "Use the running Goals arrival and Workshop across a route to shape, a cut waiting, an owned Quest, and a completed route; first identify each pose from an unlabeled 430x932 comparison, then inspect layer registration and the physical iPhone transition.",
+    "target": "The current revision at 430x932, compact 320x568 at 1.5 text, Reduced Motion, and the installed iPhone candidate.",
+    "pass_condition": "Mika can distinguish all five states by pose and action at phone size; the note appears only while reading, offering, or filing; every sprite has exactly two real pencils; the clean surface and three-plane depth feel cohesive without seams or overmovement."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/widgets/goal_steward.dart",
+      "lib/widgets/goal_world.dart",
+      "lib/widgets/luxe_depth.dart",
+      "lib/screens/goal_workshop.dart",
+      "lib/screens/goal_opening.dart",
+      "lib/screens/goals.dart",
+      "assets/pages/goals-workshop-tavern-back-v2.webp",
+      "assets/pages/goals-workshop-tavern-counter-v2.webp",
+      "assets/pages/goals-workshop-steward-welcome-v2.webp",
+      "assets/pages/goals-workshop-steward-considering-v2.webp",
+      "assets/pages/goals-workshop-steward-ready-v2.webp",
+      "assets/pages/goals-workshop-steward-acknowledging-v2.webp",
+      "assets/pages/goals-workshop-steward-closing-v2.webp",
+      "design/source-assets/runtime-originals/assets/pages",
+      "assets/pages/GENERATED-ASSETS.md",
+      "design/visual-targets/2026-08-28/steward-character/CHARACTER-LOCK.md",
+      "design/audits/2026-08-29/goals-steward-layered-v2",
+      "test/goal_steward_test.dart",
+      "test/luxe_motion_test.dart",
+      "test/goals_quest_management_test.dart"
+    ],
+    "exclude": [
+      "test/goldens"
+    ]
+  }
+}

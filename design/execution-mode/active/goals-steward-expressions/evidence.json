@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-steward-expressions-2026-08-28",
+  "brief_sha256": "f1eadc92e2212d253601093e3de84eb3417e1d7082b63c7dcdcf39ca217fb63e",
+  "phase": "direction",
+  "implementation_revision": "worktree:0e666f2639fc:df5e6d0c4ec70614c274ee27",
+  "revision_captured_at": "2026-08-29T01:21:33-04:00",
+  "checks": [
+    {
+      "id": "slice-layered-product",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run the production Workshop and exact-Quest regression suite across empty, route-shaping, cut-waiting, owned-Quest, route-complete, edit, cancel, repair, and rapid-repeat states.",
+      "input_state": "Production-equivalent GoalPlan and exact Quest fixtures.",
+      "inspected_by": "Codex main agent and independent reviewer layered_v2_contract_review",
+      "observation": "The steward remains a visual reader of existing planner and Quest state. No relationship state, dialogue, praise, timer, forced wait, duplicate Quest, or second progress authority was added.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Current layered steward and Goals contract verification",
+          "path": "design/execution-mode/active/goals-steward-expressions/test-report.md",
+          "generated_at": "2026-08-29T01:16:35-04:00",
+          "content_sha256": "350ec19c1dd75b2a6cea5591c196af94a8ba7f9f15a3726c22f137122d7cfdac",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-layered-interaction",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Inspect layer order, state-keyed pose transition, shared motion lifecycle, semantics, preloading, and Reduced Motion, then run focused controller and widget tests.",
+      "input_state": "Normal motion, pointer depth, Reduced Motion, direct Workshop entry, one-time arrival, and rapid route disposal.",
+      "inspected_by": "Codex main agent and independent reviewer layered_v2_contract_review",
+      "observation": "Rear room, pose, and counter carry distinct restrained depths; Reduced Motion parks all three and swaps poses immediately; exactly one state-aware semantic description is exposed; rapid disposal cannot attach a late native sensor stream.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Layer motion, semantics, and lifecycle verification",
+          "path": "design/execution-mode/active/goals-steward-expressions/test-report.md",
+          "generated_at": "2026-08-29T01:16:35-04:00",
+          "content_sha256": "350ec19c1dd75b2a6cea5591c196af94a8ba7f9f15a3726c22f137122d7cfdac",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-layered-visual",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect all five three-plane composites and the production considering, ready, and acknowledging states at the same 430 by 932 viewport, including rejected-v1/current-v2 same-state pairs.",
+      "input_state": "Five lossless registered sprites plus real live Workshop and Goals arrival controls.",
+      "inspected_by": "Codex main agent and independent reviewer layered_v2_visual_review",
+      "observation": "The five states read through different poses and motivated actions; the card is functional rather than a default prop; cleaner warm contour treatment leaves the face legible; no alpha seam, layer jump, or face/UI collision remains.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "All five registered production poses at 430 by 932",
+          "path": "design/audits/2026-08-29/goals-steward-layered-v2/comparison-five-poses-v2-430x932.png",
+          "generated_at": "2026-08-29T01:11:13-04:00",
+          "content_sha256": "7c731102b147a61c3d8d59c9daf77357f37296c08125a3b9cc7bdee730d88509",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Live considering, ready, and acknowledging production states",
+          "path": "design/audits/2026-08-29/goals-steward-layered-v2/comparison-live-v2-430x932.png",
+          "generated_at": "2026-08-29T01:10:04-04:00",
+          "content_sha256": "0c9a6dd5cc66790242b5dffab1b741db57e5bb08610806dd6c0647aaa23e3acd",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-considering-register",
+      "requirement_id": "state:considering-register",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the mixed production Workshop register with a route still needing shape.",
+      "input_state": "Two exact Quests on board and one active goal with no shaped route at 430 by 932.",
+      "inspected_by": "Codex main agent and independent reviewer layered_v2_visual_review",
+      "observation": "The steward lowers head and gaze and reads one route card toward himself while the register remains readable below him.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Considering register beside ready and acknowledging states",
+          "path": "design/audits/2026-08-29/goals-steward-layered-v2/comparison-live-v2-430x932.png",
+          "generated_at": "2026-08-29T01:10:04-04:00",
+          "content_sha256": "0c9a6dd5cc66790242b5dffab1b741db57e5bb08610806dd6c0647aaa23e3acd",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-ready-cut",
+      "requirement_id": "state:ready-cut",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the exact cut before ownership in the final deterministic Goals arrival frame.",
+      "input_state": "A structured current marker with no exact Quest and the live Take this Quest action.",
+      "inspected_by": "Codex main agent and independent reviewer layered_v2_visual_review",
+      "observation": "The steward meets the person directly and offers one fully visible blank route card above the folio while the ownership boundary remains explicit.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Final ready arrival with chest-level offered card",
+          "path": "design/audits/2026-08-29/goals-steward-layered-v2/live-v2-goals-arrival-ready-430x932.png",
+          "generated_at": "2026-08-29T01:09:39-04:00",
+          "content_sha256": "482f3058e0a2156d85551ac2a5503c1986dc6f861aa8578517e7890d1b614bb8",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-acknowledging-owned",
+      "requirement_id": "state:acknowledging-owned",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the selected exact Quest already owned at 430 by 932.",
+      "input_state": "The same exact marker with its matching Quest already on the board and the live Open this Quest action.",
+      "inspected_by": "Codex main agent and independent reviewer layered_v2_visual_review",
+      "observation": "He is empty-handed and visibly warmer only after concrete Quest ownership; no card is offered and no praise copy or delay is introduced.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Owned Quest acknowledgement beside other real states",
+          "path": "design/audits/2026-08-29/goals-steward-layered-v2/comparison-live-v2-430x932.png",
+          "generated_at": "2026-08-29T01:10:04-04:00",
+          "content_sha256": "0c9a6dd5cc66790242b5dffab1b741db57e5bb08610806dd6c0647aaa23e3acd",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-identity-and-pencils",
+      "requirement_id": "state:identity-and-pencils",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect all five lossless transparent sprites and their three-plane composites side by side.",
+      "input_state": "Welcome, considering, ready, acknowledging, and closing on the same 852 by 1847 registration.",
+      "inspected_by": "Codex main agent and independent reviewer layered_v2_visual_review",
+      "observation": "Face, tied center-parted hair, left hoop, collar, apron fasteners, left patch, high chest pocket, and exactly two recognizable sharpened wooden pencils remain consistent in every state; no alpha fringe or foreground seam is visible.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Five-state identity, pencil, pose, and layer registration comparison",
+          "path": "design/audits/2026-08-29/goals-steward-layered-v2/comparison-five-poses-v2-430x932.png",
+          "generated_at": "2026-08-29T01:11:13-04:00",
+          "content_sha256": "7c731102b147a61c3d8d59c9daf77357f37296c08125a3b9cc7bdee730d88509",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra reviewer layered_v2_visual_review and Luna reviewer layered_v2_contract_review",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-layered-product",
+      "slice-layered-interaction",
+      "slice-layered-visual",
+      "slice-state-considering-register",
+      "slice-state-ready-cut",
+      "slice-state-acknowledging-owned",
+      "slice-state-identity-and-pencils"
+    ],
+    "reviewed_artifacts": [
+      "design/execution-mode/active/goals-steward-expressions/test-report.md",
+      "design/audits/2026-08-29/goals-steward-layered-v2/comparison-five-poses-v2-430x932.png",
+      "design/audits/2026-08-29/goals-steward-layered-v2/comparison-live-v2-430x932.png",
+      "design/audits/2026-08-29/goals-steward-layered-v2/live-v2-goals-arrival-ready-430x932.png"
+    ],
+    "result": "pass",
+    "findings": [],
+    "no_material_findings_observation": "Independent visual review found five readable actions, consistent identity and two-pencil construction, functional card use, materially cleaner surfaces, clean layer registration, and no face/UI collision. Independent code review found planner authority, semantics, Reduced Motion, preloading, and lifecycle intact after the rapid-disposal guard was added."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-29T01:21:33-04:00",
+    "decided_at": "",
+    "reviewed_revision": "",
+    "reviewed_brief_sha256": "",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "The v1 full-scene expression pass was rejected because the expressions were too similar and too crosshatched. The owner then required different poses, the offered note only when relevant, and a character separated from the room for Goals depth. This fresh v2 slice is ready for direct owner judgment."
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Desktop renders cannot establish physical iPhone OLED separation, transparent-edge quality, sensor depth, transition feel, compact scroll, edge gestures, or Mika's owner feel."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "v2-owner-checkpoint",
+      "gate": "Owner judgment of the five pose-based states in the running Workshop",
+      "why": "The new poses, cleaner surface, visible offered card, and separated planes did not exist in the previously accepted tavern slice.",
+      "owner_or_system": "Mika using the current web preview",
+      "next_action": "Inspect considering in the register, ready before Take this Quest, acknowledgement before Open this Quest, and the source welcome/closing pair, then accept or identify the state that still feels wrong.",
+      "blocking": true
+    },
+    {
+      "id": "v2-physical-phone-feel",
+      "gate": "Physical iPhone depth, transition, OLED, scroll, and Reduced Motion check",
+      "why": "Local deterministic renders cannot establish the final physical and sensory experience.",
+      "owner_or_system": "Mika on the exact installed iPhone candidate",
+      "next_action": "Repeat the Workshop state journey in normal and Reduced Motion on the physical phone.",
+      "blocking": true
+    }
+  ]
+}

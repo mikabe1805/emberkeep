@@ -12,8 +12,8 @@ import '../platform/motion_stub.dart'
     if (dart.library.js_interop) '../platform/motion_web.dart';
 import '../tokens.dart';
 import 'facets.dart';
-import 'gold_surface.dart';
 import 'home_room.dart' show paintEmberFlame;
+import 'honey_button.dart';
 
 /// One calibrated motion source for the whole five-tab shell.
 ///
@@ -59,6 +59,7 @@ class LuxeMotionController {
   }
 
   Future<void> start() async {
+    if (_disposed) return;
     if (kIsWeb) {
       _browserMotionSubscription = _browserMotion.events.listen(
         _onBrowserTilt,
@@ -76,6 +77,9 @@ class LuxeMotionController {
     } on PlatformException {
       return;
     }
+    // The sampling-period channel can outlive a route that was opened and
+    // immediately closed. Do not attach a sensor stream after disposal.
+    if (_disposed) return;
     try {
       _motionSubscription = accelerometerEventStream(
         samplingPeriod: const Duration(milliseconds: 33),
@@ -239,10 +243,22 @@ class LuxePageList extends StatefulWidget {
     required this.reduceMotion,
     required this.children,
     this.scrollController,
+    this.heading,
     this.trailing,
     this.heroHeight = 250,
     this.heroAlignment = Alignment.center,
+    this.headingTop,
+    this.headingIndent = 0,
+    this.compactHeading = false,
+    this.showHeadingIcon = true,
+    this.bodyTextureAsset,
     this.fireFocal,
+    this.softAssetPath,
+    this.heroScale = 1.115,
+    this.heroScaleAlignment = Alignment.center,
+    this.heroTranslation = Offset.zero,
+    this.heroScrim,
+    this.contentSafeArea = false,
   });
 
   final String assetPath;
@@ -253,9 +269,37 @@ class LuxePageList extends StatefulWidget {
   final bool reduceMotion;
   final List<Widget> children;
   final ScrollController? scrollController;
+
+  /// Optional screen-specific heading that keeps the shared scene/scroll
+  /// construction while letting a destination give the live content first
+  /// claim on the hierarchy. The default page heading remains unchanged for
+  /// every existing caller.
+  final Widget? heading;
   final Widget? trailing;
   final double heroHeight;
   final Alignment heroAlignment;
+
+  /// Optional document-flow position for a title that belongs inside a
+  /// deliberately reserved area of its authored plate. Most pages use the
+  /// shared lower-edge placement; a source-designed signboard can opt in.
+  final double? headingTop;
+
+  /// Lets a source-authored plate reserve a quieter inset for the live title
+  /// without shifting the scrolling content that follows it.
+  final double headingIndent;
+
+  /// A lower-volume title treatment for plates that already carry a strong
+  /// physical frame of their own.
+  final bool compactHeading;
+
+  /// Page plates may omit the shared medallion when the authored scene and
+  /// selected dock state already establish identity more clearly.
+  final bool showHeadingIcon;
+
+  /// Optional low-contrast material grain that continues beneath the hero.
+  /// It stays fixed while content scrolls, so short pages do not fall into a
+  /// featureless digital void after an authored physical scene.
+  final String? bodyTextureAsset;
 
   /// Optional live fire tied to a verified firebox in the authored plate.
   ///
@@ -264,6 +308,29 @@ class LuxePageList extends StatefulWidget {
   /// plate tilts and crops, so pages opt in only when a registered focal has
   /// been checked against the actual runtime crop.
   final Offset? fireFocal;
+
+  /// Optional registered soft version of [assetPath]. It fades in only as the
+  /// document moves over the scene, preserving a crisp, beautiful parked still
+  /// without paying for a live full-screen blur.
+  final String? softAssetPath;
+
+  /// Exact portrait plates need much less overscan than the shared landscape
+  /// page scenes. Existing callers retain the original camera scale.
+  final double heroScale;
+
+  /// Optional camera registration for an exact portrait environment. The
+  /// default keeps every existing page unchanged; Goals uses it to park the
+  /// continuous apartment master at the desk-side starting camera.
+  final Alignment heroScaleAlignment;
+  final Offset heroTranslation;
+
+  /// A source-specific value veil. When null, the shared page gradient remains
+  /// unchanged for every existing destination.
+  final Gradient? heroScrim;
+
+  /// Pushed pages can keep their environment edge-to-edge while moving only
+  /// the live document flow inside the device safe area.
+  final bool contentSafeArea;
 
   @override
   State<LuxePageList> createState() => _LuxePageListState();
@@ -496,6 +563,24 @@ class _LuxePageListState extends State<LuxePageList> {
       fit: StackFit.expand,
       children: [
         const ColoredBox(color: Color(0xFF100D0B)),
+        if (widget.bodyTextureAsset case final texture?)
+          Positioned.fill(
+            child: IgnorePointer(
+              child: Opacity(
+                opacity: 0.055,
+                child: Image.asset(
+                  texture,
+                  fit: BoxFit.none,
+                  repeat: ImageRepeat.repeat,
+                  alignment: Alignment.topLeft,
+                  color: const Color(0xFF6A3F26),
+                  colorBlendMode: BlendMode.modulate,
+                  filterQuality: FilterQuality.low,
+                  excludeFromSemantics: true,
+                ),
+              ),
+            ),
+          ),
         Positioned(
           top: 0,
           left: 0,
@@ -503,53 +588,84 @@ class _LuxePageListState extends State<LuxePageList> {
           height: widget.heroHeight + 24,
           child: _LuxeHeroPlate(
             assetPath: widget.assetPath,
+            softAssetPath: widget.softAssetPath,
             alignment: widget.heroAlignment,
             parallax: widget.parallax,
             scrollPosition: _scrollPosition,
             still: still,
             fireFocal: widget.fireFocal,
+            scale: widget.heroScale,
+            scaleAlignment: widget.heroScaleAlignment,
+            translation: widget.heroTranslation,
+            scrim: widget.heroScrim,
           ),
         ),
         _LuxeScrollVeil(controller: _scroll, height: widget.heroHeight + 20),
-        ListView(
-          controller: _scroll,
-          physics: const BouncingScrollPhysics(
-            parent: AlwaysScrollableScrollPhysics(),
-          ),
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
-          children: [
-            SizedBox(height: widget.heroHeight - 66),
-            _LuxePageHeading(
-              title: widget.title,
-              subtitle: widget.subtitle,
-              icon: widget.icon,
-              trailing: widget.trailing,
+        _safeContent(
+          ListView(
+            controller: _scroll,
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
             ),
-            const SizedBox(height: 18),
-            ...widget.children,
-          ],
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
+            children: [
+              SizedBox(height: widget.headingTop ?? widget.heroHeight - 66),
+              if (widget.heading case final heading?)
+                Padding(
+                  padding: EdgeInsets.only(left: widget.headingIndent),
+                  child: heading,
+                )
+              else
+                Padding(
+                  padding: EdgeInsets.only(left: widget.headingIndent),
+                  child: _LuxePageHeading(
+                    title: widget.title,
+                    subtitle: widget.subtitle,
+                    icon: widget.icon,
+                    trailing: widget.trailing,
+                    compact: widget.compactHeading,
+                    showIcon: widget.showHeadingIcon,
+                  ),
+                ),
+              const SizedBox(height: 18),
+              ...widget.children,
+            ],
+          ),
         ),
       ],
     );
   }
+
+  Widget _safeContent(Widget child) =>
+      widget.contentSafeArea ? SafeArea(child: child) : child;
 }
 
 class _LuxeHeroPlate extends StatelessWidget {
   const _LuxeHeroPlate({
     required this.assetPath,
+    required this.softAssetPath,
     required this.alignment,
     required this.parallax,
     required this.scrollPosition,
     required this.still,
     required this.fireFocal,
+    required this.scale,
+    required this.scaleAlignment,
+    required this.translation,
+    required this.scrim,
   });
 
   final String assetPath;
+  final String? softAssetPath;
   final Alignment alignment;
   final ValueListenable<Offset> parallax;
   final ValueListenable<double> scrollPosition;
   final bool still;
   final Offset? fireFocal;
+  final double scale;
+  final Alignment scaleAlignment;
+  final Offset translation;
+  final Gradient? scrim;
 
   @override
   Widget build(BuildContext context) {
@@ -562,22 +678,35 @@ class _LuxeHeroPlate extends StatelessWidget {
           // room stays physically parked behind it. A counter-sliding plate is
           // motion even when device tilt and the living fire are stopped.
           final scroll = still ? 0.0 : scrollPosition.value.clamp(0.0, 260.0);
+          final softStrength = softAssetPath == null
+              ? 0.0
+              : Curves.easeOutCubic.transform((scroll / 230).clamp(0.0, 1.0));
+          Widget plate(String asset, {Key? key}) => Transform.translate(
+            key: key,
+            offset: Offset(-tilt.dx * 13.5, -tilt.dy * 8.5 - scroll * 0.09),
+            child: FractionalTranslation(
+              translation: translation,
+              child: Transform.scale(
+                scale: scale,
+                alignment: scaleAlignment,
+                child: Image.asset(
+                  asset,
+                  fit: BoxFit.cover,
+                  alignment: alignment,
+                  filterQuality: FilterQuality.medium,
+                ),
+              ),
+            ),
+          );
           return Stack(
             fit: StackFit.expand,
             children: [
-              Transform.translate(
+              plate(
+                assetPath,
                 key: const ValueKey('luxe-hero-plate-transform'),
-                offset: Offset(-tilt.dx * 13.5, -tilt.dy * 8.5 - scroll * 0.09),
-                child: Transform.scale(
-                  scale: 1.115,
-                  child: Image.asset(
-                    assetPath,
-                    fit: BoxFit.cover,
-                    alignment: alignment,
-                    filterQuality: FilterQuality.medium,
-                  ),
-                ),
               ),
+              if (softAssetPath case final soft?)
+                Opacity(opacity: softStrength * 0.82, child: plate(soft)),
               if (fireFocal case final focal?)
                 _HeroFireLife(
                   key: const ValueKey('luxe-hero-fire'),
@@ -601,19 +730,21 @@ class _LuxeHeroPlate extends StatelessWidget {
                   ),
                 ),
               ),
-              const DecoratedBox(
+              DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x12000000),
-                      Color(0x00000000),
-                      Color(0x2A100D0B),
-                      Color(0xF0100D0B),
-                    ],
-                    stops: [0, 0.55, 0.78, 1],
-                  ),
+                  gradient:
+                      scrim ??
+                      const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0x12000000),
+                          Color(0x00000000),
+                          Color(0x2A100D0B),
+                          Color(0xF0100D0B),
+                        ],
+                        stops: [0, 0.55, 0.78, 1],
+                      ),
                 ),
               ),
             ],
@@ -858,25 +989,31 @@ class _LuxePageHeading extends StatelessWidget {
     required this.subtitle,
     required this.icon,
     this.trailing,
+    this.compact = false,
+    this.showIcon = true,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final Widget? trailing;
+  final bool compact;
+  final bool showIcon;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        FacetMedallion(
-          size: 46,
-          accent: Palette.xp,
-          glow: true,
-          child: Icon(icon, size: 23, color: Palette.xpLight),
-        ),
-        const SizedBox(width: 13),
+        if (showIcon) ...[
+          FacetMedallion(
+            size: compact ? 36 : 46,
+            accent: Palette.xp,
+            glow: !compact,
+            child: Icon(icon, size: compact ? 18 : 23, color: Palette.xpLight),
+          ),
+          SizedBox(width: compact ? 10 : 13),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -887,9 +1024,9 @@ class _LuxePageHeading extends StatelessWidget {
                 overflow: TextOverflow.fade,
                 softWrap: false,
                 style: Type.display.copyWith(
-                  fontSize: 32,
+                  fontSize: compact ? 27 : 32,
                   height: 0.96,
-                  letterSpacing: 1.2,
+                  letterSpacing: compact ? 1.0 : 1.2,
                   color: Palette.textHi,
                   shadows: const [
                     Shadow(
@@ -900,13 +1037,13 @@ class _LuxePageHeading extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 6),
+              SizedBox(height: compact ? 4 : 6),
               Text(
                 subtitle,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Type.body.copyWith(
-                  fontSize: 13,
+                  fontSize: compact ? 12 : 13,
                   fontStyle: FontStyle.italic,
                   color: Palette.textLo,
                 ),
@@ -929,7 +1066,7 @@ class LuxeGoldButton extends StatelessWidget {
     required this.icon,
     required this.onTap,
     required this.parallax,
-    this.height = 58,
+    this.height = 52,
   });
 
   final String label;
@@ -940,25 +1077,19 @@ class LuxeGoldButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+    return SizedBox(
+      width: double.infinity,
+      height: height,
+      child: HoneyButton(
+        label: label.toUpperCase(),
+        icon: icon,
         onTap: onTap,
-        child: SizedBox(
-          height: height,
-          child: GoldSurface(
-            cut: 12,
-            light: parallax,
-            child: GoldLabel(
-              text: label.toUpperCase(),
-              icon: icon,
-              fontSize: 13,
-              letterSpacing: 1.8,
-            ),
-          ),
-        ),
+        light: parallax,
+        expand: true,
+        fontSize: 13,
+        // Goals and Journal route distinct opening sounds in their callbacks.
+        // The shared plate still depresses and haptically acknowledges contact.
+        soundEnabled: false,
       ),
     );
   }

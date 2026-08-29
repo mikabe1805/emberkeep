@@ -134,11 +134,18 @@ class _QuestCardState extends State<QuestCard>
     final done = widget.done;
     final opensJournal = quest.journalPrompt != null;
     final isMain = quest.priorityOn(Clock.now());
+    final mastery = quest.masteryTier;
+    final masterySemantics = quest.masteryCompletions == 0
+        ? ''
+        : ', ${quest.masteryCompletions} completions${mastery == QuestMasteryTier.unmarked ? '' : ', ${mastery.label.toLowerCase()} mastery'}';
+    final riseSemantics = quest.rising && quest.canRise
+        ? ', rise progress ${quest.riseProgress} of ${Quest.risesAt}'
+        : '';
     final featured = widget.featured && !done;
     final resolvedFeature = done && _holdResolvedFeature;
     final heroLayout = featured || resolvedFeature;
     final largePhoneType =
-        MediaQuery.textScalerOf(context).scale(1) >= 1.6 &&
+        MediaQuery.textScalerOf(context).scale(1) >= 1.25 &&
         MediaQuery.sizeOf(context).width <= 360;
     final still =
         widget.reduceMotion ||
@@ -182,17 +189,18 @@ class _QuestCardState extends State<QuestCard>
                   ? 'completed'
                   : opensJournal
                   ? 'Open Journal, ${widget.xpPreview} XP'
-                  : '${_difficultyWord(quest.difficulty)}, ${widget.xpPreview} XP'}',
+                  : '${_difficultyWord(quest.difficulty)}, ${widget.xpPreview} XP'}$masterySemantics$riseSemantics',
           semanticHint: done
               ? (widget.onManage == null ? null : 'Use Manage to edit')
               : '${opensJournal ? 'Activate to open a dedicated Journal entry' : 'Activate to complete'}${widget.onManage == null ? '' : '; use Manage to edit'}',
           onTapUp: _handleTap,
           onLongPress: widget.onManage,
-          // Every visible quest bob owns this immediate everyday-clasp cue,
-          // even if the gesture later becomes a scroll. The press itself is
-          // not page travel — QuestsPage voices the actual outcome (the
-          // completion detent, or the parchment flip when a Journal or
-          // workout flow really opens).
+          // The card delegates sound to the accepted outcome. A normal clear
+          // owns the full contact-to-detent completion voice; Journal,
+          // workout, timer, and all-day paths voice the surface they actually
+          // open. Keeping this press silent prevents a second generic clasp
+          // and guarantees that a cancelled scroll never makes a sound.
+          soundEnabled: false,
           material: MaterialSound.wood,
           interactionSound: InteractionSound.open,
           shape: const FacetedBorder(cut: 11),
@@ -348,6 +356,7 @@ class _QuestCardState extends State<QuestCard>
                                   accent: featured ? Palette.xpLight : null,
                                   size: heroLayout ? 54 : 40,
                                   showReadyCheck: featured,
+                                  masteryTier: mastery,
                                   // Only the featured open orbit carries reactive
                                   // light. Repainting every compact ring on every
                                   // sensor sample made long boards needlessly
@@ -502,10 +511,10 @@ class _QuestTitleBlock extends StatelessWidget {
       if (isMain) const _MetaChip(Icons.star_rounded, 'MAIN', Palette.xpLight),
       if (quest.allDay)
         const _MetaChip(Icons.nightlight_round, 'ALL DAY', Palette.unlock),
-      if (quest.rising)
+      if (quest.rising && quest.canRise)
         _MetaChip(
           Icons.trending_up_rounded,
-          '${quest.risingStreak}/${Quest.risesAt}',
+          '${quest.riseProgress}/${Quest.risesAt}',
           Palette.streak,
         ),
       if (!done && quest.bonus)
@@ -550,6 +559,31 @@ class _QuestTitleBlock extends StatelessWidget {
             runSpacing: 3,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: chips,
+          ),
+        ],
+        if (featured && quest.masteryTier != QuestMasteryTier.unmarked) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(
+                Icons.workspace_premium_outlined,
+                size: 11,
+                color: Color(0xFFC99A5D),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  '${quest.masteryTier.label} · ${quest.masteryCompletions}×',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    letterSpacing: 0.45,
+                    color: const Color(0xFFC99A5D),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
         if (featured && quest.latestNote != null) ...[
@@ -1193,6 +1227,7 @@ class _CheckRing extends StatefulWidget {
     this.reduceMotion = false,
     this.accent,
     this.showReadyCheck = false,
+    this.masteryTier = QuestMasteryTier.unmarked,
     this.lightDirection,
     this.scrollPosition,
   });
@@ -1203,6 +1238,7 @@ class _CheckRing extends StatefulWidget {
   final bool reduceMotion;
   final Color? accent;
   final bool showReadyCheck;
+  final QuestMasteryTier masteryTier;
   final ValueListenable<Offset>? lightDirection;
   final ValueListenable<double>? scrollPosition;
 
@@ -1278,6 +1314,7 @@ class _CheckRingState extends State<_CheckRing>
                   progress: _resolve.value,
                   accent: widget.accent,
                   showReadyCheck: widget.showReadyCheck,
+                  masteryTier: widget.masteryTier,
                   shine: shine,
                   light: light,
                 ),
@@ -1296,6 +1333,7 @@ class _CheckRingPainter extends CustomPainter {
     required this.done,
     required this.progress,
     required this.showReadyCheck,
+    required this.masteryTier,
     required this.shine,
     required this.light,
     this.accent,
@@ -1306,6 +1344,7 @@ class _CheckRingPainter extends CustomPainter {
   final double progress;
   final Color? accent;
   final bool showReadyCheck;
+  final QuestMasteryTier masteryTier;
   final double shine;
   final Offset light;
 
@@ -1317,6 +1356,7 @@ class _CheckRingPainter extends CustomPainter {
     final radius = size.shortestSide * (showReadyCheck ? 0.42 : 0.39);
     final resolved = Curves.easeOutBack.transform(progress);
     final ready = showReadyCheck && !done;
+    _paintMasteryOrbit(canvas, size, center, radius);
     if (ready) {
       final orbit = Rect.fromCircle(center: center, radius: radius);
       // A wider break at 4 o'clock than before, so the silhouette reads OPEN at
@@ -1531,6 +1571,138 @@ class _CheckRingPainter extends CustomPainter {
     );
   }
 
+  void _paintMasteryOrbit(
+    Canvas canvas,
+    Size size,
+    Offset center,
+    double radius,
+  ) {
+    if (masteryTier == QuestMasteryTier.unmarked) return;
+    final level = masteryTier.index;
+    final outerRadius = min(
+      size.shortestSide / 2 - 1.8,
+      radius + size.shortestSide * (showReadyCheck ? 0.052 : 0.075),
+    );
+    final orbit = Rect.fromCircle(center: center, radius: outerRadius);
+
+    // The ornament is accumulated brasswork, not a second progress meter.
+    // It is completely still and adds one authored layer at each threshold.
+    if (level >= QuestMasteryTier.gilded.index) {
+      canvas.drawCircle(
+        center,
+        outerRadius,
+        Paint()
+          ..color = const Color(0x59110B07)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2,
+      );
+      canvas.drawCircle(
+        center,
+        outerRadius,
+        Paint()
+          ..shader = const SweepGradient(
+            transform: GradientRotation(-0.62),
+            colors: [
+              Color(0xFF76502B),
+              Color(0xFFD5AA68),
+              Color(0xFF8B5D31),
+              Color(0xFFE8CB8F),
+              Color(0xFF76502B),
+            ],
+          ).createShader(orbit)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = level >= QuestMasteryTier.masterwork.index
+              ? 1.15
+              : 0.8,
+      );
+    }
+    if (level >= QuestMasteryTier.masterwork.index) {
+      canvas.drawCircle(
+        center,
+        outerRadius - 2.0,
+        Paint()
+          ..color = const Color(0x80E8CB8F)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.55,
+      );
+    }
+
+    final marks = switch (masteryTier) {
+      QuestMasteryTier.kept => 1,
+      QuestMasteryTier.practiced => 4,
+      QuestMasteryTier.gilded => 8,
+      QuestMasteryTier.masterwork => 12,
+      QuestMasteryTier.unmarked => 0,
+    };
+    for (var i = 0; i < marks; i++) {
+      final angle = -pi / 2 + (pi * 2 * i / marks);
+      final at = center + Offset.fromDirection(angle, outerRadius);
+      final longMark = level >= QuestMasteryTier.gilded.index;
+      final halfLength =
+          size.shortestSide *
+          (level >= QuestMasteryTier.masterwork.index && i.isEven
+              ? 0.044
+              : longMark
+              ? 0.032
+              : 0.024);
+      if (marks == 1 ||
+          (level >= QuestMasteryTier.masterwork.index && i == 0)) {
+        final half =
+            size.shortestSide *
+            (level >= QuestMasteryTier.masterwork.index ? 0.070 : 0.060);
+        final diamondAt =
+            center + Offset.fromDirection(angle, outerRadius - half * 0.55);
+        final diamond = Path()
+          ..moveTo(diamondAt.dx, diamondAt.dy - half)
+          ..lineTo(diamondAt.dx + half * 0.72, diamondAt.dy)
+          ..lineTo(diamondAt.dx, diamondAt.dy + half)
+          ..lineTo(diamondAt.dx - half * 0.72, diamondAt.dy)
+          ..close();
+        canvas.drawPath(
+          diamond,
+          Paint()
+            ..shader = const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFF0D59B), Color(0xFF8D5D30)],
+            ).createShader(diamond.getBounds()),
+        );
+        canvas.drawPath(
+          diamond,
+          Paint()
+            ..color = const Color(0xB3472D18)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.65,
+        );
+      } else if (longMark) {
+        final inward = at - Offset.fromDirection(angle, halfLength);
+        final outward = at + Offset.fromDirection(angle, halfLength);
+        canvas.drawLine(
+          inward,
+          outward,
+          Paint()
+            ..color = const Color(0xFFCA9A59)
+            ..strokeWidth = size.shortestSide * 0.022
+            ..strokeCap = StrokeCap.round,
+        );
+      } else {
+        canvas.drawCircle(
+          at,
+          size.shortestSide * 0.031,
+          Paint()..color = const Color(0xFFD1A463),
+        );
+        canvas.drawCircle(
+          at,
+          size.shortestSide * 0.031,
+          Paint()
+            ..color = const Color(0x9950331D)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 0.6,
+        );
+      }
+    }
+  }
+
   @override
   bool shouldRepaint(_CheckRingPainter old) =>
       old.stat != stat ||
@@ -1538,6 +1710,7 @@ class _CheckRingPainter extends CustomPainter {
       old.progress != progress ||
       old.accent != accent ||
       old.showReadyCheck != showReadyCheck ||
+      old.masteryTier != masteryTier ||
       old.shine != shine ||
       old.light != light;
 }

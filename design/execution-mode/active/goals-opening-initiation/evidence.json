@@ -1,0 +1,436 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-opening-initiation-2026-08-27",
+  "brief_sha256": "8ec7cc92810348cf8fe4a6f1a166613caad774edc0bedd4c121b9e2b4f27649d",
+  "phase": "handoff",
+  "implementation_revision": "worktree:0e666f2639fc:a60b92c9a00e7a1c327120bb",
+  "revision_captured_at": "2026-08-27T22:29:00.0000000Z",
+  "checks": [
+    {
+      "id": "slice-product-opening",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Create production-equivalent goals through quick create, advanced wizard, and starting points, then inspect and exercise the complete one-time opening",
+      "input_state": "New HOME goal with a saved reason, no supplied action, a conservative app-prepared first move, and a lighter fallback; plus a separate user-authored first Quest",
+      "inspected_by": "Codex main agent and Claude Fable 5 focused UX reviewer",
+      "observation": "Room of Days preserves or prepares one exact first move, makes its lighter route explicit, requires acceptance before attaching an app-prepared Quest, opens that exact Quest, and does not replay the opening on return. The rebuilt copy hierarchy and opening-only clasp now keep that first move legible without turning the room into a conversion overlay.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Desk, threshold, arrival, and narrow large-text opening states",
+          "path": "design/comparisons/2026-08-27/goals-opening-phone.webp",
+          "generated_at": "2026-08-27T20:59:26.5709983Z",
+          "content_sha256": "233aa974dc89c5dc5f3c8c805d26d8b635323aa6cfa9e1073d6284de05f6fb42",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "All creation paths, exact Quest handoff, resume, persistence, full suite, analyzer, and release build",
+          "path": "design/execution-mode/active/goals-opening-initiation/slice-test-report.md",
+          "generated_at": "2026-08-27T20:59:41.0681353Z",
+          "content_sha256": "75d302e9de968141c91d3bf4a6cab5e1216cea12d398f64f3b386088cfc72c5c",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-interaction-opening",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Drive real pointer presses through the production opening at deterministic 30 fps and verify stage back, in-flight system back, rapid repeat, Reduced Motion, and exact Quest identity",
+      "input_state": "Desk hold, accepted Show plan frame, 1480 ms withdrawal, threshold hold, accepted Step in frame, 1280 ms crossing, arrival hold, and final Begin",
+      "inspected_by": "Codex main agent with Flutter test runner and real-time artifact playback",
+      "observation": "Every move begins only after the person's action, preserves immediate contact acknowledgement, holds for reading, reverses without accidental acceptance, and ends on the exact first Quest.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "interaction",
+          "state": "Playable 30 fps one-time opening with authored holds and press frames",
+          "path": "design/comparisons/2026-08-27/goals-opening-journey-430x932.mp4",
+          "generated_at": "2026-08-27T20:59:28.1717289Z",
+          "content_sha256": "938b269846b8a02876d12472c6867ca4b38824009eea6813426e13eb11296c1e",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "interaction",
+          "state": "Playable compact 30 fps opening with delayed threshold reveal at 320 by 568 and 1.5x text",
+          "path": "design/comparisons/2026-08-27/goals-opening-compact-journey-320x568.mp4",
+          "generated_at": "2026-08-27T20:59:28.5231558Z",
+          "content_sha256": "56682cd5a369553629acbc4008355ab0380908285f393f79cdeb50a6860d40cb",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Audited returning goal, Goal Detail, exact-Quest handoff, and hard-day recovery journey",
+          "path": "design/audits/2026-08-27/goals-post-selection-recovery/AUDIT.md",
+          "generated_at": "2026-08-27T21:15:04.5552262Z",
+          "content_sha256": "897aff91c72a1247153ccf6b0e1698f89cad6a985e90cf8a1c562cfa67f4397e",
+          "data_source": "test_output"
+        },
+        {
+          "kind": "test_report",
+          "state": "Focused and full interaction regression record",
+          "path": "design/execution-mode/active/goals-opening-initiation/slice-test-report.md",
+          "generated_at": "2026-08-27T20:59:41.0681353Z",
+          "content_sha256": "75d302e9de968141c91d3bf4a6cab5e1216cea12d398f64f3b386088cfc72c5c",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-visual-room-journey",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect approved sources and current builds in the same normalized comparisons, then inspect adjacent motion frames and real-time playback",
+      "input_state": "Intimate desk intention, wide room threshold with live registered plan, kitchen-side exact first action, and ordinary returning journey",
+      "inspected_by": "Codex main agent and Claude Fable 5 focused UX reviewer",
+      "observation": "The goal and reason sit directly in room light, the exact move keeps one authored serif role, the opening-only action clasp reads as hardware attached to the folio, and the more transparent threshold surface borrows enough doorway light to preserve one continuous apartment before the kitchen copy settles.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Approved desk target beside the current opening desk",
+          "path": "design/comparisons/2026-08-27/probe-goals-opening-desk-type-pass-3.png",
+          "generated_at": "2026-08-27T20:59:26.9194862Z",
+          "content_sha256": "38be9eefb5c461b0065e08197f7af5398adbcfc8c30b992dc1437a0a1d1c12c3",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Approved threshold target beside the current live arch plan",
+          "path": "design/comparisons/2026-08-27/probe-goals-opening-threshold-type-pass-3.png",
+          "generated_at": "2026-08-27T20:59:27.2430652Z",
+          "content_sha256": "4e7c1af4d5c008a8ec6deb459a320ba134f3c48ec5c72a568b9ba85d7fd9c425",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Sampled full opening from desk through arch to kitchen",
+          "path": "design/comparisons/2026-08-27/goals-opening-motion-contact-sheet.png",
+          "generated_at": "2026-08-27T20:59:28.8431818Z",
+          "content_sha256": "0d36fe596c2218f23adec9424b1b0f890f51d9782e6f63b566cf43d0414ca78e",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Compact opening sampled through the room-only breath, threshold reveal, crossing, and arrival",
+          "path": "design/comparisons/2026-08-27/goals-opening-compact-motion-contact-sheet.png",
+          "generated_at": "2026-08-27T20:59:29.1204044Z",
+          "content_sha256": "4b47d2324b604dc5c00d5404b90614ea2a99b77607b77139a287de314599aaf6",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Previous opening controls beside the rebuilt sentence-case hierarchy and opening-only clasp",
+          "path": "design/comparisons/2026-08-27/evidence-goals-opening-controls-before-after.png",
+          "generated_at": "2026-08-27T20:59:27.5859333Z",
+          "content_sha256": "7e14030d46664c707ec63fd672f158b4e5379f3c7fd0488c325253cdc6c47ecc",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "critique",
+          "state": "Independent Fable review, corrected findings, unavailable Gemini seat, and current reversal conditions",
+          "path": "design/audits/2026-08-27/goals-opening-type-controls-pass-3/COUNCIL-SYNTHESIS.md",
+          "generated_at": "2026-08-27T20:59:41.0681353Z",
+          "content_sha256": "4e849566361149d9f4636df43d7338361b0731a707d45955207387c0de31a7ec",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-desk",
+      "requirement_id": "state:desk",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the first opening frame at 430 by 932 and in the normalized target/build comparison",
+      "input_state": "New HOME goal before the first advance",
+      "inspected_by": "Codex main agent and independent visual reviewers",
+      "observation": "The exact goal and saved reason inherit the desk-side room light while the prepared first move and lighter route remain on one grounded folio with one luminous action.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Approved and current desk opening",
+          "path": "design/comparisons/2026-08-27/probe-goals-opening-desk-type-pass-3.png",
+          "generated_at": "2026-08-27T20:59:26.9194862Z",
+          "content_sha256": "38be9eefb5c461b0065e08197f7af5398adbcfc8c30b992dc1437a0a1d1c12c3",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-threshold",
+      "requirement_id": "state:threshold",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the wide held room and exercise the live arch action",
+      "input_state": "Prepared exact plan after the desk withdrawal and before the kitchen crossing",
+      "inspected_by": "Codex main agent and independent visual reviewers",
+      "observation": "The translucent faceted plan waits for the wide-room hold, stays registered to the lit arch, preserves the kitchen light behind it, supplies an exact lighter route, and offers a real Step inside action rather than decorative affordance.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Approved and current threshold",
+          "path": "design/comparisons/2026-08-27/probe-goals-opening-threshold-type-pass-3.png",
+          "generated_at": "2026-08-27T20:59:27.2430652Z",
+          "content_sha256": "4e7c1af4d5c008a8ec6deb459a320ba134f3c48ec5c72a568b9ba85d7fd9c425",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-arrival",
+      "requirement_id": "state:arrival",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect and activate the final kitchen-side opening state",
+      "input_state": "Exact prepared first move and lighter fallback after crossing the arch",
+      "inspected_by": "Codex main agent and independent visual reviewers",
+      "observation": "The kitchen owns the final frame, Begin names one exact Quest in the same authored serif voice, and an app suggestion remains replaceable before acceptance.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Final static opening sequence including kitchen arrival",
+          "path": "design/comparisons/2026-08-27/goals-opening-phone.webp",
+          "generated_at": "2026-08-27T20:59:26.5709983Z",
+          "content_sha256": "233aa974dc89c5dc5f3c8c805d26d8b635323aa6cfa9e1073d6284de05f6fb42",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-return",
+      "requirement_id": "state:return",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Complete an opening, revisit the goal, and capture the ordinary production room route at deterministic 60 fps",
+      "input_state": "Already-opened goal with an exact linked Quest",
+      "inspected_by": "Codex main agent and independent visual reviewers",
+      "observation": "The ceremony does not replay; returning use keeps the direct 1.64-second room route and the exact current action remains the landmark through the crossing.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Returning route sampled at rest, retreat, threshold, crossing, and settled kitchen",
+          "path": "design/comparisons/2026-08-27/goals-return-motion-contact-sheet.png",
+          "generated_at": "2026-08-27T21:03:56.2413423Z",
+          "content_sha256": "4f1c2270b9027cd4cb1edc9f345c0d7860a71e2380bbf65c268868293820a1de",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "interaction",
+          "state": "Playable 60 fps returning journey",
+          "path": "design/comparisons/2026-08-27/goals-return-journey-430x932.mp4",
+          "generated_at": "2026-08-27T21:03:55.9792403Z",
+          "content_sha256": "c384fdae54597627aefc023a99bcdbc28195661beeebc6424e8b2707d3772d21",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-reduced-motion",
+      "requirement_id": "state:reduced-motion",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run product Reduce Motion and OS disable-animations paths through the same staged opening",
+      "input_state": "Desk, threshold, arrival, exact Quest handoff, and back behavior without camera travel",
+      "inspected_by": "Codex main agent with Flutter test runner",
+      "observation": "Reduced Motion preserves the same content, order, actions, semantics, and composed room states using short crossfades rather than scale or travel.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Reduced Motion and accessibility coverage within the focused and full suites",
+          "path": "design/execution-mode/active/goals-opening-initiation/slice-test-report.md",
+          "generated_at": "2026-08-27T20:59:41.0681353Z",
+          "content_sha256": "75d302e9de968141c91d3bf4a6cab5e1216cea12d398f64f3b386088cfc72c5c",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "final-code-complete-return-recovery",
+      "requirement_id": "final:code-complete",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Run the full analyzer, all Flutter tests, the focused Goals and momentum suites, deterministic 60 fps motion capture, Wasm release build, and LAN asset response checks after the final source change",
+      "input_state": "Returning goal with an exact due Quest, saved reason, lighter action, contextual support, Goal Detail release controls, Reduced Motion, and the shared Quest-board handoff",
+      "inspected_by": "Codex main agent, independent verification subagent, Flutter analyzer and test runners, Wasm release compiler, and HTTP response checks",
+      "observation": "The analyzer is clean, all 801 tests pass, the focused 38-test Goals and momentum set passes, deterministic motion capture completes, the Wasm release builds, and the LAN preview serves the index, bootstrap, and Wasm payload with HTTP 200.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Final returning-goal recovery implementation, visual inspection, full regression suite, release build, and LAN response record",
+          "path": "design/audits/2026-08-27/goals-post-selection-recovery/PASS-2.md",
+          "generated_at": "2026-08-27T22:35:30.0311474Z",
+          "content_sha256": "d66d1c599f86208bf60d6881bc16bdb9310074fd900ab9025770a2a046c8bab8",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "final-comparison-return-recovery",
+      "requirement_id": "final:comparison",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Place the approved living-commitment target beside the current production render, inspect the complete still-state review, inspect adjacent 60 fps motion frames at the modern-iPhone viewport, and recapture the corrected Goal Detail controls",
+      "input_state": "Ordinary return, finger-down and accepted states, room retreat and threshold, exact kitchen arrival, hard-day lighter action, expanded support choices, proof and return plan, and destructive goal release",
+      "inspected_by": "Codex main agent and Claude Fable 5 focused independent reviewer",
+      "observation": "The current build preserves the approved room-owned hierarchy while making the exact Quest and lighter route clearer, keeps live text legible in room light, carries intent through one continuous apartment, and resolves Fable's concrete contrast, fixture-consistency, and label-density findings.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Approved returning-goal target beside the final current production state",
+          "path": "design/comparisons/2026-08-27/evidence-goals-returning-commitment.png",
+          "generated_at": "2026-08-27T22:37:41.8434391Z",
+          "content_sha256": "5ed61ed4750b1f57e899919cc87d2aa4d8d62cebdec7fcd8dbcf222709d314a5",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Final normal, pressed, accepted, threshold, arrival, detail, hard-day, empty, and expanded-support phone states",
+          "path": "design/comparisons/2026-08-27/goals-living-commitment-phone.webp",
+          "generated_at": "2026-08-27T22:37:42.4310222Z",
+          "content_sha256": "b09399f84f8fe1f99410d49d96d219df09c91827023d47672b1ab3ec0d7e0d15",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Modern-iPhone 60 fps returning route sampled from rest through accepted tap, retreat, arch, kitchen, and exact Quest arrival",
+          "path": "design/comparisons/2026-08-27/goals-return-motion-contact-sheet-402x874.png",
+          "generated_at": "2026-08-27T22:37:42.4014859Z",
+          "content_sha256": "e88464d5f4e151a24388b8b42620fa19af4ec277dbe2bd30024850139c85cb73",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "interaction",
+          "state": "Playable modern-iPhone returning journey at deterministic 60 fps",
+          "path": "design/comparisons/2026-08-27/goals-return-journey-402x874.mp4",
+          "generated_at": "2026-08-27T22:37:42.3002904Z",
+          "content_sha256": "86bf33c3be46729a37da314e2d8333b2cb0402f09c35a2d6a0c217ae27a44bbe",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Goal Detail proof, return plan, add-Quest control, and long-press goal-release control over the kitchen",
+          "path": "test/goldens/goal_detail_habit_support_430x932.png",
+          "generated_at": "2026-08-27T22:29:29.7822096Z",
+          "content_sha256": "22a6f2fe5f67dd9f7545d9087cd6e87cdccec12040927560f372748427a311c6",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Claude Fable 5 focused UX review; Gemini 3.6 Flash route probe succeeded but its read-only project review was auto-rejected and produced no usable report",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-product-opening",
+      "slice-interaction-opening",
+      "slice-visual-room-journey",
+      "slice-state-return"
+    ],
+    "reviewed_artifacts": [
+      "design/comparisons/2026-08-27/goals-opening-phone.webp",
+      "design/comparisons/2026-08-27/goals-opening-motion-contact-sheet.png",
+      "design/comparisons/2026-08-27/goals-opening-compact-motion-contact-sheet.png",
+      "design/comparisons/2026-08-27/goals-return-motion-contact-sheet.png",
+      "design/comparisons/2026-08-27/probe-goals-opening-desk-type-pass-3.png",
+      "design/comparisons/2026-08-27/probe-goals-opening-threshold-type-pass-3.png",
+      "design/comparisons/2026-08-27/evidence-goals-opening-controls-before-after.png",
+      "design/audits/2026-08-27/goals-opening-type-controls-pass-3/COUNCIL-SYNTHESIS.md"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "The threshold read as a dark tooltip over the arch and dimmed the destination precisely when the journey should reveal it.",
+        "disposition": "accepted",
+        "evidence": "The threshold surface now borrows more doorway light, uses quieter borders and more transparent facets, and preserves the kitchen behind it in the corrected threshold probe and motion capture."
+      },
+      {
+        "finding": "The exact first move lost its authored serif payoff at the doorway and arrival.",
+        "disposition": "accepted",
+        "evidence": "The exact action now keeps the Fraunces role through desk, threshold, and arrival while support copy remains readable Inter."
+      },
+      {
+        "finding": "The 200 percent scroll boundary ended abruptly and the intermediate 1.15x clasp width had not been exercised.",
+        "disposition": "accepted",
+        "evidence": "A warm top-edge fade now softens the scrolled boundary. A new 1.15x golden reproduced a See the plan wrap, and the responsive clasp width corrected it before the current captures."
+      }
+    ],
+    "no_material_findings_observation": "Fable's concrete findings were resolved locally and recaptured. The corrected slice has not been claimed as independently re-approved; physical doorway integration and owner feel remain explicit reversal conditions."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-27T21:18:42.1353657Z",
+    "decided_at": "2026-08-27T21:18:42.1353657Z",
+    "reviewed_revision": "worktree:0e666f2639fc:f0d06378ff0e9801cb25d0d1",
+    "reviewed_brief_sha256": "8ec7cc92810348cf8fe4a6f1a166613caad774edc0bedd4c121b9e2b4f27649d",
+    "reviewed_check_ids": [
+      "slice-product-opening",
+      "slice-interaction-opening",
+      "slice-visual-room-journey"
+    ],
+    "reviewed_artifacts": [
+      "design/comparisons/2026-08-27/goals-opening-phone.webp",
+      "design/comparisons/2026-08-27/evidence-goals-opening-controls-before-after.png",
+      "design/comparisons/2026-08-27/goals-opening-motion-contact-sheet.png",
+      "design/audits/2026-08-27/goals-post-selection-recovery/AUDIT.md"
+    ],
+    "decision": "accepted",
+    "exact_feedback_or_waiver_reason": "nice, i like the new styling!\nskip figma, but you can keep working on that next pass then. and id further strengthen the UI text side if possible"
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": ""
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "physical-phone-owner-feel",
+      "gate": "Physical iPhone interaction and owner-feel acceptance",
+      "why": "Deterministic renders cannot establish thumb response, OLED value separation, haptic weight, real frame pacing, or whether the slower ceremony feels exciting rather than ponderous",
+      "owner_or_system": "Owner on the exact installed iPhone candidate",
+      "next_action": "Create one new goal, play the complete opening at natural speed, and revisit it once",
+      "blocking": true
+    }
+  ]
+}

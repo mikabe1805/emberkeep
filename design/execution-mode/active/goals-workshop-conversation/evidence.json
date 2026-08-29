@@ -1,0 +1,249 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-workshop-conversation-2026-08-29",
+  "brief_sha256": "d78cd1ecc70473016d5c4ea3a1944c806132bfcce957d7206326ae748229a835",
+  "phase": "slice",
+  "implementation_revision": "worktree:0e666f2639fc:9639cd674f8c34bd0189b17b",
+  "revision_captured_at": "2026-08-29T13:13:13-04:00",
+  "checks": [
+    {
+      "id": "slice-conversation-product",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run the new dialogue contract tests, the focused Goals and Workshop suite, the full Flutter suite, static analysis, and release builds from the captured worktree revision.",
+      "input_state": "Production-equivalent mixed, empty, waiting, owned-Quest, completed, compact, and repeated-interaction GoalPlan fixtures.",
+      "inspected_by": "Codex main agent and independent Terra reviewer workshop_slice_critique",
+      "observation": "Dialogue is optional widget state. The focused suite passed 72 tests, the full suite passed 857 tests, analysis found no issues, and production web and Android release builds completed.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Goals Workshop conversation, regression, analysis, and release-build verification",
+          "path": "design/execution-mode/active/goals-workshop-conversation/test-report.md",
+          "generated_at": "2026-08-29T13:21:40-04:00",
+          "content_sha256": "15d390a189d59b05d11fb7e9ae6a9839d15f83f354e49351dfb6d5e91d01ba3b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-conversation-interaction",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Open Talk shop, select and switch all three prompts, return to routes, and assert semantics, live-region behavior, callback silence, and compact hit targets.",
+      "input_state": "Mixed truthful register at 430 by 932 and 320 by 568 at 1.5x text scale.",
+      "inspected_by": "Codex main agent and independent Terra reviewer workshop_slice_critique",
+      "observation": "All prompts respond immediately in the existing register, the selected response is announced as a live region, Routes and New goal stay reachable, and dialogue invokes no route, focus, or new-goal callback.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Prompt switching, semantics, callback, and compact reachability verification",
+          "path": "design/execution-mode/active/goals-workshop-conversation/test-report.md",
+          "generated_at": "2026-08-29T13:21:40-04:00",
+          "content_sha256": "15d390a189d59b05d11fb7e9ae6a9839d15f83f354e49351dfb6d5e91d01ba3b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-conversation-visual",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the normal and compact routes/conversation pairs and their same-viewport contact sheet after the compact wayfinding correction.",
+      "input_state": "Production Workshop sprite, room, register, mixed route inventory, selected response, normal phone, and compact large-text phone.",
+      "inspected_by": "Codex main agent and independent Terra reviewer workshop_slice_critique",
+      "observation": "Conversation stays inside the accepted physical register, the steward face remains clear, one quiet selection accent carries state, and no second luminous action or chat-sheet composition appears.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Routes and Talk shop at normal and compact large-text phone sizes",
+          "path": "design/comparisons/2026-08-29/goals-workshop-return-phone.webp",
+          "generated_at": "2026-08-29T13:19:40-04:00",
+          "content_sha256": "8f1dfd4c619186f79e66e0bc90cc97f678b72ba1115e3633a2cb9d219a736cc3",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Selected response in the normal 430 by 932 Workshop",
+          "path": "test/goldens/goals_workshop_conversation_430x932.png",
+          "generated_at": "2026-08-29T13:19:18-04:00",
+          "content_sha256": "4ac4d64662fcfb830016ca01cf5a6e9b0f47fa2a7ff6e3828ac6d397711eece6",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-mixed-register-entry",
+      "requirement_id": "state:mixed-register-entry",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the mixed truthful register before entering Talk shop at the same normal phone viewport used for the conversation state.",
+      "input_state": "One cut waiting, one exact Quest on board, one route needing shape, and one completed route at 430 by 932.",
+      "inspected_by": "Codex main agent and independent Terra reviewer workshop_slice_critique",
+      "observation": "The register exposes real route priority and the quiet Talk shop footer without displacing New goal or inventing a second progress surface.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Mixed truthful route register before Talk shop",
+          "path": "test/goldens/goals_workshop_home_430x932.png",
+          "generated_at": "2026-08-29T13:19:17-04:00",
+          "content_sha256": "bc35ab652df4569404e435fcc57a27a2b17f939b9c61a45305a477f94e923653",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-response-selected",
+      "requirement_id": "state:response-selected",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the register after selecting the durable craft prompt and compare it with the unchanged routes state.",
+      "input_state": "Mixed truthful register with What makes a good cut selected at 430 by 932.",
+      "inspected_by": "Codex main agent and independent Terra reviewer workshop_slice_critique",
+      "observation": "One practical answer is held in place, the selected prompt stays legible, and the steward, room, Routes, and New goal remain available without chat-system ceremony.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "One practical workshop response selected",
+          "path": "test/goldens/goals_workshop_conversation_430x932.png",
+          "generated_at": "2026-08-29T13:19:18-04:00",
+          "content_sha256": "4ac4d64662fcfb830016ca01cf5a6e9b0f47fa2a7ff6e3828ac6d397711eece6",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-return-unchanged",
+      "requirement_id": "state:return-unchanged",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Serialize Goal and Quest state before all dialogue interactions, return to Routes, and compare identity, JSON, ordering, and callback counts.",
+      "input_state": "One cut waiting, one exact Quest on board, one route needing shape, and one completed route.",
+      "inspected_by": "Codex main agent and independent Terra reviewer workshop_slice_critique",
+      "observation": "GoalPlan and Quest JSON are byte-for-byte unchanged, row priority returns unchanged, and explicit Quest acceptance remains the sole ownership boundary.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Mixed-register nonmutation and exact-Quest boundary verification",
+          "path": "design/execution-mode/active/goals-workshop-conversation/test-report.md",
+          "generated_at": "2026-08-29T13:21:40-04:00",
+          "content_sha256": "15d390a189d59b05d11fb7e9ae6a9839d15f83f354e49351dfb6d5e91d01ba3b",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-compact-large-text",
+      "requirement_id": "state:compact-large-text",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect and hit-test the final 320 by 568 frame at 1.5x text after opening Talk shop and selecting the immediate-state response.",
+      "input_state": "Compact phone with a mixed register, all prompts, one selected answer, and both exits.",
+      "inspected_by": "Codex main agent and independent Terra reviewer workshop_slice_critique",
+      "observation": "The optional-context line, all three prompts, selected answer, Routes, and New goal are simultaneously visible, readable, and hit-testable without overflow.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Compact selected response at 320 by 568 and 1.5x text",
+          "path": "test/goldens/goals_workshop_conversation_narrow_large_text_320x568.png",
+          "generated_at": "2026-08-29T13:19:35-04:00",
+          "content_sha256": "d26e8c80e4906136cbeffc0a30a18b7253431b2f5c0cfdc19bb7d421510a8e1f",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra reviewer workshop_slice_critique",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-conversation-product",
+      "slice-conversation-interaction",
+      "slice-conversation-visual",
+      "slice-state-mixed-register-entry",
+      "slice-state-response-selected",
+      "slice-state-return-unchanged",
+      "slice-state-compact-large-text"
+    ],
+    "reviewed_artifacts": [
+      "design/execution-mode/active/goals-workshop-conversation/test-report.md",
+      "test/goldens/goals_workshop_home_430x932.png",
+      "test/goldens/goals_workshop_conversation_430x932.png",
+      "test/goldens/goals_workshop_conversation_narrow_large_text_320x568.png",
+      "design/comparisons/2026-08-29/goals-workshop-return-phone.webp"
+    ],
+    "result": "pass",
+    "findings": [],
+    "no_material_findings_observation": "The first critique identified compact auto-scroll wayfinding risk. After the register height and compact bottom breathing room were corrected and evidence regenerated, independent review passed visual_evidence_ready: the optional context, all prompts, selected answer, and both exits are simultaneously visible."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-29T13:13:13-04:00",
+    "decided_at": "",
+    "reviewed_revision": "",
+    "reviewed_brief_sha256": "",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "The owner approved continuing polish and specifically invited more workshop NPC dialogue. Fresh slice evidence is still required before expansion or owner/device acceptance."
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Desktop tests and renders cannot establish physical iPhone typography, OLED separation, thumb reach, sound/haptic timing, scroll feel, or owner feel."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "conversation-slice-owner-checkpoint",
+      "gate": "Owner judgment of the optional conversation slice",
+      "why": "The state-bound dialogue interaction and copy do not exist in the approved workshop baseline.",
+      "owner_or_system": "Mika using the current rendered/running Workshop",
+      "next_action": "Inspect every prompt in mixed and compact states, then accept the slice or identify the line/interaction that feels wrong.",
+      "blocking": true
+    },
+    {
+      "id": "conversation-physical-phone",
+      "gate": "Physical iPhone readability, touch, scroll, sound-off, and Reduced Motion check",
+      "why": "Desktop evidence cannot establish the final sensory and compact-device experience.",
+      "owner_or_system": "Mika on the next installed candidate",
+      "next_action": "Use Talk shop, switch prompts, return to routes, and continue to an exact Quest in normal and Reduced Motion on the phone.",
+      "blocking": true
+    }
+  ]
+}

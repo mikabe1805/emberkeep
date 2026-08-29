@@ -1,0 +1,172 @@
+{
+  "schema_version": 1,
+  "id": "quest-mastery-2026-08-29",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "slice_ready_for_owner",
+  "locked_at": "2026-08-29T01:37:03-04:00",
+  "surface": "Quest completion progression, the Quest card completion orbit, and curated automatic ladders",
+  "scope": "Build one persistent universal Quest mastery system across goal domains, repair the 16/5 overflow, automatically advance only curated non-custom ladders at five honest completions, and express accumulated practice through the existing Quest completion orbit and reward receipt without adding a second progress authority or pressure mechanic.",
+  "user_job": "See that repeating any worthwhile Quest is becoming a real accumulated practice, and trust that a starter Quest promising to rise will actually update without requiring a separate night ritual.",
+  "active_sources": [
+    {
+      "id": "quest-mastery-owner-lock",
+      "kind": "visual_target",
+      "location": "design/visual-targets/2026-08-29/quest-mastery/QUEST-MASTERY-LOCK.md",
+      "content_sha256": "b5cb829dca580a2ab298188a76687e520bdef9e81ab25ca0bfcde539463a24c8",
+      "approved_at": "2026-08-29",
+      "judged_state": "The owner's school, apartment, fitness, creative, and Walk 10 minutes examples translated into one universal mastery contract and safe curated auto-rise boundary.",
+      "viewport": "430x932 and 320x568 at default and 1.3x text",
+      "priority": 1
+    },
+    {
+      "id": "quest-material-canon",
+      "kind": "visual_target",
+      "location": "DESIGN-BIBLE.md",
+      "content_sha256": "a1a6ecd073e31143a294b7b2b9bb39a71e57530c0037bbdc9b0b9115423aa3d3",
+      "approved_at": "2026-08-03",
+      "judged_state": "The existing open jeweler's orbit, warm closed completion, aged brass structure, single luminous action, static resting ornament, and never-punish contract remain authoritative.",
+      "viewport": "Quest board across supported phone states",
+      "priority": 2
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "lib/widgets/routine_flows.dart",
+      "reason": "Night Flow remains historical context but no longer owns curated default Quest rises; requiring a separate close-out allowed Walk 10 minutes to remain at 16/5 indefinitely."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "Every committed recurring Quest completion advances permanent mastery equally, while prescription difficulty changes only for curated non-custom Quests with an authored ladder.",
+      "proof": "School, apartment, fitness, creative, and generic fixtures at the same completion count resolve to the same mastery tier; only the curated walking ladder changes its visible prescription."
+    },
+    "interaction": {
+      "decision": "The fifth curated completion atomically records mastery, advances one ladder rung, resets bounded rung progress, and names the earned change once inside the existing completion receipt; undo and restore reverse or preserve the whole result together.",
+      "proof": "Engine, persistence, undo, legacy 16/5, final-rung, timer, journal, workout, all-day, and rapid completion tests observe the exact saved state."
+    },
+    "visual": {
+      "decision": "Mastery enriches the existing static jeweler's orbit through earned brass geometry at 5, 15, 40, and 100 completions without increasing card height, adding a second chip, or creating autonomous spectacle.",
+      "proof": "Fresh phone renders compare unranked, kept, practiced, gilded, and masterwork orbits in featured and compact rows, including Reduced Motion and 1.3x text."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Clamp the displayed 16/5 to 5/5 without changing state",
+      "why": "It would hide the broken promise while leaving the visible prescription and persistence unchanged."
+    },
+    {
+      "fallback": "Use one fitness-specific ladder system as the progression answer",
+      "why": "Cleaning, school, care, creative, and generic goals would remain structurally less supported."
+    },
+    {
+      "fallback": "Automatically make every repeated custom or maintenance Quest harder",
+      "why": "It would turn recognition into pressure and can be unsafe or inappropriate for care and already-difficult work."
+    },
+    {
+      "fallback": "Add a neon full-card competitive rank frame or another persistent progress chip",
+      "why": "It would crowd the daily board, copy the surface rather than the accumulation mechanism, and compete with the one luminous action."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "A person completes the default Walk 10 minutes for the fifth time, later restores legacy 16/5 data, and compares the resulting mastery with equally repeated study, apartment, and creative Quests.",
+    "real_inputs": "Production Quest models with a curated walking ladder, non-ladder recurring Quests from multiple domains, legacy persisted overflow, and the live Quest card and reward receipt.",
+    "user_action": "Complete the Quest, observe the receipt and updated card, leave and restore the save, then review other repeated Quests on the same board.",
+    "expected_outcome": "Walk advances exactly one safe rung and never shows an overflow; every Quest displays the same earned mastery tier for the same completion history; no non-ladder task silently becomes harder.",
+    "state_boundary": "Mastery count, rung, bounded rise progress, and tier crossing persist and revert atomically with the completion snapshot.",
+    "required_states": [
+      {
+        "id": "four-of-five",
+        "state": "Walk 10 minutes at four current-rung completions and four lifetime completions",
+        "why_can_disprove": "The pre-threshold state can reveal a premature tier or prescription change."
+      },
+      {
+        "id": "fifth-auto-rise",
+        "state": "The fifth committed walking completion",
+        "why_can_disprove": "The key promise fails if the title, receipt, count, or saved rung diverges."
+      },
+      {
+        "id": "legacy-overflow",
+        "state": "A restored authored walking Quest with risingStreak 16 and no mastery field",
+        "why_can_disprove": "A cosmetic clamp, multi-rung punishment, or lost completion history can all look superficially fixed."
+      },
+      {
+        "id": "cross-domain-parity",
+        "state": "Study, apartment, fitness, creative, and generic Quests at 15 lifetime completions",
+        "why_can_disprove": "Domain-specific branches or extra fitness chrome would make equal counts feel unequally valued."
+      },
+      {
+        "id": "ladder-cap",
+        "state": "A curated Quest on its final authored rung",
+        "why_can_disprove": "An impossible rise prompt or 5/5 overflow would preserve the original architecture defect."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "completion-engine",
+      "surface_or_primitive": "Quest model, GameState roll, workout launcher, and undo snapshot",
+      "state": "Ordinary, timer, journal, all-day, workout, rapid, undo, and restored completion",
+      "expected_effect": "One committed real Quest completion changes mastery exactly once and keeps rise state atomic.",
+      "verification_plan": "Focused model/engine/widget tests and persistence round trips.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "quest-card",
+      "surface_or_primitive": "Featured and compact Quest completion orbit",
+      "state": "0, 5, 15, 40, and 100 completions; open and completed",
+      "expected_effect": "Tier richness is visible through static geometry without extra row height or competing copy.",
+      "verification_plan": "Fresh 430x932 contact sheet plus 320x568 and 1.3x text inspection.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "reward-receipt",
+      "surface_or_primitive": "Existing completion reward rail",
+      "state": "Ordinary completion, mastery threshold, auto-rise threshold, and Reduced Motion",
+      "expected_effect": "Only a newly earned tier or prescription adds one factual receipt line; ordinary completions keep existing density.",
+      "verification_plan": "Widget behavior and rendered fifth-completion receipt.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "night-flow",
+      "surface_or_primitive": "Night recap rise section",
+      "state": "Automatic curated ladder, manual custom ladder, and capped ladder",
+      "expected_effect": "Automatic and capped Quests do not create a redundant or impossible RISE prompt; explicit custom rises remain optional.",
+      "verification_plan": "Routine widget tests and direct state inspection.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "A correct counter and green tests do not prove that universal mastery feels equally valuable across domains or that the progressively richer orbit remains legible rather than noisy on a real phone.",
+  "decisive_check": {
+    "method": "Run the production completion and persistence journey, then inspect a same-viewport cross-domain mastery board and threshold receipt at phone size.",
+    "target": "Walk fifth completion, legacy 16/5 restore, five 15-completion domains, final ladder rung, 430x932, 320x568, 1.3x text, and Reduced Motion.",
+    "pass_condition": "No state displays beyond 4/5, Walk changes exactly one rung when earned, all equal-count Quests share the same mastery geometry and semantics, non-ladder tasks do not become harder, and the board's existing hierarchy remains intact."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/models.dart",
+      "lib/engine.dart",
+      "lib/content/goal_catalog.dart",
+      "lib/goal_planner.dart",
+      "lib/screens/quests.dart",
+      "lib/widgets/quest_card.dart",
+      "lib/widgets/goal_threshold_scene.dart",
+      "lib/widgets/reward_receipt.dart",
+      "lib/widgets/routine_flows.dart",
+      "test/goal_planner_neutrality_test.dart",
+      "test/goal_steward_test.dart",
+      "test/quest_mastery_test.dart",
+      "test/quest_mastery_visual_test.dart",
+      "test/simulation_test.dart"
+    ],
+    "exclude": [
+      "test/goldens"
+    ]
+  }
+}

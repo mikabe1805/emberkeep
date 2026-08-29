@@ -28,6 +28,7 @@ void main() {
             builder: (routeContext) => GoalsPage(
               state: state,
               quests: quests,
+              onOpenQuest: (_) {},
               onAdd: (_) {
                 addCalls++;
                 return false;
@@ -36,7 +37,7 @@ void main() {
               onRemoveGoal: (_) {},
               onPersist: () {},
               onOpenQuests: () {},
-              onOpenGuidedWorkouts: () => Navigator.of(routeContext).push<void>(
+              onOpenWorkout: (_) => Navigator.of(routeContext).push<void>(
                 MaterialPageRoute(
                   builder: (_) => WorkoutFlow(
                     state: state,
@@ -58,12 +59,10 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 200));
 
-      final card = find.byKey(const ValueKey('guided-workouts-card'));
-      await tester.scrollUntilVisible(
-        card,
-        250,
-        scrollable: find.byType(Scrollable).first,
-      );
+      await tester.tap(find.byKey(const ValueKey('goals-support-toggle')));
+      await tester.pump(const Duration(milliseconds: 200));
+      final card = find.byKey(const ValueKey('goals-guided-workouts'));
+      await tester.ensureVisible(card);
       await tester.pump(const Duration(milliseconds: 100));
       await tester.tap(card);
       await tester.pump();

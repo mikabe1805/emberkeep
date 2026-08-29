@@ -1,0 +1,287 @@
+{
+  "schema_version": 1,
+  "brief_id": "quest-mastery-2026-08-29",
+  "brief_sha256": "1689bd5b517ced96736432cdb54da3891d2bac9d7fb366762d9f468748fdf7af",
+  "phase": "slice",
+  "implementation_revision": "worktree:0e666f2639fc:c1ab39bd5db75ef3d9e4e570",
+  "revision_captured_at": "2026-08-29T02:24:38-04:00",
+  "checks": [
+    {
+      "id": "slice-product-universal-mastery",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Complete default, custom, and Workshop-generated Quests across study, home, movement, creative, and relationship domains; restore the resulting state.",
+      "input_state": "Same-count cross-domain Quests, a five-attempt school Workshop routine, a custom maintenance Quest, and a curated walking ladder.",
+      "inspected_by": "Codex main agent, Terra independent reviewer, and Flutter test runner",
+      "observation": "Every real completion advances one permanent mastery authority. Workshop attempts hand history through the stable route marker, while only the curated walking ladder changes its prescription.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "846-test full suite, clean analyzer, focused parity and persistence checks, and independent re-review",
+          "path": "design/audits/2026-08-29/quest-mastery/SLICE-REPORT.md",
+          "generated_at": "2026-08-29T02:24:44-04:00",
+          "content_sha256": "e13e2a76f034968a84577332596134ea249a094cebb231c37b04bf3272c2ba42",
+          "data_source": "test_output"
+        },
+        {
+          "kind": "render",
+          "state": "Equal-value mastery progression across five goal domains",
+          "path": "test/goldens/quest_mastery_cross_domain_430x932.png",
+          "generated_at": "2026-08-29T02:25:00-04:00",
+          "content_sha256": "8234c0c95a83a925af1ea837934ba526cf60af6aa3867f8b48c2bd0b93022926",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-interaction-auto-rise",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Drive fifth completion, legacy restore, final-rung, guided-workout, manual custom-ladder, persistence, rapid completion, and undo paths through production model and engine code.",
+      "input_state": "Walk at four of five, legacy Walk at sixteen of five, capped ladder, guided launcher, arbitrary maintenance work, and serialized pre-completion snapshot.",
+      "inspected_by": "Codex main agent and Flutter test runner",
+      "observation": "The fifth curated completion records the old title truthfully, rises exactly one rung, resets progress, and announces KEPT once. Restore and undo preserve or reverse the complete state atomically; capped and arbitrary work do not harden.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Full and focused automatic-rise, atomicity, and accessibility regression record",
+          "path": "design/audits/2026-08-29/quest-mastery/SLICE-REPORT.md",
+          "generated_at": "2026-08-29T02:24:44-04:00",
+          "content_sha256": "e13e2a76f034968a84577332596134ea249a094cebb231c37b04bf3272c2ba42",
+          "data_source": "test_output"
+        },
+        {
+          "kind": "render",
+          "state": "Legacy sixteen-of-five save after one safe migration",
+          "path": "test/goldens/quest_mastery_repaired_16_430x932.png",
+          "generated_at": "2026-08-29T02:25:00-04:00",
+          "content_sha256": "9c02f8d553e2b9038becc258798db4121f80164af08af51b056cc5032fadff53",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-visual-earned-orbit",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the mastery orbit at all five tiers across different goal domains at authored phone size and inspect the repaired state at narrow 1.3x text.",
+      "input_state": "Unmarked, KEPT, PRACTICED, GILDED, and MASTERWORK Quest rows plus a featured repaired walking Quest.",
+      "inspected_by": "Codex main agent and Terra independent reviewer",
+      "observation": "Static brass geometry becomes progressively richer without changing row height or competing with the luminous action. The title, bounded rise progress, mastery count, and XP remain readable at the narrow large-text state.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Cross-domain mastery progression",
+          "path": "test/goldens/quest_mastery_cross_domain_430x932.png",
+          "generated_at": "2026-08-29T02:25:00-04:00",
+          "content_sha256": "8234c0c95a83a925af1ea837934ba526cf60af6aa3867f8b48c2bd0b93022926",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "320 by 568 large-text readability state",
+          "path": "test/goldens/quest_mastery_repaired_narrow_320x568.png",
+          "generated_at": "2026-08-29T02:25:01-04:00",
+          "content_sha256": "7309627fe98f349d1f2171c5fb7342038efa369b4f5a4f946f27c413465eb740",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-cross-domain-parity",
+      "requirement_id": "state:cross-domain-parity",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Compare equal mastery thresholds on study, apartment, movement, creative, and relationship Quests.",
+      "input_state": "Five production Quest cards at 4, 5, 15, 40, and 100 completions.",
+      "inspected_by": "Codex main agent and Terra independent reviewer",
+      "observation": "Domain changes the Quest identity and stat accent, not the value, threshold, semantics, or richness of earned mastery.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Five-domain mastery ladder",
+          "path": "test/goldens/quest_mastery_cross_domain_430x932.png",
+          "generated_at": "2026-08-29T02:25:00-04:00",
+          "content_sha256": "8234c0c95a83a925af1ea837934ba526cf60af6aa3867f8b48c2bd0b93022926",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-narrow-accessibility",
+      "requirement_id": "state:legacy-overflow",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Render the repaired legacy Quest at 320 by 568 with 1.3x text and inspect its merged semantics.",
+      "input_state": "Legacy Walk sixteen of five after migration, Reduced Motion, narrow phone, and enlarged text.",
+      "inspected_by": "Codex main agent and Flutter semantics test",
+      "observation": "The card reads Walk 20 minutes, zero of five, and PRACTICED sixteen times without overflow; assistive semantics announce sixteen completions, practiced mastery, and rise progress zero of five.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Narrow large-text repaired mastery card",
+          "path": "test/goldens/quest_mastery_repaired_narrow_320x568.png",
+          "generated_at": "2026-08-29T02:25:01-04:00",
+          "content_sha256": "7309627fe98f349d1f2171c5fb7342038efa369b4f5a4f946f27c413465eb740",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-four-of-five",
+      "requirement_id": "state:four-of-five",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Complete the curated walking Quest four times through the production progression method.",
+      "input_state": "Walk 10 minutes at zero lifetime and current-rung completions.",
+      "inspected_by": "Codex main agent and Flutter test runner",
+      "observation": "After four honest completions the prescription remains Walk 10 minutes, the bounded rise meter is four of five, and no mastery tier is awarded early.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Pre-threshold, fifth-completion, persistence, and final-rung progression checks",
+          "path": "design/audits/2026-08-29/quest-mastery/SLICE-REPORT.md",
+          "generated_at": "2026-08-29T02:24:44-04:00",
+          "content_sha256": "e13e2a76f034968a84577332596134ea249a094cebb231c37b04bf3272c2ba42",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-fifth-auto-rise",
+      "requirement_id": "state:fifth-auto-rise",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Commit the fifth curated walking completion and inspect the reward plus mutated Quest state.",
+      "input_state": "Walk 10 minutes at four of five and four lifetime completions.",
+      "inspected_by": "Codex main agent and Flutter test runner",
+      "observation": "The reward names the completed Walk 10 minutes truthfully, then the Quest becomes Walk 20 minutes at zero of five and crosses KEPT exactly once.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Pre-threshold, fifth-completion, persistence, and final-rung progression checks",
+          "path": "design/audits/2026-08-29/quest-mastery/SLICE-REPORT.md",
+          "generated_at": "2026-08-29T02:24:44-04:00",
+          "content_sha256": "e13e2a76f034968a84577332596134ea249a094cebb231c37b04bf3272c2ba42",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-ladder-cap",
+      "requirement_id": "state:ladder-cap",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Complete a curated Quest already parked on the final authored rung.",
+      "input_state": "Walking ladder at its last prescription, ninety-nine mastery completions, and stale current-rung progress.",
+      "inspected_by": "Codex main agent and Flutter test runner",
+      "observation": "The Quest reaches MASTERWORK, keeps the final prescription and difficulty, clears hidden rise progress, and cannot produce another rise prompt.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Pre-threshold, fifth-completion, persistence, and final-rung progression checks",
+          "path": "design/audits/2026-08-29/quest-mastery/SLICE-REPORT.md",
+          "generated_at": "2026-08-29T02:24:44-04:00",
+          "content_sha256": "e13e2a76f034968a84577332596134ea249a094cebb231c37b04bf3272c2ba42",
+          "data_source": "test_output"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra read-only subagent mastery_slice_critique",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-product-universal-mastery",
+      "slice-interaction-auto-rise",
+      "slice-visual-earned-orbit",
+      "slice-state-cross-domain-parity",
+      "slice-state-narrow-accessibility"
+    ],
+    "reviewed_artifacts": [
+      "design/audits/2026-08-29/quest-mastery/SLICE-REPORT.md",
+      "test/goldens/quest_mastery_repaired_16_430x932.png",
+      "test/goldens/quest_mastery_cross_domain_430x932.png",
+      "test/goldens/quest_mastery_repaired_narrow_320x568.png"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "Workshop-created routine Quests initially reset mastery because each attempt is a fresh Quest object.",
+        "disposition": "resolved",
+        "evidence": "Mastery now persists on GoalPlanStep, seeds every generated attempt, commits back to the stable marker, survives routine revisions and JSON restore, and reaches KEPT in the new five-attempt regression. The reviewer rechecked it as pass."
+      },
+      {
+        "finding": "The visible rise counter initially lacked an explicit merged semantic description.",
+        "disposition": "resolved",
+        "evidence": "The Quest control now announces rise progress n of five when another authored rung remains, with an exact semantic regression."
+      }
+    ],
+    "no_material_findings_observation": "After the two concrete corrections, the reviewer reported pass for stable Workshop mastery, semantics, the focused 26-test review set, and targeted analysis."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-29T02:20:42-04:00",
+    "decided_at": "",
+    "reviewed_revision": "",
+    "reviewed_brief_sha256": "",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "The owner requested universal goal support and an Overwatch-like earned Quest outline. The fresh implemented slice now awaits their visual and owner-feel judgment."
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Desktop tests and deterministic renders cannot establish the physical iPhone orbit detail, haptic timing, thumb response, or scroll feel."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "physical-phone-owner-feel",
+      "gate": "Physical iPhone interaction and owner-feel acceptance",
+      "why": "The small brass construction, completion timing, haptic weight, and mixed-tier board feel are sensory phone properties.",
+      "owner_or_system": "Mika on the exact installed iPhone candidate",
+      "next_action": "Complete one tier-crossing Quest and scroll a mixed-domain board in normal and Reduced Motion.",
+      "blocking": true
+    }
+  ]
+}

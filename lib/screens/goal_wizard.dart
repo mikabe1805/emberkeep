@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../clock.dart';
 import '../engine.dart';
+import '../goal_planner.dart';
 import '../models.dart';
 import '../tokens.dart';
 import '../widgets/domain_hint.dart';
@@ -54,15 +56,14 @@ const _questIdeas = <Stat, List<String>>{
   ],
 };
 
-/// The Oath Wizard (round-23 rewrite): goal creation as ONE warm scroll, not a
-/// 3-step form. Name your oath → keep-practicing or finish-line → its domain →
-/// add the quests that get you there (via the shared Ember Sheet) → swear it.
-/// The gold Seal moment is kept; everything else is one glanceable page.
+/// Goal creation as one warm scroll: name the direction, decide whether it is
+/// a practice or finish line, attach its first actions, then begin. The held
+/// gold confirmation remains, but the copy stays concrete rather than asking
+/// the app to narrate the person's future.
 class GoalWizardScreen extends StatefulWidget {
-  const GoalWizardScreen({super.key, required this.state, required this.onAdd});
+  const GoalWizardScreen({super.key, required this.state});
 
   final GameState state;
-  final bool Function(Quest) onAdd;
 
   @override
   State<GoalWizardScreen> createState() => _GoalWizardScreenState();
@@ -106,7 +107,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
   void _addQuest({String? title}) async {
     if (_name.text.trim().isEmpty) {
       Sfx.instance.play('boing');
-      setState(() => _error = 'name your oath first');
+      setState(() => _error = 'name your goal first');
       return;
     }
     final q = await showEmberSheet(
@@ -192,25 +193,42 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
     // A BECOME target other than 25 is safe: the pre-round-20 back-fill in
     // Goal.fromJson only assumes 25 for saves that predate the `milestones`
     // key, and every goal created here writes that key.
-    final created = widget.state.addGoal(
-      Goal(title: name, stat: _stat, kind: _kind, target: _target),
+    final plan = GoalPlanner.fromActions(
+      title: name,
+      stat: _stat,
+      type: _kind == GoalKind.achieve
+          ? GoalRouteType.finish
+          : GoalRouteType.routine,
+      actions: _quests.map((quest) => quest.displayTitle),
+      questTemplates: _quests,
+      now: Clock.now(),
+      successProof: _kind == GoalKind.achieve
+          ? 'You can point to the real-world result and recognize “$name” as complete.'
+          : '“$name” has a repeatable place in your life, including its smaller version.',
     );
+    final goal = Goal(
+      title: name,
+      stat: _stat,
+      kind: _kind,
+      target: _target,
+      openingSeen: false,
+      plan: plan,
+      fallbackCue: plan.obstacleCue,
+      fallbackAction: plan.fallbackAction,
+    );
+    final created = widget.state.addGoal(goal);
     if (!created) {
       Sfx.instance.play('boing');
-      setState(() => _error = 'you’re already on this path');
+      setState(() => _error = 'this goal is already underway');
       return;
     }
-    // re-stamp the goal's final name + domain onto each quest, then add them
-    for (final q in _quests) {
-      q.stat = _stat;
-      q.goalTitle = name;
-      widget.onAdd(q);
-    }
-    Sfx.instance.playAfterContact('levelup');
-    HapticFeedback.heavyImpact();
+    // The authored Quest choices live as dormant route-step templates. The
+    // workshop, not this form, owns the exact first Quest handoff.
+    Sfx.instance.playMaterial(MaterialSound.brass);
+    HapticFeedback.mediumImpact();
     setState(() => _sealing = true);
     await Future.delayed(const Duration(milliseconds: 1400));
-    if (mounted) Navigator.of(context).pop(true);
+    if (mounted) Navigator.of(context).pop(goal);
   }
 
   double _perWeek(Quest q) => switch (q.schedule) {
@@ -286,10 +304,10 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                     ),
                   ),
                   SizedBox(height: short ? 4 : 8),
-                  Text('A NEW OATH', style: Type.label.copyWith(fontSize: 11)),
+                  Text('A NEW GOAL', style: Type.label.copyWith(fontSize: 11)),
                   SizedBox(height: short ? 4 : 8),
                   Text(
-                    'What do you want\nto become?',
+                    'What would you like\nto move toward?',
                     style: Type.display.copyWith(
                       fontSize: short ? 24 : 30,
                       height: short ? 1.08 : 1.15,
@@ -462,13 +480,14 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                   const Divider(color: Palette.glassEdge, height: 1),
                   const SizedBox(height: 16),
                   Text(
-                    'THE QUESTS THAT GET YOU THERE',
+                    'THE ACTIONS THAT MOVE IT',
                     style: Type.label.copyWith(fontSize: 11),
                   ),
                   const SizedBox(height: 10),
                   if (_quests.isNotEmpty) _trail(),
                   const SizedBox(height: 10),
                   GestureDetector(
+                    key: const Key('goal-wizard-add-quest'),
                     behavior: HitTestBehavior.opaque,
                     onTap: _addQuest,
                     child: Container(
@@ -499,7 +518,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                   const SizedBox(height: 10),
                   if (_quests.isEmpty)
                     Text(
-                      'first time? one quest is plenty to start.',
+                      'one quest is plenty to start.',
                       style: Type.body.copyWith(
                         fontSize: 12,
                         fontStyle: FontStyle.italic,
@@ -508,7 +527,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                     )
                   else
                     Text(
-                      'this path earns ~$_weeklyXp XP a week',
+                      'these actions earn ~$_weeklyXp XP a week',
                       style: Type.numerals.copyWith(
                         fontSize: 13,
                         color: Palette.xpLight,
@@ -516,7 +535,7 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                     ),
                 ],
               ),
-              // pinned oath footer
+              // Pinned finish: one luminous action, with a practical promise.
               Positioned(
                 left: 0,
                 right: 0,
@@ -524,13 +543,13 @@ class _GoalWizardScreenState extends State<GoalWizardScreen> {
                 child: Column(
                   children: [
                     _CtaButton(
-                      label: '⚔ SWEAR THE OATH',
+                      label: 'DRAFT THIS ROUTE',
                       dim: !canSwear,
                       onTap: _swear,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'your future self is watching, kindly',
+                      'you can change its quests whenever you need',
                       style: Type.body.copyWith(
                         fontSize: 11,
                         fontStyle: FontStyle.italic,
@@ -700,7 +719,7 @@ class _CtaButton extends StatelessWidget {
   }
 }
 
-/// The seal: a held golden beat as the oath takes effect.
+/// A held golden beat as the goal enters the user's room.
 class _Seal extends StatelessWidget {
   const _Seal({required this.stat, required this.name, this.reduce = false});
   final Stat stat;
@@ -729,7 +748,7 @@ class _Seal extends StatelessWidget {
                 Icon(Icons.verified_user, size: 36, color: stat.color),
                 const SizedBox(height: 12),
                 Text(
-                  'OATH SWORN',
+                  'ROUTE DRAFTED',
                   style: Type.label.copyWith(
                     fontSize: 13,
                     color: Palette.xpLight,

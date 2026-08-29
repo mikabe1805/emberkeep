@@ -671,8 +671,10 @@ class _NightFlowState extends State<NightFlow> {
     setState(() {
       // climb the concrete ladder when there's a rung left (the visible
       // prescription advances, e.g. 5 → 8 push-ups); difficulty rises with it
-      if (q.canRise) q.rung++;
-      q.difficulty = (q.difficulty + 1).clamp(1, q.custom ? 8 : 10);
+      if (q.canRise) {
+        q.rung++;
+        q.difficulty = (q.difficulty + 1).clamp(1, q.custom ? 8 : 10);
+      }
       q.risingStreak = 0;
     });
     widget.onPersist();

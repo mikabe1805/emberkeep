@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-type-control-fidelity-2026-08-27",
+  "brief_sha256": "b698d407a8396ecdc4b8a00d74f266669dc86d3be1f2a6ee6d7c50202ca0927a",
+  "phase": "slice",
+  "implementation_revision": "worktree:0e666f2639fc:02d9795bacd4341695843a4f",
+  "revision_captured_at": "2026-08-27T23:48:00.0000000Z",
+  "checks": [
+    {
+      "id": "slice-product-focus",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the active and hard-day returning journeys at intended modern-iPhone sizes and exercise the exact production callbacks",
+      "input_state": "Production-equivalent focus goal, exact linked due Quest, saved why, lighter action, and return evidence",
+      "inspected_by": "Codex main agent and independent Terra type/control reviewer",
+      "observation": "The goal, exact next Quest, and one attached action latch form the first read; the lighter route and support drawer remain clearly secondary without changing the action-first journey.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Returning active goal at 430 by 932",
+          "path": "test/goldens/goals_personal_index_active_430x932.png",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "daa7abed403dd4d7e954721ebd21fc4fb361f94017425f41509ef903e9c6d3cf",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Hard-day lighter route at 430 by 932",
+          "path": "test/goldens/goals_personal_index_hard_day_430x932.png",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "909e6c75310ac0c49247b2670dda7a028ce4e56d87ac2dba0f04c5b47f8d85b4",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-interaction-folio",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run the focused Goals suite, the previously failing wizard path, the complete Flutter suite, and deterministic 60 fps route capture",
+      "input_state": "Rest, pointer-down, accepted Opening state, rapid repeat, Reduced Motion, and exact linked-Quest handoff",
+      "inspected_by": "Codex main agent with Flutter test runner",
+      "observation": "The whole folio acknowledges as one target, its latch changes from Begin to Opening without reflow, repeat entry is rejected, and the exact Quest reaches the production callback once.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Analyzer, 27 focused Goals tests, failing-path replay, 801-test full suite, golden capture, Wasm release build, and preview verification",
+          "path": "design/execution-mode/active/goals-type-control-fidelity/slice-test-report.md",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "dc26e7fe50ce5a77f2409812a2d6c24c7e3899553205671c6bae5d9583463882",
+          "data_source": "test_output"
+        },
+        {
+          "kind": "interaction",
+          "state": "Verified 60 fps return-to-Quest journey at 402 by 874",
+          "path": "design/comparisons/2026-08-27/goals-return-journey-402x874.mp4",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "1f146fa92a87d924258a4af42e5c9ea3ab55ce32c870e3aa697d50bb42485387",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "interaction",
+          "state": "Rest, pointer-down, accepted latch, room travel, and arrival keyframes",
+          "path": "design/comparisons/2026-08-27/goals-return-motion-contact-sheet-402x874.png",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "62b9063fcdb2e4774ce339f2f7d2439a2a27732cd9968a68acf55437f7a32e56",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-visual-control-language",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Compare the previous controls and approved composition beside the final folio, then inspect the active, support-open, hard-day, and full motion states",
+      "input_state": "Returning goal at rest, support disclosure, lighter route, accepted latch, room travel, and Quest arrival",
+      "inspected_by": "Codex main agent and independent Terra type/control reviewer",
+      "observation": "The nested card and detached gold CTA are gone. Fraunces carries meaning, EB Garamond carries environmental labels and latches, and the exact Quest reads as one physical folio authored into the room.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Previous controls beside final Quest folio",
+          "path": "design/comparisons/2026-08-27/evidence-goals-control-before-after.png",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "0d0c0a89cb609804003c5f43384fd24bf2519bf21f93b069a8a20cf0dc345b86",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Approved living-commitment composition beside final first slice",
+          "path": "design/comparisons/2026-08-27/evidence-goals-type-control-first-slice.png",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "72aa855a3a1b5ccfd59e4f65322eec7eaf34e94afc6d66be90a39df8654b12d1",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Expanded quieter support drawer at 430 by 932",
+          "path": "test/goldens/goals_personal_index_support_open_430x932.png",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "763371339b4d8da44015653c87427a9a3869d68d2632649c62e40797b0e9942d",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-rest",
+      "requirement_id": "state:rest",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the initial 402 by 874 motion frame and the 430 by 932 active state",
+      "input_state": "Returning goal before touch",
+      "inspected_by": "Codex main agent",
+      "observation": "The full Quest title fits, the attached Begin latch stays compact, and secondary routes do not compete with the first action.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Rest, press, pending, travel, and arrival keyframes at 402 by 874",
+          "path": "design/comparisons/2026-08-27/goals-return-motion-contact-sheet-402x874.png",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "62b9063fcdb2e4774ce339f2f7d2439a2a27732cd9968a68acf55437f7a32e56",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-press",
+      "requirement_id": "state:press",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect adjacent pointer-down and accepted keyframes",
+      "input_state": "The Quest folio under the hand and immediately after acceptance",
+      "inspected_by": "Codex main agent and independent Terra type/control reviewer",
+      "observation": "The entire folio compresses as one object and the Begin-to-Opening change does not jump, truncate, or detach from the surface.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Pointer-down and Opening latch samples",
+          "path": "design/comparisons/2026-08-27/goals-return-motion-contact-sheet-402x874.png",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "62b9063fcdb2e4774ce339f2f7d2439a2a27732cd9968a68acf55437f7a32e56",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-arrival",
+      "requirement_id": "state:arrival",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the settled kitchen Quest arrival after the room crossing",
+      "input_state": "The exact linked Quest revealed at the destination",
+      "inspected_by": "Codex main agent and independent Terra type/control reviewer",
+      "observation": "Sentence-case environmental copy and the same EB Garamond/Fraunces roles preserve continuity after the interface yields to the room.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Settled exact-Quest arrival in the final keyframe",
+          "path": "design/comparisons/2026-08-27/goals-return-motion-contact-sheet-402x874.png",
+          "generated_at": "2026-08-27T23:58:26.3381909Z",
+          "content_sha256": "62b9063fcdb2e4774ce339f2f7d2439a2a27732cd9968a68acf55437f7a32e56",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra read-only type/control audit and final artifact review",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-product-focus",
+      "slice-interaction-folio",
+      "slice-visual-control-language",
+      "slice-state-press",
+      "slice-state-arrival"
+    ],
+    "reviewed_artifacts": [
+      "test/goldens/goals_personal_index_active_430x932.png",
+      "test/goldens/goals_personal_index_hard_day_430x932.png",
+      "test/goldens/goals_personal_index_support_open_430x932.png",
+      "design/comparisons/2026-08-27/evidence-goals-control-before-after.png",
+      "design/comparisons/2026-08-27/goals-return-motion-contact-sheet-402x874.png"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "The nested dark card plus separately underplated gold rectangle reads as a component demo over the room.",
+        "disposition": "accepted",
+        "evidence": "The first slice will replace it with one full-surface quest folio and attached latch."
+      },
+      {
+        "finding": "The expanded support tray remains slightly more conventional than the primary folio language.",
+        "disposition": "accepted",
+        "evidence": "It is now visually subdued beneath the exact Quest and is non-blocking for the owner checkpoint; its deeper physicalization is reserved for propagation."
+      }
+    ],
+    "no_material_findings_observation": "The final folio reads as one physical object, the hard-day state preserves the same grammar, and no blocking text or control issue remains before owner review."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-27T23:58:26.3381909Z",
+    "decided_at": "2026-08-28T00:17:05.0895897Z",
+    "reviewed_revision": "worktree:0e666f2639fc:02d9795bacd4341695843a4f",
+    "reviewed_brief_sha256": "b698d407a8396ecdc4b8a00d74f266669dc86d3be1f2a6ee6d7c50202ca0927a",
+    "reviewed_check_ids": [
+      "slice-product-focus",
+      "slice-interaction-folio",
+      "slice-visual-control-language"
+    ],
+    "reviewed_artifacts": [
+      "test/goldens/goals_personal_index_active_430x932.png",
+      "design/comparisons/2026-08-27/goals-return-journey-402x874.mp4",
+      "design/comparisons/2026-08-27/evidence-goals-control-before-after.png"
+    ],
+    "decision": "rejected",
+    "exact_feedback_or_waiver_reason": "it's still not there yet"
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": ""
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "owner-control-language-checkpoint",
+      "gate": "Owner judgment on the Quest-folio and attached-latch language before propagation",
+      "why": "The first real slice is verified, but carrying this system through Goal Detail and the one-time opening is a taste-sensitive expansion.",
+      "owner_or_system": "Mika",
+      "next_action": "Judge the active and hard-day Goals states on the phone preview and approve or reject this control language for propagation.",
+      "blocking": true
+    },
+    {
+      "id": "physical-phone-owner-feel",
+      "gate": "Physical iPhone interaction and owner-feel acceptance",
+      "why": "Rendered evidence cannot establish OLED value separation, thumb response, haptic weight, or final material feel",
+      "owner_or_system": "Owner on the exact installed iPhone candidate",
+      "next_action": "Open the returning goal, press the new folio, expand the support drawer, and follow one room transition on the physical iPhone",
+      "blocking": true
+    }
+  ]
+}

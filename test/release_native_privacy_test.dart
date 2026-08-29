@@ -756,7 +756,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+34'));
+    expect(pubspec, contains('version: 1.0.4+35'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

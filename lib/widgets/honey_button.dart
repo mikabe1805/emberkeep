@@ -25,6 +25,7 @@ class HoneyButton extends StatelessWidget {
     this.expand = false,
     this.fontSize = 12,
     this.light,
+    this.soundEnabled = true,
   });
 
   final String label;
@@ -42,6 +43,11 @@ class HoneyButton extends StatelessWidget {
   /// The page's shared tilt/pointer light, when one is available. Without it
   /// the reflection simply parks — the still frame is the designed one.
   final ValueListenable<Offset>? light;
+
+  /// Some composite controls already own a more specific semantic sound in
+  /// their callback. They can keep the physical [Pressable] response without
+  /// voicing a second, generic brass cue.
+  final bool soundEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +93,7 @@ class HoneyButton extends StatelessWidget {
       child: Pressable(
         enabled: enabled,
         material: MaterialSound.brass,
+        soundEnabled: soundEnabled,
         semanticLabel: label,
         onTapUp: enabled ? (_) => onTap() : null,
         shape: shape,

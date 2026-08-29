@@ -800,37 +800,38 @@ void main() {
       contains('InteractionSoundScreenScope.maybeScreenIdOf(context)'),
     );
     expect(quests, contains('Sfx.instance.playCompletionAccepted('));
-    expect(quests, contains('contactAlreadyPlayed: contactAlreadyPlayed'));
+    expect(
+      quests,
+      isNot(contains('contactAlreadyPlayed: contactAlreadyPlayed')),
+    );
     expect(quests, isNot(contains("playAfterContact('complete')")));
     expect(routines, contains('playCompletionAccepted(transitionId: q)'));
     expect(routines, isNot(contains("play('complete')")));
     expect(quests, contains('alreadyAcknowledged: true'));
-    expect(questCard, isNot(contains('soundEnabled:')));
-    expect(goals, isNot(contains('soundEnabled:')));
+    expect(questCard, contains('soundEnabled: false'));
+    final supportToggle = _between(
+      goals,
+      "key: const Key('goals-support-toggle')",
+      "key: const ValueKey<String>('goals-support-open')",
+    );
+    expect(supportToggle, isNot(contains('soundEnabled: false')));
     expect(shell, isNot(contains('soundEnabled:')));
     expect(quests, isNot(contains('_boardCoastingAt')));
     expect(quests, isNot(contains('_trackBoardCoasting')));
 
     final pointerDown = _between(pressable, 'onPointerDown:', 'onPointerMove:');
-    expect(pointerDown, contains('_beginContact();'));
-    final contact = _between(
-      pressable,
-      'void _beginContact()',
-      'void _activate()',
-    );
-    expect(contact, contains('_setDown(true)'));
-    expect(contact, contains('_playContactSound()'));
-    expect(
-      contact.indexOf('_setDown(true)'),
-      lessThan(contact.indexOf('_playContactSound()')),
-    );
+    expect(pointerDown, contains('_setDown(true);'));
+    expect(pointerDown, isNot(contains('Sfx.instance')));
     final pointerMove = _between(pressable, 'onPointerMove:', 'onPointerUp:');
     expect(pointerMove, isNot(contains('_playContactSound')));
     expect(pointerMove, isNot(contains('Sfx.instance')));
     final tapUp = _between(pressable, 'onTapUp: (d)', 'onLongPress:');
-    expect(tapUp, contains('widget.onTapUp!(d.globalPosition);'));
-    expect(tapUp, isNot(contains('_playContactSound')));
-    expect(tapUp, isNot(contains('Sfx.instance')));
+    expect(tapUp, contains('callback(d.globalPosition);'));
+    expect(tapUp, contains('_playAcceptedSound'));
+    expect(
+      tapUp.indexOf('callback(d.globalPosition);'),
+      lessThan(tapUp.indexOf('_playAcceptedSound')),
+    );
 
     final workoutOpen = _between(
       quests,
@@ -838,12 +839,13 @@ void main() {
       'void _finishWorkout',
     );
     // Travel into a flow voices the parchment flip with the visual event;
-    // the launching press owns its own contact separately.
+    // the silent card press cannot double that accepted outcome.
     expect(workoutOpen, contains('playMaterial(MaterialSound.parchment)'));
     expect(workoutOpen, isNot(contains('HapticFeedback')));
 
-    // The quest press is the everyday clasp, never page travel — the flip
-    // belongs to a Journal or workout flow actually opening.
+    // QuestCard delegates its one accepted sound to the actual outcome. The
+    // flip belongs to a Journal or workout flow actually opening; an ordinary
+    // clear owns the atomic completion composite.
     expect(questCard, isNot(contains('MaterialSound.parchment')));
     expect(questCard, contains('material: MaterialSound.wood'));
     final journalOpen = _between(
@@ -935,13 +937,12 @@ void main() {
         .where((f) => f.path.endsWith('.dart'));
     for (final file in files) {
       final src = file.readAsStringSync().replaceAll('\r\n', '\n');
-      for (var at = src.indexOf('Pressable(');
-          at >= 0;
-          at = src.indexOf('Pressable(', at + 1)) {
-        final window = src.substring(
-          at,
-          math.min(src.length, at + 700),
-        );
+      for (
+        var at = src.indexOf('Pressable(');
+        at >= 0;
+        at = src.indexOf('Pressable(', at + 1)
+      ) {
+        final window = src.substring(at, math.min(src.length, at + 700));
         final m = material.firstMatch(window);
         final v = verb.firstMatch(window);
         if (m == null || v == null) continue;
@@ -955,7 +956,8 @@ void main() {
     expect(
       offenders,
       isEmpty,
-      reason: 'Pressables declaring unshipped material lanes (silent '
+      reason:
+          'Pressables declaring unshipped material lanes (silent '
           'wood fallback): $offenders',
     );
   });

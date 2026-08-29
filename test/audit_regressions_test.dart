@@ -250,11 +250,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(tester.takeException(), isNull);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: GoalWizardScreen(state: state, onAdd: (_) => true),
-      ),
-    );
+    await tester.pumpWidget(MaterialApp(home: GoalWizardScreen(state: state)));
     await tester.pump();
     await tester.tap(find.text('Reach a finish line'));
     await tester.pump(const Duration(milliseconds: 300));

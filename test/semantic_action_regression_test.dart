@@ -37,9 +37,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: GoalWizardScreen(state: GameState(), onAdd: (_) => true),
-      ),
+      MaterialApp(home: GoalWizardScreen(state: GameState())),
     );
     await tester.tap(find.text('Reach a finish line'));
     await tester.pump();

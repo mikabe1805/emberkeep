@@ -131,8 +131,8 @@ void main() {
     expect(initialRoom, contains('_maybeStartSessionIgnition();'));
     expect(roomLinks, contains('_maybeStartSessionIgnition();'));
     expect(selectTab, contains('if (i == 1) _maybeStartSessionIgnition();'));
-    // Pressable routes its pointer-down bob through one contact owner with its
-    // surface material so shipped texture lanes can shade the clasp.
+    // Pressable keeps pointer-down visual/haptic only, then routes the accepted
+    // tap through one contact owner with its surface material.
     expect(pressable, contains('Sfx.instance.playInteraction('));
     expect(pressable, contains('material: widget.material,'));
     expect(
@@ -143,7 +143,8 @@ void main() {
       pressable.indexOf('onPointerDown:'),
       pressable.indexOf('onPointerMove:'),
     );
-    expect(rawPointerDown, contains('_beginContact();'));
+    expect(rawPointerDown, contains('_setDown(true);'));
+    expect(rawPointerDown, isNot(contains('Sfx.instance')));
     expect(
       pressable,
       contains('onPointerUp: (_) {\n            _setDown(false);'),
@@ -157,7 +158,7 @@ void main() {
     expect(
       RegExp(r'Sfx\.instance\.playInteraction\(').allMatches(pressable),
       hasLength(1),
-      reason: 'all bob and semantic activation paths share one contact owner',
+      reason: 'all accepted activation paths share one contact owner',
     );
     expect(fire, contains("ValueKey('quest-fire-ignition')"));
     expect(fire, contains('widget.reduceMotion'));

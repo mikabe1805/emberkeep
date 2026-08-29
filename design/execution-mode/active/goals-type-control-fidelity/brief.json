@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "id": "goals-type-control-fidelity-2026-08-27",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "blocked",
+  "locked_at": "2026-08-27T19:17:57.4426130-04:00",
+  "surface": "Goals typography and physical action controls",
+  "scope": "Correct the approved living-commitment direction where live type and nested app-style buttons still detach from the room; rebuild the returning action as one tappable quest folio, then carry the same type and latch language through hard-day, support, Goal Detail, opening, and arrival states without changing the product journey",
+  "user_job": "Recognize the one goal and exact next Quest immediately, then begin or choose a gentler route through controls that feel physically native to the room",
+  "active_sources": [
+    {
+      "id": "living-commitment-composition",
+      "kind": "visual_target",
+      "location": "design/visual-targets/2026-08-26/goals-option-1-living-commitment.png",
+      "content_sha256": "f89260fb41b7dc99a6870b3008cec2b00ec3b501e89ed6cc4e3a9bb38c7a04a9",
+      "approved_at": "2026-08-26",
+      "judged_state": "One personal goal at the desk with an exact first action and visibly secondary lighter route",
+      "viewport": "430x932 at default text scale",
+      "priority": 1
+    },
+    {
+      "id": "same-room-threshold",
+      "kind": "interaction_target",
+      "location": "design/visual-targets/2026-08-26/goals-option-3-threshold.png",
+      "content_sha256": "383276a62004bb0f9ca0c4bdf891377b163eb5eaab33a243cac161ce210e61ad",
+      "approved_at": "2026-08-26",
+      "judged_state": "The exact plan is registered to the lit arch and crossing it is a clear, real action",
+      "viewport": "430x932, standard and Reduced Motion",
+      "priority": 2
+    }
+  ],
+  "superseded_sources": [],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "Keep the approved action-first journey unchanged: one focus goal, one exact next Quest, one lighter route, and direct exact-Quest handoff",
+      "proof": "The returning, hard-day, opening, support, and detail journeys retain their exact callbacks, persistence, and Quest identity"
+    },
+    "interaction": {
+      "decision": "The quest folio itself becomes the touch target and its attached latch acknowledges immediately, enters a truthful opening state, and rejects rapid re-entry",
+      "proof": "Rest, pointer-down, accepted, transition, back, and rapid-repeat states remain observable through the existing semantic keys"
+    },
+    "visual": {
+      "decision": "One photographed-room type system and one physical folio/latch control replace the nested dark card plus shiny rounded button; Fraunces owns meaning, EB Garamond owns physical labels and latches, and Inter is reserved for explanatory copy",
+      "proof": "Fresh same-state renders show one action surface, fewer type voices, no detached gold slab, and clear hierarchy over the room at modern-iPhone size"
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Another contrast, gradient, shadow, or radius tweak to the existing nested card and button",
+      "why": "The visible defect is the component relationship and type-role drift, not insufficient decoration"
+    },
+    {
+      "fallback": "A flat text link that removes the one clear action",
+      "why": "The action must remain obvious, tactile, and attached to a physical surface"
+    },
+    {
+      "fallback": "A different control language for hard-day, support, detail, and opening states",
+      "why": "The correction only succeeds if the room remembers the same material and typography across the journey"
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "Return to an active HOME goal with one exact due Quest and one lighter route",
+    "real_inputs": "The production-equivalent calm-apartment goal, Clear the kitchen counter Quest, saved reason, lighter action, and return evidence",
+    "user_action": "Read the focus, press the unified Quest folio, and follow the room transition",
+    "expected_outcome": "The exact Quest is the first read, the whole folio acknowledges the hand, its latch resolves locally, and the room journey opens the same Quest",
+    "state_boundary": "The callback, hero identity, rapid-entry guard, and exact Quest handoff remain unchanged",
+    "required_states": [
+      {
+        "id": "rest",
+        "state": "Returning goal and quest folio parked over the apartment",
+        "why_can_disprove": "The folio can still look like a generic card or the type can remain noisier than the room"
+      },
+      {
+        "id": "press",
+        "state": "Finger-down and accepted opening state",
+        "why_can_disprove": "A full-surface control can lose immediate causality or make the pending state jump"
+      },
+      {
+        "id": "arrival",
+        "state": "The exact Quest named after the room crossing",
+        "why_can_disprove": "The new type language can break continuity if arrival reverts to floating all-caps UI"
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "hard-day",
+      "surface_or_primitive": "Returning goal lighter-route state",
+      "state": "No due Quest and a saved fallback action",
+      "expected_effect": "The same folio changes copy and pigment without becoming a separate green UI treatment",
+      "verification_plan": "Render and inspect the hard-day golden and activate the fallback",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "detail",
+      "surface_or_primitive": "Goal Detail current action and supporting controls",
+      "state": "Proof, return plan, linked Quests, add Quest, and release controls",
+      "expected_effect": "The current action is the same folio and secondary controls use one quiet physical label language",
+      "verification_plan": "Render default and 2x detail states and exercise action/add/release behavior",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "support",
+      "surface_or_primitive": "Gentler-way drawer",
+      "state": "Collapsed and expanded choices",
+      "expected_effect": "One attached drawer row replaces the generic accordion and circular tile badges",
+      "verification_plan": "Render collapsed and expanded states and activate both choices",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "opening-arrival",
+      "surface_or_primitive": "One-time opening clasps, threshold, and Quest arrival copy",
+      "state": "Desk, threshold, arrival, Reduced Motion, and modern-iPhone text scale",
+      "expected_effect": "Compact latches and sentence-case environmental copy remain one family with the returning folio",
+      "verification_plan": "Recapture the opening and returning motion stories and inspect adjacent frames",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether the unified folio and expanded EB Garamond physical-label role actually feel authored with the room instead of merely cleaner in code",
+  "decisive_check": {
+    "method": "Render the returning, pressed, accepted, hard-day, support-open, Goal Detail, opening, and arrival states and compare the approved target and prior build beside the new build",
+    "target": "402x874 modern-iPhone review plus 430x932 compatibility and focused motion keyframes",
+    "pass_condition": "The room stays the world, the exact Quest owns the first action read, no nested gold slab remains, secondary controls stop competing, and the same type/material logic survives every adjacent state"
+  },
+  "revision_scope": {
+    "include": [
+      "lib",
+      "assets",
+      "test",
+      "pubspec.yaml"
+    ],
+    "exclude": [
+      "test/goldens"
+    ]
+  }
+}

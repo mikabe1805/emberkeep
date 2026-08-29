@@ -1,0 +1,396 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-spatial-steward-workshop-2026-08-28",
+  "brief_sha256": "eba0a8a3d2650a685da1456c76df1c085a8839b941eb2de3c865367a01465369",
+  "phase": "slice",
+  "implementation_revision": "worktree:0e666f2639fc:79c7966e6317e8e4a94ca875",
+  "revision_captured_at": "2026-08-28T22:59:54-04:00",
+  "supersedes_evidence": "This current-revision record supersedes the rejected kitchen destination, floor-written Workshop note, empty steward layer, and their older artifact bindings. Historical interaction and expansion detail remains in test-report.md and independent-review.md; this record binds the corrected mounted tavern entrance, visible locked steward, returnable register, selected bench, exact Quest behavior, and compact state to the current brief and implementation revision.",
+  "checks": [
+    {
+      "id": "slice-edge-product-tavern",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Enter Workshop from the focused Goals foyer and inspect the separate tavern register with owned, waiting, and needs-route goals beneath the visible steward.",
+      "input_state": "Production-equivalent active goals with two exact Quests already on the board and one route needing shape.",
+      "inspected_by": "Codex main agent and independent Terra reviewer tavern_final_visual_review",
+      "observation": "Workshop now has a truthful repeatable job inside a distinct tavern: the steward hosts one lower-counter register that exposes what is on the board, what is waiting, and what needs shaping without becoming a second Goals dashboard.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Tavern source beside the live returnable goal register at 430 by 932",
+          "path": "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-tavern-home-430x932.png",
+          "generated_at": "2026-08-28T22:59:55-04:00",
+          "content_sha256": "208335cf1826ccc1c0ad5a383284c16fe2ecebcb960d584ec783f23627b85f8c",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-edge-interaction-workshop",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Exercise Goals to mounted entrance to register to selected bench and back for owned, waiting, cancelled, repaired, and rapidly accepted routes.",
+      "input_state": "Current GoalPlans and linked Quests with exact step, revision, attempt, completion, and scheduling identity.",
+      "inspected_by": "Codex main agent with the Flutter widget runner",
+      "observation": "All 36 focused tests pass: owned rows open the identical Quest object, waiting rows survive cancellation without materializing work, repair preserves completed proof, and rapid repeat creates at most one exact Quest.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Current Goals and tavern Workshop behavior, identity, cancellation, repair, compact, and rendered-state checks",
+          "path": "design/execution-mode/active/goals-steward-workshop/test-report.md",
+          "generated_at": "2026-08-28T23:07:15-04:00",
+          "content_sha256": "75fd144cf34f4a3b2f3ba99efa4c603db58847acd06e6fc2e7b21abb3c708e71",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-edge-visual-tavern",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Compare the focused foyer and live tavern with their source plates, then compare the locked steward handoff directly with the runtime tavern identity.",
+      "input_state": "Fresh 430 by 932 production renders with the mounted entrance, exact current Quest, returnable register, and locked steward visible.",
+      "inspected_by": "Codex main agent and independent Terra reviewer tavern_final_visual_review",
+      "observation": "The entrance is level and mounted, the destination is a separate walnut-and-amber tavern, the steward remains visible above the lower register, and his face, tied hair, outfit, left sleeve patch, brass fasteners, and exactly two sharpened wooden pencils match the locked handoff.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Focused Goals source room beside the live mounted Workshop entrance",
+          "path": "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-foyer-430x932.png",
+          "generated_at": "2026-08-28T22:59:56-04:00",
+          "content_sha256": "2f932cb8842dcbdc41c947bde0a9e840812b2236b5eb54306ef30c28ec612826",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Locked steward handoff beside the runtime tavern identity",
+          "path": "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-steward-identity.png",
+          "generated_at": "2026-08-28T22:59:56-04:00",
+          "content_sha256": "b5596b78a52ee0dbfc64747927393d1b2b54603563a396668b97d31bdd24550b",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-mounted-entrance",
+      "requirement_id": "state:goals-workshop-entrance",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the focused Goals room with its exact current Quest and the mounted Workshop entrance visible together.",
+      "input_state": "Focused structured goal with one exact current Quest already on the board.",
+      "inspected_by": "Codex main agent",
+      "observation": "The level Workshop sign attaches to the arch, promises that the steward is present, and stays secondary to the exact current Quest; no alternative sentence is skewed across the floor.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Goals foyer with mounted Workshop entrance",
+          "path": "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-foyer-430x932.png",
+          "generated_at": "2026-08-28T22:59:56-04:00",
+          "content_sha256": "2f932cb8842dcbdc41c947bde0a9e840812b2236b5eb54306ef30c28ec612826",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-tavern-index",
+      "requirement_id": "state:workshop-index",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the live lower-counter register beneath the visible steward at normal and compact large-text sizes.",
+      "input_state": "Active Goals spanning exact Quest on board, waiting cut, and needs-route states.",
+      "inspected_by": "Codex main agent and independent Terra reviewer tavern_final_visual_review",
+      "observation": "One coherent register uses concrete route states and row actions while leaving the steward's face visible; the compact state remains scrollable and overflow-free.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Tavern register at 320 by 568 with 1.5 text scale",
+          "path": "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-tavern-home-320x568.png",
+          "generated_at": "2026-08-28T22:59:56-04:00",
+          "content_sha256": "55b1563e0528a9eb6752ed268ddcc33c715cf947bbb7ee7b38275da55b6f74df",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-owned-bench",
+      "requirement_id": "state:owned-quest-bench",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Select a row whose exact current Quest already exists, activate Open this Quest, and compare object identity and list length.",
+      "input_state": "Structured goal with one exact active linked Quest.",
+      "inspected_by": "Codex main agent with the Flutter widget runner",
+      "observation": "The bench labels the object CURRENT QUEST and opens the identical Quest without adding a duplicate.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Owned selected-bench identity and no-duplication proof",
+          "path": "design/execution-mode/active/goals-steward-workshop/test-report.md",
+          "generated_at": "2026-08-28T23:07:15-04:00",
+          "content_sha256": "75fd144cf34f4a3b2f3ba99efa4c603db58847acd06e6fc2e7b21abb3c708e71",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-waiting-bench",
+      "requirement_id": "state:waiting-cut-bench",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Select a current route with no current-revision Quest and inspect its offered cut before acceptance.",
+      "input_state": "Current GoalPlan with proof and fallback actions but no current linked Quest.",
+      "inspected_by": "Codex main agent with the Flutter widget runner",
+      "observation": "The bench truthfully shows THE CUT, why, proof, route, smaller option, edit, and Take this Quest without materializing work on selection.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Waiting selected-bench content and zero-preacceptance proof",
+          "path": "design/execution-mode/active/goals-steward-workshop/test-report.md",
+          "generated_at": "2026-08-28T23:07:15-04:00",
+          "content_sha256": "75fd144cf34f4a3b2f3ba99efa4c603db58847acd06e6fc2e7b21abb3c708e71",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-cancel-reopen-current",
+      "requirement_id": "state:cancel-reopen",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Cancel a waiting cut, verify zero new Quests, reopen the same row, and compare the offered action.",
+      "input_state": "One current unowned cut and unrelated owned Quests.",
+      "inspected_by": "Codex main agent with the Flutter widget runner",
+      "observation": "Cancel and back preserve the GoalPlan and exact cut, create no Quest, and make the same offer available on re-entry.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Non-mutating cancel and exact-cut reopen checks",
+          "path": "design/execution-mode/active/goals-steward-workshop/test-report.md",
+          "generated_at": "2026-08-28T23:07:15-04:00",
+          "content_sha256": "75fd144cf34f4a3b2f3ba99efa4c603db58847acd06e6fc2e7b21abb3c708e71",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-accepted-current",
+      "requirement_id": "state:accepted",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Accept a waiting cut once and inspect its goal title, step id, revision, attempt, board count, and focused object.",
+      "input_state": "Reopened unowned current cut after cancellation plus unrelated owned Quests.",
+      "inspected_by": "Codex main agent with the Flutter widget runner",
+      "observation": "One explicit acceptance creates and opens exactly one current structured Quest; rapid repeat cannot duplicate it.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Exact current Quest materialization and idempotent focus checks",
+          "path": "design/execution-mode/active/goals-steward-workshop/test-report.md",
+          "generated_at": "2026-08-28T23:07:15-04:00",
+          "content_sha256": "75fd144cf34f4a3b2f3ba99efa4c603db58847acd06e6fc2e7b21abb3c708e71",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-compact-current",
+      "requirement_id": "state:compact-large-text",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Render the foyer, register, and selected bench at 320 by 568 with a true 1.5 text scaler, then scroll through both primary paths.",
+      "input_state": "Compact phone with long goal identity, exact current Quest, waiting cut, and accessible scrolling.",
+      "inspected_by": "Codex main agent and independent Terra reviewer tavern_final_visual_review",
+      "observation": "The entrance, steward face, complete goal and Quest identities, status, primary action, and back path remain readable and reachable without overflow.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Compact tavern register at 320 by 568 and 1.5 text",
+          "path": "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-tavern-home-320x568.png",
+          "generated_at": "2026-08-28T22:59:56-04:00",
+          "content_sha256": "55b1563e0528a9eb6752ed268ddcc33c715cf947bbb7ee7b38275da55b6f74df",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Four compact and authored rendered-state stories without golden updates",
+          "path": "design/execution-mode/active/goals-steward-workshop/test-report.md",
+          "generated_at": "2026-08-28T23:07:15-04:00",
+          "content_sha256": "75fd144cf34f4a3b2f3ba99efa4c603db58847acd06e6fc2e7b21abb3c708e71",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "final-code-complete-tavern",
+      "requirement_id": "final:code-complete",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Run the complete focused Goals workshop suite, four affected authored render stories without updating expected images, and targeted static analysis after the final implementation change.",
+      "input_state": "Production-equivalent Goals and workshop fixtures across owned, waiting, cancel, repair, rapid repeat, normal phone, and compact large-text states.",
+      "inspected_by": "Codex main agent and Luna verification subagent tavern_final_tests",
+      "observation": "All 36 focused behavior tests, all four affected render stories, and targeted analysis pass with no failures or issues.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Final current-revision deterministic code and rendered-story verification",
+          "path": "design/execution-mode/active/goals-steward-workshop/test-report.md",
+          "generated_at": "2026-08-28T23:07:15-04:00",
+          "content_sha256": "75fd144cf34f4a3b2f3ba99efa4c603db58847acd06e6fc2e7b21abb3c708e71",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "final-comparison-tavern",
+      "requirement_id": "final:comparison",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Inspect same-frame source and current build comparisons for the foyer, normal tavern, compact tavern, and steward identity at original resolution.",
+      "input_state": "Fresh current-revision 430 by 932 and 320 by 568 at 1.5 text production renders.",
+      "inspected_by": "Codex main agent and independent Terra reviewer tavern_final_visual_review",
+      "observation": "The rejected floor writing, apartment kitchen reuse, and missing steward are absent; the mounted entrance, separate hosted tavern, consistent steward and real pencils, lower register, and compact reachability are visibly resolved.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Final current Goals foyer source and build comparison",
+          "path": "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-foyer-430x932.png",
+          "generated_at": "2026-08-28T22:59:56-04:00",
+          "content_sha256": "2f932cb8842dcbdc41c947bde0a9e840812b2236b5eb54306ef30c28ec612826",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Final current tavern source and live normal register comparison",
+          "path": "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-tavern-home-430x932.png",
+          "generated_at": "2026-08-28T22:59:55-04:00",
+          "content_sha256": "208335cf1826ccc1c0ad5a383284c16fe2ecebcb960d584ec783f23627b85f8c",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Final locked steward identity beside the runtime tavern",
+          "path": "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-steward-identity.png",
+          "generated_at": "2026-08-28T22:59:56-04:00",
+          "content_sha256": "b5596b78a52ee0dbfc64747927393d1b2b54603563a396668b97d31bdd24550b",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra subagent tavern_final_visual_review",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-edge-product-tavern",
+      "slice-edge-interaction-workshop",
+      "slice-edge-visual-tavern"
+    ],
+    "reviewed_artifacts": [
+      "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-tavern-home-430x932.png",
+      "design/execution-mode/active/goals-steward-workshop/test-report.md",
+      "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-foyer-430x932.png",
+      "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-steward-identity.png"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "The earlier Workshop sentence was tiny, skewed into floor perspective, and competed with multiple foot-level actions.",
+        "disposition": "resolved",
+        "evidence": "The current foyer comparison shows one level mounted entrance and one short exact-Quest clasp with no alternative floor sentence."
+      },
+      {
+        "finding": "The earlier destination reused the apartment kitchen and showed none of the locked steward.",
+        "disposition": "resolved",
+        "evidence": "The current tavern and identity comparisons show a separate walnut-and-amber room and the same steward visibly hosting the live register."
+      },
+      {
+        "finding": "The first compact correction risked covering the host and truncating entrance or clasp copy.",
+        "disposition": "resolved",
+        "evidence": "The final 320 by 568 at 1.5 text comparison leaves the face clear, and the four affected render stories pass without overflow or clipped primary actions."
+      }
+    ],
+    "no_material_findings_observation": "After the mounted entrance, tavern plate, panel-height, and compact-copy corrections, the independent reviewer returned PASS with no actionable P0, P1, or P2."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-28T23:07:16-04:00",
+    "decided_at": "2026-08-28T23:27:25-04:00",
+    "reviewed_revision": "worktree:0e666f2639fc:79c7966e6317e8e4a94ca875",
+    "reviewed_brief_sha256": "eba0a8a3d2650a685da1456c76df1c085a8839b941eb2de3c865367a01465369",
+    "reviewed_check_ids": [
+      "slice-edge-product-tavern",
+      "slice-edge-interaction-workshop",
+      "slice-edge-visual-tavern",
+      "final-comparison-tavern"
+    ],
+    "reviewed_artifacts": [
+      "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-tavern-home-430x932.png",
+      "design/audits/2026-08-28/goals-tavern-workshop-pass/comparison-steward-identity.png",
+      "design/execution-mode/active/goals-steward-workshop/test-report.md"
+    ],
+    "decision": "accepted",
+    "exact_feedback_or_waiver_reason": "looks wonderful! i'd build out more functionality now i think, maybe make the npc aspect actually fleshed out and make the different expressions as initially promised"
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Desktop renders and widget tests cannot establish physical iPhone OLED separation, font rasterization, haptic and audio weight, natural spatial-transition feel, manual scroll, edge gestures, or Mika's owner feel."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "physical-phone-owner-feel",
+      "gate": "Physical iPhone interaction and owner-device acceptance",
+      "why": "Local Flutter renders cannot establish OLED separation, font rendering, haptic and audio weight, compact manual scroll, camera timing, or edge and back behavior.",
+      "owner_or_system": "Mika on the exact installed iPhone candidate",
+      "next_action": "Run owned, waiting, cancel, repair, and acceptance paths in normal and Reduced Motion on the physical phone.",
+      "blocking": true
+    }
+  ]
+}

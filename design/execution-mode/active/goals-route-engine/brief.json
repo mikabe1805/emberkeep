@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "id": "goals-route-engine-2026-08-27",
+  "project": "Room of Days",
+  "change_class": "new_direction",
+  "status": "slice_ready_for_owner",
+  "locked_at": "2026-08-27T23:35:00-04:00",
+  "surface": "Goals creation, route planning, returning room, recovery, and plan progression",
+  "scope": "Put a local explainable planning and recovery engine behind the existing threshold-room spectacle. Derive the first Quest from the person's aim and reality, persist an editable route, advance only from exact current-marker evidence, adapt honestly when the plan does not fit, preserve old proof, and expose that logic through the authored room rather than a dashboard.",
+  "user_job": "Tell Room of Days what I am actually trying to change, receive a credible route and first move, and return after imperfect days without having to re-plan or feel that the app has lost the point.",
+  "active_sources": [
+    {
+      "id": "owner-route-engine-contract",
+      "kind": "owner_feedback_contract",
+      "location": "design/visual-targets/2026-08-27/goals-route-engine-contract.md",
+      "content_sha256": "7665671095fbdb600181542285539d7ca46d3cdce5645df7280af059efcd76b7",
+      "approved_at": "2026-08-27",
+      "judged_state": "The owner rejected a spectacle-only implementation and required aim-derived first action, an actual plan, psychology-backed recovery, preserved proof, and stronger exact-action button copy.",
+      "viewport": "Product contract applies to the authored 430x932 modern-iPhone journey and persisted behavior across returns",
+      "priority": 1
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/execution-mode/active/goals-threshold-room/brief.json",
+      "reason": "The owner said the room looked better but did not back its spectacle with coherent logistics, aim-derived action, a real plan, or the promised psychology."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "A goal is an owned, persisted route from stated outcome and current reality to visible proof, not a title plus a sorted Quest pile. Route type, available time, snag, progress, revision, attempt, and prior proof all affect what the app serves next.",
+      "proof": "A production-equivalent goal produces a four-marker editable route and exact first Quest from its entered aim, reality, proof, time, and snag; only current marker identity can progress it; hard-day recovery returns to the intended repeated action; routine and legacy paths remain coherent."
+    },
+    "interaction": {
+      "decision": "Creation moves through AIM, REALITY, and ROUTE; the person can edit markers before accepting. Returning shows one reasoned action and a visible plan-does-not-fit path whose chosen signal immediately changes the current marker without erasing earned proof.",
+      "proof": "Stable interaction tests traverse creation, editing, opening, exact Quest handoff, stale and out-of-order rejection, recalibration, recovery restoration, changed outcome, legacy upgrade, routine continuation, and Reduced Motion."
+    },
+    "visual": {
+      "decision": "The room remains the interface, but its inscriptions now expose real plan state: marker position and reason belong above the exact action, the brass threshold uses a short specific verb-object label, and plan adjustment is a visible secondary physical route.",
+      "proof": "Fresh 430x932 renders show AIM, REALITY, ROUTE, active threshold, adjusted threshold, opening arrival, and goal folio with readable exact-action typography, route progress, proof, and adjustment history."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Choosing the next Quest by due date, difficulty, or words found in the goal title",
+      "why": "That recreates the rejected illusion of intelligence and can serve an unrelated or semantically wrong first action."
+    },
+    {
+      "fallback": "Treating a generated four-item list as a plan without marker identity, revisions, attempts, proof, or recovery state",
+      "why": "The route would be decorative copy because stale, duplicated, or out-of-order tasks could still fake progress."
+    },
+    {
+      "fallback": "Using motivational spectacle, vague Step in copy, or guilt language where the software lacks a defensible next move",
+      "why": "The room must earn excitement through useful logistics and honest adaptation rather than hype alone."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "Create a calm-apartment reset goal from a crowded counter reality, accept the drafted route, return to marker one, say it is too big, complete the smaller proof, and continue on the intended route.",
+    "real_inputs": "Outcome: use the kitchen without feeling overwhelmed; reality: the counter is crowded; proof: it stays usable for a normal week; capacity: 15 minutes; snag: the whole thing feels too big after class.",
+    "user_action": "Complete AIM and REALITY, edit or accept ROUTE, start the exact first Quest, then choose plan does not fit and take the hand-sized rescue.",
+    "expected_outcome": "The app drafts a counter-specific route, serves only marker one, records exact proof, keeps the same goal selected during adjustment, counts the rescue honestly, and restores the intended repeated action for the next attempt.",
+    "state_boundary": "GoalPlan and Quest route identity persist through JSON; plan revision invalidates stale Quests; GameState commit alone advances current evidence; prior progress and first proof survive route construction and recalibration.",
+    "required_states": [
+      {
+        "id": "route-draft",
+        "state": "AIM, REALITY, and editable ROUTE before acceptance",
+        "why_can_disprove": "The engine can still be a template if the first action ignores the entered reality, proof, capacity, or selected route type."
+      },
+      {
+        "id": "return",
+        "state": "Returning threshold with current marker, reason, exact action, CTA, fallback, and adjustment route",
+        "why_can_disprove": "The plan can be real in storage but remain incomprehensible or visually detached in the room."
+      },
+      {
+        "id": "recovery",
+        "state": "Too-big adjustment, smaller proof, retained history, and restored repeated marker",
+        "why_can_disprove": "Recovery can erase progress, permanently dilute the plan, or advance from a stale Quest even when the happy path works."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "legacy",
+      "surface_or_primitive": "Existing goals without GoalPlan",
+      "state": "Earlier progress and first proof already exist",
+      "expected_effect": "Build a real route in place while preserving the numerical progress and proof earned before route support existed.",
+      "verification_plan": "Run the legacy route-upgrade widget journey and engine test that starts at seven of ten before adding a route.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "routine-cycle",
+      "surface_or_primitive": "Ongoing rhythm routes",
+      "state": "Final review marker completes after real repetitions",
+      "expected_effect": "Keep the earned anchor, increment the evidence cycle, issue fresh route identity, and return to a workable repeated action rather than ending the goal.",
+      "verification_plan": "Complete an entire routine through GameState and assert the next cycle, revision, anchor, and open current marker.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "non-demo-aims",
+      "surface_or_primitive": "Route engine domain and fallback action selection",
+      "state": "Study, skill, creative, care, people, admin, movement, and unfamiliar goals",
+      "expected_effect": "Use explicit outcome and reality ahead of the default stat, produce distinct route structures, and fall back to a bounded generic starting proof without pretending to know more than was entered.",
+      "verification_plan": "Exercise route-type and explicit-aim tests, then owner-test at least one goal unlike the apartment fixture.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether the drafted route feels meaningfully insightful for the owner's own unusual goal on a physical phone, rather than merely coherent for deterministic fixtures and known domain vocabulary.",
+  "decisive_check": {
+    "method": "Create one real owner goal on the phone, read the full drafted route, use plan does not fit once, and return after completing the smaller proof.",
+    "target": "The owner's normal iPhone-class device and a goal unlike the calm-apartment fixture",
+    "pass_condition": "The owner says the first move feels earned by what they entered, understands the route without explanation, and sees the app preserve direction and proof after a hard-day adjustment."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/goal_planner.dart",
+      "lib/models.dart",
+      "lib/engine.dart",
+      "lib/storage.dart",
+      "lib/screens/quick_goal_composer.dart",
+      "lib/screens/goal_plan_check_in.dart",
+      "lib/screens/goal_opening.dart",
+      "lib/screens/goal_detail.dart",
+      "lib/screens/goal_wizard.dart",
+      "lib/screens/goals.dart",
+      "lib/screens/shell.dart",
+      "lib/widgets/goal_primary_button.dart",
+      "lib/widgets/goal_route_panel.dart",
+      "lib/widgets/goal_threshold_scene.dart",
+      "test/goal_route_engine_test.dart",
+      "test/goals_quest_management_test.dart",
+      "test/screenshots_test.dart"
+    ],
+    "exclude": [
+      "test/goldens"
+    ]
+  }
+}

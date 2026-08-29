@@ -119,6 +119,23 @@ class _RewardReceiptState extends State<RewardReceipt>
         'stat_${b.stat.index}',
         evidence: b.hasEvidence,
       ),
+      if (b.risenToTitle != null)
+        _Bubble(
+          'QUEST ROSE · ${b.risenToTitle}',
+          Icons.trending_up_rounded,
+          Palette.streak,
+          'levelup',
+          haptic: true,
+        ),
+      if (b.masteryTierReached case final tier?)
+        _Bubble(
+          '${tier.label} · ${b.masteryCompletionsAfter} COMPLETIONS',
+          Icons.workspace_premium_rounded,
+          Palette.xpLight,
+          'streak',
+          haptic: true,
+          hero: tier.index >= QuestMasteryTier.gilded.index,
+        ),
       if (b.verifiedMult != null)
         _Bubble(
           'VERIFIED ×${b.verifiedMult!.toStringAsFixed(1)}',

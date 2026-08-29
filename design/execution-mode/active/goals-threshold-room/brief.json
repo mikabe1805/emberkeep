@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "goals-threshold-room-2026-08-27",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "superseded",
+  "locked_at": "2026-08-27T20:32:21-04:00",
+  "surface": "Returning Goals room and exact next-Quest handoff",
+  "scope": "Replace the rejected folio-over-wall resting frame with the owner-selected spatial threshold composition: the goal belongs to the wall, the exact Quest belongs inside the lit arch, and the one primary action is a physical brass threshold in the floor. Preserve the established exact-Quest route, cancellation, rapid-entry guard, fallback preparation, and Reduced Motion behavior.",
+  "user_job": "Return to the one goal that matters, understand the next small move without managing a dashboard, and feel invited to cross into that exact Quest.",
+  "active_sources": [
+    {
+      "id": "selected-threshold-room",
+      "kind": "visual_target",
+      "location": "design/visual-targets/2026-08-28/goals-threshold-room-selected.png",
+      "content_sha256": "7eccf6cbbd785286fac123bc47d35778b5978e0f19ab9d4d8e2fc7cac9478fe5",
+      "approved_at": "2026-08-27",
+      "judged_state": "Returning HOME goal with wall-set identity, return evidence, a due exact Quest held inside the illuminated arch, one brass Step in floor threshold, and a quieter fallback note",
+      "viewport": "430x932 at default text scale",
+      "priority": 1
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/visual-targets/2026-08-26/goals-option-1-living-commitment.png",
+      "reason": "The owner rejected the implemented folio-over-wall branch and explicitly selected threshold-room option 2 as the new binding composition."
+    },
+    {
+      "location": "design/execution-mode/active/goals-type-control-fidelity",
+      "reason": "Its owner checkpoint records the exact rejection feedback: it's still not there yet."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "The first frame does the prioritization for the person: one goal, one piece of return evidence, one exact next Quest, and one gentler route; management and alternate goals wait below the room.",
+      "proof": "A production-equivalent returning goal can be understood and entered without opening a card, accordion, or goal manager, while support and other goals remain reachable below the fold."
+    },
+    "interaction": {
+      "decision": "The brass floor threshold is the only primary action. It acknowledges locally, rejects rapid repeat entry, and launches the existing continuous room crossing into the same exact Quest; the fallback note prepares and opens its linked lighter Quest.",
+      "proof": "Rest, pointer-down, accepted Opening state, room travel, cancellation, Reduced Motion, exact-Quest arrival, fallback creation and reuse all remain observable through stable semantic keys and focused tests."
+    },
+    "visual": {
+      "decision": "Architecture owns hierarchy: goal identity is registered to the upper-left wall, cue and Quest live inside the lit arch, and action lives on a real raster brass plate in the floor. Live Flutter type supplies data without introducing a floating card system.",
+      "proof": "A 430x932 source/build comparison preserves the target's room crop, negative space, wall/arch/floor registration, and single physical action with no opaque card or detached button above the fold."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Retaining the rejected quest folio, support accordion, or another dark card in the first room frame",
+      "why": "It makes the room wallpaper and restores the dashboard reading the selected source removes."
+    },
+    {
+      "fallback": "Approximating the floor threshold with a rounded gold Flutter rectangle",
+      "why": "The selected direction depends on aged brass, perspective, fasteners, and contact with the floor; a code-painted CTA would detach again."
+    },
+    {
+      "fallback": "Centering all copy in one vertical stack",
+      "why": "The spatial journey needs distinct wall, doorway, and floor zones so the person reads where to move rather than merely what to tap."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "Return to an active apartment goal with one due linked Quest and one saved lighter action, then cross the brass threshold into the exact Quest.",
+    "real_inputs": "The production-equivalent Make the apartment feel calm goal, Clear the kitchen counter Quest, 11 prior returns, saved reason, and clear one small surface fallback.",
+    "user_action": "Read the wall-set goal, press Step in on the floor threshold, and follow the room crossing.",
+    "expected_outcome": "The threshold acknowledges without becoming a generic button, the room travels through the visible arch, and the exact Clear the kitchen counter Quest opens once.",
+    "state_boundary": "The existing goalRoomRoute owns motion, reverse cancellation, Reduced Motion, arrival hold, and exact Quest identity; fallback preparation remains goal-linked and collision-safe.",
+    "required_states": [
+      {
+        "id": "rest",
+        "state": "Selected threshold-room composition before touch",
+        "why_can_disprove": "Correct behavior can still fail if text floats, the room crop is wrong, or the brass plate reads like a digital button."
+      },
+      {
+        "id": "press",
+        "state": "Finger-down and accepted Opening acknowledgement on the floor threshold",
+        "why_can_disprove": "The physical metaphor can fail if the whole object does not compress locally or if pending copy causes a jump."
+      },
+      {
+        "id": "arrival",
+        "state": "Continuous arch crossing and exact Quest handoff",
+        "why_can_disprove": "The page can promise spatial continuity but cut to a generic route or open the wrong Quest."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "hard-day",
+      "surface_or_primitive": "Returning threshold room without a due Quest",
+      "state": "A saved fallback is the only available action",
+      "expected_effect": "The lighter action occupies the arch as the honest current route and uses the same Step in threshold rather than changing into a green card.",
+      "verification_plan": "Render the hard-day fixture and exercise fallback creation, snooze reuse, and title collision behavior.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "below-fold-management",
+      "surface_or_primitive": "Support, alternate goals, and completed goals",
+      "state": "Collapsed, expanded, dense, and goal switching",
+      "expected_effect": "These remain reachable after the authored room without competing in the first frame.",
+      "verification_plan": "Scroll, expand support, switch the featured goal, and render the dense state.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "stress",
+      "surface_or_primitive": "Threshold scene typography and action geometry",
+      "state": "Long titles, 320x568 at 1.5x text, pressed, pending, and Reduced Motion",
+      "expected_effect": "The intended modern-iPhone composition remains primary while stress states stay readable, scrollable, semantically complete, and overflow-free.",
+      "verification_plan": "Run focused layout and motion tests, inspect 430x932 plus 402x874 captures, and verify the narrow large-text interaction path.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether live text and the real brass threshold feel materially embedded in the generated room at owner viewing size rather than merely matching coordinates.",
+  "decisive_check": {
+    "method": "Place the selected source and a fresh 430x932 implementation render side by side, then inspect rest, press, pending, and room-travel frames at real-time speed.",
+    "target": "Returning apartment goal on the local phone preview and the deterministic 430x932 fixture.",
+    "pass_condition": "The room is the interface; wall, arch, and floor each carry one clear role; the first action is unmistakable without a floating card; and the exact Quest opens once through the existing spatial route."
+  },
+  "revision_scope": {
+    "include": [
+      "lib",
+      "assets",
+      "test",
+      "pubspec.yaml"
+    ],
+    "exclude": [
+      "test/goldens"
+    ]
+  }
+}

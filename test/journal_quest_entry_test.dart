@@ -255,7 +255,7 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('a Journal quest voices each bob without activating on drag', (
+  testWidgets('a Journal quest stays silent and inactive on drag', (
     tester,
   ) async {
     final events = <String>[];
@@ -276,13 +276,13 @@ void main() {
     await gesture.up();
     await tester.pump(const Duration(milliseconds: 180));
     expect(find.byType(JournalEntryScreen), findsNothing);
-    expect(events, ['open']);
+    expect(events, isEmpty);
 
     await tester.tap(card);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.byType(JournalEntryScreen), findsOneWidget);
-    expect(events, ['open', 'open']);
+    expect(events, ['open']);
   });
 
   testWidgets('catching a coasting quest board remains silent', (tester) async {
@@ -309,7 +309,7 @@ void main() {
     await catchGesture.cancel();
   });
 
-  testWidgets('an ordinary completion voices both bob and accepted outcome', (
+  testWidgets('an ordinary completion voices one accepted composite', (
     tester,
   ) async {
     final events = <String>[];
@@ -329,10 +329,10 @@ void main() {
     await tester.tap(find.byKey(ValueKey('card-${quest.title}')));
     await tester.pump();
     expect(quest.doneFor(Clock.now()), isTrue);
-    expect(events, ['open', 'complete']);
+    expect(events, ['complete']);
 
     // Drain the existing reward receipt/commit choreography before disposal;
-    // this assertion is intentionally about the two visible tap-time beats.
+    // this assertion is intentionally about the one accepted tap-time beat.
     sfx.soundEnabled = false;
     await tester.pump(const Duration(seconds: 8));
     await tester.pumpWidget(const SizedBox.shrink());

@@ -9,6 +9,7 @@ import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/journal_doc.dart';
 import 'package:emberkeep/main.dart';
 import 'package:emberkeep/models.dart';
+import 'package:emberkeep/screens/goal_opening.dart';
 import 'package:emberkeep/screens/shop.dart';
 import 'package:emberkeep/social.dart';
 import 'package:emberkeep/storage.dart';
@@ -234,7 +235,7 @@ void main() {
     expect(done, isTrue);
   });
 
-  testWidgets('pressable acknowledges pointer-down before tap release', (
+  testWidgets('pressable acknowledges an accepted tap after release', (
     tester,
   ) async {
     final events = <String>[];
@@ -268,7 +269,7 @@ void main() {
 
     expect(tester.getTopLeft(target).dy, before + 3);
     expect(tapped, isFalse);
-    expect(events, ['open']);
+    expect(events, isEmpty);
 
     await gesture.up();
     await tester.pump();
@@ -318,10 +319,10 @@ void main() {
 
     final gesture = await tester.startGesture(tester.getCenter(target));
     await tester.pump();
-    await gesture.moveBy(const Offset(13, 0));
+    await gesture.moveBy(const Offset(8, 0));
     await tester.pump();
     expect(pressOffset(), 3);
-    expect(events, ['open']);
+    expect(events, isEmpty);
 
     await gesture.up();
     await tester.pump(const Duration(milliseconds: 180));
@@ -330,7 +331,7 @@ void main() {
     expect(events, ['open']);
   });
 
-  testWidgets('pressable pairs one sound with a bob that becomes a scroll', (
+  testWidgets('pressable cancels without sound when a bob becomes a scroll', (
     tester,
   ) async {
     final events = <String>[];
@@ -381,7 +382,7 @@ void main() {
     final gesture = await tester.startGesture(tester.getCenter(target));
     await tester.pump();
     expect(pressOffset(), 3);
-    expect(events, ['open']);
+    expect(events, isEmpty);
 
     await gesture.moveBy(const Offset(0, -50));
     await tester.pump();
@@ -390,12 +391,12 @@ void main() {
     expect(pressOffset(), 0);
     expect(scroll.offset, greaterThan(0));
     expect(activations, 0);
-    expect(events, ['open']);
+    expect(events, isEmpty);
 
     await gesture.up();
     await tester.pump(const Duration(milliseconds: 180));
     expect(activations, 0);
-    expect(events, ['open']);
+    expect(events, isEmpty);
   });
 
   testWidgets(
@@ -747,11 +748,12 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('GOALS'), findsWidgets);
 
-    // The first visit keeps the full catalog out of the way until the person
-    // explicitly chooses the ready-made route mentioned by the empty state.
+    // The real goals stay quiet until the person deliberately asks for
+    // starting points; the catalog is no longer mixed into the main page.
     expect(find.text('Keep your space'), findsNothing);
-    await tester.tap(find.text('Browse ready-made paths'));
-    await tester.pump(const Duration(milliseconds: 150));
+    await tester.tap(find.byKey(const Key('goals-browse-starting-points')));
+    await settle(tester);
+    expect(find.text('STARTING POINTS'), findsOneWidget);
 
     // expand the first catalog goal (HOME & HEARTH → "Keep your space", near
     // the top) and adopt its first quest. The new cinematic goal header makes
@@ -770,32 +772,28 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(takeOn);
     await tester.pump(const Duration(milliseconds: 300));
-
-    await tester.tap(find.byIcon(Icons.task_alt));
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(find.text('TODAY · 6 LEFT'), findsOneWidget);
-
-    // the new quest is appended at the bottom — scroll the board to reach it.
-    // (cards got taller in the mobile-readability pass; a big single drag
-    // clamps at the list's end regardless of exact card height.)
-    await revealQuest(tester, 'Make your bed');
+    expect(find.text('TAKEN · EDIT'), findsOneWidget);
 
     // settle the snackbar timer
     await tester.pump(const Duration(seconds: 2));
   });
 
-  testWidgets('oath wizard: name, add a quest via the sheet, swear', (
+  testWidgets('goal wizard: name, add a quest via the sheet, begin', (
     tester,
   ) async {
     await pumpApp(tester);
 
     await tester.tap(find.byIcon(Icons.explore_outlined));
     await tester.pump(const Duration(milliseconds: 500));
-    await tester.tap(find.text('BEGIN A NEW GOAL'));
+    await tester.tap(find.byKey(const Key('goals-create-first')));
     await settle(tester);
-    expect(find.text('A NEW OATH'), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('quick-goal-advanced')));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const Key('quick-goal-advanced')));
+    await settle(tester);
+    expect(find.text('A NEW GOAL'), findsOneWidget);
 
-    // name the oath (the only TextField until the sheet opens)
+    // Name the goal (the only TextField until the sheet opens).
     await tester.enterText(
       find.byType(TextField).first,
       'Maintain healthy skin',
@@ -827,14 +825,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500)); // sheet slides away
     await tester.pump(const Duration(milliseconds: 100));
 
-    // swear the oath (the pinned footer button)
-    await tester.tap(find.text('⚔ SWEAR THE OATH'));
+    // Draft the route from the pinned footer button. The workshop, not this
+    // authoring form, owns the first Quest acceptance.
+    await tester.tap(find.text('DRAFT THIS ROUTE'));
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('OATH SWORN'), findsOneWidget);
-    // seal holds ~1.4s then pops back to the goals page; the new goal shows up
+    expect(find.text('ROUTE DRAFTED'), findsOneWidget);
+    // The confirmation holds ~1.4s, then enters the one-time opening.
     await tester.pump(const Duration(milliseconds: 1600));
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Maintain healthy skin'), findsWidgets);
+    expect(find.byType(GoalOpeningScreen), findsOneWidget);
   });
 
   testWidgets('night routine opens, recaps and closes', (tester) async {

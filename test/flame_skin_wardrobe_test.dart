@@ -121,6 +121,7 @@ void main() {
           onRemoveGoal: (_) {},
           onPersist: () {},
           quests: const [],
+          onOpenQuest: (_) {},
           onOpenQuests: () {},
         ),
       ),

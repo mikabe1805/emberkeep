@@ -1,0 +1,167 @@
+{
+  "schema_version": 1,
+  "id": "goals-opening-initiation-2026-08-27",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "superseded",
+  "locked_at": "2026-08-27T11:47:29.2735729-04:00",
+  "surface": "New-goal opening, ordinary Goals room travel, and exact first-Quest handoff",
+  "scope": "Keep the approved desk, apartment, arch, and kitchen direction while turning a newly created goal into a one-time authored initiation with a prepared first move, a lighter route, user-controlled reading holds, and a direct Quest start; keep later returns materially coherent and faster",
+  "user_job": "Name what should change once, understand what Room of Days already prepared, and begin one exact action without having to design a whole system first",
+  "active_sources": [
+    {
+      "id": "living-commitment-composition",
+      "kind": "visual_target",
+      "location": "design/visual-targets/2026-08-26/goals-option-1-living-commitment.png",
+      "content_sha256": "f89260fb41b7dc99a6870b3008cec2b00ec3b501e89ed6cc4e3a9bb38c7a04a9",
+      "approved_at": "2026-08-26",
+      "judged_state": "One personal goal at the desk with an exact first action and visibly secondary lighter route",
+      "viewport": "430x932 at default text scale",
+      "priority": 1
+    },
+    {
+      "id": "same-room-threshold",
+      "kind": "interaction_target",
+      "location": "design/visual-targets/2026-08-26/goals-option-3-threshold.png",
+      "content_sha256": "383276a62004bb0f9ca0c4bdf891377b163eb5eaab33a243cac161ce210e61ad",
+      "approved_at": "2026-08-26",
+      "judged_state": "The exact plan is registered to the lit arch and crossing it is a clear, real action",
+      "viewport": "430x932, standard and Reduced Motion",
+      "priority": 2
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/visual-targets/2026-08-26/goals-chaptered-evidence-selected.png",
+      "reason": "The living-commitment hard reset remains the approved production direction"
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": "design/execution-mode/active/goals-living-commitment",
+  "edge_contract": {
+    "product": {
+      "decision": "A new goal receives one ceremony only: Room of Days reflects the goal, prepares or preserves one exact first Quest, shows a lighter fallback when available, and ends by starting that Quest; existing goals and completed openings retain the direct daily return",
+      "proof": "Create a custom goal, advance through its opening, start the exact prepared Quest, return to Goals, and verify the ceremony does not replay after its persisted completion"
+    },
+    "interaction": {
+      "decision": "The hand acknowledges immediately, then the person controls the reading pace at the desk and arch; the room withdraws with mass, holds, crosses, and settles instead of completing an automatic sub-second montage",
+      "proof": "Finger-down, desk acknowledgement, user-advanced threshold, real Step in action, kitchen arrival, exact Quest start, reverse/back behavior, rapid repeat, and Reduced Motion all have distinct observable states"
+    },
+    "visual": {
+      "decision": "Live copy belongs to photographed surfaces: goal identity and reason sit on the desk folio, the prepared plan inhabits a recessed warm-dark arch plaque, and the final luminous action settles against the kitchen counter; no floating marketing header or dead button covers the room",
+      "proof": "Normalized 430x932 comparisons keep the room as one authored image, one attention owner per beat, motivated amber edges, readable ivory type, and no generic sheet arriving over the kitchen"
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "A multi-page motivational onboarding funnel with generic transformation claims",
+      "why": "It replaces specific preparation with hype, asks for more labor, and makes the app sound like it authors the person's future"
+    },
+    {
+      "fallback": "The current automatic route with a visually tappable but inert Step in button",
+      "why": "It makes the journey unclear and breaks the causal promise at its most important threshold"
+    },
+    {
+      "fallback": "Floating white copy and a conventional detail sheet layered over the room",
+      "why": "It turns the environment into wallpaper instead of letting live information inherit a physical plane and light source"
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "Create a custom HOME goal, let Room of Days prepare a truthful first move when none was supplied, inspect the plan at the desk and arch, cross into the kitchen, and begin that exact Quest",
+    "real_inputs": "A production-equivalent custom goal title, HOME domain, optional saved reason, no supplied action, a deterministic domain-aware first move, and a lighter fallback",
+    "user_action": "Create the goal, press Show me, press Step in, then press Begin",
+    "expected_outcome": "The new goal is persisted unfinished, the prepared plan is explicit and editable, the person controls the two reading holds, the camera moves through one apartment, the opening marks complete only at acceptance, and the exact prepared Quest is handed to Quests",
+    "state_boundary": "Opening completion persists per goal; leaving early does not mark it complete; old saves default to completed so the ceremony is never forced retroactively",
+    "required_states": [
+      {
+        "id": "desk",
+        "state": "New goal at the intimate desk before the first advance",
+        "why_can_disprove": "The ceremony can still feel like a modal ad if the goal and plan are not physically grounded"
+      },
+      {
+        "id": "threshold",
+        "state": "Wide room held on a real interactive arch plan",
+        "why_can_disprove": "The route can remain confusing if the first move, lighter route, or action ownership is unclear"
+      },
+      {
+        "id": "arrival",
+        "state": "Kitchen-side final action before exact Quest handoff",
+        "why_can_disprove": "The buildup is unpaid if the final action is generic, duplicates navigation, or opens the wrong Quest"
+      },
+      {
+        "id": "return",
+        "state": "Goals revisited after opening completion",
+        "why_can_disprove": "A beautiful one-time ceremony becomes daily friction if it replays"
+      },
+      {
+        "id": "reduced-motion",
+        "state": "The same opening with camera travel disabled",
+        "why_can_disprove": "Removing travel must not remove the plan, controls, order, or authored stills"
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "creation-paths",
+      "surface_or_primitive": "Quick create, advanced wizard, and curated adoption",
+      "state": "New, duplicate, and actionless goal creation",
+      "expected_effect": "Only truly new goals receive an unfinished opening and no empty or duplicate goal is stranded",
+      "verification_plan": "Run creation behavior tests through every entry path and inspect the representative quick-create slice",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "ordinary-return",
+      "surface_or_primitive": "Focused Goals action and Goals-owned detail route",
+      "state": "Already-opened goal, reverse travel, and rapid repeat",
+      "expected_effect": "Returning use remains direct while slower spatial beats and environmental plan copy repair the current transition",
+      "verification_plan": "Capture route keyframes and run exact-detail, reverse, and repeat tests",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "persistence",
+      "surface_or_primitive": "Goal JSON and existing saves",
+      "state": "New opening incomplete, completed opening, and legacy JSON without the field",
+      "expected_effect": "New goals can resume; accepted openings do not replay; legacy goals remain unchanged",
+      "verification_plan": "Round-trip and legacy deserialization tests",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "responsive",
+      "surface_or_primitive": "Goal opening environmental surfaces",
+      "state": "430x932, 320x568 at 1.5x text, and long goal/action/reason",
+      "expected_effect": "The action remains reachable and readable without shrinking live type or detaching it from the room",
+      "verification_plan": "Render and activate normal and narrow large-text opening states",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "exact-quest-handoff",
+      "surface_or_primitive": "Quests requested-focus handoff",
+      "state": "Prepared once Quest plus another same-domain Quest",
+      "expected_effect": "The opening starts the prepared Quest rather than merely navigating to the Quests tab",
+      "verification_plan": "Assert object identity in the representative journey test",
+      "disposition": "inherits",
+      "reason": "The destination contract already exists; the new opening supplies a new entry to it"
+    }
+  ],
+  "unverified_property": "Whether the deliberately slower, user-controlled opening feels exciting rather than ponderous and whether its copy truly appears to inhabit the apartment on a physical iPhone",
+  "decisive_check": {
+    "method": "Use the new-goal opening on the physical iPhone in normal and Low Power Mode, then revisit the same goal",
+    "target": "Create, desk hold, Show me, arch hold, Step in, kitchen Begin, exact Quest arrival, back/interrupt, and persisted fast return",
+    "pass_condition": "The person can always tell what Room of Days prepared and what to do next; each room beat has time to land; no text looks pasted over the art; daily return does not replay the ceremony; frame pacing, haptics, and timing feel deliberate"
+  },
+  "revision_scope": {
+    "include": [
+      "lib",
+      "assets",
+      "test",
+      "pubspec.yaml"
+    ],
+    "exclude": [
+      "test/goldens"
+    ]
+  }
+}

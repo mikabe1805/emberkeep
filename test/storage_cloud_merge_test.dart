@@ -97,7 +97,7 @@ void main() {
     });
 
     test('holds instead of overwriting unreadable or future saves', () {
-      expect(Storage.schema, 25);
+      expect(Storage.schema, 26);
       final local = _save(schema: Storage.schema, modified: 300);
       expect(
         Storage.decideCloudMerge(localRaw: local, remoteRaw: '{not json'),

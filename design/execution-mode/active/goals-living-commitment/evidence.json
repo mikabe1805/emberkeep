@@ -1,0 +1,281 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-living-commitment-2026-08-26",
+  "brief_sha256": "e4d217af7a9075d828b4ef66fdd22575935a185e522220b169d8f52daaeea04b",
+  "phase": "slice",
+  "implementation_revision": "worktree:0e666f2639fc:474563f26f6d2549f7e22031",
+  "revision_captured_at": "2026-08-27T02:06:00.000Z",
+  "checks": [
+    {
+      "id": "slice-product-focus",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the final deterministic journey at intended phone size and real-time playback speed",
+      "input_state": "Production-equivalent personal goal with a reason, lighter action, alternate goals, and one exact linked due Quest",
+      "inspected_by": "Codex main agent, Terra visual reviewer, and Claude Fable 5",
+      "observation": "The focused commitment, truthful current action, lighter route, and quiet support disclosure own the parked frame while the action becomes the durable landmark through the room journey.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Sampled rest-to-kitchen room journey at 430 by 932",
+          "path": "design/comparisons/2026-08-26/goals-room-motion-contact-sheet.png",
+          "generated_at": "2026-08-27T02:10:05.370Z",
+          "content_sha256": "fe36564dc60d4225e7599293a31ebf153b15ad689d82a320434e9eddb7fa382d",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Animated production route from focused commitment to kitchen detail",
+          "path": "design/comparisons/2026-08-26/goals-room-journey-430x932.webp",
+          "generated_at": "2026-08-27T02:10:05.093Z",
+          "content_sha256": "bba9ca2261621074be58ed2a1c8a81737527cc2bb8d0accf299c087c3dbbfd7c",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Real-engine profile rest and settled kitchen endpoints",
+          "path": "design/comparisons/2026-08-26/goals-room-avd-host-profile-rest-arrival.png",
+          "generated_at": "2026-08-27T02:36:19.559Z",
+          "content_sha256": "f1cc80cecf447c5b6eeb28a1f8642439533f73fd49ba385e37b04f367a134e6c",
+          "data_source": "production_equivalent"
+        }
+      ]
+    },
+    {
+      "id": "slice-interaction-room-route",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Drive a real pointer press through the production route at 60 fps and run focused plus full Flutter interaction suites",
+      "input_state": "Normal motion, reverse interruption, rapid repeat, Reduced Motion, and exact linked-Quest navigation",
+      "inspected_by": "Codex main agent with Flutter test runner and real-time artifact playback",
+      "observation": "Begin acknowledges before navigation, rejects repeat entry, reverses cleanly, settles once, and preserves the exact Quest identity; the captured normal route has a retreat, threshold hold, and forward crossing.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "interaction",
+          "state": "Playable 60 fps production-route journey with endpoint holds",
+          "path": "design/comparisons/2026-08-26/goals-room-journey-430x932.mp4",
+          "generated_at": "2026-08-27T02:10:03.956Z",
+          "content_sha256": "6fb81cd887099b25ed94eb890271beefb3d7947b0b6262c452c03060feb1b162",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "773-test full suite, focused Goals suite, golden route, capture harness, profile smoke check, analyzer, and release build",
+          "path": "design/execution-mode/active/goals-living-commitment/slice-test-report.md",
+          "generated_at": "2026-08-27T02:37:42.031Z",
+          "content_sha256": "462e335ab9586eb77598d833ee8a7488354303308f5afd6c0ba3f8254c90b590",
+          "data_source": "test_output"
+        },
+        {
+          "kind": "test_report",
+          "state": "Three warmed 60 Hz Android profile-mode room journeys",
+          "path": "design/execution-mode/active/goals-living-commitment/avd-profile-verification.md",
+          "generated_at": "2026-08-27T02:37:27.453Z",
+          "content_sha256": "527a7126e12417cbff04b10daacb506c0eaef641cd52d9234eddd862e5ea99b5",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-visual-room-depth",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect adjacent samples, the complete contact sheet, and real-time playback at the intended 430 by 932 viewport",
+      "input_state": "Goals route at rest, retreat, full-room hold, arch crossing, kitchen handoff, and settled detail",
+      "inspected_by": "Codex main agent, Terra visual reviewer, and Claude Fable 5",
+      "observation": "The apartment remains one coherent place while the camera retreats, pauses, and pushes through the lit arch; desk, room, invitation, and kitchen form one spatial landmark chain rather than separate templates.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Final room-travel contact sheet from desk through arch to kitchen",
+          "path": "design/comparisons/2026-08-26/goals-room-motion-contact-sheet.png",
+          "generated_at": "2026-08-27T02:10:05.370Z",
+          "content_sha256": "fe36564dc60d4225e7599293a31ebf153b15ad689d82a320434e9eddb7fa382d",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Animated 60 fps room-travel visual sequence",
+          "path": "design/comparisons/2026-08-26/goals-room-journey-430x932.webp",
+          "generated_at": "2026-08-27T02:10:05.093Z",
+          "content_sha256": "bba9ca2261621074be58ed2a1c8a81737527cc2bb8d0accf299c087c3dbbfd7c",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Real-engine profile rest and settled detail at the native Pixel 7 viewport",
+          "path": "design/comparisons/2026-08-26/goals-room-avd-host-profile-rest-arrival.png",
+          "generated_at": "2026-08-27T02:36:19.559Z",
+          "content_sha256": "f1cc80cecf447c5b6eeb28a1f8642439533f73fd49ba385e37b04f367a134e6c",
+          "data_source": "production_equivalent"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-rest",
+      "requirement_id": "state:rest",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the first sampled frame at intended phone size",
+      "input_state": "Active personal commitment before touch",
+      "inspected_by": "Codex main agent",
+      "observation": "The desk-side goal, reason, recurrence, one current action, lighter return, and support disclosure remain legible while alternate goals wait below the fold.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Goals parked rest frame within the final journey",
+          "path": "design/comparisons/2026-08-26/goals-room-motion-contact-sheet.png",
+          "generated_at": "2026-08-27T02:10:05.370Z",
+          "content_sha256": "fe36564dc60d4225e7599293a31ebf153b15ad689d82a320434e9eddb7fa382d",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-press",
+      "requirement_id": "state:press",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect real-time accepted press and early retreat frames",
+      "input_state": "Finger release after the primary Begin action is accepted",
+      "inspected_by": "Codex main agent and Claude Fable 5",
+      "observation": "Secondary folio detail begins dissolving while the goal identity and gold current action remain as durable landmarks during the sharp spatial retreat.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "interaction",
+          "state": "Accepted press and opening retreat at real-time playback",
+          "path": "design/comparisons/2026-08-26/goals-room-journey-430x932.mp4",
+          "generated_at": "2026-08-27T02:10:03.956Z",
+          "content_sha256": "6fb81cd887099b25ed94eb890271beefb3d7947b0b6262c452c03060feb1b162",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-threshold",
+      "requirement_id": "state:threshold",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the full-room hold, arch invitation, crossing, and matched kitchen arrival",
+      "input_state": "Normal-motion route from the focused goal into its detail",
+      "inspected_by": "Codex main agent and Claude Fable 5",
+      "observation": "The room holds at full depth, Step in stays registered to the illuminated arch, and the camera then advances through the doorway into the coherent kitchen-side destination.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "interaction",
+          "state": "Full threshold hold and forward arch crossing",
+          "path": "design/comparisons/2026-08-26/goals-room-journey-430x932.mp4",
+          "generated_at": "2026-08-27T02:10:03.956Z",
+          "content_sha256": "6fb81cd887099b25ed94eb890271beefb3d7947b0b6262c452c03060feb1b162",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-reduced-motion",
+      "requirement_id": "state:reduced-motion",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run OS disable-animations and product Reduce Motion route tests",
+      "input_state": "Same focused goal journey with camera travel disabled",
+      "inspected_by": "Codex main agent with Flutter test runner",
+      "observation": "Reduced Motion uses a short composed destination fade, retains acknowledgement and exact navigation, and does not instantiate the normal moving-room choreography.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Reduced Motion route behavior within the verified Goals suite",
+          "path": "design/execution-mode/active/goals-living-commitment/slice-test-report.md",
+          "generated_at": "2026-08-27T02:37:42.031Z",
+          "content_sha256": "462e335ab9586eb77598d833ee8a7488354303308f5afd6c0ba3f8254c90b590",
+          "data_source": "test_output"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra subagent goals_room_visual_qa and Claude Fable 5 focused motion review",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-product-focus",
+      "slice-interaction-room-route",
+      "slice-visual-room-depth"
+    ],
+    "reviewed_artifacts": [
+      "design/comparisons/2026-08-26/goals-room-motion-contact-sheet.png",
+      "design/comparisons/2026-08-26/goals-room-journey-430x932.webp",
+      "design/comparisons/2026-08-26/goals-room-journey-430x932.mp4"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "The final detail document shares one opacity ramp and may briefly read as a layered sheet over the kitchen.",
+        "disposition": "accepted",
+        "evidence": "Fable recommends the physical owner-feel check before staging a more complex arrival; the reserved change is documented in fable-motion-review.md."
+      }
+    ],
+    "no_material_findings_observation": "No blocking visual or interaction issue remains in the deterministic journey; the one arrival nuance is explicitly reserved for the owner-feel check."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-27T01:10:32.252Z",
+    "decided_at": "",
+    "reviewed_revision": "",
+    "reviewed_brief_sha256": "",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "good start but not nearly the quality i expect or aim for, i want it to really feel like that whole moving through room feeling and amazing visuals like with the images for the example UI direction you generated before"
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "blocked",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Physical iPhone acceptance remains outside deterministic validation"
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "physical-phone-owner-feel",
+      "gate": "Physical iPhone interaction and owner-feel acceptance",
+      "why": "Desktop renders and widget tests cannot establish thumb response, haptic weight, OLED black level, frame pacing, or owner-perceived room-travel timing",
+      "owner_or_system": "Owner on the exact installed iPhone candidate",
+      "next_action": "Run Begin once at real speed and judge whether the final beat feels like settling into the kitchen or like a page fading in",
+      "blocking": true
+    }
+  ]
+}

@@ -52,6 +52,38 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+35',
+    versionLabel: 'VERSION 1.0.4 · BUILD 35',
+    dateLabel: 'AUGUST 2026',
+    title: 'Your goals have somewhere to go.',
+    introduction:
+        'Bring a goal to the Workshop, shape a route with the steward, and '
+        'accept its first Quest only when the plan feels right.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'MEET AT THE WORKSHOP',
+        body:
+            'A living steward helps shape any kind of goal into a clear route, '
+            'then waits for you to accept the first Quest.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'QUESTS GROW WITH YOU',
+        body:
+            'Repeatable Quests now rise beyond their first target and earn a '
+            'richer mastery frame as your practice continues.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.interactionSound,
+        title: 'THE ROOM SOUNDS LIKE ITSELF',
+        body:
+            'Taps, pages, placement, and completions now answer once with the '
+            'material they belong to, while scrolling stays quiet.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+34',
     versionLabel: 'VERSION 1.0.4 · BUILD 34',
     dateLabel: 'AUGUST 2026',

@@ -120,6 +120,329 @@ enum GoalKind {
   final String blurb;
 }
 
+/// The shape of work a goal needs. This is deliberately about route
+/// structure, not personality: a finish line, a skill, a repeatable rhythm,
+/// or a reset each need a different kind of first proof.
+enum GoalRouteType {
+  finish('FINISH', 'make or complete something'),
+  skill('SKILL', 'become able to do something'),
+  routine('RHYTHM', 'make something repeatable'),
+  reset('RESET', 'change a space or situation');
+
+  const GoalRouteType(this.label, this.blurb);
+  final String label;
+  final String blurb;
+}
+
+enum GoalPlanStepKind { prepare, act, practice, review, recover }
+
+/// A person's explanation for why the current plan did not fit. These are
+/// planning signals, never scores or diagnoses.
+enum GoalPlanSignal { completed, tooBig, unclear, noTime, lowEnergy, changed }
+
+class GoalPlanStep {
+  const GoalPlanStep({
+    required this.id,
+    required this.title,
+    required this.actionTitle,
+    required this.proof,
+    required this.whyNow,
+    required this.ctaLabel,
+    required this.minutes,
+    required this.kind,
+    this.requiredCompletions = 1,
+    this.completions = 0,
+    this.masteryCompletions = 0,
+    this.completedDay,
+    this.resumeAfterRecovery,
+    this.questTemplate,
+  });
+
+  final String id;
+  final String title;
+  final String actionTitle;
+  final String proof;
+  final String whyNow;
+  final String ctaLabel;
+  final int minutes;
+  final GoalPlanStepKind kind;
+  final int requiredCompletions;
+  final int completions;
+
+  /// Permanent completion history for this owned route marker. Workshop
+  /// Quests are deliberately short-lived attempt objects, so their mastery
+  /// lives here and is handed forward to each newly accepted attempt.
+  final int masteryCompletions;
+  final String? completedDay;
+
+  /// The owned marker this temporary rescue should return to after it earns a
+  /// smaller proof. Keeping the marker snapshot prevents a hard-day action
+  /// from quietly becoming the permanent plan for later attempts.
+  final GoalPlanStep? resumeAfterRecovery;
+
+  /// A configured Quest kept dormant inside the route until this marker is
+  /// explicitly accepted. This preserves schedule, verification, and other
+  /// authored choices without putting unfinished work on the board early.
+  final Quest? questTemplate;
+
+  bool get complete =>
+      completedDay != null || completions >= requiredCompletions;
+
+  GoalPlanStep copyWith({
+    String? title,
+    String? actionTitle,
+    String? proof,
+    String? whyNow,
+    String? ctaLabel,
+    int? minutes,
+    GoalPlanStepKind? kind,
+    int? requiredCompletions,
+    int? completions,
+    int? masteryCompletions,
+    String? completedDay,
+    bool clearCompletedDay = false,
+    GoalPlanStep? resumeAfterRecovery,
+    bool clearResumeAfterRecovery = false,
+    Quest? questTemplate,
+    bool clearQuestTemplate = false,
+  }) => GoalPlanStep(
+    id: id,
+    title: title ?? this.title,
+    actionTitle: actionTitle ?? this.actionTitle,
+    proof: proof ?? this.proof,
+    whyNow: whyNow ?? this.whyNow,
+    ctaLabel: ctaLabel ?? this.ctaLabel,
+    minutes: minutes ?? this.minutes,
+    kind: kind ?? this.kind,
+    requiredCompletions: requiredCompletions ?? this.requiredCompletions,
+    completions: completions ?? this.completions,
+    masteryCompletions: masteryCompletions ?? this.masteryCompletions,
+    completedDay: clearCompletedDay ? null : completedDay ?? this.completedDay,
+    resumeAfterRecovery: clearResumeAfterRecovery
+        ? null
+        : resumeAfterRecovery ?? this.resumeAfterRecovery,
+    questTemplate: clearQuestTemplate
+        ? null
+        : questTemplate ?? this.questTemplate,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'actionTitle': actionTitle,
+    'proof': proof,
+    'whyNow': whyNow,
+    'ctaLabel': ctaLabel,
+    'minutes': minutes,
+    'kind': kind.index,
+    'requiredCompletions': requiredCompletions,
+    'completions': completions,
+    if (masteryCompletions > 0) 'masteryCompletions': masteryCompletions,
+    if (completedDay != null) 'completedDay': completedDay,
+    if (resumeAfterRecovery != null)
+      'resumeAfterRecovery': resumeAfterRecovery!.toJson(),
+    if (questTemplate != null) 'questTemplate': questTemplate!.toJson(),
+  };
+
+  static GoalPlanStep fromJson(Map<String, dynamic> j) => GoalPlanStep(
+    id: (j['id'] as String?) ?? 'step',
+    title: (j['title'] as String?) ?? 'Next marker',
+    actionTitle: (j['actionTitle'] as String?) ?? 'Choose a next action',
+    proof: (j['proof'] as String?) ?? 'A real attempt exists',
+    whyNow: (j['whyNow'] as String?) ?? 'This is the next open marker.',
+    ctaLabel: (j['ctaLabel'] as String?) ?? 'BEGIN HERE',
+    minutes: ((j['minutes'] as int?) ?? 15).clamp(1, 240),
+    kind: _enumAt(GoalPlanStepKind.values, j['kind'], GoalPlanStepKind.act),
+    requiredCompletions: ((j['requiredCompletions'] as int?) ?? 1).clamp(
+      1,
+      100,
+    ),
+    completions: ((j['completions'] as int?) ?? 0).clamp(0, 10000),
+    // Pre-mastery saves can at least recover the attempts still recorded on
+    // this marker; future routine cycles retain the full permanent count.
+    masteryCompletions:
+        ((j['masteryCompletions'] as int?) ?? (j['completions'] as int?) ?? 0)
+            .clamp(0, 1 << 30),
+    completedDay: Days.validKey(j['completedDay']),
+    resumeAfterRecovery: j['resumeAfterRecovery'] is Map
+        ? GoalPlanStep.fromJson(
+            Map<String, dynamic>.from(j['resumeAfterRecovery'] as Map),
+          )
+        : null,
+    questTemplate: j['questTemplate'] is Map
+        ? Quest.fromJson(Map<String, dynamic>.from(j['questTemplate'] as Map))
+        : null,
+  );
+}
+
+class GoalPlanAdjustment {
+  const GoalPlanAdjustment({
+    required this.day,
+    required this.signal,
+    required this.fromAction,
+    required this.toAction,
+  });
+
+  final String day;
+  final GoalPlanSignal signal;
+  final String fromAction;
+  final String toAction;
+
+  Map<String, dynamic> toJson() => {
+    'day': day,
+    'signal': signal.index,
+    'fromAction': fromAction,
+    'toAction': toAction,
+  };
+
+  static GoalPlanAdjustment fromJson(Map<String, dynamic> j) =>
+      GoalPlanAdjustment(
+        day: Days.validKey(j['day']) ?? Days.key(DateTime(2000)),
+        signal: _enumAt(
+          GoalPlanSignal.values,
+          j['signal'],
+          GoalPlanSignal.tooBig,
+        ),
+        fromAction: (j['fromAction'] as String?) ?? '',
+        toAction: (j['toAction'] as String?) ?? '',
+      );
+}
+
+/// A small, explainable route from an owned aim to the next Quest.
+///
+/// This is local and deterministic. The app drafts it from the person's
+/// stated outcome, present reality, proof, available time, and likely snag;
+/// every part remains editable and every revision is recorded.
+class GoalPlan {
+  const GoalPlan({
+    required this.type,
+    required this.outcome,
+    required this.startingPoint,
+    required this.successProof,
+    required this.timeBudgetMinutes,
+    required this.obstacleCue,
+    required this.fallbackAction,
+    required this.steps,
+    required this.createdDay,
+    this.horizon,
+    this.revision = 1,
+    this.cyclesCompleted = 0,
+    this.lastSignal,
+    this.adjustments = const [],
+  });
+
+  final GoalRouteType type;
+  final String outcome;
+  final String startingPoint;
+  final String successProof;
+  final int timeBudgetMinutes;
+  final String? horizon;
+  final String obstacleCue;
+  final String fallbackAction;
+  final List<GoalPlanStep> steps;
+  final String createdDay;
+  final int revision;
+  final int cyclesCompleted;
+  final GoalPlanSignal? lastSignal;
+  final List<GoalPlanAdjustment> adjustments;
+
+  int get completedSteps => steps.where((step) => step.complete).length;
+  int get currentStepIndex {
+    final found = steps.indexWhere((step) => !step.complete);
+    return found < 0 ? (steps.isEmpty ? 0 : steps.length - 1) : found;
+  }
+
+  GoalPlanStep? get currentStep =>
+      steps.isEmpty ? null : steps[currentStepIndex];
+  bool get complete => steps.isNotEmpty && steps.every((step) => step.complete);
+
+  GoalPlan copyWith({
+    GoalRouteType? type,
+    String? outcome,
+    String? startingPoint,
+    String? successProof,
+    int? timeBudgetMinutes,
+    String? horizon,
+    String? obstacleCue,
+    String? fallbackAction,
+    List<GoalPlanStep>? steps,
+    int? revision,
+    int? cyclesCompleted,
+    GoalPlanSignal? lastSignal,
+    List<GoalPlanAdjustment>? adjustments,
+  }) => GoalPlan(
+    type: type ?? this.type,
+    outcome: outcome ?? this.outcome,
+    startingPoint: startingPoint ?? this.startingPoint,
+    successProof: successProof ?? this.successProof,
+    timeBudgetMinutes: timeBudgetMinutes ?? this.timeBudgetMinutes,
+    horizon: horizon ?? this.horizon,
+    obstacleCue: obstacleCue ?? this.obstacleCue,
+    fallbackAction: fallbackAction ?? this.fallbackAction,
+    steps: steps ?? this.steps,
+    createdDay: createdDay,
+    revision: revision ?? this.revision,
+    cyclesCompleted: cyclesCompleted ?? this.cyclesCompleted,
+    lastSignal: lastSignal ?? this.lastSignal,
+    adjustments: adjustments ?? this.adjustments,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'type': type.index,
+    'outcome': outcome,
+    'startingPoint': startingPoint,
+    'successProof': successProof,
+    'timeBudgetMinutes': timeBudgetMinutes,
+    if (horizon != null) 'horizon': horizon,
+    'obstacleCue': obstacleCue,
+    'fallbackAction': fallbackAction,
+    'steps': [for (final step in steps) step.toJson()],
+    'createdDay': createdDay,
+    'revision': revision,
+    if (cyclesCompleted > 0) 'cyclesCompleted': cyclesCompleted,
+    if (lastSignal != null) 'lastSignal': lastSignal!.index,
+    if (adjustments.isNotEmpty)
+      'adjustments': [
+        for (final adjustment in adjustments) adjustment.toJson(),
+      ],
+  };
+
+  static GoalPlan? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final j = value.cast<String, dynamic>();
+    final steps = <GoalPlanStep>[
+      for (final raw in (j['steps'] as List?) ?? const [])
+        if (raw is Map) GoalPlanStep.fromJson(raw.cast<String, dynamic>()),
+    ];
+    if (steps.isEmpty) return null;
+    final lastSignal = j['lastSignal'];
+    return GoalPlan(
+      type: _enumAt(GoalRouteType.values, j['type'], GoalRouteType.finish),
+      outcome: (j['outcome'] as String?) ?? 'Make this goal real',
+      startingPoint: (j['startingPoint'] as String?) ?? 'Starting now',
+      successProof: (j['successProof'] as String?) ?? 'A real result exists',
+      timeBudgetMinutes: ((j['timeBudgetMinutes'] as int?) ?? 15).clamp(1, 240),
+      horizon: j['horizon'] as String?,
+      obstacleCue:
+          (j['obstacleCue'] as String?) ?? 'the usual plan feels too large',
+      fallbackAction:
+          (j['fallbackAction'] as String?) ?? 'Give it five honest minutes',
+      steps: steps,
+      createdDay: Days.validKey(j['createdDay']) ?? Days.key(DateTime(2000)),
+      revision: ((j['revision'] as int?) ?? 1).clamp(1, 1000000),
+      cyclesCompleted: ((j['cyclesCompleted'] as int?) ?? 0).clamp(0, 1000000),
+      lastSignal: lastSignal == null
+          ? null
+          : _enumAt(GoalPlanSignal.values, lastSignal, GoalPlanSignal.tooBig),
+      adjustments: [
+        for (final raw in (j['adjustments'] as List?) ?? const [])
+          if (raw is Map)
+            GoalPlanAdjustment.fromJson(raw.cast<String, dynamic>()),
+      ],
+    );
+  }
+}
+
 /// A user goal: a named ambition that linked quests feed. Progress counts
 /// linked-quest completions toward [target] — the bar the night recap fills.
 class Goal {
@@ -133,6 +456,13 @@ class Goal {
     this.startedDay,
     this.milestones = 0,
     this.notes = const [],
+    this.why,
+    this.fallbackCue,
+    this.fallbackAction,
+    this.firstProofTitle,
+    this.firstProofDay,
+    this.openingSeen = true,
+    this.plan,
   });
 
   final String title;
@@ -156,6 +486,33 @@ class Goal {
   /// (gold-banner moments). Tracked from when the field shipped; default 0.
   int milestones;
 
+  /// The person's own reason for keeping this goal. Optional: a goal never
+  /// needs to justify itself to the app before it can begin.
+  String? why;
+
+  /// A gentle if-then fallback: when [fallbackCue] happens, [fallbackAction]
+  /// offers a smaller, self-chosen way back in. Both stay optional and are
+  /// intentionally separate so the UI can present the plan as a real choice.
+  String? fallbackCue;
+  String? fallbackAction;
+
+  /// The first real linked completion kept as the goal's durable starting
+  /// proof. This is stamped by GameState.commit, never by creation or intent.
+  String? firstProofTitle;
+  String? firstProofDay;
+
+  /// Whether this goal's one-time authored opening has been accepted.
+  ///
+  /// The default is deliberately true so legacy saves and programmatic test
+  /// fixtures keep their existing fast return. Real creation paths opt new
+  /// goals into the opening with `openingSeen: false`, and acceptance is
+  /// persisted before the exact first Quest handoff.
+  bool openingSeen;
+
+  /// The optional structured route. Legacy goals remain valid without one and
+  /// can be upgraded in place without inventing history.
+  GoalPlan? plan;
+
   bool get complete => achievedDay != null;
   double get fraction => target == 0 ? 0 : (progress / target).clamp(0.0, 1.0);
 
@@ -169,6 +526,13 @@ class Goal {
     'startedDay': startedDay,
     'milestones': milestones,
     if (notes.isNotEmpty) 'notes': [for (final n in notes) n.toJson()],
+    if (why != null) 'why': why,
+    if (fallbackCue != null) 'fallbackCue': fallbackCue,
+    if (fallbackAction != null) 'fallbackAction': fallbackAction,
+    if (firstProofTitle != null) 'firstProofTitle': firstProofTitle,
+    if (firstProofDay != null) 'firstProofDay': firstProofDay,
+    'openingSeen': openingSeen,
+    if (plan != null) 'plan': plan!.toJson(),
   };
 
   static Goal fromJson(Map<String, dynamic> j) {
@@ -199,6 +563,13 @@ class Goal {
       achievedDay: Days.validKey(j['achievedDay']),
       startedDay: Days.validKey(j['startedDay']),
       milestones: milestones,
+      why: j['why'] as String?,
+      fallbackCue: j['fallbackCue'] as String?,
+      fallbackAction: j['fallbackAction'] as String?,
+      firstProofTitle: j['firstProofTitle'] as String?,
+      firstProofDay: Days.validKey(j['firstProofDay']),
+      openingSeen: j['openingSeen'] as bool? ?? true,
+      plan: GoalPlan.fromJson(j['plan']),
       notes: [
         for (final e in (j['notes'] as List?) ?? const [])
           Note.fromJson((e as Map).cast<String, dynamic>()),
@@ -573,6 +944,52 @@ class JournalQuestPrompt {
   }
 }
 
+/// Permanent mastery belongs to the Quest itself, never to a particular
+/// category. Five honest completions of a study, care, home, movement, or
+/// creative Quest therefore earn the same mark.
+enum QuestMasteryTier {
+  unmarked(0, ''),
+  kept(5, 'KEPT'),
+  practiced(15, 'PRACTICED'),
+  gilded(40, 'GILDED'),
+  masterwork(100, 'MASTERWORK');
+
+  const QuestMasteryTier(this.threshold, this.label);
+
+  final int threshold;
+  final String label;
+}
+
+QuestMasteryTier questMasteryTierFor(int completions) {
+  for (final tier in QuestMasteryTier.values.reversed) {
+    if (completions >= tier.threshold) return tier;
+  }
+  return QuestMasteryTier.unmarked;
+}
+
+/// The one progression mutation produced by an accepted completion.
+///
+/// Keeping this separate from XP lets every completion surface the same
+/// mastery truth while an authored ladder may also change its prescription.
+class QuestProgressChange {
+  const QuestProgressChange({
+    required this.completionsBefore,
+    required this.completionsAfter,
+    required this.tierBefore,
+    required this.tierAfter,
+    this.risenToTitle,
+  });
+
+  final int completionsBefore;
+  final int completionsAfter;
+  final QuestMasteryTier tierBefore;
+  final QuestMasteryTier tierAfter;
+  final String? risenToTitle;
+
+  QuestMasteryTier? get tierReached =>
+      tierAfter != tierBefore ? tierAfter : null;
+}
+
 /// A quest: curated (goal catalog), custom (user-forged), or a calendar
 /// event / long-term goal ([schedule] == once with a [dueDate]).
 class Quest {
@@ -590,6 +1007,9 @@ class Quest {
     this.lastDoneDay,
     this.snoozedDay,
     this.goalTitle,
+    this.goalPlanStepId,
+    this.goalPlanRevision,
+    this.goalPlanAttempt,
     this.priority = false,
     this.priorityDay,
     this.priorityRank,
@@ -598,6 +1018,8 @@ class Quest {
     this.monthDay,
     this.rising = false,
     this.risingStreak = 0,
+    bool? autoRise,
+    this.masteryCompletions = 0,
     this.ladder,
     this.rung = 0,
     this.kin,
@@ -607,7 +1029,7 @@ class Quest {
     this.journalPrompt,
     this.createdDay,
     this.log = const [],
-  });
+  }) : autoRise = autoRise ?? (!custom && rising && (ladder?.length ?? 0) > 1);
 
   /// Identity title — the rung-0 prescription, stable for dedup/restore even
   /// after the quest climbs (the visible prescription comes from [displayTitle]).
@@ -656,6 +1078,13 @@ class Quest {
   /// oath is sworn.
   String? goalTitle;
 
+  /// Optional identity inside a structured goal route. [goalTitle] still owns
+  /// compatibility; these fields let one completion advance the exact plan
+  /// marker it was created for and reject stale pre-replan actions.
+  String? goalPlanStepId;
+  int? goalPlanRevision;
+  int? goalPlanAttempt;
+
   /// Starred as a MAIN quest (set in the night planner; the morning
   /// briefing leads with these).
   bool priority;
@@ -689,13 +1118,22 @@ class Quest {
   /// months). Null = any day that month. Mutable (adopt/edit).
   int? monthDay;
 
-  /// Rising difficulty (round-8): training quests climb over time —
+  /// Rising difficulty (round-8): authored trainable quests climb over time —
   /// start easy, grow with the user. NOT for maintenance routines.
   final bool rising;
 
-  /// Completions since the last rise; at [risesAt] the night routine asks
-  /// "ready to rise?".
+  /// Completions at the current rung. Curated ladders reset this automatically
+  /// at [risesAt]; manually-authored ladders may still ask before climbing.
   int risingStreak;
+
+  /// Curated ladders may raise their concrete prescription automatically.
+  /// Custom quests default false: arbitrary care or life work must never be
+  /// made harder merely because the user kept showing up.
+  final bool autoRise;
+
+  /// All-time accepted completions for this specific Quest. This never decays
+  /// and drives the same mastery ornament for every goal domain.
+  int masteryCompletions;
 
   /// The concrete progression for a trainable quest — the full prescription at
   /// each rung, e.g. ['Do 2 push-ups', 'Do 5 push-ups', …]. Both the same-day
@@ -743,10 +1181,51 @@ class Quest {
   Note? get latestNote => log.isEmpty ? null : log.last;
 
   static const risesAt = 5;
-  bool get readyToRise => rising && risingStreak >= risesAt;
+
+  QuestMasteryTier get masteryTier => questMasteryTierFor(masteryCompletions);
+
+  /// Bounded current-rung progress for display. Old saves could contain 16/5;
+  /// no surface should ever repeat that impossible-looking counter.
+  int get riseProgress => risingStreak.clamp(0, risesAt);
+
+  /// Only manual ladders belong in the night-time "ready to rise?" choice.
+  bool get readyToRise =>
+      rising && !autoRise && canRise && risingStreak >= risesAt;
 
   /// Has somewhere left to climb on its ladder?
   bool get canRise => ladder != null && rung < ladder!.length - 1;
+
+  /// Record the permanent mastery earned by one real completion and, when the
+  /// Quest owns a safe authored ladder, advance exactly one rung at threshold.
+  /// Large legacy counters never skip several prescriptions at once.
+  QuestProgressChange recordCompletionProgress() {
+    final before = masteryCompletions;
+    final tierBefore = questMasteryTierFor(before);
+    masteryCompletions++;
+
+    String? risenToTitle;
+    if (rising && canRise) {
+      risingStreak++;
+      if (autoRise && risingStreak >= risesAt) {
+        rung++;
+        difficulty = (difficulty + 1).clamp(1, custom ? 8 : 10);
+        risingStreak = 0;
+        risenToTitle = displayTitle;
+      }
+    } else if (!canRise) {
+      // A finished ladder is mastery, not an endlessly filling hidden meter.
+      risingStreak = 0;
+    }
+
+    final after = masteryCompletions;
+    return QuestProgressChange(
+      completionsBefore: before,
+      completionsAfter: after,
+      tierBefore: tierBefore,
+      tierAfter: questMasteryTierFor(after),
+      risenToTitle: risenToTitle,
+    );
+  }
 
   bool get isEvent => schedule == QuestSchedule.once && dueDate != null;
 
@@ -835,6 +1314,9 @@ class Quest {
     'lastDoneDay': lastDoneDay,
     'snoozedDay': snoozedDay,
     'goalTitle': goalTitle,
+    if (goalPlanStepId != null) 'goalPlanStepId': goalPlanStepId,
+    if (goalPlanRevision != null) 'goalPlanRevision': goalPlanRevision,
+    if (goalPlanAttempt != null) 'goalPlanAttempt': goalPlanAttempt,
     'priority': priority,
     'priorityDay': priorityDay,
     'priorityRank': priorityRank,
@@ -843,6 +1325,8 @@ class Quest {
     'monthDay': monthDay,
     'rising': rising,
     'risingStreak': risingStreak,
+    'autoRise': autoRise,
+    'masteryCompletions': masteryCompletions,
     'ladder': ladder,
     'rung': rung,
     'kin': kin,
@@ -854,52 +1338,96 @@ class Quest {
     if (log.isNotEmpty) 'log': [for (final n in log) n.toJson()],
   };
 
-  static Quest fromJson(Map<String, dynamic> j) => Quest(
-    title: (j['title'] as String?) ?? 'Quest',
-    stat: _enumAt(Stat.values, j['stat'], Stat.dis),
-    difficulty: (j['difficulty'] as int?) ?? 3,
-    dread: j['dread'] as bool? ?? false,
-    ladderHint: j['ladderHint'] as String?,
-    schedule: _enumAt(QuestSchedule.values, j['schedule'], QuestSchedule.daily),
-    verification: _enumAt(
-      Verification.values,
-      j['verification'],
-      Verification.honor,
-    ),
-    timerMinutes: j['timerMinutes'] as int? ?? 0,
-    custom: j['custom'] as bool? ?? false,
-    // tryParse, not parse: one drifted value must never reject a whole
-    // restore into quarantine (the policy every other timestamp follows)
-    dueDate: j['dueDate'] == null
-        ? null
-        : DateTime.tryParse(j['dueDate'] as String),
-    lastDoneDay: Days.validKey(j['lastDoneDay']),
-    createdDay: Days.validKey(j['createdDay']),
-    snoozedDay: Days.validKey(j['snoozedDay']),
-    goalTitle: j['goalTitle'] as String?,
-    priority: j['priority'] as bool? ?? false,
-    priorityDay: Days.validKey(j['priorityDay']),
-    priorityRank: switch (j['priorityRank']) {
-      final int rank when rank >= 1 && rank <= 3 => rank,
-      _ => null,
-    },
-    allDay: j['allDay'] as bool? ?? false,
-    weekdays: ((j['weekdays'] as List?) ?? const []).cast<int>(),
-    monthDay: j['monthDay'] as int?,
-    rising: j['rising'] as bool? ?? false,
-    risingStreak: j['risingStreak'] as int? ?? 0,
-    ladder: (j['ladder'] as List?)?.cast<String>(),
-    rung: j['rung'] as int? ?? 0,
-    kin: (j['kin'] as List?)?.cast<String>(),
-    bonus: j['bonus'] as bool? ?? false,
-    origin: j['origin'] as String?,
-    workout: j['workout'] as bool? ?? false,
-    journalPrompt: JournalQuestPrompt.fromJson(j['journalPrompt']),
-    log: [
-      for (final e in (j['log'] as List?) ?? const [])
-        Note.fromJson((e as Map).cast<String, dynamic>()),
-    ],
-  );
+  static Quest fromJson(Map<String, dynamic> j) {
+    final custom = j['custom'] as bool? ?? false;
+    final rising = j['rising'] as bool? ?? false;
+    final ladder = (j['ladder'] as List?)?.cast<String>();
+    final autoRise =
+        j['autoRise'] as bool? ??
+        (!custom && rising && (ladder?.length ?? 0) > 1);
+    final rawRung = j['rung'] as int? ?? 0;
+    var rung = ladder == null || ladder.isEmpty
+        ? 0
+        : rawRung.clamp(0, ladder.length - 1);
+    final rawRisingStreak = (j['risingStreak'] as int? ?? 0).clamp(0, 1 << 20);
+    var risingStreak = rawRisingStreak;
+    var difficulty = (j['difficulty'] as int?) ?? 3;
+    var masteryCompletions =
+        (j['masteryCompletions'] as int? ?? (rising ? rawRisingStreak : 0))
+            .clamp(0, 1 << 30);
+
+    final canRise = ladder != null && rung < ladder.length - 1;
+    if (autoRise && canRise && risingStreak >= risesAt) {
+      // Repair old 16/5-style saves with one safe catch-up, preserving the
+      // complete history as mastery without suddenly leaping four rungs.
+      rung++;
+      difficulty = (difficulty + 1).clamp(1, custom ? 8 : 10);
+      risingStreak = 0;
+      if (rawRisingStreak > masteryCompletions) {
+        masteryCompletions = rawRisingStreak;
+      }
+    } else if (!canRise) {
+      risingStreak = 0;
+    } else if (!autoRise) {
+      risingStreak = risingStreak.clamp(0, risesAt);
+    }
+
+    return Quest(
+      title: (j['title'] as String?) ?? 'Quest',
+      stat: _enumAt(Stat.values, j['stat'], Stat.dis),
+      difficulty: difficulty,
+      dread: j['dread'] as bool? ?? false,
+      ladderHint: j['ladderHint'] as String?,
+      schedule: _enumAt(
+        QuestSchedule.values,
+        j['schedule'],
+        QuestSchedule.daily,
+      ),
+      verification: _enumAt(
+        Verification.values,
+        j['verification'],
+        Verification.honor,
+      ),
+      timerMinutes: j['timerMinutes'] as int? ?? 0,
+      custom: custom,
+      // tryParse, not parse: one drifted value must never reject a whole
+      // restore into quarantine (the policy every other timestamp follows)
+      dueDate: j['dueDate'] == null
+          ? null
+          : DateTime.tryParse(j['dueDate'] as String),
+      lastDoneDay: Days.validKey(j['lastDoneDay']),
+      createdDay: Days.validKey(j['createdDay']),
+      snoozedDay: Days.validKey(j['snoozedDay']),
+      goalTitle: j['goalTitle'] as String?,
+      goalPlanStepId: j['goalPlanStepId'] as String?,
+      goalPlanRevision: j['goalPlanRevision'] as int?,
+      goalPlanAttempt: j['goalPlanAttempt'] as int?,
+      priority: j['priority'] as bool? ?? false,
+      priorityDay: Days.validKey(j['priorityDay']),
+      priorityRank: switch (j['priorityRank']) {
+        final int rank when rank >= 1 && rank <= 3 => rank,
+        _ => null,
+      },
+      allDay: j['allDay'] as bool? ?? false,
+      weekdays: ((j['weekdays'] as List?) ?? const []).cast<int>(),
+      monthDay: j['monthDay'] as int?,
+      rising: rising,
+      risingStreak: risingStreak,
+      autoRise: autoRise,
+      masteryCompletions: masteryCompletions,
+      ladder: ladder,
+      rung: rung,
+      kin: (j['kin'] as List?)?.cast<String>(),
+      bonus: j['bonus'] as bool? ?? false,
+      origin: j['origin'] as String?,
+      workout: j['workout'] as bool? ?? false,
+      journalPrompt: JournalQuestPrompt.fromJson(j['journalPrompt']),
+      log: [
+        for (final e in (j['log'] as List?) ?? const [])
+          Note.fromJson((e as Map).cast<String, dynamic>()),
+      ],
+    );
+  }
 }
 
 /// Everything one completion produced — drives the reward receipt,
@@ -917,6 +1445,8 @@ class RewardBundle {
     this.custom = false,
     this.isEvent = false,
     this.goalTitle,
+    this.goalPlanStepId,
+    this.goalPlanRevision,
     this.critMult,
     this.streakMult,
     this.verifiedMult,
@@ -930,6 +1460,9 @@ class RewardBundle {
     this.loot,
     this.hasEvidence = false,
     this.questKey,
+    this.masteryCompletionsAfter = 0,
+    this.masteryTierReached,
+    this.risenToTitle,
   });
 
   final int xp;
@@ -952,6 +1485,8 @@ class RewardBundle {
   final bool custom;
   final bool isEvent;
   final String? goalTitle;
+  final String? goalPlanStepId;
+  final int? goalPlanRevision;
 
   /// e.g. 2.3 when a crit rolled, null otherwise.
   final double? critMult;
@@ -1010,6 +1545,15 @@ class RewardBundle {
 
   /// Stable quest identity title (for same-day anti-grind counts).
   final String? questKey;
+
+  /// Permanent, category-neutral Quest mastery after this completion.
+  final int masteryCompletionsAfter;
+
+  /// Non-null only when this completion crossed a visible mastery threshold.
+  final QuestMasteryTier? masteryTierReached;
+
+  /// The new concrete prescription when an authored ladder rose automatically.
+  final String? risenToTitle;
 
   /// 0..1 celebration magnitude — parameterizes particle count, sound
   /// layers, vibrancy (one celebration system, scaled — DESIGN.md §2).

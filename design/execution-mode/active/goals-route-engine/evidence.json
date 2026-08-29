@@ -1,0 +1,254 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-route-engine-2026-08-27",
+  "brief_sha256": "58ca880ef8920b124f290985540248c81f4bb03e12b21c570a689e60169f28e9",
+  "phase": "slice",
+  "implementation_revision": "worktree:0e666f2639fc:5d340497f462eebdd616ac44",
+  "revision_captured_at": "2026-08-27T23:58:00-04:00",
+  "checks": [
+    {
+      "id": "slice-product-route-engine",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run the focused engine journeys and complete app suite, then inspect the drafted route produced from production-equivalent apartment inputs.",
+      "input_state": "Reset goal with entered outcome, crowded-counter reality, normal-week proof, 15-minute capacity, after-class snag, and optional horizon.",
+      "inspected_by": "Codex main agent, Flutter test runner, and Claude Fable 5 read-only reviewer",
+      "observation": "The engine drafts typed markers, chooses a counter-specific first move, advances only exact current marker identity, restores repeated work after rescue, preserves legacy progress, and cycles rhythms. All 815 app tests pass.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Editable route drafted from aim, reality, proof, capacity, snag, and horizon",
+          "path": "test/goldens/goals_quick_create_route_430x932.png",
+          "generated_at": "2026-08-27T23:58:33.0836885-04:00",
+          "content_sha256": "c8d892c31602d799003d57d0fef8189b38ba20ac8909bea62930468259f320d8",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Analyzer, complete suite, route behavior, interaction, screenshots, motion, build, and preview checks",
+          "path": "design/execution-mode/active/goals-route-engine/slice-test-report.md",
+          "generated_at": "2026-08-27T23:59:52.7517162-04:00",
+          "content_sha256": "99d72a1a5806f34fda5e19563cc0842816fce9b7fb18fefbe703568cd534c72e",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-interaction-route-recovery",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Drive AIM through ROUTE, exact Quest creation, current-marker completion, stale rejection, recovery restoration, and continuous room handoff with stable keys.",
+      "input_state": "New planned goal, stale and out-of-order Quests, temporary too-big rescue, repeated marker, legacy goal, normal motion, and Reduced Motion.",
+      "inspected_by": "Codex main agent with Flutter interaction and deterministic motion tests",
+      "observation": "Only the current route identity moves progress, a rescue counts without permanently diluting later attempts, old revision Quests are removed or ignored, and the exact current Quest opens once through the room.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Complete behavioral verification including planned 60 fps room travel",
+          "path": "design/execution-mode/active/goals-route-engine/slice-test-report.md",
+          "generated_at": "2026-08-27T23:59:52.7517162-04:00",
+          "content_sha256": "99d72a1a5806f34fda5e19563cc0842816fce9b7fb18fefbe703568cd534c72e",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-visual-route-backed-room",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the selected room target beside the route-backed threshold and the planned 60 fps travel contact sheet at authored phone size.",
+      "input_state": "Marker one of four with counter-specific reason, exact action, reset-the-counter CTA, lighter fallback, and visible plan adjustment.",
+      "inspected_by": "Codex main agent and Claude Fable 5 focused reviewer",
+      "observation": "The room survives while real plan state becomes legible: marker and reason attach to the arch, the action owns the doorway, the brass CTA is short and readable, and adjustment remains visible without becoming a dashboard.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Selected threshold-room source beside final route-backed threshold",
+          "path": "design/comparisons/2026-08-27/evidence-goals-route-backed-threshold.png",
+          "generated_at": "2026-08-27T23:59:24.4770296-04:00",
+          "content_sha256": "d482054df05231d9b18f0e21925d7063e0c83af36cb5526f6c5530af0081cbe5",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Eight planned room-travel moments from rest to exact Quest arrival",
+          "path": "design/comparisons/2026-08-27/goals-threshold-room-motion-contact-sheet.png",
+          "generated_at": "2026-08-27T23:59:24.8656444-04:00",
+          "content_sha256": "dd50363980cf401a79925841a94309f4592026d818079cb603b1d43a50d4e39f",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-route-draft",
+      "requirement_id": "state:route-draft",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the editable route state at 430 by 932 after completing AIM and REALITY.",
+      "input_state": "Apartment reset fixture with a long outcome, current reality, visible proof, 15-minute budget, snag, and horizon.",
+      "inspected_by": "Codex main agent",
+      "observation": "Success proof, capacity, horizon, markers, editable actions, and the reason for marker one remain readable before START WITH THIS PLAN.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Final editable route before acceptance",
+          "path": "test/goldens/goals_quick_create_route_430x932.png",
+          "generated_at": "2026-08-27T23:58:33.0836885-04:00",
+          "content_sha256": "c8d892c31602d799003d57d0fef8189b38ba20ac8909bea62930468259f320d8",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-return",
+      "requirement_id": "state:return",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the final returning-room state and selected-source comparison at original resolution.",
+      "input_state": "Active planned apartment goal before touching the marker-one CTA.",
+      "inspected_by": "Codex main agent and Claude Fable 5 focused reviewer",
+      "observation": "The first frame answers where I am, why this move, what to do, what smaller move exists, and how to adjust the plan while retaining the room hierarchy.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Final route-backed returning threshold before touch",
+          "path": "test/goldens/goals_personal_index_active_430x932.png",
+          "generated_at": "2026-08-27T23:58:31.0035737-04:00",
+          "content_sha256": "0f792e0b375c379577ed81816e7721642d49d78cfe0595259b371492a1b308e5",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-recovery",
+      "requirement_id": "state:recovery",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Choose too big, persist the revised route, inspect the same goal, and verify the next repeated attempt restores the owned marker.",
+      "input_state": "Marker one feels too large after class; earlier proof and the route must remain intact.",
+      "inspected_by": "Codex main agent with Flutter render and engine tests",
+      "observation": "The same goal shows a shorter action and retained proof, stores adjustment history, counts the smaller proof, then restores the intended repeated action on the next attempt.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Same returning goal after a too-big adjustment",
+          "path": "test/goldens/goals_personal_index_adjusted_430x932.png",
+          "generated_at": "2026-08-27T23:58:32.1466429-04:00",
+          "content_sha256": "d02f9b156ee802d30753b0ca78f926df5e6440944bee1f1aaea904a678788a3e",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Recovery restoration, history retention, and stale-revision tests",
+          "path": "design/execution-mode/active/goals-route-engine/slice-test-report.md",
+          "generated_at": "2026-08-27T23:59:52.7517162-04:00",
+          "content_sha256": "99d72a1a5806f34fda5e19563cc0842816fce9b7fb18fefbe703568cd534c72e",
+          "data_source": "test_output"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Claude Fable 5 focused product reviewer; Gemini 3.6 Flash timed out and was omitted",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-product-route-engine",
+      "slice-interaction-route-recovery",
+      "slice-visual-route-backed-room"
+    ],
+    "reviewed_artifacts": [
+      "test/goldens/goals_quick_create_route_430x932.png",
+      "design/execution-mode/active/goals-route-engine/slice-test-report.md",
+      "design/comparisons/2026-08-27/evidence-goals-route-backed-threshold.png",
+      "design/comparisons/2026-08-27/goals-threshold-room-motion-contact-sheet.png"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "A temporary five-minute rescue could permanently dilute remaining repetitions while the marker still claimed the original proof.",
+        "disposition": "resolved",
+        "evidence": "The step now retains its owned marker snapshot during temporary recovery; GameState restores it after an unfinished repeated rescue, and the dedicated test passes."
+      },
+      {
+        "finding": "Adding a route to a legacy goal recalculated visible progress from new route markers and contradicted the promise to keep prior proof.",
+        "disposition": "resolved",
+        "evidence": "GameState now separates historical progress from route completions before applying a plan; the seven-of-ten regression preserves seven and advances to eight."
+      },
+      {
+        "finding": "A revision change might leave an unfinished old Quest visible even though the engine ignores it.",
+        "disposition": "resolved",
+        "evidence": "GoalsPage removes unfinished linked Quests from the old revision before storing a revised plan while retaining completed proof."
+      }
+    ],
+    "no_material_findings_observation": "After the reproduced honesty fixes, Fable judged the planner, recovery path, and room communication credible enough for owner-device review."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-28T00:03:00-04:00",
+    "decided_at": "",
+    "reviewed_revision": "",
+    "reviewed_brief_sha256": "",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "The route-backed first slice is ready for owner review, but Mika has not accepted this exact revision or its physical-phone feel."
+  },
+  "remaining_gates": [
+    {
+      "id": "owner-real-goal",
+      "gate": "Owner judgment on a real non-demo goal",
+      "why": "Fixtures prove coherence but cannot establish whether the first move feels insightfully derived for Mika's own unusual aim.",
+      "owner_or_system": "Mika",
+      "next_action": "Create one real goal in the LAN preview and report whether the first marker feels earned by the entered reality and proof.",
+      "blocking": true
+    },
+    {
+      "id": "physical-phone-feel",
+      "gate": "Physical iPhone legibility, pacing, haptic, and material feel",
+      "why": "Rendered evidence cannot establish OLED separation, thumb response, haptic weight, network behavior, or owner-perceived transition speed.",
+      "owner_or_system": "Mika on the target phone",
+      "next_action": "Open the LAN address, create and recalibrate a goal, then judge the route, brass CTA, motion, and return state at normal speed.",
+      "blocking": true
+    }
+  ],
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "The LAN preview responds from the host, but physical-phone owner acceptance has not yet been performed."
+    }
+  }
+}

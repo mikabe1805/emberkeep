@@ -121,7 +121,7 @@ void main() {
   );
 
   testWidgets(
-    'Your Journal pairs one immediate cue with its visible press bob',
+    'Your Journal pairs one accepted cue with its visible press bob',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(430, 932));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -155,7 +155,7 @@ void main() {
         tester.widget<AnimatedContainer>(pressLayer).transform!.storage[13],
         2,
       );
-      expect(events, ['open']);
+      expect(events, isEmpty);
 
       await gesture.up();
       await tester.pump();

@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "id": "goals-recovery-loop-2026-08-29",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "expanding",
+  "locked_at": "2026-08-29T14:40:21.9185232-04:00",
+  "surface": "Focused Goals room, steward recovery choice, and exact revised-Quest handoff",
+  "scope": "Build the first recovery slice only: put one quiet 'This doesn't fit today' entry beside the focused action, let the steward offer a smaller cut, preparation for the next return, or leaving today alone, and prove that the no-op path mutates no Goal or Quest state. Creation, shelving, domain adaptation, and completed-goal continuation remain mapped expansion work after owner review of this slice.",
+  "user_job": "When today's action does not fit, get useful help immediately without being judged, losing proof, or accidentally receiving another obligation.",
+  "active_sources": [
+    {
+      "id": "owner-recovery-contract",
+      "kind": "owner_feedback_contract",
+      "location": "design/visual-targets/2026-08-29/goals-recovery-loop-contract.md",
+      "content_sha256": "ac313ec7597c3f4d5b42fe485705f2f4cf31f3847efe5d512f659f66a3e961e6",
+      "approved_at": "2026-08-29",
+      "judged_state": "The approved recovery-first direction across difficult-day, pause, creation, shelving, and completion states",
+      "viewport": "430x932 and 320x568, normal and Reduced Motion",
+      "priority": 1
+    },
+    {
+      "id": "current-recovery-baseline",
+      "kind": "current_capture",
+      "location": "design/audits/2026-08-29/goals-conceptual-stress-check/goals-stress-recovery.webp",
+      "content_sha256": "496f0a625bce78be66941fb2f4a97b498bec7b22df7a7b5268ceeae7b7f96787",
+      "approved_at": "2026-08-29",
+      "judged_state": "Current hard-day threshold, smaller workshop cut, detailed route support, and dense multi-goal return states before the recovery affordance",
+      "viewport": "Two-by-two contact sheet of current 430x932 production-equivalent states",
+      "priority": 2
+    }
+  ],
+  "superseded_sources": [],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "Recovery distinguishes changing the plan from declining an obligation today. Make smaller and prepare the return create a revised unowned cut for explicit workshop acceptance; leave today alone acknowledges the choice and changes no Goal, plan, or Quest state.",
+      "proof": "From the focused goal, snapshot state, open recovery, choose leave today alone, and assert deep equality plus no new, unsnoozed, rescheduled, or removed Quest; then reopen and choose a revision that remains Quest-free until workshop acceptance."
+    },
+    "interaction": {
+      "decision": "The recovery entry is directly discoverable beside the focused action but remains visually secondary. One tap opens a concise steward-owned choice surface; every choice has a clear back path, immediate acknowledgment, and one causally distinct outcome.",
+      "proof": "Use the entry at rest and large text, cancel it, take the no-op path, and take one revision path; focus, semantics, rapid re-entry, and Reduced Motion all settle without duplicate navigation or mutation."
+    },
+    "visual": {
+      "decision": "Recovery borrows the current walnut, parchment, brass, and domain-pigment vocabulary. The exact Quest remains the one honey-gold action; recovery is an attached quiet physical control and the choice surface reads as part of the steward's workshop rather than a generic alert or dashboard.",
+      "proof": "Fresh 430x932 and 320x568 large-text renders preserve the room, steward, one bright action, readable copy, complete parked still, and no competing button or detached help bubble."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Make the existing lighter version button the recovery entry",
+      "why": "The current lighter version materializes a due-today Quest, so it cannot represent leaving today alone or a non-committing request for help."
+    },
+    {
+      "fallback": "Open the full goal detail and make the person find the existing plan-adjustment control",
+      "why": "The best help would remain hidden behind the most information-heavy path at the moment executive capacity is lowest."
+    },
+    {
+      "fallback": "Add a second luminous card, floating assistant bubble, or dialogue tree",
+      "why": "It would compete with the exact current action and turn the steward into attention-seeking ornament instead of a useful place."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "A person returns to an active goal on a difficult day, opens recovery beside the current action, leaves today alone without mutation, then returns and chooses a smaller cut that waits for explicit workshop acceptance.",
+    "real_inputs": "A production-equivalent structured goal with prior proof, one current exact Quest, an authored fallback, and a current plan revision.",
+    "user_action": "Tap 'This doesn't fit today', choose 'Leave today alone', reopen recovery, then choose 'Make it smaller'.",
+    "expected_outcome": "The first choice returns to the same room with prior proof and every Quest unchanged. The second creates a revised plan, removes only unfinished stale-revision work, opens the steward bench, and creates no current-revision Quest until explicit acceptance.",
+    "state_boundary": "The no-op path is deep-state non-mutating. The revision path preserves proof and uses the existing plan revision, cleanup, workshop, and exact-acceptance authority.",
+    "required_states": [
+      {
+        "id": "focused-rest",
+        "state": "Focused goal with exact current action, prior proof, and quiet recovery entry",
+        "why_can_disprove": "A working recovery route can still break the one-action hierarchy or become too hidden to help."
+      },
+      {
+        "id": "recovery-choice",
+        "state": "Concise steward-owned choice surface with smaller, prepare, and leave-alone outcomes",
+        "why_can_disprove": "Generic copy, competing bright controls, or unclear consequences would recreate planning burden and accidental commitment."
+      },
+      {
+        "id": "leave-alone-result",
+        "state": "Return to the focused room after declining any obligation today",
+        "why_can_disprove": "A reassuring message can conceal a newly due, unsnoozed, revised, or removed Quest."
+      },
+      {
+        "id": "smaller-workshop-result",
+        "state": "Revised smaller cut on the steward bench before acceptance",
+        "why_can_disprove": "The repair can preserve copy while accidentally creating a duplicate or erasing earned proof."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "focused-goal",
+      "surface_or_primitive": "Focused Goals threshold and exact action",
+      "state": "Current Quest owned, current cut waiting, and no next action",
+      "expected_effect": "Expose one truthful recovery entry without displacing the exact action or workshop status.",
+      "verification_plan": "Capture and interact with owned, waiting, and no-action fixtures at 430x932.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "steward-recovery",
+      "surface_or_primitive": "Recovery choice surface and GoalPlan recalibration",
+      "state": "Smaller, prepare return, leave today alone, cancel, and rapid repeat",
+      "expected_effect": "Give each choice a distinct truthful state consequence while preserving the existing exact acceptance boundary.",
+      "verification_plan": "Run focused widget/state tests and inspect every resting/result state.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "responsive-accessible",
+      "surface_or_primitive": "Focused goal and recovery surface",
+      "state": "320x568, 1.5x text, long goal/action, Reduced Motion, and semantics",
+      "expected_effect": "Keep the exact action, recovery choices, consequences, and back path reachable and readable.",
+      "verification_plan": "Capture compact large-text states and run semantics plus overflow checks.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "future-expansion",
+      "surface_or_primitive": "Name-only creation, goal shelving, domain clarification, and completed-goal continuation",
+      "state": "Mapped but intentionally not implemented before owner review of the recovery slice",
+      "expected_effect": "Expand the same no-guilt, evidence-preserving contract without weakening the approved first slice.",
+      "verification_plan": "Return to the direction contract after the slice owner checkpoint and create expansion evidence per state.",
+      "disposition": "deferred",
+      "reason": "Execution mode requires owner review of the first real slice before expansion."
+    }
+  ],
+  "unverified_property": "Whether the recovery entry is visible at the exact moment someone is stuck while remaining quiet enough that the primary Quest still owns the room, and whether 'Leave today alone' emotionally and mechanically feels like permission rather than another task.",
+  "decisive_check": {
+    "method": "Use the full difficult-day recovery journey, inspect fresh paired renders, and compare serialized Goal/Quest state before and after the no-op choice.",
+    "target": "430x932 normal, 320x568 at 1.5 text, prior proof, an exact current Quest, leave-alone no-op, smaller revision, cancel, reopen, and Reduced Motion.",
+    "pass_condition": "The recovery entry is discoverable but secondary; every consequence is plain before selection; leave today alone performs zero durable mutation; the room visibly acknowledges it without praise inflation; smaller recovery preserves proof and stays off the board until one explicit workshop acceptance."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/goal_planner.dart",
+      "lib/screens/goals.dart",
+      "lib/screens/goal_plan_check_in.dart",
+      "lib/screens/goal_opening.dart",
+      "lib/widgets/goal_threshold_scene.dart",
+      "lib/widgets/goal_steward.dart",
+      "test/goals_quest_management_test.dart",
+      "test/screenshots_test.dart",
+      "design/comparisons/2026-08-29/goals-recovery-slice.png",
+      "design/visual-targets/2026-08-29/goals-recovery-loop-contract.md"
+    ],
+    "exclude": [
+      "test/goldens",
+      "test/failures"
+    ]
+  }
+}

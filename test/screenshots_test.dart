@@ -31,6 +31,7 @@ import 'package:emberkeep/widgets/streak_freeze_status.dart';
 import 'package:emberkeep/content/room_styles.dart';
 import 'package:emberkeep/content/window_scenes.dart';
 import 'package:emberkeep/engine.dart';
+import 'package:emberkeep/goal_planner.dart';
 import 'package:emberkeep/main.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/release_notes_preferences.dart';
@@ -39,6 +40,9 @@ import 'package:emberkeep/screens/discover_spaces.dart';
 import 'package:emberkeep/screens/journal_entry.dart';
 import 'package:emberkeep/screens/journal_hub.dart';
 import 'package:emberkeep/screens/hearth_circle.dart';
+import 'package:emberkeep/screens/goals.dart';
+import 'package:emberkeep/screens/goal_detail.dart';
+import 'package:emberkeep/screens/goal_opening.dart';
 import 'package:emberkeep/screens/memory_cabinet.dart';
 import 'package:emberkeep/screens/me.dart';
 import 'package:emberkeep/screens/quests.dart';
@@ -165,17 +169,31 @@ Future<void> _precacheRoutineArt(WidgetTester tester) async {
   }
 }
 
-/// Decode the three primary desk plates before comparing their destinations.
+/// Decode the page and personalized room plates before comparing destinations.
 /// Widget-test fake time does not complete image codecs reliably, which made
 /// Goals, Plans, and a fresh Journal look like featureless black screens even
 /// though production resolves the same bundled assets normally.
 Future<void> _precachePageArt(WidgetTester tester) async {
   const assets = <String>[
     'assets/pages/goals-desk-v2.webp',
+    'assets/rooms/wall_walnut-fireless-v3.webp',
     'assets/pages/plans-conservatory-v2.webp',
     'assets/pages/journal-archive-v1.webp',
     'assets/pages/journal-desk-v3.webp',
     'assets/pages/journal-page-edge-v1.webp',
+    'assets/pages/goals-living-backdrop-v2.webp',
+    'assets/pages/goals-room-retreat-v1.webp',
+    'assets/pages/goals-threshold-room-v1.webp',
+    'assets/pages/goals-room-kitchen-v1.webp',
+    'assets/pages/goals-workshop-tavern-back-v2.webp',
+    'assets/pages/goals-workshop-tavern-counter-v2.webp',
+    'assets/pages/goals-workshop-steward-welcome-v2.webp',
+    'assets/pages/goals-workshop-steward-considering-v2.webp',
+    'assets/pages/goals-workshop-steward-ready-v2.webp',
+    'assets/pages/goals-workshop-steward-acknowledging-v2.webp',
+    'assets/pages/goals-workshop-steward-closing-v2.webp',
+    'assets/pages/goals-workshop-tavern-steward-v1.webp',
+    'assets/room/wall_grain.png',
   ];
   final context = tester.element(find.byType(MaterialApp));
   await tester.runAsync(() async {
@@ -1421,16 +1439,27 @@ void main() {
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '04_goals_1290x2796');
 
-    await tester.tap(find.text('Help for this kind of day'));
+    final supportToggle = find.byKey(const ValueKey('goals-support-toggle'));
+    await tester.scrollUntilVisible(
+      supportToggle,
+      420,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(supportToggle);
+    await tester.pump(const Duration(milliseconds: 220));
+    await tester.tap(find.byKey(const ValueKey('goals-unstick-me')));
     await tester.pump(const Duration(milliseconds: 600));
     await _storeShot(tester, '04b_momentum_kits_1290x2796');
-    await tester.tap(find.text('Gentle Mode Day'));
+    await tester.enterText(
+      find.byKey(const ValueKey('momentum-kit-text')),
+      'Open the next paragraph',
+    );
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '04c_low_flame_1290x2796');
-    await tester.tap(find.text('CHOOSE 2 STEPS'));
+    await tester.tap(find.text('PIN TO QUESTS'));
     await tester.pump(const Duration(milliseconds: 350));
     await _storeShot(tester, '04d_low_flame_lit_1290x2796');
-    await tester.tap(find.text('OPEN QUESTS'));
+    await tester.tap(find.text('OPEN THIS QUEST'));
     await tester.pump(const Duration(milliseconds: 800));
     await _storeShot(tester, '04e_kit_quests_1290x2796');
 
@@ -2305,6 +2334,1940 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
+  });
+
+  testWidgets('goals personal index: narrow large text', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    Clock.freeze(DateTime(2026, 8, 25, 10));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false;
+    state.goals.addAll([
+      Goal(
+        title: 'Make the apartment feel calm',
+        stat: Stat.dis,
+        target: 25,
+        progress: 11,
+      ),
+      Goal(
+        title: 'Build a walking habit',
+        stat: Stat.vit,
+        target: 25,
+        progress: 17,
+      ),
+    ]);
+    final quests = <Quest>[
+      Quest(
+        title: 'Clear the kitchen counter',
+        stat: Stat.dis,
+        difficulty: 2,
+        goalTitle: 'Make the apartment feel calm',
+      ),
+      Quest(
+        title: 'Go for a ten-minute walk',
+        stat: Stat.vit,
+        difficulty: 2,
+        goalTitle: 'Build a walking habit',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.5)),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: GoalsPage(
+            state: state,
+            quests: quests,
+            onAdd: (quest) {
+              quests.add(quest);
+              return true;
+            },
+            onRemoveQuest: (_) {},
+            onRemoveGoal: (_) {},
+            onPersist: () {},
+            onOpenQuest: (_) {},
+          ),
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_personal_index_narrow_large_text_320x568.png',
+        ),
+      );
+    }
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(const Key('goals-workshop-entrance-label')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('goals-workshop-entrance-status')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('goals-open-workshop')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
+    expect(find.byKey(const Key('goal-workshop-tavern')), findsOneWidget);
+    expect(find.byKey(const Key('goal-workshop-steward')), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_workshop_home_narrow_large_text_320x568.png',
+        ),
+      );
+    }
+    await tester.tap(find.byKey(const Key('goal-workshop-talk')));
+    await tester.pumpAndSettle();
+    final narrowConversationScroll = find.descendant(
+      of: find.byKey(
+        const PageStorageKey<String>('goal-workshop-conversation-scroll'),
+      ),
+      matching: find.byType(Scrollable),
+    );
+    final narrowDialogue = find.byKey(
+      const ValueKey<String>('goal-workshop-conversation-option-good-cut'),
+    );
+    await tester.scrollUntilVisible(
+      narrowDialogue,
+      100,
+      scrollable: narrowConversationScroll,
+    );
+    await tester.tap(narrowDialogue);
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_workshop_conversation_narrow_large_text_320x568.png',
+        ),
+      );
+    }
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const Key('goal-workshop-talk')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'goal-workshop-home-goal-Make the apartment feel calm',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('goal-workshop-accept')));
+    expect(find.text('Open this Quest'), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_workshop_owned_narrow_large_text_320x568.png',
+        ),
+      );
+    }
+    expect(tester.takeException(), isNull);
+    await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
+    await tester.tap(find.byKey(const Key('goal-workshop-cancel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('goal-workshop-home-back')));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('goals-new-goal')),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const Key('goals-new-goal')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('quick-goal-create')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goals personal index: 2x recovery text', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    Clock.freeze(DateTime(2026, 8, 27, 10));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+
+    final goal = Goal(
+      title: 'Make the apartment feel calm enough to come home to',
+      stat: Stat.dis,
+      target: 25,
+      progress: 11,
+      why: 'Home should feel easier to return to, even after a long day.',
+      fallbackCue: 'the whole apartment feels like too much',
+      fallbackAction: 'clear one hand-sized surface and leave the rest',
+    );
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false
+      ..goals.add(goal);
+    final quests = <Quest>[
+      Quest(
+        title: 'Clear the kitchen counter beside the sink',
+        stat: Stat.dis,
+        difficulty: 2,
+        goalTitle: goal.title,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(2)),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: GoalsPage(
+            state: state,
+            quests: quests,
+            onAdd: (quest) {
+              quests.add(quest);
+              return true;
+            },
+            onRemoveQuest: (_) {},
+            onRemoveGoal: (_) {},
+            onPersist: () {},
+            onOpenQuest: (_) {},
+          ),
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_return_2x_text_top_320x568.png'),
+      );
+    }
+    expect(tester.takeException(), isNull);
+
+    final action = find.byKey(
+      const Key('focus-goal-action'),
+      skipOffstage: false,
+    );
+    await tester.scrollUntilVisible(
+      action,
+      210,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_return_2x_text_action_320x568.png'),
+      );
+    }
+    expect(action, findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goals focused recovery: narrow large text', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    Clock.freeze(DateTime(2026, 8, 29, 10));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+
+    final plan = GoalPlanner.draft(
+      GoalPlanInput(
+        title: 'Make the apartment feel calm',
+        stat: Stat.dis,
+        type: GoalRouteType.reset,
+        outcome: 'The kitchen is usable after ordinary days',
+        startingPoint: 'The counter is crowded',
+        successProof: 'One clear surface stays usable for a week',
+        timeBudgetMinutes: 15,
+        obstacleCue: 'the whole room feels too big after class',
+        now: Clock.now(),
+      ),
+    );
+    final goal = Goal(
+      title: 'Make the apartment feel calm',
+      stat: Stat.dis,
+      target: plan.steps.fold(
+        0,
+        (total, step) => total + step.requiredCompletions,
+      ),
+      progress: 3,
+      plan: plan,
+      openingSeen: true,
+    );
+    final quest = GoalPlanner.questFor(
+      goal,
+      GoalPlanner.decide(goal, const [], Clock.now())!,
+      Clock.now(),
+    );
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false
+      ..goals.add(goal);
+    final quests = <Quest>[quest];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.5)),
+          child: child!,
+        ),
+        home: Scaffold(
+          body: GoalsPage(
+            state: state,
+            quests: quests,
+            onAdd: (created) {
+              quests.add(created);
+              return true;
+            },
+            onRemoveQuest: quests.remove,
+            onRemoveGoal: (_) {},
+            onPersist: () {},
+            onOpenQuest: (_) {},
+          ),
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    final recovery = find.byKey(const Key('focus-goal-fallback'));
+    await tester.ensureVisible(recovery);
+    await tester.tap(recovery);
+    await tester.pumpAndSettle();
+
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_recovery_choices_narrow_top_320x568.png',
+        ),
+      );
+    }
+    expect(find.text('What would help now?'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final leave = find.byKey(
+      const ValueKey('goal-recovery-leaveTodayAlone'),
+      skipOffstage: false,
+    );
+    final prepare = find.byKey(
+      const ValueKey('goal-recovery-prepareReturn'),
+      skipOffstage: false,
+    );
+    await Scrollable.ensureVisible(
+      tester.element(prepare),
+      alignment: 0.08,
+      duration: Duration.zero,
+    );
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_recovery_choices_narrow_bottom_320x568.png',
+        ),
+      );
+    }
+    expect(leave, findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goals focused recovery: leave and smaller results', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    Clock.freeze(DateTime(2026, 8, 29, 10));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+
+    final drafted = GoalPlanner.draft(
+      GoalPlanInput(
+        title: 'Make the apartment feel calm',
+        stat: Stat.dis,
+        type: GoalRouteType.reset,
+        outcome: 'The kitchen is usable after ordinary days',
+        startingPoint: 'The counter is crowded',
+        successProof: 'One clear surface stays usable for a week',
+        timeBudgetMinutes: 15,
+        obstacleCue: 'the whole room feels too big after class',
+        now: Clock.now(),
+      ),
+    );
+    final firstStep = drafted.steps.first;
+    final plan = drafted.copyWith(
+      steps: [
+        firstStep.copyWith(
+          completions: firstStep.requiredCompletions,
+          completedDay: '2026-08-27',
+        ),
+        ...drafted.steps.skip(1),
+      ],
+    );
+    final goal = Goal(
+      title: 'Make the apartment feel calm',
+      stat: Stat.dis,
+      target: plan.steps.fold(
+        0,
+        (total, step) => total + step.requiredCompletions,
+      ),
+      progress: firstStep.requiredCompletions,
+      firstProofTitle: 'Cleared the table once',
+      firstProofDay: '2026-08-27',
+      plan: plan,
+      openingSeen: true,
+    );
+    final oldQuest = GoalPlanner.questFor(
+      goal,
+      GoalPlanner.decide(goal, const [], Clock.now())!,
+      Clock.now(),
+    );
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false
+      ..goals.add(goal);
+    final quests = <Quest>[oldQuest];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: GoalsPage(
+            state: state,
+            quests: quests,
+            onAdd: (created) {
+              quests.add(created);
+              return true;
+            },
+            onRemoveQuest: quests.remove,
+            onRemoveGoal: (_) {},
+            onPersist: () {},
+            onOpenQuest: (_) {},
+          ),
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+
+    await tester.tap(find.byKey(const Key('focus-goal-fallback')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('goal-recovery-leaveTodayAlone')),
+    );
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_recovery_leave_alone_430x932.png'),
+      );
+    }
+    expect(quests.single, same(oldQuest));
+    expect(tester.takeException(), isNull);
+    ScaffoldMessenger.of(
+      tester.element(find.byType(GoalsPage)),
+    ).hideCurrentSnackBar();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('focus-goal-fallback')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('goal-recovery-smaller')));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_recovery_smaller_workshop_430x932.png',
+        ),
+      );
+    }
+    expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
+    expect(quests, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goal opening: desk, threshold, and arrival', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final openingPlan = GoalPlanner.draft(
+      GoalPlanInput(
+        title: 'Make the apartment feel calm',
+        stat: Stat.dis,
+        type: GoalRouteType.reset,
+        outcome: 'I can use the kitchen without feeling overwhelmed',
+        startingPoint:
+            'The counter is crowded and I avoid deciding where things go',
+        successProof: 'The counter stays usable for a normal week',
+        timeBudgetMinutes: 15,
+        obstacleCue: 'this feels like too much today',
+        now: DateTime(2026, 8, 25),
+      ),
+    );
+    final goal = Goal(
+      title: 'Make the apartment feel calm',
+      stat: Stat.dis,
+      kind: GoalKind.achieve,
+      target: openingPlan.steps.fold(
+        0,
+        (total, step) => total + step.requiredCompletions,
+      ),
+      why: 'so coming home feels like an exhale',
+      fallbackCue: openingPlan.obstacleCue,
+      fallbackAction: openingPlan.fallbackAction,
+      openingSeen: false,
+      plan: openingPlan,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: GoalOpeningScreen(
+          goal: goal,
+          actionTitle: openingPlan.currentStep!.actionTitle,
+          fallbackAction: goal.fallbackAction,
+          preparedByApp: true,
+          reduceMotion: true,
+          onBegin: () {},
+          onEditAction: (_) async => true,
+          onMakeSmaller: () async => openingPlan.fallbackAction,
+          onReturn: () {},
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_opening_01_desk_430x932.png'),
+      );
+    }
+
+    await tester.tap(find.byKey(const Key('goal-opening-show-plan')));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_opening_02_wide_room_430x932.png'),
+      );
+    }
+
+    await tester.tap(find.byKey(const Key('goal-room-wide-continue')));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_opening_03_threshold_430x932.png'),
+      );
+    }
+
+    await tester.tap(find.byKey(const Key('goal-room-arch-step-in')));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_opening_04_arrival_430x932.png'),
+      );
+    }
+    expect(find.byKey(const Key('goal-workshop-screen')), findsOneWidget);
+    expect(find.byKey(const Key('goal-workshop-accept')), findsOneWidget);
+    expect(find.byKey(const Key('goal-workshop-edit-action')), findsOneWidget);
+    expect(
+      find.byKey(const Key('goal-workshop-smaller-action')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('goal-workshop-cancel')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_opening_05_workshop_actions_430x932.png',
+        ),
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goal workshop: 1.3 text keeps acceptance reachable', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final openingPlan = GoalPlanner.draft(
+      GoalPlanInput(
+        title: 'Make the apartment feel calm',
+        stat: Stat.dis,
+        type: GoalRouteType.reset,
+        outcome: 'I can use the kitchen without feeling overwhelmed',
+        startingPoint:
+            'The counter is crowded and I avoid deciding where things go',
+        successProof: 'The counter stays usable for a normal week',
+        timeBudgetMinutes: 15,
+        obstacleCue: 'the whole room feels too big after class',
+        now: DateTime(2026, 8, 25),
+      ),
+    );
+    final goal = Goal(
+      title: 'Make the apartment feel calm',
+      stat: Stat.dis,
+      target: 25,
+      why: 'so coming home feels like an exhale',
+      fallbackAction: openingPlan.fallbackAction,
+      openingSeen: false,
+      plan: openingPlan,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.3)),
+          child: child!,
+        ),
+        home: GoalOpeningScreen(
+          goal: goal,
+          actionTitle: openingPlan.currentStep!.actionTitle,
+          fallbackAction: goal.fallbackAction,
+          preparedByApp: true,
+          reduceMotion: true,
+          onBegin: () {},
+          onEditAction: (_) async => true,
+          onMakeSmaller: () async => openingPlan.fallbackAction,
+          onReturn: () {},
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('goal-opening-show-plan')));
+    await tester.tap(find.byKey(const Key('goal-opening-show-plan')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('goal-room-wide-continue')),
+    );
+    await tester.tap(find.byKey(const Key('goal-room-wide-continue')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('goal-room-arch-step-in')));
+    await tester.pumpAndSettle();
+
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_opening_workshop_130_text_top_430x932.png',
+        ),
+      );
+    }
+    final acceptRect = tester.getRect(
+      find.byKey(const Key('goal-workshop-accept')),
+    );
+    expect(acceptRect.top, greaterThanOrEqualTo(0));
+    expect(acceptRect.bottom, lessThanOrEqualTo(932));
+    await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('goal-workshop-cancel')), findsOneWidget);
+    final stickyAcceptRect = tester.getRect(
+      find.byKey(const Key('goal-workshop-accept')),
+    );
+    expect(stickyAcceptRect.top, greaterThanOrEqualTo(0));
+    expect(stickyAcceptRect.bottom, lessThanOrEqualTo(932));
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_opening_workshop_130_text_controls_430x932.png',
+        ),
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goal opening: narrow large text remains reachable', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final openingPlan = GoalPlanner.draft(
+      GoalPlanInput(
+        title: 'Make home feel calm',
+        stat: Stat.dis,
+        type: GoalRouteType.reset,
+        outcome: 'I can use the kitchen without feeling overwhelmed',
+        startingPoint: 'The counter is crowded',
+        successProof: 'The counter stays usable for a normal week',
+        timeBudgetMinutes: 15,
+        obstacleCue: 'the whole room feels too big after class',
+        now: DateTime(2026, 8, 25),
+      ),
+    );
+    final goal = Goal(
+      title: 'Make home feel calm',
+      stat: Stat.dis,
+      kind: GoalKind.achieve,
+      target: openingPlan.steps.fold(
+        0,
+        (total, step) => total + step.requiredCompletions,
+      ),
+      why: 'so coming home feels like an exhale',
+      fallbackCue: openingPlan.obstacleCue,
+      fallbackAction: openingPlan.fallbackAction,
+      openingSeen: false,
+      plan: openingPlan,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.5)),
+          child: child!,
+        ),
+        home: GoalOpeningScreen(
+          goal: goal,
+          actionTitle: openingPlan.currentStep!.actionTitle,
+          fallbackAction: goal.fallbackAction,
+          preparedByApp: true,
+          reduceMotion: true,
+          onBegin: () {},
+          onEditAction: (_) async => true,
+          onMakeSmaller: () async => openingPlan.fallbackAction,
+          onReturn: () {},
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('goal-opening-show-plan')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const Key('goal-opening-show-plan')));
+    await tester.tap(find.byKey(const Key('goal-opening-show-plan')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('goal-room-wide-continue')), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_opening_narrow_wide_room_320x568.png'),
+      );
+    }
+    await tester.ensureVisible(
+      find.byKey(const Key('goal-room-wide-continue')),
+    );
+    await tester.tap(find.byKey(const Key('goal-room-wide-continue')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('goal-room-arch-step-in')), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_opening_narrow_threshold_320x568.png'),
+      );
+    }
+    await tester.tap(find.byKey(const Key('goal-room-arch-step-in')));
+    await tester.pumpAndSettle();
+    final compactAction = tester.widget<Text>(
+      find.byKey(const Key('goal-opening-action-title')),
+    );
+    expect(compactAction.style?.fontFamily, 'EBGaramond');
+    expect(compactAction.style?.fontSize, 19);
+    expect(compactAction.textScaler?.scale(1), closeTo(1.5, 0.01));
+    expect(tester.widget<Text>(find.text(goal.title).last).maxLines, isNull);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_opening_narrow_workshop_top_320x568.png',
+        ),
+      );
+    }
+    final acceptRect = tester.getRect(
+      find.byKey(const Key('goal-workshop-accept')),
+    );
+    expect(acceptRect.top, greaterThanOrEqualTo(0));
+    expect(acceptRect.bottom, lessThanOrEqualTo(568));
+    await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('goal-workshop-cancel')), findsOneWidget);
+    final stickyAcceptRect = tester.getRect(
+      find.byKey(const Key('goal-workshop-accept')),
+    );
+    expect(stickyAcceptRect.top, greaterThanOrEqualTo(0));
+    expect(stickyAcceptRect.bottom, lessThanOrEqualTo(568));
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_opening_narrow_workshop_controls_320x568.png',
+        ),
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goal opening: desk clasp at 1.15 text scale', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final goal = Goal(
+      title: 'Make the apartment feel calm',
+      stat: Stat.dis,
+      target: 25,
+      why: 'so coming home feels like an exhale',
+      fallbackAction: 'clear one hand-sized surface',
+      openingSeen: false,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.15)),
+          child: child!,
+        ),
+        home: GoalOpeningScreen(
+          goal: goal,
+          actionTitle: 'Clear the kitchen counter',
+          fallbackAction: goal.fallbackAction,
+          preparedByApp: true,
+          reduceMotion: true,
+          onBegin: () {},
+          onChooseAnother: () {},
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('See the move'), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_opening_desk_115_text_430x932.png'),
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goal opening: 200 percent long copy remains reachable', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final goal = Goal(
+      title:
+          'Build a calmer homecoming ritual that still works after the hardest days',
+      stat: Stat.dis,
+      target: 25,
+      why:
+          'I want the first ten minutes at home to feel gentle even when I have no energy left.',
+      fallbackAction:
+          'put away one visible thing and leave the rest for tomorrow',
+      openingSeen: false,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(2)),
+          child: child!,
+        ),
+        home: GoalOpeningScreen(
+          goal: goal,
+          actionTitle:
+              'Clear one hand-sized surface beside the door before putting anything else away',
+          fallbackAction: goal.fallbackAction,
+          preparedByApp: true,
+          reduceMotion: true,
+          onBegin: () {},
+          onChooseAnother: () {},
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    await tester.pumpAndSettle();
+
+    final showPlan = find.byKey(const Key('goal-opening-show-plan'));
+    await tester.ensureVisible(showPlan);
+    await tester.tap(showPlan);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    final crossRoom = find.byKey(const Key('goal-room-wide-continue'));
+    await tester.ensureVisible(crossRoom);
+    await tester.tap(crossRoom);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    final stepIn = find.byKey(const Key('goal-room-arch-step-in'));
+    await tester.ensureVisible(stepIn);
+    await tester.tap(stepIn);
+    await tester.pumpAndSettle();
+    final begin = find.byKey(const Key('goal-opening-begin'));
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_opening_long_copy_arrival_top_320x568.png',
+        ),
+      );
+    }
+    await tester.ensureVisible(begin);
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_opening_long_copy_arrival_action_320x568.png',
+        ),
+      );
+    }
+    expect(begin, findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goals personal index: active and quick create', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    Clock.freeze(DateTime(2026, 8, 25, 10));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false;
+    final focusRoute = GoalPlanner.draft(
+      GoalPlanInput(
+        title: 'Make the apartment feel calm',
+        stat: Stat.dis,
+        type: GoalRouteType.reset,
+        outcome: 'I can use the kitchen without feeling overwhelmed',
+        startingPoint:
+            'The counter is crowded and I avoid deciding where things go',
+        successProof: 'The counter stays usable for a normal week',
+        timeBudgetMinutes: 15,
+        obstacleCue: 'the whole apartment feels like too much after class',
+        horizon: 'Before the semester begins',
+        now: Clock.now(),
+      ),
+    );
+    final focus = Goal(
+      title: 'Make the apartment feel calm',
+      stat: Stat.dis,
+      kind: GoalKind.achieve,
+      target: focusRoute.steps.fold(
+        0,
+        (total, step) => total + step.requiredCompletions,
+      ),
+      why: 'Home should feel easier to return to.',
+      fallbackCue: focusRoute.obstacleCue,
+      fallbackAction: focusRoute.fallbackAction,
+      plan: focusRoute,
+    );
+    state.goals.addAll([
+      focus,
+      Goal(
+        title: 'Build a walking habit',
+        stat: Stat.vit,
+        target: 25,
+        progress: 17,
+      ),
+      Goal(
+        title: 'Read books that stay with me',
+        stat: Stat.intl,
+        target: 25,
+        progress: 4,
+      ),
+      Goal(
+        title: 'Finish the portfolio case study',
+        stat: Stat.foc,
+        target: 12,
+        kind: GoalKind.achieve,
+        progress: 12,
+        achievedDay: Days.key(Clock.now()),
+      ),
+    ]);
+    state.featuredGoalTitles.add(focus.title);
+    final quests = <Quest>[
+      Quest(
+        title: focusRoute.currentStep!.actionTitle,
+        stat: Stat.dis,
+        difficulty: 2,
+        schedule: QuestSchedule.once,
+        dueDate: DateTime(2026, 8, 25),
+        goalTitle: focus.title,
+        goalPlanStepId: focusRoute.currentStep!.id,
+        goalPlanRevision: focusRoute.revision,
+        goalPlanAttempt: 1,
+      ),
+      Quest(
+        title: 'Go for a ten-minute walk',
+        stat: Stat.vit,
+        difficulty: 2,
+        goalTitle: 'Build a walking habit',
+      ),
+    ];
+    Quest? openedQuest;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: GoalsPage(
+            state: state,
+            quests: quests,
+            onAdd: (quest) {
+              quests.add(quest);
+              return true;
+            },
+            onRemoveQuest: (_) {},
+            onRemoveGoal: (_) {},
+            onPersist: () {},
+            onOpenQuest: (quest) => openedQuest = quest,
+          ),
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_personal_index_active_430x932.png'),
+      );
+    }
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const Key('focus-goal-fallback')));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_recovery_choices_430x932.png'),
+      );
+    }
+    expect(find.text('What would help now?'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const Key('goals-open-workshop')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('goal-workshop-home')), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_workshop_home_430x932.png'),
+      );
+    }
+    await tester.tap(find.byKey(const Key('goal-workshop-talk')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('goal-workshop-conversation-option-good-cut'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_workshop_conversation_430x932.png'),
+      );
+    }
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const Key('goal-workshop-talk')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'goal-workshop-home-goal-Make the apartment feel calm',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('CURRENT QUEST'), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_workshop_owned_430x932.png'),
+      );
+    }
+    await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
+    await tester.tap(find.byKey(const Key('goal-workshop-cancel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('goal-workshop-home-back')));
+    await tester.pumpAndSettle();
+
+    final support = find.byKey(const Key('goals-support-toggle'));
+    await tester.scrollUntilVisible(
+      support,
+      260,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(support);
+    await tester.pumpAndSettle();
+    expect(find.text('Find a start'), findsOneWidget);
+    expect(find.text('Guided Workouts'), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_personal_index_support_open_430x932.png',
+        ),
+      );
+    }
+    await tester.tap(support);
+    await tester.pumpAndSettle();
+
+    final primary = find.byKey(const Key('focus-goal-action'));
+    final scrollable = tester.state<ScrollableState>(
+      find.byType(Scrollable).first,
+    );
+    scrollable.position.jumpTo(0);
+    await tester.pumpAndSettle();
+    final press = await tester.startGesture(tester.getCenter(primary));
+    await tester.pump();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_personal_index_action_pressed_430x932.png',
+        ),
+      );
+    }
+    await press.cancel();
+    await tester.pumpAndSettle();
+
+    // A rapid second acceptance cannot hand the same Quest off twice. The
+    // first accepted frame remains visibly pending before the route begins.
+    await tester.tap(primary);
+    await tester.tap(primary);
+    await tester.pump();
+    expect(openedQuest, isNull);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_personal_index_action_pending_430x932.png',
+        ),
+      );
+    }
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalDetailScreen), findsNothing);
+    expect(identical(openedQuest, quests.first), isTrue);
+
+    await tester.tap(find.byKey(const Key('goals-open-workshop')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>(
+          'goal-workshop-home-goal-Make the apartment feel calm',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('goal-workshop-rework-route')),
+    );
+    await tester.tap(find.byKey(const Key('goal-workshop-rework-route')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('goal-plan-signal-tooBig')));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_personal_index_repair_workshop_430x932.png',
+        ),
+      );
+    }
+    expect(focus.plan!.adjustments, hasLength(1));
+    await tester.ensureVisible(find.byKey(const Key('goal-workshop-cancel')));
+    await tester.tap(find.byKey(const Key('goal-workshop-cancel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('goal-workshop-home-back')));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const Key('goals-new-goal')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('goals-new-goal')));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_quick_create_430x932.png'),
+      );
+    }
+    await tester.enterText(
+      find.byKey(const Key('quick-goal-name')),
+      'Make the kitchen easier to return to',
+    );
+    await tester.enterText(
+      find.byKey(const Key('quick-goal-outcome')),
+      'I can use the kitchen without feeling overwhelmed',
+    );
+    final resetType = find.byKey(const Key('quick-goal-type-reset'));
+    await tester.ensureVisible(resetType);
+    await tester.tap(resetType);
+    await tester.tap(find.byKey(const Key('quick-goal-create')));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_quick_create_reality_430x932.png'),
+      );
+    }
+    await tester.enterText(
+      find.byKey(const Key('quick-goal-starting-point')),
+      'The counter is crowded and I avoid deciding where things go',
+    );
+    await tester.enterText(
+      find.byKey(const Key('quick-goal-proof')),
+      'The counter stays usable for a normal week',
+    );
+    await tester.enterText(
+      find.byKey(const Key('quick-goal-obstacle')),
+      'the whole apartment feels like too much after class',
+    );
+    await tester.enterText(
+      find.byKey(const Key('quick-goal-horizon')),
+      'Before the semester begins',
+    );
+    await tester.tap(find.byKey(const Key('quick-goal-create')));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_quick_create_handoff_430x932.png'),
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goals personal index: hard-day return', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+    });
+    Clock.freeze(DateTime(2026, 8, 25, 10));
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false;
+    final goal = Goal(
+      title: 'Make mornings feel less sharp',
+      stat: Stat.vit,
+      target: 25,
+      progress: 6,
+      why: 'I want to arrive in the day without rushing.',
+      fallbackCue: 'I wake up depleted',
+      fallbackAction: 'open the curtains and drink water',
+      firstProofTitle: 'Made breakfast before opening my inbox',
+      firstProofDay: '2026-08-20',
+    );
+    state.goals.add(goal);
+    final quests = <Quest>[
+      Quest(
+        title: 'Prepare tomorrow’s clothes',
+        stat: Stat.vit,
+        difficulty: 2,
+        goalTitle: goal.title,
+        snoozedDay: '2026-08-25',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: GoalsPage(
+            state: state,
+            quests: quests,
+            onAdd: (_) => true,
+            onRemoveQuest: (_) {},
+            onRemoveGoal: (_) {},
+            onPersist: () {},
+            onOpenQuest: (_) {},
+          ),
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_personal_index_hard_day_430x932.png'),
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goals personal index: dense scrolled', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false;
+    final goals = <Goal>[
+      Goal(
+        title: 'Tend the apartment',
+        stat: Stat.dis,
+        target: 25,
+        progress: 9,
+      ),
+      Goal(
+        title: 'Build a walking habit',
+        stat: Stat.vit,
+        target: 25,
+        progress: 17,
+      ),
+      Goal(
+        title: 'Read books that stay with me',
+        stat: Stat.intl,
+        target: 25,
+        progress: 4,
+      ),
+      Goal(
+        title: 'Keep a creative practice',
+        stat: Stat.foc,
+        target: 25,
+        progress: 8,
+      ),
+      Goal(
+        title: 'Reach out more often',
+        stat: Stat.soc,
+        target: 25,
+        progress: 3,
+      ),
+      Goal(
+        title: 'Finish the portfolio case study',
+        stat: Stat.foc,
+        kind: GoalKind.achieve,
+        target: 12,
+        progress: 12,
+        achievedDay: '2026-08-24',
+      ),
+    ];
+    state.goals.addAll(goals);
+    state.featuredGoalTitles.add(goals.first.title);
+    final quests = <Quest>[
+      Quest(
+        title: 'Put the shoes away',
+        stat: Stat.dis,
+        difficulty: 1,
+        goalTitle: goals.first.title,
+      ),
+      Quest(
+        title: 'Walk around the block',
+        stat: Stat.vit,
+        difficulty: 2,
+        goalTitle: goals[1].title,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: GoalsPage(
+            state: state,
+            quests: quests,
+            onAdd: (_) => true,
+            onRemoveQuest: (_) {},
+            onRemoveGoal: (_) {},
+            onPersist: () {},
+            onOpenQuest: (_) {},
+          ),
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    final otherGoals = find.byKey(const Key('other-goals-disclosure'));
+    await tester.scrollUntilVisible(
+      otherGoals,
+      320,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(otherGoals);
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -420));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_personal_index_dense_scrolled_430x932.png',
+        ),
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goal detail: chosen support and proof', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false;
+    final draftedRoute = GoalPlanner.draft(
+      GoalPlanInput(
+        title: 'Make the apartment feel calm',
+        stat: Stat.dis,
+        type: GoalRouteType.reset,
+        outcome: 'I can use the kitchen without feeling overwhelmed',
+        startingPoint:
+            'The counter is crowded and I avoid deciding where things go',
+        successProof: 'The counter stays usable for a normal week',
+        timeBudgetMinutes: 15,
+        obstacleCue: 'the whole apartment feels like too much after class',
+        now: DateTime(2026, 8, 25),
+      ),
+    );
+    final detailRoutePlan = draftedRoute.copyWith(
+      steps: [
+        draftedRoute.steps.first.copyWith(
+          completions: 1,
+          completedDay: '2026-08-18',
+        ),
+        ...draftedRoute.steps.skip(1),
+      ],
+      adjustments: const [
+        GoalPlanAdjustment(
+          day: '2026-08-20',
+          signal: GoalPlanSignal.tooBig,
+          fromAction: 'Reset the whole kitchen after class',
+          toAction: 'Clear one hand-sized surface',
+        ),
+      ],
+    );
+    final goal = Goal(
+      title: 'Make the apartment feel calm',
+      stat: Stat.dis,
+      kind: GoalKind.achieve,
+      target: detailRoutePlan.steps.fold(
+        0,
+        (total, step) => total + step.requiredCompletions,
+      ),
+      progress: 1,
+      why: 'Home should feel easier to return to.',
+      fallbackCue: detailRoutePlan.obstacleCue,
+      fallbackAction: detailRoutePlan.fallbackAction,
+      firstProofTitle: 'Cleared the entry table',
+      firstProofDay: '2026-08-18',
+      plan: detailRoutePlan,
+    );
+    state.goals.add(goal);
+    final quests = <Quest>[
+      Quest(
+        title: detailRoutePlan.currentStep!.actionTitle,
+        stat: Stat.dis,
+        difficulty: 2,
+        goalTitle: goal.title,
+        goalPlanStepId: detailRoutePlan.currentStep!.id,
+        goalPlanRevision: detailRoutePlan.revision,
+        goalPlanAttempt: 1,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: GoalDetailScreen(
+          goal: goal,
+          state: state,
+          quests: quests,
+          onRemoveGoal: (_) {},
+          onPersist: () {},
+          onAddQuest: (_) => true,
+          onOpenQuest: (_) {},
+          onAdjustPlan: () {},
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_detail_entry_430x932.png'),
+      );
+    }
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -430));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_detail_habit_support_430x932.png'),
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goal detail: 2x text keeps proof and return plan readable', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false;
+    final goal = Goal(
+      title: 'Make the apartment feel calm enough to come home to',
+      stat: Stat.dis,
+      target: 25,
+      progress: 11,
+      why: 'Home should feel easier to return to, even after a long day.',
+      fallbackCue: 'the whole apartment feels like too much',
+      fallbackAction: 'clear one hand-sized surface and leave the rest',
+    );
+    final quests = <Quest>[
+      Quest(
+        title: 'Clear the kitchen counter beside the sink',
+        stat: Stat.dis,
+        difficulty: 2,
+        goalTitle: goal.title,
+      ),
+    ];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(2)),
+          child: child!,
+        ),
+        home: GoalDetailScreen(
+          goal: goal,
+          state: state,
+          quests: quests,
+          onRemoveGoal: (_) {},
+          onPersist: () {},
+          onAddQuest: (_) => true,
+          onOpenQuest: (_) {},
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    expect(tester.takeException(), isNull);
+
+    final proof = find.text('Proof you’ve been here');
+    await tester.scrollUntilVisible(
+      proof,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    expect(proof, findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_detail_2x_proof_320x568.png'),
+      );
+    }
+
+    final plan = find.byKey(const Key('goal-support-plan'));
+    await tester.scrollUntilVisible(
+      plan,
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_detail_2x_support_320x568.png'),
+      );
+    }
+    expect(find.text('When the day shrinks'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goal Quest handoff: room travel sequence', (tester) async {
+    Clock.freeze(DateTime(2026, 8, 26, 10));
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(430, 932);
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.view.resetPhysicalSize();
+      Clock.reset();
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final state = GameState()..soundEnabled = false;
+    final goal = Goal(
+      title: 'Make the apartment feel calm',
+      stat: Stat.dis,
+      target: 25,
+      progress: 11,
+      why: 'Home should feel easier to return to.',
+      fallbackCue: 'the whole apartment feels like too much',
+      fallbackAction: 'clear one small surface',
+    );
+    state.goals.add(goal);
+    final quests = <Quest>[
+      Quest(
+        title: 'Clear the kitchen counter',
+        stat: Stat.dis,
+        difficulty: 2,
+        goalTitle: goal.title,
+      ),
+    ];
+    Quest? openedQuest;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: GoalsPage(
+            state: state,
+            quests: quests,
+            onAdd: (_) => true,
+            onRemoveQuest: (_) {},
+            onRemoveGoal: (_) {},
+            onPersist: () {},
+            onOpenQuest: (quest) => openedQuest = quest,
+          ),
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('focus-goal-action')));
+    await tester.pump();
+    expect(find.byKey(const Key('focus-goal-action')), findsOneWidget);
+    expect(find.text('Opening'), findsOneWidget);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 130));
+
+    expect(find.byKey(const Key('goal-room-travel-backdrop')), findsOneWidget);
+    expect(find.byKey(const Key('goal-room-travel-master')), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_room_travel_01_departure_430x932.png'),
+      );
+    }
+    await tester.pump(const Duration(milliseconds: 250));
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_room_travel_02_bridge_430x932.png'),
+      );
+    }
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byKey(const Key('goal-room-arch-invitation')), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_detail_transition_midpoint_430x932.png',
+        ),
+      );
+    }
+    await tester.pump(const Duration(milliseconds: 330));
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_room_travel_03_crossing_430x932.png'),
+      );
+    }
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(
+      find.byKey(const Key('goal-room-travel-destination')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('goal-room-arch-invitation')), findsNothing);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_room_travel_04_arrival_430x932.png'),
+      );
+    }
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.byKey(const Key('goal-quest-arrival')), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_room_travel_05_quest_arrival_430x932.png',
+        ),
+      );
+    }
+    await tester.pump(const Duration(milliseconds: 370));
+    await tester.pumpAndSettle();
+    expect(find.byType(GoalDetailScreen), findsNothing);
+    expect(identical(openedQuest, quests.first), isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('goals personal index: empty', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+    });
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: Palette.parchment,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Palette.xp,
+            brightness: Brightness.dark,
+          ),
+          textTheme: ThemeData.dark().textTheme.apply(fontFamily: 'Inter'),
+          useMaterial3: true,
+        ),
+        home: Scaffold(
+          body: GoalsPage(
+            state: state,
+            quests: const [],
+            onAdd: (_) => true,
+            onRemoveQuest: (_) {},
+            onRemoveGoal: (_) {},
+            onPersist: () {},
+            onOpenQuest: (_) {},
+          ),
+        ),
+      ),
+    );
+    await _precachePageArt(tester);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_personal_index_empty_430x932.png'),
+      );
+    }
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('store screenshot story: share a moment', (tester) async {

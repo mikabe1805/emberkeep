@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "id": "goals-spatial-steward-workshop-2026-08-28",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "expanding",
+  "locked_at": "2026-08-28T23:06:46-04:00",
+  "surface": "Goals foyer, mounted tavern threshold, returnable steward workshop, selected-goal bench, spatial opening, and exact Quest handoff",
+  "scope": "Keep Goals as the focused private foyer while making the workshop a separate walnut-and-amber tavern destination that can be reopened at any time. Replace the rejected floor-written affordances with one level entrance mounted to the arch, visibly host the register and selected-goal bench with the locked steward, show every active goal and whether its exact cut is waiting or already on the board, and preserve open, revise, shrink, repair, cancel, and exact Quest acceptance without duplication.",
+  "user_job": "From Goals, return to one recognizable workshop, see which routes are waiting and which exact Quests are already in motion, choose what belongs on the bench, and open, take, shrink, or rework that goal's current action without replaying creation or losing completed proof.",
+  "active_sources": [
+    {
+      "id": "spatial-opening-accepted-baseline",
+      "kind": "interaction_target",
+      "location": "design/audits/2026-08-27/goals-opening-polish-pass-2/01-baseline-opening-states.webp",
+      "content_sha256": "c34a000382dc532e94344957e23595de60f4c86ec5668bae786e151bb9bb1b7d",
+      "approved_at": "2026-08-27",
+      "judged_state": "Desk folio, readable user-controlled wide-room waypoint, registered arch lettering, and kitchen workshop distributed across one continuous apartment",
+      "viewport": "430x932 at default text scale",
+      "priority": 1
+    },
+    {
+      "id": "workshop-product-contract",
+      "kind": "product_contract",
+      "location": "design/visual-targets/2026-08-28/goals-steward-workshop-contract.md",
+      "content_sha256": "c20d5c90ea950158b19fea1b32fac6ab543d6ce442f68e81bc5668bcd9c9e2a8",
+      "approved_at": "2026-08-28",
+      "judged_state": "The spatial journey keeps its user-controlled destinations and exact first move, but the Workshop threshold is level and mounted, then enters a separate tavern where the locked steward visibly hosts the returnable register and exact Quest bench",
+      "viewport": "430x932 and 320x568, normal and Reduced Motion",
+      "priority": 2
+    },
+    {
+      "id": "locked-steward-identity",
+      "kind": "visual_target",
+      "location": "design/visual-targets/2026-08-28/steward-character/steward-character-handoff-v1.png",
+      "content_sha256": "7639ac37ee8b084cbe0f8ab6b269770badb5af07ba8608341e534aac48b4a120",
+      "approved_at": "2026-08-28",
+      "judged_state": "The canonical attractive adult steward identity, narrow face, tied shoulder-length hair, hooded overshirt, dark apron, brass fasteners, left sleeve patch, and exactly two sharpened wooden pencils",
+      "viewport": "Portrait identity handoff; compare full figure and focused face, outfit, sleeve patch, and pencil pocket",
+      "priority": 3
+    },
+    {
+      "id": "runtime-tavern-composition",
+      "kind": "visual_target",
+      "location": "design/source-assets/runtime-originals/assets/pages/goals-workshop-tavern-steward-v1.png",
+      "content_sha256": "34ef184a0f6e24be9ec525a9500df0398a66ffb31d1dda798edabb96699e159a",
+      "approved_at": "2026-08-28",
+      "judged_state": "The same locked steward offers a blank route card from behind a walnut-and-amber tavern counter, leaving the lower counter quiet for live register and selected-goal controls",
+      "viewport": "852x1847 production source, composed for 430x932 and a deliberate 320x568 compact crop",
+      "priority": 4
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/visual-targets/2026-08-28/goals-steward-workshop-selected.png",
+      "reason": "Its older mustached mechanic and kitchen-adjacent composition were rejected by the owner; only the physical handoff idea remains historical context, while the locked steward and separate tavern now control identity and composition."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": null,
+  "edge_contract": {
+    "product": {
+      "decision": "The workshop is a persistent Goals function, not only a creation finale. Its index derives one truthful status per active goal from GoalPlan and exact linked Quest identity; the selected bench opens an already-owned Quest without duplication, offers an unowned cut without materializing it, and keeps route repair on the same planning authority.",
+      "proof": "Enter from Goals with one waiting route and one exact Quest already on the board, inspect both statuses, open the owned object by identity, return, take the waiting cut once, and verify no duplicate or unrelated Quest appears."
+    },
+    "interaction": {
+      "decision": "A level mounted Workshop entrance opens the separate tavern index directly. Choosing a goal moves to the steward-hosted selected-goal bench; back returns first to the index and then to Goals. The primary action changes truthfully between Take this Quest and Open this Quest, while edit, smaller, and rework invalidate only unfinished stale revisions and never reset a previously accepted opening.",
+      "proof": "Exercise Goals to workshop to selected bench and back, then repeat for waiting, owned, legacy, and repaired routes. Rapidly activate primary actions and confirm exactly one handoff, stable focus, and non-mutating cancellation."
+    },
+    "visual": {
+      "decision": "Goals remains the private visual foyer and its exact-Quest action remains primary. The workshop entrance is mounted to the arch, never skewed across the floor. Crossing it resolves into a separate walnut-and-amber tavern with the locked steward visibly offering a blank route card above one lower-counter register. The selected-goal folio retains the approved cut, why, proof, route, and clasp hierarchy while keeping his face and locked outfit visible.",
+      "proof": "Compare the Goals frame, mounted entrance, tavern register, and selected benches at 430x932 plus 320x568 with large text. Confirm level readable entrance copy, a clearly separate tavern, the same locked steward, exactly two recognizable wooden pencils at the normal phone frame, and no register or selected folio covering his face."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Replace the room progression with another bottom sheet, centered dialog, or generic full-screen form",
+      "why": "It erases the explicitly requested feeling of moving through one room while the goal takes shape"
+    },
+    {
+      "fallback": "Add the first Quest before the final workshop acceptance",
+      "why": "It makes the handoff cosmetic, leaves orphan work after cancellation, and violates the user's ownership of the route"
+    },
+    {
+      "fallback": "Regenerate the steward without the canonical anchor, mirror his locked details, or replace the pencils with generic tools",
+      "why": "The owner explicitly asked for the steward we made and made identity, outfit, and real-pencil consistency the acceptance boundary"
+    },
+    {
+      "fallback": "Make Workshop a second Goals dashboard, a new bottom navigation tab, or a list of generic status cards",
+      "why": "The workshop is a room-bound planning place. Its index must feel like one physical register inside the steward's separate tavern and must not compete with the focused Goals foyer."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "Return from the focused Goals room to the workshop with two active goals: one route has an exact current Quest already on the board and one has a current cut still waiting for acceptance. Open each on the bench, then take the waiting cut once.",
+    "real_inputs": "Two production-equivalent GoalPlans with distinct titles and stats, current marker identity, proof, fallback actions, one exact structured Quest for the first route, and no current-revision Quest for the second.",
+    "user_action": "Tap the quiet Workshop entrance in Goals, read the route register, choose the owned route and open its exact Quest, return, choose the waiting route, inspect its cut, cancel once, reopen it from the register, and press Take this Quest once.",
+    "expected_outcome": "Crossing the mounted entrance reads as arriving in the steward's separate tavern, both route states are truthful, the owned object opens without duplication, the waiting route survives cancellation, and one acceptance creates and opens one exact current Quest.",
+    "state_boundary": "The workshop index is derived from GoalPlan and current Quest identity rather than new stored state. Selection and cancellation are non-mutating; edit or repair creates a new route revision while preserving accepted-opening history; explicit acceptance remains the only unowned-Quest materialization boundary.",
+    "required_states": [
+      {
+        "id": "goals-workshop-entrance",
+        "state": "The focused Goals room keeps its exact-Quest action while one level Workshop sign is mounted to the arch and promises the steward beyond it; no copy is skewed onto the floor.",
+        "why_can_disprove": "If Workshop competes with the exact Quest or looks like generic navigation, the room hierarchy and spatial connection both fail."
+      },
+      {
+        "id": "workshop-index",
+        "state": "The separate walnut-and-amber tavern visibly holds the locked steward above one lower-counter register listing active goals with concrete Waiting, On board, or Needs a route states.",
+        "why_can_disprove": "A generic dashboard, unreadable status, or decorative list would leave the workshop without a useful repeatable job."
+      },
+      {
+        "id": "owned-quest-bench",
+        "state": "A selected route whose exact current Quest already exists shows Current Quest and an Open this Quest clasp.",
+        "why_can_disprove": "Calling an owned Quest a new cut or adding another object would make the workshop lie about state."
+      },
+      {
+        "id": "waiting-cut-bench",
+        "state": "A selected route with no current-revision Quest shows The Cut, why, proof, kept route, smaller option, edit, and one Take this Quest clasp.",
+        "why_can_disprove": "If selecting the route creates a Quest or hides why and proof, the workshop loses its ownership boundary and planning purpose."
+      },
+      {
+        "id": "cancel-reopen",
+        "state": "Return to the register or Goals preserves both routes and leaves the waiting route Quest-free; reopening shows the same exact cut.",
+        "why_can_disprove": "A changed offer, orphan Quest, or forced creation replay would show that Workshop is still only a ceremony."
+      },
+      {
+        "id": "accepted",
+        "state": "One accepted cut opens on the board with exact goal, step, revision, and attempt identity while the formerly owned route remains a single object.",
+        "why_can_disprove": "A generic board jump, stale revision, or duplicate would break the workshop's truthful status model."
+      },
+      {
+        "id": "compact-large-text",
+        "state": "At 320x568 with large text, the Goals entrance, route statuses, goal names, selected-bench facts, primary action, and back path remain reachable without overflow.",
+        "why_can_disprove": "A workshop that works only in the art-directed phone frame is not a functional destination."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "goals-workshop-entrance",
+      "surface_or_primitive": "GoalThresholdScene and focused Goals navigation",
+      "state": "Active focused goal with the apartment arch visible behind the exact current action",
+      "expected_effect": "Add one quiet attached Workshop entrance without displacing or visually competing with the luminous exact-Quest threshold.",
+      "verification_plan": "Capture the same focused Goals fixture before and after, inspect hierarchy at full frame and phone size, then activate the semantic control and verify direct workshop-index arrival.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "workshop-index",
+      "surface_or_primitive": "Returnable tavern route register",
+      "state": "Waiting route, exact Quest on board, route without a plan, long titles, one goal, and several goals",
+      "expected_effect": "Derive truthful per-goal status from the existing planner and Quest identities, keep one physical register, and route each row to its correct next function.",
+      "verification_plan": "Run focused widget tests for waiting, owned, no-plan, cancel, and repeat entry; capture normal and compact renders.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "selected-workshop-bench",
+      "surface_or_primitive": "GoalOpeningScreen direct workshop mode and selected-goal folio",
+      "state": "Current Quest already owned versus current cut not yet owned",
+      "expected_effect": "Reuse the approved selected-goal bench while changing THE CUT and Take this Quest to CURRENT QUEST and Open this Quest only when the exact object already exists.",
+      "verification_plan": "Open both states from the index, assert labels and exact object identity, edit the owned action, and verify the same bench becomes an unowned revised cut.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "returnable-repair",
+      "surface_or_primitive": "Goal plan check-in, revision cleanup, and accepted-opening state",
+      "state": "Previously accepted route becomes too large, unclear, time-poor, low-energy, or changed",
+      "expected_effect": "Keep the goal's first opening accepted, remove only unfinished old-revision Quests, and return directly to the revised workshop bench.",
+      "verification_plan": "Rework a route with completed and unfinished history, cancel, re-enter through the workshop index, and accept exactly one current revision.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "quick-create",
+      "surface_or_primitive": "Quick route composer and Goal persistence",
+      "state": "New custom goal before the first Quest is accepted",
+      "expected_effect": "Aim and Reality draft the GoalPlan directly into the spatial opening, with no duplicate route-approval screen and zero pre-attached Quests",
+      "verification_plan": "Run the production quick-create journey and assert zero Quests before acceptance",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "spatial-opening",
+      "surface_or_primitive": "GoalOpeningScreen desk, interactive wide-room waypoint, threshold, and tavern workshop arrival",
+      "state": "Normal motion, back navigation, long copy, and Reduced Motion",
+      "expected_effect": "Keep four readable semantic destinations, make the wide apartment a user-controlled planning waypoint, differentiate the travel legs, and carry the action into the planning-and-repair workshop",
+      "verification_plan": "Capture desk to wide-room waypoint to arch to workshop at 30 fps, verify the room remains crisp, readable, and stationary until Cross the room is used, inspect arch clasp activation and action-title handoff frame by frame, then exercise reverse and Reduced Motion paths",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "exact-quest-handoff",
+      "surface_or_primitive": "GoalPlanner decision, Quest creation, and Quests requested-focus arrival",
+      "state": "Cancel, reopen, edit revision, smaller action, rapid repeat, and explicit acceptance",
+      "expected_effect": "Create or reuse exactly one current structured Quest only after acceptance and focus that exact object",
+      "verification_plan": "Assert goal title, step id, revision, attempt, object count, and requested-focus handoff",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "other-creation-paths",
+      "surface_or_primitive": "Advanced wizard and ready-made goal adoption",
+      "state": "New goal creation outside the representative quick route",
+      "expected_effect": "Share the same zero-preacceptance ownership boundary and workshop handoff while preserving authored recurrence, weekday, due-date, verification, and difficulty choices as dormant route templates",
+      "verification_plan": "Run advanced creation and new catalog adoption through cancel, reopen, acceptance, and exact schedule-preservation checks; retain existing-goal add-missing-actions as ordinary board management",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "meaningful-route-repair",
+      "surface_or_primitive": "Goal plan check-in, stale-revision cleanup, and workshop entry",
+      "state": "An owned plan no longer fits the day or its outcome changes",
+      "expected_effect": "Preserve completed proof, remove only unfinished stale-revision work, keep the revised current marker off the board, and enter the workshop directly for explicit re-acceptance",
+      "verification_plan": "Exercise a real recalibration with completed and unfinished old-revision Quests, cancel once, reopen, then accept exactly one current-revision Quest",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether crossing from the private Goals apartment into the steward's tavern now feels like entering a genuinely new, helpful place a person would intentionally revisit, while the register remains practical rather than becoming a second dashboard.",
+  "decisive_check": {
+    "method": "Use the focused Goals frame, enter Workshop, compare the route register with waiting and owned data, open both selected benches, cancel and re-enter, revise one owned route, and accept the resulting cut once.",
+    "target": "430x932 normal capture, 320x568 at 1.5 text, one and several goals, waiting and owned Quest identity, legacy no-plan state, non-mutating back, route repair, rapid repeat, and Reduced Motion.",
+    "pass_condition": "Goals keeps one visual owner and one primary exact-Quest action; Workshop is level, readable, and spatially attached to the arch; the destination is clearly a separate walnut-and-amber tavern; the same locked steward is visibly present with real pencils; the register stays below his face; waiting and owned states are concrete and accurate; the selected folio truthfully says Take or Open; back and cancel preserve state; repair removes only unfinished stale work; and one acceptance creates and opens exactly one current Quest."
+  },
+  "revision_scope": {
+    "include": [
+      "lib",
+      "assets",
+      "test",
+      "tool/goals_opening_motion_capture_test.dart",
+      "pubspec.yaml"
+    ],
+    "exclude": [
+      "test/goldens",
+      "test/failures"
+    ]
+  }
+}

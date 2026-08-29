@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "id": "goals-workshop-conversation-2026-08-29",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "slice_ready_for_owner",
+  "locked_at": "2026-08-29T12:33:02-04:00",
+  "surface": "The returnable steward workshop register and its optional Talk shop state",
+  "scope": "Preserve the accepted Goals foyer, steward art, route register, selected bench, and exact Quest boundary while adding one optional state-bound conversation page inside the existing register. Give the steward three practical prompts, make one response visible at a time, and return to the unchanged routes without persistence, reward, delay, or a second progress authority.",
+  "user_job": "Return to a workshop character I like, optionally hear his practical point of view about the route or the day, and continue shaping or taking the exact Quest without dialogue becoming another chore.",
+  "active_sources": [
+    {
+      "id": "conversation-owner-contract",
+      "kind": "product_contract",
+      "location": "design/visual-targets/2026-08-29/goals-workshop-conversation-contract.md",
+      "content_sha256": "7c61441b31e04dfe46f6d1912a929469feac70e28cd6b1fc5fe8351f051c7599",
+      "approved_at": "2026-08-29",
+      "judged_state": "Owner-approved expansion of the liked workshop NPC through optional dialogue options that stay secondary to the Goals flow",
+      "viewport": "430x932 and 320x568 at 1.5x text",
+      "priority": 1
+    },
+    {
+      "id": "accepted-live-workshop",
+      "kind": "visual_target",
+      "location": "design/audits/2026-08-29/goals-steward-layered-v2/comparison-live-v2-430x932.png",
+      "content_sha256": "0c9a6dd5cc66790242b5dffab1b741db57e5bb08610806dd6c0647aaa23e3acd",
+      "approved_at": "2026-08-29",
+      "judged_state": "The current considering, ready, and acknowledging steward states and their existing lower-counter register/bench composition",
+      "viewport": "430x932 at default text scale",
+      "priority": 2
+    },
+    {
+      "id": "workshop-base-contract",
+      "kind": "interaction_target",
+      "location": "design/visual-targets/2026-08-28/goals-steward-workshop-contract.md",
+      "content_sha256": "c20d5c90ea950158b19fea1b32fac6ab543d6ce442f68e81bc5668bcd9c9e2a8",
+      "approved_at": "2026-08-28",
+      "judged_state": "The workshop remains a returnable planning-and-repair place and explicit acceptance remains the only first-Quest creation boundary",
+      "viewport": "Workshop register and selected bench",
+      "priority": 3
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/visual-targets/2026-08-28/goals-steward-workshop-contract.md#interaction-grammar",
+      "reason": "The 2026-08-29 owner direction supersedes only the blanket no-dialogue-tree restriction. Optional state-bound Talk shop prompts are now allowed; greeting loops, forced dialogue, relationship state, praise inflation, and Quest-authority drift remain rejected."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": "design/execution-mode/active/goals-steward-expressions",
+  "edge_contract": {
+    "product": {
+      "decision": "Talk shop is an optional character-depth layer that reads real route state and adds no new work, progress, persistence, praise, or Quest mutation.",
+      "proof": "Open and close every prompt from mixed, empty, waiting, owned, and completed registers, then compare GameState, GoalPlan, Quest identity, row order, and the explicit acceptance boundary before and after."
+    },
+    "interaction": {
+      "decision": "One quiet footer action swaps the existing physical register between routes and conversation. A selected prompt reveals one immediate held response; Back to routes restores the unchanged slips. No modal, timer, typewriter delay, automatic cycling, or dialogue gate is introduced.",
+      "proof": "Exercise Talk shop, all three prompts, prompt switching, Back to routes, system back, repeated activation, and 320x568 at 1.5x text with every control reachable and no overflow."
+    },
+    "visual": {
+      "decision": "The steward and tavern keep the accepted crop and expression. Conversation inhabits the same lower-counter register material, uses one quiet selection accent, and never creates a second luminous action or covers the face.",
+      "proof": "Compare fresh mixed-register, response-selected, empty-bench, and compact large-text captures at the same viewport; inspect full frame and register detail for hierarchy, readability, and face clearance."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Open a chat sheet, dialogue tree, or new workshop route",
+      "why": "It would break the room-bound physical register and add ceremony before useful action."
+    },
+    {
+      "fallback": "Add randomized quips, praise, relationship state, or daily greetings",
+      "why": "It would make the steward a mascot and invent a second progress loop."
+    },
+    {
+      "fallback": "Stack dialogue above the existing route slips",
+      "why": "It would crowd the lower counter, cover the steward, and fail compact large-text states."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "A mixed register has one cut waiting, one owned Quest, one route to shape, and one completed route. The person talks shop, asks about the immediate route and both craft questions, then returns to the register.",
+    "real_inputs": "Production-equivalent GoalPlans and exact Quest fixtures representing all four route states at one time.",
+    "user_action": "Tap Talk shop, choose the state-specific prompt, choose What makes a good cut, choose What if today changes, then choose Back to routes.",
+    "expected_outcome": "Three restrained responses appear inside the register, the steward remains visually and semantically tied to the same real state, and the unchanged route slips return with zero GoalPlan or Quest mutation.",
+    "state_boundary": "Conversation selection is ephemeral widget state. The planner, persistence, exact Quest identity, route ordering, and explicit acceptance callbacks are never invoked.",
+    "required_states": [
+      {
+        "id": "mixed-register-entry",
+        "state": "Mixed truthful route inventory before Talk shop",
+        "why_can_disprove": "If the contextual prompt disagrees with the steward's priority or hides a more immediate route, the character and product state split."
+      },
+      {
+        "id": "response-selected",
+        "state": "One context response and both durable craft responses",
+        "why_can_disprove": "Generic encouragement, repeated visible facts, or delayed/cycling copy would add chatter instead of character."
+      },
+      {
+        "id": "return-unchanged",
+        "state": "Back to routes after prompt switching and rapid repeat",
+        "why_can_disprove": "A mutated route, reordered row, duplicate Quest, stale selection, or blocked primary action would turn optional dialogue into friction."
+      },
+      {
+        "id": "compact-large-text",
+        "state": "320x568 at 1.5x text with a response selected",
+        "why_can_disprove": "If prompts, response, return, or New goal become unreachable, the compact workshop is no longer release-safe."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "register-footer",
+      "surface_or_primitive": "Workshop register footer and route list",
+      "state": "Empty, one route, mixed routes, busy route opening",
+      "expected_effect": "Add one quiet Talk shop action, preserve New goal, and disable both during an in-flight route action.",
+      "verification_plan": "Focused widget tests plus fresh normal and compact register captures.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "conversation-page",
+      "surface_or_primitive": "Existing lower-counter register material",
+      "state": "No response, each selected response, prompt switching, Back to routes",
+      "expected_effect": "Swap content in place without moving the tavern camera, changing the steward pose, or creating another bright action.",
+      "verification_plan": "Rendered comparison and interaction test across every prompt.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "planner-boundary",
+      "surface_or_primitive": "GoalPlan, exact Quest identity, acceptance, repair, persistence",
+      "state": "Waiting, owned, needs route, complete, cancel, repeated entry",
+      "expected_effect": "No mutation or callback is caused by conversation; existing route and acceptance tests remain green.",
+      "verification_plan": "Snapshot state before and after conversation, then rerun the focused Goals/workshop suite.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "accessibility-and-compact",
+      "surface_or_primitive": "Semantics, reading order, scrolling, Reduced Motion, narrow layout",
+      "state": "320x568 at 1.5x text and 430x932 with Reduce Motion",
+      "expected_effect": "Every prompt, selected response, Back to routes, and New goal remains readable, labeled, and reachable without motion dependence.",
+      "verification_plan": "Semantics assertions, compact widget test, and inspected compact screenshot.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether optional workshop dialogue adds a felt character point of view without turning a fast planning place into a chat system or crowding the accepted composition.",
+  "decisive_check": {
+    "method": "Use the mixed register at 430x932 and 320x568 at 1.5x text, read all three responses, return to routes, then verify the exact same GoalPlan and Quest identities and visually compare the full frame and lower-counter detail.",
+    "target": "Current production Workshop with mixed route inventory, empty bench, Reduced Motion, rapid prompt switching, and no sound.",
+    "pass_condition": "The steward gains a specific practical voice; dialogue remains optional and quiet; the face stays clear; all controls remain reachable; nothing in Goals or Quests changes until a real route or acceptance action is used."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/screens/goal_workshop.dart",
+      "test/goal_workshop_conversation_test.dart",
+      "test/screenshots_test.dart",
+      "design/visual-targets/2026-08-29/goals-workshop-conversation-contract.md",
+      "tool/visual_compare.py"
+    ],
+    "exclude": [
+      "test/goldens"
+    ]
+  }
+}

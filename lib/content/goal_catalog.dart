@@ -10,12 +10,18 @@ class GoalIdea {
   const GoalIdea({
     required this.title,
     required this.blurb,
+    required this.finishLine,
+    required this.frictionCue,
+    required this.lighterMove,
     required this.stat,
     required this.quests,
   });
 
   final String title;
   final String blurb;
+  final String finishLine;
+  final String frictionCue;
+  final String lighterMove;
   final Stat stat;
   final List<QuestTemplate> quests;
 }
@@ -49,9 +55,9 @@ class QuestTemplate {
   final bool rising;
 
   /// The concrete progression this template climbs. A rising template without
-  /// a ladder only raises its invisible difficulty — the visible prescription
-  /// never changes, which reads as a fake control. Give every rising template
-  /// a ladder (and a [rung] whose prescription matches [title]).
+  /// a ladder has nowhere truthful to go and therefore will not harden. Give
+  /// every rising template a ladder (and a [rung] whose prescription matches
+  /// [title]).
   final List<String>? ladder;
   final int rung;
   final JournalQuestPrompt? journalPrompt;
@@ -89,6 +95,10 @@ const goalCatalog = <GoalIdea>[
     blurb:
         'Don’t know what to read? That’s the first quest. Fiction counts. '
         'Comics count. Anything that makes you want to turn the page counts.',
+    finishLine:
+        'Reading has a place in your ordinary week, and a finished book no longer depends on a perfect free afternoon.',
+    frictionCue: 'There may not be a long, quiet stretch to read.',
+    lighterMove: 'Read one page',
     stat: Stat.intl,
     quests: [
       QuestTemplate(
@@ -122,6 +132,10 @@ const goalCatalog = <GoalIdea>[
     blurb:
         'The unglamorous quests are the realest ones. Skincare, meds, the '
         'weekly shot — showing up for yourself counts double here.',
+    finishLine:
+        'The care you rely on happens on its intended days without a last-minute rescue.',
+    frictionCue: 'The day can move faster than the care you meant to do.',
+    lighterMove: 'Check what is due and follow your existing care instructions',
     stat: Stat.dis,
     quests: [
       QuestTemplate(title: 'Morning skincare', stat: Stat.dis, difficulty: 2),
@@ -155,6 +169,12 @@ const goalCatalog = <GoalIdea>[
     blurb:
         'Steps count more when they take you somewhere. A new street, a '
         'park, the good coffee place that’s slightly too far.',
+    finishLine:
+        'Moving your body has a place in your week, with a smaller version for low-energy days.',
+    frictionCue:
+        'Energy, weather, or getting out the door may be the hard part.',
+    lighterMove:
+        'Choose a seated or standing two-minute movement that feels workable',
     stat: Stat.vit,
     quests: [
       QuestTemplate(
@@ -182,6 +202,10 @@ const goalCatalog = <GoalIdea>[
     blurb:
         'Two push-ups today beats a hundred never. The ladder is the '
         'whole secret — every rung was someone’s impossible once.',
+    finishLine:
+        'You have a version of movement you can repeat and a clear sign of progress.',
+    frictionCue: 'A full session can feel intimidating before you begin.',
+    lighterMove: 'Try one careful repetition, stopping if anything feels wrong',
     stat: Stat.str,
     quests: [
       QuestTemplate(
@@ -218,6 +242,10 @@ const goalCatalog = <GoalIdea>[
     blurb:
         'Attention is a stat the modern world actively drains. Train it '
         'in small, timed, provable doses.',
+    finishLine:
+        'You can begin a focused block, stay with it, and leave one visible piece of progress behind.',
+    frictionCue: 'Starting can feel harder than the work itself.',
+    lighterMove: 'Take one quiet minute with the task open',
     stat: Stat.foc,
     quests: [
       QuestTemplate(
@@ -240,6 +268,10 @@ const goalCatalog = <GoalIdea>[
     blurb:
         'Five minutes with a pen does more than it looks like — for your '
         'mood, your sleep, and how well you actually know yourself.',
+    finishLine:
+        'You have a trail of entries that helps you recognize what your days feel like.',
+    frictionCue: 'Some days may feel too full to turn into words.',
+    lighterMove: 'Write one sentence about today',
     stat: Stat.intl,
     quests: [
       QuestTemplate(
@@ -298,6 +330,11 @@ const goalCatalog = <GoalIdea>[
     blurb:
         'Connection is a health behavior — it ranks with exercise in the '
         'longevity studies. One message counts.',
+    finishLine:
+        'You have a small rhythm for staying in touch with the people you want in your life.',
+    frictionCue:
+        'Reaching out can feel oddly high-stakes when you have waited.',
+    lighterMove: 'Send one person a simple “thinking of you”',
     stat: Stat.soc,
     quests: [
       QuestTemplate(
@@ -326,6 +363,10 @@ const goalCatalog = <GoalIdea>[
         'whole day feels. Homes people call cluttered rather than restful track '
         'with a flatter daily stress-hormone rhythm; you’re not chasing '
         'spotless, you’re lowering the noise.',
+    finishLine:
+        'The room returns to usable without needing a full emergency clean.',
+    frictionCue: 'The whole room can look bigger than the time you have.',
+    lighterMove: 'Clear one hand-sized surface',
     stat: Stat.dis,
     quests: [
       // bed-makers report steadier sleep + a daily sense of order — NSF Bedroom Poll (survey)
@@ -377,6 +418,10 @@ const goalCatalog = <GoalIdea>[
         'unusually kind here: tending houseplants can lower blood pressure, and '
         'people who keep them report steadier moods and more everyday '
         'mindfulness. Even one windowsill pot counts.',
+    finishLine:
+        'You notice what each plant needs and tend it on a rhythm you can keep.',
+    frictionCue: 'It can be hard to remember what each plant needs.',
+    lighterMove: 'Check the soil on one plant',
     stat: Stat.vit,
     quests: [
       // indoor plants ↔ more positive emotion + lower systolic BP — Han 2022, PMC9224521
@@ -418,6 +463,10 @@ const goalCatalog = <GoalIdea>[
         'remembered even when it’s a hassle. None of it is optional to them, '
         'and that’s exactly what makes it count. The kindest secret: a walked '
         'dog walks you too — whiskers, scales, or feathers all welcome.',
+    finishLine:
+        'The next feeding, enrichment, cleaning, or care task is visible and handled before it becomes urgent.',
+    frictionCue: 'Care can pile up when the day gets busy.',
+    lighterMove: 'Do the next due care task for one creature',
     stat: Stat.vit,
     quests: [
       // consistent meal times regulate a pet’s digestion/weight + reduce food anxiety — AVMA feeding guidance
@@ -467,6 +516,11 @@ const goalCatalog = <GoalIdea>[
         'Cooking for yourself is a love letter you write in real time. It '
         'counts even when it’s simple — a plate with something green on it '
         'beats takeout on autopilot, and future you is the one who gets fed.',
+    finishLine:
+        'You can reliably put together a meal that leaves you fed, even on a low-energy day.',
+    frictionCue:
+        'When you are tired or hungry, making food can feel like one decision too many.',
+    lighterMove: 'Add water or one easy thing that will leave you more fed',
     stat: Stat.vit,
     quests: [
       // water displacing sugary drinks ↔ lower T2D/CVD risk; hydration steadies mood/focus — PMC10050372; PMC6068860
@@ -513,6 +567,11 @@ const goalCatalog = <GoalIdea>[
         'Money gets calmer the moment you look at it. This isn’t about spending '
         'less for its own sake — it’s about knowing where you stand and quietly '
         'building a little cushion, so the numbers stop being scary.',
+    finishLine:
+        'You can see what is due, what is available, and one next step that makes the month safer.',
+    frictionCue:
+        'Looking at the numbers can feel heavier than the numbers themselves.',
+    lighterMove: 'Look at one account without changing anything',
     stat: Stat.dis,
     quests: [
       // financial self-monitoring ↔ lower discretionary spend + better saving — CFPB; financial-tracking research
@@ -536,8 +595,7 @@ const goalCatalog = <GoalIdea>[
         stat: Stat.dis,
         difficulty: 3,
         schedule: QuestSchedule.weekly,
-        rising: true,
-        ladderHint: 'TINY IS FINE · RISES AS YOU GROW 📈',
+        ladderHint: 'TINY IS FINE · KEEP IT STEADY',
       ),
       // a regular review builds financial self-awareness + catches forgotten subscriptions (~$200+/yr) — CFPB Well-Being Scale
       QuestTemplate(
@@ -557,6 +615,10 @@ const goalCatalog = <GoalIdea>[
         'better time than any alarm — it just needs you to be regular with it. '
         'Protect the hour before bed, rise at a steady time, and the rest tends '
         'to follow.',
+    finishLine:
+        'You have a repeatable wind-down and wake-up rhythm that still has a way back after messy days.',
+    frictionCue: 'A long day can make the landing hour disappear.',
+    lighterMove: 'Dim one light and put the phone down for five minutes',
     stat: Stat.vit,
     quests: [
       // sleep regularity beats duration — most-regular sleepers had 20-48% lower mortality — Windred 2024, SLEEP (UK Biobank)

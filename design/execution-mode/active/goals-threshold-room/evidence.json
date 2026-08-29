@@ -1,0 +1,283 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-threshold-room-2026-08-27",
+  "brief_sha256": "2763f0e1efbd19eae13b6ef4179b083604d8282b997f3b82078a85bc1bd2cd8d",
+  "phase": "slice",
+  "implementation_revision": "worktree:0e666f2639fc:c333c04b9b2ebcd28bb6365c",
+  "revision_captured_at": "2026-08-27T21:44:10-04:00",
+  "checks": [
+    {
+      "id": "slice-product-threshold-room",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the owner-selected target beside the current production-equivalent returning-goal render at the authored 430 by 932 viewport",
+      "input_state": "Make the apartment feel calm with 11 prior returns, one exact due Quest, and one saved lighter action",
+      "inspected_by": "Codex main agent, Claude Fable 5, Gemini 3.6 Flash, and Terra final visual reviewer",
+      "observation": "The first frame now does the prioritization: one wall-set goal, one return receipt, one exact Quest inside the lit arch, one Step in threshold, and one quieter fallback; support and management wait below the room.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Selected threshold-room target beside the final active-goal build",
+          "path": "design/comparisons/2026-08-27/evidence-goals-threshold-room.png",
+          "generated_at": "2026-08-27T21:46:34.036-04:00",
+          "content_sha256": "17b08dc65b28cae2b8d5198ab922d1336a2e4dfe45fab286274bea40f9bfe2d1",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Final active returning-goal room before touch",
+          "path": "test/goldens/goals_personal_index_active_430x932.png",
+          "generated_at": "2026-08-27T21:44:30.466-04:00",
+          "content_sha256": "c8833b2287cc9507349b74c4f8861a5d7a02ba8604cb4fc2aed8d5b6e9bd5dc5",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-interaction-exact-quest",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Drive a real pointer press through the production room route at deterministic 60 fps, then run the focused and full Flutter suites",
+      "input_state": "Normal travel, Reduced Motion, rapid repeat, reverse cancellation, exact due Quest, and linked fallback reuse",
+      "inspected_by": "Codex main agent with Flutter test runner and real-time artifact playback",
+      "observation": "Step in acknowledges locally, the accepted state becomes Opening, repeat entry is rejected, the room crosses once, cancellation remains clean, and the same exact Quest arrives. All 801 tests and the 27 focused Goals tests pass.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "interaction",
+          "state": "Final 60 fps Step in journey from room rest to exact Quest arrival",
+          "path": "design/comparisons/2026-08-27/goals-threshold-room-journey-402x874.mp4",
+          "generated_at": "2026-08-27T21:45:40.727-04:00",
+          "content_sha256": "1a500002c21967f3f78318cb8f695299f098d7859faa6a7b5fddd45e2b2d637c",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Analyzer, 801-test suite, focused Goals suite, screenshot states, motion capture, release build, and preview checks",
+          "path": "design/execution-mode/active/goals-threshold-room/slice-test-report.md",
+          "generated_at": "2026-08-27T21:51:08.156-04:00",
+          "content_sha256": "bbbfaa7fbb8e48f252e80b2126122fdbe1b33056918c7c12319e8b68dfbe2870",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-visual-environment-registration",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the normalized target/build pair, the hard-day long-copy state, adjacent motion frames, and the final MP4 at authored phone size",
+      "input_state": "Active return, hard-day return, accepted press, forward room crossing, threshold veil, and settled exact Quest",
+      "inspected_by": "Codex main agent and independent Terra visual reviewer after the Fable and Gemini floor-plane critique",
+      "observation": "Room crop, negative space, arch light, and floor perspective hold. Live type is quiet enough to belong to each light field, long copy stays inside the arch, the brass plate reads installed, the fallback reads printed into the floor, and no duplicate room survives the handoff.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Final target/build registration check at 430 by 932",
+          "path": "design/comparisons/2026-08-27/evidence-goals-threshold-room.png",
+          "generated_at": "2026-08-27T21:46:34.036-04:00",
+          "content_sha256": "17b08dc65b28cae2b8d5198ab922d1336a2e4dfe45fab286274bea40f9bfe2d1",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Eight final room-travel moments from rest through settled arrival",
+          "path": "design/comparisons/2026-08-27/goals-threshold-room-motion-contact-sheet.png",
+          "generated_at": "2026-08-27T21:45:39.076-04:00",
+          "content_sha256": "3e22fb87acae608a56c45936a6c14df00339d265b68c8504163e5e0f6cf2a89c",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Final hard-day long-copy composition inside the lit arch",
+          "path": "test/goldens/goals_personal_index_hard_day_430x932.png",
+          "generated_at": "2026-08-27T21:51:53.511-04:00",
+          "content_sha256": "42b2dd14ed8181e32a281dfc25dfcbe93f3fa5ccc1336695a4e6809ebaeb0cc7",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-rest",
+      "requirement_id": "state:rest",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the final authored first frame at original resolution",
+      "input_state": "Active returning goal before touch",
+      "inspected_by": "Codex main agent and Terra final visual reviewer",
+      "observation": "Goal identity belongs to the wall, the exact Quest belongs to the arch, Step in belongs to the floor, and the visual hierarchy remains understandable without opening a manager or card.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Final active returning-goal room before touch",
+          "path": "test/goldens/goals_personal_index_active_430x932.png",
+          "generated_at": "2026-08-27T21:44:30.466-04:00",
+          "content_sha256": "c8833b2287cc9507349b74c4f8861a5d7a02ba8604cb4fc2aed8d5b6e9bd5dc5",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-press",
+      "requirement_id": "state:press",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect finger-down and accepted states, including the instant non-motion value response",
+      "input_state": "Step in under pointer-down, then accepted while the room route is being prepared",
+      "inspected_by": "Codex main agent",
+      "observation": "The inlaid plate darkens immediately even under Reduced Motion, retains its floor registration, and then changes to Opening without geometry or label jump.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Final finger-down Step in plate",
+          "path": "test/goldens/goals_personal_index_action_pressed_430x932.png",
+          "generated_at": "2026-08-27T21:44:30.927-04:00",
+          "content_sha256": "682c65a4eeda9988b83d912357b971efa25d48ec0e5c077ed8e2c9ec74cd3734",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Final accepted Opening plate before camera travel",
+          "path": "test/goldens/goals_personal_index_action_pending_430x932.png",
+          "generated_at": "2026-08-27T21:44:31.107-04:00",
+          "content_sha256": "159c3da2ad5b9d5352777fd2fa6e2facb7d007c0202df90d6a61827ea4cb3a2a",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-arrival",
+      "requirement_id": "state:arrival",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the arch crossing and settled exact-Quest endpoint in adjacent frames and real-time playback",
+      "input_state": "Accepted Step in with normal motion enabled",
+      "inspected_by": "Codex main agent, Claude Fable 5, Gemini 3.6 Flash, and Terra final visual reviewer",
+      "observation": "The source room advances slowly through its existing arch, fades fully before the destination settles, and opens Clear the kitchen counter once with no double cabinetry or abrupt card-route cut.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Final sampled room crossing and exact Quest arrival",
+          "path": "design/comparisons/2026-08-27/goals-threshold-room-motion-contact-sheet.png",
+          "generated_at": "2026-08-27T21:45:39.076-04:00",
+          "content_sha256": "3e22fb87acae608a56c45936a6c14df00339d265b68c8504163e5e0f6cf2a89c",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "interaction",
+          "state": "Final 60 fps room crossing with settled exact Quest endpoint",
+          "path": "design/comparisons/2026-08-27/goals-threshold-room-journey-402x874.mp4",
+          "generated_at": "2026-08-27T21:45:40.727-04:00",
+          "content_sha256": "1a500002c21967f3f78318cb8f695299f098d7859faa6a7b5fddd45e2b2d637c",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Claude Fable 5, Gemini 3.6 Flash, and Terra final_visual_critic",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-product-threshold-room",
+      "slice-interaction-exact-quest",
+      "slice-visual-environment-registration"
+    ],
+    "reviewed_artifacts": [
+      "design/comparisons/2026-08-27/evidence-goals-threshold-room.png",
+      "design/comparisons/2026-08-27/goals-threshold-room-motion-contact-sheet.png",
+      "design/comparisons/2026-08-27/goals-threshold-room-journey-402x874.mp4",
+      "test/goldens/goals_personal_index_active_430x932.png",
+      "test/goldens/goals_personal_index_hard_day_430x932.png"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "The first brass threshold and parchment fallback read as raised UI objects instead of installed floor material.",
+        "disposition": "resolved",
+        "evidence": "The final target/build comparison and active render show a smaller transparent flush plate and fallback type printed directly into the floor light; Terra's post-fix re-review cleared the shared Fable and Gemini concern."
+      },
+      {
+        "finding": "The first live type hierarchy was too bright and the hard-day Quest pressed against the right chair edge.",
+        "disposition": "resolved",
+        "evidence": "The final comparison uses smaller lower-contrast wall, evidence, cue, and Quest roles; the current hard-day render keeps the long title centered and contained inside the arch."
+      }
+    ],
+    "no_material_findings_observation": "The final independent re-review found no authored-viewport P0 or P1 after the floor-plane and long-copy corrections."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-27T21:52:30-04:00",
+    "decided_at": "",
+    "reviewed_revision": "",
+    "reviewed_brief_sha256": "",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "Current implementation checkpoint requested in the handoff; no owner acceptance has yet been given for this exact revision."
+  },
+  "deviations": [
+    {
+      "source_decision": "The selected concept includes a narrow decorative plaque on the right wall beside the arch.",
+      "implementation_decision": "The production room leaves that wall quiet and keeps support plus alternate goals below the fold.",
+      "reason": "The concept plaque contains generated illegible copy; reproducing it would create a nonfunctional sign and compete with the single Step in action.",
+      "user_visible_consequence": "The right wall has less decorative hardware while the goal, Quest, threshold, fallback, and full journey remain unchanged.",
+      "status": "resolved",
+      "owner_approval_required": false
+    }
+  ],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Physical iPhone material, OLED, thumb, haptic, and owner-feel acceptance have not yet been performed."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "owner-first-slice",
+      "gate": "Owner judgment on the selected threshold-room first slice",
+      "why": "The direction was selected before implementation, but this exact live slice still needs Mika's direct feel judgment.",
+      "owner_or_system": "Mika",
+      "next_action": "Open the current LAN preview, enter Goals, and run Step in once at normal speed.",
+      "blocking": true
+    },
+    {
+      "id": "physical-phone-feel",
+      "gate": "Physical iPhone material, legibility, haptic, and motion feel",
+      "why": "Rendered and automated evidence cannot establish OLED value separation, real thumb response, haptic weight, or owner-perceived pacing.",
+      "owner_or_system": "Mika on the target iPhone",
+      "next_action": "Judge whether the brass plate feels installed and whether the room crossing feels slow and spatial enough on the physical phone.",
+      "blocking": true
+    }
+  ]
+}

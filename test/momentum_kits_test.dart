@@ -83,6 +83,19 @@ void main() {
     expect(quest.timerMinutes, 2);
     expect(quest.stat, Stat.dis);
     expect(quest.schedule, QuestSchedule.once);
+    expect(quest.goalTitle, isNull);
+  });
+
+  test('unstick can keep a generated first move attached to its goal', () {
+    final quest = buildUnstickQuest(
+      task: 'open the outline',
+      minutes: 5,
+      stat: Stat.foc,
+      goalTitle: 'Finish the video essay',
+      now: DateTime(2026, 7, 28),
+    );
+
+    expect(quest.goalTitle, 'Finish the video essay');
   });
 
   test('home reset grows from a visible win into an ordered path', () {
@@ -152,6 +165,100 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 450));
     }
+  });
+
+  testWidgets('a direct kit launcher opens the selected Unstick sheet', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final navigatorKey = GlobalKey<NavigatorState>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        home: const Scaffold(body: SizedBox.expand()),
+      ),
+    );
+    await tester.pump();
+
+    final launched = showMomentumKitLauncher(
+      navigatorKey.currentContext!,
+      kind: MomentumKitKind.unstick,
+      state: GameState()..reduceMotion = true,
+      onAdd: (_) => true,
+      onPersist: () {},
+      onOpenQuests: () {},
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Unstick Me'), findsOneWidget);
+    expect(find.byKey(const ValueKey('momentum-kit-text')), findsOneWidget);
+
+    navigatorKey.currentState!.pop();
+    await tester.pump();
+    await launched;
+  });
+
+  testWidgets('contextual Unstick keeps and hands off its exact Quest', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final navigatorKey = GlobalKey<NavigatorState>();
+    final goal = Goal(
+      title: 'Finish the video essay',
+      stat: Stat.foc,
+      target: 25,
+    );
+    final added = <Quest>[];
+    Quest? opened;
+    var openedBoard = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        home: const Scaffold(body: SizedBox.expand()),
+      ),
+    );
+    await tester.pump();
+
+    final launched = showMomentumKitLauncher(
+      navigatorKey.currentContext!,
+      kind: MomentumKitKind.unstick,
+      state: GameState()..reduceMotion = true,
+      onAdd: (quest) {
+        added.add(quest);
+        return true;
+      },
+      onPersist: () {},
+      onOpenQuests: () => openedBoard = true,
+      goalContext: goal,
+      onOpenQuest: (quest) => opened = quest,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('What part of life is it tending?'), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('momentum-kit-text')),
+      'open the outline',
+    );
+    await tester.tap(find.text('PIN TO QUESTS'));
+    await tester.pumpAndSettle();
+
+    expect(added, hasLength(1));
+    expect(added.single.goalTitle, goal.title);
+    expect(added.single.stat, goal.stat);
+
+    expect(find.text('For “Finish the video essay”'), findsOneWidget);
+    expect(find.text('Your next move is ready'), findsOneWidget);
+    await tester.tap(find.text('OPEN THIS QUEST'));
+    await tester.pumpAndSettle();
+    await launched;
+
+    expect(identical(opened, added.single), isTrue);
+    expect(openedBoard, isFalse);
   });
 
   testWidgets('Help for Today keeps its composed resting frame', (

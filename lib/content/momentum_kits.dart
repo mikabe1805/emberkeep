@@ -162,6 +162,7 @@ Quest buildUnstickQuest({
   required int minutes,
   Stat stat = Stat.foc,
   DateTime? now,
+  String? goalTitle,
 }) {
   final target = _clean(task, 'the stuck thing');
   return _spark(
@@ -170,6 +171,7 @@ Quest buildUnstickQuest({
     difficulty: minutes <= 2 ? 1 : (minutes <= 5 ? 2 : 3),
     timerMinutes: minutes,
     now: now,
+    goalTitle: goalTitle,
   );
 }
 

@@ -1,0 +1,255 @@
+{
+  "schema_version": 1,
+  "brief_id": "goals-recovery-loop-2026-08-29",
+  "brief_sha256": "f97ceb31bb640c122fc4cb98b88d21013fc7e1c11c79632fff7ab842c348ef71",
+  "phase": "slice",
+  "implementation_revision": "worktree:0e666f2639fc:f359f1cbc2d06eb10af9c7f8",
+  "revision_captured_at": "2026-08-29T15:04:00-04:00",
+  "checks": [
+    {
+      "id": "slice-recovery-product",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Drive the production Goals page from one exact owned route Quest through leave-alone and smaller-cut recovery, inspect the full current-state contact sheet, and compare serialized Goal and Quest state at each boundary.",
+      "input_state": "A production-equivalent structured apartment goal with one completed marker, durable first proof, one exact current Quest, and an authored fallback.",
+      "inspected_by": "Codex main agent, Terra recovery_visual_critique, and Luna recovery_code_review",
+      "observation": "Recovery is directly available beside the exact action, offers three causally distinct outcomes, leaves all durable state untouched when declined, and keeps revised work off the Quest board until explicit Workshop acceptance.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Focused rest, recovery choice, leave-alone acknowledgement, revised cut before acceptance, and compact large-text recovery",
+          "path": "design/comparisons/2026-08-29/goals-recovery-slice.png",
+          "generated_at": "2026-08-29T15:05:10-04:00",
+          "content_sha256": "19dcae66d3f8900132084724ab6e0a10c97a6c97a4cf6770e2a6e04f473ffaae",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Exact no-op, proof preservation, revision cleanup, acceptance identity, accessibility, and regression verification",
+          "path": "design/execution-mode/active/goals-recovery-loop/slice-test-report.md",
+          "generated_at": "2026-08-29T15:07:35-04:00",
+          "content_sha256": "85db637573527fc43f402c9093fdbbbeacb798e572712a6ffe32b1bb7d8a40a2",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-recovery-interaction",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Use real widget taps on the focused recovery entry and all three choices, then run the complete Goals management suite and adjacent route, Workshop, steward, semantics, and neutrality regressions.",
+      "input_state": "Leave today alone, make smaller, prepare return, explicit acceptance, one completed marker, prior proof, compact large text, and Reduced Motion.",
+      "inspected_by": "Codex main agent and Luna recovery_code_review",
+      "observation": "Leave-alone performs zero persistence or mutation; both revision paths preserve proof and remove only the unfinished old exact revision; the revised Quest is absent until one acceptance and then carries the exact current revision, step, and attempt.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "75 focused and adjacent passing widget, engine, visual, and semantic checks plus a clean full analyzer pass",
+          "path": "design/execution-mode/active/goals-recovery-loop/slice-test-report.md",
+          "generated_at": "2026-08-29T15:07:35-04:00",
+          "content_sha256": "85db637573527fc43f402c9093fdbbbeacb798e572712a6ffe32b1bb7d8a40a2",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-recovery-visual",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect all final recovery states together at their intended 430x932 and 320x568 viewports after the final steward-presence, contrast, safe-area, and compact-overflow fixes.",
+      "input_state": "Normal phone recovery, no-op acknowledgement, smaller cut on the steward bench, and 1.5x compact text at the top and scrolled option positions.",
+      "inspected_by": "Codex main agent and Terra recovery_visual_critique",
+      "observation": "The exact Quest remains the room's one luminous action; recovery stays quiet and native to the walnut and brass room, the considering steward owns the choice surface, consequences are readable, and the smaller path resolves into the full living Workshop.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Final full and compact recovery sequence",
+          "path": "design/comparisons/2026-08-29/goals-recovery-slice.png",
+          "generated_at": "2026-08-29T15:05:10-04:00",
+          "content_sha256": "19dcae66d3f8900132084724ab6e0a10c97a6c97a4cf6770e2a6e04f473ffaae",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-focused-rest",
+      "requirement_id": "state:focused-rest",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the untouched first frame at 430x932.",
+      "input_state": "Exact owned current Quest, prior proof, and the new recovery entry at rest.",
+      "inspected_by": "Codex main agent and Terra recovery_visual_critique",
+      "observation": "Open Quest keeps the only honey-gold commitment treatment while this doesn't fit today stays discoverable in the arch as quiet supporting text.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Focused recovery entry at rest",
+          "path": "design/comparisons/2026-08-29/goals-recovery-slice.png",
+          "generated_at": "2026-08-29T15:05:10-04:00",
+          "content_sha256": "19dcae66d3f8900132084724ab6e0a10c97a6c97a4cf6770e2a6e04f473ffaae",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-recovery-choice",
+      "requirement_id": "state:recovery-choice",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Open the recovery choice from the real focused scene and inspect its parked full-size and compact positions.",
+      "input_state": "Current route move with smaller, prepare-return, and leave-alone consequences visible before selection.",
+      "inspected_by": "Codex main agent and Terra recovery_visual_critique",
+      "observation": "The surface is concise, nonjudgmental, steward-owned, and materially consistent with the tavern; each choice states its consequence without adding a second obligation.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Recovery choice at normal and compact large-text sizes",
+          "path": "design/comparisons/2026-08-29/goals-recovery-slice.png",
+          "generated_at": "2026-08-29T15:05:10-04:00",
+          "content_sha256": "19dcae66d3f8900132084724ab6e0a10c97a6c97a4cf6770e2a6e04f473ffaae",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-leave-alone",
+      "requirement_id": "state:leave-alone-result",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Select leave today alone, inspect the returned room and acknowledgement, and compare deep serialized state plus object identity before and after.",
+      "input_state": "Owned exact Quest with completed route proof and no revised state.",
+      "inspected_by": "Codex main agent, Terra recovery_visual_critique, and Luna recovery_code_review",
+      "observation": "The room returns unchanged with a plain acknowledgement; Goal JSON, Quest JSON, exact Quest identity, completed marker, proof fields, and persistence count remain unchanged.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Leave-today-alone acknowledgement in the unchanged focused room",
+          "path": "design/comparisons/2026-08-29/goals-recovery-slice.png",
+          "generated_at": "2026-08-29T15:05:10-04:00",
+          "content_sha256": "19dcae66d3f8900132084724ab6e0a10c97a6c97a4cf6770e2a6e04f473ffaae",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Deep no-op and proof-preservation assertions",
+          "path": "design/execution-mode/active/goals-recovery-loop/slice-test-report.md",
+          "generated_at": "2026-08-29T15:07:35-04:00",
+          "content_sha256": "85db637573527fc43f402c9093fdbbbeacb798e572712a6ffe32b1bb7d8a40a2",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-smaller-workshop",
+      "requirement_id": "state:smaller-workshop-result",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Choose make it smaller from focused recovery and inspect the resulting steward bench before accepting the revised cut.",
+      "input_state": "Old exact Quest removed, completed proof retained, revised recovery step present, and no current-revision Quest yet created.",
+      "inspected_by": "Codex main agent, Terra recovery_visual_critique, and Luna recovery_code_review",
+      "observation": "The considering choice resolves into the full ready steward pose and one explicit Take this Quest boundary; earned proof and the remaining route are visible while the revised Quest remains absent until acceptance.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Smaller recovery cut on the steward bench before acceptance",
+          "path": "design/comparisons/2026-08-29/goals-recovery-slice.png",
+          "generated_at": "2026-08-29T15:05:10-04:00",
+          "content_sha256": "19dcae66d3f8900132084724ab6e0a10c97a6c97a4cf6770e2a6e04f473ffaae",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Revision cleanup, pre-acceptance absence, and exact acceptance identity assertions",
+          "path": "design/execution-mode/active/goals-recovery-loop/slice-test-report.md",
+          "generated_at": "2026-08-29T15:07:35-04:00",
+          "content_sha256": "85db637573527fc43f402c9093fdbbbeacb798e572712a6ffe32b1bb7d8a40a2",
+          "data_source": "test_output"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra recovery_visual_critique and Luna recovery_code_review",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-recovery-product",
+      "slice-recovery-interaction",
+      "slice-recovery-visual"
+    ],
+    "reviewed_artifacts": [
+      "design/comparisons/2026-08-29/goals-recovery-slice.png",
+      "design/execution-mode/active/goals-recovery-loop/slice-test-report.md"
+    ],
+    "result": "pass",
+    "findings": [],
+    "no_material_findings_observation": "Final independent re-review found the steward presence explicit but restrained, copy contrast sufficient, compact continuation intentional, no blocking visual issue, and no remaining state or acceptance-boundary gap after completed-step and proof-preservation assertions were added."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-29T15:08:00-04:00",
+    "decided_at": "2026-08-29T15:15:54-04:00",
+    "reviewed_revision": "worktree:0e666f2639fc:f359f1cbc2d06eb10af9c7f8",
+    "reviewed_brief_sha256": "f97ceb31bb640c122fc4cb98b88d21013fc7e1c11c79632fff7ab842c348ef71",
+    "reviewed_check_ids": [
+      "slice-recovery-product",
+      "slice-recovery-interaction",
+      "slice-recovery-visual"
+    ],
+    "reviewed_artifacts": [
+      "design/comparisons/2026-08-29/goals-recovery-slice.png",
+      "design/execution-mode/active/goals-recovery-loop/slice-test-report.md"
+    ],
+    "decision": "accepted",
+    "exact_feedback_or_waiver_reason": "i think it's great work! you can get working on building it i think so i can fully properly test the new state of the app, including the fable sound stuff, on my phone"
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Desktop renders cannot establish physical iPhone thumb hierarchy, haptic weight, OLED contrast, frame pacing, or owner feel."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "physical-phone-feel",
+      "type": "device",
+      "status": "pending",
+      "next_action": "Use the recovery journey on the physical iPhone for touch hierarchy, haptics, frame pacing, compact scroll, and OLED readability."
+    }
+  ]
+}

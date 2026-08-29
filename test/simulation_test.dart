@@ -126,7 +126,7 @@ void main() {
     expect(feb.scheduledOn(DateTime(2026, 2, 27)), isFalse);
   });
 
-  test('rising difficulty offers a rung after 5 holds, never before', () {
+  test('a custom ladder offers a manual rung after 5 holds, never before', () {
     today = DateTime(2026, 6, 15);
     final s = GameState();
     final q = Quest(
@@ -134,6 +134,8 @@ void main() {
       stat: Stat.str,
       difficulty: 2,
       rising: true,
+      custom: true,
+      ladder: const ['Do 2 push-ups', 'Do 5 push-ups'],
     );
 
     for (var d = 0; d < 4; d++) {
@@ -172,6 +174,23 @@ void main() {
     expect(goal.target, 10, reason: 'target doubles at milestone');
     expect(s.takeJustMilestoned(), isNotNull);
     expect(goal.complete, isFalse);
+  });
+
+  test('goal progress survives legacy title-casing mismatches', () {
+    today = DateTime(2026, 6, 15);
+    final state = GameState();
+    final goal = Goal(title: 'keep YOUR space', stat: Stat.dis, target: 25);
+    state.addGoal(goal);
+    final quest = Quest(
+      title: 'Clear one surface',
+      stat: Stat.dis,
+      difficulty: 1,
+      goalTitle: 'Keep your space',
+    );
+
+    complete(state, quest);
+
+    expect(goal.progress, 1);
   });
 
   test('ACHIEVE goal crosses a finish line and completes', () {
@@ -234,7 +253,8 @@ void main() {
     expect(s2.goals.first.progress, 2);
     expect(s2.totalXp, s.totalXp);
     expect(q2.rising, isTrue);
-    expect(q2.risingStreak, 2);
+    expect(q2.risingStreak, 0);
+    expect(q2.masteryCompletions, 2);
     expect(q2.goalTitle, 'Get stronger');
     expect(q2.lastDoneDay, q.lastDoneDay);
   });

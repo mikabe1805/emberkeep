@@ -16,6 +16,7 @@ import '../daybook/data/daybook_preferences.dart';
 import '../daybook/services/place_search_access.dart';
 import '../daybook/services/place_search_identity_removal.dart';
 import '../engine.dart';
+import '../goal_planner.dart';
 import '../haptics.dart';
 import '../journal_media.dart' as media;
 import '../models.dart';
@@ -158,6 +159,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   List<Quest>? _quests;
   int _tab = 1; // Quests is home
   final Set<int> _visitedTabs = {1};
+  String? _focusedQuestTitle;
+  String? _pendingGoalOpeningTitle;
+  int _questFocusRequest = 0;
+  int _workoutRequest = 0;
   final List<Object> _soundTabScopes = List<Object>.generate(
     5,
     (_) => Object(),
@@ -759,11 +764,19 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }) async {
     if (!mounted) return;
     if (forgeFirstGoal) {
-      await Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => GoalWizardScreen(state: state, onAdd: _addQuest),
-        ),
+      final goal = await Navigator.of(context).push<Goal>(
+        MaterialPageRoute(builder: (_) => GoalWizardScreen(state: state)),
       );
+      if (!mounted) return;
+      if (goal != null) {
+        _persist();
+        Sfx.instance.setInteractionScreen(_soundTabScopes[2]);
+        setState(() {
+          _pendingGoalOpeningTitle = goal.title;
+          _visitedTabs.add(2);
+          _tab = 2;
+        });
+      }
     } else if (openGuide) {
       await _openRoomGuide();
     }
@@ -1416,7 +1429,24 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     final quests = _quests;
     if (quests == null) return false;
     final key = q.title.trim().toLowerCase();
-    if (quests.any((e) => e.title.trim().toLowerCase() == key)) return false;
+    final now = Clock.now();
+    final structuredRoute =
+        q.goalTitle != null &&
+        q.goalPlanStepId != null &&
+        q.goalPlanRevision != null;
+    final duplicate = structuredRoute
+        ? quests.any(
+            (existing) =>
+                existing.goalTitle?.trim().toLowerCase() ==
+                    q.goalTitle!.trim().toLowerCase() &&
+                existing.goalPlanStepId == q.goalPlanStepId &&
+                existing.goalPlanRevision == q.goalPlanRevision &&
+                (existing.goalPlanAttempt ?? 1) == (q.goalPlanAttempt ?? 1) &&
+                GoalPlanner.questActionableToday(existing, now) &&
+                !existing.doneFor(now),
+          )
+        : quests.any((existing) => existing.title.trim().toLowerCase() == key);
+    if (duplicate) return false;
     q.createdDay ??= Days.key(Clock.now());
     setState(() {
       quests.add(q);
@@ -1532,6 +1562,29 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _tab = i;
     });
     if (i == 1) _maybeStartSessionIgnition();
+  }
+
+  void _openQuestFromGoals(Quest quest) {
+    Sfx.instance.setInteractionScreen(_soundTabScopes[1]);
+    setState(() {
+      _focusedQuestTitle = quest.title;
+      _questFocusRequest++;
+      _visitedTabs.add(1);
+      _tab = 1;
+    });
+    _maybeStartSessionIgnition();
+  }
+
+  void _openWorkoutFromGoals(Quest launcher) {
+    Sfx.instance.setInteractionScreen(_soundTabScopes[1]);
+    setState(() {
+      _focusedQuestTitle = launcher.title;
+      _questFocusRequest++;
+      _workoutRequest++;
+      _visitedTabs.add(1);
+      _tab = 1;
+    });
+    _maybeStartSessionIgnition();
   }
 
   @override
@@ -1668,6 +1721,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           lightDirection: lightFor(1),
                                           roomIgniting: _roomIgniting,
                                           roomHearthLit: _roomHearthLit,
+                                          focusQuestTitle: _focusedQuestTitle,
+                                          focusRequestId: _questFocusRequest,
+                                          workoutRequestId: _workoutRequest,
                                         )
                                       : const SizedBox.shrink(),
                                   _visitedTabs.contains(2)
@@ -1678,9 +1734,20 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           onRemoveGoal: _removeGoal,
                                           onPersist: _persist,
                                           quests: quests,
+                                          onOpenQuest: _openQuestFromGoals,
                                           onOpenQuests: () => _selectTab(1),
                                           onOpenGuidedWorkouts:
                                               _openGuidedWorkouts,
+                                          onOpenWorkout: _openWorkoutFromGoals,
+                                          openingRequestTitle:
+                                              _pendingGoalOpeningTitle,
+                                          onOpeningRequestHandled: () {
+                                            if (!mounted) return;
+                                            setState(
+                                              () => _pendingGoalOpeningTitle =
+                                                  null,
+                                            );
+                                          },
                                           parallax: cameraFor(2),
                                           lightDirection: lightFor(2),
                                         )

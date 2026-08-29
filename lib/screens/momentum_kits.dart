@@ -11,6 +11,45 @@ import '../widgets/detail_header.dart';
 import '../widgets/facets.dart';
 import '../widgets/glass.dart';
 
+/// Opens one Momentum Kit from anywhere the user has asked for this exact
+/// kind of support. The sheet remains the single place that validates and
+/// launches a kit; callers only decide what returning to Quests means in
+/// their own navigation stack.
+///
+/// [goalContext] is deliberately optional: only a contextual Unstick uses it
+/// to keep its small return attached to the goal that prompted it. Other kit
+/// entry points retain their existing general-purpose behavior.
+Future<void> showMomentumKitLauncher(
+  BuildContext context, {
+  required MomentumKitKind kind,
+  required GameState state,
+  required bool Function(Quest) onAdd,
+  required VoidCallback onPersist,
+  required VoidCallback onOpenQuests,
+  Goal? goalContext,
+  ValueChanged<Quest>? onOpenQuest,
+}) {
+  final kit = momentumKit(kind);
+  Sfx.instance.playMaterial(MaterialSound.glass);
+  HapticFeedback.selectionClick();
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: Palette.dialogBarrier,
+    builder: (_) => _KitLauncherSheet(
+      kit: kit,
+      state: state,
+      onAdd: onAdd,
+      onPersist: onPersist,
+      onOpenQuests: onOpenQuests,
+      goalContext: goalContext,
+      onOpenQuest: onOpenQuest,
+    ),
+  );
+}
+
 /// Specialized help for distinct kinds of days, all feeding the same weave.
 /// Kits are deliberately housed in Goals instead of becoming a sixth tab.
 class MomentumKitsPage extends StatelessWidget {
@@ -28,24 +67,28 @@ class MomentumKitsPage extends StatelessWidget {
   final VoidCallback onOpenQuests;
 
   void _openKit(BuildContext context, MomentumKitSpec kit) {
-    Sfx.instance.playMaterial(MaterialSound.glass);
-    HapticFeedback.selectionClick();
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Palette.dialogBarrier,
-      builder: (_) => _KitLauncherSheet(
-        kit: kit,
-        state: state,
-        onAdd: onAdd,
-        onPersist: onPersist,
-        onOpenQuests: () {
-          Navigator.of(context).pop();
+    showMomentumKitLauncher(
+      context,
+      kind: kit.kind,
+      state: state,
+      onAdd: onAdd,
+      onPersist: onPersist,
+      onOpenQuests: () {
+        if (!Navigator.of(context).canPop()) {
           onOpenQuests();
-        },
-      ),
+          return;
+        }
+        final route = ModalRoute.of(context);
+        Navigator.of(context).pop();
+        if (route == null) {
+          onOpenQuests();
+        } else {
+          // `completed` can remain pending after this page is already gone
+          // from the visible stack. The caller owns the next navigation step,
+          // so hand it off as soon as this route has acknowledged its pop.
+          route.popped.then((_) => onOpenQuests());
+        }
+      },
     );
   }
 
@@ -467,6 +510,8 @@ class _KitLauncherSheet extends StatefulWidget {
     required this.onAdd,
     required this.onPersist,
     required this.onOpenQuests,
+    this.goalContext,
+    this.onOpenQuest,
   });
 
   final MomentumKitSpec kit;
@@ -474,6 +519,8 @@ class _KitLauncherSheet extends StatefulWidget {
   final bool Function(Quest) onAdd;
   final VoidCallback onPersist;
   final VoidCallback onOpenQuests;
+  final Goal? goalContext;
+  final ValueChanged<Quest>? onOpenQuest;
 
   @override
   State<_KitLauncherSheet> createState() => _KitLauncherSheetState();
@@ -486,6 +533,7 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
   Stat _stat = Stat.foc;
   String _room = 'Kitchen';
   int? _added;
+  Quest? _acceptedUnstickQuest;
 
   @override
   void initState() {
@@ -498,6 +546,7 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
       MomentumKitKind.creativePractice => 25,
       _ => 5,
     };
+    _stat = widget.goalContext?.stat ?? widget.kit.stat;
   }
 
   @override
@@ -530,7 +579,12 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
 
   List<Quest> _quests() => switch (widget.kit.kind) {
     MomentumKitKind.unstick => [
-      buildUnstickQuest(task: _text.text, minutes: _minutes, stat: _stat),
+      buildUnstickQuest(
+        task: _text.text,
+        minutes: _minutes,
+        stat: _stat,
+        goalTitle: widget.goalContext?.title,
+      ),
     ],
     MomentumKitKind.lowFlame => buildLowFlameQuests(capacity: _capacity),
     MomentumKitKind.homeReset => buildHomeResetQuests(
@@ -556,8 +610,14 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
     FocusManager.instance.primaryFocus?.unfocus();
     final quests = _quests();
     var added = 0;
+    Quest? acceptedUnstickQuest;
     for (final quest in quests) {
-      if (widget.onAdd(quest)) added++;
+      if (widget.onAdd(quest)) {
+        added++;
+        if (widget.kit.kind == MomentumKitKind.unstick) {
+          acceptedUnstickQuest = quest;
+        }
+      }
     }
     if (widget.kit.kind == MomentumKitKind.lowFlame) {
       // This kit is a capacity choice, not three more lines on an already-full
@@ -622,17 +682,32 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
       Sfx.instance.play('boing');
       HapticFeedback.selectionClick();
     }
-    setState(() => _added = added);
+    setState(() {
+      _added = added;
+      _acceptedUnstickQuest = acceptedUnstickQuest;
+    });
   }
 
   void _openBoard() {
+    final route = ModalRoute.of(context);
+    final acceptedUnstickQuest = _acceptedUnstickQuest;
+    final openExactQuest = widget.onOpenQuest;
+    void handoff() {
+      if (acceptedUnstickQuest != null && openExactQuest != null) {
+        openExactQuest(acceptedUnstickQuest);
+      } else {
+        widget.onOpenQuests();
+      }
+    }
+
     Navigator.of(context).pop();
-    // Let the modal route finish leaving before asking its parent route to
-    // leave too. Two synchronous pops race on iOS and the second is ignored,
-    // leaving the user on the kit hub while the hidden tab changes beneath it.
-    Future<void>.delayed(const Duration(milliseconds: 320), () {
-      widget.onOpenQuests();
-    });
+    // Chain navigation to the route's real completion instead of guessing its
+    // duration. This stays correct when Reduce Motion shortens the sheet.
+    if (route == null) {
+      handoff();
+    } else {
+      route.completed.then((_) => handoff());
+    }
   }
 
   @override
@@ -703,6 +778,18 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
                                 color: Palette.textLo,
                               ),
                             ),
+                            if (widget.goalContext case final goal?) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                'For “${goal.title}”',
+                                style: Type.body.copyWith(
+                                  fontSize: 12.5,
+                                  height: 1.3,
+                                  fontWeight: FontWeight.w600,
+                                  color: goal.stat.color,
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -715,6 +802,10 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
                       added: _added!,
                       accent: kit.stat.color,
                       sheltered: kit.kind == MomentumKitKind.lowFlame,
+                      goalTitle: widget.goalContext?.title,
+                      opensExactQuest:
+                          _acceptedUnstickQuest != null &&
+                          widget.onOpenQuest != null,
                       onOpenQuests: _openBoard,
                     )
                   else ...[
@@ -786,7 +877,8 @@ class _KitLauncherSheetState extends State<_KitLauncherSheet> {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    if (kit.kind == MomentumKitKind.unstick) ...[
+                    if (kit.kind == MomentumKitKind.unstick &&
+                        widget.goalContext == null) ...[
                       const _FieldLabel('What part of life is it tending?'),
                       const SizedBox(height: 8),
                       _ChoiceRow<Stat>(
@@ -1100,12 +1192,16 @@ class _SuccessState extends StatelessWidget {
     required this.accent,
     required this.sheltered,
     required this.onOpenQuests,
+    this.goalTitle,
+    this.opensExactQuest = false,
   });
   final int requested;
   final int added;
   final Color accent;
   final bool sheltered;
   final VoidCallback onOpenQuests;
+  final String? goalTitle;
+  final bool opensExactQuest;
 
   @override
   Widget build(BuildContext context) {
@@ -1126,6 +1222,8 @@ class _SuccessState extends StatelessWidget {
         Text(
           sheltered
               ? '$requested step${requested == 1 ? '' : 's'} will carry the day'
+              : opensExactQuest
+              ? 'Your next move is ready'
               : alreadyThere
               ? 'Already waiting on Quests'
               : added == 1
@@ -1138,6 +1236,8 @@ class _SuccessState extends StatelessWidget {
         Text(
           sheltered
               ? 'Everything else on today’s board will rest safely behind Gentle Mode shelter.'
+              : opensExactQuest && goalTitle != null
+              ? 'It counts toward “$goalTitle” and will open next on your Quest board.'
               : alreadyThere
               ? 'This exact kit is already pinned for today. Nothing was duplicated.'
               : added < requested
@@ -1151,7 +1251,10 @@ class _SuccessState extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        _LaunchButton(label: 'OPEN QUESTS', onTap: onOpenQuests),
+        _LaunchButton(
+          label: opensExactQuest ? 'OPEN THIS QUEST' : 'OPEN QUESTS',
+          onTap: onOpenQuests,
+        ),
       ],
     );
   }
