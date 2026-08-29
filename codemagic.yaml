@@ -3,10 +3,10 @@
 # REPO LAYOUT: this file sits at the ROOT of the app's git repo (the `app/` folder
 # IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
 #
-# TRIGGERING: intentionally manual. Routine source/docs pushes must not spend a
-# cloud-Mac build or upload an unreviewed binary to TestFlight. Start exactly one
-# `ios-testflight` build from the Codemagic UI when the release checklist calls
-# for it; see ../NATIVE-iOS.md.
+# TRIGGERING: routine source/docs pushes remain inert. This candidate permits one
+# exact, owner-authorized Build 35 tag so the internal phone-test build can start
+# without broadening the release channel. No other tag or branch push matches.
+# See ../NATIVE-iOS.md for the normal manual workflow.
 #
 # SIGNING: EXPLICIT App Store Connect CLI signing (NOT the automatic ios_signing
 # block). Two hard-won facts drove this:
@@ -41,6 +41,12 @@ workflows:
     name: Room of Days iOS → TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 60
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "room-of-days-1.0.4-build-35-candidate"
+          include: true
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name
     environment:
