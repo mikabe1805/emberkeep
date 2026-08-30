@@ -628,120 +628,131 @@ void main() {
     expect(association, contains('D63Z4RBRT8.com.mikabe.emberkeep'));
   });
 
-  test(
-    'iOS release path provisions fallback plugins and foreground reminders',
-    () {
-      final workflow = _source('codemagic.yaml');
-      final appDelegate = _source('ios/Runner/AppDelegate.swift');
-      final privacyManifest = _source('ios/Runner/PrivacyInfo.xcprivacy');
+  test('iOS release path provisions fallback plugins and foreground reminders', () {
+    final workflow = _source('codemagic.yaml');
+    final appDelegate = _source('ios/Runner/AppDelegate.swift');
+    final privacyManifest = _source('ios/Runner/PrivacyInfo.xcprivacy');
+    final podfile = _source('ios/Podfile');
+    final debugConfig = _source('ios/Flutter/Debug.xcconfig');
+    final releaseConfig = _source('ios/Flutter/Release.xcconfig');
 
-      expect(workflow, contains('flutter: 3.44.2'));
-      expect(workflow, contains('xcode: 26.4'));
-      expect(workflow, contains('cocoapods: 1.16.2'));
-      expect(workflow, contains('APPLE_TEAM_ID: "D63Z4RBRT8"'));
-      expect(workflow, contains('routine source/docs pushes remain inert'));
-      expect(workflow, contains('room-of-days-1.0.4-build-36-candidate-3'));
-      expect(workflow, contains('CM_CLONE_DEPTH: "2"'));
-      expect(
-        workflow,
-        contains('Hydrate and verify immutable receipt identity'),
-      );
-      expect(
-        workflow,
-        contains(r'git fetch --no-tags --depth=2 origin "$CM_COMMIT"'),
-      );
-      expect(workflow, contains('Run the complete app regression suite'));
-      expect(
-        workflow,
-        contains('Run the feature-on friends and discovery packet'),
-      );
-      expect(workflow, contains('Verify the iOS submission packet'));
-      expect(
-        workflow,
-        contains('Confirm validation left tracked sources unchanged'),
-      );
-      expect(
-        workflow.indexOf('Verify the iOS submission packet'),
-        lessThan(workflow.indexOf('Analyze Dart')),
-      );
-      expect(
-        workflow.indexOf('Run the feature-on friends and discovery packet'),
-        lessThan(
-          workflow.indexOf('Confirm validation left tracked sources unchanged'),
-        ),
-      );
-      expect(
-        RegExp(
-          r'dart run tool/verify_store_submission\.dart --ios-only',
-        ).allMatches(workflow),
-        hasLength(2),
-      );
-      expect(
-        workflow,
-        isNot(contains('room-of-days-1.0.4-build-35-candidate')),
-      );
-      expect(workflow, isNot(contains('PURE SPM')));
-      expect(workflow, contains('Verify signed IPA contents'));
-      expect(workflow, contains('PUBSPEC_BUILD'));
-      expect(workflow, contains('PUBSPEC_VERSION'));
-      expect(workflow, contains('Keep the checked-in version+build exact.'));
-      expect(workflow, isNot(matches(RegExp(r'Build \d+ for \d+\.\d+\.\d+'))));
-      expect(workflow, contains(r'NEXT_BUILD=$PUBSPEC_BUILD'));
-      expect(
-        workflow,
-        contains(r'if [ "$LATEST" -ge "$PUBSPEC_BUILD" ]; then'),
-      );
-      expect(workflow, contains('bump pubspec before starting another run'));
-      expect(workflow, isNot(contains(r'NEXT_BUILD=$((LATEST + 1))')));
-      expect(workflow, contains(r'--build-name="$PUBSPEC_VERSION"'));
-      expect(workflow, contains(r'marketing_version=$MARKETING_VERSION'));
-      expect(workflow, isNot(contains('marketing_version=1.0.2')));
-      expect(workflow, contains(r'test "$BUILD_NUMBER" = "$PUBSPEC_BUILD"'));
-      expect(workflow, isNot(contains('2>/dev/null || echo 0')));
-      expect(workflow, contains('codesign --verify --deep --strict'));
-      expect(workflow, contains('PrivacyInfo.xcprivacy'));
-      for (final dataType in const [
-        'NSPrivacyCollectedDataTypeName',
-        'NSPrivacyCollectedDataTypeEmailAddress',
-        'NSPrivacyCollectedDataTypeUserID',
-        'NSPrivacyCollectedDataTypeGameplayContent',
-        'NSPrivacyCollectedDataTypeHealth',
-        'NSPrivacyCollectedDataTypeFitness',
-        'NSPrivacyCollectedDataTypeOtherUserContent',
-      ]) {
-        expect(workflow, contains(dataType));
-      }
-      expect(workflow, contains("Print :ITSAppUsesNonExemptEncryption"));
-      expect(workflow, contains("Print :DTSDKName"));
-      expect(workflow, contains('iphoneos26'));
-      expect(workflow, contains('embedded.mobileprovision'));
-      expect(workflow, contains(r'$APPLE_TEAM_ID.$BUNDLE_ID'));
-      expect(
-        workflow,
-        contains('com.apple.developer.devicecheck.appattest-environment'),
-      );
-      expect(
-        RegExp(
-          r"grep -Eq '\(\^\|\[\[:space:\]\]\)production",
-        ).allMatches(workflow).length,
-        greaterThanOrEqualTo(2),
-      );
-      expect(workflow, contains('app_attest_environment=production'));
-      expect(workflow, contains('release-evidence.txt'));
-      expect(workflow, contains('Runner.xcarchive/dSYMs/*.dSYM'));
-      expect(appDelegate, contains('import UserNotifications'));
-      expect(
-        appDelegate,
-        contains('UNUserNotificationCenter.current().delegate'),
-      );
-      expect(
-        privacyManifest,
-        contains('NSPrivacyCollectedDataTypeOtherUserContent'),
-      );
-      expect(privacyManifest, contains('NSPrivacyCollectedDataTypeHealth'));
-      expect(privacyManifest, contains('NSPrivacyCollectedDataTypeFitness'));
-    },
-  );
+    expect(workflow, contains('flutter: 3.44.2'));
+    expect(workflow, contains('xcode: 26.4'));
+    expect(workflow, contains('cocoapods: 1.16.2'));
+    expect(workflow, contains('APPLE_TEAM_ID: "D63Z4RBRT8"'));
+    expect(workflow, contains('routine source/docs pushes remain inert'));
+    expect(workflow, contains('room-of-days-1.0.4-build-36-candidate-4'));
+    expect(workflow, contains('CM_CLONE_DEPTH: "2"'));
+    expect(workflow, contains('Hydrate and verify immutable receipt identity'));
+    expect(
+      workflow,
+      contains(r'git fetch --no-tags --depth=2 origin "$CM_COMMIT"'),
+    );
+    expect(
+      workflow,
+      contains('Confirm Flutter packages left the receipt checkout clean'),
+    );
+    expect(workflow, contains('Run the complete app regression suite'));
+    expect(
+      workflow,
+      contains('Run the feature-on friends and discovery packet'),
+    );
+    expect(workflow, contains('Verify the iOS submission packet'));
+    expect(
+      workflow,
+      contains('Confirm validation left tracked sources unchanged'),
+    );
+    expect(
+      workflow.indexOf('Verify the iOS submission packet'),
+      lessThan(workflow.indexOf('Analyze Dart')),
+    );
+    expect(
+      workflow.indexOf('Run the feature-on friends and discovery packet'),
+      lessThan(
+        workflow.indexOf('Confirm validation left tracked sources unchanged'),
+      ),
+    );
+    expect(
+      RegExp(
+        r'dart run tool/verify_store_submission\.dart --ios-only',
+      ).allMatches(workflow),
+      hasLength(2),
+    );
+    expect(podfile, contains("platform :ios, '15.0'"));
+    expect(podfile, contains('flutter_ios_podfile_setup'));
+    expect(podfile, contains('flutter_install_all_ios_pods'));
+    expect(podfile, contains('use_frameworks!'));
+    expect(
+      debugConfig,
+      startsWith(
+        '#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"',
+      ),
+    );
+    expect(
+      releaseConfig,
+      startsWith(
+        '#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"',
+      ),
+    );
+    expect(workflow, isNot(contains('room-of-days-1.0.4-build-35-candidate')));
+    expect(workflow, isNot(contains('PURE SPM')));
+    expect(workflow, contains('Verify signed IPA contents'));
+    expect(workflow, contains('PUBSPEC_BUILD'));
+    expect(workflow, contains('PUBSPEC_VERSION'));
+    expect(workflow, contains('Keep the checked-in version+build exact.'));
+    expect(workflow, isNot(matches(RegExp(r'Build \d+ for \d+\.\d+\.\d+'))));
+    expect(workflow, contains(r'NEXT_BUILD=$PUBSPEC_BUILD'));
+    expect(workflow, contains(r'if [ "$LATEST" -ge "$PUBSPEC_BUILD" ]; then'));
+    expect(workflow, contains('bump pubspec before starting another run'));
+    expect(workflow, isNot(contains(r'NEXT_BUILD=$((LATEST + 1))')));
+    expect(workflow, contains(r'--build-name="$PUBSPEC_VERSION"'));
+    expect(workflow, contains(r'marketing_version=$MARKETING_VERSION'));
+    expect(workflow, isNot(contains('marketing_version=1.0.2')));
+    expect(workflow, contains(r'test "$BUILD_NUMBER" = "$PUBSPEC_BUILD"'));
+    expect(workflow, isNot(contains('2>/dev/null || echo 0')));
+    expect(workflow, contains('codesign --verify --deep --strict'));
+    expect(workflow, contains('PrivacyInfo.xcprivacy'));
+    for (final dataType in const [
+      'NSPrivacyCollectedDataTypeName',
+      'NSPrivacyCollectedDataTypeEmailAddress',
+      'NSPrivacyCollectedDataTypeUserID',
+      'NSPrivacyCollectedDataTypeGameplayContent',
+      'NSPrivacyCollectedDataTypeHealth',
+      'NSPrivacyCollectedDataTypeFitness',
+      'NSPrivacyCollectedDataTypeOtherUserContent',
+    ]) {
+      expect(workflow, contains(dataType));
+    }
+    expect(workflow, contains("Print :ITSAppUsesNonExemptEncryption"));
+    expect(workflow, contains("Print :DTSDKName"));
+    expect(workflow, contains('iphoneos26'));
+    expect(workflow, contains('embedded.mobileprovision'));
+    expect(workflow, contains(r'$APPLE_TEAM_ID.$BUNDLE_ID'));
+    expect(
+      workflow,
+      contains('com.apple.developer.devicecheck.appattest-environment'),
+    );
+    expect(
+      RegExp(
+        r"grep -Eq '\(\^\|\[\[:space:\]\]\)production",
+      ).allMatches(workflow).length,
+      greaterThanOrEqualTo(2),
+    );
+    expect(workflow, contains('app_attest_environment=production'));
+    expect(workflow, contains('release-evidence.txt'));
+    expect(workflow, contains('Runner.xcarchive/dSYMs/*.dSYM'));
+    expect(appDelegate, contains('import UserNotifications'));
+    expect(
+      appDelegate,
+      contains('UNUserNotificationCenter.current().delegate'),
+    );
+    expect(
+      privacyManifest,
+      contains('NSPrivacyCollectedDataTypeOtherUserContent'),
+    );
+    expect(privacyManifest, contains('NSPrivacyCollectedDataTypeHealth'));
+    expect(privacyManifest, contains('NSPrivacyCollectedDataTypeFitness'));
+  });
 
   test(
     'account deletion exits cloud and reset durably orders local erasure',

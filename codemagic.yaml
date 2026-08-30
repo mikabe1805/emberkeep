@@ -45,7 +45,7 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - pattern: "room-of-days-1.0.4-build-36-candidate-3"
+        - pattern: "room-of-days-1.0.4-build-36-candidate-4"
           include: true
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name
@@ -76,7 +76,7 @@ workflows:
           CANDIDATE_REVISION=$(git rev-parse HEAD^)
           MANIFEST=store-assets/screenshots/app-store/CANDIDATE-MANIFEST.json
           SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' "$MANIFEST")
-          test "$CM_TAG" = "room-of-days-1.0.4-build-36-candidate-3"
+          test "$CM_TAG" = "room-of-days-1.0.4-build-36-candidate-4"
           test "$RECEIPT_REVISION" = "$CM_COMMIT"
           test "$SOURCE_REVISION" = "$CANDIDATE_REVISION"
           test "$(git diff --name-only "$CANDIDATE_REVISION..$RECEIPT_REVISION")" = "$MANIFEST"
@@ -87,6 +87,14 @@ workflows:
           flutter pub get
           jq -e '.swift_package_manager_enabled.ios == true' \
             .flutter-plugins-dependencies
+      - name: Confirm Flutter packages left the receipt checkout clean
+        script: |
+          set -euo pipefail
+          STATUS=$(git status --porcelain --untracked-files=all)
+          if [ -n "$STATUS" ]; then
+            printf '%s\n' "$STATUS" >&2
+            exit 1
+          fi
       - name: Verify the iOS submission packet
         script: |
           set -euo pipefail

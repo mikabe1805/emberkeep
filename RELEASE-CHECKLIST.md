@@ -66,8 +66,18 @@ frames, with new Goals, Workshop, and recovery moments. `pubspec.yaml` is
   `HEAD^`. Candidate 3 requests exactly two commits, hydrates the missing parent
   if the provider still supplies one, verifies the packet before tests, and
   separately proves the test run leaves tracked sources unchanged.
-- [ ] Bind the candidate-3 packet, push the exact release branch, and publish
-  `room-of-days-1.0.4-build-36-candidate-3` once. Preserve its IPA, dSYMs, build
+- [x] Bind and publish
+  `room-of-days-1.0.4-build-36-candidate-3` once. Codemagic build
+  `6a93b780ad20be13e3fcb889` proved receipt-parent hydration and Flutter package
+  resolution, then failed the packet's clean-checkout requirement before
+  analysis, tests, signing, IPA creation, or Apple upload.
+- [x] Trace that remaining macOS-only change through the pinned Flutter 3.44.2
+  tooling. With Swift Package Manager enabled and fallback iOS plugins present,
+  `flutter pub get` creates a missing CocoaPods Podfile and inserts Pods support
+  includes into the tracked Debug and Release Xcode configs. Promote those
+  deterministic inputs into source rather than ignoring or reverting CI drift.
+- [ ] Bind the candidate-4 packet, push the exact release branch, and publish
+  `room-of-days-1.0.4-build-36-candidate-4` once. Preserve its IPA, dSYMs, build
   evidence, and upload receipt if the workflow passes.
 - [ ] Confirm Apple processes Build 36 and makes it available to the intended
   internal TestFlight group.
