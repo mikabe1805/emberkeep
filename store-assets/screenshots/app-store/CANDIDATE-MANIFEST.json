@@ -1,39 +1,39 @@
 {
   "schema": 1,
   "candidate": {
-    "version": "REPLACE_WITH_PUBSPEC_VERSION",
-    "sourceRevision": "REPLACE_WITH_CLEAN_PARENT_CANDIDATE_COMMIT"
+    "version": "1.0.4+36",
+    "sourceRevision": "b2e6f1c12a6faf131d0c526c7b5f03bfb6f79ec2"
   },
   "screenshots": {
     "01-quests-1290x2796.png": {
-      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+      "sha256": "dba706ddb9329b8f4f52054be10841fd015bc47908e82fe7b8bfae6c9fba4656"
     },
     "02-reward-1290x2796.png": {
-      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+      "sha256": "b3cbf725bc95d4bc521ff5e29c75fd150fd7c05a468e04d14de410701fd86914"
     },
     "03-goals-1290x2796.png": {
-      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+      "sha256": "75c82b32d6f2502f97fd286bcf6f5ccfb138428f78fb5ee3b34856d2f0e98106"
     },
     "04-workshop-1290x2796.png": {
-      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+      "sha256": "6dd0d63957767cdb483b595d294958e10375fe28a16b09c9f1dac7b2f47b084b"
     },
     "05-recovery-1290x2796.png": {
-      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+      "sha256": "fdc0eafd693fc51ff2becb6a31c36a29d8e8100d22c4886bdbdaf57f601f6ee6"
     },
     "06-plans-1290x2796.png": {
-      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+      "sha256": "d18761a112b6762d40e54f0f8635d47057232b8c0d32e25e961cc15905802e43"
     },
     "07-my-space-1290x2796.png": {
-      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+      "sha256": "9ad9e7c478b442d90b5cba94dfde6e6e20b51c975529d6a269c2d6cf896f72e3"
     },
     "08-change-space-1290x2796.png": {
-      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+      "sha256": "b4500c3a847f1262f3425b3658254b034d204f520a3f9b6d1596e9fee4d063bb"
     },
     "09-journal-1290x2796.png": {
-      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+      "sha256": "76466786e37cd54ea7ed06692d8705fac8b3e5e37fce32a7037513e0b1c5691f"
     },
     "10-discover-1290x2796.png": {
-      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+      "sha256": "fc3b0abc84991cc2ab54c0d4d7bd5087ac3044d2b28c6cc528d89f24fc3b3cbf"
     }
   }
 }
