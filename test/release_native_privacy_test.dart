@@ -640,7 +640,14 @@ void main() {
       expect(workflow, contains('cocoapods: 1.16.2'));
       expect(workflow, contains('APPLE_TEAM_ID: "D63Z4RBRT8"'));
       expect(workflow, contains('routine source/docs pushes remain inert'));
-      expect(workflow, contains('room-of-days-1.0.4-build-36-candidate'));
+      expect(workflow, contains('room-of-days-1.0.4-build-36-candidate-2'));
+      expect(workflow, contains('CM_CLONE_UNSHALLOW: "true"'));
+      expect(workflow, contains('Run the complete app regression suite'));
+      expect(
+        workflow,
+        contains('Run the feature-on friends and discovery packet'),
+      );
+      expect(workflow, contains('Verify the iOS submission packet'));
       expect(
         workflow,
         isNot(contains('room-of-days-1.0.4-build-35-candidate')),

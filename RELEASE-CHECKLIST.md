@@ -33,7 +33,7 @@ frames, with new Goals, Workshop, and recovery moments. `pubspec.yaml` is
 - [x] Generate, export, and inspect ten opaque 1290×2796 iPhone frames in the
   exact order Quests, Reward, Goals, Workshop, Recovery, Plans, My Space, Change
   Space, Journal, and Discover.
-- [x] Pass `flutter analyze`, all 944 Flutter tests, the 24-test feature-on
+- [x] Pass `flutter analyze`, all 945 Flutter tests, the 24-test feature-on
   discovery packet with its one intentional feature assertion skipped,
   Functions lint/build, all 110 Functions tests, all 12 Firestore authorization
   tests, and the feature-on release web build.
@@ -43,13 +43,21 @@ frames, with new Goals, Workshop, and recovery moments. `pubspec.yaml` is
   Functions, does not call the affected buffer APIs, and retains this as an
   explicit upstream maintenance item rather than disguising it as a clean
   audit.
-- [ ] Commit the complete source/listing/screenshot packet, bind its parent
-  source revision and all ten screenshot SHA-256 values in the manifest-only
-  receipt commit, and pass the clean-repository iOS packet verifier.
-- [ ] Push the exact release branch and
-  `room-of-days-1.0.4-build-36-candidate` tag once. Let only that tag start the
-  Codemagic `ios-testflight` workflow, then preserve its IPA, dSYMs, build
-  evidence, and upload receipt.
+- [x] Bind the first complete source/listing/screenshot packet and all ten image
+  hashes in receipt `e74df23`; the clean-repository iOS packet verifier passed.
+- [x] Start the first Codemagic attempt from the exact tag. Build
+  `6a93b06dad20be13e3fcaf0f` stopped in its combined validation step before code
+  signing, IPA creation, publishing, or Apple upload, so that attempt did not
+  consume Build 36 in App Store Connect.
+- [x] Repair the high-confidence macOS-only failure source: seven new exact PNG
+  comparisons used Windows-authored baselines without the repository's
+  canonical-renderer policy. macOS still runs every widget, layout, semantics,
+  and accessibility assertion; only those seven pixel-for-pixel compares stay
+  on Windows. Split the Codemagic validation into named analyze, regression,
+  feature-on, and receipt steps so a future failure identifies its gate.
+- [ ] Rebind the repaired packet, push the exact release branch, and publish
+  `room-of-days-1.0.4-build-36-candidate-2` once. Preserve its IPA, dSYMs, build
+  evidence, and upload receipt if the workflow passes.
 - [ ] Confirm Apple processes Build 36 and makes it available to the intended
   internal TestFlight group.
 - [ ] Install Build 36 on a physical iPhone as both an upgrade and a fresh

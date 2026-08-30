@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/content/goal_catalog.dart';
@@ -11,6 +13,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'support/golden_platform_policy.dart';
+
+const _verifyExactGoldens = bool.fromEnvironment('VERIFY_EXACT_GOLDENS');
 
 void main() {
   setUpAll(() async {
@@ -117,34 +123,56 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
     expect(failures, isEmpty);
 
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/goal_journal_opening_01_desk_430x932.png'),
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goal_journal_opening_01_desk_430x932.png'),
+      ),
     );
 
     await tester.tap(find.byKey(const Key('goal-opening-show-plan')));
     await tester.pumpAndSettle();
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile(
-        'goldens/goal_journal_opening_02_finish_line_430x932.png',
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_journal_opening_02_finish_line_430x932.png',
+        ),
       ),
     );
 
     await tester.tap(find.byKey(const Key('goal-room-wide-continue')));
     await tester.pumpAndSettle();
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile(
-        'goldens/goal_journal_opening_03_resilience_430x932.png',
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_journal_opening_03_resilience_430x932.png',
+        ),
       ),
     );
 
     await tester.tap(find.byKey(const Key('goal-room-arch-step-in')));
     await tester.pumpAndSettle();
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/goal_journal_opening_04_workshop_430x932.png'),
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goal_journal_opening_04_workshop_430x932.png',
+        ),
+      ),
     );
     expect(tester.takeException(), isNull);
   });

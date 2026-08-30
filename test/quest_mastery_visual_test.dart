@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/content/ladders.dart';
 import 'package:emberkeep/engine.dart';
@@ -9,6 +11,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'support/golden_platform_policy.dart';
+
+const _verifyExactGoldens = bool.fromEnvironment('VERIFY_EXACT_GOLDENS');
 
 void main() {
   setUpAll(() async {
@@ -97,9 +103,14 @@ void main() {
       find.bySemanticsLabel(RegExp('rise progress 0 of 5')),
       findsOneWidget,
     );
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/quest_mastery_repaired_16_430x932.png'),
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/quest_mastery_repaired_16_430x932.png'),
+      ),
     );
   });
 
@@ -187,9 +198,14 @@ void main() {
     );
     await tester.pump();
 
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/quest_mastery_cross_domain_430x932.png'),
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/quest_mastery_cross_domain_430x932.png'),
+      ),
     );
   });
 
@@ -248,9 +264,14 @@ void main() {
 
     expect(find.text('PRACTICED · 16×'), findsOneWidget);
     expect(tester.takeException(), isNull);
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/quest_mastery_repaired_narrow_320x568.png'),
+    await runExactGoldenCheck(
+      operatingSystem: Platform.operatingSystem,
+      explicitlyEnabled: _verifyExactGoldens,
+      updatingGoldens: autoUpdateGoldenFiles,
+      compare: () => expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/quest_mastery_repaired_narrow_320x568.png'),
+      ),
     );
   });
 

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/golden_platform_policy.dart';
@@ -105,6 +107,27 @@ void main() {
           ),
         ),
       );
+    },
+  );
+
+  test(
+    'Build 35 Goals visual suites route every exact compare through policy',
+    () {
+      for (final path in const [
+        'test/goal_journal_opening_visual_test.dart',
+        'test/quest_mastery_visual_test.dart',
+      ]) {
+        final source = File(path).readAsStringSync();
+        final exactComparisons = RegExp(
+          'matchesGoldenFile',
+        ).allMatches(source).length;
+        final policyCalls = RegExp(
+          'runExactGoldenCheck',
+        ).allMatches(source).length;
+        expect(policyCalls, exactComparisons, reason: path);
+        expect(source, contains('Platform.operatingSystem'), reason: path);
+        expect(source, contains('autoUpdateGoldenFiles'), reason: path);
+      }
     },
   );
 }
