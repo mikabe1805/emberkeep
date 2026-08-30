@@ -76,9 +76,15 @@ frames, with new Goals, Workshop, and recovery moments. `pubspec.yaml` is
   `flutter pub get` creates a missing CocoaPods Podfile and inserts Pods support
   includes into the tracked Debug and Release Xcode configs. Promote those
   deterministic inputs into source rather than ignoring or reverting CI drift.
-- [ ] Bind the candidate-4 packet, push the exact release branch, and publish
-  `room-of-days-1.0.4-build-36-candidate-4` once. Preserve its IPA, dSYMs, build
-  evidence, and upload receipt if the workflow passes.
+- [x] Bind the candidate-4 packet, push the exact release branch, and publish
+  `room-of-days-1.0.4-build-36-candidate-4` once. Codemagic build
+  `6a93bcbcad20be13e3fcc033` ran from immutable receipt
+  `caa96d152228e9bb3f69aa5a9b5621709b4796f3` and passed every gate in 8 minutes
+  21 seconds: clean receipt hydration, package setup, both clean-checkout
+  checks, packet verification, analysis, all 945 app tests, the feature-on
+  friends/discovery packet, signing, IPA creation, signed-IPA inspection, and
+  TestFlight publishing. The public receipt confirms upload but does not expose
+  Apple's processing or tester-availability state.
 - [ ] Confirm Apple processes Build 36 and makes it available to the intended
   internal TestFlight group.
 - [ ] Install Build 36 on a physical iPhone as both an upgrade and a fresh
