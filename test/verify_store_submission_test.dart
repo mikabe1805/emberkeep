@@ -39,6 +39,11 @@ void main() {
       expect(verifier, contains("'03-goals-1290x2796.png'"));
       expect(verifier, contains("'05-recovery-1290x2796.png'"));
       expect(verifier, contains("'10-discover-1290x2796.png'"));
+      expect(verifier, contains("'3. Goals'"));
+      expect(verifier, contains("'4. Workshop'"));
+      expect(verifier, contains("'5. Recovery'"));
+      expect(verifier, contains("'6. Plans'"));
+      expect(verifier, contains("'10. Discover'"));
       expect(
         verifier,
         contains('App Store icon and ten-image screenshot set are RGB'),

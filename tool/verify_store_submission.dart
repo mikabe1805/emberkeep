@@ -348,11 +348,14 @@ Future<void> main(List<String> arguments) async {
     for (final item in const [
       '1. Quests',
       '2. Reward',
-      '3. Plans',
-      '4. My Space',
-      '5. Change Space',
-      '6. Journal',
-      '7. Discover',
+      '3. Goals',
+      '4. Workshop',
+      '5. Recovery',
+      '6. Plans',
+      '7. My Space',
+      '8. Change Space',
+      '9. Journal',
+      '10. Discover',
     ]) {
       _expectContains('screenshot README', screenshotReadme, item);
     }
