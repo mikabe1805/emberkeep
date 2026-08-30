@@ -45,7 +45,7 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - pattern: "room-of-days-1.0.4-build-36-candidate-2"
+        - pattern: "room-of-days-1.0.4-build-36-candidate-3"
           include: true
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name
@@ -57,20 +57,40 @@ workflows:
       groups:
         - emberkeep_signing # ← MUST contain the secret var CERTIFICATE_PRIVATE_KEY
       vars:
-        # The store receipt verifies its immediate parent commit.
-        CM_CLONE_UNSHALLOW: "true"
+        # Tag builds default to one commit; the store receipt verifies HEAD^.
+        CM_CLONE_DEPTH: "2"
         BUNDLE_ID: "com.mikabe.emberkeep"
         BUNDLE_ID_RESOURCE_ID: "ZV438Q53TS"
         APPLE_TEAM_ID: "D63Z4RBRT8"
         # numeric Apple ID of the app record (App Store Connect → App Information)
         APP_STORE_APPLE_ID: 6781401469
     scripts:
+      - name: Hydrate and verify immutable receipt identity
+        script: |
+          set -euo pipefail
+          # Keep the checkout bounded, but recover the receipt parent if the
+          # provider still presents the tag at its default one-commit depth.
+          git rev-parse --verify --quiet HEAD^ >/dev/null || \
+            git fetch --no-tags --depth=2 origin "$CM_COMMIT"
+          RECEIPT_REVISION=$(git rev-parse HEAD)
+          CANDIDATE_REVISION=$(git rev-parse HEAD^)
+          MANIFEST=store-assets/screenshots/app-store/CANDIDATE-MANIFEST.json
+          SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' "$MANIFEST")
+          test "$CM_TAG" = "room-of-days-1.0.4-build-36-candidate-3"
+          test "$RECEIPT_REVISION" = "$CM_COMMIT"
+          test "$SOURCE_REVISION" = "$CANDIDATE_REVISION"
+          test "$(git diff --name-only "$CANDIDATE_REVISION..$RECEIPT_REVISION")" = "$MANIFEST"
+          test -z "$(git status --porcelain)"
       - name: Flutter packages
         script: |
           flutter config --enable-swift-package-manager
           flutter pub get
           jq -e '.swift_package_manager_enabled.ios == true' \
             .flutter-plugins-dependencies
+      - name: Verify the iOS submission packet
+        script: |
+          set -euo pipefail
+          dart run tool/verify_store_submission.dart --ios-only
       - name: Analyze Dart
         script: |
           set -euo pipefail
@@ -90,9 +110,15 @@ workflows:
             test/discovery_state_test.dart \
             test/discover_spaces_test.dart \
             test/space_discovery_visual_test.dart
-      - name: Verify the iOS submission packet
+      - name: Confirm validation left tracked sources unchanged
         script: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CM_COMMIT"
+          STATUS=$(git status --porcelain)
+          if [ -n "$STATUS" ]; then
+            printf '%s\n' "$STATUS" >&2
+            exit 1
+          fi
           dart run tool/verify_store_submission.dart --ios-only
       - name: Set up code signing (fetch + create App Store profile, key-safe)
         script: |

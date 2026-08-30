@@ -55,8 +55,19 @@ frames, with new Goals, Workshop, and recovery moments. `pubspec.yaml` is
   and accessibility assertion; only those seven pixel-for-pixel compares stay
   on Windows. Split the Codemagic validation into named analyze, regression,
   feature-on, and receipt steps so a future failure identifies its gate.
-- [ ] Rebind the repaired packet, push the exact release branch, and publish
-  `room-of-days-1.0.4-build-36-candidate-2` once. Preserve its IPA, dSYMs, build
+- [x] Rebind the repaired packet and publish
+  `room-of-days-1.0.4-build-36-candidate-2` once. Codemagic build
+  `6a93b48fad20be13e3fcb4a3` passed analysis, all 945 app tests, and the
+  feature-on friends/discovery packet, then failed only in the five-second
+  receipt step. Signing, IPA creation, publishing, and Apple upload were all
+  skipped.
+- [x] Isolate the second attempt's receipt failure from app behavior. Tag builds
+  default to a one-commit checkout, while the immutable packet requires
+  `HEAD^`. Candidate 3 requests exactly two commits, hydrates the missing parent
+  if the provider still supplies one, verifies the packet before tests, and
+  separately proves the test run leaves tracked sources unchanged.
+- [ ] Bind the candidate-3 packet, push the exact release branch, and publish
+  `room-of-days-1.0.4-build-36-candidate-3` once. Preserve its IPA, dSYMs, build
   evidence, and upload receipt if the workflow passes.
 - [ ] Confirm Apple processes Build 36 and makes it available to the intended
   internal TestFlight group.

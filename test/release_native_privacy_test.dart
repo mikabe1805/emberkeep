@@ -640,14 +640,42 @@ void main() {
       expect(workflow, contains('cocoapods: 1.16.2'));
       expect(workflow, contains('APPLE_TEAM_ID: "D63Z4RBRT8"'));
       expect(workflow, contains('routine source/docs pushes remain inert'));
-      expect(workflow, contains('room-of-days-1.0.4-build-36-candidate-2'));
-      expect(workflow, contains('CM_CLONE_UNSHALLOW: "true"'));
+      expect(workflow, contains('room-of-days-1.0.4-build-36-candidate-3'));
+      expect(workflow, contains('CM_CLONE_DEPTH: "2"'));
+      expect(
+        workflow,
+        contains('Hydrate and verify immutable receipt identity'),
+      );
+      expect(
+        workflow,
+        contains(r'git fetch --no-tags --depth=2 origin "$CM_COMMIT"'),
+      );
       expect(workflow, contains('Run the complete app regression suite'));
       expect(
         workflow,
         contains('Run the feature-on friends and discovery packet'),
       );
       expect(workflow, contains('Verify the iOS submission packet'));
+      expect(
+        workflow,
+        contains('Confirm validation left tracked sources unchanged'),
+      );
+      expect(
+        workflow.indexOf('Verify the iOS submission packet'),
+        lessThan(workflow.indexOf('Analyze Dart')),
+      );
+      expect(
+        workflow.indexOf('Run the feature-on friends and discovery packet'),
+        lessThan(
+          workflow.indexOf('Confirm validation left tracked sources unchanged'),
+        ),
+      );
+      expect(
+        RegExp(
+          r'dart run tool/verify_store_submission\.dart --ios-only',
+        ).allMatches(workflow),
+        hasLength(2),
+      );
       expect(
         workflow,
         isNot(contains('room-of-days-1.0.4-build-35-candidate')),
