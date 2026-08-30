@@ -4,7 +4,7 @@
 # IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
 #
 # TRIGGERING: routine source/docs pushes remain inert. This candidate permits one
-# exact, owner-authorized Build 35 tag so the internal phone-test build can start
+# exact, owner-authorized Build 36 tag so the internal phone-test build can start
 # without broadening the release channel. No other tag or branch push matches.
 # See ../NATIVE-iOS.md for the normal manual workflow.
 #
@@ -45,7 +45,7 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - pattern: "room-of-days-1.0.4-build-35-candidate"
+        - pattern: "room-of-days-1.0.4-build-36-candidate"
           include: true
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name

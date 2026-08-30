@@ -1,7 +1,69 @@
 # Room of Days Release Checklist
 
-Updated August 27, 2026. “Repository-ready” means the source is prepared; it does
+Updated August 30, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
+
+## 1.0.4+36 release-polish candidate — supersedes unbound Build 35
+
+Build 36 carries the Goals, Workshop, recovery, mastery, and accepted-tap sound
+work from the isolated Build 35 source into an immutable release packet. It also
+repairs two trust-breaking Circle states found during the release audit: a
+temporary fetch failure no longer claims that a saved space disappeared, and
+removing a keeper now explains the consequence and asks for confirmation. The
+App Store story grows from seven stale frames to ten fresh production-geometry
+frames, with new Goals, Workshop, and recovery moments. `pubspec.yaml` is
+`1.0.4+36`.
+
+- [x] Isolate the candidate from the dirty development checkout on
+  `release/room-of-days-1.0.4-build-36`, preserving the complete accepted Build
+  35 product slice without borrowing unrelated local work.
+- [x] Distinguish an absent shared room from a retryable network/service
+  failure. Retain the last good Circle card when refresh fails, keep the saved
+  relationship intact, and offer a clear Retry action instead of a false
+  disappearance message.
+- [x] Give Circle removal a labelled 44-point target and a confirmation that
+  names the loss of mutual-page access before performing the existing remote
+  relationship cleanup.
+- [x] Keep interaction sound attached to accepted actions. Pointer cancellation,
+  scrolling, and a disabled/no-op control remain quiet, with direct regression
+  coverage.
+- [x] Rewrite the App Store subtitle, promotional text, description, What's New,
+  TestFlight description, and What to Test packet around the actual Build 36
+  product and its privacy boundaries.
+- [x] Generate, export, and inspect ten opaque 1290×2796 iPhone frames in the
+  exact order Quests, Reward, Goals, Workshop, Recovery, Plans, My Space, Change
+  Space, Journal, and Discover.
+- [x] Pass `flutter analyze`, all 944 Flutter tests, the 24-test feature-on
+  discovery packet with its one intentional feature assertion skipped,
+  Functions lint/build, all 110 Functions tests, all 12 Firestore authorization
+  tests, and the feature-on release web build.
+- [x] Classify the current npm audit warning without applying npm's breaking
+  forced downgrade. The nine reported moderate entries are one transitive
+  `uuid` advisory carried by Google's server SDK chain; Build 36 does not change
+  Functions, does not call the affected buffer APIs, and retains this as an
+  explicit upstream maintenance item rather than disguising it as a clean
+  audit.
+- [ ] Commit the complete source/listing/screenshot packet, bind its parent
+  source revision and all ten screenshot SHA-256 values in the manifest-only
+  receipt commit, and pass the clean-repository iOS packet verifier.
+- [ ] Push the exact release branch and
+  `room-of-days-1.0.4-build-36-candidate` tag once. Let only that tag start the
+  Codemagic `ios-testflight` workflow, then preserve its IPA, dSYMs, build
+  evidence, and upload receipt.
+- [ ] Confirm Apple processes Build 36 and makes it available to the intended
+  internal TestFlight group.
+- [ ] Install Build 36 on a physical iPhone as both an upgrade and a fresh
+  install. Exercise the complete Goals/Workshop/recovery path, accepted-action
+  sound, scrolling silence, native handoffs, relaunch persistence, largest text,
+  VoiceOver, Reduced Motion, Ring/Silent behavior, and warm performance.
+- [ ] Complete the signed two-identity friends journey: private/listed states,
+  Discover, one-way Circle, reciprocal Mutuals, per-card audiences, offline
+  retry with retained cards, confirmed removal, report, block, code rotation,
+  opt-out, and positive App Attest.
+- [ ] Replace the Version 1.0.4 App Store draft's old screenshot set and copy
+  with the inspected Build 36 packet. Do not select the binary or submit another
+  public review request until the exact TestFlight artifact passes both physical
+  owner/device journeys above.
 
 ## 1.0.4+34 internal TestFlight candidate — supersedes Build 33
 

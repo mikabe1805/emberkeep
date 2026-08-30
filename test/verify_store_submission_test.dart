@@ -17,13 +17,31 @@ void main() {
         verifier,
         contains('_verifyCurrentInAppReleaseNotes(pubspecVersion)'),
       );
-      expect(verifier, contains('if (!iosOnly) {'));
-      expect(verifier, contains("'03-plans-1290x2796.png'"));
-      expect(verifier, contains("'06-journal-1290x2796.png'"));
-      expect(verifier, contains("'07-discover-1290x2796.png'"));
       expect(
         verifier,
-        contains('App Store icon and seven-image screenshot set are RGB'),
+        contains('_verifyListingWhatsNewIdentity(listing, pubspecVersion)'),
+      );
+      expect(verifier, contains('final expectedHeading'));
+      expect(verifier, contains('versionMatch.group(2)'));
+      expect(verifier, contains('CANDIDATE-MANIFEST.json'));
+      expect(
+        verifier,
+        contains('_verifyAppStoreScreenshotManifest(pubspecVersion)'),
+      );
+      expect(verifier, contains('sourceRevision'));
+      expect(verifier, contains('sha256'));
+      expect(verifier, contains("const ['rev-parse', 'HEAD^']"));
+      expect(verifier, contains("'diff',"));
+      expect(verifier, contains("'--name-only',"));
+      expect(verifier, contains('_appStoreScreenshotManifest; changed'));
+      expect(verifier, contains("const ['status', '--porcelain']"));
+      expect(verifier, contains('if (!iosOnly) {'));
+      expect(verifier, contains("'03-goals-1290x2796.png'"));
+      expect(verifier, contains("'05-recovery-1290x2796.png'"));
+      expect(verifier, contains("'10-discover-1290x2796.png'"));
+      expect(
+        verifier,
+        contains('App Store icon and ten-image screenshot set are RGB'),
       );
     },
   );

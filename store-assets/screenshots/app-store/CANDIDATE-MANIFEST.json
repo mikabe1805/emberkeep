@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "candidate": {
+    "version": "REPLACE_WITH_PUBSPEC_VERSION",
+    "sourceRevision": "REPLACE_WITH_CLEAN_PARENT_CANDIDATE_COMMIT"
+  },
+  "screenshots": {
+    "01-quests-1290x2796.png": {
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+    },
+    "02-reward-1290x2796.png": {
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+    },
+    "03-goals-1290x2796.png": {
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+    },
+    "04-workshop-1290x2796.png": {
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+    },
+    "05-recovery-1290x2796.png": {
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+    },
+    "06-plans-1290x2796.png": {
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+    },
+    "07-my-space-1290x2796.png": {
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+    },
+    "08-change-space-1290x2796.png": {
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+    },
+    "09-journal-1290x2796.png": {
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+    },
+    "10-discover-1290x2796.png": {
+      "sha256": "REPLACE_WITH_LOWERCASE_SHA256"
+    }
+  }
+}

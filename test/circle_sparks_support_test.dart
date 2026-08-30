@@ -256,6 +256,102 @@ void main() {
     },
   );
 
+  testWidgets('Circle preserves failed rooms and offers a retry', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+
+    final state = GameState()..addCircleCode('ABC234');
+    var fetches = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HearthCircleScreen(
+          state: state,
+          onPersist: () {},
+          roomFetcher: (_) async {
+            fetches++;
+            if (fetches == 1) throw StateError('offline');
+            return roomDisplay(GameState()..level = 8);
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(find.textContaining('Your Circle is still here'), findsOneWidget);
+    expect(find.text('RETRY'), findsOneWidget);
+    expect(state.hearthCircleCodes, contains('ABC234'));
+
+    await tester.tap(find.text('RETRY'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(fetches, 2);
+    expect(find.textContaining('Your Circle is still here'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('removing a Circle space is labelled and asks first', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      tester.platformDispatcher.clearTextScaleFactorTestValue();
+    });
+
+    final state = GameState()..addCircleCode('ABC234');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HearthCircleScreen(
+          state: state,
+          onPersist: () {},
+          roomFetcher: (_) async => roomDisplay(GameState()..level = 8),
+          relationshipSetter: (_, {ownerKey = '', required active}) async =>
+              true,
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    await tester.scrollUntilVisible(
+      find.bySemanticsLabel('Remove ABC234 from Circle'),
+      400,
+      scrollable: find
+          .descendant(
+            of: find.byType(CustomScrollView).first,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+
+    await tester.tap(find.bySemanticsLabel('Remove ABC234 from Circle'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Remove this space?'), findsOneWidget);
+    expect(state.hearthCircleCodes, contains('ABC234'));
+    await tester.tap(find.text('Keep it'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(state.hearthCircleCodes, contains('ABC234'));
+    await tester.tap(find.bySemanticsLabel('Remove ABC234 from Circle'));
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Remove'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(state.hearthCircleCodes, isNot(contains('ABC234')));
+    expect(tester.takeException(), isNull);
+    semantics.dispose();
+  });
+
   test('social snackbar opens Circle directly', () {
     final shell = File('lib/screens/shell.dart').readAsStringSync();
     expect(shell, contains("label: 'OPEN CIRCLE'"));

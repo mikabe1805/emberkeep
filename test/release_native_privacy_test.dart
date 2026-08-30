@@ -639,7 +639,12 @@ void main() {
       expect(workflow, contains('xcode: 26.4'));
       expect(workflow, contains('cocoapods: 1.16.2'));
       expect(workflow, contains('APPLE_TEAM_ID: "D63Z4RBRT8"'));
-      expect(workflow, contains('TRIGGERING: intentionally manual'));
+      expect(workflow, contains('routine source/docs pushes remain inert'));
+      expect(workflow, contains('room-of-days-1.0.4-build-36-candidate'));
+      expect(
+        workflow,
+        isNot(contains('room-of-days-1.0.4-build-35-candidate')),
+      );
       expect(workflow, isNot(contains('PURE SPM')));
       expect(workflow, contains('Verify signed IPA contents'));
       expect(workflow, contains('PUBSPEC_BUILD'));
@@ -756,7 +761,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+35'));
+    expect(pubspec, contains('version: 1.0.4+36'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

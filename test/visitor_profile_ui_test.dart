@@ -688,6 +688,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(remove);
     await tester.pumpAndSettle();
+    expect(find.text('Remove this space?'), findsOneWidget);
+    await tester.tap(find.text('Remove'));
+    await tester.pumpAndSettle();
 
     expect(attempts, 1);
     expect(state.hearthCircleCodes, contains('ABC234'));
@@ -719,6 +722,9 @@ void main() {
     await tester.ensureVisible(remove);
     await tester.pumpAndSettle();
     await tester.tap(remove);
+    await tester.pumpAndSettle();
+    expect(find.text('Remove this space?'), findsOneWidget);
+    await tester.tap(find.text('Remove'));
     await tester.pumpAndSettle();
 
     expect(state.hearthCircleCodes, isNot(contains('ABC234')));

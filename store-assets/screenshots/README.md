@@ -3,10 +3,22 @@
 These are direct production-UI captures from one deterministic account. They
 have no device frame, overlay copy, alpha channel, or transparency.
 
-The seven-frame iOS set was freshly regenerated from the feature-on `1.0.4+32`
-candidate and opened for visual inspection on August 24, 2026. Its compact
-review sheet is
-`design/comparisons/2026-08-24/app-store-build-32-phone.webp`.
+The ten-frame iOS set was freshly regenerated from the feature-on `1.0.4+36`
+working candidate and opened at original resolution on August 30, 2026. It
+becomes immutable release evidence only after the manifest-only binding commit
+described below is complete.
+
+## Candidate binding
+
+This is a two-commit receipt. First, commit the completed candidate code,
+listing, and inspected screenshots. Then, from that clean candidate, calculate
+each lowercase SHA-256 and make one final commit that changes only
+`app-store/CANDIDATE-MANIFEST.json`. The manifest's `sourceRevision` is the
+candidate commit (`git rev-parse HEAD^` from the final receipt commit), and its
+`version` must match `pubspec.yaml`. Verification rejects a dirty checkout, a
+non-parent revision, or any receipt commit that changes another path. The
+checked-in template is deliberately incomplete and must never be treated as
+release evidence.
 
 - `app-store/` contains Apple's accepted 1290×2796 iPhone 6.9-inch class.
 - `google-play/` contains Google's recommended 1080×1920 portrait class. A
@@ -18,12 +30,15 @@ The App Store sequence is:
 1. Quests — the daily board, six life domains, and an achievable main quest.
 2. Reward — a completed quest becoming XP, Glimmers, a stat gain, and streak
    progress.
-3. Plans — the Daybook, next class, and calendar sharing one warm desk.
-4. My Space — the authored visitor page with explicit Anyone, Mutuals, and
+3. Goals — one grounded move inside the warm, living Goals room.
+4. Workshop — the steward and the current set of owned routes.
+5. Recovery — smaller, prepare the return, or leave today alone without guilt.
+6. Plans — the Daybook, next class, and calendar sharing one warm desk.
+7. My Space — the authored visitor page with explicit Anyone, Mutuals, and
    Only me audiences.
-5. Change Space — a full-room preview and the no-cost room-switching promise.
-6. Journal — a private local entry shown in its then-and-now context.
-7. Discover — a finite, opt-in directory of rooms with optional public names.
+8. Change Space — a full-room preview and the no-cost room-switching promise.
+9. Journal — a private local entry shown in its then-and-now context.
+10. Discover — a finite, opt-in directory of rooms with optional public names.
 
 Google Play remains the earlier five-image core story without the Plans frame;
 Android publication is deferred, so those files stay unchanged in this iOS pass.

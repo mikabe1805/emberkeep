@@ -7,74 +7,79 @@ productivity language.
 ## Public positioning
 
 - **App name:** Room of Days
-- **Apple subtitle (30 characters):** Real quests. Real progress.
-- **Apple promotional text (170 characters max):** Turn everyday actions into quests, earn XP and Glimmers, and watch your build change. Free, private by default, and never punishing.
-- **Apple keywords (100 characters max):** habits,routines,goals,quests,life RPG,self care,productivity,focus,wellness,motivation
+- **Apple subtitle (30 characters):** A life RPG for real days
+- **Apple promotional text (170 characters max):** Bring a real goal to the Workshop, accept one honest Quest, and let XP, Glimmers, mastery, and a warm room remember what you practiced.
+- **Apple keywords (100 characters max):** habits,goals,routines,life RPG,self care,focus,planner,journal,motivation,wellness
 - **Primary category:** Productivity
 - **Secondary category:** Lifestyle
-- **Google Play short description (80 characters max):** Turn everyday actions into quests, XP, and a build that changes with you.
+- **Google Play short description (80 characters max):** A warm life RPG for goals, honest quests, and progress that never punishes.
 - **Privacy policy:** `https://roomofdays.com/privacy`
 - **Account deletion:** `https://roomofdays.com/delete-account`
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 34)
+## App Store What's New — Version 1.0.4 (Build 36)
 
-Your semester can come in together.
+Your goals have somewhere to go.
 
-Plans can now import the Room of Days class `.ics` file. Choose it from the
-Daybook add menu, review the term and every course, then bring the full schedule
-in at once—including designated class days, recess, and holiday exceptions.
+Bring a goal to the Workshop and the steward will help shape it into a route
+grounded in where you are, what proof would count, and how much room the day
+actually has. The first Quest waits for your explicit acceptance. Nothing lands
+on the board just because a plan was suggested.
 
-The import is one-way and local. It does not connect to or change the source
-calendar, repeated imports do not create duplicates, and your manual changes to
-individual class meetings stay yours.
+When the day changes, the route can change without making that a verdict on
+you. Make the next move smaller, prepare the return, or leave today alone while
+keeping the route and its proof intact.
 
-The open door is finally in the open.
+Repeatable Quests now remember practice beyond their first target. Continued
+completions earn richer mastery marks instead of quietly ending the story.
 
-My Space now gives you a direct Open to Discover or Manage Listing action, and
-Discover shows your own private or listed state above its open doors. You no
-longer have to guess that code sharing is where the public opt-in lives.
+The room's sound has been rebuilt around its materials. Taps, pages, placement,
+and completion answer once; scrolling, dragging away, and cancelled touches
+stay quiet.
 
-Themes are now Ambient Light. Each choice has a live preview and visibly
-changes the light around your room; Change Space remains the way to replace the
-whole room.
+Circle is more honest when the network is not. A failed refresh keeps the room
+you saved and offers a retry instead of pretending it disappeared. Removing a
+space now asks first and explains that you will need its code to restore it.
 
-Discover remains optional and private by default. Its directory contains only
-an optional public name and generated room style, title, and level. A separate
-visitor page can share only owner-selected cards: Anyone cards for exact-code
-visitors, plus Mutuals cards after both people choose each other in Circle.
-Journal photos, private cards, and account details stay private.
-
-Room-code guidance now remains readable above Visit and Cancel at the largest
-text sizes on a small screen.
+This build also keeps the full class-schedule import, private visitor-card
+audiences, optional Discover listing, Ambient Light previews, and large-text
+room-code repair from the earlier 1.0.4 candidates.
 
 ## Full description
 
-Room of Days turns the ordinary things you want to do into quests worth showing
-up for.
+Room of Days is a warm, private life RPG for the things you actually want to
+do.
 
-Complete a short workout, clear the dishes, read a page, answer a message, or
-write a quest of your own. Each win earns XP and Glimmers. Your six life
-domains grow, your build takes shape, and new room pieces become possible.
+Bring an intention—make the apartment easier to live in, return to a book,
+practice a skill, care for your body—and the Workshop helps turn your real
+starting point into one clear Quest. You can edit the cut, make it smaller, or
+leave it alone. The Quest reaches your board only when you accept it.
 
-As you level, the Woven Dawn in your room gains lasting rows and never
-unweaves. There is no health bar to lose and no punishment for taking a break.
-Days away cost nothing. Returning is something to celebrate.
+Then the room remembers what happened. Completed Quests earn XP and Glimmers,
+strengthen Body, Care, Mind, Craft, People, or Home, and leave lasting evidence
+in your build. Repeatable Quests grow mastery marks as practice accumulates.
+The Woven Dawn gains rows and never unweaves.
+
+There is no health bar to lose and no punishment for taking a break. When a day
+changes, you can make the next move smaller, prepare the return, or take today
+off without erasing the route you chose.
 
 With Room of Days you can:
 
-- turn everyday tasks into satisfying quests;
-- adopt ready-made goals or forge goals of your own;
+- shape your own goal into a grounded route at the Workshop;
+- accept, edit, shrink, or decline the exact first Quest;
+- recover from a difficult day without losing the plan or its proof;
+- grow repeatable Quests through visible mastery;
+- turn everyday actions into XP, Glimmers, and lasting room changes;
 - grow Body, Care, Mind, Craft, People, and Home;
-- watch your six-stat build and room change as your level grows;
 - unlock room styles, windows, fireplace colors, and furnishings;
-- see patterns in your progress without being judged by them;
+- plan ordinary days or import a complete class schedule into Plans;
 - keep a private journal with optional on-device photos;
-- back up across devices with an optional account; and
+- back up across devices with an optional account;
 - share a six-character code so a friend can visit the room you built;
 - optionally list your room in Discover with a separate public name;
-- separately choose a few visitor cards for Anyone or Mutuals; and
+- choose a few visitor cards for Anyone or reciprocal Mutuals; and
 - find a few open rooms and keep as many as you want in your private Circle.
 
 Room of Days works without an account. Your device is the source of truth, cloud
@@ -89,99 +94,70 @@ treatment.
 
 ## TestFlight description
 
-Room of Days is a local-first life RPG. Real-life actions become quests; quests
-earn XP and Glimmers; and lasting progress appears in your six-stat build and
-your warm, personal room.
+Room of Days is a local-first life RPG where real actions become Quests, earn XP
+and Glimmers, and leave lasting evidence in a warm personal room. Nothing takes
+damage, days away cost nothing, and every cosmetic is earned.
 
-It is built to be kind. Nothing takes damage, days away cost nothing, and
-coming back after a break is rewarded. Every cosmetic is earned. There are no
-ads, subscriptions, or paywalls.
+Build 36 is the phone-test candidate for the new Goals experience. A person can
+name what they want, ground it in their present reality, shape a route with the
+steward, and explicitly accept the first Quest before it reaches the board.
+Repeatable Quests now carry visible mastery beyond the first target. Difficult
+days have three honest choices: make the move smaller, prepare the return, or
+leave today alone.
 
-Build 33 keeps the generated room and visitor page separate. My Space exposes
-Open to Discover or Manage Listing directly, and Discover shows the owner's
-private/listed state and management action above the finite room directory.
-Enabling a listing remains a separate explicit switch; the app never opts
-someone in automatically. The directory contains only a separate optional
-public name and generated room fields, never visitor-card text. A keeper can
-separately publish a bounded set of chosen cards: Anyone cards appear to
-exact-code and Discover visitors, while Mutuals cards require reciprocal Circle
-choices. Only-me cards are never sent. Journal photos, private Me cards, email,
-and account details stay private. Visible names and cards are filtered; links
-and contact details are prohibited. Visitors can privately report or block a
-keeper across future room-code changes, and can keep as many trusted spaces as
-they want in their private Circle.
+This candidate also repairs the Circle journey. A transient room fetch no
+longer masquerades as a missing space, a failed Circle refresh keeps the saved
+room available with a retry, and removal is labelled, reachable, and confirmed.
+The generated room, Discover directory, and visitor page retain their existing
+privacy boundaries: listing is explicit, Anyone and Mutuals cards are separate,
+Only me cards are never sent, and visitors can privately block or report.
 
-The old Themes control is now Ambient Light. A live preview and the surrounding
-canvas visibly respond to every choice, while Change Space remains the full-room
-chooser. This build also retains the seven-session guided-workout chooser and
-movement-linked quest sound behavior. Room-code validation stays clear above
-the dialog actions at the largest text sizes. Protected Google place search
-remains intentionally off.
+Interaction sound now fires only after an accepted tap. Scrolls, drags,
+cancellations, and disabled controls remain quiet. The class-schedule import,
+Ambient Light previews, room-code large-text repair, and protected social
+authorization remain included. Protected Google place search remains
+intentionally off.
 
 Feedback on clarity, warmth, performance, and anything that gets between you
 and doing what matters is especially useful.
 
 ## What to Test
 
-- Install over the previous TestFlight build and confirm your quests, goals,
-  journal, room, and settings remain.
-- Begin with a private room and no code. In My Space, tap **OPEN TO DISCOVER**
-  without opening Share my space first. Confirm the listing switch is visible
-  and still off, then turn it on and save or clear a separate public name.
-  Confirm My Space says **IN DISCOVER · MANAGE LISTING**, then turn discovery
-  off and confirm the listing closes.
-- Open **Discover spaces**. Refresh the finite set, open a room, keep it in your
-  Circle, and return without entering a code. Confirm the top owner card says
-  **PRIVATE** or **LISTED** truthfully and opens the same listing controls.
-  Private quests, Journal pages, streaks, and account details must never appear
-  on a directory card.
-- From an exact-code room and from a Discover room, verify that only Anyone
-  cards appear. Create reciprocal Circle choices from two accounts and verify
-  that Mutuals cards then appear in addition; remove either choice or block and
-  verify that Mutuals cards disappear. Verify Only me cards and Journal photos
-  never reach either visitor.
-- In Me settings, change **Ambient Light** from Walnut Night to Sea Cave.
-  Confirm the live preview and surrounding canvas visibly change, the selected
-  light survives a relaunch, and **Change Space** still replaces the whole room.
-- From a discovered room, block the keeper and confirm all of their current
-  cards disappear. Unblock from **Manage hidden spaces**. Send a private test
-  report and verify the success/failure message is honest.
-- Open **Community rules & safety** from Discover and confirm the hosted page,
-  support address, and appeal route work.
-- In Plans, add an all-day event, a timed event, and a task. Edit, complete,
-  undo, and delete them; then force-quit and confirm the saved entries return.
-- Try Month, Week, 3 Days, and Day. Check Today's marker, longer titles, and
-  larger text.
-- If you use School, add a class, assignment, or exam beside personal plans. If
-  you do not, confirm nothing asks you to set up a term or course.
-- In Plans, open the add menu, choose **Import class schedule**, and select the
-  provided Rutgers Fall 2026 `.ics` file. Before importing, confirm the review
-  shows six courses, twelve weekly meeting series, and 168 class meetings.
-- Import, relaunch, and inspect the designated Monday on September 8 and the
-  designated Friday on November 25. Confirm Labor Day, Thanksgiving recess,
-  and the other source exceptions do not leave stray class meetings.
-- Re-import the same file and confirm it adds no duplicates. Move or cancel one
-  imported meeting, re-import once more, and confirm that manual change stays.
-- Add a manual location and routing address, tap **Get Directions**, and try
-  Apple Maps and Google Maps. Confirm the remembered choice and change option
-  behave clearly.
-- In Goals, take back an adopted quest, choose it again, and change the day of
-  a weekly quest. Confirm its history and progress stay intact.
-- Look through Quests, Goals, Help for Today, and Plans for stray lines,
-  awkward wrapping, or visible background seams.
-- Start the app from a fully stopped state and confirm the hearth ignites once
-  when Quests is first unobscured, stays lit, and does not replay on tab changes
-  or resume. Repeat with Reduce Motion and the Ring/Silent switch.
-- Tap across the dock, calendar, journal, overlays, and rewards at an ordinary
-  pace and in a rapid burst. Confirm clicks stay crisp, a rare melodic answer
-  never spills across pages, completion takes priority, and background music
-  keeps playing.
-- Check the Day Ledger in the Home Screen and App Library at its smallest size;
-  the completed honey mark should catch the eye without losing the book.
-- Repeat important flows offline, with Reduce Motion, Larger Text, and
-  VoiceOver.
-- At the largest text size on a small phone, enter a short room code and confirm
-  its guidance remains fully readable above Visit and Cancel.
+- Install over the previous TestFlight build and also try a fresh install.
+  Confirm quests, goals, Journal entries, Plans, room choices, Circle, and
+  settings survive the upgrade.
+- Create a goal in your own words. Check that the Workshop uses the reality,
+  proof, available time, and obstacle you gave it. Edit the proposed first
+  action, make it smaller, and leave once without accepting. No new Quest should
+  appear until you explicitly accept the cut.
+- Open an active goal and choose **this doesn't fit today**. Try **Make it
+  smaller**, **Prepare the return**, and **Leave today alone** on separate
+  attempts. Confirm the route, proof, and completion history remain intact.
+- Repeat one Quest through its first target and beyond. Confirm its mastery mark
+  and completion count advance without duplicating rewards or losing the goal
+  link.
+- With two signed-in test identities, share one room by exact code, keep it in
+  Circle, make the relationship reciprocal, and verify that Mutuals cards appear
+  only after both people choose each other. Only me cards, Journal photos,
+  private quests, email, and account details must never appear.
+- While a room is kept in Circle, interrupt the network and refresh. The saved
+  room must stay present with an honest retry state. Restore the network, retry,
+  and confirm the card recovers. A genuinely ended share should remain a
+  distinct unavailable state.
+- Remove a Circle room with VoiceOver on. Confirm the action names the room,
+  Cancel leaves it untouched, and Remove explains that the code is needed to
+  restore it before the local bookmark disappears.
+- Enter a valid-looking room code while offline, then retry online. Offline must
+  not be reported as “No shared space found,” and the entered code must remain.
+- From Discover, verify private/listed owner state, Anyone versus Mutuals cards,
+  block/unblock, report, code rotation, and the community rules/support route.
+- Press a control and drag into a scroll, cancel a touch, and tap a disabled or
+  no-op control. Those gestures must stay silent. A completed tap should answer
+  once after release; rapid navigation must not leak sounds between pages.
+- Import the provided class `.ics` file, review the six courses and 168 meetings,
+  re-import without duplicates, and confirm one manual change survives.
+- Repeat the Goals, Circle, room-code, Plans, Journal, and reward paths with
+  Larger Text, VoiceOver, Reduce Motion, Ring/Silent, and a cold relaunch.
 
 Report anything confusing, slow, visually cold, or unrewarding, plus anything
 that makes returning after a break feel harder than it should.
@@ -591,26 +567,30 @@ and [label management](https://developer.apple.com/help/app-store-connect/manage
 
 ## Screenshot story
 
-Use real production UI with no device frame required. Capture at least these
-five moments in one consistent account:
+Use real production UI with no device frame required. The iOS sequence tells
+these ten moments with one consistent visual language:
 
 1. **Your day, as quests** — a welcoming board with achievable actions.
 2. **A real win becomes progress** — the reward receipt with XP and Glimmers.
-3. **Your space reflects the work** — a furnished room, level, and milestones.
-4. **Make the space your own** — a complete-room preview with no-cost switching.
-5. **Kind progress over time** — a private Journal note in its then-and-now
-   context.
+3. **A goal becomes inhabitable** — one grounded move in the living Goals room.
+4. **The steward has a real place** — the Workshop and its routes, not a form.
+5. **A changed day is not failure** — smaller, prepare, or leave today alone.
+6. **The day has a shape** — Plans, the next class, and the calendar together.
+7. **Sharing stays authored** — My Space with explicit card audiences.
+8. **The room can change completely** — a no-cost full-room preview.
+9. **What happened can be kept** — a private Journal note in context.
+10. **Other rooms are optional** — a finite, opt-in Discover directory.
 
 ## Store asset checklist
 
 - App Store icon: `web/icons/Icon-1024.png`.
 - Google Play icon: `web/icons/Icon-512.png` (512×512 PNG).
 - Google Play feature graphic: `store-assets/google-play-feature-graphic-1024x500.png`.
-- App Store phone screenshots: seven opaque 24-bit RGB PNGs at Apple's accepted
+- App Store phone screenshots: ten opaque 24-bit RGB PNGs at Apple's accepted
   1290×2796 iPhone 6.9-inch class are in
   `store-assets/screenshots/app-store/`.
-- The App Store sequence adds a real Plans/Daybook frame between Reward and My
-  Space so the 1.0.4 calendar work is represented without overlay copy.
+- The App Store sequence adds three production Goals frames before Plans so the
+  Workshop and recovery contract are visible without overlay copy.
 - Google Play phone screenshots: the earlier five-state core story is independently
   rendered at Google's recommended 1080×1920 portrait class in
   `store-assets/screenshots/google-play/`. Do not upload the taller Apple

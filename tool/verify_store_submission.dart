@@ -1,18 +1,24 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:image/image.dart' as img;
 
 const _listingName = 'STORE-LISTING.md';
+const _appStoreScreenshotManifest =
+    'store-assets/screenshots/app-store/CANDIDATE-MANIFEST.json';
 
 const _appStoreScreenshots = <String>[
   '01-quests-1290x2796.png',
   '02-reward-1290x2796.png',
-  '03-plans-1290x2796.png',
-  '04-my-space-1290x2796.png',
-  '05-change-space-1290x2796.png',
-  '06-journal-1290x2796.png',
-  '07-discover-1290x2796.png',
+  '03-goals-1290x2796.png',
+  '04-workshop-1290x2796.png',
+  '05-recovery-1290x2796.png',
+  '06-plans-1290x2796.png',
+  '07-my-space-1290x2796.png',
+  '08-change-space-1290x2796.png',
+  '09-journal-1290x2796.png',
+  '10-discover-1290x2796.png',
 ];
 
 const _playScreenshots = <String>[
@@ -113,6 +119,7 @@ Future<void> main(List<String> arguments) async {
       r'^version:\s*(\S+)\s*$',
       multiLine: true,
     ).firstMatch(pubspec)?.group(1);
+    _verifyListingWhatsNewIdentity(listing, pubspecVersion);
     _verifyCurrentInAppReleaseNotes(pubspecVersion);
     Map<String, dynamic>? candidate;
     List<String>? candidatePermissions;
@@ -310,6 +317,7 @@ Future<void> main(List<String> arguments) async {
       1290,
       2796,
     );
+    _verifyAppStoreScreenshotManifest(pubspecVersion);
     if (!iosOnly) {
       _verifyRgbPng('web/icons/Icon-512.png', 512, 512);
       _verifyRgbPng(
@@ -357,7 +365,7 @@ Future<void> main(List<String> arguments) async {
     }
     _pass(
       iosOnly
-          ? 'App Store icon and seven-image screenshot set are RGB'
+          ? 'App Store icon and ten-image screenshot set are RGB and candidate-bound'
           : 'icons, feature graphic, and both five-image screenshot sets are RGB',
     );
 
@@ -416,6 +424,161 @@ void _verifyCurrentInAppReleaseNotes(String? pubspecVersion) {
     );
   }
   _pass('pubspec $pubspecVersion matches current in-app release notes');
+}
+
+void _verifyListingWhatsNewIdentity(String listing, String? pubspecVersion) {
+  if (pubspecVersion == null) {
+    throw StateError('pubspec.yaml is missing a version.');
+  }
+  final versionMatch = RegExp(
+    r'^(\d+\.\d+\.\d+)\+(\d+)$',
+  ).firstMatch(pubspecVersion);
+  if (versionMatch == null) {
+    throw StateError('pubspec version $pubspecVersion is not version+build.');
+  }
+  final expectedHeading =
+      '## App Store What\'s New — Version ${versionMatch.group(1)} '
+      '(Build ${versionMatch.group(2)})';
+  if (!listing.contains(expectedHeading)) {
+    throw StateError(
+      'Store listing must contain the exact current What\'s New heading: '
+      '$expectedHeading.',
+    );
+  }
+  _pass('store listing What\'s New heading matches pubspec $pubspecVersion');
+}
+
+void _verifyAppStoreScreenshotManifest(String? pubspecVersion) {
+  if (pubspecVersion == null) {
+    throw StateError('pubspec.yaml is missing a version.');
+  }
+  final manifestFile = File(_appStoreScreenshotManifest);
+  if (!manifestFile.existsSync()) {
+    throw StateError(
+      'Missing App Store screenshot candidate manifest: '
+      '$_appStoreScreenshotManifest.',
+    );
+  }
+
+  final dynamic decoded;
+  try {
+    decoded = jsonDecode(manifestFile.readAsStringSync());
+  } on FormatException catch (error) {
+    throw StateError('Invalid screenshot candidate manifest JSON: $error');
+  }
+  if (decoded is! Map<String, dynamic>) {
+    throw StateError('Screenshot candidate manifest must be a JSON object.');
+  }
+  if (decoded['schema'] != 1) {
+    throw StateError('Screenshot candidate manifest schema must be 1.');
+  }
+  final candidate = decoded['candidate'];
+  if (candidate is! Map<String, dynamic>) {
+    throw StateError(
+      'Screenshot candidate manifest is missing candidate metadata.',
+    );
+  }
+  if (candidate['version'] != pubspecVersion) {
+    throw StateError(
+      'Screenshot candidate manifest version ${candidate['version']} differs '
+      'from pubspec $pubspecVersion.',
+    );
+  }
+  final sourceRevision = candidate['sourceRevision'];
+  if (sourceRevision is! String ||
+      !RegExp(r'^[0-9a-f]{40}$').hasMatch(sourceRevision)) {
+    throw StateError(
+      'Screenshot candidate manifest sourceRevision must be a 40-character '
+      'lowercase Git commit SHA.',
+    );
+  }
+  final receiptRevision = _gitOutput(const ['rev-parse', 'HEAD']);
+  final candidateRevision = _gitOutput(const ['rev-parse', 'HEAD^']);
+  if (sourceRevision != candidateRevision) {
+    throw StateError(
+      'Screenshot candidate manifest sourceRevision $sourceRevision differs '
+      'from the immediate parent candidate revision $candidateRevision.',
+    );
+  }
+  final dirtyPaths = _gitOutput(const ['status', '--porcelain']);
+  if (dirtyPaths.isNotEmpty) {
+    throw StateError(
+      'Screenshot candidate manifest receipt requires a clean Git checkout; found '
+      'uncommitted changes.',
+    );
+  }
+  final receiptPaths = _gitLines([
+    'diff',
+    '--name-only',
+    '$candidateRevision..$receiptRevision',
+  ]);
+  if (receiptPaths.length != 1 ||
+      receiptPaths.single != _appStoreScreenshotManifest) {
+    throw StateError(
+      'The manifest receipt commit may change only '
+      '$_appStoreScreenshotManifest; changed '
+      '${receiptPaths.isEmpty ? 'no paths' : receiptPaths.join(', ')}.',
+    );
+  }
+
+  final screenshots = decoded['screenshots'];
+  if (screenshots is! Map<String, dynamic>) {
+    throw StateError('Screenshot candidate manifest is missing screenshots.');
+  }
+  final actualNames = screenshots.keys.cast<String>().toList()..sort();
+  final expectedNames = [..._appStoreScreenshots]..sort();
+  if (actualNames.join('\n') != expectedNames.join('\n')) {
+    throw StateError(
+      'Screenshot candidate manifest names ${actualNames.join(', ')}; expected '
+      '${expectedNames.join(', ')}.',
+    );
+  }
+  for (final name in _appStoreScreenshots) {
+    final entry = screenshots[name];
+    if (entry is! Map<String, dynamic>) {
+      throw StateError(
+        'Screenshot candidate manifest entry for $name is invalid.',
+      );
+    }
+    final expectedHash = entry['sha256'];
+    if (expectedHash is! String ||
+        !RegExp(r'^[0-9a-f]{64}$').hasMatch(expectedHash)) {
+      throw StateError(
+        'Screenshot candidate manifest SHA-256 for $name must be 64 lowercase hex characters.',
+      );
+    }
+    final actualHash = sha256
+        .convert(
+          File('store-assets/screenshots/app-store/$name').readAsBytesSync(),
+        )
+        .toString();
+    if (actualHash != expectedHash) {
+      throw StateError(
+        'Screenshot candidate manifest SHA-256 for $name does not match the '
+        'checked-in image.',
+      );
+    }
+  }
+  _pass(
+    'App Store screenshot candidate manifest binds ${_appStoreScreenshots.length} '
+    'images to $pubspecVersion at $candidateRevision; receipt $receiptRevision '
+    'changes only the manifest',
+  );
+}
+
+String _gitOutput(List<String> arguments) {
+  final result = Process.runSync('git', arguments);
+  if (result.exitCode != 0) {
+    throw StateError(
+      'Unable to read Git release identity: ${result.stderr.toString().trim()}',
+    );
+  }
+  return result.stdout.toString().trim();
+}
+
+List<String> _gitLines(List<String> arguments) {
+  final output = _gitOutput(arguments);
+  return output.isEmpty ? const [] : output.split('\n');
 }
 
 void _checkField(String markdown, String label, int maximum) {

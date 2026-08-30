@@ -2059,6 +2059,12 @@ void main() {
       ..roomDiscoveryName = 'Mika'
       ..journal = [firstMoment, secondMoment]
       ..memoryPins.addAll({firstMoment.id, secondMoment.id});
+    state.stats[Stat.str] = 62;
+    state.stats[Stat.vit] = 80;
+    state.stats[Stat.intl] = 71;
+    state.stats[Stat.foc] = 112;
+    state.stats[Stat.soc] = 94;
+    state.stats[Stat.dis] = 88;
     state.goals.addAll([
       Goal(
         title: 'Finish the room with care',
@@ -3371,7 +3377,8 @@ void main() {
   });
 
   testWidgets('goals personal index: active and quick create', (tester) async {
-    tester.view.devicePixelRatio = 1;
+    final storeCapture = _captureStore && !_capture;
+    tester.view.devicePixelRatio = storeCapture ? 3 : 1;
     await tester.binding.setSurfaceSize(const Size(430, 932));
     addTearDown(() {
       tester.view.resetDevicePixelRatio();
@@ -3494,6 +3501,9 @@ void main() {
         matchesGoldenFile('goldens/goals_personal_index_active_430x932.png'),
       );
     }
+    if (storeCapture) {
+      await _storeShot(tester, 'goals_active_1290x2796');
+    }
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.byKey(const Key('focus-goal-fallback')));
@@ -3503,6 +3513,9 @@ void main() {
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/goals_recovery_choices_430x932.png'),
       );
+    }
+    if (storeCapture) {
+      await _storeShot(tester, 'goals_recovery_1290x2796');
     }
     expect(find.text('What would help now?'), findsOneWidget);
     await tester.binding.handlePopRoute();
@@ -3517,6 +3530,9 @@ void main() {
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/goals_workshop_home_430x932.png'),
       );
+    }
+    if (storeCapture) {
+      await _storeShot(tester, 'goals_workshop_1290x2796');
     }
     await tester.tap(find.byKey(const Key('goal-workshop-talk')));
     await tester.pumpAndSettle();

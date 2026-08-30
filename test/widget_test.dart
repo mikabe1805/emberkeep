@@ -399,6 +399,77 @@ void main() {
     expect(events, isEmpty);
   });
 
+  testWidgets('pressable pointer cancellation emits neither action nor sound', (
+    tester,
+  ) async {
+    final events = <String>[];
+    final sfx = Sfx.instance;
+    sfx.debugResetForTesting();
+    sfx.debugBypassPlayback = true;
+    sfx.debugOnPlay = events.add;
+    addTearDown(sfx.debugResetForTesting);
+    var activations = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Pressable(
+              onTapUp: (_) => activations++,
+              child: const SizedBox(
+                key: ValueKey('cancelled-touch-target'),
+                width: 120,
+                height: 52,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final target = find.byKey(const ValueKey('cancelled-touch-target'));
+    final gesture = await tester.startGesture(tester.getCenter(target));
+    await tester.pump();
+    expect(events, isEmpty);
+    await gesture.cancel();
+    await tester.pump();
+
+    expect(activations, 0);
+    expect(events, isEmpty);
+  });
+
+  testWidgets('pressable with no tap action never emits a sound', (
+    tester,
+  ) async {
+    final events = <String>[];
+    final sfx = Sfx.instance;
+    sfx.debugResetForTesting();
+    sfx.debugBypassPlayback = true;
+    sfx.debugOnPlay = events.add;
+    addTearDown(sfx.debugResetForTesting);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Pressable(
+              child: const SizedBox(
+                key: ValueKey('no-op-touch-target'),
+                width: 120,
+                height: 52,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final target = find.byKey(const ValueKey('no-op-touch-target'));
+    final gesture = await tester.startGesture(tester.getCenter(target));
+    await gesture.up();
+    await tester.pump();
+
+    expect(events, isEmpty);
+  });
+
   testWidgets(
     'pressable semantic activation still completes without a pointer',
     (tester) async {

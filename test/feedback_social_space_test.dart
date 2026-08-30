@@ -1004,7 +1004,10 @@ void main() {
       cloud.indexOf('Future<Map<String, dynamic>?> fetchRoom'),
       cloud.indexOf('Future<bool> unshareRoom'),
     );
-    expect(fetchRoom, contains('if (!available) return null;'));
+    expect(
+      fetchRoom,
+      contains('if (!available) throw const RoomFetchException();'),
+    );
     expect(fetchRoom, isNot(anyOf(contains('socialReady'), contains('_uid'))));
 
     final visitorReceipt = visitor.substring(

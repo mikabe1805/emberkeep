@@ -60,9 +60,11 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
   static const _maxConcurrentRoomFetches = 4;
   final Map<String, Map<String, dynamic>> _rooms = {};
   final Set<String> _loadingRoomCodes = {};
+  final Set<String> _failedRoomCodes = {};
   final Set<String> _removingRoomCodes = {};
   List<Map<String, dynamic>> _sparks = const [];
   List<Map<String, dynamic>> _circleAdds = const [];
+  bool _inboxLoadFailed = false;
   bool _loading = true;
   int _loadGeneration = 0;
   Timer? _ticker;
@@ -73,6 +75,31 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
 
   Future<void> _removeFromCircle(String code) async {
     if (_removingRoomCodes.contains(code)) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (ctx) => AlertDialog(
+        scrollable: true,
+        backgroundColor: Palette.card,
+        title: Text('Remove this space?', style: Type.display),
+        content: Text(
+          'This removes it from your Circle and ends mutual page access. It '
+          'does not notify the keeper, but you will need their code to add it again.',
+          style: Type.body.copyWith(color: Palette.textMid),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Keep it'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
     final ownerKey = _state.hearthCircleOwnerKeys[code] ?? '';
     setState(() => _removingRoomCodes.add(code));
     final setter =
@@ -106,6 +133,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
       _removingRoomCodes.remove(code);
       _rooms.remove(code);
       _loadingRoomCodes.remove(code);
+      _failedRoomCodes.remove(code);
     });
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
@@ -171,6 +199,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
         _loadingRoomCodes
           ..clear()
           ..addAll(codes);
+        _failedRoomCodes.removeWhere((code) => !codes.contains(code));
       });
     }
 
@@ -179,10 +208,13 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
       while (nextCode < codes.length) {
         final code = codes[nextCode++];
         Map<String, dynamic>? room;
+        var failed = false;
         try {
           room = await fetcher(code);
         } catch (_) {
-          // A single stale room should not hold the rest of a Circle hostage.
+          // A single unreachable room should not hold the rest of a Circle
+          // hostage or erase a previously fetched card.
+          failed = true;
         }
         if (!mounted || generation != _loadGeneration) return;
         var persist = false;
@@ -199,10 +231,16 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
         if (persist) widget.onPersist();
         setState(() {
           _loadingRoomCodes.remove(code);
-          if (!_state.hearthCircleCodes.contains(code) || room == null) {
-            _rooms.remove(code);
+          if (failed) {
+            _failedRoomCodes.add(code);
           } else {
-            _rooms[code] = room;
+            _failedRoomCodes.remove(code);
+          }
+          if (!_state.hearthCircleCodes.contains(code) ||
+              (!failed && room == null)) {
+            _rooms.remove(code);
+          } else if (!failed) {
+            _rooms[code] = room!;
           }
         });
       }
@@ -233,12 +271,20 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
       }
       return inbox;
     }();
-    inbox = await inboxLoad;
+    var inboxLoadFailed = false;
+    try {
+      inbox = await inboxLoad;
+    } catch (_) {
+      inboxLoadFailed = true;
+    }
     await roomLoads;
     if (!mounted || generation != _loadGeneration) return;
     setState(() {
-      _sparks = inbox.sparks;
-      _circleAdds = inbox.circleAdds;
+      _inboxLoadFailed = inboxLoadFailed;
+      if (!inboxLoadFailed) {
+        _sparks = inbox.sparks;
+        _circleAdds = inbox.circleAdds;
+      }
       _loading = false;
     });
   }
@@ -603,6 +649,15 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
                             children: [
                               _CircleLantern(lit: _circleLit, total: total),
                               const SizedBox(height: 12),
+                              if (_failedRoomCodes.isNotEmpty ||
+                                  _inboxLoadFailed) ...[
+                                _CircleRefreshNotice(
+                                  roomsFailed: _failedRoomCodes.length,
+                                  inboxFailed: _inboxLoadFailed,
+                                  onRetry: _load,
+                                ),
+                                const SizedBox(height: 12),
+                              ],
                               if (_sparks.isNotEmpty ||
                                   _circleAdds.isNotEmpty) ...[
                                 _IncomingSparks(
@@ -711,6 +766,9 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
                                       _state.hearthCircleNames[code] ?? '',
                                   room: room,
                                   loading: _loadingRoomCodes.contains(code),
+                                  failedToRefresh: _failedRoomCodes.contains(
+                                    code,
+                                  ),
                                   removing: _removingRoomCodes.contains(code),
                                   nowMs: _now,
                                   parallax: widget.parallax,
@@ -761,6 +819,7 @@ class _HearthCircleScreenState extends State<HearthCircleScreen>
                                       : null,
                                   onRemove: () =>
                                       unawaited(_removeFromCircle(code)),
+                                  onRetry: _load,
                                 ),
                               );
                             }, childCount: _state.hearthCircleCodes.length),
@@ -1134,6 +1193,7 @@ class _CircleKeepCard extends StatelessWidget {
     required this.publicName,
     required this.room,
     required this.loading,
+    required this.failedToRefresh,
     required this.removing,
     required this.nowMs,
     required this.parallax,
@@ -1141,11 +1201,13 @@ class _CircleKeepCard extends StatelessWidget {
     required this.onSpark,
     required this.onJoin,
     required this.onRemove,
+    required this.onRetry,
   });
   final String code;
   final String publicName;
   final Map<String, dynamic>? room;
   final bool loading;
+  final bool failedToRefresh;
   final bool removing;
   final int nowMs;
   final ValueListenable<Offset> parallax;
@@ -1153,6 +1215,7 @@ class _CircleKeepCard extends StatelessWidget {
   final VoidCallback? onSpark;
   final VoidCallback? onJoin;
   final VoidCallback onRemove;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -1177,32 +1240,20 @@ class _CircleKeepCard extends StatelessWidget {
               child: Text(
                 loading
                     ? '$code · tending the fire…'
-                    : '$code · space unavailable',
+                    : '$code · ${failedToRefresh ? 'couldn’t refresh this space' : 'sharing ended or space unavailable'}',
                 style: Type.body.copyWith(fontSize: 13, color: Palette.textLo),
               ),
             ),
-            GestureDetector(
-              key: ValueKey('circle-remove-$code'),
-              behavior: HitTestBehavior.opaque,
-              onTap: removing ? null : onRemove,
-              child: SizedBox.square(
-                dimension: 44,
-                child: Center(
-                  child: removing
-                      ? const SizedBox.square(
-                          dimension: 16,
-                          child: CircularProgressIndicator(
-                            color: Palette.textLo,
-                            strokeWidth: 1.5,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.close,
-                          size: 17,
-                          color: Palette.textLo,
-                        ),
-                ),
+            if (failedToRefresh)
+              _CircleAction(
+                label: 'RETRY',
+                icon: Icons.refresh,
+                onTap: onRetry,
               ),
+            _RemoveCircleAction(
+              code: code,
+              removing: removing,
+              onTap: onRemove,
             ),
           ],
         ),
@@ -1290,28 +1341,10 @@ class _CircleKeepCard extends StatelessWidget {
                   color: Palette.unlock,
                 ),
               ],
-              GestureDetector(
-                key: ValueKey('circle-remove-$code'),
-                behavior: HitTestBehavior.opaque,
-                onTap: removing ? null : onRemove,
-                child: SizedBox.square(
-                  dimension: 44,
-                  child: Center(
-                    child: removing
-                        ? const SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(
-                              color: Palette.textLo,
-                              strokeWidth: 1.5,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.close,
-                            size: 16,
-                            color: Palette.textLo,
-                          ),
-                  ),
-                ),
+              _RemoveCircleAction(
+                code: code,
+                removing: removing,
+                onTap: onRemove,
               ),
             ],
           ),
@@ -1343,6 +1376,79 @@ class _CircleKeepCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _RemoveCircleAction extends StatelessWidget {
+  const _RemoveCircleAction({
+    required this.code,
+    required this.removing,
+    required this.onTap,
+  });
+
+  final String code;
+  final bool removing;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    enabled: !removing,
+    label: 'Remove $code from Circle',
+    onTap: removing ? null : onTap,
+    child: GestureDetector(
+      key: ValueKey('circle-remove-$code'),
+      excludeFromSemantics: true,
+      behavior: HitTestBehavior.opaque,
+      onTap: removing ? null : onTap,
+      child: SizedBox.square(
+        dimension: 44,
+        child: Center(
+          child: removing
+              ? const SizedBox.square(
+                  dimension: 16,
+                  child: CircularProgressIndicator(
+                    color: Palette.textLo,
+                    strokeWidth: 1.5,
+                  ),
+                )
+              : const Icon(Icons.close, size: 17, color: Palette.textLo),
+        ),
+      ),
+    ),
+  );
+}
+
+class _CircleRefreshNotice extends StatelessWidget {
+  const _CircleRefreshNotice({
+    required this.roomsFailed,
+    required this.inboxFailed,
+    required this.onRetry,
+  });
+
+  final int roomsFailed;
+  final bool inboxFailed;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => GlassPanel(
+    padding: const EdgeInsets.all(12),
+    child: Row(
+      children: [
+        const Icon(Icons.cloud_off_outlined, color: Palette.textLo),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            roomsFailed > 0
+                ? 'Couldn’t refresh $roomsFailed saved ${roomsFailed == 1 ? 'space' : 'spaces'} right now. Your Circle is still here.'
+                : 'Couldn’t refresh your private Circle notes right now.',
+            style: Type.body.copyWith(fontSize: 12, color: Palette.textMid),
+          ),
+        ),
+        const SizedBox(width: 6),
+        _CircleAction(label: 'RETRY', icon: Icons.refresh, onTap: onRetry),
+      ],
+    ),
+  );
 }
 
 class _CircleAction extends StatelessWidget {

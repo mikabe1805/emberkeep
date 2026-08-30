@@ -34,6 +34,13 @@ enum RoomPublishFailure {
 /// distinct from a connection that simply failed.
 enum SparkSendResult { sent, alreadyWaiting, failed }
 
+/// A room code can be well-formed yet temporarily impossible to read. Keep
+/// that distinct from a missing document: callers need to offer Retry rather
+/// than tell someone that a friend's room has disappeared.
+class RoomFetchException implements Exception {
+  const RoomFetchException();
+}
+
 enum DiscoveryPublicNameUpdate { saved, rejected, rateLimited, unavailable }
 
 enum SpaceProfilePublishResult {
@@ -1630,9 +1637,13 @@ class CloudSync extends ChangeNotifier
     }
   }
 
-  /// Read a shared space by code (case-insensitive). Null = not found / error.
+  /// Read a shared space by code (case-insensitive).
+  ///
+  /// Null means the room is genuinely absent (for example, its owner stopped
+  /// sharing). A [RoomFetchException] means the code could not be checked and
+  /// should remain retryable in the visitor and Circle flows.
   Future<Map<String, dynamic>?> fetchRoom(String code) async {
-    if (!available) return null;
+    if (!available) throw const RoomFetchException();
     final c = _cleanRoomCode(code);
     if (c == null) return null;
     try {
@@ -1643,7 +1654,7 @@ class CloudSync extends ChangeNotifier
       return snap.data();
     } catch (e) {
       debugPrint('fetchRoom failed: $e');
-      return null;
+      throw const RoomFetchException();
     }
   }
 
