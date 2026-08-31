@@ -30,7 +30,7 @@ class GoalRouteBuilderPrompt extends StatelessWidget {
         Text(
           'THIS GOAL DOESN’T HAVE A ROUTE YET',
           style: Type.label.copyWith(
-            fontSize: 9.5,
+            fontSize: Type.minLabel,
             letterSpacing: 1.1,
             color: accent,
           ),
@@ -61,7 +61,10 @@ class GoalRouteBuilderPrompt extends StatelessWidget {
             ),
             child: Text(
               'BUILD THE ROUTE',
-              style: Type.label.copyWith(fontSize: 10, color: accent),
+              style: Type.label.copyWith(
+                fontSize: Type.minLabel,
+                color: accent,
+              ),
             ),
           ),
         ),
@@ -130,7 +133,7 @@ class GoalRoutePanel extends StatelessWidget {
                             ? 'YOUR ROUTE'
                             : 'RHYTHM CYCLE ${plan.cyclesCompleted + 1}',
                         style: Type.label.copyWith(
-                          fontSize: 9.5,
+                          fontSize: Type.minLabel,
                           letterSpacing: 1.25,
                           color: goal.stat.color,
                         ),
@@ -161,7 +164,7 @@ class GoalRoutePanel extends StatelessWidget {
                     Text(
                       'PROOFS',
                       style: Type.label.copyWith(
-                        fontSize: 8,
+                        fontSize: Type.minLabel,
                         color: Palette.textLo,
                       ),
                     ),
@@ -197,7 +200,7 @@ class GoalRoutePanel extends StatelessWidget {
                   Text(
                     'SUCCESS LOOKS LIKE',
                     style: Type.label.copyWith(
-                      fontSize: 8.8,
+                      fontSize: Type.minLabel,
                       color: Palette.textLo,
                     ),
                   ),
@@ -229,7 +232,7 @@ class GoalRoutePanel extends StatelessWidget {
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                   style: Type.body.copyWith(
-                    fontSize: 11.8,
+                    fontSize: 13,
                     height: 1.25,
                     fontStyle: FontStyle.italic,
                     color: Palette.textLo,
@@ -260,7 +263,7 @@ class GoalRoutePanel extends StatelessWidget {
                     Text(
                       'THE PLAN NEEDS ADJUSTING',
                       style: Type.label.copyWith(
-                        fontSize: 9.5,
+                        fontSize: Type.minLabel,
                         color: Palette.textLo,
                       ),
                     ),
@@ -311,7 +314,7 @@ class _RouteStepRow extends StatelessWidget {
             : Text(
                 '$number',
                 style: Type.label.copyWith(
-                  fontSize: 8.5,
+                  fontSize: Type.minLabel,
                   color: current ? accent : Palette.textLo,
                 ),
               ),
@@ -324,7 +327,7 @@ class _RouteStepRow extends StatelessWidget {
             Text(
               step.title,
               style: Type.label.copyWith(
-                fontSize: 9.1,
+                fontSize: Type.minLabel,
                 color: current ? accent : Palette.textLo,
               ),
             ),
@@ -334,7 +337,7 @@ class _RouteStepRow extends StatelessWidget {
               maxLines: current ? 3 : 1,
               overflow: TextOverflow.ellipsis,
               style: Type.body.copyWith(
-                fontSize: current ? 13.5 : 12.5,
+                fontSize: current ? 13.5 : 13,
                 height: 1.25,
                 color: step.complete
                     ? Palette.textLo
@@ -347,10 +350,7 @@ class _RouteStepRow extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 '${step.completions} of ${step.requiredCompletions} honest repeats',
-                style: Type.body.copyWith(
-                  fontSize: 11.2,
-                  color: Palette.textLo,
-                ),
+                style: Type.body.copyWith(fontSize: 13, color: Palette.textLo),
               ),
             ],
             if (current) ...[
@@ -360,7 +360,7 @@ class _RouteStepRow extends StatelessWidget {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
                 style: Type.body.copyWith(
-                  fontSize: 11.5,
+                  fontSize: 13,
                   height: 1.24,
                   fontStyle: FontStyle.italic,
                   color: Palette.textLo,
@@ -372,9 +372,9 @@ class _RouteStepRow extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: Type.label.copyWith(
-                  fontSize: 8.5,
+                  fontSize: Type.minLabel,
                   height: 1.2,
-                  color: accent.withValues(alpha: 0.82),
+                  color: accent,
                 ),
               ),
             ],

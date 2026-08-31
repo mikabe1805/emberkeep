@@ -1330,7 +1330,6 @@ void main() {
       quests: [quest],
       onOpenQuest: (value) => opened = value,
     );
-
     final action = find.byKey(
       const Key('focus-goal-action'),
       skipOffstage: false,
@@ -2484,6 +2483,11 @@ void main() {
       quests: quests,
       onOpenQuest: (value) => opened = value,
     );
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'The initial compact Goals threshold must lay out cleanly.',
+    );
 
     final action = find.byKey(
       const Key('focus-goal-action'),
@@ -2493,6 +2497,11 @@ void main() {
       action,
       220,
       scrollable: find.byType(Scrollable).first,
+    );
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'Scrolling the compact Goals threshold must not expose overflow.',
     );
     // The compact layout keeps the action in the scrollable folio. Invoke the
     // same production callback after the layout/overflow check; hit testing

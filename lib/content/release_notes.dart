@@ -52,6 +52,38 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+37',
+    versionLabel: 'VERSION 1.0.4 · BUILD 37',
+    dateLabel: 'AUGUST 2026',
+    title: 'A few things for today. Room for the rest.',
+    introduction:
+        'Your Quest board can hold possibilities, not just obligations. '
+        'Choose what fits today and keep the rest nearby.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'CHOOSE WHAT FITS TODAY',
+        body:
+            'Pick up to three Quests for Today’s Field. The others stay in '
+            'Open if it fits, ready for extra time or energy.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'GOALS YOU CAN ACT ON',
+        body:
+            'Choose today’s Quests, open the right next action, or adjust a '
+            'route at the Workshop without rebuilding your plan.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'STAY FOR A CONVERSATION',
+        body:
+            'Talk with the Steward when you feel like it. Choose your '
+            'replies, leave whenever you need to, and return to your place.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+36',
     versionLabel: 'VERSION 1.0.4 · BUILD 36',
     dateLabel: 'AUGUST 2026',

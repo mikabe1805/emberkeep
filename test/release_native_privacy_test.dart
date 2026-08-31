@@ -641,7 +641,7 @@ void main() {
     expect(workflow, contains('cocoapods: 1.16.2'));
     expect(workflow, contains('APPLE_TEAM_ID: "D63Z4RBRT8"'));
     expect(workflow, contains('routine source/docs pushes remain inert'));
-    expect(workflow, contains('room-of-days-1.0.4-build-36-candidate-4'));
+    expect(workflow, contains('room-of-days-1.0.4-build-37-candidate'));
     expect(workflow, contains('CM_CLONE_DEPTH: "2"'));
     expect(workflow, contains('Hydrate and verify immutable receipt identity'));
     expect(
@@ -807,7 +807,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+36'));
+    expect(pubspec, contains('version: 1.0.4+37'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

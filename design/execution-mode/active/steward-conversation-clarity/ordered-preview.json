@@ -1,0 +1,80 @@
+[
+  {
+    "node": "soup-hello",
+    "speaker": "STEWARD",
+    "text": "I was just reading a note from the cook downstairs. Apparently I complain too much about the soup.",
+    "aside": null,
+    "choices": [
+      "What’s wrong with the soup?",
+      "Do you complain a lot?",
+      "I’ll let you get back to it."
+    ],
+    "image": "test/goldens/steward_soup_01_hello_430x932.png",
+    "playerReply": "What’s wrong with the soup?"
+  },
+  {
+    "node": "soup-problem",
+    "speaker": "STEWARD",
+    "text": "Too much salt. I asked him to use less. Now he sends notes with my dinner.",
+    "aside": null,
+    "choices": [],
+    "image": "test/goldens/steward_soup_02_setup_430x932.png"
+  },
+  {
+    "node": "soup-note",
+    "speaker": "THE COOK’S NOTE",
+    "text": "Less salt today.\nTry it before you complain.",
+    "aside": "He holds out the note.",
+    "choices": [],
+    "image": "test/goldens/steward_soup_03_note_430x932.png"
+  },
+  {
+    "node": "soup-friends",
+    "speaker": "STEWARD",
+    "text": "I’ve known him for years. He’s been teasing me about it all week.",
+    "aside": null,
+    "choices": [
+      "You two sound like friends.",
+      "I’d complain about salty soup too.",
+      "I’m on his side."
+    ],
+    "image": "test/goldens/steward_soup_04_friends_430x932.png",
+    "playerReply": "I’m on his side."
+  },
+  {
+    "node": "soup-cook-side",
+    "speaker": "STEWARD",
+    "text": "You haven’t even tried the soup.\n\nHe’d like you.",
+    "aside": null,
+    "choices": [],
+    "image": "test/goldens/steward_soup_05_reply_430x932.png"
+  },
+  {
+    "node": "soup-bread",
+    "speaker": "STEWARD",
+    "text": "His bread is good, though. He always saves me the end of the loaf. He knows that’s my favorite part.",
+    "aside": null,
+    "choices": [
+      "You should tell him you like it.",
+      "I think he knows."
+    ],
+    "image": "test/goldens/steward_soup_06_bread_430x932.png",
+    "playerReply": "You should tell him you like it."
+  },
+  {
+    "node": "soup-tell-him",
+    "speaker": "STEWARD",
+    "text": "I tell him. But I probably talk about the soup more.",
+    "aside": null,
+    "choices": [],
+    "image": "test/goldens/steward_soup_07_admission_430x932.png"
+  },
+  {
+    "node": "soup-goodbye",
+    "speaker": "STEWARD",
+    "text": "Now I’m hungry. I hope he’s saved me some bread.",
+    "aside": "He puts the note in the wooden box beside him.",
+    "choices": [],
+    "image": "test/goldens/steward_soup_08_goodbye_430x932.png"
+  }
+]

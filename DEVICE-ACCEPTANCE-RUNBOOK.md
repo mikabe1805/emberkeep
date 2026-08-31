@@ -20,7 +20,7 @@ journal.
 
 ### iPhone
 
-- Install only the processed Room of Days `1.0.4` (Build 32) from TestFlight.
+- Install only the processed Room of Days `1.0.4` (Build 37) from TestFlight.
   It must come from the final release commit through the manual Codemagic
   `ios-testflight` workflow; do not substitute a local debug/profile build.
 - Keep the emitted IPA, matching Runner dSYM, Codemagic log, and
@@ -28,7 +28,7 @@ journal.
   exists; do not copy Build 19's hash into the new receipt.
 - Confirm the installed version/build match that evidence, which must name the
   final release commit and Team ID `D63Z4RBRT8`.
-- Keep processed Build 31 installed long enough to perform the
+- Keep processed Build 36 installed long enough to perform the
   upgrade-preservation pass before the separate fresh-install pass.
 
 Record before testing:
@@ -63,10 +63,12 @@ Run the upgrade check before uninstalling anything:
 - [ ] Uninstall Room of Days, then install the verified Build 12 APK fresh.
   Confirm the old test data is gone and onboarding begins normally.
 
-For iPhone, first install Build 32 over processed Build 31 without
+For iPhone, first install Build 37 over processed Build 36 without
 deleting Room of Days. Confirm the save, journal, room, Daybook, settings, and
-account state remain and What's New appears once. Then delete the app, install
-Build 32 fresh, and confirm onboarding starts with no prior test data.
+account state remain and What's New appears once. Separately, use a disposable
+test device or installation for the uninstall/reinstall check: install Build 37
+fresh and confirm onboarding starts with no prior test data. Never delete the
+owner's personal app data for this check.
 
 ## 2. First launch and core story
 

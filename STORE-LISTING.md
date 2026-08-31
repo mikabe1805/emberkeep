@@ -8,7 +8,7 @@ productivity language.
 
 - **App name:** Room of Days
 - **Apple subtitle (30 characters):** A life RPG for real days
-- **Apple promotional text (170 characters max):** Bring a real goal to the Workshop, accept one honest Quest, and let XP, Glimmers, mastery, and a warm room remember what you practiced.
+- **Apple promotional text (170 characters max):** Choose a few Quests for today, keep the rest for when you have room, and turn everyday effort into XP, character growth, and a warm space of your own.
 - **Apple keywords (100 characters max):** habits,goals,routines,life RPG,self care,focus,planner,journal,motivation,wellness
 - **Primary category:** Productivity
 - **Secondary category:** Lifestyle
@@ -18,74 +18,71 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 36)
+## App Store What's New — Version 1.0.4 (Build 37)
 
-Your goals have somewhere to go.
+Your Quest board can hold possibilities, not just obligations.
 
-Bring a goal to the Workshop and the steward will help shape it into a route
-grounded in where you are, what proof would count, and how much room the day
-actually has. The first Quest waits for your explicit acceptance. Nothing lands
-on the board just because a plan was suggested.
+Choose up to three Quests for Today's Field. The rest stay in Open if it fits,
+ready for extra time or energy. You don't have to clear the whole board to
+have a good day.
 
-When the day changes, the route can change without making that a verdict on
-you. Make the next move smaller, prepare the return, or leave today alone while
-keeping the route and its proof intact.
+Goals now helps you choose what to work on today, open the right Quest, or
+adjust a route at the Workshop. Your existing plans and progress stay with you.
 
-Repeatable Quests now remember practice beyond their first target. Continued
-completions earn richer mastery marks instead of quietly ending the story.
+The Steward has a little more to say. Stop by for a short, optional
+conversation, choose your replies, and pick up where you left off.
 
-The room's sound has been rebuilt around its materials. Taps, pages, placement,
-and completion answer once; scrolling, dragging away, and cancelled touches
-stay quiet.
+We've also made supporting text easier to read across the app and improved
+crowded boards and smaller screens.
 
-Circle is more honest when the network is not. A failed refresh keeps the room
-you saved and offers a retry instead of pretending it disappeared. Removing a
-space now asks first and explains that you will need its code to restore it.
-
-This build also keeps the full class-schedule import, private visitor-card
-audiences, optional Discover listing, Ambient Light previews, and large-text
-room-code repair from the earlier 1.0.4 candidates.
+This update includes the recent Workshop planning, Quest mastery, class
+schedule import, and Circle improvements: clearer retry states, confirmed
+removal, optional Discover listing, and separate Anyone and Mutuals audiences.
 
 ## Full description
 
-Room of Days is a warm, private life RPG for the things you actually want to
-do.
+Make chores a little more bearable, and give everyday effort a visible reward.
 
-Bring an intention—make the apartment easier to live in, return to a book,
-practice a skill, care for your body—and the Workshop helps turn your real
-starting point into one clear Quest. You can edit the cut, make it smaller, or
-leave it alone. The Quest reaches your board only when you accept it.
+Room of Days is a life RPG where reading a chapter, clearing the counter,
+going for a walk, or doing the thing you've been putting off becomes a Quest.
+Complete it to earn XP, grow your character, and make a warm personal room
+your own.
 
-Then the room remembers what happened. Completed Quests earn XP and Glimmers,
-strengthen Body, Care, Mind, Craft, People, or Home, and leave lasting evidence
-in your build. Repeatable Quests grow mastery marks as practice accumulates.
-The Woven Dawn gains rows and never unweaves.
+A BOARD OF POSSIBILITIES
+Keep plenty of Quests for inspiration without treating them all as today's
+obligations. Choose up to three for Today's Field. The rest stay in Open if it
+fits, ready when you have more time or energy.
 
-There is no health bar to lose and no punishment for taking a break. When a day
-changes, you can make the next move smaller, prepare the return, or take today
-off without erasing the route you chose.
+GOALS WITH SOMETHING TO DO NEXT
+Bring a goal to the Workshop and work out a practical next action. You can
+edit it, make it smaller, or leave without accepting it. Nothing is added to
+your board until you choose it. When a day changes, adjust the next move
+without throwing away your plan.
 
-With Room of Days you can:
+PROGRESS YOU CAN KEEP
+Completed Quests earn XP and Glimmers and grow Body, Care, Mind, Craft,
+People, or Home. Repeatable Quests build visible mastery. Unlock room styles,
+windows, fireplace colors, and furnishings through play. Your progress
+doesn't disappear when you take a break.
 
-- shape your own goal into a grounded route at the Workshop;
-- accept, edit, shrink, or decline the exact first Quest;
-- recover from a difficult day without losing the plan or its proof;
-- grow repeatable Quests through visible mastery;
-- turn everyday actions into XP, Glimmers, and lasting room changes;
-- grow Body, Care, Mind, Craft, People, and Home;
-- unlock room styles, windows, fireplace colors, and furnishings;
-- plan ordinary days or import a complete class schedule into Plans;
-- keep a private journal with optional on-device photos;
-- back up across devices with an optional account;
-- share a six-character code so a friend can visit the room you built;
-- optionally list your room in Discover with a separate public name;
-- choose a few visitor cards for Anyone or reciprocal Mutuals; and
-- find a few open rooms and keep as many as you want in your private Circle.
+PLANS AND A PRIVATE JOURNAL
+Plan ordinary days, import a class schedule, and keep a private journal with
+optional on-device photos. Save a quick line after a Quest, or take time for a
+longer entry. Earlier entries sit beside the progress you've made since.
 
-Room of Days works without an account. Your device is the source of truth, cloud
-backup is optional, and manual export is always available. There are no ads,
-subscriptions, paywalls, or paid cosmetics. Everything is earned by living
-your life.
+A ROOM YOU CAN SHARE
+Invite a friend with a six-character room code and keep their room in your
+private Circle. Choose which visitor cards are visible to Anyone or to
+reciprocal Mutuals. Discover is optional and uses a separate public name.
+Your private quests, journal photos, email, and account details stay out of
+shared rooms.
+
+You can also stop by the Workshop just to talk with the Steward. There is no
+Quest to complete or reward to chase in the conversation.
+
+Room of Days works without an account. Your device is the source of truth,
+cloud backup is optional, and manual export is always available. There are no
+ads, subscriptions, paywalls, or paid cosmetics.
 
 Room of Days offers general fitness and wellness guidance. It is not a medical
 device and does not diagnose, treat, cure, or prevent any medical condition.
@@ -94,34 +91,50 @@ treatment.
 
 ## TestFlight description
 
-Room of Days is a local-first life RPG where real actions become Quests, earn XP
-and Glimmers, and leave lasting evidence in a warm personal room. Nothing takes
-damage, days away cost nothing, and every cosmetic is earned.
+Room of Days turns everyday effort into Quests, XP, character growth, and a
+warm personal room. Core play works offline without an account. Progress
+stays with you through days away, and cosmetics are earned through play.
 
-Build 36 is the phone-test candidate for the new Goals experience. A person can
-name what they want, ground it in their present reality, shape a route with the
-steward, and explicitly accept the first Quest before it reaches the board.
-Repeatable Quests now carry visible mastery beyond the first target. Difficult
-days have three honest choices: make the move smaller, prepare the return, or
-leave today alone.
+Build 37 includes the latest owner-feedback changes:
 
-This candidate also repairs the Circle journey. A transient room fetch no
-longer masquerades as a missing space, a failed Circle refresh keeps the saved
-room available with a retry, and removal is labelled, reachable, and confirmed.
-The generated room, Discover directory, and visitor page retain their existing
-privacy boundaries: listing is explicit, Anyone and Mutuals cards are separate,
-Only me cards are never sent, and visitors can privately block or report.
+- Choose up to three Quests for Today's Field while keeping the rest in
+  Open if it fits. A full board can be inspiration, not a daily obligation.
+- Use Goals to choose today's work, open the right Quest, or adjust a route
+  at the Workshop.
+- Talk with the Steward in a short optional scene with reply choices,
+  saved progress, and a remembered response when you return.
+- Read clearer supporting text, with better layouts for crowded boards and
+  larger accessibility text.
 
-Interaction sound now fires only after an accepted tap. Scrolls, drags,
-cancellations, and disabled controls remain quiet. The class-schedule import,
-Ambient Light previews, room-code large-text repair, and protected social
-authorization remain included. Protected Google place search remains
-intentionally off.
+The candidate retains the recent Workshop planning, explicit first-Quest
+acceptance, flexible recovery options, repeatable Quest mastery, class
+schedule import, and accepted-action sound behavior.
 
-Feedback on clarity, warmth, performance, and anything that gets between you
-and doing what matters is especially useful.
+Circle keeps saved rooms during a temporary refresh failure and explains
+removal before you confirm it. Discover listing is explicit. Anyone and
+Mutuals visitor-card audiences are separate; Only me cards are never sent.
+Journal photos and private quests stay out of shared rooms. Protected Google
+place search remains off.
+
+Please focus on upgrade persistence, today's selections versus optional
+Quests, the Steward's reading flow, and the complete two-person Circle
+journey. Physical-phone accessibility and signed social checks still need
+confirmation before public release.
 
 ## What to Test
+
+- Keep a board with ten or more recurring Quests. Choose up to three for
+  Today's Field, complete only some, expand Open if it fits, and reopen the
+  app. Confirm selections and optional work stay distinct, with no duplicate
+  rewards and no requirement to clear the board.
+- In Goals, change today's selection, open its exact Quest, and adjust an
+  existing goal without creating an unwanted new Quest.
+- Choose Talk with the Steward. Read and choose replies, leave halfway,
+  reopen, finish, and revisit. Your place and response should be remembered;
+  quests, goals, XP, and rewards must remain unchanged.
+- Read the Goals, Workshop, Steward, and crowded Quest board at larger text
+  sizes and lower brightness. Make sure the text and every action remain
+  reachable without shrinking.
 
 - Install over the previous TestFlight build and also try a fresh install.
   Confirm quests, goals, Journal entries, Plans, room choices, Circle, and
@@ -164,6 +177,10 @@ that makes returning after a break feel harder than it should.
 
 ## Reviewer notes
 
+- **Build 37 additions:** Quests → Choose today selects up to three Quests;
+  other Quests remain optional. Goals → Workshop → Talk with the Steward opens
+  an authored, offline conversation with preset replies. It is not AI chat or
+  messaging with another person and has no reward or purchase requirement.
 - **Sign-in required:** No. The complete guest experience works immediately.
 - **Network required:** No for core quests, goals, journal, Daybook, tapestry
   and room progression, shop, and insights. Network is required for optional
@@ -208,6 +225,9 @@ that makes returning after a break feel harder than it should.
   `https://roomofdays.com/community`. The developer reviews the queue daily and
   targets action within 24 hours; if that operation cannot be maintained,
   public names are disabled until review resumes.
+
+## Internal review-account preparation
+
 - **Review account:** OWNER REQUIRED before Google Play review. Create one
   dedicated, reusable review-only account, store its credentials outside the
   repository, and enter them only in the store consoles. Google should receive

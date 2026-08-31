@@ -13,7 +13,22 @@ abstract final class Palette {
   // Ink — candlelight cream, never pure white
   static const textHi = Color(0xFFF4EADB);
   static const textMid = Color(0xFFCFC2B0);
-  static const textLo = Color(0xFF94887A);
+
+  /// Readable secondary ink for instructions, state, metadata, and labels.
+  ///
+  /// This is deliberately lighter than the former low-contrast `textLo`.
+  /// Against the representative warm workshop surface (0xFF3B281B) it is
+  /// 5.80:1, and against [card] it is 6.54:1. That leaves useful room above
+  /// the 4.5:1 floor once a real screen introduces texture or glass nearby.
+  /// Keep [textMid] for body copy and [textHi] for primary reading; this is
+  /// supporting information, not disabled information.
+  static const textLo = Color(0xFFB3A594);
+
+  /// Decorative, non-semantic ink only: hairlines, inactive flourishes, and
+  /// texture that must never carry instructions, state, or an action label.
+  /// Its contrast is intentionally lower than [textLo], so callers must not
+  /// use it as a way to make meaningful writing quieter.
+  static const textQuiet = Color(0xFF94887A);
 
   // Mechanics — brightened to glow against the night
   static const xp = Color(0xFFE0A865); // honey glow — XP / level
@@ -216,7 +231,8 @@ abstract final class Motion {
 /// arm's length — the floor of a readable scale (mobile accessibility pass).
 /// Call sites may still .copyWith(fontSize:) for hero numerals etc., but the
 /// floor below keeps anything unspecified from rendering hairline-thin, and
-/// [Type.minLabel] is the smallest size any caps-label should ever use.
+/// [Type.minLabel] is the smallest size any meaningful caps-label should ever
+/// use. Decorative marks are not labels and should not use [Type.label].
 abstract final class Type {
   /// Smallest readable caps-label on the dark canvas. Nothing below this.
   static const double minLabel = 11;

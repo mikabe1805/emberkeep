@@ -3,8 +3,8 @@
 These are direct production-UI captures from one deterministic account. They
 have no device frame, overlay copy, alpha channel, or transparency.
 
-The ten-frame iOS set was freshly regenerated from the feature-on `1.0.4+36`
-working candidate and opened at original resolution on August 30, 2026. It
+The ten-frame iOS set was regenerated from the feature-on `1.0.4+37`
+working candidate and visually inspected on August 30, 2026. It
 becomes immutable release evidence only after the manifest-only binding commit
 described below is complete.
 
@@ -27,11 +27,11 @@ release evidence.
 
 The App Store sequence is:
 
-1. Quests — the daily board, six life domains, and an achievable main quest.
+1. Quests — today's selected work, optional Quests, six life domains, and an achievable main quest.
 2. Reward — a completed quest becoming XP, Glimmers, a stat gain, and streak
    progress.
-3. Goals — one grounded move inside the warm, living Goals room.
-4. Workshop — the steward and the current set of owned routes.
+3. Goals — today's chosen work and one clear next action inside the warm Goals room.
+4. Workshop — owned routes and the optional Talk with the Steward entrance.
 5. Recovery — smaller, prepare the return, or leave today alone without guilt.
 6. Plans — the Daybook, next class, and calendar sharing one warm desk.
 7. My Space — the authored visitor page with explicit Anyone, Mutuals, and

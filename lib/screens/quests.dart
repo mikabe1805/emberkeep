@@ -277,6 +277,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// reveal everything without changing or losing the chosen three.
   bool _showFullLowFlame = false;
 
+  /// A shaped day has two honest layers: the few things deliberately carried,
+  /// and the rest of the board, which stays available without becoming a
+  /// debt ledger. This only changes what is expanded on this visit; the dated
+  /// field itself is persisted on the quests.
+  bool _showOptionalField = false;
+
   void _toggleFocus() {
     _state.setFocusMode(!_state.focusMode);
     widget.onPersist();
@@ -400,11 +406,39 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     widget.onPersist();
   }
 
+  Future<void> _chooseToday() async {
+    final now = Clock.now();
+    final candidates = planningQuestsForDay(
+      widget.quests,
+      now,
+    ).where((q) => !q.allDay && !q.isEvent);
+    final chosen = await showTopThreeWizard(
+      context,
+      title: 'Choose today',
+      subtitle:
+          'Pick up to three quests to carry. Everything else stays open if the day has room.',
+      dayLabel: 'Today’s field',
+      candidates: candidates,
+      initialTitles: selectedDailyFieldForDay(
+        widget.quests,
+        now,
+      ).map((q) => q.title),
+      accent: Palette.xpLight,
+      confirmLabel: 'SET TODAY’S FIELD',
+    );
+    if (chosen == null || !mounted) return;
+    applyDailyField(widget.quests, now, chosen);
+    setState(() => _showOptionalField = false);
+    widget.onPersist();
+  }
+
   Future<void> _planTomorrow(VoidCallback dismissEmber) async {
     final now = Clock.now();
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
-    final tomorrowKey = Days.key(tomorrow);
-    final candidates = planningQuestsForDay(widget.quests, tomorrow);
+    final candidates = planningQuestsForDay(
+      widget.quests,
+      tomorrow,
+    ).where((q) => !q.allDay && !q.isEvent).toList(growable: false);
     final initial = candidates
         .where((q) => q.priorityOn(tomorrow))
         .map((q) => q.title);
@@ -414,7 +448,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       subtitle:
           'Pick up to three quests to lead the morning. This is a compass, not another obligation.',
       dayLabel: 'Tomorrow’s Three',
-      candidates: candidates.where((q) => !q.allDay),
+      candidates: candidates,
       initialTitles: initial,
       accent: Palette.xpLight,
       confirmLabel: 'SET TOMORROW’S THREE',
@@ -433,12 +467,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     );
     if (chosen == null || !mounted) return;
 
-    for (final quest in planningQuestsForDay(widget.quests, tomorrow)) {
-      // Using the dated planner gently retires the old standing-star behavior.
-      // The choice leads one morning, then disappears on its own.
-      quest.priority = false;
-      quest.priorityDay = chosen.contains(quest.title) ? tomorrowKey : null;
-    }
+    // The shared helper writes a stable dated rank as well as retiring only
+    // the relevant standing stars. A hand-written loop used to lose the order
+    // a keeper chose for tomorrow.
+    applyDailyField(widget.quests, tomorrow, chosen);
     widget.onPersist();
     dismissEmber();
     if (!mounted) return;
@@ -1011,9 +1043,19 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     });
   }
 
-  /// Count of quests still open today (mirrors the build() filter).
+  /// The honest boundary of a shaped day: dated commitments plus the field.
+  /// The shared helper deliberately retains snoozed selections: setting a
+  /// chosen Quest aside may be compassionate, but it cannot mint a false clear.
+  List<Quest> _requiredDailyBoundary(DateTime day) =>
+      requiredQuestsForDay(widget.quests, day);
+
+  /// Count of quests still open today. Once the keeper has shaped a dated
+  /// field, optional inspiration does not become an all-or-nothing test.
   int _remainingToday() {
     final now = Clock.now();
+    if (hasDateScopedDailyField(widget.quests, now)) {
+      return _requiredDailyBoundary(now).where((q) => !q.doneFor(now)).length;
+    }
     final today = Days.key(now);
     final endOfToday = DateTime(now.year, now.month, now.day, 23, 59, 59);
     return widget.quests
@@ -1032,7 +1074,13 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
   /// a perfect-day reward. Freeze replenishment is intentionally based on
   /// ordinary active days, never an all-or-nothing board.
   bool _anySnoozedToday() {
-    final today = Days.key(Clock.now());
+    final now = Clock.now();
+    final today = Days.key(now);
+    if (hasDateScopedDailyField(widget.quests, now)) {
+      return _requiredDailyBoundary(
+        now,
+      ).any((q) => q.snoozedDay == today && !q.doneFor(now));
+    }
     return widget.quests.any((q) => q.snoozedDay == today);
   }
 
@@ -1905,7 +1953,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
             Text(
               'This changes suggestions, never rewards or streaks.',
               style: Type.body.copyWith(
-                fontSize: 10.5,
+                fontSize: 13,
                 fontStyle: FontStyle.italic,
                 color: Palette.textLo,
               ),
@@ -2099,112 +2147,139 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       widget.onPersist();
     }
 
+    Widget buildInfo() => Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.add_task_rounded, size: 20, color: e.stat.color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 6,
+                runSpacing: 2,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    'TODAY’S BONUS',
+                    style: Type.label.copyWith(
+                      fontSize: 11,
+                      color: e.stat.color,
+                    ),
+                  ),
+                  Text(
+                    e.stat.abbr,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      color: Palette.textLo,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                e.title,
+                style: Type.body.copyWith(
+                  fontSize: 13.5,
+                  color: Palette.textHi,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final addAction = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (e.title == planTomorrowEmber) {
+          unawaited(_planTomorrow(dismiss));
+          return;
+        }
+        final ok = widget.onAdd(
+          Quest(
+            title: e.title,
+            stat: e.stat,
+            difficulty: 2,
+            schedule: QuestSchedule.once,
+            dueDate: DateTime(now.year, now.month, now.day),
+            bonus: true,
+            custom: true,
+          ),
+        );
+        if (ok) {
+          Sfx.instance.play('streak');
+          HapticFeedback.selectionClick();
+        }
+        dismiss();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        // Controls are brass; the domain speaks through the row's glyph and
+        // label. The action stays the same material across bonus categories.
+        decoration: agedBrassPlate(cut: 7),
+        child: Text(
+          e.title == planTomorrowEmber ? 'PLAN' : 'ADD',
+          style: Type.label.copyWith(
+            fontSize: 11,
+            letterSpacing: 1.1,
+            color: Palette.xpLight,
+          ),
+        ),
+      ),
+    );
+
+    final closeAction = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Sfx.instance.playMaterial(MaterialSound.glass);
+        dismiss();
+      },
+      child: const Padding(
+        padding: EdgeInsets.all(10),
+        child: Icon(Icons.close, size: 16, color: Palette.textLo),
+      ),
+    );
+
     return _swipeAway(
       dismissKey: 'ember',
       onGone: () => _state.emberSeenDay = Days.key(now),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: GlassPanel(
-          child: Row(
-            children: [
-              Icon(Icons.add_task_rounded, size: 20, color: e.stat.color),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final stackActions =
+                  MediaQuery.textScalerOf(context).scale(1) > 1.5;
+              if (stackActions) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    buildInfo(),
+                    const SizedBox(height: 7),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Flexible(
-                          child: Text(
-                            'TODAY’S BONUS',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Type.label.copyWith(
-                              fontSize: 11,
-                              color: e.stat.color,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          e.stat.abbr,
-                          style: Type.label.copyWith(
-                            fontSize: Type.minLabel,
-                            color: Palette.textLo,
-                          ),
-                        ),
+                        addAction,
+                        const SizedBox(width: 4),
+                        closeAction,
                       ],
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      e.title,
-                      style: Type.body.copyWith(
-                        fontSize: 13.5,
-                        color: Palette.textHi,
-                      ),
-                    ),
                   ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  if (e.title == planTomorrowEmber) {
-                    unawaited(_planTomorrow(dismiss));
-                    return;
-                  }
-                  final ok = widget.onAdd(
-                    Quest(
-                      title: e.title,
-                      stat: e.stat,
-                      difficulty: 2,
-                      schedule: QuestSchedule.once,
-                      dueDate: DateTime(now.year, now.month, now.day),
-                      bonus: true,
-                      custom: true,
-                    ),
-                  );
-                  if (ok) {
-                    Sfx.instance.play('streak');
-                    HapticFeedback.selectionClick();
-                  }
-                  dismiss();
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 7,
-                  ),
-                  // Controls are brass; the domain speaks through the row's
-                  // glyph and label. An outlined button that changes hue with
-                  // the bonus's category made ADD read as a different control
-                  // every day.
-                  decoration: agedBrassPlate(cut: 7),
-                  child: Text(
-                    e.title == planTomorrowEmber ? 'PLAN' : 'ADD',
-                    style: Type.label.copyWith(
-                      fontSize: 11,
-                      letterSpacing: 1.1,
-                      color: Palette.xpLight,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 4),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: () {
-                  Sfx.instance.playMaterial(MaterialSound.glass);
-                  dismiss();
-                },
-                child: const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Icon(Icons.close, size: 16, color: Palette.textLo),
-                ),
-              ),
-            ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: buildInfo()),
+                  const SizedBox(width: 8),
+                  addAction,
+                  const SizedBox(width: 4),
+                  closeAction,
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -2700,9 +2775,6 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final reduceMotion =
         _state.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
-    final largePhoneType =
-        MediaQuery.textScalerOf(context).scale(1) >= 1.6 &&
-        MediaQuery.sizeOf(context).width <= 360;
     final next = _state.xpNeeded(_state.level + 1);
     final deskLook = activeQuestDeskLook(_state);
 
@@ -2714,11 +2786,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
     final fullVisible =
         [
           for (final q in widget.quests)
-            // "hide just for today" skips it from the board until tomorrow
-            if (q.snoozedDay != today &&
-                (q.isEvent
-                    ? (!q.dueDate!.isAfter(endOfToday) || q.doneFor(now))
-                    : (q.scheduledOn(now) || q.lastDoneDay == today)))
+            // A set-aside ordinary quest rests until tomorrow. A dated
+            // commitment remains visible; it cannot be quietly hidden.
+            if (q.isEvent
+                ? (!q.dueDate!.isAfter(endOfToday) || q.doneFor(now))
+                : (q.snoozedDay != today &&
+                      (q.scheduledOn(now) || q.lastDoneDay == today)))
               q,
         ]..sort((a, b) {
           // finished quests sink to the bottom so the board visibly shrinks
@@ -2745,12 +2818,45 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
           return 0;
         });
     final lowFlame = _state.lowFlameActive;
+    final hasDailyField = hasDateScopedDailyField(widget.quests, now);
+    // Gentle Mode is an explicitly separate shelter. The ordinary field is
+    // still saved and still governs the honest day boundary underneath it.
+    final showingDailyField = hasDailyField && !lowFlame;
+    final chosenField = selectedDailyFieldForDay(widget.quests, now);
+    final commitmentTitles = hardCommitmentsForDay(
+      widget.quests,
+      now,
+    ).map((q) => q.title).toSet();
+    final fieldTitles = chosenField.map((q) => q.title).toSet();
+    final commitmentsVisible = fullVisible
+        .where((q) => commitmentTitles.contains(q.title))
+        .toList(growable: false);
+    final fieldVisible = fullVisible
+        .where(
+          (q) =>
+              fieldTitles.contains(q.title) &&
+              !commitmentTitles.contains(q.title),
+        )
+        .toList(growable: false);
+    final optionalVisible = fullVisible
+        .where(
+          (q) =>
+              !commitmentTitles.contains(q.title) &&
+              !fieldTitles.contains(q.title),
+        )
+        .toList(growable: false);
     final shelterTitles = _state.lowFlameQuestTitles.isNotEmpty
         ? _state.lowFlameQuestTitles.toSet()
         : suggestedLowFlameQuests(fullVisible, now).map((q) => q.title).toSet();
     final sheltered = lowFlame && !_showFullLowFlame;
     final visible = sheltered
         ? fullVisible.where((q) => shelterTitles.contains(q.title)).toList()
+        : showingDailyField
+        ? [
+            ...commitmentsVisible,
+            ...fieldVisible,
+            if (_showOptionalField) ...optionalVisible,
+          ]
         : List<Quest>.of(fullVisible);
     final requestedTitle = widget.focusQuestTitle?.trim().toLowerCase();
     if (requestedTitle != null && requestedTitle.isNotEmpty) {
@@ -2766,7 +2872,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         visible.insert(0, requested);
       }
     }
-    final remaining = visible.where((q) => !q.doneFor(now)).length;
+    final visibleRemaining = visible.where((q) => !q.doneFor(now)).length;
+    final remaining = showingDailyField ? _remainingToday() : visibleRemaining;
     final fullRemaining = fullVisible.where((q) => !q.doneFor(now)).length;
     final shelteredQuestCount = fullVisible
         .where((q) => shelterTitles.contains(q.title))
@@ -2775,6 +2882,14 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         .where((q) => shelterTitles.contains(q.title) && !q.doneFor(now))
         .length;
     final resting = (fullRemaining - shelterRemaining).clamp(0, fullRemaining);
+    final commitmentsRemaining = commitmentsVisible
+        .where((q) => !q.doneFor(now))
+        .length;
+    final fieldRemaining = chosenField.where((q) => !q.doneFor(now)).length;
+    final setAside = chosenField
+        .where((q) => q.snoozedDay == today && !q.doneFor(now))
+        .length;
+    final optionalOpen = optionalVisible.where((q) => !q.doneFor(now)).length;
 
     // Focus mode: the actionable pool (all-day lines have nothing to tap until
     // night, so they're never the "next" focus — shown as a footer count).
@@ -2830,6 +2945,12 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
 
     return LayoutBuilder(
       builder: (context, bounds) {
+        // Use the board's actual constraint rather than a possibly one-frame
+        // stale MediaQuery width while a test host or split view is resizing.
+        // Text can grow on the same frame constraints become compact.
+        final largePhoneType =
+            MediaQuery.textScalerOf(context).scale(1) >= 1.25 &&
+            bounds.maxWidth <= 360;
         // Compact-height windows sacrifice the cinematic reveal before they
         // sacrifice the board's primary task. Normal phones retain the full
         // room; short landscape/split-screen surfaces begin almost collapsed.
@@ -3072,6 +3193,35 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                               emberOfDay(now).title == planTomorrowEmber)
                             _emberPanel(),
 
+                          // A shaped day earns a useful distinction that the
+                          // old beautiful board did not provide: commitments,
+                          // the few quests deliberately carried, and every
+                          // other open possibility. Gentle Mode has its own
+                          // shelter above and is intentionally not folded into
+                          // this ordinary planning surface.
+                          if (!lowFlame && !dayResting)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 2, 16, 4),
+                              child: _DailyFieldRail(
+                                hasField: hasDailyField,
+                                commitments: commitmentsVisible.length,
+                                commitmentsRemaining: commitmentsRemaining,
+                                chosen: chosenField.length,
+                                chosenRemaining: fieldRemaining,
+                                setAside: setAside,
+                                optionalOpen: optionalOpen,
+                                showingOptional: _showOptionalField,
+                                onChoose: _chooseToday,
+                                onToggleOptional:
+                                    !showingDailyField || optionalOpen == 0
+                                    ? null
+                                    : () => setState(
+                                        () => _showOptionalField =
+                                            !_showOptionalField,
+                                      ),
+                              ),
+                            ),
+
                           // ── Quest list ──────────────────────────────────────────
                           Padding(
                             padding: const EdgeInsets.fromLTRB(18, 7, 13, 4),
@@ -3093,7 +3243,15 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                             ? (_showFullLowFlame
                                                   ? 'GENTLE MODE · $fullRemaining ON THE BOARD'
                                                   : 'GENTLE MODE · $remaining LEFT')
-                                            : 'TODAY · $remaining LEFT',
+                                            : showingDailyField
+                                            ? (largePhoneType
+                                                  ? (remaining == 0
+                                                        ? 'FIELD · ENOUGH'
+                                                        : '$remaining TO CARRY')
+                                                  : (remaining == 0
+                                                        ? 'TODAY’S FIELD · ENOUGH'
+                                                        : 'TODAY’S FIELD · $remaining TO CARRY'))
+                                            : 'TODAY · $remaining OPEN',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: Type.label.copyWith(
@@ -3216,6 +3374,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                     Text(
                                       sheltered
                                           ? 'The day is sheltered'
+                                          : showingDailyField && setAside > 0
+                                          ? 'A chosen quest is set aside'
+                                          : showingDailyField && remaining == 0
+                                          ? 'Enough for today'
                                           : 'A clear board',
                                       style: Type.display.copyWith(
                                         fontSize: 20,
@@ -3225,6 +3387,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                     Text(
                                       sheltered
                                           ? 'Nothing needs carrying right now. A clear day is allowed.'
+                                          : showingDailyField && setAside > 0
+                                          ? 'It is still part of today’s field, just resting out of sight. Bring it back when you are ready.'
+                                          : showingDailyField
+                                          ? 'Your field is kept. Other open quests are still here if the day has room.'
                                           : 'add a quest with + above, or take on a goal — '
                                                 'choose one next step and the day tilts your way',
                                       textAlign: TextAlign.center,
@@ -3239,6 +3405,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                       onTap: sheltered
                                           ? () =>
                                                 unawaited(_editLowFlameThree())
+                                          : showingDailyField
+                                          ? () => unawaited(_chooseToday())
                                           : _quickAdd,
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
@@ -3254,6 +3422,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                         child: Text(
                                           sheltered
                                               ? 'CHOOSE UP TO THREE'
+                                              : showingDailyField
+                                              ? 'EDIT TODAY’S FIELD'
                                               : 'ADD A QUEST',
                                           style: Type.label.copyWith(
                                             fontSize: 11,
@@ -3295,6 +3465,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                       Text(
                                         sheltered
                                             ? 'Enough for today'
+                                            : showingDailyField
+                                            ? 'Enough for today'
                                             : 'Day cleared',
                                         style: Type.display.copyWith(
                                           fontSize: 20,
@@ -3306,6 +3478,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                       Text(
                                         sheltered
                                             ? 'You protected your energy and still tended what mattered.'
+                                            : showingDailyField
+                                            ? 'The commitments and field you chose are kept. The rest remains open if it fits.'
                                             : _state.todaysShape(),
                                         textAlign: TextAlign.center,
                                         style: Type.body.copyWith(
@@ -3318,6 +3492,10 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                                       Text(
                                         sheltered
                                             ? '$resting quest${resting == 1 ? '' : 's'} resting safely · all still kept'
+                                            : showingDailyField
+                                            ? (optionalOpen == 0
+                                                  ? 'nothing else needs carrying'
+                                                  : '$optionalOpen quest${optionalOpen == 1 ? '' : 's'} still open if the day has room')
                                             : _state.nightDoneDay == nightDay
                                             ? 'rest well — tomorrow is already taking shape'
                                             : 'nothing left but the goodnight',
@@ -4044,6 +4222,168 @@ class _DeskSwatch extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _DailyFieldRail extends StatelessWidget {
+  const _DailyFieldRail({
+    required this.hasField,
+    required this.commitments,
+    required this.commitmentsRemaining,
+    required this.chosen,
+    required this.chosenRemaining,
+    required this.setAside,
+    required this.optionalOpen,
+    required this.showingOptional,
+    required this.onChoose,
+    required this.onToggleOptional,
+  });
+
+  final bool hasField;
+  final int commitments;
+  final int commitmentsRemaining;
+  final int chosen;
+  final int chosenRemaining;
+  final int setAside;
+  final int optionalOpen;
+  final bool showingOptional;
+  final VoidCallback onChoose;
+  final VoidCallback? onToggleOptional;
+
+  @override
+  Widget build(BuildContext context) {
+    final heading = hasField ? 'TODAY’S FIELD' : 'CHOOSE TODAY';
+    final detail = !hasField
+        ? 'Pick up to three quests to carry. Everything else stays open if the day has room.'
+        : setAside > 0
+        ? '$setAside chosen quest${setAside == 1 ? ' is' : 's are'} set aside for today. It still counts as part of the field.'
+        : commitmentsRemaining + chosenRemaining == 0
+        ? 'The commitments and field you chose are kept. Other quests remain open if it fits.'
+        : '$commitmentsRemaining commitment${commitmentsRemaining == 1 ? '' : 's'} · $chosenRemaining chosen quest${chosenRemaining == 1 ? '' : 's'} to carry.';
+    return Material(
+      color: Colors.transparent,
+      shape: const FacetedBorder(cut: 9),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const Key('daily-field-rail'),
+        onTap: onChoose,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(13, 10, 12, 9),
+          decoration: facetedDecoration(
+            cut: 9,
+            color: const Color(0xED241B17),
+            borderColor: Palette.brass.withValues(alpha: 0.50),
+            shadows: const [
+              BoxShadow(
+                color: Color(0x42000000),
+                blurRadius: 11,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    hasField
+                        ? Icons.bookmark_added_outlined
+                        : Icons.bookmark_add_outlined,
+                    size: 17,
+                    color: Palette.xpLight,
+                  ),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      heading,
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        color: Palette.xpLight,
+                        letterSpacing: 1.05,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    hasField ? 'EDIT' : 'CHOOSE',
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      color: Palette.textHi,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 5),
+              Text(
+                detail,
+                style: Type.body.copyWith(
+                  fontSize: 13,
+                  height: 1.28,
+                  color: Palette.textMid,
+                ),
+              ),
+              if (hasField) ...[
+                const SizedBox(height: 7),
+                Text(
+                  'COMMITMENTS $commitments  ·  FIELD $chosen',
+                  style: Type.label.copyWith(
+                    fontSize: Type.minLabel,
+                    color: Palette.textMid,
+                    letterSpacing: 0.75,
+                  ),
+                ),
+              ],
+              if (onToggleOptional != null) ...[
+                const SizedBox(height: 9),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Semantics(
+                    button: true,
+                    label: showingOptional
+                        ? 'Hide optional quests'
+                        : 'Open $optionalOpen optional quests if they fit',
+                    child: InkWell(
+                      onTap: onToggleOptional,
+                      borderRadius: BorderRadius.circular(4),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 2,
+                          vertical: 3,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              showingOptional
+                                  ? Icons.keyboard_arrow_up
+                                  : Icons.keyboard_arrow_down,
+                              size: 18,
+                              color: Palette.streak,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              showingOptional
+                                  ? 'HIDE OPTIONAL QUESTS'
+                                  : 'OPEN IF IT FITS · $optionalOpen',
+                              style: Type.label.copyWith(
+                                fontSize: Type.minLabel,
+                                color: Palette.streak,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _CloseDayRail extends StatelessWidget {

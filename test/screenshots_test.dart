@@ -24,6 +24,7 @@ import 'package:emberkeep/content/furniture.dart';
 import 'package:emberkeep/content/release_notes.dart';
 import 'package:emberkeep/content/routines.dart';
 import 'package:emberkeep/content/space_themes.dart';
+import 'package:emberkeep/content/steward_encounter.dart';
 import 'package:emberkeep/discovery.dart';
 import 'package:emberkeep/widgets/routine_flows.dart';
 import 'package:emberkeep/widgets/share_moment_card.dart';
@@ -46,6 +47,7 @@ import 'package:emberkeep/screens/goal_opening.dart';
 import 'package:emberkeep/screens/memory_cabinet.dart';
 import 'package:emberkeep/screens/me.dart';
 import 'package:emberkeep/screens/quests.dart';
+import 'package:emberkeep/screens/steward_encounter.dart';
 import 'package:emberkeep/screens/visit_room.dart';
 import 'package:emberkeep/screens/weekly_chronicle.dart';
 import 'package:emberkeep/social.dart';
@@ -871,6 +873,214 @@ void main() {
         matchesGoldenFile('goldens/streak_freeze_sheet.png'),
       );
     }
+  });
+
+  testWidgets('quests daily field: crowded board visual contract', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Clock.reset();
+      Sfx.instance.soundEnabled = true;
+    });
+    final now = DateTime(2026, 8, 30, 10);
+    final today = Days.key(now);
+    SharedPreferences.setMockInitialValues({});
+    Clock.freeze(now);
+    Sfx.instance.soundEnabled = false;
+
+    final commitment = Quest(
+      title: 'Submit the housing form',
+      stat: Stat.intl,
+      difficulty: 3,
+      custom: true,
+      schedule: QuestSchedule.once,
+      dueDate: now,
+    );
+    final first =
+        Quest(
+            title: 'Ten quiet minutes on the draft',
+            stat: Stat.foc,
+            difficulty: 2,
+            custom: true,
+          )
+          ..priorityDay = today
+          ..priorityRank = 1;
+    final second =
+        Quest(
+            title: 'Put water beside the bed',
+            stat: Stat.vit,
+            difficulty: 1,
+            custom: true,
+          )
+          ..priorityDay = today
+          ..priorityRank = 2;
+    final optionalSketch = Quest(
+      title: 'Sketch if there is room',
+      stat: Stat.intl,
+      difficulty: 2,
+      custom: true,
+    );
+    final optionalWalk = Quest(
+      title: 'Walk if the evening has energy',
+      stat: Stat.vit,
+      difficulty: 2,
+      custom: true,
+    );
+    final quests = <Quest>[
+      commitment,
+      first,
+      second,
+      optionalSketch,
+      optionalWalk,
+    ];
+    final state = GameState()
+      ..onboarded = true
+      ..reduceMotion = true
+      ..soundEnabled = false
+      ..morningDoneDay = today
+      ..emberSeenDay = today
+      ..sparkSeenDay = today;
+
+    Widget board({double textScale = 1}) => MaterialApp(
+      debugShowCheckedModeBanner: false,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: child!,
+      ),
+      home: Scaffold(
+        backgroundColor: Palette.parchment,
+        body: WarmBackground(
+          themeId: state.canvasTheme,
+          tint: Palette.streak,
+          reduceMotion: true,
+          child: QuestsPage(
+            state: state,
+            quests: quests,
+            onRefresh: () => 0,
+            onPersist: () {},
+            onAdd: (quest) {
+              quests.add(quest);
+              return true;
+            },
+            onRemove: quests.remove,
+            onSnapshot: () => '{}',
+            onRestore: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await _precacheQuestBoardArt(tester);
+    await tester.pumpWidget(board());
+    await tester.pump(const Duration(milliseconds: 500));
+    final rail = find.byKey(const Key('daily-field-rail'));
+    await tester.scrollUntilVisible(
+      rail,
+      260,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 180));
+    expect(find.text('OPEN IF IT FITS · 2'), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/quests_daily_field_collapsed_430x932.png'),
+      );
+    }
+
+    await tester.tap(find.text('OPEN IF IT FITS · 2'));
+    await tester.pump(const Duration(milliseconds: 180));
+    await tester.scrollUntilVisible(
+      find.text('Sketch if there is room'),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/quests_daily_field_expanded_430x932.png'),
+      );
+    }
+    expect(tester.takeException(), isNull);
+
+    await tester.ensureVisible(find.text('HIDE OPTIONAL QUESTS'));
+    await tester.tap(find.text('HIDE OPTIONAL QUESTS'));
+    commitment.lastDoneDay = today;
+    first.lastDoneDay = today;
+    second.lastDoneDay = today;
+    await tester.pumpWidget(board());
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.scrollUntilVisible(
+      rail,
+      260,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('TODAY’S FIELD · ENOUGH'), findsOneWidget);
+    expect(find.text('OPEN IF IT FITS · 2'), findsOneWidget);
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/quests_daily_field_enough_430x932.png'),
+      );
+    }
+    expect(tester.takeException(), isNull);
+
+    // Detach the 430-point board before changing the simulated window. In the
+    // real app text scale and window constraints arrive together; relaying out
+    // the old 1.0x tree at 320 points creates a one-frame state no device sees.
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pump();
+    tester.view.devicePixelRatio = 1;
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    await tester.pump();
+    commitment.lastDoneDay = null;
+    first.lastDoneDay = null;
+    second.lastDoneDay = null;
+    await tester.pumpWidget(board(textScale: 1.5));
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.scrollUntilVisible(
+      rail,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump(const Duration(milliseconds: 180));
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/quests_daily_field_collapsed_large_text_320x568.png',
+        ),
+      );
+    }
+    await tester.tap(find.text('OPEN IF IT FITS · 2'));
+    await tester.pump(const Duration(milliseconds: 180));
+    await tester.scrollUntilVisible(
+      find.text('Sketch if there is room'),
+      150,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Sketch if there is room')),
+      alignment: 0.45,
+      duration: Duration.zero,
+    );
+    await tester.pump();
+    if (_capture) {
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/quests_daily_field_expanded_large_text_320x568.png',
+        ),
+      );
+    }
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('phone audit: time-aware first run', (tester) async {
@@ -2342,6 +2552,123 @@ void main() {
     await tester.pump();
   });
 
+  testWidgets('steward hidden encounter: authored scene and compact text', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetDevicePixelRatio();
+      tester.binding.setSurfaceSize(null);
+      Sfx.instance.soundEnabled = true;
+    });
+    Sfx.instance.soundEnabled = false;
+    final state = GameState()
+      ..reduceMotion = true
+      ..soundEnabled = false;
+    Future<void> mount({
+      Size size = const Size(430, 932),
+      double scale = 1,
+    }) async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.binding.setSurfaceSize(size);
+      await tester.pumpWidget(
+        MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(brightness: Brightness.dark),
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              disableAnimations: true,
+              textScaler: TextScaler.linear(scale),
+            ),
+            child: child!,
+          ),
+          home: StewardEncounterScreen(state: state),
+        ),
+      );
+      await _precachePageArt(tester);
+      await tester.pumpAndSettle();
+    }
+
+    final orderedPreview = <Map<String, Object?>>[];
+    Future<void> shot(String name, {bool record = false}) async {
+      expect(tester.takeException(), isNull);
+      if (record) {
+        final node = stewardEncounter[state.stewardMemory.nodeId]!;
+        orderedPreview.add({
+          'node': state.stewardMemory.nodeId,
+          'speaker': node.speaker,
+          'text': node.text,
+          'aside': node.aside,
+          'choices': [for (final reply in node.choices) reply.text],
+          'image': 'test/goldens/$name.png',
+        });
+      }
+      if (_capture) {
+        await expectLater(
+          find.byType(MaterialApp),
+          matchesGoldenFile('goldens/$name.png'),
+        );
+      }
+    }
+
+    Future<void> tap(String key) async {
+      if (key.startsWith('steward-reply-') && orderedPreview.isNotEmpty) {
+        final node = stewardEncounter[state.stewardMemory.nodeId]!;
+        orderedPreview.last['playerReply'] = node.choices
+            .firstWhere((reply) => key == 'steward-reply-${reply.id}')
+            .text;
+      }
+      final control = find.byKey(Key(key));
+      await tester.ensureVisible(control);
+      await tester.pumpAndSettle();
+      await tester.tap(control);
+      await tester.pumpAndSettle();
+    }
+
+    await mount();
+    await shot('steward_soup_01_hello_430x932', record: true);
+    await tap('steward-reply-ask');
+    await shot('steward_soup_02_setup_430x932', record: true);
+    await tap('steward-continue');
+    await shot('steward_soup_03_note_430x932', record: true);
+    await tap('steward-continue');
+    await shot('steward_soup_04_friends_430x932', record: true);
+    await tap('steward-reply-cook');
+    await shot('steward_soup_05_reply_430x932', record: true);
+    await tap('steward-continue');
+    await shot('steward_soup_06_bread_430x932', record: true);
+    await tap('steward-reply-tell');
+    await shot('steward_soup_07_admission_430x932', record: true);
+    await tap('steward-continue');
+    await shot('steward_soup_08_goodbye_430x932', record: true);
+    if (_capture) {
+      debugPrintSynchronously(
+        'STEWARD_ORDERED_PREVIEW=${jsonEncode(orderedPreview)}',
+      );
+    }
+    // A completed saved visit supplies the return callback independently of
+    // navigation; the widget integration test drives actual finish and reopen.
+    state.stewardMemory
+      ..completed = true
+      ..nodeId = null;
+    await mount();
+    await shot('steward_soup_09_callback_430x932');
+    for (final scale in [1.5, 2.0]) {
+      state.stewardMemory.nodeId = stewardFirstLine;
+      await mount(size: const Size(320, 568), scale: scale);
+      await shot('steward_soup_choices_${scale}x_top_320x568');
+      await tester.ensureVisible(find.byKey(const Key('steward-reply-leave')));
+      await tester.pumpAndSettle();
+      await shot('steward_soup_choices_${scale}x_actions_320x568');
+      state.stewardMemory.nodeId = 'soup-bread';
+      await mount(size: const Size(320, 568), scale: scale);
+      await shot('steward_soup_long_line_${scale}x_top_320x568');
+      await tester.ensureVisible(find.byKey(const Key('steward-reply-knows')));
+      await tester.pumpAndSettle();
+      await shot('steward_soup_long_line_${scale}x_action_320x568');
+    }
+  });
+
   testWidgets('goals personal index: narrow large text', (tester) async {
     tester.view.devicePixelRatio = 1;
     await tester.binding.setSurfaceSize(const Size(320, 568));
@@ -2429,6 +2756,23 @@ void main() {
           'goldens/goals_personal_index_narrow_large_text_320x568.png',
         ),
       );
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('goals-today-field')),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump(const Duration(milliseconds: 120));
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile(
+          'goldens/goals_today_field_narrow_large_text_320x568.png',
+        ),
+      );
+      tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position
+          .jumpTo(0);
+      await tester.pumpAndSettle();
     }
     expect(tester.takeException(), isNull);
     expect(
@@ -2453,23 +2797,7 @@ void main() {
         ),
       );
     }
-    await tester.tap(find.byKey(const Key('goal-workshop-talk')));
-    await tester.pumpAndSettle();
-    final narrowConversationScroll = find.descendant(
-      of: find.byKey(
-        const PageStorageKey<String>('goal-workshop-conversation-scroll'),
-      ),
-      matching: find.byType(Scrollable),
-    );
-    final narrowDialogue = find.byKey(
-      const ValueKey<String>('goal-workshop-conversation-option-good-cut'),
-    );
-    await tester.scrollUntilVisible(
-      narrowDialogue,
-      100,
-      scrollable: narrowConversationScroll,
-    );
-    await tester.tap(narrowDialogue);
+    await tester.tap(find.byKey(const Key('steward-hidden-card')));
     await tester.pumpAndSettle();
     if (_capture) {
       await expectLater(
@@ -2480,15 +2808,16 @@ void main() {
       );
     }
     expect(tester.takeException(), isNull);
-    await tester.tap(find.byKey(const Key('goal-workshop-talk')));
+    await tester.tap(find.byKey(const Key('steward-leave')));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>(
-          'goal-workshop-home-goal-Make the apartment feel calm',
-        ),
+    final narrowOwnedRoute = find.byKey(
+      const ValueKey<String>(
+        'goal-workshop-home-goal-Make the apartment feel calm',
       ),
     );
+    await tester.ensureVisible(narrowOwnedRoute);
+    await tester.pumpAndSettle();
+    await tester.tap(narrowOwnedRoute);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('goal-workshop-accept')));
     expect(find.text('Open this Quest'), findsOneWidget);
@@ -3457,10 +3786,20 @@ void main() {
         goalPlanAttempt: 1,
       ),
       Quest(
-        title: 'Go for a ten-minute walk',
-        stat: Stat.vit,
+          title: 'Go for a ten-minute walk',
+          stat: Stat.vit,
+          difficulty: 2,
+          goalTitle: 'Build a walking habit',
+        )
+        ..priorityDay = Days.key(Clock.now())
+        ..priorityRank = 1,
+      Quest(title: 'Read twenty pages', stat: Stat.intl, difficulty: 2)
+        ..priorityDay = Days.key(Clock.now())
+        ..priorityRank = 2,
+      Quest(
+        title: 'Call a friend if the evening has room',
+        stat: Stat.soc,
         difficulty: 2,
-        goalTitle: 'Build a walking habit',
       ),
     ];
     Quest? openedQuest;
@@ -3500,6 +3839,21 @@ void main() {
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/goals_personal_index_active_430x932.png'),
       );
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('goals-today-field')),
+        260,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump(const Duration(milliseconds: 120));
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/goals_today_field_430x932.png'),
+      );
+      tester
+          .state<ScrollableState>(find.byType(Scrollable).first)
+          .position
+          .jumpTo(0);
+      await tester.pumpAndSettle();
     }
     if (storeCapture) {
       await _storeShot(tester, 'goals_active_1290x2796');
@@ -3534,13 +3888,7 @@ void main() {
     if (storeCapture) {
       await _storeShot(tester, 'goals_workshop_1290x2796');
     }
-    await tester.tap(find.byKey(const Key('goal-workshop-talk')));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('goal-workshop-conversation-option-good-cut'),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('steward-hidden-card')));
     await tester.pumpAndSettle();
     if (_capture) {
       await expectLater(
@@ -3549,7 +3897,7 @@ void main() {
       );
     }
     expect(tester.takeException(), isNull);
-    await tester.tap(find.byKey(const Key('goal-workshop-talk')));
+    await tester.tap(find.byKey(const Key('steward-leave')));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(
@@ -3892,6 +4240,12 @@ void main() {
       320,
       scrollable: find.byType(Scrollable).first,
     );
+    await Scrollable.ensureVisible(
+      tester.element(otherGoals),
+      alignment: 0.35,
+      duration: Duration.zero,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(otherGoals);
     await tester.pumpAndSettle();
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -420));

@@ -3,7 +3,40 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
+
 typedef CleanupAction = ({String label, Future<void> Function() action});
+
+String productionSmokeOwnerKey(String uid) =>
+    sha256.convert(utf8.encode(uid)).toString();
+
+Map<String, Object?> productionSmokeRoomFields(String ownerUid) => {
+  'ownerKey': productionSmokeOwnerKey(ownerUid),
+  'name': 'Fellow keeper',
+  'title': 'STEADY FLAME',
+  'level': 12,
+  'furniture': <String>['rug', 'plant', 'hearth'],
+  'wall': 'wall_walnut',
+  'floor': 'floor_oak',
+  'skin': 'ember_amber',
+  'window': 'moon',
+  'awake': true,
+  'memories': 8,
+  'weather': 'unknown',
+  'todayLit': true,
+  'focusKind': 'quiet',
+  'focusUntil': 0,
+  'profileVisible': false,
+  'displayName': '',
+  'about': '',
+  'featuredGoals': <String>[],
+  'cardOrder': <String>[],
+  'pinnedMoments': <Map<String, Object?>>[],
+  'season': '',
+  'profilePhotoPath': '',
+  'seasonPhotoPath': '',
+  'v': 6,
+};
 
 /// Runs every cleanup action even if an earlier one fails. Production smoke
 /// failures must not strand later receipts or temporary Firebase identities.
@@ -71,6 +104,7 @@ class _ProductionSmoke {
   _Identity? visitor;
   String? roomCode;
   bool roomCreated = false;
+  bool roomOwnerAnchorCreated = false;
   bool profileImageUploaded = false;
 
   String get _documentsBase =>
@@ -85,7 +119,9 @@ class _ProductionSmoke {
     owner = await _createAnonymousIdentity();
     visitor = await _createAnonymousIdentity();
 
-    _step('Publish a version 5 room as its owner');
+    _step(
+      'Atomically publish a generated-only version 6 room and owner anchor',
+    );
     roomCode = await _reserveGeneratedRoom();
     final code = roomCode!;
     final generatedFields = _roomFields(owner!.uid);
@@ -105,7 +141,9 @@ class _ProductionSmoke {
     final list = await http.get(Uri.parse('$_documentsBase/rooms?pageSize=1'));
     _expect(list, 403, 'public room listing');
 
-    _step('Reject visitor writing and photo handles in the v1 room schema');
+    _step(
+      'Reject authored visitor content and photo handles in the generated v6 room',
+    );
     final ugcFields = Map<String, Object?>.from(generatedFields)
       ..['profileVisible'] = true
       ..['displayName'] = 'Release keeper'
@@ -134,11 +172,11 @@ class _ProductionSmoke {
     );
     _expect(mediaUpdate, 403, 'visitor-photo path');
 
-    _step('Reject an owner downgrade from schema v5 to v4');
+    _step(
+      'Reject a generated room downgrade from version 6 to legacy version 5',
+    );
     final downgradeFields = Map<String, Object?>.from(generatedFields)
-      ..remove('profilePhotoPath')
-      ..remove('seasonPhotoPath')
-      ..['v'] = 4;
+      ..['v'] = 5;
     final downgrade = await _commitDocument(
       path: 'rooms/$code',
       token: owner!.idToken,
@@ -146,7 +184,7 @@ class _ProductionSmoke {
       serverTimestampField: 'updatedAt',
       exists: true,
     );
-    _expect(downgrade, 403, 'schema downgrade');
+    _expect(downgrade, 403, 'legacy schema downgrade');
 
     _step('Deliver one Circle receipt and one fixed Spark from the visitor');
     final circle = await _commitDocument(
@@ -327,12 +365,15 @@ class _ProductionSmoke {
             ownerIdentity.idToken,
           ),
         ),
-      if (roomCreated && code != null && ownerIdentity != null)
+      if ((roomCreated || roomOwnerAnchorCreated) &&
+          code != null &&
+          ownerIdentity != null)
         (
-          label: 'room',
+          label: 'room and owner anchor',
           action: () async {
-            await _deleteDocument('rooms/$code', ownerIdentity.idToken);
+            await _deleteRoomAndOwner(code, ownerIdentity.idToken);
             roomCreated = false;
+            roomOwnerAnchorCreated = false;
           },
         ),
       if (visitorIdentity != null)
@@ -402,51 +443,42 @@ class _ProductionSmoke {
         6,
         (_) => alphabet[_random.nextInt(alphabet.length)],
       ).join();
-      final create = await _commitDocument(
-        path: 'rooms/$code',
+      final create = await _commitDocuments(
         token: owner!.idToken,
-        fields: _roomFields(owner!.uid),
-        serverTimestampField: 'updatedAt',
-        exists: false,
+        writes: [
+          (
+            path: 'rooms/$code',
+            fields: _roomFields(owner!.uid),
+            serverTimestampField: 'updatedAt',
+            exists: false,
+          ),
+          (
+            path: 'roomOwners/$code',
+            fields: _roomOwnerFields(owner!.uid),
+            serverTimestampField: 'updatedAt',
+            exists: false,
+          ),
+        ],
       );
       if (create.statusCode == 200) {
         roomCreated = true;
+        roomOwnerAnchorCreated = true;
         return code;
       }
       if (create.statusCode == 403) continue;
-      _expect(create, 200, 'owner v5 room create');
+      _expect(create, 200, 'owner v6 room and anchor create');
     }
     throw StateError(
-      'Could not publish a generated-only v5 room after 12 reservations.',
+      'Could not publish a generated-only v6 room after 12 reservations.',
     );
   }
 
-  Map<String, Object?> _roomFields(String ownerUid) => {
+  Map<String, Object?> _roomFields(String ownerUid) =>
+      productionSmokeRoomFields(ownerUid);
+
+  Map<String, Object?> _roomOwnerFields(String ownerUid) => {
     'uid': ownerUid,
-    'name': 'Fellow keeper',
-    'title': 'STEADY FLAME',
-    'level': 12,
-    'furniture': <String>['rug', 'plant', 'hearth'],
-    'wall': 'wall_walnut',
-    'floor': 'floor_oak',
-    'skin': 'ember_amber',
-    'window': 'moon',
-    'awake': true,
-    'memories': 8,
-    'weather': 'unknown',
-    'todayLit': true,
-    'focusKind': 'quiet',
-    'focusUntil': 0,
-    'profileVisible': false,
-    'displayName': '',
-    'about': '',
-    'featuredGoals': <String>[],
-    'cardOrder': <String>[],
-    'pinnedMoments': <Map<String, Object?>>[],
-    'season': '',
-    'profilePhotoPath': '',
-    'seasonPhotoPath': '',
-    'v': 5,
+    'ownerKey': productionSmokeOwnerKey(ownerUid),
   };
 
   Future<_HttpResult> _commitDocument({
@@ -455,8 +487,30 @@ class _ProductionSmoke {
     required Map<String, Object?> fields,
     required String serverTimestampField,
     required bool exists,
+  }) => _commitDocuments(
+    token: token,
+    writes: [
+      (
+        path: path,
+        fields: fields,
+        serverTimestampField: serverTimestampField,
+        exists: exists,
+      ),
+    ],
+  );
+
+  Future<_HttpResult> _commitDocuments({
+    required String token,
+    required List<
+      ({
+        String path,
+        Map<String, Object?> fields,
+        String serverTimestampField,
+        bool exists,
+      })
+    >
+    writes,
   }) {
-    final documentName = '$_databaseName/documents/$path';
     return http.request(
       'POST',
       Uri.parse('$_documentsBase:commit'),
@@ -468,22 +522,23 @@ class _ProductionSmoke {
         utf8.encode(
           jsonEncode({
             'writes': [
-              {
-                'update': {
-                  'name': documentName,
-                  'fields': {
-                    for (final entry in fields.entries)
-                      entry.key: _firestoreValue(entry.value),
+              for (final write in writes)
+                {
+                  'update': {
+                    'name': '$_databaseName/documents/${write.path}',
+                    'fields': {
+                      for (final entry in write.fields.entries)
+                        entry.key: _firestoreValue(entry.value),
+                    },
                   },
+                  'updateTransforms': [
+                    {
+                      'fieldPath': write.serverTimestampField,
+                      'setToServerValue': 'REQUEST_TIME',
+                    },
+                  ],
+                  'currentDocument': {'exists': write.exists},
                 },
-                'updateTransforms': [
-                  {
-                    'fieldPath': serverTimestampField,
-                    'setToServerValue': 'REQUEST_TIME',
-                  },
-                ],
-                'currentDocument': {'exists': exists},
-              },
             ],
           }),
         ),
@@ -506,6 +561,32 @@ class _ProductionSmoke {
     if (result.statusCode != 200 && result.statusCode != 404) {
       stderr.writeln(
         'Warning: cleanup of $path returned ${result.statusCode}.',
+      );
+    }
+  }
+
+  Future<void> _deleteRoomAndOwner(String code, String token) async {
+    final result = await http.request(
+      'POST',
+      Uri.parse('$_documentsBase:commit'),
+      headers: {
+        HttpHeaders.authorizationHeader: 'Bearer $token',
+        HttpHeaders.contentTypeHeader: 'application/json',
+      },
+      bytes: Uint8List.fromList(
+        utf8.encode(
+          jsonEncode({
+            'writes': [
+              {'delete': '$_databaseName/documents/roomOwners/$code'},
+              {'delete': '$_databaseName/documents/rooms/$code'},
+            ],
+          }),
+        ),
+      ),
+    );
+    if (result.statusCode != 200) {
+      throw StateError(
+        'Room and owner-anchor cleanup returned ${result.statusCode}.',
       );
     }
   }

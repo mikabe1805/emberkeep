@@ -1026,7 +1026,7 @@ class _OpeningRoutePreview extends StatelessWidget {
             Text(
               'ROUTE KEPT',
               style: Type.label.copyWith(
-                fontSize: 9,
+                fontSize: Type.minLabel,
                 letterSpacing: 1.1,
                 color: accent,
               ),
@@ -1038,10 +1038,7 @@ class _OpeningRoutePreview extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,
-                style: Type.body.copyWith(
-                  fontSize: 10.5,
-                  color: Palette.textLo,
-                ),
+                style: Type.body.copyWith(fontSize: 13, color: Palette.textLo),
               ),
             ),
           ],
@@ -1056,8 +1053,8 @@ class _OpeningRoutePreview extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 19,
-                height: 19,
+                width: 23,
+                height: 23,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
@@ -1070,7 +1067,7 @@ class _OpeningRoutePreview extends StatelessWidget {
                 child: Text(
                   '${index + 1}',
                   style: Type.label.copyWith(
-                    fontSize: 7.8,
+                    fontSize: Type.minLabel,
                     color: index == plan.currentStepIndex
                         ? accent
                         : Palette.textLo,
@@ -1082,7 +1079,7 @@ class _OpeningRoutePreview extends StatelessWidget {
                 child: Text(
                   plan.steps[index].title,
                   style: Type.body.copyWith(
-                    fontSize: 12,
+                    fontSize: 13,
                     height: 1.2,
                     color: index == plan.currentStepIndex
                         ? Palette.textHi
@@ -1233,7 +1230,7 @@ class _OpeningArrivalFolio extends StatelessWidget {
                               key: const Key('goal-workshop-marker'),
                               textAlign: TextAlign.right,
                               style: Type.label.copyWith(
-                                fontSize: 8.5,
+                                fontSize: Type.minLabel,
                                 letterSpacing: 0.9,
                                 color: goal.stat.color,
                               ),
@@ -1270,7 +1267,7 @@ class _OpeningArrivalFolio extends StatelessWidget {
                                   marker,
                                   key: const Key('goal-workshop-marker'),
                                   style: Type.label.copyWith(
-                                    fontSize: 8.5,
+                                    fontSize: Type.minLabel,
                                     letterSpacing: 0.9,
                                     color: goal.stat.color,
                                   ),
@@ -1348,7 +1345,7 @@ class _OpeningArrivalFolio extends StatelessWidget {
                                                   : 'THE CUT',
                                               textAlign: TextAlign.center,
                                               style: Type.label.copyWith(
-                                                fontSize: 8.5,
+                                                fontSize: Type.minLabel,
                                                 letterSpacing: 1.2,
                                                 color: const Color(0xFF6C4726),
                                               ),
@@ -1374,11 +1371,7 @@ class _OpeningArrivalFolio extends StatelessWidget {
                                           ? TextOverflow.visible
                                           : TextOverflow.ellipsis,
                                       textAlign: TextAlign.center,
-                                      textScaler: compactWorkshop
-                                          ? textScaler
-                                          : textScaler.clamp(
-                                              maxScaleFactor: 1.45,
-                                            ),
+                                      textScaler: textScaler,
                                       style: cutTitleStyle,
                                     ),
                                   ),
@@ -1609,7 +1602,7 @@ class _WorkshopFact extends StatelessWidget {
             Text(
               label,
               style: Type.label.copyWith(
-                fontSize: 8.2,
+                fontSize: Type.minLabel,
                 letterSpacing: 0.9,
                 color: accent,
               ),
@@ -1848,7 +1841,7 @@ class _OpeningContextLine extends StatelessWidget {
           child: Text(
             label,
             style: Type.body.copyWith(
-              fontSize: 12.5,
+              fontSize: 13.5,
               height: 1.15,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.1,

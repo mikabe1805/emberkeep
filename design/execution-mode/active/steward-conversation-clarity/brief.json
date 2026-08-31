@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "id": "steward-conversation-clarity-2026-08-30",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "expanding",
+  "locked_at": "2026-08-30T20:18:21.0205598-04:00",
+  "surface": "Plain-language Steward entrance, authored dialogue and continuous owner preview",
+  "scope": "Correct the rejected wording and unclear first-read setup inside the existing optional encounter. Preserve the accepted visual composition, practical routes and saved-state isolation. Do not expand the feature or release.",
+  "user_job": "Know that the entrance starts an optional conversation, follow it without unfamiliar vocabulary or missing context, and meet a character through ordinary readable speech.",
+  "active_sources": [
+    {
+      "id": "owner-clarity-correction",
+      "kind": "product_contract",
+      "location": "design/visual-targets/2026-08-30/steward-conversation-clarity-contract.md",
+      "content_sha256": "7f31ae4a522ff67c8c3fbb04fe0c21d8859f0392835f00d887bb7105dea3d5f3",
+      "approved_at": "2026-08-30",
+      "judged_state": "Direct owner rejection of unfamiliar fennel premise, opaque entrance and unnatural wording while retaining visual appeal.",
+      "viewport": "430x932 and320x568 at1.5x/2x text; complete ordered transcript",
+      "priority": 1
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/visual-targets/2026-08-30/steward-hidden-encounter-contract.md",
+      "reason": "The owner found the fennel/legal conceit, An unfiled card label and nonconsecutive preview confusing. Retain optional VN structure and visuals, replace these textual and presentation decisions."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": "design/execution-mode/active/steward-hidden-encounter",
+  "edge_contract": {
+    "product": {
+      "decision": "Talk with the Steward explicitly promises a short optional conversation, whose opening identifies the cook, note and soup disagreement before asking for a reply.",
+      "proof": "A first reader must explain the button's action and the situation from the opening alone; tests assert these live copy boundaries and unchanged practical actions."
+    },
+    "interaction": {
+      "decision": "Present a complete conversational path with selected replies in order, preserve choices/resume/callbacks, and restart obsolete draft saves at the new opening.",
+      "proof": "Drive actual branches and serialized reload; generate the ordered preview directly from visited production story nodes and verify it contains no skipped setup."
+    },
+    "visual": {
+      "decision": "Preserve the room, poses and opaque readable dialogue plane. Change labels and live text only, allowing the existing large-text scroll layout to reflow.",
+      "proof": "Inspect fresh entrance, opening, note, reply, ending and compact1.5x/2x top/action states, confirming that revised wording remains fully readable and reachable."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Explain fennel to the owner or retain the same legal joke under simpler synonyms",
+      "why": "The correction concerns the first-read contract and spoken voice, not a missing dictionary definition."
+    },
+    {
+      "fallback": "Use an atmospheric object label for a button that starts a conversation",
+      "why": "The player must know what clicking does before deciding whether to spend time there."
+    },
+    {
+      "fallback": "Judge a story from nonconsecutive glamour shots or agreement with a design brief",
+      "why": "The previous preview omitted setup. The decisive check is a continuous first-read path without the intended interpretation supplied."
+    },
+    {
+      "fallback": "Replace personality with an app-help conversation or motivational advice",
+      "why": "Clarity should make the established character encounter legible, not erase its optional personal job."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "Enter through Talk with the Steward and follow the complete cook-note exchange, choosing replies and later resuming or revisiting.",
+    "real_inputs": "Existing workshop, actual GameState and production story graph; completed and partial current saves plus obsolete unpublished fennel saves.",
+    "user_action": "Start talking, ask about soup, read the note, choose a stance, discuss the bread, leave or finish and revisit.",
+    "expected_outcome": "The player understands who wrote the note and why, hears plain speech, learns a small personal detail, and retains control without planning or reward changes.",
+    "state_boundary": "Only Steward memory changes. New choice key separates current narrative from the rejected unpublished draft; other save fields remain untouched.",
+    "required_states": [
+      {
+        "id": "discovery",
+        "state": "Initial, partial and completed workshop entrance labels",
+        "why_can_disprove": "An opaque label or mislabeled resume action repeats the owner's expectation failure."
+      },
+      {
+        "id": "branches",
+        "state": "Full conversation with chosen replies and all stance callbacks",
+        "why_can_disprove": "Missing setup, unclear referents or ornate phrasing can still make a working graph incomprehensible."
+      },
+      {
+        "id": "resume",
+        "state": "Serialized reload, old-draft save, unknown current node and replay",
+        "why_can_disprove": "Dropping a reader into an ending or mixing drafts would reproduce the confusion through saved state."
+      },
+      {
+        "id": "compact",
+        "state": "Normal430x932 and320x568 at1.5x/2x text",
+        "why_can_disprove": "Clear writing still fails if meaningful text or choices are clipped, shrunk or unreachable."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "workshop-entry",
+      "surface_or_primitive": "Workshop register and Goals navigation",
+      "state": "New, discovered, in-progress, completed, empty, crowded",
+      "expected_effect": "Optional entry without disrupting exact route actions.",
+      "verification_plan": "Widget integration tests and discovery renders.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "save-state",
+      "surface_or_primitive": "GameState JSON",
+      "state": "Legacy, malformed, roundtrip and replay",
+      "expected_effect": "Bounded optional memory without other progression changes.",
+      "verification_plan": "Focused JSON and scene invariant tests.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "art-and-type",
+      "surface_or_primitive": "Existing Steward artwork and live dialogue",
+      "state": "Five poses, normal/compact/large text/reduced motion",
+      "expected_effect": "Existing art remains intact and line choices remain readable.",
+      "verification_plan": "Fresh renders and independent inspection.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether the executed dialogue feels natural and worth reading to the owner, beyond a cold reader's ability to follow its literal events.",
+  "decisive_check": {
+    "method": "Cold-read the full production-derived transcript without the design brief; inspect actual rendered text and drive save/branch boundaries, then show the owner an ordered preview.",
+    "target": "Entrance expectation, first-line setup, cook-note causality, every selected reply and ending, plus old/current save recovery.",
+    "pass_condition": "A fresh reader identifies the situation without specialist knowledge or missing context; choices/callbacks and render invariants hold; owner acceptance remains explicit rather than inferred from tests."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/content/steward_encounter.dart",
+      "lib/screens/steward_encounter.dart",
+      "lib/screens/goal_workshop.dart",
+      "lib/screens/goals.dart",
+      "lib/steward_memory.dart",
+      "lib/engine.dart",
+      "test/steward_memory_test.dart",
+      "test/steward_encounter_test.dart",
+      "test/goal_workshop_conversation_test.dart",
+      "test/screenshots_test.dart",
+      "design/visual-targets/2026-08-30/steward-conversation-clarity-contract.md"
+    ],
+    "exclude": [
+      "test/goldens"
+    ]
+  }
+}

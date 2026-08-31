@@ -15,6 +15,7 @@ import 'discovery.dart';
 import 'goal_planner.dart';
 import 'models.dart';
 import 'release_features.dart';
+import 'steward_memory.dart';
 import 'tokens.dart';
 
 /// The authored pieces that can be arranged on the owner's My Space page.
@@ -45,6 +46,10 @@ class GameState extends ChangeNotifier {
   static Random Function()? debugRandomFactory;
 
   final Random _rng;
+
+  /// Durable, account-save-scoped memory for the optional Steward encounter.
+  /// It intentionally has no progression, stat, or Quest side effects.
+  StewardMemory stewardMemory = StewardMemory();
 
   /// What the player is called (set in onboarding; greetings use it sparingly).
   /// Null = not given.
@@ -2220,10 +2225,12 @@ class GameState extends ChangeNotifier {
     'sparkSeenDay': sparkSeenDay,
     'weekRecapSeenWeek': weekRecapSeenWeek,
     'emberSeenDay': emberSeenDay,
+    'stewardMemory': stewardMemory.toJson(),
   };
 
   static GameState fromJson(Map<String, dynamic> j) {
     final s = GameState();
+    s.stewardMemory = StewardMemory.fromJson(j['stewardMemory']);
     s.playerName = j['playerName'] as String?;
     s.onboarded = j['onboarded'] as bool? ?? true; // pre-existing saves skip
     s.timeShape = j['timeShape'] as String?;

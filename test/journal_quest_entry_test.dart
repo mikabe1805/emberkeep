@@ -65,14 +65,18 @@ Future<void> _pumpBoard(
 
 Future<void> _openJournalQuest(WidgetTester tester, Quest quest) async {
   final card = find.byKey(ValueKey('card-${quest.title}'));
-  if (!tester.any(card)) {
-    await tester.scrollUntilVisible(
-      card,
-      220,
-      scrollable: find.byType(Scrollable).first,
-    );
-  }
+  await tester.scrollUntilVisible(
+    card,
+    220,
+    scrollable: find.byType(Scrollable).first,
+  );
   expect(card, findsOneWidget);
+  await Scrollable.ensureVisible(
+    tester.element(card),
+    alignment: 0.5,
+    duration: Duration.zero,
+  );
+  await tester.pump();
   await tester.tap(card);
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 650));

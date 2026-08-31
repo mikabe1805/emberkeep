@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../audio.dart';
 import '../clock.dart';
+import '../content/day_planning.dart';
 import '../content/goal_catalog.dart';
 import '../content/momentum_kits.dart';
 import '../content/routines.dart';
@@ -23,6 +24,7 @@ import '../widgets/goal_threshold_scene.dart';
 import '../widgets/goal_world.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/pressable.dart';
+import '../widgets/top_three_wizard.dart';
 import 'goal_detail.dart';
 import 'goal_opening.dart';
 import 'goal_plan_check_in.dart';
@@ -378,9 +380,42 @@ class _GoalsPageState extends State<GoalsPage> {
             if (!mounted) return;
             await _openQuickCreate(this.context);
           },
+          onPersist: widget.onPersist,
         ),
       ),
     );
+  }
+
+  /// Goals owns the decision to give an ordinary day a smaller, intentional
+  /// field. Quests still owns the board and completion; this only saves the
+  /// existing date-scoped priority markers that tell the board what leads.
+  Future<void> _chooseToday(BuildContext context) async {
+    final today = Clock.now();
+    final candidates = planningQuestsForDay(
+      quests,
+      today,
+    ).where((quest) => !quest.allDay && !quest.isEvent).toList(growable: false);
+    if (candidates.isEmpty) return;
+
+    final chosen = await showTopThreeWizard(
+      context,
+      title: 'Choose today',
+      subtitle:
+          'Pick up to three quests to carry. Everything else stays open if the day has more in it.',
+      dayLabel: 'Today’s field',
+      candidates: candidates,
+      initialTitles: selectedDailyFieldForDay(
+        quests,
+        today,
+      ).map((quest) => quest.title),
+      accent: Palette.xpLight,
+      confirmLabel: 'KEEP TODAY’S FIELD',
+    );
+    if (chosen == null || !mounted) return;
+
+    applyDailyField(quests, today, chosen);
+    onPersist();
+    setState(() {});
   }
 
   Future<void> _openWizard(BuildContext context) async {
@@ -1174,6 +1209,11 @@ class _GoalsPageState extends State<GoalsPage> {
             MediaQuery.sizeOf(context).width < 360 ||
             MediaQuery.sizeOf(context).height < 700 ||
             MediaQuery.textScalerOf(context).scale(1) > 1.2;
+        final todayField = _TodayFieldFolio(
+          quests: quests,
+          day: Clock.now(),
+          onChoose: () => _chooseToday(context),
+        );
         if (focus != null) {
           final focusScene = _LivingGoalFocus(
             key: ValueKey<String>('goal-folio-${_questTitleKey(focus.title)}'),
@@ -1201,10 +1241,12 @@ class _GoalsPageState extends State<GoalsPage> {
             onAdjustPlan: () => _adjustGoalPlan(context, focus),
             onBuildPlan: () => _buildGoalPlan(context, focus),
             onNewGoal: () => _openQuickCreate(context),
+            onChooseToday: () => _chooseToday(context),
           );
           return _GoalsThresholdPage(
             reduceMotion: state.reduceMotion,
             focus: focusScene,
+            todayField: todayField,
             support: _GoalSupportTray(
               initiallyExpanded: false,
               reduceMotion: state.reduceMotion,
@@ -1307,6 +1349,8 @@ class _GoalsPageState extends State<GoalsPage> {
               },
               child: focusOrEmpty,
             ),
+            const SizedBox(height: 18),
+            todayField,
             const SizedBox(height: 18),
             _GoalSupportTray(
               initiallyExpanded: false,
@@ -1874,7 +1918,7 @@ class _ReadyMadeGoalsScreen extends StatelessWidget {
                 Text(
                   'STARTING POINTS',
                   style: Type.label.copyWith(
-                    fontSize: 10.5,
+                    fontSize: Type.minLabel,
                     letterSpacing: 1.5,
                     color: Palette.xpLight,
                   ),
@@ -1907,6 +1951,7 @@ class _GoalsThresholdPage extends StatelessWidget {
   const _GoalsThresholdPage({
     required this.reduceMotion,
     required this.focus,
+    required this.todayField,
     required this.support,
     this.otherGoals,
     this.arrivals,
@@ -1914,6 +1959,7 @@ class _GoalsThresholdPage extends StatelessWidget {
 
   final bool reduceMotion;
   final Widget focus;
+  final Widget todayField;
   final Widget support;
   final Widget? otherGoals;
   final Widget? arrivals;
@@ -1923,6 +1969,8 @@ class _GoalsThresholdPage extends StatelessWidget {
     final still =
         reduceMotion || (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     final belowRoom = <Widget>[
+      todayField,
+      const SizedBox(height: 18),
       support,
       if (otherGoals case final goals?) ...[const SizedBox(height: 30), goals],
       if (arrivals case final completed?) ...[
@@ -2004,6 +2052,218 @@ class _GoalsThresholdPage extends StatelessWidget {
   }
 }
 
+/// A useful, ordinary-day control that deliberately sits below the room. The
+/// painted threshold remains the place for a goal and its exact Quest; this
+/// folio gives a crowded board a shape without pretending every open Quest is
+/// an obligation.
+class _TodayFieldFolio extends StatelessWidget {
+  const _TodayFieldFolio({
+    required this.quests,
+    required this.day,
+    required this.onChoose,
+  });
+
+  final List<Quest> quests;
+  final DateTime day;
+  final VoidCallback onChoose;
+
+  @override
+  Widget build(BuildContext context) {
+    final field = selectedDailyFieldForDay(quests, day);
+    final candidates = planningQuestsForDay(
+      quests,
+      day,
+    ).where((quest) => !quest.allDay && !quest.isEvent).toList(growable: false);
+    final canChoose = candidates.isNotEmpty;
+    final hasField = field.isNotEmpty;
+    final label = hasField
+        ? '${field.length} IN TODAY\'S FIELD'
+        : 'TODAY\'S FIELD';
+    final heading = hasField
+        ? 'Today has a shape.'
+        : 'Choose what leads today.';
+    final supporting = hasField
+        ? 'Everything else stays open for when you have the time or energy.'
+        : canChoose
+        ? 'Pick up to three quests to carry. The rest stays open if the day has more in it.'
+        : 'Nothing ordinary is waiting. A clear day is allowed.';
+
+    return Semantics(
+      container: true,
+      label: hasField
+          ? 'Today’s field, ${field.length} quest${field.length == 1 ? '' : 's'} chosen'
+          : 'Today’s field, not shaped yet',
+      child: GlassPanel(
+        key: const Key('goals-today-field'),
+        radius: 16,
+        tint: const Color(0xED211811),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.filter_list_rounded,
+                  size: 17,
+                  color: Palette.xpLight,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      color: Palette.xpLight,
+                    ),
+                  ),
+                ),
+                if (hasField)
+                  Text(
+                    'UP TO 3',
+                    style: Type.label.copyWith(
+                      fontSize: Type.minLabel,
+                      color: Palette.textLo,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 7),
+            Text(
+              heading,
+              style: Type.display.copyWith(fontSize: 23, height: 1.04),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              supporting,
+              style: Type.body.copyWith(
+                fontSize: 13.5,
+                height: 1.35,
+                color: Palette.textMid,
+              ),
+            ),
+            if (hasField) ...[
+              const SizedBox(height: 13),
+              for (var index = 0; index < field.length; index++) ...[
+                _TodayFieldRow(index: index + 1, quest: field[index]),
+                if (index != field.length - 1) const SizedBox(height: 7),
+              ],
+            ],
+            if (canChoose) ...[
+              const SizedBox(height: 14),
+              _TodayFieldAction(
+                key: Key(
+                  hasField ? 'goals-reshape-today' : 'goals-choose-today',
+                ),
+                label: hasField ? 'RESHAPE TODAY' : 'CHOOSE TODAY',
+                onTap: onChoose,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TodayFieldRow extends StatelessWidget {
+  const _TodayFieldRow({required this.index, required this.quest});
+
+  final int index;
+  final Quest quest;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: ValueKey<String>('goals-today-field-${_questTitleKey(quest.title)}'),
+      constraints: const BoxConstraints(minHeight: 44),
+      padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
+      decoration: facetedDecoration(
+        cut: 9,
+        color: Palette.xpLight.withValues(alpha: 0.075),
+        borderColor: Palette.xpLight.withValues(alpha: 0.34),
+      ),
+      child: Row(
+        children: [
+          Text(
+            '$index',
+            style: Type.numerals.copyWith(fontSize: 18, color: Palette.xpLight),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Text(
+              quest.displayTitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Type.body.copyWith(
+                fontSize: 13.5,
+                height: 1.22,
+                color: Palette.textHi,
+              ),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Icon(Icons.arrow_forward_rounded, size: 17, color: Palette.textLo),
+        ],
+      ),
+    );
+  }
+}
+
+class _TodayFieldAction extends StatelessWidget {
+  const _TodayFieldAction({
+    super.key,
+    required this.label,
+    required this.onTap,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Pressable(
+      material: MaterialSound.brass,
+      semanticLabel: label,
+      onTapUp: (_) => onTap(),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: facetedDecoration(
+          cut: 10,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Palette.brass.withValues(alpha: 0.28),
+              Palette.brassDeep.withValues(alpha: 0.34),
+            ],
+          ),
+          borderColor: Palette.brassLit.withValues(alpha: 0.55),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                style: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: Palette.textHi,
+                ),
+              ),
+            ),
+            const SizedBox(width: 9),
+            const Icon(Icons.tune_rounded, size: 18, color: Palette.textHi),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _LivingGoalFocus extends StatelessWidget {
   const _LivingGoalFocus({
     super.key,
@@ -2023,6 +2283,7 @@ class _LivingGoalFocus extends StatelessWidget {
     required this.onAdjustPlan,
     required this.onBuildPlan,
     required this.onNewGoal,
+    required this.onChooseToday,
     required this.light,
     required this.arriving,
   });
@@ -2043,6 +2304,7 @@ class _LivingGoalFocus extends StatelessWidget {
   final VoidCallback onAdjustPlan;
   final VoidCallback onBuildPlan;
   final VoidCallback onNewGoal;
+  final VoidCallback onChooseToday;
   final ValueListenable<Offset> light;
   final bool arriving;
 
@@ -2188,6 +2450,12 @@ class _LivingGoalFocus extends StatelessWidget {
     final next = decision?.quest ?? _nextQuestToday(goal, quests);
     final fallback = _kept(goal.fallbackAction);
     final fallbackCue = _kept(goal.fallbackCue);
+    final today = Clock.now();
+    final todayFieldCount = selectedDailyFieldForDay(quests, today).length;
+    final canChooseToday = planningQuestsForDay(
+      quests,
+      today,
+    ).any((quest) => !quest.allDay && !quest.isEvent);
     final still =
         state.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
@@ -2238,6 +2506,8 @@ class _LivingGoalFocus extends StatelessWidget {
           : 'Cross the room and open this exact Quest.',
       onReview: () => _openDetail(context),
       onNewGoal: onNewGoal,
+      todayFieldCount: todayFieldCount,
+      onChooseToday: canChooseToday ? onChooseToday : null,
       onOpenWorkshop: onOpenWorkshop,
       workshopStatus: decision != null && decision.quest == null
           ? 'cut waiting'

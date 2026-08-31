@@ -1,0 +1,394 @@
+{
+  "schema_version": 1,
+  "brief_id": "owner-feedback-build37-2026-08-30",
+  "brief_sha256": "34855d814fa97687e6b5a409b4449145fdb16a2bf8085cdc028cf82ac62b9474",
+  "phase": "slice",
+  "implementation_revision": "worktree:61bacca43134:efe00259f2cc2683a87d8229",
+  "revision_captured_at": "2026-08-30T03:52:29.8296907-04:00",
+  "checks": [
+    {
+      "id": "slice-owner-correction-product",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Exercise the current Goals selection, ordinary Quest board, enough-for-today boundary, optional shelf, and Steward conversation using production-equivalent fixtures, then inspect their current renders together.",
+      "input_state": "Eight ordinary recurring Quests, one hard dated commitment, up to three selected Quests, unfinished optional work, and the stable Steward register.",
+      "inspected_by": "Codex main agent and independent Terra final_owner_slice_review",
+      "observation": "Goals now owns a visible Today’s Field decision; Quests distinguishes obligation, chosen work, and optional inspiration without reducing rewards; and the Steward conversation is character-first rather than app help.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Active Goals room and Today’s Field selection folio",
+          "path": "test/goldens/goals_personal_index_active_430x932.png",
+          "generated_at": "2026-08-30T03:54:07.0085722-04:00",
+          "content_sha256": "d16bd2a318d596db51fd35fe8aeb33444994cf3fb276c09a7fb7c0a6dc039e01",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Selected Daily Field with optional inspiration shelf closed",
+          "path": "test/goldens/quests_daily_field_collapsed_430x932.png",
+          "generated_at": "2026-08-30T03:54:04.0933278-04:00",
+          "content_sha256": "f1791ce147a8d13e59f095923010d9e67c46a490d82bf62b5aca569b4d08358b",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Enough for today while optional Quests remain",
+          "path": "test/goldens/quests_daily_field_enough_430x932.png",
+          "generated_at": "2026-08-30T03:54:04.5891840-04:00",
+          "content_sha256": "baf6a307ee9b673568e998c23026f81702a5bab852e02cd3553313d1357e6372",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Steward character exchange with selected prompt and response",
+          "path": "test/goldens/goals_workshop_conversation_430x932.png",
+          "generated_at": "2026-08-30T03:54:07.6356614-04:00",
+          "content_sha256": "2bf76c2f0a01eece60954d8a8befea26b74607a37110df1b7ad75d7599850b91",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "test_report",
+          "state": "Current complete analyzer, Flutter suite, focused state contracts, and release boundary",
+          "path": "design/execution-mode/active/owner-feedback-build37/slice-test-report.md",
+          "generated_at": "2026-08-30T03:54:27.6680333-04:00",
+          "content_sha256": "ce366d5f71b72869153a910223c111d6a82619c3afbafbabd99ce9b8c464fccb",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-owner-correction-interaction",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Drive the real selection, shelf, completion, snooze, conversation, return, and compact reachability controls in widget tests and run the complete in-repository Flutter suite.",
+      "input_state": "No selection, three selections, commitment overlap, snoozed chosen Quest, collapsed and expanded shelf, field complete, every stable Steward question, and 320x568 compact use.",
+      "inspected_by": "Codex main agent, Flutter analyzer, and Flutter test runner",
+      "observation": "Selection is deterministic and capped at three; snoozing cannot falsely clear the day; optional work remains fully actionable; enough occurs at the true field boundary; and conversation returns without any planner or progression mutation.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Current complete analyzer, Flutter suite, focused state contracts, and release boundary",
+          "path": "design/execution-mode/active/owner-feedback-build37/slice-test-report.md",
+          "generated_at": "2026-08-30T03:54:27.6680333-04:00",
+          "content_sha256": "ce366d5f71b72869153a910223c111d6a82619c3afbafbabd99ce9b8c464fccb",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-owner-correction-visual",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect the final normal and compact representative states after the last source revision and compare them as one journey against the three owner-supplied Build 36 phone photos.",
+      "input_state": "Goals, Quests, optional shelf, enough-for-today, and Steward conversation at 430x932; Goals at 320x568 and 2x text; Quests and Workshop at 320x568 and 1.5x text with Reduced Motion.",
+      "inspected_by": "Codex main agent and independent Terra final_owner_slice_review",
+      "observation": "Meaningful copy has stronger semantic contrast and size, essential content does not clip or overlap, compact states reflow or scroll, and the accepted apartment, workshop, Steward, walnut, brass, and honey-light visual language remains intact.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Goals return room at 320x568 and 2x text",
+          "path": "test/goldens/goals_return_2x_text_top_320x568.png",
+          "generated_at": "2026-08-30T03:54:06.5284084-04:00",
+          "content_sha256": "2a4f2d53154d90233df66a7f09fe21cfabdedc52369ae05d6e6e9b8c089f2d60",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Goals exact action at 320x568 and 2x text",
+          "path": "test/goldens/goals_return_2x_text_action_320x568.png",
+          "generated_at": "2026-08-30T03:54:06.5714101-04:00",
+          "content_sha256": "d8fd075c82ad791b90e0c88b7c872647d9c8163ac4978e113b67c5ebf60faef1",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Optional inspiration shelf open",
+          "path": "test/goldens/quests_daily_field_expanded_430x932.png",
+          "generated_at": "2026-08-30T03:54:04.3763399-04:00",
+          "content_sha256": "5936a48480db9559bc2d4f9164d16390b1578f522400bf303e9434667bb159ee",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Daily Field shelf closed at 320x568 and 1.5x text",
+          "path": "test/goldens/quests_daily_field_collapsed_large_text_320x568.png",
+          "generated_at": "2026-08-30T03:54:04.7628978-04:00",
+          "content_sha256": "fb7ca00a6cb90e7a34a2044f8a7b9d785669daf635e6fd47c710e13cab29800a",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Daily Field shelf open at 320x568 and 1.5x text",
+          "path": "test/goldens/quests_daily_field_expanded_large_text_320x568.png",
+          "generated_at": "2026-08-30T03:54:04.9435169-04:00",
+          "content_sha256": "6053ace87f5969525fa68d94441821ea44b38f9351583220ae1b88a39e41e391",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Steward character exchange at 320x568 and 1.5x text",
+          "path": "test/goldens/goals_workshop_conversation_narrow_large_text_320x568.png",
+          "generated_at": "2026-08-30T03:54:05.6696451-04:00",
+          "content_sha256": "1d9f4eb9ae9d59c277defe931654c256a777927ed97d45017283612beeda4c0f",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "critique",
+          "state": "Independent final judgment of the corrected product, interaction, and visual edges",
+          "path": "design/execution-mode/active/owner-feedback-build37/independent-review.md",
+          "generated_at": "2026-08-30T03:54:27.6690343-04:00",
+          "content_sha256": "05b0789bf081d3e4f563591bf750b908c61f508aa91a7376d3ae0a299453418a",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-crowded-no-selection",
+      "requirement_id": "state:crowded-no-selection",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Open a crowded ordinary Quest day with no dated field and verify that no Quest disappears and the choose-today invitation is present without an optional-shelf toggle.",
+      "input_state": "Nine visible ordinary Quests and no dated priority field.",
+      "inspected_by": "Codex main agent and Flutter test runner",
+      "observation": "The complete board remains visible and Goals offers the distinct Today’s Field decision; optional-shelf language begins only after a field exists.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Crowded board without a selected field",
+          "path": "design/execution-mode/active/owner-feedback-build37/slice-test-report.md",
+          "generated_at": "2026-08-30T03:54:27.6680333-04:00",
+          "content_sha256": "ce366d5f71b72869153a910223c111d6a82619c3afbafbabd99ce9b8c464fccb",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-field-selected-shelf-closed",
+      "requirement_id": "state:field-selected-shelf-closed",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Choose three ordinary Quests around a separate hard commitment and inspect the closed field rail.",
+      "input_state": "One hard dated commitment, three chosen Quests, and five optional Quests.",
+      "inspected_by": "Codex main agent and independent Terra final_owner_slice_review",
+      "observation": "Commitment, chosen field, and all five optional items are accounted for with no debt or missed-work language.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Selected field with optional shelf closed",
+          "path": "test/goldens/quests_daily_field_collapsed_430x932.png",
+          "generated_at": "2026-08-30T03:54:04.0933278-04:00",
+          "content_sha256": "f1791ce147a8d13e59f095923010d9e67c46a490d82bf62b5aca569b4d08358b",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-optional-shelf-open",
+      "requirement_id": "state:optional-shelf-open",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Expand Open if it fits and exercise the ordinary Quest cards inside it.",
+      "input_state": "Five unchosen optional Quests after a three-Quest field selection.",
+      "inspected_by": "Codex main agent and Flutter test runner",
+      "observation": "Every optional Quest remains visible, actionable, and governed by the ordinary completion and reward path.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Optional inspiration shelf expanded",
+          "path": "test/goldens/quests_daily_field_expanded_430x932.png",
+          "generated_at": "2026-08-30T03:54:04.3763399-04:00",
+          "content_sha256": "5936a48480db9559bc2d4f9164d16390b1578f522400bf303e9434667bb159ee",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-enough-for-today",
+      "requirement_id": "state:enough-for-today",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Complete the hard commitment and chosen field while leaving optional Quests unfinished.",
+      "input_state": "True daily field complete with optional inspiration still open.",
+      "inspected_by": "Codex main agent and Flutter test runner",
+      "observation": "The board says ENOUGH at the correct boundary and keeps optional Quest work available without negative copy.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Enough for today with optional inspiration remaining",
+          "path": "test/goldens/quests_daily_field_enough_430x932.png",
+          "generated_at": "2026-08-30T03:54:04.5891840-04:00",
+          "content_sha256": "baf6a307ee9b673568e998c23026f81702a5bab852e02cd3553313d1357e6372",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-steward-character-exchange",
+      "requirement_id": "state:steward-character-exchange",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Select every stable question in the existing register and return to routes while comparing serialized state before and after.",
+      "input_state": "Six object- and habit-bound questions across empty, mixed, owned, and complete bench states.",
+      "inspected_by": "Codex main agent, independent Terra final_owner_slice_review, and Flutter test runner",
+      "observation": "His answers reveal a restrained, observant working personality; the selected question stays paired with the answer; and no planning, reward, route, or acceptance state changes.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Selected Steward question and answer in the register",
+          "path": "test/goldens/goals_workshop_conversation_430x932.png",
+          "generated_at": "2026-08-30T03:54:07.6356614-04:00",
+          "content_sha256": "2bf76c2f0a01eece60954d8a8befea26b74607a37110df1b7ad75d7599850b91",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "slice-state-compact-large-text-reduced-motion",
+      "requirement_id": "state:compact-large-text-reduced-motion",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Exercise Goals, both shelf states, and the complete Steward conversation at 320x568 with large text and Reduced Motion, including the separate 2x Goals recovery capture.",
+      "input_state": "320x568, 1.5x and 2x text, Reduced Motion, normal and scrolled positions.",
+      "inspected_by": "Codex main agent and independent Terra final_owner_slice_review",
+      "observation": "Essential labels remain complete, controls stay reachable, and dense content reflows or scrolls without overflow, clamping, or low-contrast semantic text.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Goals at 320x568 and 2x text",
+          "path": "test/goldens/goals_return_2x_text_top_320x568.png",
+          "generated_at": "2026-08-30T03:54:06.5284084-04:00",
+          "content_sha256": "2a4f2d53154d90233df66a7f09fe21cfabdedc52369ae05d6e6e9b8c089f2d60",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Quests optional shelf expanded at 320x568 and 1.5x text",
+          "path": "test/goldens/quests_daily_field_expanded_large_text_320x568.png",
+          "generated_at": "2026-08-30T03:54:04.9435169-04:00",
+          "content_sha256": "6053ace87f5969525fa68d94441821ea44b38f9351583220ae1b88a39e41e391",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Steward selected question and answer at 320x568 and 1.5x text",
+          "path": "test/goldens/goals_workshop_conversation_narrow_large_text_320x568.png",
+          "generated_at": "2026-08-30T03:54:05.6696451-04:00",
+          "content_sha256": "1d9f4eb9ae9d59c277defe931654c256a777927ed97d45017283612beeda4c0f",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra final_owner_slice_review",
+    "authored_implementation": false,
+    "reviewed_check_ids": [
+      "slice-owner-correction-product",
+      "slice-owner-correction-interaction",
+      "slice-owner-correction-visual"
+    ],
+    "reviewed_artifacts": [
+      "test/goldens/goals_personal_index_active_430x932.png",
+      "test/goldens/quests_daily_field_collapsed_430x932.png",
+      "test/goldens/quests_daily_field_enough_430x932.png",
+      "test/goldens/goals_workshop_conversation_430x932.png",
+      "design/execution-mode/active/owner-feedback-build37/slice-test-report.md"
+    ],
+    "result": "pass",
+    "findings": [],
+    "no_material_findings_observation": "The final normal and compact states address all four owner corrections without clipped or overlapping essential content. Short-phone Workshop content intentionally begins before scrolling, and compact tests establish full action reachability. Physical iPhone feel remains a separate gate."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-30T03:54:30-04:00",
+    "decided_at": "",
+    "reviewed_revision": "worktree:61bacca43134:efe00259f2cc2683a87d8229",
+    "reviewed_brief_sha256": "34855d814fa97687e6b5a409b4449145fdb16a2bf8085cdc028cf82ac62b9474",
+    "reviewed_check_ids": [
+      "slice-owner-correction-product",
+      "slice-owner-correction-interaction",
+      "slice-owner-correction-visual"
+    ],
+    "reviewed_artifacts": [
+      "test/goldens/goals_personal_index_active_430x932.png",
+      "test/goldens/quests_daily_field_collapsed_430x932.png",
+      "test/goldens/goals_workshop_conversation_430x932.png",
+      "design/execution-mode/active/owner-feedback-build37/slice-test-report.md"
+    ],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "Awaiting the owner’s review of the current Goals, Quests, Steward conversation, and compact readability evidence before expansion or upload."
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Desktop renders cannot establish physical iPhone thumb hierarchy, haptic weight, OLED readability at lower brightness, frame pacing, account behavior, or owner feel."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "owner-slice-checkpoint",
+      "gate": "Owner accepts this corrected direction before expansion or upload",
+      "why": "This is a new direction built from direct owner rejection of the prior Goals utility and Steward conversation job.",
+      "owner_or_system": "Owner",
+      "next_action": "Inspect the current Goals, Quests, and Steward renders and approve, reject, or redirect the slice.",
+      "blocking": true
+    },
+    {
+      "id": "physical-iphone-feel",
+      "gate": "Physical iPhone readability and lived crowded-day acceptance",
+      "why": "Deterministic renders cannot establish thumb hierarchy, OLED value separation, haptic weight, real frame pacing, or whether the capacity framing feels supportive in actual use.",
+      "owner_or_system": "Owner on the exact signed iPhone candidate",
+      "next_action": "Choose three from a crowded day, use some optional Quests, complete the true field, and read every Steward exchange at normal and approximately 15 percent lower brightness.",
+      "blocking": true
+    },
+    {
+      "id": "signed-social-release-gauntlet",
+      "gate": "Signed friend, social, account, backend, and native-share release journeys",
+      "why": "The in-repository client suite is green, but signing, App Check attestation, deployed rules/functions and TTL, account lifecycle, moderation policy, native share, and real-device accessibility require the release candidate and deployed environment.",
+      "owner_or_system": "Release operator, deployed Firebase environment, and physical devices",
+      "next_action": "After owner slice acceptance, build the signed TestFlight candidate and run the complete friend/social/device release gauntlet before App Store submission.",
+      "blocking": true
+    }
+  ]
+}

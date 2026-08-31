@@ -144,9 +144,7 @@ class _QuestCardState extends State<QuestCard>
     final featured = widget.featured && !done;
     final resolvedFeature = done && _holdResolvedFeature;
     final heroLayout = featured || resolvedFeature;
-    final largePhoneType =
-        MediaQuery.textScalerOf(context).scale(1) >= 1.25 &&
-        MediaQuery.sizeOf(context).width <= 360;
+    final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.25;
     final still =
         widget.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
@@ -166,321 +164,331 @@ class _QuestCardState extends State<QuestCard>
         ? const Color(0xFF806747)
         : const Color(0xFF51463B);
 
-    return AnimatedBuilder(
-      key: widget.featuredAnchor,
-      animation: _squash,
-      builder: (context, child) => Transform.scale(
-        scaleX: 1 + 0.008 * _squash.value,
-        scaleY: 1 - 0.045 * _squash.value,
-        child: child,
-      ),
-      child: AnimatedSize(
-        // AnimatedSize cannot use an exactly-zero controller duration while
-        // a lazy sliver is laying itself out (it completes synchronously and
-        // re-dirties that same render object). One millisecond is visually
-        // parked while preserving the reduced-motion contract.
-        duration: still ? const Duration(milliseconds: 1) : Motion.settle,
-        curve: Motion.respond,
-        alignment: Alignment.topCenter,
-        child: Pressable(
-          enabled: !done,
-          semanticLabel:
-              '${quest.displayTitle}, ${done
-                  ? 'completed'
-                  : opensJournal
-                  ? 'Open Journal, ${widget.xpPreview} XP'
-                  : '${_difficultyWord(quest.difficulty)}, ${widget.xpPreview} XP'}$masterySemantics$riseSemantics',
-          semanticHint: done
-              ? (widget.onManage == null ? null : 'Use Manage to edit')
-              : '${opensJournal ? 'Activate to open a dedicated Journal entry' : 'Activate to complete'}${widget.onManage == null ? '' : '; use Manage to edit'}',
-          onTapUp: _handleTap,
-          onLongPress: widget.onManage,
-          // The card delegates sound to the accepted outcome. A normal clear
-          // owns the full contact-to-detent completion voice; Journal,
-          // workout, timer, and all-day paths voice the surface they actually
-          // open. Keeping this press silent prevents a second generic clasp
-          // and guarantees that a cancelled scroll never makes a sound.
-          soundEnabled: false,
-          material: MaterialSound.wood,
-          interactionSound: InteractionSound.open,
-          shape: const FacetedBorder(cut: 11),
-          child: AnimatedContainer(
-            duration: Motion.settle,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final largePhoneType = largeText && constraints.maxWidth <= 360;
+        return AnimatedBuilder(
+          key: widget.featuredAnchor,
+          animation: _squash,
+          builder: (context, child) => Transform.scale(
+            scaleX: 1 + 0.008 * _squash.value,
+            scaleY: 1 - 0.045 * _squash.value,
+            child: child,
+          ),
+          child: AnimatedSize(
+            // AnimatedSize cannot use an exactly-zero controller duration while
+            // a lazy sliver is laying itself out (it completes synchronously and
+            // re-dirties that same render object). One millisecond is visually
+            // parked while preserving the reduced-motion contract.
+            duration: still ? const Duration(milliseconds: 1) : Motion.settle,
             curve: Motion.respond,
-            decoration: facetedDecoration(
-              cut: 11,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  done
-                      ? Color.lerp(base, const Color(0xFFB78A50), 0.055)!
-                      : Color.lerp(base, const Color(0xFF4B3627), 0.12)!,
-                  base,
-                  const Color(0xFF100D0B),
-                ],
-                stops: const [0, 0.54, 1],
-              ),
-              borderColor: edge,
-              borderWidth: featured ? 1.35 : (resolvedFeature ? 1.15 : 1.05),
-              shadows: [
-                const BoxShadow(
-                  color: Color(0x8A090605),
-                  blurRadius: 14,
-                  offset: Offset(0, 6),
+            alignment: Alignment.topCenter,
+            child: Pressable(
+              enabled: !done,
+              semanticLabel:
+                  '${quest.displayTitle}, ${done
+                      ? 'completed'
+                      : opensJournal
+                      ? 'Open Journal, ${widget.xpPreview} XP'
+                      : '${_difficultyWord(quest.difficulty)}, ${widget.xpPreview} XP'}$masterySemantics$riseSemantics',
+              semanticHint: done
+                  ? (widget.onManage == null ? null : 'Use Manage to edit')
+                  : '${opensJournal ? 'Activate to open a dedicated Journal entry' : 'Activate to complete'}${widget.onManage == null ? '' : '; use Manage to edit'}',
+              onTapUp: _handleTap,
+              onLongPress: widget.onManage,
+              // The card delegates sound to the accepted outcome. A normal clear
+              // owns the full contact-to-detent completion voice; Journal,
+              // workout, timer, and all-day paths voice the surface they actually
+              // open. Keeping this press silent prevents a second generic clasp
+              // and guarantees that a cancelled scroll never makes a sound.
+              soundEnabled: false,
+              material: MaterialSound.wood,
+              interactionSound: InteractionSound.open,
+              shape: const FacetedBorder(cut: 11),
+              child: AnimatedContainer(
+                duration: Motion.settle,
+                curve: Motion.respond,
+                decoration: facetedDecoration(
+                  cut: 11,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      done
+                          ? Color.lerp(base, const Color(0xFFB78A50), 0.055)!
+                          : Color.lerp(base, const Color(0xFF4B3627), 0.12)!,
+                      base,
+                      const Color(0xFF100D0B),
+                    ],
+                    stops: const [0, 0.54, 1],
+                  ),
+                  borderColor: edge,
+                  borderWidth: featured
+                      ? 1.35
+                      : (resolvedFeature ? 1.15 : 1.05),
+                  shadows: [
+                    const BoxShadow(
+                      color: Color(0x8A090605),
+                      blurRadius: 14,
+                      offset: Offset(0, 6),
+                    ),
+                    if (featured)
+                      BoxShadow(
+                        color: Palette.xp.withValues(alpha: 0.10),
+                        blurRadius: 22,
+                        offset: const Offset(0, 6),
+                      ),
+                  ],
                 ),
-                if (featured)
-                  BoxShadow(
-                    color: Palette.xp.withValues(alpha: 0.10),
-                    blurRadius: 22,
-                    offset: const Offset(0, 6),
-                  ),
-              ],
-            ),
-            child: ClipPath(
-              clipper: const FacetedClipper(cut: 11),
-              child: Stack(
-                children: [
-                  if (heroLayout)
-                    Positioned(
-                      top: 42,
-                      right: -4,
-                      width: 208,
-                      height: 112,
-                      child: IgnorePointer(
-                        child: Opacity(
-                          opacity: done ? 0.30 : 1,
-                          child: _QuestCategoryVignette(
-                            stat: quest.stat,
-                            lightDirection: featured
-                                ? widget.lightDirection
-                                : null,
-                            scrollPosition: featured
-                                ? widget.scrollPosition
-                                : null,
-                            reduceMotion: widget.reduceMotion,
+                child: ClipPath(
+                  clipper: const FacetedClipper(cut: 11),
+                  child: Stack(
+                    children: [
+                      if (heroLayout)
+                        Positioned(
+                          top: 42,
+                          right: -4,
+                          width: 208,
+                          height: 112,
+                          child: IgnorePointer(
+                            child: Opacity(
+                              opacity: done ? 0.30 : 1,
+                              child: _QuestCategoryVignette(
+                                stat: quest.stat,
+                                lightDirection: featured
+                                    ? widget.lightDirection
+                                    : null,
+                                scrollPosition: featured
+                                    ? widget.scrollPosition
+                                    : null,
+                                reduceMotion: widget.reduceMotion,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              const Color(0x18FFD493),
-                              Colors.transparent,
-                              Colors.transparent,
-                              const Color(0x3D000000),
-                            ],
-                            stops: const [0, 0.24, 0.72, 1],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (featured)
-                    Positioned.fill(
-                      child: IgnorePointer(
-                        child: _QuestCardGleam(
-                          lightDirection: widget.lightDirection,
-                          scrollPosition: widget.scrollPosition,
-                          reduceMotion: widget.reduceMotion,
-                        ),
-                      ),
-                    ),
-                  Positioned(
-                    left: 18,
-                    right: 18,
-                    top: 1,
-                    child: IgnorePointer(
-                      child: Container(
-                        height: 1,
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Color(0x00FFE3AD),
-                              Color(0xA8FFE3AD),
-                              Color(0x20FFE3AD),
-                              Color(0x00FFE3AD),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (heroLayout)
-                    Positioned.fill(
-                      child: Padding(
-                        padding: const EdgeInsets.all(4),
+                      Positioned.fill(
                         child: IgnorePointer(
                           child: DecoratedBox(
-                            decoration: facetedDecoration(
-                              cut: 8,
-                              color: Colors.transparent,
-                              borderColor: done
-                                  ? const Color(0x3DBF9560)
-                                  : const Color(0x66FFD38A),
-                              borderWidth: 0.7,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  const Color(0x18FFD493),
+                                  Colors.transparent,
+                                  Colors.transparent,
+                                  const Color(0x3D000000),
+                                ],
+                                stops: const [0, 0.24, 0.72, 1],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      heroLayout ? 15 : 14,
-                      heroLayout ? 14 : 13,
-                      heroLayout ? 15 : 12,
-                      heroLayout ? 13 : 13,
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: heroLayout ? 106 : 46,
-                          ),
-                          child: Transform.translate(
-                            offset: Offset.zero,
-                            child: Row(
-                              children: [
-                                _CheckRing(
-                                  key: _ringKey,
-                                  stat: quest.stat,
-                                  done: done,
-                                  reduceMotion: widget.reduceMotion,
-                                  accent: featured ? Palette.xpLight : null,
-                                  size: heroLayout ? 54 : 40,
-                                  showReadyCheck: featured,
-                                  masteryTier: mastery,
-                                  // Only the featured open orbit carries reactive
-                                  // light. Repainting every compact ring on every
-                                  // sensor sample made long boards needlessly
-                                  // expensive and made ordinary rows look restless.
-                                  lightDirection: featured
-                                      ? widget.lightDirection
-                                      : null,
-                                  scrollPosition: featured
-                                      ? widget.scrollPosition
-                                      : null,
-                                ),
-                                SizedBox(width: heroLayout ? 12 : 10),
-                                Expanded(
-                                  child: _QuestTitleBlock(
-                                    quest: quest,
-                                    done: done,
-                                    isMain: isMain,
-                                    featured: heroLayout,
-                                  ),
-                                ),
-                                if (quest.dread) ...[
-                                  const SizedBox(width: 5),
-                                  Icon(
-                                    Icons.thunderstorm_rounded,
-                                    size: heroLayout ? 20 : 18,
-                                    color: done
-                                        ? Palette.dread.withValues(alpha: 0.38)
-                                        : Palette.dread,
-                                  ),
-                                ],
-                                const SizedBox(width: 8),
-                                if (!largePhoneType &&
-                                    done &&
-                                    widget.onEncore != null &&
-                                    _showEncore)
-                                  _EncoreButton(onTap: widget.onEncore!)
-                                else if (!largePhoneType)
-                                  _XpChip(
-                                    xp: widget.xpPreview,
-                                    dim: done,
-                                    featured: heroLayout,
-                                  ),
-                                if (!heroLayout) ...[
-                                  const SizedBox(width: 5),
-                                  Icon(
-                                    Icons.chevron_right_rounded,
-                                    size: 19,
-                                    color: Palette.textLo.withValues(
-                                      alpha: 0.72,
-                                    ),
-                                  ),
-                                ],
-                              ],
+                      if (featured)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: _QuestCardGleam(
+                              lightDirection: widget.lightDirection,
+                              scrollPosition: widget.scrollPosition,
+                              reduceMotion: widget.reduceMotion,
                             ),
                           ),
                         ),
-                        if (heroLayout && largePhoneType) ...[
-                          const SizedBox(height: 6),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: _XpChip(
-                              xp: widget.xpPreview,
-                              dim: done,
-                              featured: true,
+                      Positioned(
+                        left: 18,
+                        right: 18,
+                        top: 1,
+                        child: IgnorePointer(
+                          child: Container(
+                            height: 1,
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Color(0x00FFE3AD),
+                                  Color(0xA8FFE3AD),
+                                  Color(0x20FFE3AD),
+                                  Color(0x00FFE3AD),
+                                ],
+                              ),
                             ),
                           ),
-                        ],
-                        if (heroLayout) ...[
-                          const SizedBox(height: 10),
-                          IgnorePointer(
-                            child: AnimatedSwitcher(
-                              duration: still
-                                  ? Duration.zero
-                                  : const Duration(milliseconds: 260),
-                              switchInCurve: Motion.respond,
-                              switchOutCurve: Curves.easeInCubic,
-                              child: done
-                                  ? const _ResolvedQuestPlate(
-                                      key: ValueKey('quest-resolved-plate'),
-                                    )
-                                  : _CompleteQuestButton(
-                                      key: const ValueKey(
-                                        'quest-complete-plate',
-                                      ),
-                                      opensJournal: opensJournal,
-                                      lightDirection: widget.lightDirection,
-                                      scrollPosition: widget.scrollPosition,
+                        ),
+                      ),
+                      if (heroLayout)
+                        Positioned.fill(
+                          child: Padding(
+                            padding: const EdgeInsets.all(4),
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: facetedDecoration(
+                                  cut: 8,
+                                  color: Colors.transparent,
+                                  borderColor: done
+                                      ? const Color(0x3DBF9560)
+                                      : const Color(0x66FFD38A),
+                                  borderWidth: 0.7,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          heroLayout ? 15 : 14,
+                          heroLayout ? 14 : 13,
+                          heroLayout ? 15 : 12,
+                          heroLayout ? 13 : 13,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: heroLayout ? 106 : 46,
+                              ),
+                              child: Transform.translate(
+                                offset: Offset.zero,
+                                child: Row(
+                                  children: [
+                                    _CheckRing(
+                                      key: _ringKey,
+                                      stat: quest.stat,
+                                      done: done,
                                       reduceMotion: widget.reduceMotion,
+                                      accent: featured ? Palette.xpLight : null,
+                                      size: heroLayout ? 54 : 40,
+                                      showReadyCheck: featured,
+                                      masteryTier: mastery,
+                                      // Only the featured open orbit carries reactive
+                                      // light. Repainting every compact ring on every
+                                      // sensor sample made long boards needlessly
+                                      // expensive and made ordinary rows look restless.
+                                      lightDirection: featured
+                                          ? widget.lightDirection
+                                          : null,
+                                      scrollPosition: featured
+                                          ? widget.scrollPosition
+                                          : null,
                                     ),
+                                    SizedBox(width: heroLayout ? 12 : 10),
+                                    Expanded(
+                                      child: _QuestTitleBlock(
+                                        quest: quest,
+                                        done: done,
+                                        isMain: isMain,
+                                        featured: heroLayout,
+                                        compactLargeType: largePhoneType,
+                                      ),
+                                    ),
+                                    if (quest.dread) ...[
+                                      const SizedBox(width: 5),
+                                      Icon(
+                                        Icons.thunderstorm_rounded,
+                                        size: heroLayout ? 20 : 18,
+                                        color: done
+                                            ? Palette.dread.withValues(
+                                                alpha: 0.38,
+                                              )
+                                            : Palette.dread,
+                                      ),
+                                    ],
+                                    const SizedBox(width: 8),
+                                    if (!largePhoneType &&
+                                        done &&
+                                        widget.onEncore != null &&
+                                        _showEncore)
+                                      _EncoreButton(onTap: widget.onEncore!)
+                                    else if (!largePhoneType)
+                                      _XpChip(
+                                        xp: widget.xpPreview,
+                                        dim: done,
+                                        featured: heroLayout,
+                                      ),
+                                    if (!heroLayout) ...[
+                                      const SizedBox(width: 5),
+                                      Icon(
+                                        Icons.chevron_right_rounded,
+                                        size: 19,
+                                        color: Palette.textLo.withValues(
+                                          alpha: 0.72,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    left: 16,
-                    right: 16,
-                    bottom: 0,
-                    child: IgnorePointer(
-                      child: Container(
-                        height: 2,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.transparent,
-                              heroLayout && !done
-                                  ? const Color(0xFF754117)
-                                  : resolvedFeature
-                                  ? const Color(0xFF51391F)
-                                  : const Color(0xFF2B211C),
-                              Colors.transparent,
+                            if (heroLayout && largePhoneType) ...[
+                              const SizedBox(height: 6),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: _XpChip(
+                                  xp: widget.xpPreview,
+                                  dim: done,
+                                  featured: true,
+                                ),
+                              ),
                             ],
+                            if (heroLayout) ...[
+                              const SizedBox(height: 10),
+                              IgnorePointer(
+                                child: AnimatedSwitcher(
+                                  duration: still
+                                      ? Duration.zero
+                                      : const Duration(milliseconds: 260),
+                                  switchInCurve: Motion.respond,
+                                  switchOutCurve: Curves.easeInCubic,
+                                  child: done
+                                      ? const _ResolvedQuestPlate(
+                                          key: ValueKey('quest-resolved-plate'),
+                                        )
+                                      : _CompleteQuestButton(
+                                          key: const ValueKey(
+                                            'quest-complete-plate',
+                                          ),
+                                          opensJournal: opensJournal,
+                                          lightDirection: widget.lightDirection,
+                                          scrollPosition: widget.scrollPosition,
+                                          reduceMotion: widget.reduceMotion,
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        left: 16,
+                        right: 16,
+                        bottom: 0,
+                        child: IgnorePointer(
+                          child: Container(
+                            height: 2,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  heroLayout && !done
+                                      ? const Color(0xFF754117)
+                                      : resolvedFeature
+                                      ? const Color(0xFF51391F)
+                                      : const Color(0xFF2B211C),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -491,12 +499,14 @@ class _QuestTitleBlock extends StatelessWidget {
     required this.done,
     required this.isMain,
     required this.featured,
+    required this.compactLargeType,
   });
 
   final Quest quest;
   final bool done;
   final bool isMain;
   final bool featured;
+  final bool compactLargeType;
 
   @override
   Widget build(BuildContext context) {
@@ -543,7 +553,7 @@ class _QuestTitleBlock extends StatelessWidget {
       children: [
         Text(
           quest.displayTitle,
-          maxLines: featured || done ? 2 : 1,
+          maxLines: compactLargeType ? 3 : (featured || done ? 2 : 1),
           overflow: TextOverflow.ellipsis,
           style: Type.display.copyWith(
             fontSize: featured ? 20 : 15.5,
@@ -1742,17 +1752,20 @@ class _MetaChip extends StatelessWidget {
         ),
       ],
     );
-    if (maxWidth == null) return content;
     // Compact metadata is the one bounded text role allowed to shrink. Keep
-    // the truthful overdue date readable on narrow cards instead of letting a
-    // long all-caps chip force the whole Quest row past its edge.
+    // truthful metadata readable on narrow cards instead of letting a long
+    // all-caps chip force the whole Quest row past its edge. At larger text
+    // sizes the source text has already grown, so scaleDown only gives back the
+    // few pixels the card cannot hold; it does not impose a fixed text scale.
+    final fitted = FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: content,
+    );
+    if (maxWidth == null) return fitted;
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth!),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: content,
-      ),
+      child: fitted,
     );
   }
 }

@@ -391,24 +391,36 @@ STORE_PASS = [
         APP / "store-assets" / "screenshots" / "app-store" / "02-reward-1290x2796.png",
     ),
     (
-        "03 PLANS",
-        APP / "store-assets" / "screenshots" / "app-store" / "03-plans-1290x2796.png",
+        "03 GOALS",
+        APP / "store-assets" / "screenshots" / "app-store" / "03-goals-1290x2796.png",
     ),
     (
-        "04 MY SPACE",
-        APP / "store-assets" / "screenshots" / "app-store" / "04-my-space-1290x2796.png",
+        "04 WORKSHOP",
+        APP / "store-assets" / "screenshots" / "app-store" / "04-workshop-1290x2796.png",
     ),
     (
-        "05 CHANGE SPACE",
-        APP / "store-assets" / "screenshots" / "app-store" / "05-change-space-1290x2796.png",
+        "05 RECOVERY",
+        APP / "store-assets" / "screenshots" / "app-store" / "05-recovery-1290x2796.png",
     ),
     (
-        "06 JOURNAL",
-        APP / "store-assets" / "screenshots" / "app-store" / "06-journal-1290x2796.png",
+        "06 PLANS",
+        APP / "store-assets" / "screenshots" / "app-store" / "06-plans-1290x2796.png",
     ),
     (
-        "07 DISCOVER",
-        APP / "store-assets" / "screenshots" / "app-store" / "07-discover-1290x2796.png",
+        "07 MY SPACE",
+        APP / "store-assets" / "screenshots" / "app-store" / "07-my-space-1290x2796.png",
+    ),
+    (
+        "08 CHANGE SPACE",
+        APP / "store-assets" / "screenshots" / "app-store" / "08-change-space-1290x2796.png",
+    ),
+    (
+        "09 JOURNAL",
+        APP / "store-assets" / "screenshots" / "app-store" / "09-journal-1290x2796.png",
+    ),
+    (
+        "10 DISCOVER",
+        APP / "store-assets" / "screenshots" / "app-store" / "10-discover-1290x2796.png",
     ),
 ]
 
@@ -588,7 +600,7 @@ def main() -> None:
     elif mode == "store-phone":
         image_sheet(
             STORE_PASS,
-            "app-store-build-32-phone",
+            "app-store-build-37-phone",
             height=520,
             per_row=2,
             webp=True,

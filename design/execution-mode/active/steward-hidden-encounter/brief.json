@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "id": "steward-hidden-encounter-2026-08-30",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "slice_ready_for_owner",
+  "locked_at": "2026-08-30T19:47:17-04:00",
+  "surface": "Optional workshop file-box encounter",
+  "scope": "Implement one hidden-looking authored encounter, its workshop entry, per-save resume and stance callback, and accessible responsive dialogue; preserve all practical routes. Stop for owner slice review before expansion or release.",
+  "user_job": "Discover something personal and amusing about the Steward, choose how to respond, and leave or return freely without managing another task.",
+  "active_sources": [
+    {
+      "id": "owner-encounter-contract",
+      "kind": "product_contract",
+      "location": "design/visual-targets/2026-08-30/steward-hidden-encounter-contract.md",
+      "content_sha256": "1c17c77eee8cd5707c3e7c8d3a5661c08aaa955d8b26cdf2984fa85094f0f26c",
+      "approved_at": "2026-08-30",
+      "judged_state": "Owner-approved one-scene visual-novel encounter within the accepted workshop art, not a character FAQ.",
+      "viewport": "430x932 and compact 320x568 at 1.5x and 2x text",
+      "priority": 1
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/execution-mode/active/owner-feedback-build37/brief.json#edge_contract.interaction",
+      "reason": "Owner clarified visual-novel discovery and approved a bounded scene; the prior ephemeral FAQ does not express that intention. Daily capacity and readability scope remain unchanged."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": "design/execution-mode/active/owner-feedback-build37",
+  "edge_contract": {
+    "product": {
+      "decision": "A crosswise file-box card reveals one character-specific soup dispute; practical planning never requires entering or completing it.",
+      "proof": "Enter from empty and populated workshop registers, complete or leave the scene, and verify all practical callbacks and planning/reward data remain unchanged."
+    },
+    "interaction": {
+      "decision": "Read one line at a time, choose actual replies, leave and resume, and receive a stance-specific later callback with no automatic advance or reward.",
+      "proof": "Drive all branches through production widgets, reload serialized memory, replay and rapid tap, and verify accessible compact reachability."
+    },
+    "visual": {
+      "decision": "Keep authored room and pose planes; place readable live dialogue below the face, with physical card discovery and appropriate reading/offering/filing acting.",
+      "proof": "Inspect fresh discovery, dialogue, choice, card, ending and callback renders at 430x932 and compact large-text top/action states against the accepted workshop composition."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "A list of biography questions or app help",
+      "why": "The owner asked to discover a character through a small event, not interview a help system."
+    },
+    {
+      "fallback": "Affinity, XP, daily episodes, completion badges or required progression",
+      "why": "This must stay optional delight rather than another thing the player has to maintain."
+    },
+    {
+      "fallback": "Tiny invisible hotspot or low-contrast text for the sake of mystery",
+      "why": "Discovery must work for touch, keyboard and assistive access without repeating the owner's legibility complaint."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "Notice an unfiled card, read the dispute, choose a stance, leave midway and resume, finish and revisit the file box.",
+    "real_inputs": "Normal GameState, existing goals and Quests, registered workshop art, ordinary persisted save JSON, and deterministic authored story nodes.",
+    "user_action": "Tap the physical card, advance/read/choose at one's own pace, return to the bench, reopen, finish, and revisit.",
+    "expected_outcome": "A specific character encounter with remembered stance and no practical-planning or reward mutation; same room remains readable and controllable.",
+    "state_boundary": "Only GameState.stewardMemory is modified; normal save callback persists it. Existing whole-save cloud semantics are unchanged.",
+    "required_states": [
+      {
+        "id": "discovery",
+        "state": "Empty and populated workshop with optional card entry",
+        "why_can_disprove": "An obligatory or missing entry would either burden planning or prevent discovering the scene."
+      },
+      {
+        "id": "branches",
+        "state": "All conversational branches, completion and stance callbacks",
+        "why_can_disprove": "Cosmetic choices or identical callbacks would remove the proposed remembered response."
+      },
+      {
+        "id": "resume",
+        "state": "Leave, serialized reload, unknown saved node, replay",
+        "why_can_disprove": "Lost progress, crashes or overwritten completion would make a short optional scene unreliable."
+      },
+      {
+        "id": "compact",
+        "state": "320x568 at 1.5x and 2x text with Reduced Motion",
+        "why_can_disprove": "Clipped copy or unreachable replies would repeat the installed-phone accessibility failure."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "workshop-entry",
+      "surface_or_primitive": "Workshop register and Goals navigation",
+      "state": "New, discovered, in-progress, completed, empty, crowded",
+      "expected_effect": "Optional entry without disrupting exact route actions.",
+      "verification_plan": "Widget integration tests and discovery renders.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "save-state",
+      "surface_or_primitive": "GameState JSON",
+      "state": "Legacy, malformed, roundtrip and replay",
+      "expected_effect": "Bounded optional memory without other progression changes.",
+      "verification_plan": "Focused JSON and scene invariant tests.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "art-and-type",
+      "surface_or_primitive": "Existing Steward artwork and live dialogue",
+      "state": "Five poses, normal/compact/large text/reduced motion",
+      "expected_effect": "Existing art remains intact and line choices remain readable.",
+      "verification_plan": "Fresh renders and independent inspection.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether this scene feels like a worthwhile personal discovery rather than a gimmick, and whether pacing and readability feel good on the owner's phone.",
+  "decisive_check": {
+    "method": "Run complete production-widget journeys and inspect fresh rendered acting and compact text, then obtain owner response and physical phone review.",
+    "target": "One complete optional file-box scene plus discovery, resume, stance callbacks and unchanged route register.",
+    "pass_condition": "Distinct character voice, coherent physical acting, meaningful choice memory, no planning mutation, readable reachable controls, and explicit owner acceptance."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/content/steward_encounter.dart",
+      "lib/screens/steward_encounter.dart",
+      "lib/screens/goal_workshop.dart",
+      "lib/screens/goals.dart",
+      "lib/steward_memory.dart",
+      "lib/engine.dart",
+      "test/steward_memory_test.dart",
+      "test/steward_encounter_test.dart",
+      "test/goal_workshop_conversation_test.dart",
+      "test/screenshots_test.dart",
+      "design/visual-targets/2026-08-30/steward-hidden-encounter-contract.md"
+    ],
+    "exclude": [
+      "test/goldens"
+    ]
+  }
+}

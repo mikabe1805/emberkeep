@@ -1,0 +1,590 @@
+{
+  "schema_version": 1,
+  "brief_id": "steward-hidden-encounter-2026-08-30",
+  "brief_sha256": "2d89802cb920da3e9f9f0b44a27bc840f3f117daee3d8939aa7458484e4d45a2",
+  "phase": "slice",
+  "implementation_revision": "worktree:61bacca43134:a083081830e8e782d276f35b",
+  "revision_captured_at": "2026-08-30T19:56:33.7063013-04:00",
+  "checks": [
+    {
+      "id": "slice-product",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Drive the production workshop and authored scene; inspect discovery, physical acting, choice and callback together.",
+      "input_state": "Normal populated and empty workshop, authored scene, all three stances, and unchanged planning state.",
+      "observation": "The optional card opens a specific personal event, not a FAQ, and no Quest/reward or route state changes. The practical register remains independent.",
+      "artifacts": [
+        {
+          "path": "design/comparisons/2026-08-30/steward-first-encounter-preview.png",
+          "generated_at": "2026-08-30T19:58:05.6769372-04:00",
+          "content_sha256": "a03c6d6bf85549366819ee0c5dbabff760ead9ed556d9adabf3533f9dc2971f7",
+          "kind": "comparison",
+          "state": "Physical discovery, first choices, stance response and remembered consequence.",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/goals_workshop_home_430x932.png",
+          "generated_at": "2026-08-30T19:57:39.1656962-04:00",
+          "content_sha256": "ce4f528af3e3e7b1f00fc311dad113f13716148b707737dbfe0c4e41b4b13ed7",
+          "kind": "render",
+          "state": "Practical workshop and optional file-box discovery; ordinary and large-text phone.",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/goals_workshop_home_narrow_large_text_320x568.png",
+          "generated_at": "2026-08-30T19:57:36.3687712-04:00",
+          "content_sha256": "f6bd45660dd46ee4b4d02a59205c4c964a0a98ba77a0e7a49956491d111cc745",
+          "kind": "render",
+          "state": "Practical workshop and optional file-box discovery; ordinary and large-text phone.",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "design/execution-mode/active/steward-hidden-encounter/slice-test-report.md",
+          "generated_at": "2026-08-30T20:00:54.3926368-04:00",
+          "content_sha256": "3e9fe396b70b340a84984267f049c9d51038215a61356d364f5d57dca06a90fb",
+          "kind": "test_report",
+          "state": "Current analyzer, 983-test full suite, release web compile, saved-choice and workshop invariants.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "design/execution-mode/active/steward-hidden-encounter/independent-review.md",
+          "generated_at": "2026-08-30T20:00:54.3936370-04:00",
+          "content_sha256": "41cacea606f4df81b3775424742e24eaba06924d5e3eab6b27468eaf74bf12c4",
+          "kind": "critique",
+          "state": "Independent current-revision product, interaction and visual judgment with owner/device limits.",
+          "data_source": "test_output"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_slice_review; Flutter test runner where automated",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-interaction",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Run real widget branches, serialized reload, completion/revisit, replay, leave, rapid taps and reduced-motion checks.",
+      "input_state": "GameState per-save memory; representative three stance paths and existing goal/Quest identities.",
+      "observation": "983 whole-app cases pass, including save isolation, actual distinct callbacks, reachable compact controls, exact goal callback and no automatic progression.",
+      "artifacts": [
+        {
+          "path": "design/execution-mode/active/steward-hidden-encounter/slice-test-report.md",
+          "generated_at": "2026-08-30T20:00:54.3926368-04:00",
+          "content_sha256": "3e9fe396b70b340a84984267f049c9d51038215a61356d364f5d57dca06a90fb",
+          "kind": "test_report",
+          "state": "Current analyzer, 983-test full suite, release web compile, saved-choice and workshop invariants.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "design/execution-mode/active/steward-hidden-encounter/independent-review.md",
+          "generated_at": "2026-08-30T20:00:54.3936370-04:00",
+          "content_sha256": "41cacea606f4df81b3775424742e24eaba06924d5e3eab6b27468eaf74bf12c4",
+          "kind": "critique",
+          "state": "Independent current-revision product, interaction and visual judgment with owner/device limits.",
+          "data_source": "test_output"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_slice_review; Flutter test runner where automated",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-visual",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Compare accepted room with current discovery and inspect all normal beats and compact top/action pairs after frozen revision.",
+      "input_state": "430x932 and320x568 at1.5x/2x text with Reduced Motion; five existing authored poses.",
+      "observation": "The face and physical acting stay visible, dialogue is opaque and contrast-safe, and compact copy/replies scroll with a visible warm thumb rather than clipping or shrinking.",
+      "artifacts": [
+        {
+          "path": "design/comparisons/2026-08-30/evidence-steward-workshop-continuity.png",
+          "generated_at": "2026-08-30T19:58:04.6151574-04:00",
+          "content_sha256": "471c75614ba1387a9e298e0cc2435194f366f24066a6f213a426d201cb0bca33",
+          "kind": "comparison",
+          "state": "Accepted owner workshop room versus current optional discovery, preserving authored space.",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "design/comparisons/2026-08-30/steward-first-encounter-preview.png",
+          "generated_at": "2026-08-30T19:58:05.6769372-04:00",
+          "content_sha256": "a03c6d6bf85549366819ee0c5dbabff760ead9ed556d9adabf3533f9dc2971f7",
+          "kind": "comparison",
+          "state": "Physical discovery, first choices, stance response and remembered consequence.",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_01_unfiled_430x932.png",
+          "generated_at": "2026-08-30T19:57:31.6281846-04:00",
+          "content_sha256": "b16f1efd4e135a0dc47b056f34542a355bbc8a33e521085532c5353f1d1e721c",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_01_unfiled_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_02_choices_430x932.png",
+          "generated_at": "2026-08-30T19:57:31.9760677-04:00",
+          "content_sha256": "cadcbc81ecc4f8f430500c2e08ddad87d01190fe6071f638851872573c0b8791",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_02_choices_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_03_card_430x932.png",
+          "generated_at": "2026-08-30T19:57:32.3343615-04:00",
+          "content_sha256": "0f771f612ea0a98c3730a0d5cfa68a3f3e46e59aa6cfbd97b685b23f75d90e35",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_03_card_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_04_verdict_430x932.png",
+          "generated_at": "2026-08-30T19:57:32.5664411-04:00",
+          "content_sha256": "297585731d866ebf6b0704f07f961761a13f529335ac7af1b18897ce2eb51098",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_04_verdict_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_05_opposition_430x932.png",
+          "generated_at": "2026-08-30T19:57:32.8060081-04:00",
+          "content_sha256": "5bf29a69bf7c181e13358dd978e2788e661dbaebcc23d04ca18dbb0351d2af81",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_05_opposition_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_06_bread_430x932.png",
+          "generated_at": "2026-08-30T19:57:33.0830892-04:00",
+          "content_sha256": "6c8c4ecf30a2d4108186c3dfb131b1529f101fdc2f95d92f74c34eeee564f25d",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_06_bread_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_07_filed_430x932.png",
+          "generated_at": "2026-08-30T19:57:33.3262076-04:00",
+          "content_sha256": "515b4d86c371a4b09958c39ff18da0c9795757e017ed6b4b2472e4d4685283f6",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_07_filed_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_08_callback_430x932.png",
+          "generated_at": "2026-08-30T19:57:33.7719099-04:00",
+          "content_sha256": "562ce825ceb54aca8cdc9fd7c24ec42300d24bda5eb474dac2adc3161783c275",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_08_callback_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_choices_1.5x_top_320x568.png",
+          "generated_at": "2026-08-30T19:57:34.1320268-04:00",
+          "content_sha256": "9507de6a4489281f99759c4da3aad8f0e3cae739d123407f2c71b9e023ac74ac",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_choices_1.5x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_choices_1.5x_actions_320x568.png",
+          "generated_at": "2026-08-30T19:57:34.2102758-04:00",
+          "content_sha256": "0b6d954d09b35c087f32b467ee7c230a767873ac807a4c39208fecd45174dadc",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_choices_1.5x_actions_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_choices_2.0x_top_320x568.png",
+          "generated_at": "2026-08-30T19:57:35.0042704-04:00",
+          "content_sha256": "12a7f0a9e473d5e680684141e392b3d717c5e36b7e8d3ea361e90f03dda0f1cc",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_choices_2.0x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_choices_2.0x_actions_320x568.png",
+          "generated_at": "2026-08-30T19:57:35.0678309-04:00",
+          "content_sha256": "c4f5ccdb8bb6f65361492e9775420060cc7b51491959a92c4663c91d5d14834e",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_choices_2.0x_actions_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_long_line_1.5x_top_320x568.png",
+          "generated_at": "2026-08-30T19:57:34.5646818-04:00",
+          "content_sha256": "ee2a760e218309b7555fc2306f9894b4dac8180ae37c72f8faf22c59f217dca8",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_long_line_1.5x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_long_line_1.5x_action_320x568.png",
+          "generated_at": "2026-08-30T19:57:34.6395004-04:00",
+          "content_sha256": "b3e428780b4f83010a1067e982f9697fc6fb0ca200c6822cb88f94e50cc26f6b",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_long_line_1.5x_action_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_long_line_2.0x_top_320x568.png",
+          "generated_at": "2026-08-30T19:57:35.4375771-04:00",
+          "content_sha256": "f5916ff478bb8b6b243389af4a98797f4c5aad08585b12c8466f5e42d9890879",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_long_line_2.0x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_long_line_2.0x_action_320x568.png",
+          "generated_at": "2026-08-30T19:57:35.5194606-04:00",
+          "content_sha256": "a3a68fb1c751a118769219b3a0dfbb40e56b4790ce4cc31615beab4bdf1a15b8",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_long_line_2.0x_action_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "design/execution-mode/active/steward-hidden-encounter/independent-review.md",
+          "generated_at": "2026-08-30T20:00:54.3936370-04:00",
+          "content_sha256": "41cacea606f4df81b3775424742e24eaba06924d5e3eab6b27468eaf74bf12c4",
+          "kind": "critique",
+          "state": "Independent current-revision product, interaction and visual judgment with owner/device limits.",
+          "data_source": "test_output"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_slice_review; Flutter test runner where automated",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-state-discovery",
+      "requirement_id": "state:discovery",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Exercise empty and populated workshop entry and the post-discovery return control.",
+      "input_state": "Undiscovered, discovered, compact, populated and empty registers.",
+      "observation": "One labelled discovery control is available; callbacks and goal/Quest data remain unchanged after leaving the scene.",
+      "artifacts": [
+        {
+          "path": "design/execution-mode/active/steward-hidden-encounter/slice-test-report.md",
+          "generated_at": "2026-08-30T20:00:54.3926368-04:00",
+          "content_sha256": "3e9fe396b70b340a84984267f049c9d51038215a61356d364f5d57dca06a90fb",
+          "kind": "test_report",
+          "state": "Current analyzer, 983-test full suite, release web compile, saved-choice and workshop invariants.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "test/goldens/goals_workshop_home_430x932.png",
+          "generated_at": "2026-08-30T19:57:39.1656962-04:00",
+          "content_sha256": "ce4f528af3e3e7b1f00fc311dad113f13716148b707737dbfe0c4e41b4b13ed7",
+          "kind": "render",
+          "state": "Practical workshop and optional file-box discovery; ordinary and large-text phone.",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/goals_workshop_home_narrow_large_text_320x568.png",
+          "generated_at": "2026-08-30T19:57:36.3687712-04:00",
+          "content_sha256": "f6bd45660dd46ee4b4d02a59205c4c964a0a98ba77a0e7a49956491d111cc745",
+          "kind": "render",
+          "state": "Practical workshop and optional file-box discovery; ordinary and large-text phone.",
+          "data_source": "deterministic_fixture"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_slice_review; Flutter test runner where automated",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-state-branches",
+      "requirement_id": "state:branches",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Traverse graph and all three actual widget stance paths through finish and reopen.",
+      "input_state": "Ask/tease openings, defend/agree/neutral replies, ending, completed save.",
+      "observation": "Graph targets are closed and reachable; all three chosen stances persist and produce distinct return lines.",
+      "artifacts": [
+        {
+          "path": "design/execution-mode/active/steward-hidden-encounter/slice-test-report.md",
+          "generated_at": "2026-08-30T20:00:54.3926368-04:00",
+          "content_sha256": "3e9fe396b70b340a84984267f049c9d51038215a61356d364f5d57dca06a90fb",
+          "kind": "test_report",
+          "state": "Current analyzer, 983-test full suite, release web compile, saved-choice and workshop invariants.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "test/goldens/steward_01_unfiled_430x932.png",
+          "generated_at": "2026-08-30T19:57:31.6281846-04:00",
+          "content_sha256": "b16f1efd4e135a0dc47b056f34542a355bbc8a33e521085532c5353f1d1e721c",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_01_unfiled_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_02_choices_430x932.png",
+          "generated_at": "2026-08-30T19:57:31.9760677-04:00",
+          "content_sha256": "cadcbc81ecc4f8f430500c2e08ddad87d01190fe6071f638851872573c0b8791",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_02_choices_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_03_card_430x932.png",
+          "generated_at": "2026-08-30T19:57:32.3343615-04:00",
+          "content_sha256": "0f771f612ea0a98c3730a0d5cfa68a3f3e46e59aa6cfbd97b685b23f75d90e35",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_03_card_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_04_verdict_430x932.png",
+          "generated_at": "2026-08-30T19:57:32.5664411-04:00",
+          "content_sha256": "297585731d866ebf6b0704f07f961761a13f529335ac7af1b18897ce2eb51098",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_04_verdict_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_05_opposition_430x932.png",
+          "generated_at": "2026-08-30T19:57:32.8060081-04:00",
+          "content_sha256": "5bf29a69bf7c181e13358dd978e2788e661dbaebcc23d04ca18dbb0351d2af81",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_05_opposition_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_06_bread_430x932.png",
+          "generated_at": "2026-08-30T19:57:33.0830892-04:00",
+          "content_sha256": "6c8c4ecf30a2d4108186c3dfb131b1529f101fdc2f95d92f74c34eeee564f25d",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_06_bread_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_07_filed_430x932.png",
+          "generated_at": "2026-08-30T19:57:33.3262076-04:00",
+          "content_sha256": "515b4d86c371a4b09958c39ff18da0c9795757e017ed6b4b2472e4d4685283f6",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_07_filed_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_08_callback_430x932.png",
+          "generated_at": "2026-08-30T19:57:33.7719099-04:00",
+          "content_sha256": "562ce825ceb54aca8cdc9fd7c24ec42300d24bda5eb474dac2adc3161783c275",
+          "kind": "render",
+          "state": "Current authored scene beat: steward_08_callback_430x932.png",
+          "data_source": "deterministic_fixture"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_slice_review; Flutter test runner where automated",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-state-resume",
+      "requirement_id": "state:resume",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Serialize and remount progress; test leave reply, unknown nodes, completion and replay.",
+      "input_state": "New and completed saves, malformed memory, obsolete node IDs, in-progress and replay states.",
+      "observation": "Leaving retains the current line, save reload resumes, unknown IDs recover safely, and replay preserves discovery/completion without creating progression.",
+      "artifacts": [
+        {
+          "path": "design/execution-mode/active/steward-hidden-encounter/slice-test-report.md",
+          "generated_at": "2026-08-30T20:00:54.3926368-04:00",
+          "content_sha256": "3e9fe396b70b340a84984267f049c9d51038215a61356d364f5d57dca06a90fb",
+          "kind": "test_report",
+          "state": "Current analyzer, 983-test full suite, release web compile, saved-choice and workshop invariants.",
+          "data_source": "test_output"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_slice_review; Flutter test runner where automated",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-state-compact",
+      "requirement_id": "state:compact",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect full-sized compact top/action pairs and drive each live reply and navigation action.",
+      "input_state": "320x568 at1.5x/2x text; app and OS Reduced Motion.",
+      "observation": "Readable text is preserved, all actions remain reachable, Back stays visible, and pose transitions honor either reduced-motion preference.",
+      "artifacts": [
+        {
+          "path": "design/execution-mode/active/steward-hidden-encounter/slice-test-report.md",
+          "generated_at": "2026-08-30T20:00:54.3926368-04:00",
+          "content_sha256": "3e9fe396b70b340a84984267f049c9d51038215a61356d364f5d57dca06a90fb",
+          "kind": "test_report",
+          "state": "Current analyzer, 983-test full suite, release web compile, saved-choice and workshop invariants.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "test/goldens/steward_choices_1.5x_top_320x568.png",
+          "generated_at": "2026-08-30T19:57:34.1320268-04:00",
+          "content_sha256": "9507de6a4489281f99759c4da3aad8f0e3cae739d123407f2c71b9e023ac74ac",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_choices_1.5x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_choices_1.5x_actions_320x568.png",
+          "generated_at": "2026-08-30T19:57:34.2102758-04:00",
+          "content_sha256": "0b6d954d09b35c087f32b467ee7c230a767873ac807a4c39208fecd45174dadc",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_choices_1.5x_actions_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_choices_2.0x_top_320x568.png",
+          "generated_at": "2026-08-30T19:57:35.0042704-04:00",
+          "content_sha256": "12a7f0a9e473d5e680684141e392b3d717c5e36b7e8d3ea361e90f03dda0f1cc",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_choices_2.0x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_choices_2.0x_actions_320x568.png",
+          "generated_at": "2026-08-30T19:57:35.0678309-04:00",
+          "content_sha256": "c4f5ccdb8bb6f65361492e9775420060cc7b51491959a92c4663c91d5d14834e",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_choices_2.0x_actions_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_long_line_1.5x_top_320x568.png",
+          "generated_at": "2026-08-30T19:57:34.5646818-04:00",
+          "content_sha256": "ee2a760e218309b7555fc2306f9894b4dac8180ae37c72f8faf22c59f217dca8",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_long_line_1.5x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_long_line_1.5x_action_320x568.png",
+          "generated_at": "2026-08-30T19:57:34.6395004-04:00",
+          "content_sha256": "b3e428780b4f83010a1067e982f9697fc6fb0ca200c6822cb88f94e50cc26f6b",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_long_line_1.5x_action_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_long_line_2.0x_top_320x568.png",
+          "generated_at": "2026-08-30T19:57:35.4375771-04:00",
+          "content_sha256": "f5916ff478bb8b6b243389af4a98797f4c5aad08585b12c8466f5e42d9890879",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_long_line_2.0x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_long_line_2.0x_action_320x568.png",
+          "generated_at": "2026-08-30T19:57:35.5194606-04:00",
+          "content_sha256": "a3a68fb1c751a118769219b3a0dfbb40e56b4790ce4cc31615beab4bdf1a15b8",
+          "kind": "render",
+          "state": "Current compact large-text top/action state: steward_long_line_2.0x_action_320x568.png",
+          "data_source": "deterministic_fixture"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_slice_review; Flutter test runner where automated",
+      "production_equivalent_input": true,
+      "result": "pass"
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra steward_slice_review",
+    "authored_implementation": false,
+    "reviewed_revision": "worktree:61bacca43134:a083081830e8e782d276f35b",
+    "reviewed_check_ids": [
+      "slice-product",
+      "slice-interaction",
+      "slice-visual"
+    ],
+    "reviewed_artifacts": [
+      "design/comparisons/2026-08-30/steward-first-encounter-preview.png",
+      "test/goldens/goals_workshop_home_430x932.png",
+      "test/goldens/steward_choices_2.0x_actions_320x568.png",
+      "test/goldens/steward_long_line_1.5x_top_320x568.png",
+      "design/execution-mode/active/steward-hidden-encounter/independent-review.md"
+    ],
+    "result": "pass",
+    "findings": [],
+    "no_material_findings_observation": "The final discovery-to-callback arc reads as an optional authored character scene. Specific dialogue and physical poses agree; narrowed per-save memory does not touch planning; readable normal and compact states preserve the accepted room. Subtle revisit wording is appropriate to the approved hidden-discovery direction, with owner/device judgment explicitly pending."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-30T20:01:28.8999157-04:00",
+    "decided_at": "2026-08-30T20:18:21-04:00",
+    "reviewed_revision": "worktree:61bacca43134:a083081830e8e782d276f35b",
+    "reviewed_brief_sha256": "2d89802cb920da3e9f9f0b44a27bc840f3f117daee3d8939aa7458484e4d45a2",
+    "reviewed_check_ids": [
+      "slice-product",
+      "slice-interaction",
+      "slice-visual"
+    ],
+    "reviewed_artifacts": [
+      "design/comparisons/2026-08-30/steward-first-encounter-preview.png",
+      "design/execution-mode/active/steward-hidden-encounter/slice-test-report.md",
+      "test/goldens/steward_choices_2.0x_actions_320x568.png"
+    ],
+    "decision": "rejected",
+    "exact_feedback_or_waiver_reason": "it looks wonderful, but im ngl trying to follow along the plot/information with the image you shared made me feel so confused. i dont even know what a fennel is, and i don't know what to expect or what \"an unfiled card\" means in context when clicking on that button. the phrasing of everything just feels weird"
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Desktop widget renders and a web build do not establish physical iPhone OLED readability, VoiceOver behavior, touch pacing or owner feel."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "owner-rejected-writing",
+      "gate": "Owner rejected narrative clarity and entrance wording",
+      "why": "The older review missed first-read comprehension; its no-material-findings conclusion did not establish owner comprehension.",
+      "owner_or_system": "Current source correction",
+      "next_action": "Use the superseding steward-conversation-clarity execution packet. Preserve this packet as history only.",
+      "blocking": true
+    },
+    {
+      "id": "owner-slice",
+      "gate": "Owner accepts the rendered first encounter before expansion",
+      "why": "Direction approval is not acceptance of the executed scene or its character voice.",
+      "owner_or_system": "Mika",
+      "next_action": "Review the encounter preview and approve, reject or redirect this one scene.",
+      "blocking": true
+    },
+    {
+      "id": "physical-phone",
+      "gate": "Installed-phone legibility, accessibility and pacing",
+      "why": "Desktop evidence cannot certify iPhone sensory behavior or lower-brightness readability.",
+      "owner_or_system": "Owner and signed candidate",
+      "next_action": "Read, choose, leave, resume and revisit the scene on the physical iPhone at normal and reduced brightness.",
+      "blocking": true
+    },
+    {
+      "id": "broader-release",
+      "gate": "Friend/account release gauntlet and current store assets",
+      "why": "This bounded encounter did not complete the broader release request or publish store content.",
+      "owner_or_system": "Release operator, owner and deployed environment",
+      "next_action": "After slice approval, resume signed friend/account checks, fresh App Store screenshots/copy, TestFlight and App Store review workflow.",
+      "blocking": true
+    }
+  ]
+}

@@ -1,0 +1,226 @@
+{
+  "schema_version": 1,
+  "id": "owner-feedback-build37-2026-08-30",
+  "project": "Room of Days",
+  "change_class": "new_direction",
+  "status": "slice_ready_for_owner",
+  "locked_at": "2026-08-30T15:00:00-04:00",
+  "surface": "Goals daily capacity, the ordinary Quest board, Steward conversation, and the readability primitives they share",
+  "scope": "Turn the owner's installed-phone correction into one bounded lived-use slice: choose up to three ordinary Quests in Goals, distinguish hard commitments and the chosen field from an optional inspiration shelf in Quests, let completion of the true field be enough for the day, replace app-mechanics chat with stable character-first Steward conversation, and raise meaningful supporting copy above the current size and contrast floor.",
+  "user_job": "On a day with more possible Quests than I expect to finish, choose what I actually mean to carry, keep the rest available without treating it as failure, read every meaningful state comfortably on my phone, and talk with the Steward because I want to know him.",
+  "active_sources": [
+    {
+      "id": "owner-feedback-contract",
+      "kind": "product_contract",
+      "location": "design/visual-targets/2026-08-30/owner-feedback-build37-contract.md",
+      "content_sha256": "ba09e1b0102f069b19b840275cf0ac86751842b1a7988657ef0a23be6bf6402d",
+      "approved_at": "2026-08-30",
+      "judged_state": "Direct owner correction for Goals utility, ordinary Quest capacity, Steward personality, and installed-phone readability",
+      "viewport": "Physical iPhone evidence plus 430x932 and 320x568 at 1.5x text",
+      "priority": 1
+    },
+    {
+      "id": "owner-phone-audit",
+      "kind": "product_audit",
+      "location": "design/audits/2026-08-30/owner-build36-feedback/AUDIT.md",
+      "content_sha256": "38069f574dcddf42f49f1647b030b481119610735de1793c1a20c317bd7a0e25",
+      "approved_at": "2026-08-30",
+      "judged_state": "The Build 36 Workshop and Goals photos establish real-phone legibility and product-job failures while preserving the chosen rooms and character",
+      "viewport": "Owner's installed TestFlight build on a physical iPhone",
+      "priority": 2
+    },
+    {
+      "id": "workshop-register-photo",
+      "kind": "owner_device_evidence",
+      "location": "design/audits/2026-08-30/owner-build36-feedback/01-workshop-register-build36.jpg",
+      "content_sha256": "fe22f1deb702cf4f35502448371469a65ede0a673a85fbbd6efe9ff640d35b6a",
+      "approved_at": "2026-08-30",
+      "judged_state": "Healthy workshop composition with unreadably quiet state labels and a character doorway pointed at app mechanics",
+      "viewport": "Physical iPhone",
+      "priority": 3
+    },
+    {
+      "id": "first-quest-photo",
+      "kind": "owner_device_evidence",
+      "location": "design/audits/2026-08-30/owner-build36-feedback/02-first-quest-workshop-build36.jpg",
+      "content_sha256": "64d7daa629c5c878739bdd2803302c286bd02752547ce76ee4baad5e3c7e00c5",
+      "approved_at": "2026-08-30",
+      "judged_state": "Strong Quest decision object with faint supporting hierarchy and underused register space",
+      "viewport": "Physical iPhone",
+      "priority": 4
+    },
+    {
+      "id": "goals-return-photo",
+      "kind": "owner_device_evidence",
+      "location": "design/audits/2026-08-30/owner-build36-feedback/03-goals-return-build36.jpg",
+      "content_sha256": "e3d4c1b5b3011ef88a560b72b14a8f1861cdad7ff0f2b7b4d39042f867cac0fc",
+      "approved_at": "2026-08-30",
+      "judged_state": "Beautiful accepted room whose main action duplicates Quests and whose art-backed supporting copy is too faint",
+      "viewport": "Physical iPhone",
+      "priority": 5
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/execution-mode/active/goals-workshop-conversation/brief.json",
+      "reason": "The owner directly rejected the app-mechanics purpose of Talk shop. Only its optional, non-mutating, room-bound interaction boundary survives."
+    },
+    {
+      "location": "design/execution-mode/active/goals-threshold-room/brief.json#ongoing-return-job",
+      "reason": "The owner directly rejected a beautiful current-Quest handoff as sufficient ongoing utility. The room must also support ordinary daily capacity selection."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": "design/execution-mode/active/goals-threshold-room",
+  "edge_contract": {
+    "product": {
+      "decision": "Goals owns the calm Choose today decision using existing date-scoped priority fields. Quests then shows hard commitments, up to three chosen Quests, and an explicitly optional Open if it fits shelf. When a dated field exists, commitments plus the chosen field define enough for today; optional completions remain fully rewarded.",
+      "proof": "Run an eight-Quest day with one dated commitment, choose three in Goals, verify deterministic persistence and ordering, complete the true field, observe an enough-for-today state while five optional Quests remain available, and verify no unfinished optional item causes negative copy, streak loss, or reward reduction."
+    },
+    "interaction": {
+      "decision": "Talk with the Steward reveals a restrained, observant character through stable questions about established objects and behavior inside the existing register. It provides no app advice, invented biography, affinity, praise loop, or planner mutation.",
+      "proof": "Read every stable exchange in the existing register at normal and compact large-text sizes, return to routes, and compare Goal, GoalPlan, Quest, reward, route order, and acceptance state before and after."
+    },
+    "visual": {
+      "decision": "Preserve the accepted apartment, workshop, Steward, and warm material system while making all meaningful supporting labels at least 11sp, body copy at least 13sp, and locally contrast-safe. Art-backed state uses a dependable backing plane and can reflow or scroll rather than clamp text.",
+      "proof": "Inspect fresh 430x932, 320x568 at 1.5x text, Reduced Motion, and representative dark-art captures; confirm no essential copy uses the decorative quiet token, opacity, or sub-11sp overrides and verify contrast math against its immediate production surface."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Add another daily planner, optional flag, backlog model, or reduced reward path",
+      "why": "Existing priorityDay and priorityRank already express the dated field, and optional inspiration must remain normal Quest work rather than a lesser class."
+    },
+    {
+      "fallback": "Hide unchosen Quests or call them left, missed, overdue, debt, or failure",
+      "why": "The owner's real use keeps them visible as inspiration if energy appears; disappearance or negative accounting would reproduce the problem."
+    },
+    {
+      "fallback": "Turn Steward conversation into app help, therapy, romance, biography, random quips, or an affinity loop",
+      "why": "The owner asked to know this established character, not to add another progression system or support manual."
+    },
+    {
+      "fallback": "Solve readability with pure white, universal bold type, bright cards, or a new visual system",
+      "why": "The warm authored hierarchy is a preserved edge; essential copy needs semantic contrast and sufficient size, not aesthetic replacement."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "An ordinary day has eight recurring Quests plus one hard dated commitment. The person chooses three in Goals, uses Quests during an uneven-energy day, completes the commitment and chosen field, optionally opens the remaining shelf, and later talks with the Steward.",
+    "real_inputs": "Production-equivalent recurring Quests, one hard dated Quest, the existing dated priority fields, a returnable Workshop register, and the accepted apartment and Steward art.",
+    "user_action": "Choose today in Goals, select three Quests, return to Quests, inspect and optionally expand Open if it fits, complete the commitment and chosen field, then open the Workshop and ask every character-first question before returning to routes.",
+    "expected_outcome": "Goals has a distinct useful job; the Quest board communicates the true daily field without judging optional work; enough for today occurs at the right boundary; all work remains available and normally rewarded; the Steward has a specific personality; and meaningful copy is comfortably readable.",
+    "state_boundary": "Only existing Quest priority, priorityDay, and priorityRank fields change during selection. Conversation remains ephemeral and invokes no planner, persistence, reward, route, or acceptance callback.",
+    "required_states": [
+      {
+        "id": "crowded-no-selection",
+        "state": "Nine visible Quests with no dated field",
+        "why_can_disprove": "If Goals still only opens one Quest or Quests hides work before a choice, the correction has not added useful capacity control."
+      },
+      {
+        "id": "field-selected-shelf-closed",
+        "state": "One hard commitment, three chosen Quests, and five clearly accounted-for optional Quests",
+        "why_can_disprove": "Wrong ordering, duplicate commitments, misleading left counts, or unexplained disappearance would turn the field into another guilt surface."
+      },
+      {
+        "id": "optional-shelf-open",
+        "state": "Every optional Quest is visible and completable with normal reward and Goal progress",
+        "why_can_disprove": "Disabled actions, lesser rewards, or negative optional labels would violate the inspiration contract."
+      },
+      {
+        "id": "enough-for-today",
+        "state": "Hard commitment and chosen field complete while optional Quests remain unfinished",
+        "why_can_disprove": "If the day still says work is left or withholds the normal kept-day outcome, the app is still judging the owner's ordinary behavior."
+      },
+      {
+        "id": "steward-character-exchange",
+        "state": "Every stable character question selected and routes restored unchanged",
+        "why_can_disprove": "App advice, invented biography, generic praise, mutation, or unreachable responses would miss the requested character relationship."
+      },
+      {
+        "id": "compact-large-text-reduced-motion",
+        "state": "320x568 at 1.5x text with Reduced Motion across Goals, Quests, shelf, and conversation",
+        "why_can_disprove": "Clamped, faint, hidden, or unreachable meaningful copy would repeat the physical-phone failure."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "goals-daily-field",
+      "surface_or_primitive": "Goals return room and below-room folio",
+      "state": "No field, partially selected, three selected, all selected complete, new calendar day",
+      "expected_effect": "Add one calm Choose today job without crowding or replacing the accepted room and exact-Quest boundary.",
+      "verification_plan": "Focused interaction tests and fresh normal, crowded, complete, and compact large-text captures.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "quests-capacity-board",
+      "surface_or_primitive": "Ordinary Quests board, count language, completion boundary, optional shelf",
+      "state": "No field, field selected, commitment overlap, selected snooze, field complete, shelf expanded, tomorrow planning",
+      "expected_effect": "Separate obligation from possibility while preserving every Quest action, completion reward, and exact persistence path.",
+      "verification_plan": "Unit and widget tests covering selection, ordering, snooze/date behavior, completion, and legacy no-field behavior plus rendered evidence.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "planning-flows",
+      "surface_or_primitive": "Tomorrow, morning, night, Gentle Mode, Focus Mode, and standing priority",
+      "state": "Replanning the same day, crossing midnight, legacy standing priorities, fewer than three candidates",
+      "expected_effect": "All flows read and write the same deterministic dated field without inventing a second model; Gentle Mode remains a separate display choice.",
+      "verification_plan": "Shared helper tests and existing capacity/routine regression suites.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "steward-conversation",
+      "surface_or_primitive": "Workshop footer and conversation register",
+      "state": "Every question, prompt switching, back to routes, empty and mixed registers, compact large text",
+      "expected_effect": "Replace mechanics help with character revelation while preserving the physical register, face clearance, and zero-mutation boundary.",
+      "verification_plan": "Focused conversation interaction/state tests and fresh normal/compact captures.",
+      "disposition": "update",
+      "reason": ""
+    },
+    {
+      "id": "readability-system",
+      "surface_or_primitive": "Semantic text tokens and meaningful Goals/Workshop/Quest labels",
+      "state": "Warm cards, lighter warm planes, textured art, 1.5x text, Increased Contrast, Reduced Transparency",
+      "expected_effect": "Meaningful copy clears size and contrast floors while decorative quiet remains available only for non-semantic ornament.",
+      "verification_plan": "Contrast unit tests, source invariant scan, fresh screenshots, and later owner phone review at reduced brightness.",
+      "disposition": "update",
+      "reason": ""
+    }
+  ],
+  "unverified_property": "Whether the combined correction makes an uneven-energy crowded day feel genuinely supported, the Steward feel worth returning to, and the same authored rooms remain comfortably readable on the owner's phone.",
+  "decisive_check": {
+    "method": "Exercise the complete crowded-day slice and character exchange at 430x932 and 320x568 at 1.5x text with Reduced Motion, then repeat on the owner's physical iPhone at approximately 15 percent lower brightness before authorizing App Store review.",
+    "target": "Eight recurring Quests, one hard dated commitment, three chosen Quests, five optional shelf items, one completed true field, and every stable Steward exchange.",
+    "pass_condition": "Goals earns its tab through a useful decision; Quests clearly says which work is required, chosen, and optional; enough-for-today occurs without punishing the shelf; the Steward reveals a specific contained personality; all essential copy is readable; exact Quest and route invariants hold; and the owner accepts the lived phone feel."
+  },
+  "revision_scope": {
+    "include": [
+      "lib/content/day_planning.dart",
+      "lib/screens/goal_opening.dart",
+      "lib/screens/goals.dart",
+      "lib/screens/quests.dart",
+      "lib/screens/goal_workshop.dart",
+      "lib/widgets/goal_threshold_scene.dart",
+      "lib/widgets/goal_route_panel.dart",
+      "lib/widgets/quest_card.dart",
+      "lib/tokens.dart",
+      "test/day_planning_test.dart",
+      "test/goals_choose_today_test.dart",
+      "test/quests_daily_field_test.dart",
+      "test/readability_tokens_test.dart",
+      "test/goals_quest_management_test.dart",
+      "test/goal_workshop_conversation_test.dart",
+      "test/journal_quest_entry_test.dart",
+      "test/screenshots_test.dart",
+      "test/widget_test.dart",
+      "design/audits/2026-08-30/owner-build36-feedback",
+      "design/visual-targets/2026-08-30/owner-feedback-build37-contract.md"
+    ],
+    "exclude": [
+      "test/goldens"
+    ]
+  }
+}

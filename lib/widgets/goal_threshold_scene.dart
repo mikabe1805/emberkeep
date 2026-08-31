@@ -27,6 +27,8 @@ class GoalThresholdScene extends StatelessWidget {
     this.actionSemanticHint,
     required this.onReview,
     required this.onNewGoal,
+    this.todayFieldCount = 0,
+    this.onChooseToday,
     this.onOpenWorkshop,
     this.workshopStatus = 'routes inside',
     required this.onAction,
@@ -47,6 +49,8 @@ class GoalThresholdScene extends StatelessWidget {
   final String? actionSemanticHint;
   final VoidCallback onReview;
   final VoidCallback onNewGoal;
+  final int todayFieldCount;
+  final VoidCallback? onChooseToday;
   final VoidCallback? onOpenWorkshop;
   final String workshopStatus;
   final VoidCallback onAction;
@@ -57,8 +61,8 @@ class GoalThresholdScene extends StatelessWidget {
   final bool reduceMotion;
 
   static const _ink = Color(0xFFE7DAC6);
-  static const _warmInk = Color(0xFFC99550);
-  static const _quietInk = Color(0xFFAD7E50);
+  static const _warmInk = Color(0xFFE0B778);
+  static const _supportInk = Palette.textMid;
   static const _roomShadow = <Shadow>[
     Shadow(color: Color(0xA8100906), blurRadius: 9, offset: Offset(0, 2)),
     Shadow(color: Color(0x56100906), blurRadius: 2, offset: Offset(0, 1)),
@@ -75,6 +79,9 @@ class GoalThresholdScene extends StatelessWidget {
         builder: (context, constraints) {
           final sceneWidth = constraints.maxWidth;
           final sceneHeight = sceneWidth * (932 / 430);
+          final textScale = MediaQuery.textScalerOf(context).scale(1);
+          final compactType = sceneWidth < 360 || textScale > 1.2;
+          final extremeType = textScale > 1.6;
           return SizedBox(
             width: sceneWidth,
             height: sceneHeight,
@@ -90,31 +97,31 @@ class GoalThresholdScene extends StatelessWidget {
                     _RoomPlate(light: light, reduceMotion: reduceMotion),
                     const _RegisteredLightVeil(),
                     Positioned(
-                      left: 324,
-                      top: 44,
-                      width: 94,
-                      height: 54,
+                      left: compactType ? 292 : 324,
+                      top: compactType ? 34 : 44,
+                      width: compactType ? 126 : 94,
+                      height: compactType ? 62 : 54,
                       child: _ThresholdNewGoal(onTap: onNewGoal),
                     ),
                     Positioned(
-                      left: 68,
-                      top: 122,
-                      width: 136,
-                      height: 84,
+                      left: compactType ? 52 : 68,
+                      top: compactType ? 92 : 122,
+                      width: compactType ? 220 : 136,
+                      height: compactType ? 106 : 84,
                       child: _GoalWallTitle(title: goalTitle, onTap: onReview),
                     ),
                     Positioned(
-                      left: 68,
-                      top: 204,
-                      width: 166,
-                      height: 54,
+                      left: compactType ? 52 : 60,
+                      top: compactType ? 204 : 198,
+                      width: compactType ? 220 : 190,
+                      height: compactType ? 82 : 70,
                       child: _ReturnEvidence(copy: evidenceCopy),
                     ),
                     Positioned(
-                      left: 203,
-                      top: 420,
-                      width: 172,
-                      height: 58,
+                      left: 195,
+                      top: 410,
+                      width: 188,
+                      height: 78,
                       child: _RouteInscription(
                         routePosition: routePosition,
                         reason: cue,
@@ -122,14 +129,14 @@ class GoalThresholdScene extends StatelessWidget {
                     ),
                     Positioned(
                       left: 208,
-                      top: 476,
+                      top: 490,
                       width: 160,
-                      height: 82,
+                      height: 88,
                       child: _ArchQuestTitle(title: actionTitle),
                     ),
                     const Positioned(
                       left: 252,
-                      top: 550,
+                      top: 578,
                       width: 72,
                       height: 12,
                       child: _ArchRule(),
@@ -139,7 +146,7 @@ class GoalThresholdScene extends StatelessWidget {
                         left: 219,
                         top: 320,
                         width: 156,
-                        height: 64,
+                        height: extremeType ? 76 : 64,
                         child: _TavernWorkshopSign(
                           status: workshopStatus,
                           onTap: openWorkshop,
@@ -147,7 +154,7 @@ class GoalThresholdScene extends StatelessWidget {
                       ),
                     Positioned(
                       left: 190,
-                      top: 574,
+                      top: 600,
                       width: 185,
                       height: 58,
                       child: GoalPrimaryButton(
@@ -166,10 +173,21 @@ class GoalThresholdScene extends StatelessWidget {
                             'Cross the room and open this exact Quest.',
                       ),
                     ),
+                    if (onChooseToday case final chooseToday?)
+                      Positioned(
+                        left: 40,
+                        top: 682,
+                        width: 154,
+                        height: extremeType ? 74 : 66,
+                        child: _TodayFieldDoor(
+                          count: todayFieldCount,
+                          onTap: chooseToday,
+                        ),
+                      ),
                     if (recoveryAction case final recovery?)
                       Positioned(
                         left: 198,
-                        top: 638,
+                        top: 664,
                         width: 170,
                         height: 42,
                         child: _ArchRecoveryAction(
@@ -184,6 +202,119 @@ class GoalThresholdScene extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// The room-level door into the page's ordinary-day job. Keeping this on the
+/// threshold makes the new utility discoverable before someone already knows
+/// to scroll beneath the authored room; the fuller field folio still lives
+/// below the room where its rows have enough space to breathe.
+class _TodayFieldDoor extends StatelessWidget {
+  const _TodayFieldDoor({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final compactType = textScale > 1.2;
+    final heading = textScale > 1.6 ? 'TODAY' : 'TODAY\'S FIELD';
+    final status = count == 0
+        ? (compactType ? 'Choose' : 'Choose up to 3')
+        : '$count chosen';
+    return Pressable(
+      key: const Key('goals-field-door'),
+      material: MaterialSound.wood,
+      soundEnabled: false,
+      pressDepth: 1.2,
+      borderRadius: BorderRadius.circular(10),
+      edgeColor: const Color(0xFF51331F),
+      guardRapidReentry: true,
+      semanticLabel: count == 0
+          ? 'Choose today’s field'
+          : 'Today’s field, $count chosen. Reshape today.',
+      semanticHint:
+          'Choose up to three Quests to carry. Everything else stays optional.',
+      onTapUp: (_) => onTap(),
+      stateBuilder: (context, child, pressed, focused, hovered) =>
+          AnimatedOpacity(
+            duration: pressed ? Duration.zero : Motion.ack,
+            opacity: pressed
+                ? 0.72
+                : focused || hovered
+                ? 1
+                : 0.94,
+            child: child,
+          ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(11, 8, 10, 8),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xE52A1B12), Color(0xE018100B)],
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0x9CC99550), width: 0.8),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x8A100805),
+              blurRadius: 9,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.filter_list_rounded,
+              size: 18,
+              color: GoalThresholdScene._warmInk,
+              shadows: GoalThresholdScene._roomShadow,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    heading,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      fontFamily: 'JetBrainsMono',
+                      fontSize: 11,
+                      height: 1,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.34,
+                      color: GoalThresholdScene._warmInk,
+                      shadows: GoalThresholdScene._roomShadow,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    status,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'EBGaramond',
+                      fontSize: 13.5,
+                      height: 1,
+                      fontWeight: FontWeight.w500,
+                      color: GoalThresholdScene._ink,
+                      shadows: GoalThresholdScene._roomShadow,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -300,12 +431,9 @@ class _ThresholdNewGoal extends StatelessWidget {
         child: Text(
           '+  New goal',
           maxLines: 1,
-          textScaler: MediaQuery.textScalerOf(
-            context,
-          ).clamp(maxScaleFactor: 1.18),
           style: const TextStyle(
             fontFamily: 'EBGaramond',
-            fontSize: 12,
+            fontSize: 13.5,
             height: 1,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.04,
@@ -348,11 +476,8 @@ class _GoalWallTitle extends StatelessWidget {
         alignment: Alignment.topLeft,
         child: Text(
           title,
-          maxLines: 3,
+          maxLines: 4,
           overflow: TextOverflow.ellipsis,
-          textScaler: MediaQuery.textScalerOf(
-            context,
-          ).clamp(maxScaleFactor: 1.18),
           style: const TextStyle(
             fontFamily: 'EBGaramond',
             fontSize: 19.5,
@@ -376,46 +501,53 @@ class _ReturnEvidence extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 1),
-          child: Icon(
-            Icons.local_florist_outlined,
-            size: 15,
-            color: GoalThresholdScene._quietInk,
-            shadows: GoalThresholdScene._roomShadow,
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 6, 9, 6),
+      decoration: BoxDecoration(
+        color: const Color(0xC9160F0B),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0x66C99550), width: 0.7),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x8A100805),
+            blurRadius: 10,
+            offset: Offset(0, 3),
           ),
-        ),
-        const SizedBox(width: 5),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                copy,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                textScaler: MediaQuery.textScalerOf(
-                  context,
-                ).clamp(maxScaleFactor: 1.15),
-                style: const TextStyle(
-                  fontFamily: 'EBGaramond',
-                  fontSize: 11.8,
-                  height: 1.12,
-                  fontWeight: FontWeight.w500,
-                  fontStyle: FontStyle.italic,
-                  letterSpacing: 0.02,
-                  color: GoalThresholdScene._quietInk,
-                  shadows: GoalThresholdScene._roomShadow,
-                  decoration: TextDecoration.none,
-                ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.local_florist_outlined,
+              size: 16,
+              color: GoalThresholdScene._warmInk,
+              shadows: GoalThresholdScene._roomShadow,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              copy,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontFamily: 'EBGaramond',
+                fontSize: 13.2,
+                height: 1.14,
+                fontWeight: FontWeight.w500,
+                fontStyle: FontStyle.italic,
+                letterSpacing: 0.02,
+                color: GoalThresholdScene._supportInk,
+                shadows: GoalThresholdScene._roomShadow,
+                decoration: TextDecoration.none,
               ),
-            ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -433,7 +565,7 @@ class _RouteInscription extends StatelessWidget {
       gradient: LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [Color(0x5C1A100A), Color(0x261A100A)],
+        colors: [Color(0xE61A100A), Color(0xC71A100A)],
       ),
       border: Border(
         top: BorderSide(color: Color(0x72C99550), width: 0.7),
@@ -449,12 +581,9 @@ class _RouteInscription extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
-            textScaler: MediaQuery.textScalerOf(
-              context,
-            ).clamp(maxScaleFactor: 1.15),
             style: const TextStyle(
               fontFamily: 'JetBrainsMono',
-              fontSize: 8.2,
+              fontSize: 11,
               height: 1,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.42,
@@ -470,12 +599,9 @@ class _RouteInscription extends StatelessWidget {
           maxLines: routePosition == null ? 3 : 2,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          textScaler: MediaQuery.textScalerOf(
-            context,
-          ).clamp(maxScaleFactor: 1.15),
           style: const TextStyle(
             fontFamily: 'EBGaramond',
-            fontSize: 10.8,
+            fontSize: 13,
             height: 1.08,
             fontWeight: FontWeight.w500,
             color: GoalThresholdScene._ink,
@@ -520,11 +646,8 @@ class _ArchQuestTitle extends StatelessWidget {
           child: Text(
             _balancedTitle,
             maxLines: 4,
-            softWrap: !(_balancedTitle.contains('\n')),
+            softWrap: true,
             textAlign: TextAlign.center,
-            textScaler: MediaQuery.textScalerOf(
-              context,
-            ).clamp(maxScaleFactor: 1.12),
             style: const TextStyle(
               fontFamily: 'EBGaramond',
               fontSize: 21.5,
@@ -609,9 +732,6 @@ class _ArchRecoveryAction extends StatelessWidget {
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.center,
-          textScaler: MediaQuery.textScalerOf(
-            context,
-          ).clamp(maxScaleFactor: 1.15),
           style: const TextStyle(
             fontFamily: 'EBGaramond',
             fontSize: 13.2,
@@ -671,12 +791,14 @@ class _TavernWorkshopSign extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.door_front_door_outlined,
-            size: 17,
-            color: Color(0xFFD0A36B),
-          ),
-          const SizedBox(width: 8),
+          if (MediaQuery.textScalerOf(context).scale(1) <= 1.6) ...[
+            const Icon(
+              Icons.door_front_door_outlined,
+              size: 17,
+              color: Color(0xFFD0A36B),
+            ),
+            const SizedBox(width: 8),
+          ],
           Expanded(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -686,9 +808,6 @@ class _TavernWorkshopSign extends StatelessWidget {
                   'Workshop',
                   key: Key('goals-workshop-entrance-label'),
                   maxLines: 1,
-                  textScaler: MediaQuery.textScalerOf(
-                    context,
-                  ).clamp(maxScaleFactor: 1.18),
                   style: const TextStyle(
                     fontFamily: 'EBGaramond',
                     fontSize: 14.2,
@@ -701,20 +820,19 @@ class _TavernWorkshopSign extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Steward is here',
+                  MediaQuery.textScalerOf(context).scale(1) > 1.6
+                      ? 'Steward'
+                      : 'Steward is here',
                   key: Key('goals-workshop-entrance-status'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  textScaler: MediaQuery.textScalerOf(
-                    context,
-                  ).clamp(maxScaleFactor: 1.18),
                   style: const TextStyle(
                     fontFamily: 'EBGaramond',
-                    fontSize: 10.6,
+                    fontSize: 12,
                     height: 1,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 0.05,
-                    color: Color(0xD9C69A64),
+                    color: Palette.textMid,
                     shadows: GoalThresholdScene._roomShadow,
                     decoration: TextDecoration.none,
                   ),

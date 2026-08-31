@@ -1,0 +1,523 @@
+{
+  "schema_version": 1,
+  "brief_id": "steward-conversation-clarity-2026-08-30",
+  "brief_sha256": "56b0eee23c511cdb2526dc653616de6c6191c12836199b893286e1426e6c7fc9",
+  "phase": "slice",
+  "implementation_revision": "worktree:61bacca43134:d2d94cbd3fbd87cd60dbe2a1",
+  "revision_captured_at": "2026-08-30T20:23:04.4950815-04:00",
+  "checks": [
+    {
+      "id": "slice-product",
+      "requirement_id": "edge.product",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Cold-read full actual dialogue without the design brief; inspect live entrance and opening.",
+      "input_state": "Entrance, opening and complete selected path.",
+      "observation": "The entrance states its action and the first line sets up the cook/note/soup situation; owner taste remains unverified.",
+      "artifacts": [
+        {
+          "path": "test/goldens/goals_workshop_home_430x932.png",
+          "generated_at": "2026-08-30T20:24:22.3179320-04:00",
+          "content_sha256": "4fd5a466a18f408158b7e11da32f5cc37131a87d3fea9b10c1751d2621574265",
+          "kind": "render",
+          "state": "goals_workshop_home_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/goals_workshop_home_narrow_large_text_320x568.png",
+          "generated_at": "2026-08-30T20:24:18.9513118-04:00",
+          "content_sha256": "40aad6b0c0ca184c12b5385fc57a3dd914b2797ac7c9ddd7821c38731c19bd5e",
+          "kind": "render",
+          "state": "goals_workshop_home_narrow_large_text_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_01_hello_430x932.png",
+          "generated_at": "2026-08-30T20:24:13.5057742-04:00",
+          "content_sha256": "738d01ac42290d1aff863ff7322821140e7a0c0f97c54d0ebe03f6f33217d83c",
+          "kind": "render",
+          "state": "steward_soup_01_hello_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/first-read-review.md",
+          "generated_at": "2026-08-30T20:30:07.4630075-04:00",
+          "content_sha256": "ecff68bc412675b92a2c1ccebdeb008410fc25ee483ed909008175a71e69bbaa",
+          "kind": "critique",
+          "state": "Cold-read understanding and current-render/save-state inspection.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/ordered-preview.json",
+          "generated_at": "2026-08-30T20:25:14.4158864-04:00",
+          "content_sha256": "d371969862cd6f1d57e1ecfa63ef06db78d44213296f77eca8e11530b7ab0a53",
+          "kind": "manifest",
+          "state": "Actual complete eight-beat production-node traversal with player replies.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/conversation-preview.md",
+          "generated_at": "2026-08-30T20:25:14.4143824-04:00",
+          "content_sha256": "5825f251c2be4c15a9faaf62161e3e2c0a5247f920fb3d1b0ead9e3799ef87d5",
+          "kind": "interaction",
+          "state": "Entire selected conversation in order, without skipped setup.",
+          "data_source": "test_output"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_first_read for its documented bounded review; Flutter runner for automated checks",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-interaction",
+      "requirement_id": "edge.interaction",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Drive actual branches and serialized save recovery; capture every visited node.",
+      "input_state": "Current, partial, completed, obsolete and unknown-node saves.",
+      "observation": "65 cases passed including all callbacks, leave/reload/replay and isolation to Steward memory; the preview skips no setup.",
+      "artifacts": [
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/slice-test-report.md",
+          "generated_at": "2026-08-30T20:29:02.3513855-04:00",
+          "content_sha256": "216dc595a598bf87368d979baf593cbc49ba33971ac203214783c0d2fb66637d",
+          "kind": "test_report",
+          "state": "Current analyzer, 65 focused behavior tests and seven screenshot scenarios.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/first-read-review.md",
+          "generated_at": "2026-08-30T20:30:07.4630075-04:00",
+          "content_sha256": "ecff68bc412675b92a2c1ccebdeb008410fc25ee483ed909008175a71e69bbaa",
+          "kind": "critique",
+          "state": "Cold-read understanding and current-render/save-state inspection.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/ordered-preview.json",
+          "generated_at": "2026-08-30T20:25:14.4158864-04:00",
+          "content_sha256": "d371969862cd6f1d57e1ecfa63ef06db78d44213296f77eca8e11530b7ab0a53",
+          "kind": "manifest",
+          "state": "Actual complete eight-beat production-node traversal with player replies.",
+          "data_source": "test_output"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_first_read for its documented bounded review; Flutter runner for automated checks",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-visual",
+      "requirement_id": "edge.visual",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect fresh normal beats and compact top/action frames.",
+      "input_state": "430x932 and320x568 at1.5x/2x text.",
+      "observation": "Artwork and opaque live-text dialogue remain intact; large text and replies scroll without shrinking. Physical-phone feel remains pending.",
+      "artifacts": [
+        {
+          "path": "test/goldens/steward_soup_01_hello_430x932.png",
+          "generated_at": "2026-08-30T20:24:13.5057742-04:00",
+          "content_sha256": "738d01ac42290d1aff863ff7322821140e7a0c0f97c54d0ebe03f6f33217d83c",
+          "kind": "render",
+          "state": "steward_soup_01_hello_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_02_setup_430x932.png",
+          "generated_at": "2026-08-30T20:24:13.7993626-04:00",
+          "content_sha256": "4d84f35be1456b8dad6c40007440d521f886b945c65a17281cf9a363ffb53504",
+          "kind": "render",
+          "state": "steward_soup_02_setup_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_03_note_430x932.png",
+          "generated_at": "2026-08-30T20:24:14.0197977-04:00",
+          "content_sha256": "71b8e923c07f4d100698a75a989c219cf4da8956b76ebd410dbe277eada4a2e8",
+          "kind": "render",
+          "state": "steward_soup_03_note_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_04_friends_430x932.png",
+          "generated_at": "2026-08-30T20:24:14.2558437-04:00",
+          "content_sha256": "1bde85db4234837320b5065ceb6f44e3415850d4dd0ad47175b85e9e33499e54",
+          "kind": "render",
+          "state": "steward_soup_04_friends_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_05_reply_430x932.png",
+          "generated_at": "2026-08-30T20:24:14.4711099-04:00",
+          "content_sha256": "a608412536cd28211a0fb4bff26489ee25e856fbd4817bbc153a6e9e474e2da7",
+          "kind": "render",
+          "state": "steward_soup_05_reply_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_06_bread_430x932.png",
+          "generated_at": "2026-08-30T20:24:14.6700022-04:00",
+          "content_sha256": "0e57c19a4250c02b028f1c43a2314eb29c94618a114fde378c91c4db7f3fdf2b",
+          "kind": "render",
+          "state": "steward_soup_06_bread_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_07_admission_430x932.png",
+          "generated_at": "2026-08-30T20:24:14.9014892-04:00",
+          "content_sha256": "da96f18db8c24e7fe1832f0d71a0b03fa0fd40fe6abca70132a3f588a606494a",
+          "kind": "render",
+          "state": "steward_soup_07_admission_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_08_goodbye_430x932.png",
+          "generated_at": "2026-08-30T20:24:15.1180768-04:00",
+          "content_sha256": "1b3dc6325927a5de58b50e020dcbe88bd403bc1ce2774bb684b752636e2a3849",
+          "kind": "render",
+          "state": "steward_soup_08_goodbye_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_09_callback_430x932.png",
+          "generated_at": "2026-08-30T20:24:15.6828900-04:00",
+          "content_sha256": "a141c19c1e5ec9fd4bee905279b453d4e703309c698c0ca8e3108d7f2f171812",
+          "kind": "render",
+          "state": "steward_soup_09_callback_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_choices_1.5x_top_320x568.png",
+          "generated_at": "2026-08-30T20:24:16.2143074-04:00",
+          "content_sha256": "2997b3e2551d7233bbdc403011f72e0fbee68b417182c7668161b83877b3c48f",
+          "kind": "render",
+          "state": "steward_soup_choices_1.5x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_choices_1.5x_actions_320x568.png",
+          "generated_at": "2026-08-30T20:24:16.3465444-04:00",
+          "content_sha256": "3fbb02e8551e5fcef850045ffc0d35b457243e31e30e6bd9d03e7369209eb1d4",
+          "kind": "render",
+          "state": "steward_soup_choices_1.5x_actions_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_choices_2.0x_top_320x568.png",
+          "generated_at": "2026-08-30T20:24:17.2442452-04:00",
+          "content_sha256": "24bef93f1d685a7be1031df1e9419292e01a57ab5bd1d9b91b1de078d8186e35",
+          "kind": "render",
+          "state": "steward_soup_choices_2.0x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_choices_2.0x_actions_320x568.png",
+          "generated_at": "2026-08-30T20:24:17.3565491-04:00",
+          "content_sha256": "f167703a53bddb83e471189e1403ab76c36be9258cd8146b29b834170ed8d964",
+          "kind": "render",
+          "state": "steward_soup_choices_2.0x_actions_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_long_line_1.5x_top_320x568.png",
+          "generated_at": "2026-08-30T20:24:16.7482084-04:00",
+          "content_sha256": "cd32c201d4306fe717865039186ac2184f87031b1ecb37807b02ca339ad3b87a",
+          "kind": "render",
+          "state": "steward_soup_long_line_1.5x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_long_line_1.5x_action_320x568.png",
+          "generated_at": "2026-08-30T20:24:16.8246027-04:00",
+          "content_sha256": "6054e8a154cab88f6b2b66999f678006af3c35a7dcee534edbf63e3009979cec",
+          "kind": "render",
+          "state": "steward_soup_long_line_1.5x_action_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_long_line_2.0x_top_320x568.png",
+          "generated_at": "2026-08-30T20:24:17.8142013-04:00",
+          "content_sha256": "57c2618966a95193b8ef1fdd5b7d4a7ca70454c43de69ab21ebcf17e386fdc4c",
+          "kind": "render",
+          "state": "steward_soup_long_line_2.0x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_long_line_2.0x_action_320x568.png",
+          "generated_at": "2026-08-30T20:24:17.8879199-04:00",
+          "content_sha256": "a35623d26383e5b897d0af820789a9da4e65ea623b6839a259259a85f86b13f6",
+          "kind": "render",
+          "state": "steward_soup_long_line_2.0x_action_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/first-read-review.md",
+          "generated_at": "2026-08-30T20:30:07.4630075-04:00",
+          "content_sha256": "ecff68bc412675b92a2c1ccebdeb008410fc25ee483ed909008175a71e69bbaa",
+          "kind": "critique",
+          "state": "Cold-read understanding and current-render/save-state inspection.",
+          "data_source": "test_output"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_first_read for its documented bounded review; Flutter runner for automated checks",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-state-discovery",
+      "requirement_id": "state:discovery",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Exercise initial, partial/completed entrance and practical callbacks.",
+      "input_state": "Empty/populated workshop and compact layouts.",
+      "observation": "Plain initial label and Continue talking resume are distinct, and practical goal actions remain unchanged.",
+      "artifacts": [
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/slice-test-report.md",
+          "generated_at": "2026-08-30T20:29:02.3513855-04:00",
+          "content_sha256": "216dc595a598bf87368d979baf593cbc49ba33971ac203214783c0d2fb66637d",
+          "kind": "test_report",
+          "state": "Current analyzer, 65 focused behavior tests and seven screenshot scenarios.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "test/goldens/goals_workshop_home_430x932.png",
+          "generated_at": "2026-08-30T20:24:22.3179320-04:00",
+          "content_sha256": "4fd5a466a18f408158b7e11da32f5cc37131a87d3fea9b10c1751d2621574265",
+          "kind": "render",
+          "state": "goals_workshop_home_430x932.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/goals_workshop_home_narrow_large_text_320x568.png",
+          "generated_at": "2026-08-30T20:24:18.9513118-04:00",
+          "content_sha256": "40aad6b0c0ca184c12b5385fc57a3dd914b2797ac7c9ddd7821c38731c19bd5e",
+          "kind": "render",
+          "state": "goals_workshop_home_narrow_large_text_320x568.png",
+          "data_source": "deterministic_fixture"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_first_read for its documented bounded review; Flutter runner for automated checks",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-state-branches",
+      "requirement_id": "state:branches",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Traverse graph and actual stance paths; capture full ordered trace.",
+      "input_state": "Both openings, three stances, bread replies and revisit.",
+      "observation": "All graph targets resolve and three saved stances produce distinct callbacks; preview includes every beat.",
+      "artifacts": [
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/slice-test-report.md",
+          "generated_at": "2026-08-30T20:29:02.3513855-04:00",
+          "content_sha256": "216dc595a598bf87368d979baf593cbc49ba33971ac203214783c0d2fb66637d",
+          "kind": "test_report",
+          "state": "Current analyzer, 65 focused behavior tests and seven screenshot scenarios.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/ordered-preview.json",
+          "generated_at": "2026-08-30T20:25:14.4158864-04:00",
+          "content_sha256": "d371969862cd6f1d57e1ecfa63ef06db78d44213296f77eca8e11530b7ab0a53",
+          "kind": "manifest",
+          "state": "Actual complete eight-beat production-node traversal with player replies.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/conversation-preview.md",
+          "generated_at": "2026-08-30T20:25:14.4143824-04:00",
+          "content_sha256": "5825f251c2be4c15a9faaf62161e3e2c0a5247f920fb3d1b0ead9e3799ef87d5",
+          "kind": "interaction",
+          "state": "Entire selected conversation in order, without skipped setup.",
+          "data_source": "test_output"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_first_read for its documented bounded review; Flutter runner for automated checks",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-state-resume",
+      "requirement_id": "state:resume",
+      "phase": "slice",
+      "evidence_layer": "automated",
+      "method": "Deserialize memory and exercise leave/replay and same-frame taps.",
+      "input_state": "Partial current node, old draft and unknown completed current node.",
+      "observation": "Old drafts restart at the opening, valid lines resume, current completion returns to its callback; unrelated state remains unchanged.",
+      "artifacts": [
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/slice-test-report.md",
+          "generated_at": "2026-08-30T20:29:02.3513855-04:00",
+          "content_sha256": "216dc595a598bf87368d979baf593cbc49ba33971ac203214783c0d2fb66637d",
+          "kind": "test_report",
+          "state": "Current analyzer, 65 focused behavior tests and seven screenshot scenarios.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/first-read-review.md",
+          "generated_at": "2026-08-30T20:30:07.4630075-04:00",
+          "content_sha256": "ecff68bc412675b92a2c1ccebdeb008410fc25ee483ed909008175a71e69bbaa",
+          "kind": "critique",
+          "state": "Cold-read understanding and current-render/save-state inspection.",
+          "data_source": "test_output"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_first_read for its documented bounded review; Flutter runner for automated checks",
+      "production_equivalent_input": true,
+      "result": "pass"
+    },
+    {
+      "id": "slice-state-compact",
+      "requirement_id": "state:compact",
+      "phase": "slice",
+      "evidence_layer": "rendered",
+      "method": "Inspect paired large-text renders and scroll live controls.",
+      "input_state": "320x568 at1.5x/2x text and reduced motion.",
+      "observation": "Full text and all choices are reachable with visible scrolling, not simultaneously visible.",
+      "artifacts": [
+        {
+          "path": "design/execution-mode/active/steward-conversation-clarity/slice-test-report.md",
+          "generated_at": "2026-08-30T20:29:02.3513855-04:00",
+          "content_sha256": "216dc595a598bf87368d979baf593cbc49ba33971ac203214783c0d2fb66637d",
+          "kind": "test_report",
+          "state": "Current analyzer, 65 focused behavior tests and seven screenshot scenarios.",
+          "data_source": "test_output"
+        },
+        {
+          "path": "test/goldens/steward_soup_choices_1.5x_top_320x568.png",
+          "generated_at": "2026-08-30T20:24:16.2143074-04:00",
+          "content_sha256": "2997b3e2551d7233bbdc403011f72e0fbee68b417182c7668161b83877b3c48f",
+          "kind": "render",
+          "state": "steward_soup_choices_1.5x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_choices_1.5x_actions_320x568.png",
+          "generated_at": "2026-08-30T20:24:16.3465444-04:00",
+          "content_sha256": "3fbb02e8551e5fcef850045ffc0d35b457243e31e30e6bd9d03e7369209eb1d4",
+          "kind": "render",
+          "state": "steward_soup_choices_1.5x_actions_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_choices_2.0x_top_320x568.png",
+          "generated_at": "2026-08-30T20:24:17.2442452-04:00",
+          "content_sha256": "24bef93f1d685a7be1031df1e9419292e01a57ab5bd1d9b91b1de078d8186e35",
+          "kind": "render",
+          "state": "steward_soup_choices_2.0x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_choices_2.0x_actions_320x568.png",
+          "generated_at": "2026-08-30T20:24:17.3565491-04:00",
+          "content_sha256": "f167703a53bddb83e471189e1403ab76c36be9258cd8146b29b834170ed8d964",
+          "kind": "render",
+          "state": "steward_soup_choices_2.0x_actions_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_long_line_1.5x_top_320x568.png",
+          "generated_at": "2026-08-30T20:24:16.7482084-04:00",
+          "content_sha256": "cd32c201d4306fe717865039186ac2184f87031b1ecb37807b02ca339ad3b87a",
+          "kind": "render",
+          "state": "steward_soup_long_line_1.5x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_long_line_1.5x_action_320x568.png",
+          "generated_at": "2026-08-30T20:24:16.8246027-04:00",
+          "content_sha256": "6054e8a154cab88f6b2b66999f678006af3c35a7dcee534edbf63e3009979cec",
+          "kind": "render",
+          "state": "steward_soup_long_line_1.5x_action_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_long_line_2.0x_top_320x568.png",
+          "generated_at": "2026-08-30T20:24:17.8142013-04:00",
+          "content_sha256": "57c2618966a95193b8ef1fdd5b7d4a7ca70454c43de69ab21ebcf17e386fdc4c",
+          "kind": "render",
+          "state": "steward_soup_long_line_2.0x_top_320x568.png",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "path": "test/goldens/steward_soup_long_line_2.0x_action_320x568.png",
+          "generated_at": "2026-08-30T20:24:17.8879199-04:00",
+          "content_sha256": "a35623d26383e5b897d0af820789a9da4e65ea623b6839a259259a85f86b13f6",
+          "kind": "render",
+          "state": "steward_soup_long_line_2.0x_action_320x568.png",
+          "data_source": "deterministic_fixture"
+        }
+      ],
+      "inspected_by": "Codex main agent; independent Terra steward_first_read for its documented bounded review; Flutter runner for automated checks",
+      "production_equivalent_input": true,
+      "result": "pass"
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra steward_first_read",
+    "authored_implementation": false,
+    "reviewed_revision": "worktree:61bacca43134:d2d94cbd3fbd87cd60dbe2a1",
+    "reviewed_check_ids": [
+      "slice-product",
+      "slice-interaction",
+      "slice-visual"
+    ],
+    "reviewed_artifacts": [
+      "test/goldens/steward_soup_01_hello_430x932.png",
+      "test/goldens/steward_soup_03_note_430x932.png",
+      "test/goldens/steward_soup_08_goodbye_430x932.png",
+      "test/goldens/steward_soup_choices_2.0x_top_320x568.png",
+      "test/goldens/steward_soup_choices_2.0x_actions_320x568.png",
+      "design/execution-mode/active/steward-conversation-clarity/first-read-review.md"
+    ],
+    "result": "pass",
+    "findings": [],
+    "no_material_findings_observation": "The cold reader followed the cook, note and soup setup without a supplied interpretation. Current normal/2x renders agree with the events and preserve reachable text/actions. Source inspection supports obsolete-draft recovery and memory isolation. This is not owner taste approval."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "2026-08-30T20:31:00-04:00",
+    "decided_at": "2026-08-30T20:52:00-04:00",
+    "reviewed_revision": "worktree:61bacca43134:d2d94cbd3fbd87cd60dbe2a1",
+    "reviewed_brief_sha256": "56b0eee23c511cdb2526dc653616de6c6191c12836199b893286e1426e6c7fc9",
+    "reviewed_check_ids": [
+      "slice-product",
+      "slice-interaction",
+      "slice-visual"
+    ],
+    "reviewed_artifacts": [
+      "design/execution-mode/active/steward-conversation-clarity/conversation-preview.md",
+      "test/goldens/steward_soup_01_hello_430x932.png"
+    ],
+    "decision": "accepted",
+    "exact_feedback_or_waiver_reason": "that's actually great! kudos for the pretty good writing\n\nFollow-up release authorization: you can go back to working on releasing this build then!"
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "remaining_gates": [
+    {
+      "id": "physical-phone",
+      "gate": "Physical iPhone reading and interaction",
+      "why": "Desktop evidence cannot establish lower-brightness legibility, VoiceOver or touch pacing.",
+      "owner_or_system": "Owner and signed candidate",
+      "next_action": "After wording acceptance validate reading, choice, leaving, resume and revisit on the phone.",
+      "blocking": true
+    },
+    {
+      "id": "broader-release",
+      "gate": "Friend/account release checks and store refresh",
+      "why": "This correction did not publish a build or complete broader release work.",
+      "owner_or_system": "Release operator and owner",
+      "next_action": "Resume release qualification and fresh store screenshots/copy after the owner checkpoint.",
+      "blocking": true
+    }
+  ]
+}
