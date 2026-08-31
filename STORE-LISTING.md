@@ -18,9 +18,13 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 37)
+## App Store What's New — Version 1.0.4 (Build 38)
 
 Your Quest board can hold possibilities, not just obligations.
+
+If you want the room to have a little more atmosphere, Background music is
+now available in Me. It begins off, stays separate from interaction sounds,
+and keeps your choice when you come back.
 
 Choose up to three Quests for Today's Field. The rest stay in Open if it fits,
 ready for extra time or energy. You don't have to clear the whole board to
@@ -95,7 +99,8 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 37 includes the latest owner-feedback changes:
+Build 38 is an internal music test candidate. It includes the latest
+owner-feedback changes:
 
 - Choose up to three Quests for Today's Field while keeping the rest in
   Open if it fits. A full board can be inspiration, not a daily obligation.
@@ -103,6 +108,9 @@ Build 37 includes the latest owner-feedback changes:
   at the Workshop.
 - Talk with the Steward in a short optional scene with reply choices,
   saved progress, and a remembered response when you return.
+- Turn on optional Background music in Me. Confirm it remains off by default,
+  persists only when you choose it, pauses in the background, and resumes
+  without restarting when you return.
 - Read clearer supporting text, with better layouts for crowded boards and
   larger accessibility text.
 
@@ -116,10 +124,11 @@ Mutuals visitor-card audiences are separate; Only me cards are never sent.
 Journal photos and private quests stay out of shared rooms. Protected Google
 place search remains off.
 
-Please focus on upgrade persistence, today's selections versus optional
-Quests, the Steward's reading flow, and the complete two-person Circle
-journey. Physical-phone accessibility and signed social checks still need
-confirmation before public release.
+Please focus on upgrade persistence, the optional music control and return
+from background, today's selections versus optional Quests, the Steward's
+reading flow, and the complete two-person Circle journey. Physical-phone
+accessibility, listening taste, and signed social checks still need
+confirmation before any public release.
 
 ## What to Test
 
@@ -135,6 +144,11 @@ confirmation before public release.
 - Read the Goals, Workshop, Steward, and crowded Quest board at larger text
   sizes and lower brightness. Make sure the text and every action remain
   reachable without shrinking.
+
+- Leave Background music off, then enable it in Me. Lock the phone or switch
+  away and return. Confirm music does not start without choosing it, pauses
+  while away, resumes where it left off, and does not replace interaction
+  sounds.
 
 - Install over the previous TestFlight build and also try a fresh install.
   Confirm quests, goals, Journal entries, Plans, room choices, Circle, and

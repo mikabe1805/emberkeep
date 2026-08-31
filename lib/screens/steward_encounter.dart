@@ -1,11 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../content/steward_encounter.dart';
 import '../engine.dart';
 import '../tokens.dart';
 import '../widgets/facets.dart';
-import '../widgets/goal_steward.dart';
 import '../widgets/pressable.dart';
+import '../widgets/steward_room.dart';
 
 /// An optional encounter, separate from the workshop's planning actions.
 class StewardEncounterScreen extends StatefulWidget {
@@ -56,7 +58,7 @@ class _StewardEncounterScreenState extends State<StewardEncounterScreen> {
     super.didChangeDependencies();
     if (_cached) return;
     _cached = true;
-    precacheGoalStewardAssets(context);
+    precacheStewardRoom(context);
   }
 
   @override
@@ -113,6 +115,13 @@ class _StewardEncounterScreenState extends State<StewardEncounterScreen> {
         widget.state.reduceMotion ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     final scale = MediaQuery.textScalerOf(context).scale(1);
+    final viewport = MediaQuery.sizeOf(context);
+    final landscape = viewport.width > viewport.height * 1.25;
+    final roomWidth = math.min(viewport.width * .44, viewport.height * (948 / 1659));
+    final artwork = StewardRoomArtwork(
+      offeringBread: line.finishes || _nodeId == null,
+      reduceMotion: still,
+    );
     return Scaffold(
       key: const Key('steward-encounter'),
       backgroundColor: const Color(0xFF100D0B),
@@ -120,11 +129,30 @@ class _StewardEncounterScreenState extends State<StewardEncounterScreen> {
         fit: StackFit.expand,
         children: [
           ExcludeSemantics(
-            child: GoalStewardArtwork(
-              expression: line.expression,
-              reduceMotion: still,
-            ),
+            child: landscape
+                ? Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      width: roomWidth,
+                      child: ClipRect(child: artwork),
+                    ),
+                  )
+                : artwork,
           ),
+          if (landscape)
+            Positioned(
+              left: roomWidth - 28,
+              top: 0,
+              bottom: 0,
+              width: 44,
+              child: const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0x00100D0B), Color(0xFF100D0B)],
+                  ),
+                ),
+              ),
+            ),
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -146,171 +174,194 @@ class _StewardEncounterScreenState extends State<StewardEncounterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: _SceneAction(
-                      key: const Key('steward-leave'),
-                      label: 'Back',
-                      semanticLabel:
-                          'Back to the workshop. Your place is saved.',
-                      icon: Icons.arrow_back_rounded,
-                      onTap: () => Navigator.of(context).pop(),
-                      filled: false,
-                    ),
+                  Row(
+                    children: [
+                      _SceneAction(
+                        key: const Key('steward-leave'),
+                        label: 'Back',
+                        semanticLabel:
+                            'Back to the workshop. Your place is saved.',
+                        icon: Icons.arrow_back_rounded,
+                        onTap: () => Navigator.of(context).pop(),
+                        filled: false,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          'THE SUPPER ROOM',
+                          textAlign: TextAlign.end,
+                          style: Type.label.copyWith(
+                            fontSize: 11,
+                            letterSpacing: 1.1,
+                            color: Palette.textMid,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final compact = constraints.maxHeight < 610;
-                        final maxHeight =
-                            constraints.maxHeight *
-                            (scale > 1.2
-                                ? .78
-                                : compact
-                                ? .65
-                                : .53);
-                        return Align(
-                          alignment: Alignment.bottomCenter,
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(maxHeight: maxHeight),
-                            child: Container(
-                              key: const Key('steward-dialogue-panel'),
-                              decoration: facetedDecoration(
-                                cut: 13,
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Color(0xFF33251C),
-                                    Color(0xFF1B130F),
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        left: landscape ? roomWidth + 4 : 0,
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final compact = constraints.maxHeight < 610;
+                          final maxHeight = landscape
+                              ? constraints.maxHeight
+                              : constraints.maxHeight *
+                                    (scale > 1.2
+                                        ? .78
+                                        : compact
+                                        ? .65
+                                        : .53);
+                          return Align(
+                            alignment: Alignment.bottomCenter,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxHeight: maxHeight),
+                              child: Container(
+                                key: const Key('steward-dialogue-panel'),
+                                decoration: facetedDecoration(
+                                  cut: 13,
+                                  gradient: const LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Color(0xFF33251C),
+                                      Color(0xFF1B130F),
+                                    ],
+                                  ),
+                                  borderColor: const Color(0xFFAD8053),
+                                  shadows: const [
+                                    BoxShadow(
+                                      color: Color(0x99080503),
+                                      blurRadius: 22,
+                                      offset: Offset(0, 8),
+                                    ),
                                   ],
                                 ),
-                                borderColor: const Color(0xFFAD8053),
-                                shadows: const [
-                                  BoxShadow(
-                                    color: Color(0x99080503),
-                                    blurRadius: 22,
-                                    offset: Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              child: RawScrollbar(
-                                controller: _scroll,
-                                thumbVisibility: true,
-                                thumbColor: const Color(0xFFBBA580),
-                                thickness: 3,
-                                radius: const Radius.circular(2),
-                                mainAxisMargin: 10,
-                                crossAxisMargin: 6,
-                                child: ClipPath(
-                                  clipper: const FacetedClipper(cut: 13),
-                                  child: SingleChildScrollView(
-                                    key: const Key('steward-dialogue-scroll'),
-                                    controller: _scroll,
-                                    padding: EdgeInsets.all(compact ? 17 : 22),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.stretch,
-                                      children: [
-                                        Semantics(
-                                          key: const Key('steward-line'),
-                                          liveRegion: true,
-                                          label:
-                                              '${line.speaker}. ${line.text}'
-                                              '${line.aside == null ? '' : '. ${line.aside}'}',
-                                          excludeSemantics: true,
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.stretch,
-                                            children: [
-                                              Text(
-                                                line.speaker,
-                                                style: Type.label.copyWith(
-                                                  fontSize: 12,
-                                                  letterSpacing: 1.3,
-                                                  color: Palette.brassLit,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 12),
-                                              Text(
-                                                line.text,
-                                                key: ValueKey(
-                                                  'steward-text-${_nodeId ?? 'return'}',
-                                                ),
-                                                style: Type.body.copyWith(
-                                                  fontSize: compact ? 17 : 19,
-                                                  height: 1.4,
-                                                  color: Palette.textHi,
-                                                ),
-                                              ),
-                                              if (line.aside != null) ...[
-                                                const SizedBox(height: 16),
+                                child: RawScrollbar(
+                                  controller: _scroll,
+                                  thumbVisibility: true,
+                                  thumbColor: const Color(0xFFBBA580),
+                                  thickness: 3,
+                                  radius: const Radius.circular(2),
+                                  mainAxisMargin: 10,
+                                  crossAxisMargin: 6,
+                                  child: ClipPath(
+                                    clipper: const FacetedClipper(cut: 13),
+                                    child: SingleChildScrollView(
+                                      key: const Key('steward-dialogue-scroll'),
+                                      controller: _scroll,
+                                      padding: EdgeInsets.all(
+                                        compact ? 17 : 22,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          Semantics(
+                                            key: const Key('steward-line'),
+                                            liveRegion: true,
+                                            label:
+                                                '${line.speaker}. ${line.text}'
+                                                '${line.aside == null ? '' : '. ${line.aside}'}',
+                                            excludeSemantics: true,
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.stretch,
+                                              children: [
                                                 Text(
-                                                  line.aside!,
-                                                  style: Type.body.copyWith(
-                                                    fontSize: 15,
-                                                    height: 1.4,
-                                                    color: Palette.textMid,
-                                                    fontStyle: FontStyle.italic,
+                                                  line.speaker,
+                                                  style: Type.label.copyWith(
+                                                    fontSize: 12,
+                                                    letterSpacing: 1.3,
+                                                    color: Palette.brassLit,
                                                   ),
                                                 ),
+                                                const SizedBox(height: 12),
+                                                Text(
+                                                  line.text,
+                                                  key: ValueKey(
+                                                    'steward-text-${_nodeId ?? 'return'}',
+                                                  ),
+                                                  style: Type.body.copyWith(
+                                                    fontSize: compact ? 17 : 19,
+                                                    height: 1.4,
+                                                    color: Palette.textHi,
+                                                  ),
+                                                ),
+                                                if (line.aside != null) ...[
+                                                  const SizedBox(height: 16),
+                                                  Text(
+                                                    line.aside!,
+                                                    style: Type.body.copyWith(
+                                                      fontSize: 15,
+                                                      height: 1.4,
+                                                      color: Palette.textMid,
+                                                      fontStyle:
+                                                          FontStyle.italic,
+                                                    ),
+                                                  ),
+                                                ],
                                               ],
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(height: 22),
-                                        if (_nodeId == null) ...[
-                                          _SceneAction(
-                                            key: const Key('steward-replay'),
-                                            label: 'Replay this conversation',
-                                            onTap: _replay,
-                                          ),
-                                        ] else if (line.choices.isNotEmpty)
-                                          for (final reply in line.choices)
-                                            Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 8,
-                                              ),
-                                              child: _SceneAction(
-                                                key: ValueKey(
-                                                  'steward-reply-${reply.id}',
-                                                ),
-                                                label: reply.text,
-                                                onTap: () => _go(
-                                                  reply.next,
-                                                  reply: reply,
-                                                ),
-                                              ),
-                                            )
-                                        else
-                                          Align(
-                                            alignment: Alignment.centerRight,
-                                            child: _SceneAction(
-                                              key: const Key(
-                                                'steward-continue',
-                                              ),
-                                              label: line.finishes
-                                                  ? 'Back to the workshop'
-                                                  : 'Continue',
-                                              icon: line.finishes
-                                                  ? Icons.arrow_back_rounded
-                                                  : Icons.arrow_forward_rounded,
-                                              onTap: line.finishes
-                                                  ? _finish
-                                                  : () => _go(line.next),
-                                              filled: false,
                                             ),
                                           ),
-                                      ],
+                                          const SizedBox(height: 22),
+                                          if (_nodeId == null) ...[
+                                            _SceneAction(
+                                              key: const Key('steward-replay'),
+                                              label: 'Replay this conversation',
+                                              onTap: _replay,
+                                            ),
+                                          ] else if (line.choices.isNotEmpty)
+                                            for (final reply in line.choices)
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 8,
+                                                ),
+                                                child: _SceneAction(
+                                                  key: ValueKey(
+                                                    'steward-reply-${reply.id}',
+                                                  ),
+                                                  label: reply.text,
+                                                  onTap: () => _go(
+                                                    reply.next,
+                                                    reply: reply,
+                                                  ),
+                                                ),
+                                              )
+                                          else
+                                            Align(
+                                              alignment: Alignment.centerRight,
+                                              child: _SceneAction(
+                                                key: const Key(
+                                                  'steward-continue',
+                                                ),
+                                                label: line.finishes
+                                                    ? 'Back to the workshop'
+                                                    : 'Continue',
+                                                icon: line.finishes
+                                                    ? Icons.arrow_back_rounded
+                                                    : Icons
+                                                          .arrow_forward_rounded,
+                                                onTap: line.finishes
+                                                    ? _finish
+                                                    : () => _go(line.next),
+                                                filled: false,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],

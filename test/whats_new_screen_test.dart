@@ -64,7 +64,7 @@ void main() {
     expect(find.text('STAY FOR A CONVERSATION'), findsOneWidget);
     expect(find.text('KEEP GOING'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+37')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+38')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -156,7 +156,7 @@ void main() {
     await tester.pump();
 
     final currentTop = tester.getTopLeft(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+37')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+38')),
     );
     final olderTop = tester.getTopLeft(
       find.byKey(const ValueKey('whats-new-release-1.0.0+12')),

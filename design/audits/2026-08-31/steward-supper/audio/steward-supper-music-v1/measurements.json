@@ -1,0 +1,42 @@
+{
+  "master": {
+    "path": "master/steward-supper-theme-master.wav",
+    "sample_rate": 48000,
+    "channels": 1,
+    "subtype": "PCM_24",
+    "frames": 5376000,
+    "seconds": 112.0,
+    "integrated_lufs_bs1770_4": -24.0,
+    "target_lufs": -24.0,
+    "sample_peak_dbfs": -10.74,
+    "true_peak_dbtp_4x": -10.74,
+    "phone_band_rms_dbfs": -26.7,
+    "dc_offset": 2.5244356869452965e-19,
+    "seam": {
+      "seam_step_abs": 0.005622495239064947,
+      "seam_first_difference": 0.005622495239064947,
+      "body_first_difference_p999": 0.01221205378218678,
+      "seam_diff_vs_body_p999_ratio": 0.4604053781081647,
+      "rms_50ms_before_seam_dbfs": -20.977298956114325,
+      "rms_50ms_after_seam_dbfs": -21.78590930226835
+    }
+  },
+  "at_player_volume_0_35": {
+    "integrated_lufs_bs1770_4": -33.12,
+    "phone_band_rms_dbfs": -35.82,
+    "note": "final local review gain from BackgroundMusicController (0.35 linear = -9.1 dB); phone taste approval remains pending"
+  },
+  "composition": {
+    "bars": 28,
+    "bpm": 60.0,
+    "phrase_count": 8,
+    "melodic_notes": 32,
+    "footstep_bars_skipped": [
+      3,
+      9,
+      14,
+      22,
+      26
+    ]
+  }
+}

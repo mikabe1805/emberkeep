@@ -5,7 +5,7 @@ import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/screens/steward_encounter.dart';
 import 'package:emberkeep/tokens.dart';
-import 'package:emberkeep/widgets/goal_steward.dart';
+import 'package:emberkeep/widgets/steward_room.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -45,6 +45,7 @@ Future<void> _pumpScene(
     MaterialApp(
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context).copyWith(
+          size: size,
           disableAnimations: disableAnimations,
           textScaler: TextScaler.linear(textScale),
         ),
@@ -153,8 +154,13 @@ void main() {
   );
 
   for (final path in const [
-    ('ask', 'friends', 'soup-friendship', 'You were right about the cook'),
-    ('tease', 'agree', 'soup-agreement', 'Good to know someone else'),
+    ('ask', 'friends', 'soup-friendship', 'He has a key. I have a chair.'),
+    (
+      'tease',
+      'agree',
+      'soup-agreement',
+      'At least you understand about the salt',
+    ),
     ('ask', 'cook', 'soup-cook-side', 'Still taking the cook’s side'),
   ]) {
     testWidgets('the ${path.$1} / ${path.$2} path saves its exact callback', (
@@ -213,7 +219,10 @@ void main() {
         ..stewardMemory.choices[stewardChoiceMemoryKey] = 'agree';
       await _pumpScene(tester, state: state);
       expect(find.byKey(const Key('steward-replay')), findsOneWidget);
-      expect(find.textContaining('Good to know someone else'), findsOneWidget);
+      expect(
+        find.textContaining('At least you understand about the salt'),
+        findsOneWidget,
+      );
     },
   );
 
@@ -333,7 +342,7 @@ void main() {
     );
     expect(
       tester
-          .widget<GoalStewardArtwork>(find.byType(GoalStewardArtwork))
+          .widget<StewardRoomArtwork>(find.byType(StewardRoomArtwork))
           .reduceMotion,
       isTrue,
     );
@@ -342,7 +351,7 @@ void main() {
     await _pumpScene(tester, state: GameState(), disableAnimations: true);
     expect(
       tester
-          .widget<GoalStewardArtwork>(find.byType(GoalStewardArtwork))
+          .widget<StewardRoomArtwork>(find.byType(StewardRoomArtwork))
           .reduceMotion,
       isTrue,
     );

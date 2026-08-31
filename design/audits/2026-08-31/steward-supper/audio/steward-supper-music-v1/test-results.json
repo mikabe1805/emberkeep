@@ -1,0 +1,92 @@
+[
+  {
+    "check": "master_sample_rate_48k",
+    "pass": true,
+    "detail": "rate=48000"
+  },
+  {
+    "check": "master_mono",
+    "pass": true,
+    "detail": "ndim=1"
+  },
+  {
+    "check": "master_subtype_pcm24",
+    "pass": true,
+    "detail": "PCM_24"
+  },
+  {
+    "check": "master_exact_loop_frames",
+    "pass": true,
+    "detail": "frames=5376000 expected=5376000 (112.0000 s)"
+  },
+  {
+    "check": "master_no_nan_inf",
+    "pass": true,
+    "detail": "finite"
+  },
+  {
+    "check": "master_peak_below_-6dbfs",
+    "pass": true,
+    "detail": "peak=0.29024 (-10.74 dBFS)"
+  },
+  {
+    "check": "master_true_peak_below_-3dbtp",
+    "pass": true,
+    "detail": "-10.74 dBTP"
+  },
+  {
+    "check": "master_dc_below_1e-4",
+    "pass": true,
+    "detail": "dc=-5.94e-08"
+  },
+  {
+    "check": "master_lufs_within_0p5_of_target",
+    "pass": true,
+    "detail": "-24.00 LUFS vs -24.0"
+  },
+  {
+    "check": "loop_seam_step_below_body_p999",
+    "pass": true,
+    "detail": "seam=0.00562 body_p999=0.01221"
+  },
+  {
+    "check": "loop_seam_level_continuous_within_3db",
+    "pass": true,
+    "detail": "-21.0 -> -21.8 dBFS"
+  },
+  {
+    "check": "m4a_exists",
+    "pass": true,
+    "detail": "C:\\Users\\mikus\\Downloads\\experimentProject\\app\\.worktrees\\steward-ambiance-polish\\assets\\music\\room-theme.m4a"
+  },
+  {
+    "check": "m4a_bundle_size_under_2mb",
+    "pass": true,
+    "detail": "1.38 MB"
+  },
+  {
+    "check": "decoded_sample_rate_48k",
+    "pass": true,
+    "detail": "rate=48000"
+  },
+  {
+    "check": "decoded_length_within_50ms_of_master",
+    "pass": true,
+    "detail": "decoded=5376000 master=5376000 drift=0.0 ms"
+  },
+  {
+    "check": "decoded_lufs_within_1db_of_master",
+    "pass": true,
+    "detail": "decoded=-24.01 master=-24.00"
+  },
+  {
+    "check": "decoded_correlates_with_master",
+    "pass": true,
+    "detail": "corr=0.9998 over first 30 s"
+  },
+  {
+    "check": "decoded_loop_seam_step_sane",
+    "pass": true,
+    "detail": "seam=0.00085 body_p999=0.01221"
+  }
+]

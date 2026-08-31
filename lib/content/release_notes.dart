@@ -52,13 +52,13 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
-    id: '1.0.4+37',
-    versionLabel: 'VERSION 1.0.4 · BUILD 37',
+    id: '1.0.4+38',
+    versionLabel: 'VERSION 1.0.4 · BUILD 38',
     dateLabel: 'AUGUST 2026',
     title: 'A few things for today. Room for the rest.',
     introduction:
         'Your Quest board can hold possibilities, not just obligations. '
-        'Choose what fits today and keep the rest nearby.',
+        'Choose what fits today, keep the rest nearby, and make the room your own.',
     highlights: <ReleaseHighlight>[
       ReleaseHighlight(
         kind: ReleaseHighlightKind.questControl,
@@ -80,6 +80,13 @@ const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
         body:
             'Talk with the Steward when you feel like it. Choose your '
             'replies, leave whenever you need to, and return to your place.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.ambientLight,
+        title: 'A LITTLE MUSIC, IF YOU WANT IT',
+        body:
+            'Turn on Background music in Me for a quiet room theme. It stays '
+            'off until you choose it and remains separate from interaction sounds.',
       ),
     ],
   ),

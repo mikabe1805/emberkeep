@@ -345,6 +345,26 @@ The owner later rejected this v1 set because the poses were too similar and the
 dense crosshatching made the character read oddly. These plates remain
 provenance references but are superseded in production by the separated v2 set.
 
+## Steward supper room v2
+
+Generated with the built-in image generator on 2026-08-31 for the owner's
+request for a distinct optional conversation room and stronger character acting.
+The clean current Steward v2 identity is preserved. Two intact 948 x 1659
+paintings share the same rainy window, shaded lamp, table, soup and visitor chair:
+
+| Runtime asset | Production source PNG | Acting |
+| --- | --- | --- |
+| steward-supper-room-v2.webp | steward-supper-room-v2.png | Seated with the cook's note, dry skeptical expression |
+| steward-supper-offering-v2.webp | steward-supper-offering-v2.png | Slides the bread toward the visitor; restrained almost-smile |
+
+Masters live in `design/source-assets/runtime-originals/assets/pages/`.
+Runtime conversion is WebP quality 92 at original dimensions. No cutouts or
+invented independent furniture planes. Motion transforms the intact plate.
+The first v1 study is retained only as provenance, not bundled.
+Prompts, source identities and generation outputs are recorded in
+`design/audits/2026-08-31/steward-supper/art-lineage.md`.
+Owner acceptance of these new paintings remains pending.
+
 ## Workshop steward separated planes v2
 
 Generated and prepared on 2026-08-29 after the owner asked for clearly

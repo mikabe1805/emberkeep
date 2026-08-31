@@ -1,0 +1,42 @@
+# Room of Days music — recovered, and the loop authored
+
+**TLDR: your earlier music was found — it was never lost, just never committed.** Both 2026-08-29 studies were sitting untracked in the `release-final` worktree's working directory, which is exactly why the read-only audit saw nothing in git. I preserved them byte-for-byte with verified hashes, then composed the new deliverable on top of that approved direction: one 112-second seamless-loop room theme, mastered at −24.00 LUFS, bundled at `assets/music/room-theme.m4a`, with 18/18 numeric and decode checks passing. Nothing is marked accepted — it all awaits your ears.
+
+## What was recovered
+
+`design/audits/2026-08-31/steward-supper/audio/recovered/` now holds, byte-identical to the release-final working tree (every WAV re-hashed against its own manifest — all match, see `recovery-verification.json`):
+
+- **room-music-v1** — the four 96 s beds (`room-air`, `hearthside`, `emberlight`, `wander`) with flows, qc, spectrograms
+- **room-music-pulse-v1** — the 63 bpm `lantern` bed and the answers-on-the-beat mechanic sketch
+- both deterministic authoring recipes (`recovered/tool/`)
+
+Approval state, recorded in `recovered/RECOVERY.md`: the **direction** was approved verbatim ("i would love some music though i loved the music direction you came up with…"), but **no audio file ever was** — both LISTENING-RESULT files are still blank, no phone audition happened.
+
+## What I authored
+
+`steward-supper-music-v1` (same directory, one level up): a 28-bar piece at 60 bpm, written for the candlelit room and the Steward's supper by the rainy window. It uses the room's own modal voice with soft bloom attacks — the same acoustic physics as every approved tap, so taps land in tune by construction. Honestly stated: it is a lamplit, thumb-piano-adjacent tone, not a pretend piano; credible piano is beyond honest local synthesis and I didn't fake one. The rain isn't literal noise (that reads as hiss) — it's in the middle section's answers, which only ever step downward. Timing is humanized ±15 ms, phrase dynamics arch and end quietly, the closing phrase broadens like a sentence ending, and the Paired Return motif is excluded by assertion. The seam lands in the sparsest air; the drone is wrap-crossfaded and phrase tails wrap modulo the loop, so the repeat is a returning chapter rather than the fire-loop problem.
+
+## Measured (this run — technical evidence, not listening)
+
+- Master: `…/steward-supper-music-v1/master/steward-supper-theme-master.wav` — 48 kHz mono PCM_24, exactly 5,376,000 frames (112.000 s), **−24.00 LUFS** integrated (BS.1770-4), true peak −10.74 dBTP, DC ≈ 0
+- Bundle: `assets/music/room-theme.m4a` — AAC-LC 96 kbps, 1.38 MB, decodes to **exactly** the master's length (0.0 ms drift), −24.01 LUFS, 0.9998 correlation
+- Loop seam: the end→start sample step is **0.46×** the piece's own 99.9th-percentile step — smaller than transitions occurring naturally inside the music; seam-window levels −21.0 → −21.8 dBFS. Audible proof file: `evidence/loop-seam-audition.wav`
+- **Initial audition measurement, superseded by the final mix addendum below:** at Root's runtime volume 0.18, effective −38.9 LUFS / −41.6 dBFS phone-band — below every approved interaction sound, so taps and completion keep the air. Reel: `evidence/audition-reel-player-gain.wav` (ordinary verbs, completion, a reading silence, a rapid-tap burst over the music)
+- House QC 6/6 ok, limits/decode suite 18/18 (`test-results.json`), fully deterministic recipe in `author_steward_supper_music.py`, no samples, no external services, nothing spent
+
+## Remaining gates
+
+1. **Nobody has heard this.** I have no listening facility — everything above is measurement. Phone-speaker + headphone audition is yours; `index.html` in the study folder plays everything, and verdicts go in `LISTENING-RESULT.md`. "Keep the room quiet" remains a legitimate answer.
+2. **Device loop gaplessness** — ffmpeg-verified sample-exact, but whether `audioplayers`' `ReleaseMode.loop` restarts gap-free on a real iPhone only a device test shows. If it gaps, the master WAV is the re-encode source.
+3. The 0.18 in-app volume is a separate dial for you and Root. I touched only my two owned paths — no app code, no commits; Root can pick up `room-theme.m4a` from the artifact contract as-is.
+
+## Final mix addendum (recorded after this Fable report)
+
+The 0.18 references above describe the initial runtime audition setting at
+the time this report was written; they are not retroactive authorship or a
+Fable acceptance claim. After measuring the completed master at −24.00 LUFS
+and −26.70 dBFS phone-band RMS, Root set the final local controller and
+recipe gain to **0.35** (−9.1 dB linear): **−33.12 LUFS** and **−35.82 dBFS
+phone-band RMS**. The evidence reel was rerendered at that gain and its
+numeric/decode suite remains 18/18. Owner phone/headphone audition remains
+pending.

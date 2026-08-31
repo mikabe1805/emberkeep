@@ -58,6 +58,8 @@ typedef SpaceRoomPublisher =
       required String code,
     });
 
+void _ignoreMusicChange(bool _) {}
+
 Future<void> _changePlayerName(
   BuildContext context,
   GameState state,
@@ -1903,6 +1905,7 @@ class MePage extends StatelessWidget {
     required this.state,
     required this.quests,
     required this.onPersist,
+    this.onMusicChanged = _ignoreMusicChange,
     required this.onPublishRoom,
     required this.onAddQuest,
     required this.onExport,
@@ -1934,6 +1937,9 @@ class MePage extends StatelessWidget {
 
   /// Persists the save after a domain journal edit.
   final VoidCallback onPersist;
+
+  /// Applies the persisted music preference to the shell-owned player.
+  final ValueChanged<bool> onMusicChanged;
 
   /// Publishes a changed live visitor page and resolves only after the server
   /// has acknowledged it. Private/layout-only changes never call this.
@@ -3001,6 +3007,18 @@ class MePage extends StatelessWidget {
               state.setSound(v);
               Sfx.instance.soundEnabled = v;
               if (v) Sfx.instance.playMaterial(MaterialSound.glass);
+              onPersist();
+            },
+          ),
+          const SizedBox(height: 6),
+          _toggleRow(
+            icon: Icons.music_note_outlined,
+            label: 'Background music',
+            subtitle: 'optional · stays off until you choose it',
+            value: state.musicEnabled,
+            onChanged: (v) {
+              state.setMusic(v);
+              onMusicChanged(v);
               onPersist();
             },
           ),

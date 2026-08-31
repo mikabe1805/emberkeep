@@ -83,6 +83,10 @@ class GameState extends ChangeNotifier {
   /// Sound toggle — the owner can mute all event sounds ( DESIGN.md §8).
   bool soundEnabled = true;
 
+  /// Optional room music. It starts off until the keeper explicitly chooses it
+  /// and does not follow the event-sound toggle.
+  bool musicEnabled = false;
+
   /// Accessibility: an in-app text-size multiplier, layered on top of the OS
   /// Text Size setting (main.dart takes the larger of the two, then clamps).
   /// 1.0 = default; presets live in a11y.dart.
@@ -110,6 +114,12 @@ class GameState extends ChangeNotifier {
   void setSound(bool v) {
     if (soundEnabled == v) return;
     soundEnabled = v;
+    notifyListeners();
+  }
+
+  void setMusic(bool v) {
+    if (musicEnabled == v) return;
+    musicEnabled = v;
     notifyListeners();
   }
 
@@ -2094,6 +2104,7 @@ class GameState extends ChangeNotifier {
     'focusMode': focusMode,
     'reduceMotion': reduceMotion,
     'soundEnabled': soundEnabled,
+    'musicEnabled': musicEnabled,
     'textScale': textScale,
     'notifyEnabled': notifyEnabled,
     'notifyHour': notifyHour,
@@ -2237,6 +2248,7 @@ class GameState extends ChangeNotifier {
     s.focusMode = j['focusMode'] as bool? ?? false;
     s.reduceMotion = j['reduceMotion'] as bool? ?? false;
     s.soundEnabled = j['soundEnabled'] as bool? ?? true;
+    s.musicEnabled = j['musicEnabled'] as bool? ?? false;
     s.textScale = (j['textScale'] as num?)?.toDouble() ?? 1.0;
     s.notifyEnabled = j['notifyEnabled'] as bool? ?? false;
     s.notifyHour = j['notifyHour'] as int? ?? 9;

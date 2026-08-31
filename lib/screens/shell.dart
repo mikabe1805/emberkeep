@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../background_music.dart';
 import '../clock.dart';
 import '../cloud.dart';
 import '../content/ladders.dart';
@@ -64,6 +65,12 @@ bool shouldSuppressNextNightReminder({
   final next = nextNightReminderOccurrence(now, hour, minute);
   return Days.nightKey(next) == nightDoneDay;
 }
+
+/// Music may run only while Flutter reports the app as actively resumed.
+/// Treat an unknown early lifecycle as backgrounded: a restored preference
+/// must never begin playback before the platform has foregrounded the shell.
+bool musicShouldRunForLifecycle(AppLifecycleState? lifecycle) =>
+    lifecycle == AppLifecycleState.resumed;
 
 /// The welcome ignition is a visible-room event, never a launch side effect.
 /// Keeping this pure makes overlay ordering explicit and regression-testable.
@@ -169,6 +176,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     growable: false,
   );
   late final LuxeMotionController _luxeMotion;
+  late final BackgroundMusicController _music;
+  bool _musicForeground = false;
   late final ReleaseNotesGate _releaseNotesGate;
   OverlayEntry? _morningOverlay;
   OverlayEntry? _whatsNewOverlay;
@@ -208,6 +217,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         widget.releaseNotesGate ??
         const ReleaseNotesGate(SharedPreferencesReleaseSeenStore());
     _luxeMotion = LuxeMotionController();
+    _music = BackgroundMusicController();
+    _musicForeground = musicShouldRunForLifecycle(
+      WidgetsBinding.instance.lifecycleState,
+    );
+    unawaited(_music.setForeground(_musicForeground));
     unawaited(_luxeMotion.start());
     Sfx.instance.setInteractionScreen(_soundTabScopes[_tab]);
     WidgetsBinding.instance.addObserver(this);
@@ -222,6 +236,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _midnight?.cancel();
     _ignitionClearTimer?.cancel();
     _luxeMotion.dispose();
+    unawaited(_music.dispose());
     super.dispose();
   }
 
@@ -261,6 +276,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
+    // This runs even while storage is pending. Otherwise a background event
+    // during slow launch could be forgotten, and a later restored opt-in
+    // would start from _loadFromStorage's stale foreground assumption.
+    _musicForeground = musicShouldRunForLifecycle(lifecycle);
+    unawaited(_music.setForeground(_musicForeground));
     final s = _state;
     final q = _quests;
     if (s == null || q == null) return;
@@ -617,6 +637,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (!mounted) return;
     Haptics.reduceMotion = state.reduceMotion;
     Sfx.instance.soundEnabled = state.soundEnabled;
+    unawaited(_music.setEnabled(state.musicEnabled));
+    unawaited(_music.setForeground(_musicForeground));
     // Decode the selected complete room while the Quest home is appearing, so
     // opening Me never flashes the procedural legacy fallback.
     unawaited(preloadSpaceTheme(state.wallStyle));
@@ -1652,6 +1674,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                     // touch. Calling here keeps the request in that first gesture;
                     // native builds and browsers without the gate simply no-op.
                     onPointerDown: (_) {
+                      unawaited(_music.retryAfterUserGesture());
                       if (!state.reduceMotion) {
                         unawaited(_luxeMotion.requestBrowserMotionPermission());
                       }
@@ -1677,6 +1700,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           state: state,
                                           quests: quests,
                                           onPersist: _persist,
+                                          onMusicChanged: (enabled) =>
+                                              unawaited(
+                                                _music.setEnabled(enabled),
+                                              ),
                                           onPublishRoom: _publishSpaceRoom,
                                           onAddQuest: _addQuest,
                                           onExport: _export,

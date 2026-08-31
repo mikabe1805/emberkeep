@@ -4,7 +4,7 @@
 # IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
 #
 # TRIGGERING: routine source/docs pushes remain inert. This candidate permits one
-# exact, owner-authorized Build 37 tag so the internal phone-test build can start
+# exact, owner-authorized Build 38 tag so the internal phone-test build can start
 # without broadening the release channel. No other tag or branch push matches.
 # See ../NATIVE-iOS.md for the normal manual workflow.
 #
@@ -45,7 +45,7 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - pattern: "room-of-days-1.0.4-build-37-candidate"
+        - pattern: "room-of-days-1.0.4-build-38-candidate"
           include: true
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name
@@ -76,7 +76,7 @@ workflows:
           CANDIDATE_REVISION=$(git rev-parse HEAD^)
           MANIFEST=store-assets/screenshots/app-store/CANDIDATE-MANIFEST.json
           SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' "$MANIFEST")
-          test "$CM_TAG" = "room-of-days-1.0.4-build-37-candidate"
+          test "$CM_TAG" = "room-of-days-1.0.4-build-38-candidate"
           test "$RECEIPT_REVISION" = "$CM_COMMIT"
           test "$SOURCE_REVISION" = "$CANDIDATE_REVISION"
           test "$(git diff --name-only "$CANDIDATE_REVISION..$RECEIPT_REVISION")" = "$MANIFEST"

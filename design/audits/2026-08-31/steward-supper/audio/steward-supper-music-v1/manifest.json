@@ -1,0 +1,73 @@
+{
+  "study": "steward-supper-music-v1",
+  "render_version": "steward-supper-author-v1",
+  "recipe": "author_steward_supper_music.py",
+  "seed_block": "13000-13400",
+  "loop": {
+    "bars": 28,
+    "bpm": 60.0,
+    "seconds": 112.0
+  },
+  "world_root": "C:/Users/mikus/Downloads/experimentProject/app/.worktrees/steward-ambiance-polish/design/audits/2026-08-20/room-sonic-world-v1",
+  "predecessors": {
+    "room-music-v1": "recovered/room-music-v1 (direction approved 2026-08-29; files never auditioned)",
+    "room-music-pulse-v1": "recovered/room-music-pulse-v1 (same)"
+  },
+  "provenance": {
+    "synthesis": "deterministic project-authored synthesis only: world modal voice + detuned sine air through the shared room bus",
+    "samples_imported": false,
+    "reference_audio_used": false,
+    "external_services_used": false,
+    "paired_return_motif_excluded": true,
+    "sfx_in_reels": "approved production masters read from assets/sfx at shipped levels; not modified"
+  },
+  "files": {
+    "master/steward-supper-theme-master.wav": "961ae50f7e2e5d5a63a0ca6c68a91ba581a71667c6dcdc43272250b33d295938",
+    "evidence/loop-seam-audition.wav": "73dd4d3d3edd7f5a2cf48de8b4b1e30e2bdaa6ec84cdd690b69a2cdd820f32e7",
+    "evidence/music-only-player-gain.wav": "b5e30943cb0f6ad8c103a59cf6b896bfbc80766331b95326774762f1ac5c3b62",
+    "evidence/audition-reel-player-gain.wav": "a655b6c9aedaf2f4e4172810679f932e6b16ca70e8ffc2df82870f7a4d7f94dd",
+    "evidence/audition-reel-master-level.wav": "a17d77d74ad903f9bed21b63fee377a496e87f37cf4641a8b75ac38902aeabfa"
+  },
+  "measurements": {
+    "master": {
+      "path": "master/steward-supper-theme-master.wav",
+      "sample_rate": 48000,
+      "channels": 1,
+      "subtype": "PCM_24",
+      "frames": 5376000,
+      "seconds": 112.0,
+      "integrated_lufs_bs1770_4": -24.0,
+      "target_lufs": -24.0,
+      "sample_peak_dbfs": -10.74,
+      "true_peak_dbtp_4x": -10.74,
+      "phone_band_rms_dbfs": -26.7,
+      "dc_offset": 2.5244356869452965e-19,
+      "seam": {
+        "seam_step_abs": 0.005622495239064947,
+        "seam_first_difference": 0.005622495239064947,
+        "body_first_difference_p999": 0.01221205378218678,
+        "seam_diff_vs_body_p999_ratio": 0.4604053781081647,
+        "rms_50ms_before_seam_dbfs": -20.977298956114325,
+        "rms_50ms_after_seam_dbfs": -21.78590930226835
+      }
+    },
+    "at_player_volume_0_35": {
+      "integrated_lufs_bs1770_4": -33.12,
+      "phone_band_rms_dbfs": -35.82,
+      "note": "final local review gain from BackgroundMusicController (0.35 linear = -9.1 dB); phone taste approval remains pending"
+    },
+    "composition": {
+      "bars": 28,
+      "bpm": 60.0,
+      "phrase_count": 8,
+      "melodic_notes": 32,
+      "footstep_bars_skipped": [
+        3,
+        9,
+        14,
+        22,
+        26
+      ]
+    }
+  }
+}

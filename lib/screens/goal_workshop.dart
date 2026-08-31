@@ -10,11 +10,11 @@ import '../models.dart';
 import '../steward_memory.dart';
 import '../tokens.dart';
 import '../widgets/facets.dart';
-import '../widgets/goal_room_route.dart';
 import '../widgets/goal_steward.dart';
 import '../widgets/goal_world.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/pressable.dart';
+import '../widgets/steward_room.dart';
 import 'steward_encounter.dart';
 
 typedef GoalWorkshopAction = Future<void> Function(Goal goal);
@@ -72,6 +72,7 @@ class _GoalWorkshopScreenState extends State<GoalWorkshopScreen> {
     if (_stewardAssetsCached) return;
     _stewardAssetsCached = true;
     precacheGoalStewardAssets(context);
+    unawaited(precacheStewardRoom(context));
   }
 
   @override
@@ -130,10 +131,9 @@ class _GoalWorkshopScreenState extends State<GoalWorkshopScreen> {
     setState(() => _opening = true);
     try {
       await Navigator.of(context).push<void>(
-        goalRoomRoute<void>(
+        stewardRoomRoute<void>(
           context: context,
           reduceMotion: widget.state.reduceMotion,
-          settings: const RouteSettings(name: '/goals/workshop/file-box'),
           builder: (_) => StewardEncounterScreen(
             state: widget.state,
             onPersist: widget.onPersist,

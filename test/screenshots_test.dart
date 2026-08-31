@@ -195,6 +195,8 @@ Future<void> _precachePageArt(WidgetTester tester) async {
     'assets/pages/goals-workshop-steward-acknowledging-v2.webp',
     'assets/pages/goals-workshop-steward-closing-v2.webp',
     'assets/pages/goals-workshop-tavern-steward-v1.webp',
+    'assets/pages/steward-supper-room-v2.webp',
+    'assets/pages/steward-supper-offering-v2.webp',
     'assets/room/wall_grain.png',
   ];
   final context = tester.element(find.byType(MaterialApp));
@@ -2577,6 +2579,7 @@ void main() {
           theme: ThemeData(brightness: Brightness.dark),
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(context).copyWith(
+              size: size,
               disableAnimations: true,
               textScaler: TextScaler.linear(scale),
             ),
