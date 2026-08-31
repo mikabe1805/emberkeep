@@ -1,39 +1,39 @@
 {
   "schema": 1,
   "candidate": {
-    "version": "1.0.4+36",
-    "sourceRevision": "6b0565ba24548cf3d3f9d3060c2acde96b932119"
+    "version": "1.0.4+37",
+    "sourceRevision": "bf744050a4bb579bd822cac41cc78b8178ff90f7"
   },
   "screenshots": {
     "01-quests-1290x2796.png": {
-      "sha256": "dba706ddb9329b8f4f52054be10841fd015bc47908e82fe7b8bfae6c9fba4656"
+      "sha256": "23f435a05c1f5c517343d93bca3834d8e47a77fc39ccd28f1e9b5563abdf2e51"
     },
     "02-reward-1290x2796.png": {
-      "sha256": "b3cbf725bc95d4bc521ff5e29c75fd150fd7c05a468e04d14de410701fd86914"
+      "sha256": "3aaad09929b785c1ef72ff53a3cb0f9f908facf5274e7d0b16412e82323475c0"
     },
     "03-goals-1290x2796.png": {
-      "sha256": "75c82b32d6f2502f97fd286bcf6f5ccfb138428f78fb5ee3b34856d2f0e98106"
+      "sha256": "59cbd9323ffa9f8b4b50c23396ec44f0a5d88ce03856ad72faabd33e464730f3"
     },
     "04-workshop-1290x2796.png": {
-      "sha256": "6dd0d63957767cdb483b595d294958e10375fe28a16b09c9f1dac7b2f47b084b"
+      "sha256": "21ffac6511d5db5d28c78f6d2cf8d91ef4b0752debee65261a0eda3c1dd6846a"
     },
     "05-recovery-1290x2796.png": {
-      "sha256": "fdc0eafd693fc51ff2becb6a31c36a29d8e8100d22c4886bdbdaf57f601f6ee6"
+      "sha256": "84644179b3d25d5f63ff6e856aeba7e8b353c993e9eb53e4cc4f434b653388f6"
     },
     "06-plans-1290x2796.png": {
-      "sha256": "d18761a112b6762d40e54f0f8635d47057232b8c0d32e25e961cc15905802e43"
+      "sha256": "f1c9a565ec069143c05d93b40bc3f04f49f9d2bb729e93be613bbf4cedbff0e9"
     },
     "07-my-space-1290x2796.png": {
-      "sha256": "9ad9e7c478b442d90b5cba94dfde6e6e20b51c975529d6a269c2d6cf896f72e3"
+      "sha256": "563ebc2c98af584d23764b706f703eb37261827162a1734eafd8be56a21e54b8"
     },
     "08-change-space-1290x2796.png": {
-      "sha256": "b4500c3a847f1262f3425b3658254b034d204f520a3f9b6d1596e9fee4d063bb"
+      "sha256": "702c9625ffdd7f6f73df0a2006356b170a71c940a11f72ba3a6e8b235b536472"
     },
     "09-journal-1290x2796.png": {
-      "sha256": "76466786e37cd54ea7ed06692d8705fac8b3e5e37fce32a7037513e0b1c5691f"
+      "sha256": "0fb4da88b97bb775bb71d2bf33ff0b621c1cc7b7e0ef74bfa19bee763e435c87"
     },
     "10-discover-1290x2796.png": {
-      "sha256": "fc3b0abc84991cc2ab54c0d4d7bd5087ac3044d2b28c6cc528d89f24fc3b3cbf"
+      "sha256": "a9079c6bfe1835e88010bf1579a14d68194b87002f180eb35391730ba591f422"
     }
   }
 }
