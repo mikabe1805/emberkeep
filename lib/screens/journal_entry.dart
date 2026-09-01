@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../audio.dart';
 import '../journal_doc.dart';
 import '../journal_media.dart' as media;
+import '../media_picker_intent.dart';
 import '../models.dart';
 import '../release_features.dart';
 import '../tokens.dart';
@@ -431,7 +432,22 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
   }
 
   Future<void> _recoverLostPhotos() async {
-    final names = await media.recoverLost();
+    final intents = MediaPickerIntentCoordinator.instance;
+    final names = await intents.recoverJournalMedia(media.recoverLost);
+    if (names == null) {
+      if (mounted && intents.lastError != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Palette.card,
+            content: Text(
+              intents.lastError!,
+              style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
+            ),
+          ),
+        );
+      }
+      return;
+    }
     if (names.isEmpty || !mounted) return;
     _insertImages(names);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -663,11 +679,31 @@ class _JournalEntryScreenState extends State<JournalEntryScreen>
 
   Future<void> _addPhoto(bool fromCamera) async {
     final List<String> names;
-    if (fromCamera) {
-      final picked = await media.pick(true);
-      names = picked == null ? const [] : [picked];
-    } else {
-      names = await media.pickMany();
+    final began = await MediaPickerIntentCoordinator.instance.beginJournal();
+    if (!began) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Palette.card,
+            content: Text(
+              MediaPickerIntentCoordinator.instance.lastError ??
+                  'A photo choice is waiting to be recovered first.',
+              style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    try {
+      if (fromCamera) {
+        final picked = await media.pick(true);
+        names = picked == null ? const [] : [picked];
+      } else {
+        names = await media.pickMany();
+      }
+    } finally {
+      await MediaPickerIntentCoordinator.instance.completeJournal();
     }
     if (names.isEmpty || !mounted) {
       // a FAILURE (denied permission, camera error) must not read as "photos

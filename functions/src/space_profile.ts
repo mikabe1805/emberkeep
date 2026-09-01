@@ -1,6 +1,7 @@
 import {createHash} from "node:crypto";
 import {FieldValue} from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/v2/https";
+import {isSupportedGeneratedRoom} from "./generated_room";
 
 export const SPACE_CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
 const OWNER_KEY = /^[a-f0-9]{64}$/;
@@ -152,7 +153,7 @@ const publicIsContainedInMutual = (publicProfile: Profile | null, mutualProfile:
 const liveOwnedRoom = async (transaction: WriteTransaction, store: SpaceProfileStore, roomCode: string, uid: string): Promise<unknown> => {
   const room = await transaction.get(store.collection("rooms").doc(roomCode));
   const roomData = room.data();
-  if (!room.exists || roomData?.ownerKey !== ownerKeyForSpaceUid(uid) || roomData?.v !== 6 ||
+  if (!room.exists || roomData?.ownerKey !== ownerKeyForSpaceUid(uid) || !isSupportedGeneratedRoom(roomData) ||
       roomData?.profileVisible !== false || roomData?.updatedAt === undefined) {
     throw new HttpsError("permission-denied", "You do not own a live generated-only room at this code.");
   }
@@ -193,7 +194,7 @@ export const publishSpaceProfileHandler = async (
 const targetRoom = async (transaction: WriteTransaction, store: SpaceProfileStore, roomCode: string, uid: string, requestedOwnerKey: string | undefined): Promise<{ownerKey: string}> => {
   const room = await transaction.get(store.collection("rooms").doc(roomCode));
   const ownerKey = room.data()?.ownerKey;
-  if (!room.exists || typeof ownerKey !== "string" || !OWNER_KEY.test(ownerKey) || room.data()?.v !== 6 || room.data()?.profileVisible !== false) {
+  if (!room.exists || typeof ownerKey !== "string" || !OWNER_KEY.test(ownerKey) || !isSupportedGeneratedRoom(room.data()) || room.data()?.profileVisible !== false) {
     throw new HttpsError("not-found", "That shared space is unavailable.");
   }
   if (ownerKey === ownerKeyForSpaceUid(uid)) throw new HttpsError("failed-precondition", "You cannot create a relationship with your own space.");

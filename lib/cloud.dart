@@ -200,6 +200,88 @@ class RoomRefreshFence {
   bool accepts(int epoch) => epoch == _epoch;
 }
 
+/// A queued room refresh is allowed to change the generated display only.
+/// Public room-photo consent and its Storage pointer are a separate,
+/// acknowledged boundary. Before a background refresh writes, this preserves
+/// the current room document's validated projection exactly, or declines to
+/// write if the current room cannot safely establish that boundary.
+@visibleForTesting
+Map<String, dynamic>? mergeQueuedRoomPhotoProjection({
+  required Map<String, dynamic> incoming,
+  required Map<String, dynamic>? live,
+  required String ownerKey,
+  required String roomCode,
+}) {
+  if (live == null || live['ownerKey'] != ownerKey) return null;
+
+  const blank = <String, dynamic>{
+    'roomPhotoPath': '',
+    'roomPhotoFill': false,
+    'roomPhotoX': 0.0,
+    'roomPhotoY': 0.0,
+    'roomPhotoWidth': 1,
+    'roomPhotoHeight': 1,
+  };
+  final version = live['v'];
+  if (version == 6 || version == 7) {
+    return {...incoming, ...blank};
+  }
+  if (version != 8) return null;
+
+  final path = live['roomPhotoPath'];
+  final fill = live['roomPhotoFill'];
+  final rawX = live['roomPhotoX'];
+  final rawY = live['roomPhotoY'];
+  final width = live['roomPhotoWidth'];
+  final height = live['roomPhotoHeight'];
+  if (path is! String ||
+      fill is! bool ||
+      rawX is! num ||
+      rawY is! num ||
+      width is! int ||
+      height is! int) {
+    return null;
+  }
+  final x = rawX.toDouble();
+  final y = rawY.toDouble();
+  if (!x.isFinite ||
+      !y.isFinite ||
+      x < -1 ||
+      x > 1 ||
+      y < -1 ||
+      y > 1 ||
+      width < 1 ||
+      width > 1200 ||
+      height < 1 ||
+      height > 1200) {
+    return null;
+  }
+  if (path.isEmpty) {
+    if (fill || x != 0 || y != 0 || width != 1 || height != 1) return null;
+    return {...incoming, ...blank};
+  }
+  try {
+    final location = SharedRoomMediaLocation.fromObjectPath(path);
+    if (location.slot != SharedRoomMediaSlot.room ||
+        location.ownerKey != ownerKey ||
+        location.roomCode != roomCode ||
+        location.generation == null) {
+      return null;
+    }
+  } on SharedRoomMediaException {
+    return null;
+  }
+  return {
+    ...incoming,
+    'roomPhotoPath': path,
+    'roomPhotoFill': fill,
+    'roomPhotoX': x,
+    'roomPhotoY': y,
+    'roomPhotoWidth': width,
+    'roomPhotoHeight': height,
+  };
+}
+
 /// Establishes the three credentials a protected discovery write needs before
 /// Firestore sees it.  The in-flight preparation is shared, but a completed
 /// preparation is deliberately not cached: auth can change between listings.
@@ -1086,8 +1168,40 @@ class CloudSync extends ChangeNotifier
   }) async {
     await _roomPublishQueue.runWrite<void>(() async {
       if (!_roomRefreshFence.accepts(refreshEpoch)) return;
+      final ownerUid = _uid;
+      if (ownerUid == null) return;
+      final ownerKey = discoveryOwnerKey(ownerUid);
+      Map<String, dynamic>? safeDisplay;
+      try {
+        final live = await _rooms
+            .doc(code)
+            .get(const GetOptions(source: Source.server))
+            .timeout(const Duration(seconds: 8));
+        if (!_roomRefreshFence.accepts(refreshEpoch) ||
+            _uid != ownerUid ||
+            !live.exists) {
+          return;
+        }
+        safeDisplay = mergeQueuedRoomPhotoProjection(
+          incoming: display,
+          live: live.data(),
+          ownerKey: ownerKey,
+          roomCode: code,
+        );
+      } on TimeoutException {
+        return;
+      } on FirebaseException {
+        return;
+      } catch (_) {
+        return;
+      }
+      if (safeDisplay == null ||
+          !_roomRefreshFence.accepts(refreshEpoch) ||
+          _uid != ownerUid) {
+        return;
+      }
       final published = await _publishRoomNow(
-        display,
+        safeDisplay,
         code: code,
         skipCurrentVersion: false,
       );
@@ -1104,7 +1218,7 @@ class CloudSync extends ChangeNotifier
         );
       }
       if (discoverable && _roomRefreshFence.accepts(refreshEpoch)) {
-        await _setRoomDiscoverableNow(code, display, discoverable: true);
+        await _setRoomDiscoverableNow(code, safeDisplay, discoverable: true);
       }
     });
   }
@@ -1270,6 +1384,14 @@ class CloudSync extends ChangeNotifier
           }
           if (newRoomData.containsKey('seasonPhotoPath')) {
             newRoomData['seasonPhotoPath'] = '';
+          }
+          if (newRoomData.containsKey('roomPhotoPath')) {
+            newRoomData['roomPhotoPath'] = '';
+            newRoomData['roomPhotoFill'] = false;
+            newRoomData['roomPhotoX'] = 0.0;
+            newRoomData['roomPhotoY'] = 0.0;
+            newRoomData['roomPhotoWidth'] = 1;
+            newRoomData['roomPhotoHeight'] = 1;
           }
           await writeOwnedRoom(candidateCode, newRoomData);
         },
@@ -1679,7 +1801,9 @@ class CloudSync extends ChangeNotifier
 
   /// Firestore does not cascade-delete subcollections. Clear every private
   /// sender receipt while the parent room still exists (and its owner rule can
-  /// be evaluated), then remove the public room itself.
+  /// be evaluated), then remove the public room itself. The retrying server
+  /// trigger owns public room-photo byte cleanup after that pointer revocation;
+  /// a Storage outage must never leave the room publicly readable.
   Future<_OwnedRoomDeleteResult> _deleteOwnedRoom(String code) async {
     final clean = _cleanRoomCode(code);
     if (clean == null) return _OwnedRoomDeleteResult.invalid;
@@ -1705,16 +1829,6 @@ class CloudSync extends ChangeNotifier
     final ownerSnapshot = await owner.get().timeout(const Duration(seconds: 8));
     if (!ownerSnapshot.exists || ownerSnapshot.data()?['uid'] != _uid) {
       return _OwnedRoomDeleteResult.notOwned;
-    }
-    final parentData = parent.data();
-    final mediaPaths = <String>[
-      for (final key in const ['profilePhotoPath', 'seasonPhotoPath'])
-        if (parentData?[key] is String &&
-            (parentData![key] as String).isNotEmpty)
-          parentData[key] as String,
-    ];
-    if (kVisitorPhotoSharingEnabled && mediaPaths.isNotEmpty) {
-      await SharedRoomMediaService.instance.deleteObjectPaths(mediaPaths);
     }
     await _deleteRoomPrivateChildren(room);
     final batch = FirebaseFirestore.instance.batch()
@@ -1997,9 +2111,9 @@ class CloudSync extends ChangeNotifier
   /// working. A linked account is deliberately retained here; its separate
   /// password-confirmed deletion flow removes the sign-in itself.
   ///
-  /// Returns whether every requested remote deletion succeeded. The caller
-  /// still completes the local reset when offline; the fresh local save will
-  /// replace the cloud copy when connectivity returns.
+  /// Returns whether every requested remote deletion succeeded. A caller that
+  /// is about to present a fresh room must retain its current state when this
+  /// is false: a public room can remain reachable until its owner retries.
   Future<bool> resetProfile({String? roomCode}) => _runAuthChange(
     () => _runUnlessServiceIdentityDeletionStarted(
       blockedValue: false,
@@ -2394,16 +2508,6 @@ final class _CloudOwnedRoomDeletionSteps implements OwnedRoomDeletionSteps {
   @override
   Future<void> drainPrivateChildren() async {
     await _verify();
-    final roomData = room.data();
-    final mediaPaths = <String>[
-      for (final key in const ['profilePhotoPath', 'seasonPhotoPath'])
-        if (roomData?[key] is String && (roomData![key] as String).isNotEmpty)
-          roomData[key] as String,
-    ];
-    if (kVisitorPhotoSharingEnabled && mediaPaths.isNotEmpty) {
-      await SharedRoomMediaService.instance.deleteObjectPaths(mediaPaths);
-      await _verify();
-    }
     await _cloud._deleteRoomPrivateChildren(
       room.reference,
       verifyIdentity: _verify,

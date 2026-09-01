@@ -27,6 +27,7 @@ void main() {
       'journal': ['private journal'],
       'streak': 20,
       'profileVisible': true,
+      'roomKeepsakes': ['keepsake_books', 'keepsake_books', 'private_note'],
     }, roomCode: code);
 
     expect(display.keys, {
@@ -37,6 +38,7 @@ void main() {
       'floor',
       'skin',
       'window',
+      'roomKeepsakes',
       'bucket',
       'ownerKey',
       'publicName',
@@ -47,6 +49,7 @@ void main() {
     expect(display['bucket'], discoverableSpaceBucket(code));
     expect(display['ownerKey'], discoveryOwnerKey('owner-one'));
     expect(display['publicName'], isEmpty);
+    expect(display['roomKeepsakes'], ['keepsake_books']);
     expect(display.values.join(' '), isNot(contains('private')));
   });
 
@@ -85,6 +88,79 @@ void main() {
       }, roomCode: code)['wall'],
       'wall_conservatory',
     );
+    expect(
+      discoverableSpaceDisplay({
+        'ownerKey': discoveryOwnerKey('owner-one'),
+        'wall': 'wall_listening',
+      }, roomCode: code)['wall'],
+      'wall_listening',
+    );
+  });
+
+  test('equipped found flame survives the visual-only projection', () {
+    expect(
+      discoverableSpaceDisplay({
+        'ownerKey': discoveryOwnerKey('owner-one'),
+        'skin': 'found_moss',
+      }, roomCode: code)['skin'],
+      'found_moss',
+    );
+  });
+
+  test(
+    'directory v4 carries only catalogued keepsakes while v3 reads empty',
+    () {
+      final now = DateTime.utc(2026, 8, 22);
+      final v4 = DiscoverableSpaceSummary.fromDocument(code, {
+        'v': 4,
+        'title': 'KEEPER',
+        'level': 1,
+        'wall': 'wall_rain',
+        'floor': 'floor_oak',
+        'skin': 'ember_amber',
+        'window': 'rain',
+        'roomKeepsakes': ['keepsake_teapot', 'private_note', 'keepsake_teapot'],
+        'bucket': 1,
+        'ownerKey': discoveryOwnerKey('owner-one'),
+        'publicName': '',
+        'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
+        'journal': 'must not become a summary field',
+      }, now: now);
+      expect(v4?.roomKeepsakes, ['keepsake_teapot']);
+
+      final v3 = DiscoverableSpaceSummary.fromDocument(code, {
+        'v': 3,
+        'title': 'KEEPER',
+        'level': 1,
+        'wall': 'wall_walnut',
+        'floor': 'floor_oak',
+        'skin': 'ember_amber',
+        'window': 'moon',
+        'bucket': 1,
+        'ownerKey': discoveryOwnerKey('owner-one'),
+        'publicName': '',
+        'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
+      }, now: now);
+      expect(v3?.roomKeepsakes, isEmpty);
+    },
+  );
+  test('directory summary retains an equipped found flame', () {
+    final now = DateTime.utc(2026, 8, 22);
+    final summary = DiscoverableSpaceSummary.fromDocument(code, {
+      'v': 3,
+      'title': 'KEEPER',
+      'level': 1,
+      'wall': 'wall_listening',
+      'floor': 'floor_oak',
+      'skin': 'found_moss',
+      'window': 'moon',
+      'bucket': 1,
+      'ownerKey': discoveryOwnerKey('owner-one'),
+      'publicName': '',
+      'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
+    }, now: now);
+
+    expect(summary?.skin, 'found_moss');
   });
 
   test('bucket is stable, bounded, and rejects non-room codes', () {

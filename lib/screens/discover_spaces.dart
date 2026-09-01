@@ -513,8 +513,8 @@ class _PrivacyNote extends StatelessWidget {
         Expanded(
           child: Text(
             publicNamesEnabled
-                ? 'Only an optional public name, the room’s generated title, room style, and level appear here. Quests, Journal pages, streaks, and account details stay private. A block still works if a keeper changes room codes.'
-                : 'Only the room’s generated title, room style, and level appear here. Quests, Journal pages, streaks, and account details stay private. A block still works if a keeper changes room codes.',
+                ? 'Only an optional public name, the room’s generated title, chosen room, and level appear here. Quests, Journal pages, streaks, account details, and private room photos stay private. A block still works if a keeper changes room codes.'
+                : 'Only the room’s generated title, chosen room, and level appear here. Quests, Journal pages, streaks, account details, and private room photos stay private. A block still works if a keeper changes room codes.',
             style: Type.body.copyWith(
               fontSize: 12,
               height: 1.42,
@@ -735,7 +735,7 @@ class _DiscoverableSpaceCard extends StatelessWidget {
       material: MaterialSound.parchment,
       interactionSound: InteractionSound.open,
       semanticLabel:
-          '$primary, ${summary.buildTitle}, level ${summary.level}. Open this space.',
+          '$primary, level ${summary.level}. $roomName. Open this space.',
       onTapUp: (_) => onTap(),
       child: GlassPanel(
         blur: true,

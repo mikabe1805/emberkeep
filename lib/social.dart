@@ -10,10 +10,12 @@ import 'clock.dart';
 import 'cloud.dart';
 import 'content/creature_skins.dart';
 import 'content/links.dart';
+import 'content/room_keepsakes.dart';
 import 'discovery.dart';
 import 'engine.dart';
 import 'models.dart';
 import 'release_features.dart';
+import 'room_photo.dart';
 import 'platform/share_stub.dart'
     if (dart.library.js_interop) 'platform/share_web.dart';
 import 'screens/visit_room.dart';
@@ -293,7 +295,8 @@ Map<String, dynamic> spaceProfileDisplay(
 
 /// The bounded generated-room payload published for a shared space. Account
 /// data, authored profile cards, quest history, Journal pages, and visitor
-/// photos stay out; authored text is published only through the separate
+/// profile photos stay out; an explicitly opted-in fireplace photo receives
+/// one bounded Storage handle. Authored text is published only through the separate
 /// audience-specific profile projections below.
 Map<String, dynamic> roomDisplay(
   GameState s, {
@@ -328,6 +331,8 @@ Map<String, dynamic> roomDisplay(
     'title': s.buildTitle,
     'level': s.level,
     'furniture': s.ownedFurniture.toList(),
+    // Fixed visual ids only. Never publish ownership, writing, or quest data.
+    'roomKeepsakes': sanitizeRoomKeepsakes(s.roomKeepsakes),
     'wall': s.wallStyle,
     'floor': s.floorStyle,
     'skin': flameSkinIdFor(s),
@@ -339,7 +344,7 @@ Map<String, dynamic> roomDisplay(
     'focusKind': s.quietCompanyActive ? s.quietCompanyKind : 'none',
     'focusUntil': s.quietCompanyActive ? s.quietCompanyUntil : 0,
     // Authored page content is published to audience-specific documents. Keep
-    // this v6 room generated-only so its code remains a bounded bearer key and
+    // this v7 room generated-only so its code remains a bounded bearer key and
     // older visitors never receive Mutuals content by accident.
     'profileVisible': false,
     'displayName': '',
@@ -350,9 +355,52 @@ Map<String, dynamic> roomDisplay(
     'season': '',
     'profilePhotoPath': '',
     'seasonPhotoPath': '',
-    'v': 6,
+    'roomPhotoPath': s.shareRoomPhoto ? s.spaceRoomPhotoPath : '',
+    'roomPhotoFill': s.shareRoomPhoto && s.spaceRoomPhotoPath.isNotEmpty
+        ? s.spaceRoomPhotoFill
+        : false,
+    'roomPhotoX': s.shareRoomPhoto && s.spaceRoomPhotoPath.isNotEmpty
+        ? s.spaceRoomPhotoX
+        : 0.0,
+    'roomPhotoY': s.shareRoomPhoto && s.spaceRoomPhotoPath.isNotEmpty
+        ? s.spaceRoomPhotoY
+        : 0.0,
+    'roomPhotoWidth': s.shareRoomPhoto && s.spaceRoomPhotoPath.isNotEmpty
+        ? s.spaceRoomPhotoWidth
+        : 1,
+    'roomPhotoHeight': s.shareRoomPhoto && s.spaceRoomPhotoPath.isNotEmpty
+        ? s.spaceRoomPhotoHeight
+        : 1,
+    'v': 8,
   };
 }
+
+/// Opens the local rendering of exactly what an Anyone visitor can receive.
+/// No room publish, profile fetch, social action, or relationship mutation is
+/// reachable from this route.
+Future<void> previewPublicSpace(
+  BuildContext context,
+  GameState state, {
+  bool visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
+  ValueListenable<Offset>? parallax,
+  RoomPhotoData? roomPhoto,
+}) => Navigator.of(context).push<void>(
+  MaterialPageRoute(
+    builder: (_) => VisitRoomScreen(
+      room: roomDisplay(state),
+      code: state.roomCode ?? 'PREVIEW',
+      themeId: state.canvasTheme,
+      lively: !state.reduceMotion,
+      parallax: parallax,
+      visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+      visitorProfile: visitorProfileSharingEnabled
+          ? spaceProfileDisplay(state, audience: SpaceAudience.anyone)
+          : null,
+      previewRoomPhoto: state.shareRoomPhoto ? roomPhoto : null,
+      previewOnly: true,
+    ),
+  ),
+);
 
 /// Narrow, injectable boundary for the acknowledged visitor-page transaction.
 /// Production delegates to [CloudSync]; tests can prove ordering without a
@@ -399,9 +447,9 @@ class RoomPublicationClient {
   final Future<bool> Function(String code) unshareRoom;
 }
 
-/// Publishes one exact visitor-page state. Build 32 keeps visitor photos
-/// dormant, so this path coordinates only the generated room and the two
-/// audience-specific text projections.
+/// Publishes one exact visitor-page state. Journal/profile media remains on
+/// its separate release gate; the fireplace photo enters this transaction
+/// only through its explicit, off-by-default room consent.
 Future<RoomPublishResult> publishSpaceRoomState(
   GameState target, {
   required GameState current,
@@ -417,6 +465,8 @@ Future<RoomPublishResult> publishSpaceRoomState(
   profilePublisher,
   bool visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
   bool visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
+  RoomPhotoData? roomPhoto,
+  bool syncRoomPhoto = false,
 }) async {
   final cloud = cloudSync ?? CloudSync.instance;
   final publication = publicationClient ?? RoomPublicationClient.cloud(cloud);
@@ -513,22 +563,246 @@ Future<RoomPublishResult> publishSpaceRoomState(
     return profileFailure;
   }
 
-  // The generated v6 room/profile split intentionally has no visitor-readable
-  // storage-path projection. Keep image publication dormant until its opaque
-  // storage ownership model is implemented. This path never constructs a
-  // Firebase Storage client, and only clears stale consent after the room
-  // publish is acknowledged so a failed publish cannot discard a local choice.
-  final display = roomDisplay(
-    target,
-    mediaOwnerUid: ownerUid,
-    mediaRoomCode: code,
-    visitorPhotoSharingEnabled: false,
-    visitorProfileSharingEnabled: visitorProfileSharingEnabled,
-  );
-  final published = await publishRoomAndAuthoredPage(
-    display,
-    requestedCode: code,
-  );
+  final ownerKey = discoveryOwnerKey(ownerUid);
+  var priorPath = current.spaceRoomPhotoPath;
+  if (priorPath.isNotEmpty) {
+    try {
+      final location = SharedRoomMediaLocation.fromObjectPath(priorPath);
+      final expectedCode = code?.trim().toUpperCase();
+      if (location.slot != SharedRoomMediaSlot.room ||
+          location.ownerKey != ownerKey ||
+          expectedCode == null ||
+          location.roomCode != expectedCode) {
+        priorPath = '';
+      }
+    } on SharedRoomMediaException {
+      priorPath = '';
+    }
+  }
+
+  ({String path, bool fill, double x, double y, int width, int height})?
+  liveRoomPhotoProjection(Map<String, dynamic>? room) {
+    if (room == null || room['v'] != 8 || room['ownerKey'] != ownerKey) {
+      return null;
+    }
+    final path = room['roomPhotoPath'];
+    final rawX = room['roomPhotoX'];
+    final rawY = room['roomPhotoY'];
+    final width = room['roomPhotoWidth'];
+    final height = room['roomPhotoHeight'];
+    if (path is! String ||
+        path.isEmpty ||
+        rawX is! num ||
+        rawY is! num ||
+        width is! int ||
+        height is! int) {
+      return null;
+    }
+    final x = rawX.toDouble();
+    final y = rawY.toDouble();
+    if (!x.isFinite ||
+        !y.isFinite ||
+        x < -1 ||
+        x > 1 ||
+        y < -1 ||
+        y > 1 ||
+        width < 1 ||
+        width > RoomPhotoStore.maxDimension ||
+        height < 1 ||
+        height > RoomPhotoStore.maxDimension) {
+      return null;
+    }
+    try {
+      final location = SharedRoomMediaLocation.fromObjectPath(path);
+      if (location.generation == null ||
+          location.ownerKey != ownerKey ||
+          location.roomCode != code?.trim().toUpperCase() ||
+          location.slot != SharedRoomMediaSlot.room) {
+        return null;
+      }
+      return (
+        path: location.objectPath,
+        fill: room['roomPhotoFill'] == true,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+      );
+    } on SharedRoomMediaException {
+      return null;
+    }
+  }
+
+  if (target.shareRoomPhoto && priorPath.isNotEmpty && !syncRoomPhoto) {
+    Map<String, dynamic>? liveRoom;
+    try {
+      liveRoom = await publication.fetchRoom(code!.trim().toUpperCase());
+    } catch (_) {
+      // A restored projection is never republished while its server
+      // acknowledgement is unknown. Retain local state for a later retry.
+      return const RoomPublishResult.failed(RoomPublishFailure.network);
+    }
+    final liveProjection = liveRoomPhotoProjection(liveRoom);
+    if (liveProjection == null) {
+      // The live room is authoritative. A backup or stale device cannot
+      // resurrect a photo that has since been removed from the room.
+      target.clearSharedRoomPhotoProjection(disableSharing: true);
+      priorPath = '';
+    } else {
+      // Adopt another acknowledged device's current projection rather than
+      // overwriting it with stale framing or an earlier immutable revision.
+      target.setRoomPhotoSharing(true);
+      target.setSharedRoomPhotoProjection(
+        path: liveProjection.path,
+        fillFrame: liveProjection.fill,
+        alignmentX: liveProjection.x,
+        alignmentY: liveProjection.y,
+        pixelWidth: liveProjection.width,
+        pixelHeight: liveProjection.height,
+      );
+      priorPath = liveProjection.path;
+    }
+  }
+
+  Future<void> forgetObject(String path) async {
+    if (path.isEmpty) return;
+    try {
+      await (mediaService ?? SharedRoomMediaService.instance).deleteObjectPaths(
+        [path],
+      );
+    } catch (_) {
+      // The public room pointer is authoritative. An unreferenced, random
+      // revision is no longer discoverable and server cleanup can retry it.
+    }
+  }
+
+  RoomPublishResult published;
+  if (!target.shareRoomPhoto) {
+    // Remove the public pointer first. The private device copy is untouched.
+    published = await publishRoomAndAuthoredPage(
+      roomDisplay(
+        target,
+        mediaOwnerUid: ownerUid,
+        mediaRoomCode: code,
+        visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+      ),
+      requestedCode: code,
+    );
+    if (published.ok) {
+      target.clearSharedRoomPhotoProjection(disableSharing: true);
+      await forgetObject(priorPath);
+    }
+  } else {
+    if (priorPath.isEmpty && !syncRoomPhoto) {
+      final staged = GameState.fromJson(target.toJson())
+        ..clearSharedRoomPhotoProjection();
+      published = await publishRoomAndAuthoredPage(
+        roomDisplay(
+          staged,
+          mediaOwnerUid: ownerUid,
+          mediaRoomCode: code,
+          visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+        ),
+        requestedCode: code,
+      );
+      if (published.ok) target.clearSharedRoomPhotoProjection();
+    } else {
+      final needsUpload = priorPath.isEmpty || syncRoomPhoto;
+      if (needsUpload && roomPhoto == null) {
+        return const RoomPublishResult.failed(RoomPublishFailure.media);
+      }
+
+      var activeCode = code?.trim().toUpperCase();
+      var reservedForPhoto = false;
+      if (needsUpload && priorPath.isEmpty) {
+        // Establish the owner registry before Storage authorizes an opaque-key
+        // upload. A fresh code is removed again if the later upload/publish fails.
+        final base = GameState.fromJson(target.toJson())
+          ..clearSharedRoomPhotoProjection();
+        final reserved = await publishRoomAndAuthoredPage(
+          roomDisplay(
+            base,
+            mediaOwnerUid: ownerUid,
+            mediaRoomCode: activeCode,
+            visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+          ),
+          requestedCode: activeCode,
+        );
+        if (!reserved.ok || reserved.code == null) return reserved;
+        reservedForPhoto = activeCode != reserved.code;
+        activeCode = reserved.code;
+      }
+
+      if (!needsUpload) {
+        published = await publishRoomAndAuthoredPage(
+          roomDisplay(
+            target,
+            mediaOwnerUid: ownerUid,
+            mediaRoomCode: activeCode,
+            visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+          ),
+          requestedCode: activeCode,
+        );
+        if (published.ok && published.code != activeCode) {
+          // CloudSync reserves a fresh room without carrying a path bound to
+          // the restored code. Mirror that acknowledged blank projection
+          // locally while preserving the owner's share intent for a later,
+          // explicit upload from this device.
+          target.clearSharedRoomPhotoProjection(disableSharing: true);
+        }
+      } else {
+        final source = roomPhoto!;
+        late final String newPath;
+        try {
+          newPath = await (mediaService ?? SharedRoomMediaService.instance)
+              .uploadRoomPhoto(
+                ownerKey: ownerKey,
+                roomCode: activeCode!,
+                bytes: source.bytes,
+              );
+        } catch (_) {
+          if (reservedForPhoto && activeCode != null) {
+            await publication.unshareRoom(activeCode);
+          }
+          return const RoomPublishResult.failed(RoomPublishFailure.media);
+        }
+        final staged = GameState.fromJson(target.toJson())
+          ..setSharedRoomPhotoProjection(
+            path: newPath,
+            fillFrame: source.fillFrame,
+            alignmentX: source.alignment.x,
+            alignmentY: source.alignment.y,
+            pixelWidth: source.pixelWidth,
+            pixelHeight: source.pixelHeight,
+          );
+        published = await publishRoomAndAuthoredPage(
+          roomDisplay(
+            staged,
+            mediaOwnerUid: ownerUid,
+            mediaRoomCode: activeCode,
+            visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+          ),
+          requestedCode: activeCode,
+        );
+        if (!published.ok) {
+          await forgetObject(newPath);
+          if (reservedForPhoto) {
+            await publication.unshareRoom(activeCode);
+          }
+          return published;
+        }
+        target.setSharedRoomPhotoProjection(
+          path: newPath,
+          fillFrame: source.fillFrame,
+          alignmentX: source.alignment.x,
+          alignmentY: source.alignment.y,
+          pixelWidth: source.pixelWidth,
+          pixelHeight: source.pixelHeight,
+        );
+        if (priorPath != newPath) await forgetObject(priorPath);
+      }
+    }
+  }
   if (published.ok) {
     if (!visitorProfileSharingEnabled) {
       target.disableVisitorProfileSharing();
@@ -568,6 +842,8 @@ Future<void> shareSpace(
   _sharingSpace = true;
   try {
     final previousRoomCode = state.roomCode;
+    final previousRoomPhotoPath = state.spaceRoomPhotoPath;
+    final previousRoomPhotoSharing = state.shareRoomPhoto;
     if (!await cloud.ensureAvailable()) {
       if (context.mounted) {
         _toast(context, 'Sharing needs a connection — try again in a moment.');
@@ -589,6 +865,8 @@ Future<void> shareSpace(
       current: state,
       code: state.roomCode,
       cloudSync: cloud,
+      roomPhoto: RoomPhotoStore.instance.photo,
+      syncRoomPhoto: state.shareRoomPhoto && state.spaceRoomPhotoPath.isEmpty,
     );
     if (!context.mounted) return;
     final code = published.code;
@@ -599,7 +877,7 @@ Future<void> shareSpace(
         RoomPublishFailure.timedOut || RoomPublishFailure.network =>
           'The connection went quiet. Your space is safe — try again.',
         RoomPublishFailure.media =>
-          'That photo could not be shared. Try another JPEG, PNG, or WebP under 3 MB.',
+          'Couldn’t add the fireplace photo to your shared room. Your private copy is unchanged. Reconnect and try again.',
         RoomPublishFailure.profileRejected =>
           'One of your shared cards contains a link, contact detail, or wording that cannot be published. Your private page is unchanged.',
         RoomPublishFailure.exhaustedCodes =>
@@ -612,6 +890,11 @@ Future<void> shareSpace(
     final roomCodeChanged = previousRoomCode != code;
     if (roomCodeChanged) {
       state.setRoomCode(code);
+    }
+    final roomPhotoStateChanged =
+        previousRoomPhotoSharing != state.shareRoomPhoto ||
+        previousRoomPhotoPath != state.spaceRoomPhotoPath;
+    if (roomCodeChanged || roomPhotoStateChanged) {
       onPersist();
     }
     final sharedRoom = roomDisplay(
@@ -679,18 +962,10 @@ Future<void> shareSpace(
               return result;
             }
           : null,
-      onPreview: () => Navigator.of(context).push<void>(
-        MaterialPageRoute(
-          builder: (_) => VisitRoomScreen(
-            room: sharedRoom,
-            code: code,
-            themeId: state.canvasTheme,
-            lively: !state.reduceMotion,
-            visitorProfile: kVisitorProfileSharingEnabled
-                ? spaceProfileDisplay(state, audience: SpaceAudience.anyone)
-                : null,
-          ),
-        ),
+      onPreview: () => previewPublicSpace(
+        context,
+        state,
+        roomPhoto: RoomPhotoStore.instance.photo,
       ),
       onStop: () async {
         final stopped = await cloud.unshareRoom(code);
@@ -1274,8 +1549,8 @@ class _ShareDialogState extends State<_ShareDialog> {
                       Expanded(
                         child: Text(
                           widget.visitorPagePublished
-                              ? 'Anyone with this link can visit until you stop sharing. Your visitor page follows the audience on each card: Anyone cards open by code or Discover, while Mutuals cards need both keepers to choose each other in Circle. Photos, unpinned Journal pages, quests, streak details, and account information stay private.'
-                              : 'Anyone with this link can visit until you stop sharing. They see the room you built and a few small signs of presence, like whether its fire is lit today or a quiet-company timer is running. Your Me name, writing, photos, quests, Journal pages, and account details stay private.',
+                              ? 'Anyone with this link can visit until you stop sharing. Your visitor page follows the audience on each card: Anyone cards open by code or Discover, while Mutuals cards need both keepers to choose each other in Circle. Journal attachments, unpinned pages, quests, streak details, and account information stay private. A fireplace photo appears only if you separately chose Show in my shared room.'
+                              : 'Anyone with this link can visit until you stop sharing. They see the room you built and a few small signs of presence, like whether its fire is lit today or a quiet-company timer is running. Your Me name, writing, Journal photos, quests, pages, and account details stay private. A fireplace photo appears only if you separately chose Show in my shared room.',
                           style: Type.body.copyWith(
                             fontSize: 11,
                             height: 1.42,

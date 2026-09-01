@@ -62,6 +62,11 @@ const liveRoom = (uid: string, ownerKey = ownerKeyForUid(uid)) => ({
   profileVisible: false,
   updatedAt: new Date("2026-08-24T12:00:00.000Z"),
 });
+const v7Room = (uid: string, keepsakes: unknown = ["keepsake_books", "keepsake_record"]) => ({
+  ...liveRoom(uid),
+  v: 7,
+  roomKeepsakes: keepsakes,
+});
 const liveProfile = (ownerKey: string, generation = new Date("2026-08-24T12:00:00.000Z")) => ({
   v: 2,
   ownerKey,
@@ -80,6 +85,62 @@ describe("discovery callables", () => {
     const result = await setDiscoveryPublicNameHandler(request({code: "ABC234", publicName: "  José\u00a0  O’Neil  ",}), {store, now: () => new Date("2026-08-22T12:00:00Z"), ...publicNamesOn});
     expect(result).toEqual({publicName: "José O’Neil"});
     expect(docs.get("discoverableSpaces/ABC234")).toMatchObject({publicName: "José O’Neil", theme: "walnut"});
+  });
+
+  test("accepts a bounded v7 room for names and reports without rebuilding its directory", async () => {
+    const room = v7Room("owner");
+    const {store, docs} = makeStore({
+      "rooms/ABC234": room,
+      "discoverableSpaces/ABC234": {
+        publicName: "old name",
+        ownerKey: ownerKeyForUid("owner"),
+        roomKeepsakes: ["keepsake_books", "keepsake_record"],
+      },
+    });
+
+    await expect(setDiscoveryPublicNameHandler(
+      request({code: "ABC234", publicName: "Mika"}),
+      {store, ...publicNamesOn},
+    )).resolves.toEqual({publicName: "Mika"});
+    expect(docs.get("discoverableSpaces/ABC234")).toMatchObject({
+      publicName: "Mika",
+      roomKeepsakes: ["keepsake_books", "keepsake_record"],
+    });
+    await expect(reportDiscoverableSpaceHandler(
+      request({code: "ABC234", category: "other"}, "reporter"),
+      {store},
+    )).resolves.toEqual({reported: true});
+  });
+
+  test.each([
+    ["unknown keepsake", ["keepsake_private"]],
+    ["duplicate keepsake", ["keepsake_books", "keepsake_books"]],
+    ["too many keepsakes", ["keepsake_books", "keepsake_sprout", "keepsake_camera"]],
+  ])("rejects malformed v7 room anchors: %s", async (_label, keepsakes) => {
+    const {store, docs} = makeStore({
+      "rooms/ABC234": v7Room("owner", keepsakes),
+      "discoverableSpaces/ABC234": {publicName: "old", ownerKey: ownerKeyForUid("owner")},
+    });
+    await expect(setDiscoveryPublicNameHandler(
+      request({code: "ABC234", publicName: "Mika"}),
+      {store, ...publicNamesOn},
+    )).rejects.toMatchObject({code: "permission-denied"});
+    await expect(reportDiscoverableSpaceHandler(
+      request({code: "ABC234", category: "other"}, "reporter"),
+      {store},
+    )).rejects.toMatchObject({code: "not-found"});
+    expect(docs.has("discoveryReports/ABC234/reporters/reporter")).toBe(false);
+  });
+
+  test("rejects unknown future room versions", async () => {
+    const {store} = makeStore({
+      "rooms/ABC234": {...v7Room("owner"), v: 8},
+      "discoverableSpaces/ABC234": {publicName: "old", ownerKey: ownerKeyForUid("owner")},
+    });
+    await expect(setDiscoveryPublicNameHandler(
+      request({code: "ABC234", publicName: "Mika"}),
+      {store, ...publicNamesOn},
+    )).rejects.toMatchObject({code: "permission-denied"});
   });
 
   test.each([

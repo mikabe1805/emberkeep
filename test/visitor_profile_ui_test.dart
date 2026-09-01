@@ -698,6 +698,95 @@ void main() {
     expect(find.textContaining('Nothing changed'), findsOneWidget);
   });
 
+  testWidgets('public preview is local-only and excludes mutual cards', (
+    tester,
+  ) async {
+    var fetches = 0;
+    var sparks = 0;
+    final local = GameState()..roomCode = 'ZZZ999';
+    await _pumpCompact(
+      tester,
+      VisitRoomScreen(
+        room: _room(
+          profileVisible: true,
+          about: 'A legacy private card.',
+          featuredGoals: const ['A Mutual-only card.'],
+        ),
+        code: 'ABC234',
+        lively: false,
+        previewOnly: true,
+        localState: local,
+        onPersist: () => fail('preview must not persist visitor actions'),
+        visitorProfileSharingEnabled: true,
+        visitorProfile: const {
+          'displayName': 'Mika',
+          'cardOrder': ['about'],
+          'about': 'The Anyone card.',
+          'featuredGoals': <String>[],
+          'pinnedMoments': <Map<String, dynamic>>[],
+          'season': '',
+        },
+        spaceProfileFetcher: (_, {includeMutual = false}) async {
+          fetches++;
+          return null;
+        },
+        sparkSender: (_, _) async {
+          sparks++;
+          return true;
+        },
+      ),
+    );
+
+    expect(find.text('Public preview'), findsOneWidget);
+    expect(
+      find.text('Only Anyone cards appear here. Nothing is published.'),
+      findsOneWidget,
+    );
+    final profile = find.byKey(const ValueKey('visitor-external-profile'));
+    await tester.scrollUntilVisible(
+      profile,
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('The Anyone card.'), findsOneWidget);
+    expect(find.text('A Mutual-only card.'), findsNothing);
+    expect(find.text('A legacy private card.'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('visit-room-circle-action')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('discover-report-or-hide')), findsNothing);
+    expect(find.text('LEAVE A SPARK'), findsNothing);
+    expect(fetches, 0);
+    expect(sparks, 0);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('public preview without a projection never fetches', (
+    tester,
+  ) async {
+    var fetches = 0;
+    await _pumpCompact(
+      tester,
+      VisitRoomScreen(
+        room: _room(profileVisible: false),
+        code: 'ABC234',
+        lively: false,
+        previewOnly: true,
+        visitorProfileSharingEnabled: true,
+        spaceProfileFetcher: (_, {includeMutual = false}) async {
+          fetches++;
+          return null;
+        },
+      ),
+    );
+
+    expect(find.text('Public preview'), findsOneWidget);
+    expect(fetches, 0);
+    expect(find.byKey(const ValueKey('visitor-profile-loading')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('confirmed Circle removal ends the local keep', (tester) async {
     final state = GameState()..reduceMotion = true;
     expect(state.addCircleCode('ABC234'), isTrue);

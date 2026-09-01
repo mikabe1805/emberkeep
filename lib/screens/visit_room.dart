@@ -13,6 +13,7 @@ import '../content/space_themes.dart';
 import '../discovery.dart';
 import '../engine.dart';
 import '../release_features.dart';
+import '../room_photo.dart';
 import '../shared_room_media.dart';
 import '../tokens.dart';
 import '../widgets/detail_header.dart';
@@ -22,6 +23,7 @@ import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
 import '../widgets/spark_picker.dart';
 import '../widgets/visitor_shared_room_photo.dart';
+import '../widgets/visitor_room_photo_loader.dart';
 
 typedef DiscoverySpaceReporter =
     Future<bool> Function(String code, String category);
@@ -55,6 +57,9 @@ class VisitRoomScreen extends StatelessWidget {
     this.relationshipSetter,
     this.visitorPhotoSharingEnabled = kVisitorPhotoSharingEnabled,
     this.visitorProfileSharingEnabled = kVisitorProfileSharingEnabled,
+    this.previewOnly = false,
+    this.previewRoomPhoto,
+    this.roomPhotoBytesLoader,
   });
 
   final Map<String, dynamic> room;
@@ -76,6 +81,15 @@ class VisitRoomScreen extends StatelessWidget {
   final VisitorPhotoUrlLoader? photoUrlLoader;
   final bool visitorPhotoSharingEnabled;
   final bool visitorProfileSharingEnabled;
+
+  /// Local owner preview of the public projection. It never opens a network
+  /// path or presents visitor actions.
+  final bool previewOnly;
+
+  /// An owner preview carries its chosen local image explicitly. It must never
+  /// infer it from a singleton or open a remote Storage request.
+  final RoomPhotoData? previewRoomPhoto;
+  final VisitorRoomPhotoBytesLoader? roomPhotoBytesLoader;
   final String discoveryPublicName;
   final String discoveryOwnerKey;
   final DiscoverySpaceReporter? onReportDiscoverableSpace;
@@ -95,8 +109,12 @@ class VisitRoomScreen extends StatelessWidget {
       return String.fromCharCodes(value.trim().runes.take(max));
     }
 
+    // A local public preview must use the explicitly injected Anyone
+    // projection, never fields embedded in a room map from a legacy caller.
     final profileVisible =
-        visitorProfileSharingEnabled && room['profileVisible'] == true;
+        !previewOnly &&
+        visitorProfileSharingEnabled &&
+        room['profileVisible'] == true;
     final legacyName = safeString('name', '', 40);
     final displayName = profileVisible ? safeString('displayName', '', 40) : '';
     final directoryName = sanitizeDiscoveryPublicName(discoveryPublicName);
@@ -156,6 +174,59 @@ class VisitRoomScreen extends StatelessWidget {
     final seasonPhotoPath = cardOrder.contains(SpaceCardKind.thisSeason)
         ? safePhotoPath('seasonPhotoPath', SharedRoomMediaSlot.season)
         : '';
+
+    ({String path, bool fill, Alignment alignment, int width, int height})?
+    safeRoomPhoto() {
+      if (previewOnly) return null;
+      final path = safeString('roomPhotoPath', '', 240);
+      final ownerKey = safeString('ownerKey', '', 160);
+      final rawWidth = room['roomPhotoWidth'];
+      final rawHeight = room['roomPhotoHeight'];
+      final rawX = room['roomPhotoX'];
+      final rawY = room['roomPhotoY'];
+      if (path.isEmpty ||
+          ownerKey.isEmpty ||
+          rawWidth is! num ||
+          rawHeight is! num ||
+          rawX is! num ||
+          rawY is! num) {
+        return null;
+      }
+      final width = rawWidth.toInt();
+      final height = rawHeight.toInt();
+      final x = rawX.toDouble();
+      final y = rawY.toDouble();
+      if (width < 1 ||
+          width > RoomPhotoStore.maxDimension ||
+          height < 1 ||
+          height > RoomPhotoStore.maxDimension ||
+          x < -1 ||
+          x > 1 ||
+          y < -1 ||
+          y > 1) {
+        return null;
+      }
+      try {
+        final location = SharedRoomMediaLocation.fromObjectPath(path);
+        if (location.generation == null ||
+            location.ownerKey != ownerKey ||
+            location.roomCode != code.trim().toUpperCase() ||
+            location.slot != SharedRoomMediaSlot.room) {
+          return null;
+        }
+        return (
+          path: location.objectPath,
+          fill: room['roomPhotoFill'] == true,
+          alignment: Alignment(x, y),
+          width: width,
+          height: height,
+        );
+      } on SharedRoomMediaException {
+        return null;
+      }
+    }
+
+    final remoteRoomPhoto = safeRoomPhoto();
     final pinnedMoments = <({String text, DateTime at})>[];
     if (profileVisible && room['pinnedMoments'] is List) {
       for (final raw in room['pinnedMoments'] as List) {
@@ -199,6 +270,36 @@ class VisitRoomScreen extends StatelessWidget {
       _ => savedWall,
     };
     final sharedTheme = spaceThemeById(migratedWall) ?? spaceThemes.first;
+    Widget buildRoom(RoomPhotoData? photo) => HomeRoom(
+      aspect: 1.5,
+      lively: lively,
+      unlocked: furniture,
+      wall: wallColorsById(sharedTheme.id),
+      plateId: sharedTheme.id,
+      floor: floorColorsById(safeString('floor')),
+      window: safeString('window', 'moon'),
+      level: level,
+      petAwake: room['awake'] == true,
+      emberGlow: flameHueById(safeString('skin')),
+      heirloomFlame: heirloomFlameById(safeString('skin')),
+      memoryArtifacts: memories,
+      parallax: lively ? parallax : null,
+      roomPhoto: photo,
+    );
+    final roomView = previewOnly
+        ? buildRoom(previewRoomPhoto)
+        : remoteRoomPhoto == null
+        ? buildRoom(null)
+        : VisitorRoomPhotoLoader(
+            key: ValueKey(remoteRoomPhoto.path),
+            objectPath: remoteRoomPhoto.path,
+            fillFrame: remoteRoomPhoto.fill,
+            alignment: remoteRoomPhoto.alignment,
+            pixelWidth: remoteRoomPhoto.width,
+            pixelHeight: remoteRoomPhoto.height,
+            bytesLoader: roomPhotoBytesLoader,
+            builder: (_, photo) => buildRoom(photo),
+          );
 
     return Scaffold(
       backgroundColor: Palette.parchment,
@@ -210,34 +311,37 @@ class VisitRoomScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(0, 0, 0, 36),
             children: [
               DetailHeader(
-                title: name.isNotEmpty ? '$name’s space' : 'a space',
+                title: previewOnly
+                    ? 'Public preview'
+                    : name.isNotEmpty
+                    ? '$name’s space'
+                    : 'a space',
                 accent: Palette.xp,
-                subtitle: 'visiting · $code',
+                subtitle: previewOnly ? 'local preview' : 'visiting · $code',
                 pill: 'LV $level',
               ),
+              if (previewOnly)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                  child: GlassPanel(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      'Only Anyone cards appear here. Nothing is published.',
+                      textAlign: TextAlign.center,
+                      style: Type.body.copyWith(
+                        fontSize: 12,
+                        color: Palette.textLo,
+                      ),
+                    ),
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: GlassPanel(
                   blur: true,
                   child: Column(
                     children: [
-                      HomeRoom(
-                        aspect: 1.5,
-                        lively: lively,
-                        unlocked: furniture,
-                        wall: wallColorsById(sharedTheme.id),
-                        plateId: sharedTheme.id,
-                        floor: floorColorsById(safeString('floor')),
-                        window: safeString('window', 'moon'),
-                        level: level,
-                        // the friend's cat may be awake if they're active
-                        petAwake: room['awake'] == true,
-                        // their chosen hearth-flame colour
-                        emberGlow: flameHueById(safeString('skin')),
-                        heirloomFlame: heirloomFlameById(safeString('skin')),
-                        memoryArtifacts: memories,
-                        parallax: lively ? parallax : null,
-                      ),
+                      roomView,
                       const SizedBox(height: 14),
                       if (title.isNotEmpty)
                         Text(
@@ -324,7 +428,9 @@ class VisitRoomScreen extends StatelessWidget {
                   ),
                 ),
               ],
-              if (!profileVisible && visitorProfileSharingEnabled)
+              if (!profileVisible &&
+                  visitorProfileSharingEnabled &&
+                  (!previewOnly || visitorProfile != null))
                 _VisitorProfileLoader(
                   code: code,
                   initialProfile: visitorProfile,
@@ -346,14 +452,15 @@ class VisitRoomScreen extends StatelessWidget {
                 ),
               // The visit ends with something to give, not just something to
               // keep — the same fixed, text-free note the Circle sends.
-              if (localState?.roomCode != code.trim().toUpperCase()) ...[
+              if (!previewOnly &&
+                  localState?.roomCode != code.trim().toUpperCase()) ...[
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _LeaveNoteAction(code: code, sparkSender: sparkSender),
                 ),
               ],
-              if (localState != null && onPersist != null) ...[
+              if (!previewOnly && localState != null && onPersist != null) ...[
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -366,7 +473,8 @@ class VisitRoomScreen extends StatelessWidget {
                   ),
                 ),
               ],
-              if (localState != null &&
+              if (!previewOnly &&
+                  localState != null &&
                   onPersist != null &&
                   localState!.roomCode != code.trim().toUpperCase()) ...[
                 const SizedBox(height: 4),

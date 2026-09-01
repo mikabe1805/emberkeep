@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "id": "polished-build39-2026-09-01",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "visual_evidence_ready",
+  "locked_at": "2026-09-01T00:00:00-04:00",
+  "surface": "Whole-product Build 39 release integration, with a decisive first slice across Me, Quests, public room preview, Discover, and Visit Room",
+  "scope": "Integrate the accepted Build 38 music and Steward candidate with the later authored-room and private-photo work, remove the rejected visible mantel-keepsake experiment, audit every major product sector, and prepare a truthful internal TestFlight and App Store draft without public submission.",
+  "user_job": "Understand what Room of Days is for, make ordinary effort count without guilt, recognize one authored room as mine across the app, and trust that personal expression is private until I explicitly share it.",
+  "active_sources": [
+    {
+      "id": "polished-build39-owner-contract",
+      "kind": "product_contract",
+      "location": "design/visual-targets/2026-09-01/polished-build39-contract.md",
+      "content_sha256": "97942d01bdb9a9c2b2824292daf50cbd1669e535b523fed64820f3786571c343",
+      "approved_at": "2026-08-31",
+      "judged_state": "Direct owner request for a polished across-the-board successor and clearer App Store explanation, combined with the prior explicit rejection of the visible mantel-keepsake treatment.",
+      "viewport": "430x932, 320x568 at 1.3x and 2x, landscape, browser, and final physical iPhone",
+      "priority": 1
+    }
+  ],
+  "superseded_sources": [
+    {
+      "location": "design/visual-targets/2026-08-31/your-room-keepsakes-contract.md",
+      "reason": "The owner directly rejected the visible mantel-keepsake treatment and asked for a better opportunity; the private room-photo direction supersedes it. Only the bounded field survives as inert save and wire compatibility."
+    }
+  ],
+  "source_conflicts": [],
+  "inherits_from": "",
+  "edge_contract": {
+    "product": {
+      "decision": "Room expression comes from one authored room plus an optional private photo, not a second collectible-decoration system. Legacy roomKeepsakes values remain protocol-compatible but have no visible product effect.",
+      "proof": "Open the same non-empty legacy save in Me, Quests, local public preview, Discover, and Visit Room; verify the room and photo behavior while no mantel object, editor, text, semantics, or public claim appears."
+    },
+    "interaction": {
+      "decision": "Choosing a local room photo never publishes it. Public room-photo use requires a separate explicit opt-in, and local public preview or room selection cannot create a network write.",
+      "proof": "Choose, replace, remove, and reopen a local photo; exercise private, public-preview, explicit-share, opt-out, and legacy-save states while observing state and backend calls."
+    },
+    "visual": {
+      "decision": "The shared room remains a warm, authored, perspective-coherent place with the photo registered above the fireplace and with the competing mantel-object UI and imagery removed.",
+      "proof": "Compare fresh production captures of Me, Quests, shop preview, private photo, public preview, Discover, and Visit Room at normal, compact, large-text, and reduced-motion states."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Keep the rejected keepsake card hidden only in store screenshots",
+      "why": "The correction must apply to the actual product, rendering, copy, semantics, and public surfaces."
+    },
+    {
+      "fallback": "Delete the legacy field or bump public-room schemas during visual cleanup",
+      "why": "A cosmetic correction must not break old saves, older clients, or deployed public-room validation."
+    },
+    {
+      "fallback": "Describe Room of Days as a generic habit tracker or life RPG",
+      "why": "The App Store story must make its concrete promise legible: ordinary effort becomes visible progress without guilt."
+    },
+    {
+      "fallback": "Treat automated tests or simulator screenshots as public release acceptance",
+      "why": "Physical-device feel, two-account privacy, deployment, signing, App Store account state, and owner judgment remain separate gates."
+    }
+  ],
+  "first_real_slice": {
+    "scenario": "A legacy save has a selected Writer room, a non-empty inert roomKeepsakes field, and a private photo. The person opens Me and Quests, previews the public room, explicitly opts the photo in, visits from another account, then opts it out.",
+    "real_inputs": "Production GameState serialization, RoomPhotoStore, HomeRoom, MePage, QuestsPage, social projection, Discover, Visit Room, Firestore rules, Storage rules, and Functions room validation.",
+    "user_action": "Open the room, inspect the private photo, preview public state, explicitly share the photo, visit it from a second identity, and remove public access.",
+    "expected_outcome": "One coherent room appears everywhere; the photo is private until explicit consent; revocation removes it; no visible or narrated mantel keepsake remains; legacy fields still round-trip safely.",
+    "state_boundary": "The correction changes only visible room expression and public copy. It does not erase legacy save fields, change public schema versions, publish by preview, mutate Quests or Goals, or authorize public release.",
+    "required_states": [
+      {
+        "id": "legacy-inert",
+        "state": "Non-empty legacy roomKeepsakes in local and public documents",
+        "why_can_disprove": "A hidden editor can still leak through rendering, semantics, copy, or a failed schema write."
+      },
+      {
+        "id": "photo-private-public-revoked",
+        "state": "Local private photo, public preview, explicit share, other-account visit, and opt-out",
+        "why_can_disprove": "A pretty owner view can conceal accidental publication or stale public media."
+      },
+      {
+        "id": "compact-accessible",
+        "state": "320x568 at 1.3x and 2x with Reduced Motion across Me and the share controls",
+        "why_can_disprove": "Normal-width captures can conceal unreachable consent or photo controls."
+      }
+    ]
+  },
+  "ripple_map": [
+    {
+      "id": "room-rendering",
+      "surface_or_primitive": "HomeRoom and QuestDepthRoom shared rendering",
+      "state": "Writer and alternate rooms; private photo; soft Quest plate; reduced motion; legacy non-empty field",
+      "expected_effect": "One authored room and registered photo, with no mantel overlay or asset dependency.",
+      "verification_plan": "Focused render regression, fresh cross-surface captures, asset scan, and full Flutter suite.",
+      "disposition": "update",
+      "reason": "The shared primitive previously rendered the rejected experiment."
+    },
+    {
+      "id": "public-room-copy",
+      "surface_or_primitive": "Local public preview, Discover, visitor room, and share semantics",
+      "state": "Private, mutual, public, anonymous preview, blocked, legacy document",
+      "expected_effect": "No keepsake copy or semantics; photo remains explicit and revocable; bounded private data stays excluded.",
+      "verification_plan": "Client, Functions, Firestore, Storage, two-account, and rendered accessibility checks.",
+      "disposition": "update",
+      "reason": "Public explanations must match the actual visible payload."
+    },
+    {
+      "id": "store-story",
+      "surface_or_primitive": "App Store screenshots and metadata",
+      "state": "Search-result first three screenshots and full ten-image story",
+      "expected_effect": "Explain everyday effort, visible progress, and a flexible day before secondary room/social features.",
+      "verification_plan": "Fresh candidate-bound screenshots, metadata-limit checks, and final truthful-claim audit.",
+      "disposition": "update",
+      "reason": "Current packaging reads as a generic dark life RPG and does not explain the concrete job quickly enough."
+    }
+  ],
+  "unverified_property": "Whether the integrated candidate feels cohesive, readable, warm, performant, and worth downloading on the owner's physical iPhone, and whether deployed two-account privacy behavior matches the local proof.",
+  "decisive_check": {
+    "method": "Run the first slice on the frozen candidate with current automated, rendered, two-account, and physical-device evidence; then inspect the App Store first-three screenshot story against the same revision.",
+    "target": "One candidate-bound journey from ordinary Quest to visible progress, authored room/photo expression, explicit public consent, and revocation.",
+    "pass_condition": "No rejected keepsake surface remains; privacy defaults and revocation hold; the whole product passes current checks; fresh renders are cohesive and accessible; the first three store screenshots explain the concrete value; owner and physical-device gates are recorded honestly."
+  },
+  "revision_scope": {
+    "include": [
+      "lib",
+      "assets/rooms",
+      "assets/music",
+      "firestore.rules",
+      "storage.rules",
+      "functions/src",
+      "ios/Runner/Info.plist",
+      "test",
+      "store-assets",
+      "STORE-LISTING.md",
+      "RELEASE-CHECKLIST.md",
+      "codemagic.yaml",
+      "design/visual-targets/2026-09-01/polished-build39-contract.md"
+    ],
+    "exclude": [
+      "design/audits/2026-08-31",
+      "test-results",
+      "superseded keepsake generation assets and tools"
+    ]
+  }
+}

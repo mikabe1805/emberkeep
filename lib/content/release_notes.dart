@@ -52,6 +52,45 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+39',
+    versionLabel: 'VERSION 1.0.4 · BUILD 39',
+    dateLabel: 'SEPTEMBER 2026',
+    title: 'A room that follows your day.',
+    introduction:
+        'Everyday Quests, a plan that can bend, and a room that feels like '
+        'yours now stay together more clearly.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.roomGuide,
+        title: 'ONE ROOM, WHEREVER YOU ARE',
+        body:
+            'Choose a complete room and carry the same place through Me, '
+            'Quests, previews, and visits.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.spaceDiscovery,
+        title: 'A PHOTO, ON YOUR TERMS',
+        body:
+            'Place one photo above the fireplace. It stays private unless '
+            'you separately choose to include it in your public room.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.questControl,
+        title: 'CHOOSE WHAT FITS TODAY',
+        body:
+            'Pick up to three Quests for Today’s Field. Everything else can '
+            'stay nearby without becoming unfinished debt.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.ambientLight,
+        title: 'MUSIC, IF YOU WANT IT',
+        body:
+            'A quiet room theme is waiting in Me. Background music remains '
+            'off until you turn it on.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+38',
     versionLabel: 'VERSION 1.0.4 · BUILD 38',
     dateLabel: 'AUGUST 2026',

@@ -1,7 +1,49 @@
 # Room of Days Release Checklist
 
-Updated August 30, 2026. “Repository-ready” means the source is prepared; it does
+Updated September 1, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
+
+## 1.0.4+39 polished internal candidate
+
+Build 39 is the polished room-continuity, optional-photo, and privacy-defaults
+candidate. It keeps the room as one coherent place, makes a selected device
+photo an explicit private-by-default choice, and makes the App Store story lead
+with the real loop: everyday chores become Quests, visible progress, and a room
+that grows with the person using it. `pubspec.yaml` is `1.0.4+39`.
+
+- [x] Start from the clean Build 38 source in an isolated Build 39 worktree;
+  preserve the shared development checkout and historical release records.
+- [x] Remove the rejected visible mantel-keepsake experiment while retaining
+  inert legacy data compatibility; no room photo is shown unless its owner
+  chooses one.
+- [x] Keep room photos device-private by default and require a separate,
+  deliberate sharing choice before any visitor can receive one.
+- [x] Capture, export, and inspect a fresh ten-frame 1290×2796 iPhone App Store
+  sequence led by Quests, Reward, and Goals; do not treat prior Build 37/38
+  screenshots as Build 39 evidence.
+- [x] Rewrite the subtitle, promotional text, keywords, description, What's
+  New, TestFlight packet, reviewer notes, and screenshot sequence around the
+  Build 39 product and its privacy boundaries.
+- [x] Run local Flutter analysis, the Flutter suite, Functions lint/build/test,
+  Firestore authorization tests, and Storage privacy-rule tests. Record any
+  upstream dependency warnings separately from candidate behavior.
+- [ ] Bind the complete source/listing/screenshot packet with the required
+  manifest-only receipt commit, then run the clean-checkout receipt verifier.
+- [ ] Build and upload the exact Build 39 tag to internal TestFlight. Confirm
+  Codemagic reaches a terminal success and Apple processes the new build before
+  calling it installable.
+- [ ] On a physical iPhone, run both an upgrade and fresh-install pass: optional
+  photo picker and share/revoke behavior, room continuity, Quests/Goals,
+  music through speaker and headphones, haptics, VoiceOver, Larger Text,
+  Reduce Motion, lower brightness, offline/reconnect, background/resume, and
+  warm-device frame pacing.
+- [ ] Repeat the signed two-person Circle and visitor-page privacy journey on
+  the deployed backend, including private-default photo absence, deliberate
+  sharing, revocation, anyone/mutuals/only-me boundaries, and Discover opt-in.
+- [ ] Update the App Store Connect version draft with only the receipt-bound
+  Build 39 screenshots and listing copy. Do not select a binary or submit a
+  public review request until the exact internal build and owner-device gates
+  above pass.
 
 ## 1.0.4+36 release-polish candidate — supersedes unbound Build 35
 

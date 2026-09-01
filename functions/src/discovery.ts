@@ -1,6 +1,7 @@
 import {createHash} from "node:crypto";
 import {FieldValue} from "firebase-admin/firestore";
 import {HttpsError} from "firebase-functions/v2/https";
+import {isSupportedGeneratedRoom} from "./generated_room";
 
 export const ROOM_CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
 export const ownerKeyForUid = (uid: string): string => createHash("sha256").update(uid, "utf8").digest("hex");
@@ -128,7 +129,7 @@ export const setDiscoveryPublicNameHandler = async (
       transaction.get(dependencies.store.collection("discoveryBans").doc(ownerKey(uid))),
       transaction.get(limitRef),
     ]);
-    if (!room.exists || room.data()?.v !== 6 || room.data()?.ownerKey !== ownerKey(uid)) throw new HttpsError("permission-denied", "You do not own this room.");
+    if (!room.exists || !isSupportedGeneratedRoom(room.data()) || room.data()?.ownerKey !== ownerKey(uid)) throw new HttpsError("permission-denied", "You do not own this room.");
     if (!directory.exists) throw new HttpsError("failed-precondition", "This room is not discoverable.");
     if (directory.data()?.ownerKey !== ownerKey(uid)) throw new HttpsError("failed-precondition", "This room's discovery record is stale.");
     if (ban.exists) throw new HttpsError("permission-denied", "This room is not eligible for public names.");
@@ -139,7 +140,7 @@ export const setDiscoveryPublicNameHandler = async (
     if (last !== undefined && now.getTime() - last < NAME_COOLDOWN_MS) throw new HttpsError("resource-exhausted", "Please wait before changing your public name again.");
     if (count >= DAILY_NAME_LIMIT) throw new HttpsError("resource-exhausted", "The daily public-name change limit has been reached.");
     // Keep the field present even for anonymous rooms: directory reads and
-    // client refreshes share one strict v3 schema.
+    // client refreshes share one strict versioned schema.
     transaction.set(directoryRef, {publicName}, {merge: true});
     transaction.set(limitRef, {dayBucket: day, dayCount: count + 1, lastChangedAt: now}, {merge: true});
   });
@@ -172,7 +173,7 @@ export const reportDiscoverableSpaceHandler = async (
       transaction.get(limitRef),
     ]);
     const roomData = room.data();
-    if (!room.exists || roomData?.v !== 6 || roomData?.profileVisible !== false) {
+    if (!room.exists || !isSupportedGeneratedRoom(roomData) || roomData?.profileVisible !== false) {
       throw new HttpsError("not-found", "This shared space is unavailable.");
     }
     const roomOwnerKey = roomData.ownerKey;

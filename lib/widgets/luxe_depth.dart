@@ -351,6 +351,7 @@ class LuxeCustomPageList extends StatefulWidget {
     this.trailing,
     this.heroHeight = 275,
     this.heroAspect,
+    this.presentWholeRoom = false,
   });
 
   final Widget hero;
@@ -370,6 +371,10 @@ class LuxeCustomPageList extends StatefulWidget {
   /// cropping a sliver instead of letterboxing — so the room meets the band
   /// edge-to-edge at every phone width, not only the 430dp capture width.
   final double? heroAspect;
+
+  /// Room identity needs an unobscured painting and a heading below it.
+  /// Other page heroes keep their established overlapping title treatment.
+  final bool presentWholeRoom;
 
   @override
   State<LuxeCustomPageList> createState() => _LuxeCustomPageListState();
@@ -460,8 +465,12 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
                             colors: [
                               const Color(0x10000000),
                               const Color(0x00000000),
-                              ambient.top.withValues(alpha: 0.30),
-                              ambient.bottom.withValues(alpha: 0.97),
+                              ambient.top.withValues(
+                                alpha: widget.presentWholeRoom ? 0.08 : 0.30,
+                              ),
+                              ambient.bottom.withValues(
+                                alpha: widget.presentWholeRoom ? 0.30 : 0.97,
+                              ),
                             ],
                             stops: [0, 0.55, 0.80, 1],
                           ),
@@ -487,12 +496,16 @@ class _LuxeCustomPageListState extends State<LuxeCustomPageList> {
           ),
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
           children: [
-            SizedBox(height: widget.heroHeight - 64),
+            SizedBox(
+              height: widget.heroHeight + (widget.presentWholeRoom ? 12 : -64),
+            ),
             _LuxePageHeading(
               title: widget.title,
               subtitle: widget.subtitle,
               icon: widget.icon,
               trailing: widget.trailing,
+              showIcon: !widget.presentWholeRoom,
+              wrapTitle: widget.presentWholeRoom,
             ),
             const SizedBox(height: 18),
             ...widget.children,
@@ -991,6 +1004,7 @@ class _LuxePageHeading extends StatelessWidget {
     this.trailing,
     this.compact = false,
     this.showIcon = true,
+    this.wrapTitle = false,
   });
 
   final String title;
@@ -999,6 +1013,7 @@ class _LuxePageHeading extends StatelessWidget {
   final Widget? trailing;
   final bool compact;
   final bool showIcon;
+  final bool wrapTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -1020,9 +1035,9 @@ class _LuxePageHeading extends StatelessWidget {
             children: [
               Text(
                 title.toUpperCase(),
-                maxLines: 1,
+                maxLines: wrapTitle ? 2 : 1,
                 overflow: TextOverflow.fade,
-                softWrap: false,
+                softWrap: wrapTitle,
                 style: Type.display.copyWith(
                   fontSize: compact ? 27 : 32,
                   height: 0.96,

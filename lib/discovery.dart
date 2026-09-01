@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 
 import 'content/creature_skins.dart';
 import 'content/room_styles.dart';
+import 'content/room_keepsakes.dart';
 import 'content/space_themes.dart';
 import 'content/window_scenes.dart';
 
@@ -15,7 +16,7 @@ import 'content/window_scenes.dart';
 /// authored field is a separately saved public name; it is never copied from
 /// the private Me profile and can only be changed by the moderated callable.
 /// A tap is the only point at which the app retrieves the bearer-code room.
-const int discoverableSpaceVersion = 3;
+const int discoverableSpaceVersion = 4;
 const int discoverableSpaceBucketCount = 1000000;
 const int discoveryPublicNameMaxLength = 32;
 const Duration discoverableSpaceLease = Duration(days: 30);
@@ -54,7 +55,7 @@ final _floorIds = roomStyles
     .where((style) => style.kind.name == 'floor')
     .map((style) => style.id)
     .toSet();
-final _skinIds = creatureSkins.map((skin) => skin.id).toSet();
+final _skinIds = publishedFlameSkinIds;
 final _windowIds = windowViews.map((view) => view.id).toSet();
 
 /// Stable, non-personal shuffle position for a room code.
@@ -164,9 +165,8 @@ bool isAllowedDiscoveryPublicName(Object? value) {
 }
 
 /// Removes everything except the visual identity a person explicitly chooses
-/// to place in the directory. The source may be the full private-share room
-/// display, so this function must be an allowlist rather than a copy/remove
-/// transform.
+/// to place in the directory. The source may be the full private-share room,
+/// so this function must be an allowlist rather than a copy/remove transform.
 Map<String, dynamic> discoverableSpaceDisplay(
   Map<String, dynamic> room, {
   required String roomCode,
@@ -178,6 +178,7 @@ Map<String, dynamic> discoverableSpaceDisplay(
   'floor': _safeId(room['floor'], _floorIds, 'floor_oak'),
   'skin': _safeId(room['skin'], _skinIds, 'ember_amber'),
   'window': _safeId(room['window'], _windowIds, 'moon'),
+  'roomKeepsakes': sanitizeRoomKeepsakes(room['roomKeepsakes']),
   'bucket': discoverableSpaceBucket(roomCode),
   'ownerKey': room['ownerKey'],
   // Owners may create the directory projection only in anonymous form.
@@ -197,6 +198,7 @@ class DiscoverableSpaceSummary {
     required this.floor,
     required this.skin,
     required this.window,
+    this.roomKeepsakes = const <String>[],
     required this.bucket,
     required this.ownerKey,
     this.publicName = '',
@@ -209,6 +211,7 @@ class DiscoverableSpaceSummary {
   final String floor;
   final String skin;
   final String window;
+  final List<String> roomKeepsakes;
   final int bucket;
   final String ownerKey;
   final String publicName;
@@ -225,7 +228,7 @@ class DiscoverableSpaceSummary {
     final code = documentId.trim().toUpperCase();
     final expiresAt = data['expiresAt'];
     if (!_roomCode.hasMatch(code) ||
-        data['v'] != discoverableSpaceVersion ||
+        (data['v'] != 3 && data['v'] != discoverableSpaceVersion) ||
         data['ownerKey'] is! String ||
         !_discoveryOwnerKey.hasMatch(data['ownerKey'] as String) ||
         data['publicName'] is! String ||
@@ -247,6 +250,7 @@ class DiscoverableSpaceSummary {
       floor: _safeId(data['floor'], _floorIds, 'floor_oak'),
       skin: _safeId(data['skin'], _skinIds, 'ember_amber'),
       window: _safeId(data['window'], _windowIds, 'moon'),
+      roomKeepsakes: sanitizeRoomKeepsakes(data['roomKeepsakes']),
       bucket: bucket.toInt(),
       ownerKey: data['ownerKey'] as String,
       publicName: sanitizeDiscoveryPublicName(data['publicName']),

@@ -159,7 +159,9 @@ void main() {
 
       final room = roomDisplay(state);
 
-      expect(room['v'], 6);
+      expect(room['v'], 8);
+      expect(room['roomKeepsakes'], isA<List<dynamic>>());
+      expect(room['roomKeepsakes'], isEmpty);
       expect(room['profileVisible'], isFalse);
       expect(room['displayName'], isEmpty);
       expect(room['about'], isEmpty);

@@ -1,5 +1,6 @@
-import 'dart:async' show Timer, unawaited;
+import 'dart:async' show Completer, Timer, unawaited;
 import 'dart:math' show cos, min, pi, sin;
+import 'dart:typed_data' show Uint8List;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart'
@@ -8,9 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 import '../content/space_themes.dart';
+import '../room_photo.dart';
 import '../tokens.dart';
 import 'facets.dart';
 import 'living_hearth_fire.dart';
+import 'quest_depth_room.dart';
+import 'room_photo_frame.dart';
 
 /// Room of Days' shared flame language: a graphic outer tongue in the purchased
 /// hue rising from a pale, white-hot base. Room hearth, HUD, candles, and shop
@@ -359,6 +363,7 @@ class _RoomPlate {
   /// Returns the decoded, already-complete room texture for this identity.
   static ui.Image? displayOf(String? id, {bool preview = false}) {
     if (id == null) return null;
+    if (id.startsWith('soft:')) return _plates[id] ?? _plates[id.substring(5)];
     return preview ? _previews[id] ?? _plates[id] : _plates[id];
   }
 
@@ -385,9 +390,14 @@ class _RoomPlate {
 
   static Future<void> _load(String id) async {
     try {
-      final theme = spaceThemeById(id);
+      final soft = id.startsWith('soft:');
+      final theme = spaceThemeById(soft ? id.substring(5) : id);
       if (theme != null) {
-        _plates[id] = await _decode(theme.plateAsset);
+        _plates[id] = await _decode(
+          soft
+              ? theme.plateAsset.replaceFirst('.webp', '-soft.webp')
+              : theme.plateAsset,
+        );
       } else {
         _plates[id] = await _decode('assets/rooms/$id.png');
       }
@@ -423,22 +433,15 @@ class _RoomPlate {
   // Complete themes deliberately have no furniture-composition branch.
 }
 
-/// Where the fire bed sits inside the plate ART, as a fraction of the source
-/// image — every plate is 1536×1024 with the hearth registered at the same
-/// spot (ROOM-PLATES.md), measured off the painted log rest between the
-/// andirons. The flicker overlay is the only thing in the code that assumes
-/// anything about what the painting contains, and this is the single place it
-/// assumes it. The point rides the same cover-crop + overscan mapping as the
-/// painting, so the flame stays seated in the firebox at every surface aspect
-/// (Me hero 1.5, Circle and Chronicle 1.7); move it if a generated room puts
-/// the hearth somewhere else.
-const _plateHearthImage = Offset(0.866, 0.662);
-
 /// Decodes the room's reusable raster textures before a deterministic capture.
 /// Live rooms still load lazily through [HomeRoom]; screenshot and share-card
 /// surfaces can await this to avoid recording the one-frame loading fallback.
 Future<void> preloadHomeRoomAssets() async {
-  await Future.wait([_RoomGrain.preload(), _RoomFireFrames.preload()]);
+  await Future.wait([
+    _RoomGrain.preload(),
+    _RoomFireFrames.preload(),
+    _preloadWriterRoom(),
+  ]);
   final ids = spaceThemes.map((theme) => theme.id);
   await Future.wait([
     _RoomPlate.preloadAll(ids),
@@ -456,7 +459,85 @@ Future<void> preloadHearthFireFrames() => _RoomFireFrames.preload();
 
 /// Prepares one full room before a user moves into it, preventing a procedural
 /// fallback frame from flashing between two authored identities.
-Future<void> preloadSpaceTheme(String id) => _RoomPlate.preload(id);
+Future<void> preloadSpaceTheme(String id) async {
+  await Future.wait([
+    _RoomPlate.preload(id),
+    if (id == 'wall_walnut') _preloadWriterRoom(),
+  ]);
+}
+
+const _writerSceneSize = Size(1635, 962);
+final _writerImageLoads = <String, Future<void>>{};
+
+Future<void> _preloadWriterRoom() => Future.wait([
+  for (final asset in [
+    QuestDepthRoom.baseAsset,
+    QuestDepthRoom.wallAsset,
+    QuestDepthRoom.photoReadyWallAsset,
+    QuestDepthRoom.furnitureAsset,
+    QuestDepthRoom.foregroundAsset,
+    QuestDepthRoom.scrollSoftAsset,
+    QuestDepthRoom.photoSoftLayers.base,
+    QuestDepthRoom.photoSoftLayers.wall,
+    QuestDepthRoom.photoSoftLayers.furniture,
+    QuestDepthRoom.photoSoftLayers.foreground,
+    spaceThemeById('wall_walnut')!.previewAsset,
+    ...QuestDepthRoom.fireAssets,
+  ])
+    _writerImageLoads.putIfAbsent(asset, () {
+      final ready = Completer<void>();
+      final stream = AssetImage(asset).resolve(const ImageConfiguration());
+      late ImageStreamListener listener;
+      listener = ImageStreamListener(
+        (image, synchronousCall) {
+          stream.removeListener(listener);
+          if (!ready.isCompleted) ready.complete();
+        },
+        onError: (Object error, StackTrace? stackTrace) {
+          stream.removeListener(listener);
+          if (!ready.isCompleted) ready.completeError(error, stackTrace);
+        },
+      );
+      stream.addListener(listener);
+      return ready.future;
+    }),
+]).then((_) {});
+
+class _WriterPhotoPainter extends CustomPainter {
+  const _WriterPhotoPainter(this.image, this.photo, this.softened);
+
+  final ui.Image image;
+  final RoomPhotoData photo;
+  final bool softened;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final fitted = applyBoxFit(BoxFit.cover, _writerSceneSize, size);
+    paintRegisteredRoomPhoto(
+      canvas,
+      image: image,
+      photo: photo,
+      sceneSize: _writerSceneSize,
+      area: roomPhotoArea('wall_walnut'),
+      sourceCrop: Alignment.center.inscribe(
+        fitted.source,
+        Offset.zero & _writerSceneSize,
+      ),
+      destination: Alignment.center.inscribe(
+        fitted.destination,
+        Offset.zero & size,
+      ),
+      softened: softened,
+      sourceBlurSigma: 22,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_WriterPhotoPainter oldDelegate) =>
+      oldDelegate.image != image ||
+      oldDelegate.photo != photo ||
+      oldDelegate.softened != softened;
+}
 
 /// Legacy hearth-glyph tier mapping retained for compatibility with old visual
 /// tests. The production room no longer maps level to fire size; level belongs
@@ -482,12 +563,17 @@ class HomeRoom extends StatefulWidget {
     this.petAwake = false,
     this.emberGlow,
     this.heirloomFlame = false,
+    this.hearthLit = true,
     this.level = 1,
     this.lively = true,
     this.memoryArtifacts = 0,
     this.plateId,
     this.lightweightPreview = false,
+    this.softened = false,
+    this.roomPhoto,
     this.parallax,
+    this.scrollPosition,
+    this.igniting = false,
   });
 
   /// The wall-style id, used to look up a painted plate in `assets/rooms/`.
@@ -506,6 +592,15 @@ class HomeRoom extends StatefulWidget {
   /// the full room. This keeps the chooser responsive without flattening its
   /// alternate rooms into static thumbnails or decoding three full masters.
   final bool lightweightPreview;
+
+  /// Registered preblurred room plate, used only under a scrolling native
+  /// Quest board. It shares the exact full-room camera and never runs a blur.
+  final bool softened;
+
+  /// Explicit private input from the owner's local photo store. Public room,
+  /// visitor, Discovery and share-preview callers leave this null; the room
+  /// never consults a global photo store or derives a public thumbnail from it.
+  final RoomPhotoData? roomPhoto;
 
   /// Legacy furniture ids used only by the procedural fallback. Complete room
   /// identities ignore this set because all of their contents are authored.
@@ -537,6 +632,7 @@ class HomeRoom extends StatefulWidget {
   /// gold sparks above the blaze. The room still reserves its brightest value
   /// for the fuel-line core, and reduced motion parks the sparks in place.
   final bool heirloomFlame;
+  final bool hearthLit;
 
   /// The player's level — controls the permanent woven portion of the Morrow
   /// Tapestry. Defaults to 1 for preview/visit callers.
@@ -558,6 +654,11 @@ class HomeRoom extends StatefulWidget {
   /// (including reduced-motion and every non-interactive room caller).
   final ValueListenable<Offset>? parallax;
 
+  /// Native Quest scrolling drives the original writer room's separate depth
+  /// planes. Other views keep that input parked while sharing the same room.
+  final ValueListenable<double>? scrollPosition;
+  final bool igniting;
+
   @override
   State<HomeRoom> createState() => _HomeRoomState();
 }
@@ -573,6 +674,78 @@ class _HomeRoomState extends State<HomeRoom>
   Timer? _webTimer;
   var _webFrame = 0;
   final ValueNotifier<double> _paintPhase = ValueNotifier(0);
+  Uint8List? _photoBytes;
+  ImageStream? _photoStream;
+  ImageStreamListener? _photoListener;
+  ImageInfo? _photoInfo;
+  int _photoGeneration = 0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _resolvePhoto();
+  }
+
+  @override
+  void didUpdateWidget(HomeRoom oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _resolvePhoto();
+  }
+
+  void _resolvePhoto() {
+    final bytes = widget.roomPhoto?.bytes;
+    if (identical(bytes, _photoBytes)) return;
+    final generation = ++_photoGeneration;
+    final previousBytes = _photoBytes;
+    if (_photoListener case final listener?) {
+      _photoStream?.removeListener(listener);
+    }
+    _photoListener = null;
+    _photoStream = null;
+    _photoInfo?.dispose();
+    _photoInfo = null;
+    _photoBytes = bytes;
+    if (previousBytes != null) {
+      unawaited(MemoryImage(previousBytes).evict());
+    }
+    if (bytes == null) return;
+    final stream = MemoryImage(
+      bytes,
+    ).resolve(createLocalImageConfiguration(context));
+    final listener = ImageStreamListener(
+      (info, synchronous) {
+        if (!mounted || generation != _photoGeneration) {
+          info.dispose();
+          return;
+        }
+        void accept() {
+          _photoInfo?.dispose();
+          _photoInfo = info;
+        }
+
+        if (synchronous) {
+          accept();
+        } else {
+          setState(accept);
+        }
+      },
+      onError: (Object error, StackTrace? stack) {
+        // The picker already validated these bytes. If the image engine is
+        // unavailable, leave the finished room intact instead of painting a
+        // broken-image badge into the person's home.
+        if (!mounted || generation != _photoGeneration) return;
+        if (_photoInfo != null) {
+          setState(() {
+            _photoInfo?.dispose();
+            _photoInfo = null;
+          });
+        }
+      },
+    );
+    _photoStream = stream;
+    _photoListener = listener;
+    stream.addListener(listener);
+  }
 
   void _publishLifeFrame() {
     final life = _life;
@@ -590,6 +763,14 @@ class _HomeRoomState extends State<HomeRoom>
 
   @override
   void dispose() {
+    _photoGeneration++;
+    if (_photoListener case final listener?) {
+      _photoStream?.removeListener(listener);
+    }
+    _photoInfo?.dispose();
+    if (_photoBytes case final bytes?) {
+      unawaited(MemoryImage(bytes).evict());
+    }
     _webTimer?.cancel();
     _life?.removeListener(_publishLifeFrame);
     _life?.dispose();
@@ -599,14 +780,27 @@ class _HomeRoomState extends State<HomeRoom>
 
   @override
   Widget build(BuildContext context) {
-    _RoomGrain.ensure();
-    _RoomFireFrames.ensure();
-    _RoomPlate.ensure(widget.plateId, preview: widget.lightweightPreview);
+    final isWriterRoom = widget.plateId == 'wall_walnut';
+    final hasWriterPhoto =
+        isWriterRoom && _photoInfo != null && widget.roomPhoto != null;
+    if (!isWriterRoom) {
+      _RoomGrain.ensure();
+      _RoomFireFrames.ensure();
+    }
+    final plateId = widget.softened ? 'soft:${widget.plateId}' : widget.plateId;
+    final theme = spaceThemeById(widget.plateId ?? '');
+    if (!isWriterRoom) {
+      _RoomPlate.ensure(plateId, preview: widget.lightweightPreview);
+    }
     final lively =
         widget.lively &&
         !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
+    final cameraResponsive =
+        (widget.lively || widget.parallax != null) &&
+        !(MediaQuery.maybeDisableAnimationsOf(context) ?? false);
     final tickerEnabled = TickerMode.valuesOf(context).enabled;
-    if (kIsWeb && lively && tickerEnabled) {
+    final animatePainter = lively && !isWriterRoom;
+    if (kIsWeb && animatePainter && tickerEnabled) {
       _webTimer ??= Timer.periodic(
         const Duration(milliseconds: 143),
         _publishWebLifeFrame,
@@ -616,14 +810,14 @@ class _HomeRoomState extends State<HomeRoom>
       _webTimer = null;
       _webFrame = 0;
     }
-    if (!kIsWeb && lively && _life == null) {
+    if (!kIsWeb && animatePainter && _life == null) {
       final life = AnimationController(
         vsync: this,
         duration: const Duration(seconds: 10),
       );
       life.addListener(_publishLifeFrame);
       _life = life..repeat();
-    } else if (!kIsWeb && !lively && _life != null) {
+    } else if (!kIsWeb && !animatePainter && _life != null) {
       _life!
         ..removeListener(_publishLifeFrame)
         ..dispose();
@@ -637,50 +831,105 @@ class _HomeRoomState extends State<HomeRoom>
         clipper: const FacetedClipper(cut: 15),
         child: Stack(
           children: [
-            Positioned.fill(
-              // repaint-bounded so the ambient tick repaints the room alone,
-              // never the avatar (who has his own boundary) or the screen
-              child: RepaintBoundary(
-                child: AnimatedBuilder(
-                  animation: Listenable.merge([
-                    _RoomGrain.version,
-                    _RoomFireFrames.version,
-                    _RoomPlate.version,
-                    _paintPhase,
-                    ?widget.parallax,
-                  ]),
-                  builder: (_, _) {
-                    // The publisher already applies the platform cadence. t=0
-                    // is the calm reduced-motion frame, and every phase must
-                    // look finished on its own.
-                    final t = phaseIsLive ? _paintPhase.value : 0.0;
-                    return CustomPaint(
-                      painter: _RoomPainter(
-                        widget.unlocked,
-                        widget.wall,
-                        widget.floor,
-                        widget.window,
-                        widget.petAwake,
-                        widget.emberGlow,
-                        widget.heirloomFlame,
-                        widget.level,
-                        widget.memoryArtifacts,
-                        _RoomGrain.wall,
-                        _RoomGrain.floor,
-                        _RoomGrain.tapestry,
-                        _RoomFireFrames.frames,
-                        t,
-                        _RoomPlate.displayOf(
-                          widget.plateId,
-                          preview: widget.lightweightPreview,
+            if (isWriterRoom)
+              Positioned.fill(
+                child: QuestDepthRoom(
+                  parallax:
+                      widget.parallax ??
+                      const AlwaysStoppedAnimation<Offset>(Offset.zero),
+                  scrollPosition:
+                      widget.scrollPosition ??
+                      const AlwaysStoppedAnimation<double>(0),
+                  flameHue: widget.emberGlow ?? const Color(0xFFEC6007),
+                  lively: cameraResponsive,
+                  animateFire:
+                      lively && !widget.softened && !widget.lightweightPreview,
+                  igniting: widget.igniting,
+                  hearthLit: widget.hearthLit && !widget.softened,
+                  reduceMotion: !lively,
+                  wallAssetOverride: hasWriterPhoto && !widget.softened
+                      ? QuestDepthRoom.photoReadyWallAsset
+                      : null,
+                  layers: widget.softened && hasWriterPhoto
+                      ? QuestDepthRoom.photoSoftLayers
+                      : null,
+                  flattenedAsset: widget.softened
+                      ? hasWriterPhoto
+                            ? null
+                            : QuestDepthRoom.scrollSoftAsset
+                      : widget.lightweightPreview
+                      ? theme!.previewAsset
+                      : null,
+                  farOverlay: hasWriterPhoto
+                      ? RepaintBoundary(
+                          child: Semantics(
+                            image: true,
+                            label: 'Your room photo above the fireplace',
+                            child: CustomPaint(
+                              key: const ValueKey('room-private-photo-plane'),
+                              painter: _WriterPhotoPainter(
+                                _photoInfo!.image,
+                                widget.roomPhoto!,
+                                widget.softened,
+                              ),
+                            ),
+                          ),
+                        )
+                      : null,
+                ),
+              )
+            else
+              Positioned.fill(
+                // repaint-bounded so the ambient tick repaints the room alone,
+                // never the avatar (who has his own boundary) or the screen
+                child: RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([
+                      _RoomGrain.version,
+                      _RoomFireFrames.version,
+                      _RoomPlate.version,
+                      _paintPhase,
+                      ?widget.parallax,
+                    ]),
+                    builder: (_, _) {
+                      // The publisher already applies the platform cadence. t=0
+                      // is the calm reduced-motion frame, and every phase must
+                      // look finished on its own.
+                      final t = phaseIsLive ? _paintPhase.value : 0.0;
+                      return CustomPaint(
+                        painter: _RoomPainter(
+                          widget.unlocked,
+                          widget.wall,
+                          widget.floor,
+                          widget.window,
+                          widget.petAwake,
+                          widget.emberGlow,
+                          widget.heirloomFlame,
+                          widget.hearthLit,
+                          widget.level,
+                          widget.memoryArtifacts,
+                          _RoomGrain.wall,
+                          _RoomGrain.floor,
+                          _RoomGrain.tapestry,
+                          _RoomFireFrames.frames,
+                          t,
+                          _RoomPlate.displayOf(
+                            plateId,
+                            preview: widget.lightweightPreview,
+                          ),
+                          widget.parallax?.value ?? Offset.zero,
+                          isSpaceThemeId(widget.plateId ?? ''),
+                          widget.softened,
+                          theme?.hearthAnchor ?? const Offset(.866, .662),
+                          _photoInfo?.image,
+                          widget.roomPhoto,
+                          roomPhotoArea(widget.plateId),
                         ),
-                        widget.parallax?.value ?? Offset.zero,
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
-            ),
             // optional overlay (none in the keep — kept for a caller that
             // wants to place something in the room)
             if (widget.child != null)
@@ -707,6 +956,7 @@ class _RoomPainter extends CustomPainter {
     this.petAwake,
     this.emberGlow,
     this.heirloomFlame,
+    this.hearthLit,
     this.level,
     this.memoryArtifacts,
     this.wallGrain,
@@ -716,6 +966,12 @@ class _RoomPainter extends CustomPainter {
     this.t,
     this.plate,
     this.parallax,
+    this.awaitAuthoredPlate,
+    this.softened,
+    this.hearthAnchor,
+    this.photoImage,
+    this.roomPhoto,
+    this.photoArea,
   )
     // snapshot the furniture set: some callers hand us the live
     // GameState.ownedFurniture, which the engine mutates IN PLACE — the old
@@ -731,6 +987,7 @@ class _RoomPainter extends CustomPainter {
   final bool petAwake;
   final Color? emberGlow;
   final bool heirloomFlame;
+  final bool hearthLit;
   final int level;
   final int memoryArtifacts;
 
@@ -747,6 +1004,12 @@ class _RoomPainter extends CustomPainter {
   /// Normalized view/light direction. Only painted plates use the optical
   /// response today; the procedural room remains its deterministic fallback.
   final Offset parallax;
+  final bool awaitAuthoredPlate;
+  final bool softened;
+  final Offset hearthAnchor;
+  final ui.Image? photoImage;
+  final RoomPhotoData? roomPhoto;
+  final Rect photoArea;
 
   /// Brush-stroke grain (see [_RoomGrain]); null paints flat, like always.
   final ui.Image? wallGrain;
@@ -789,6 +1052,15 @@ class _RoomPainter extends CustomPainter {
     final w = size.width, h = size.height;
     if (plate != null) {
       _paintPlate(canvas, w, h, plate!);
+      return;
+    }
+    if (awaitAuthoredPlate) {
+      // Loading is not a second room. Leave app controls live while the
+      // selected painting decodes, without exposing the legacy geometry.
+      canvas.drawRect(
+        Offset.zero & size,
+        Paint()..color = const Color(0xFF191210),
+      );
       return;
     }
     final floorY = h * 0.66;
@@ -1067,9 +1339,11 @@ class _RoomPainter extends CustomPainter {
         ? w / img.width
         : h / img.height;
     final sw = w / scale, sh = h / scale;
+    // Wide room views keep the ceiling edge and the full authored composition.
+    // The photo and hearth use this same registered source crop.
     final src = Rect.fromLTWH(
       (img.width - sw) / 2,
-      (img.height - sh) / 2,
+      awaitAuthoredPlate ? 0 : (img.height - sh) / 2,
       sw,
       sh,
     );
@@ -1089,6 +1363,22 @@ class _RoomPainter extends CustomPainter {
     final samplePaint = Paint()..filterQuality = FilterQuality.medium;
 
     canvas.drawImageRect(img, src, plateRect.shift(roomShift), samplePaint);
+
+    if (photoImage case final photoImage?) {
+      if (roomPhoto case final photo?) {
+        paintRegisteredRoomPhoto(
+          canvas,
+          image: photoImage,
+          photo: photo,
+          sceneSize: Size(img.width.toDouble(), img.height.toDouble()),
+          area: photoArea,
+          sourceCrop: src,
+          destination: plateRect,
+          shift: roomShift,
+          softened: softened,
+        );
+      }
+    }
 
     // A cool window reflection and a warmer room key move at different rates
     // across the intact painting. That material response supplies the depth
@@ -1128,6 +1418,7 @@ class _RoomPainter extends CustomPainter {
 
     // the hearth breathing. Two offset sines so the loop never reads as a
     // metronome, and a floor of 0.55 so it glows rather than blinks.
+    if (!hearthLit) return;
     final breath =
         0.55 + 0.30 * sin(t * 2 * pi * 2) + 0.15 * sin(t * 2 * pi * 3 + 1.1);
     // The hearth anchor lives in plate-image fractions and rides the exact
@@ -1136,11 +1427,11 @@ class _RoomPainter extends CustomPainter {
     final fireBase =
         Offset(
           plateRect.left +
-              (_plateHearthImage.dx * img.width - src.left) /
+              (hearthAnchor.dx * img.width - src.left) /
                   src.width *
                   plateRect.width,
           plateRect.top +
-              (_plateHearthImage.dy * img.height - src.top) /
+              (hearthAnchor.dy * img.height - src.top) /
                   src.height *
                   plateRect.height,
         ) +
@@ -3368,13 +3659,20 @@ class _RoomPainter extends CustomPainter {
       old.petAwake != petAwake ||
       old.emberGlow != emberGlow ||
       old.heirloomFlame != heirloomFlame ||
+      old.hearthLit != hearthLit ||
       old.level != level ||
       old.memoryArtifacts != memoryArtifacts ||
+      old.softened != softened ||
+      old.hearthAnchor != hearthAnchor ||
+      old.photoImage != photoImage ||
+      old.roomPhoto != roomPhoto ||
+      old.photoArea != photoArea ||
       old.tapestryImage != tapestryImage ||
       !listEquals(old.fireFrames, fireFrames) ||
       old.wallGrain != wallGrain ||
       old.floorGrain != floorGrain ||
       old.plate != plate ||
+      old.awaitAuthoredPlate != awaitAuthoredPlate ||
       // content compares, not identity: the live owned-set mutates in place
       // (same instance ≠ same furniture) and visit_room builds a fresh set
       // every build (different instance ≠ different furniture)

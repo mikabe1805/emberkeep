@@ -201,6 +201,16 @@ const _foundFlameIds = <String, String>{
   'Marathoner’s Mantle': 'found_marathoner',
 };
 
+/// The bounded flame identities that may cross a room-sharing boundary.
+///
+/// A found wardrobe cosmetic is published as its stable `found_*` flame id,
+/// rather than its private inventory name. Keeping this set beside that
+/// translation prevents an owner room and a Discover card from disagreeing.
+final Set<String> publishedFlameSkinIds = Set.unmodifiable([
+  ...creatureSkins.map((skin) => skin.id),
+  ..._foundFlameIds.values,
+]);
+
 String? _foundFlameNameById(String? id) {
   for (final entry in _foundFlameIds.entries) {
     if (entry.value == id) return entry.key;

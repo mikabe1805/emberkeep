@@ -20,6 +20,7 @@ import '../content/space_themes.dart';
 import '../content/sparks.dart';
 import '../content/stat_ranks.dart';
 import '../engine.dart';
+import '../room_photo.dart';
 import '../haptics.dart';
 import '../journal_media.dart' as journal_media;
 import '../models.dart';
@@ -42,7 +43,7 @@ import '../widgets/levelup_overlay.dart';
 import '../widgets/share_moment_card.dart';
 import '../widgets/luxe_depth.dart';
 import '../widgets/particles.dart';
-import '../widgets/quest_depth_room.dart';
+import '../widgets/home_room.dart';
 import '../widgets/notes_sheet.dart';
 import '../widgets/quest_card.dart';
 import '../widgets/quest_desk.dart';
@@ -311,7 +312,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'QUEST DESK',
+                  'YOUR ROOM',
                   style: Type.display.copyWith(
                     fontSize: 24,
                     color: Palette.textHi,
@@ -319,8 +320,8 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Carry your room’s materials onto the quest board. '
-                  'Stats and reward colours never change.',
+                  'The same room in Me, Quests, and your public preview. '
+                  'Choose any room you already own.',
                   style: Type.body.copyWith(
                     fontSize: 12,
                     color: Palette.textLo,
@@ -372,7 +373,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
       ),
     );
     if (selected == null || !mounted) return;
-    _state.setQuestDeskStyle(selected.roomStyleId);
+    await preloadSpaceTheme(selected.roomStyleId);
+    if (!mounted) return;
+    _state.applyStyle(selected.roomStyleId, RoomStyleKind.wall);
     widget.onPersist();
     Haptics.tap();
     setState(() {});
@@ -2984,7 +2987,9 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
                   hearthLit: widget.roomHearthLit,
                 ),
                 _QuestBackdropBlur(
+                  state: _state,
                   controller: _boardScroll,
+                  scrollPosition: _scrollLight,
                   height: roomHeight,
                   parallax: _activeParallax,
                 ),
@@ -3773,48 +3778,57 @@ class _QuestRoomBackdrop extends StatelessWidget {
       left: -17,
       right: -17,
       height: height + 18,
-      child: IgnorePointer(
-        child: ClipRect(
-          child: LayoutBuilder(
-            builder: (context, bounds) {
-              final roomWidth = bounds.maxWidth;
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: roomWidth,
-                      height: roomWidth / 1.7,
-                      child: QuestDepthRoom(
-                        parallax: parallax,
-                        scrollPosition: scrollPosition,
-                        flameHue: flameHueFor(state),
-                        lively: !still,
-                        igniting: igniting,
-                        hearthLit: hearthLit,
-                        reduceMotion: still,
+      child: AnimatedBuilder(
+        animation: RoomPhotoStore.instance,
+        builder: (context, _) => IgnorePointer(
+          child: ClipRect(
+            child: LayoutBuilder(
+              builder: (context, bounds) {
+                final roomWidth = bounds.maxWidth;
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: roomWidth,
+                        height: roomWidth / 1.7,
+                        child: HomeRoom(
+                          key: const Key('quests-room'),
+                          aspect: 1.7,
+                          unlocked: state.ownedFurniture,
+                          plateId: activeQuestDeskLook(state).roomStyleId,
+                          parallax: still ? null : parallax,
+                          scrollPosition: scrollPosition,
+                          igniting: igniting,
+                          emberGlow: flameHueFor(state),
+                          heirloomFlame: heirloomFlameFor(state),
+                          lively: !still,
+                          hearthLit: hearthLit,
+                          level: state.level,
+                          roomPhoto: RoomPhotoStore.instance.photo,
+                        ),
                       ),
                     ),
-                  ),
-                  const DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0x12000000),
-                          Color(0x04000000),
-                          Color(0x24191210),
-                          Color(0xB0191210),
-                        ],
-                        stops: [0, 0.66, 0.92, 1],
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x12000000),
+                            Color(0x04000000),
+                            Color(0x24191210),
+                            Color(0xB0191210),
+                          ],
+                          stops: [0, 0.66, 0.92, 1],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -3827,12 +3841,16 @@ class _QuestRoomBackdrop extends StatelessWidget {
 /// label and action above this layer stays crisp.
 class _QuestBackdropBlur extends StatelessWidget {
   const _QuestBackdropBlur({
+    required this.state,
     required this.controller,
+    required this.scrollPosition,
     required this.height,
     required this.parallax,
   });
 
   final ScrollController controller;
+  final ValueListenable<double> scrollPosition;
+  final GameState state;
   final double height;
   final ValueListenable<Offset> parallax;
 
@@ -3850,7 +3868,53 @@ class _QuestBackdropBlur extends StatelessWidget {
         // BackdropFilter, preserving the expensive-looking depth cue without
         // asking a phone GPU to reblur the full animated room every frame.
         if (strength <= 0.001) return const SizedBox.shrink();
-        if (kIsWeb) {
+        if (!kIsWeb) {
+          return Positioned(
+            top: 0,
+            left: -17,
+            right: -17,
+            height: height + 18,
+            child: AnimatedBuilder(
+              animation: RoomPhotoStore.instance,
+              builder: (context, _) => IgnorePointer(
+                child: ClipRect(
+                  child: Opacity(
+                    key: const ValueKey('quest-backdrop-blur'),
+                    opacity: strength,
+                    child: LayoutBuilder(
+                      builder: (context, bounds) => FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: bounds.maxWidth,
+                          height: bounds.maxWidth / 1.7,
+                          child: HomeRoom(
+                            aspect: 1.7,
+                            unlocked: const {},
+                            plateId: activeQuestDeskLook(state).roomStyleId,
+                            softened: true,
+                            scrollPosition: scrollPosition,
+                            hearthLit: false,
+                            lively: false,
+                            parallax:
+                                state.reduceMotion ||
+                                    (MediaQuery.maybeDisableAnimationsOf(
+                                          context,
+                                        ) ??
+                                        false)
+                                ? null
+                                : parallax,
+                            roomPhoto: RoomPhotoStore.instance.photo,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+        {
           // CanvasKit's extra full-room raster cross-fade was still expensive
           // enough to interrupt iPhone scrolling. A source-colored value veil
           // keeps the foreground separation and warmth without introducing a
@@ -3884,51 +3948,6 @@ class _QuestBackdropBlur extends StatelessWidget {
             ),
           );
         }
-        final tilt = parallax.value;
-        return Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          height: height,
-          child: IgnorePointer(
-            child: ClipRect(
-              child: Opacity(
-                key: const ValueKey('quest-backdrop-blur'),
-                opacity: strength,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Transform.translate(
-                      offset: Offset(-tilt.dx * 2.2, -tilt.dy * 1.5),
-                      child: Transform.scale(
-                        scale: 1.055,
-                        child: Image.asset(
-                          QuestDepthRoom.scrollSoftAsset,
-                          fit: BoxFit.cover,
-                          filterQuality: FilterQuality.low,
-                          excludeFromSemantics: true,
-                        ),
-                      ),
-                    ),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0x101A120E),
-                            Color(0x38211610),
-                            Color(0x7A140D0A),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
       },
     );
   }

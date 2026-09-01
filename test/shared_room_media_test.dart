@@ -3,9 +3,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:emberkeep/cloud.dart';
+import 'package:emberkeep/discovery.dart';
 import 'package:emberkeep/journal_media.dart' as journal_media;
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/models.dart';
+import 'package:emberkeep/room_photo.dart';
 import 'package:emberkeep/shared_room_media.dart';
 import 'package:emberkeep/social.dart';
 import 'package:emberkeep/widgets/visitor_shared_room_photo.dart';
@@ -23,12 +25,15 @@ Uint8List _png() =>
     Uint8List.fromList(const [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
 
 const _revision = 'ABCDEFGHIJKLMNOPQRSTUV';
+const _opaqueOwnerKey =
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 SharedRoomMediaService _service({
   SharedRoomMediaLocalReader? readLocal,
   SharedRoomMediaUploadWriter? upload,
   SharedRoomMediaObjectDeleter? deleteObject,
   SharedRoomMediaUrlResolver? resolveUrl,
+  SharedRoomMediaDataReader? downloadData,
 }) => SharedRoomMediaService(
   readLocal:
       readLocal ??
@@ -39,6 +44,7 @@ SharedRoomMediaService _service({
   upload: upload ?? (request) async {},
   deleteObject: deleteObject ?? (path) async {},
   resolveUrl: resolveUrl ?? (path) async => 'https://example.test/photo',
+  downloadData: downloadData,
 );
 
 Matcher _failure(SharedRoomMediaFailure failure) =>
@@ -50,25 +56,37 @@ Matcher _failure(SharedRoomMediaFailure failure) =>
 
 void main() {
   group('shared room media paths', () {
-    test('forms only canonical profile and season objects', () {
-      expect(
-        sharedRoomMediaObjectPath(
-          ownerUid: 'owner_123',
-          roomCode: 'abc234',
-          slot: 'profile',
-        ),
-        'shared_rooms/owner_123/ABC234/profile',
-      );
-      expect(
-        sharedRoomMediaObjectPath(
-          ownerUid: 'owner_123',
-          roomCode: 'ABC234',
-          slot: 'season',
-          generation: _revision,
-        ),
-        'shared_rooms/owner_123/ABC234/season/$_revision',
-      );
-    });
+    test(
+      'keeps legacy profile and season paths distinct from room objects',
+      () {
+        expect(
+          sharedRoomMediaObjectPath(
+            ownerUid: 'owner_123',
+            roomCode: 'abc234',
+            slot: 'profile',
+          ),
+          'shared_rooms/owner_123/ABC234/profile',
+        );
+        expect(
+          sharedRoomMediaObjectPath(
+            ownerUid: 'owner_123',
+            roomCode: 'ABC234',
+            slot: 'season',
+            generation: _revision,
+          ),
+          'shared_rooms/owner_123/ABC234/season/$_revision',
+        );
+        expect(
+          sharedRoomMediaObjectPath(
+            ownerUid: _opaqueOwnerKey,
+            roomCode: 'ABC234',
+            slot: 'room',
+            generation: _revision,
+          ),
+          'shared_rooms/$_opaqueOwnerKey/ABC234/room/$_revision',
+        );
+      },
+    );
 
     test('rejects unsafe segments before forming an object path', () {
       expect(
@@ -142,8 +160,14 @@ void main() {
           },
         );
 
-        expect(paths.keys, SharedRoomMediaSlot.values);
-        expect(writes.map((write) => write.slot), SharedRoomMediaSlot.values);
+        expect(paths.keys, const [
+          SharedRoomMediaSlot.profile,
+          SharedRoomMediaSlot.season,
+        ]);
+        expect(writes.map((write) => write.slot), const [
+          SharedRoomMediaSlot.profile,
+          SharedRoomMediaSlot.season,
+        ]);
         expect(writes.map((write) => write.contentType), [
           'image/jpeg',
           'image/png',
@@ -308,6 +332,342 @@ void main() {
           ),
           SharedRoomMediaFailure.unsupportedFileType,
         );
+      },
+    );
+  });
+
+  group('shared fireplace photo', () {
+    RoomPhotoData photo() => RoomPhotoData(
+      bytes: _png(),
+      fillFrame: true,
+      alignment: const Alignment(.25, -.2),
+      pixelWidth: 640,
+      pixelHeight: 480,
+    );
+
+    GameState roomState({bool share = true, String path = ''}) => GameState()
+      ..roomCode = 'ABC234'
+      ..shareRoomPhoto = share
+      ..spaceRoomPhotoPath = path;
+
+    RoomPublicationClient publication({
+      required List<Map<String, dynamic>> displays,
+      required List<String> events,
+      required RoomPublishResult Function(int call, String? requestedCode)
+      publishResult,
+      Map<String, dynamic>? liveRoom,
+    }) {
+      var calls = 0;
+      return RoomPublicationClient(
+        ensureAvailable: () async => true,
+        ensureSocialSession: () async => true,
+        ownerUid: () => 'firebase-owner-uid',
+        fetchRoom: (_) async => liveRoom,
+        publishRoom: (display, {code}) async {
+          displays.add(Map<String, dynamic>.from(display));
+          events.add('publish:${displays.length}');
+          return publishResult(++calls, code);
+        },
+        unshareRoom: (code) async {
+          events.add('unshare:$code');
+          return true;
+        },
+      );
+    }
+
+    test('uploads a bounded PNG to an opaque room revision', () async {
+      final writes = <SharedRoomMediaUploadRequest>[];
+      final bytes = Uint8List(800 * 1024)..setRange(0, 8, _png());
+      final path =
+          await _service(
+            upload: (request) async => writes.add(request),
+          ).uploadRoomPhoto(
+            ownerKey: _opaqueOwnerKey,
+            roomCode: 'abc234',
+            bytes: bytes,
+          );
+
+      final write = writes.single;
+      final location = SharedRoomMediaLocation.fromObjectPath(path);
+      expect(location.ownerKey, _opaqueOwnerKey);
+      expect(location.roomCode, 'ABC234');
+      expect(location.slot, SharedRoomMediaSlot.room);
+      expect(location.generation, hasLength(sharedRoomMediaGenerationLength));
+      expect(write.bytes, same(bytes));
+      expect(write.contentType, 'image/png');
+      expect(write.customMetadata, {
+        'ownerKey': _opaqueOwnerKey,
+        'roomCode': 'ABC234',
+        'slot': 'room',
+        'generation': location.generation,
+      });
+    });
+
+    test('room download accepts only a bounded, valid transient PNG', () async {
+      final path = sharedRoomMediaObjectPath(
+        ownerUid: _opaqueOwnerKey,
+        roomCode: 'ABC234',
+        slot: 'room',
+        generation: _revision,
+      );
+      var requestedMax = 0;
+      final service = _service(
+        downloadData: (objectPath, maxBytes) async {
+          expect(objectPath, path);
+          requestedMax = maxBytes;
+          return _png();
+        },
+      );
+
+      final bytes = await service.downloadData(path, maxBytes: 800 * 1024);
+      expect(requestedMax, 800 * 1024);
+      expect(bytes, orderedEquals(_png()));
+      expect(() => bytes[0] = 0, throwsUnsupportedError);
+
+      await expectLater(
+        service.downloadData(path, maxBytes: 800 * 1024 + 1),
+        throwsA(_failure(SharedRoomMediaFailure.downloadUrlFailed)),
+      );
+    });
+
+    test(
+      'opt-in reserves the room, uploads, then publishes the pointer',
+      () async {
+        final target = roomState();
+        final current = roomState(share: false);
+        final displays = <Map<String, dynamic>>[];
+        final events = <String>[];
+        final uploads = <SharedRoomMediaUploadRequest>[];
+        final result = await publishSpaceRoomState(
+          target,
+          current: current,
+          code: 'ABC234',
+          roomPhoto: photo(),
+          syncRoomPhoto: true,
+          mediaService: _service(
+            upload: (request) async {
+              uploads.add(request);
+              events.add('upload');
+            },
+          ),
+          publicationClient: publication(
+            displays: displays,
+            events: events,
+            publishResult: (_, code) => RoomPublishResult.success(code!),
+          ),
+        );
+
+        expect(result.ok, isTrue);
+        expect(events, ['publish:1', 'upload', 'publish:2']);
+        expect(displays.first['roomPhotoPath'], isEmpty);
+        expect(displays.last['roomPhotoPath'], uploads.single.objectPath);
+        expect(displays.last['roomPhotoFill'], isTrue);
+        expect(displays.last['roomPhotoX'], .25);
+        expect(displays.last['roomPhotoY'], -.2);
+        expect(displays.last['roomPhotoWidth'], 640);
+        expect(displays.last['roomPhotoHeight'], 480);
+        expect(target.spaceRoomPhotoPath, uploads.single.objectPath);
+        expect(target.shareRoomPhoto, isTrue);
+        // The only bytes involved are the explicit transient argument above;
+        // GameState persists a pointer and presentation metadata, never pixels.
+        expect(target.toJson().containsKey('roomPhoto'), isFalse);
+        expect(target.toJson().containsKey('roomPhotoBytes'), isFalse);
+      },
+    );
+
+    test(
+      'opt-out publishes an empty pointer before deleting the old revision',
+      () async {
+        final prior = sharedRoomMediaObjectPath(
+          ownerUid: discoveryOwnerKey('firebase-owner-uid'),
+          roomCode: 'ABC234',
+          slot: SharedRoomMediaSlot.room.wireName,
+          generation: _revision,
+        );
+        final current = roomState(path: prior);
+        final target = GameState.fromJson(current.toJson())
+          ..setRoomPhotoSharing(false);
+        final displays = <Map<String, dynamic>>[];
+        final events = <String>[];
+        final result = await publishSpaceRoomState(
+          target,
+          current: current,
+          code: 'ABC234',
+          mediaService: _service(
+            deleteObject: (path) async => events.add('delete:$path'),
+          ),
+          publicationClient: publication(
+            displays: displays,
+            events: events,
+            publishResult: (_, code) => RoomPublishResult.success(code!),
+          ),
+        );
+
+        expect(result.ok, isTrue);
+        expect(displays.single['roomPhotoPath'], isEmpty);
+        expect(events, ['publish:1', 'delete:$prior']);
+        expect(target.shareRoomPhoto, isFalse);
+        expect(target.spaceRoomPhotoPath, isEmpty);
+      },
+    );
+
+    test(
+      'a removed live pointer cannot be resurrected by stale state',
+      () async {
+        final prior = sharedRoomMediaObjectPath(
+          ownerUid: discoveryOwnerKey('firebase-owner-uid'),
+          roomCode: 'ABC234',
+          slot: SharedRoomMediaSlot.room.wireName,
+          generation: _revision,
+        );
+        final current = roomState(path: prior);
+        final target = GameState.fromJson(current.toJson());
+        final displays = <Map<String, dynamic>>[];
+        final events = <String>[];
+
+        final result = await publishSpaceRoomState(
+          target,
+          current: current,
+          code: 'ABC234',
+          mediaService: _service(),
+          publicationClient: publication(
+            displays: displays,
+            events: events,
+            publishResult: (_, code) => RoomPublishResult.success(code!),
+          ),
+        );
+
+        expect(result.ok, isTrue);
+        expect(displays.single['roomPhotoPath'], isEmpty);
+        expect(target.shareRoomPhoto, isFalse);
+        expect(target.spaceRoomPhotoPath, isEmpty);
+      },
+    );
+
+    test(
+      'background refresh adopts the live acknowledged projection',
+      () async {
+        final oldPath = sharedRoomMediaObjectPath(
+          ownerUid: discoveryOwnerKey('firebase-owner-uid'),
+          roomCode: 'ABC234',
+          slot: SharedRoomMediaSlot.room.wireName,
+          generation: _revision,
+        );
+        final newPath = sharedRoomMediaObjectPath(
+          ownerUid: discoveryOwnerKey('firebase-owner-uid'),
+          roomCode: 'ABC234',
+          slot: SharedRoomMediaSlot.room.wireName,
+          generation: 'abcdefghijklmnopqrstuv',
+        );
+        final current = roomState(path: oldPath);
+        final target = GameState.fromJson(current.toJson());
+        final displays = <Map<String, dynamic>>[];
+        final events = <String>[];
+
+        final result = await publishSpaceRoomState(
+          target,
+          current: current,
+          code: 'ABC234',
+          mediaService: _service(),
+          publicationClient: publication(
+            displays: displays,
+            events: events,
+            liveRoom: {
+              'v': 8,
+              'ownerKey': discoveryOwnerKey('firebase-owner-uid'),
+              'roomPhotoPath': newPath,
+              'roomPhotoFill': true,
+              'roomPhotoX': -.4,
+              'roomPhotoY': .6,
+              'roomPhotoWidth': 720,
+              'roomPhotoHeight': 540,
+            },
+            publishResult: (_, code) => RoomPublishResult.success(code!),
+          ),
+        );
+
+        expect(result.ok, isTrue);
+        expect(displays.single['roomPhotoPath'], newPath);
+        expect(target.shareRoomPhoto, isTrue);
+        expect(target.spaceRoomPhotoPath, newPath);
+        expect(target.spaceRoomPhotoFill, isTrue);
+        expect(target.spaceRoomPhotoX, -.4);
+        expect(target.spaceRoomPhotoY, .6);
+      },
+    );
+
+    test(
+      'upload failure removes its revision and abandons a fresh reservation',
+      () async {
+        final target = roomState();
+        final displays = <Map<String, dynamic>>[];
+        final events = <String>[];
+        final result = await publishSpaceRoomState(
+          target,
+          current: roomState(share: false),
+          code: 'ABC234',
+          roomPhoto: photo(),
+          syncRoomPhoto: true,
+          mediaService: _service(
+            upload: (request) async {
+              events.add('upload');
+              throw StateError('offline');
+            },
+            deleteObject: (path) async => events.add('delete:$path'),
+          ),
+          publicationClient: publication(
+            displays: displays,
+            events: events,
+            publishResult: (_, _) => const RoomPublishResult.success('NEW234'),
+          ),
+        );
+
+        expect(result.failure, RoomPublishFailure.media);
+        expect(events.first, 'publish:1');
+        expect(events, contains('upload'));
+        expect(
+          events.where((event) => event.startsWith('delete:')),
+          hasLength(1),
+        );
+        expect(events, contains('unshare:NEW234'));
+        expect(target.spaceRoomPhotoPath, isEmpty);
+      },
+    );
+
+    test(
+      'final publication failure removes the uploaded revision and reservation',
+      () async {
+        final target = roomState();
+        final displays = <Map<String, dynamic>>[];
+        final events = <String>[];
+        final result = await publishSpaceRoomState(
+          target,
+          current: roomState(share: false),
+          code: 'ABC234',
+          roomPhoto: photo(),
+          syncRoomPhoto: true,
+          mediaService: _service(
+            upload: (request) async => events.add('upload'),
+            deleteObject: (path) async => events.add('delete:$path'),
+          ),
+          publicationClient: publication(
+            displays: displays,
+            events: events,
+            publishResult: (call, _) => call == 1
+                ? const RoomPublishResult.success('NEW234')
+                : const RoomPublishResult.failed(RoomPublishFailure.network),
+          ),
+        );
+
+        expect(result.failure, RoomPublishFailure.network);
+        expect(events, [
+          'publish:1',
+          'upload',
+          'publish:2',
+          startsWith('delete:'),
+          'unshare:NEW234',
+        ]);
+        expect(target.spaceRoomPhotoPath, isEmpty);
       },
     );
   });
@@ -635,6 +995,17 @@ void main() {
       rules,
       contains('match /shared_rooms/{ownerUid}/{roomCode}/{slot}/{generation}'),
     );
+    expect(
+      rules,
+      contains('match /shared_rooms/{ownerKey}/{roomCode}/{slot}/{generation}'),
+    );
+    expect(rules, contains("return slot == 'room';"));
+    expect(
+      rules,
+      contains(
+        r'firestore.get(/databases/(default)/documents/roomOwners/$(roomCode)).data.ownerKey == ownerKey',
+      ),
+    );
     expect(rules, contains('allow get:'));
     expect(rules, contains('allow list: if false;'));
     expect(rules, contains('request.auth.uid == ownerUid'));
@@ -652,7 +1023,16 @@ void main() {
         "request.resource.contentType.matches('^image/(jpeg|png|webp)\$')",
       ),
     );
+    expect(rules, contains('request.resource.size <= 800 * 1024'));
+    expect(rules, contains("request.resource.contentType == 'image/png'"));
+    expect(rules, contains('livePublicRoomReferencesPhoto'));
+    expect(rules, contains('data.roomPhotoPath'));
+    expect(rules, contains("'shared_rooms/' + ownerKey"));
     expect(rules, contains('match /{allPaths=**}'));
+
+    final functions = File('functions/src/index.ts').readAsStringSync();
+    expect(functions, contains('{document: "rooms/{code}", retry: true}'));
+    expect(functions, contains('code === 404'));
 
     final pubspec = File('pubspec.yaml').readAsStringSync();
     expect(pubspec, contains('firebase_storage: ^13.4.5'));

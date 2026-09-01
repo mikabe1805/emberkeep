@@ -2,6 +2,42 @@
 
 Updated: 2026-07-31
 
+## Build 39 correction (2026-09-01)
+
+The visible mantel-keepsake experiment was rejected and removed from the
+product. The legacy `roomKeepsakes` IDs, state, and serialization fields remain
+only as inert compatibility data; they do not render, affect room composition,
+or define the current visual system.
+
+The active room set is six complete, authored runtime plates, each with its
+chooser preview and deterministic `-soft` derivative:
+
+- `quest-depth-v1` (The Writer's Hearth)
+- `conservatory-v3` (The Living Conservatory)
+- `listening-v2`
+- `archive-v3` (The Moonlit Archive)
+- `rain-v1`
+- `atelier-v1`
+
+The approved optional room-photo path adds a registered Writer photo-ready
+wall only when an explicit local room photo exists. The photo-ready wall is an
+exact renamed copy of the registered runtime derivative formerly associated
+with the rejected keepsake experiment:
+
+| Candidate asset | SHA-256 | Registration / derivation |
+| --- | --- | --- |
+| `quest-depth-wall-photo-ready-v1.png` | `11d7c3362c1d5bc68082b326de45bcef61e9e6fdb1da310fcb8302bbccd781a6` | Exact registered wall derivative; source master `design/source-assets/rooms/quest-depth-wall-keepsakes-v1.png` (`6d5bab2ccf3546059d94f6233fdc8bf0f0a4ab488b306d6632d120cb6012bfe7`), scale `.95984`, translation `(56.41, 9.09)`, RMSE `1.22px`. |
+| `quest-depth-photo-base-soft-v1.webp` | `fc614a985b2914c7709b7b3030d2dffec452948dcf28fca170f6e079a6d6c183` | Deterministic soft derivative, source blur `22px`, `1024 x 602`. |
+| `quest-depth-photo-wall-soft-v1.webp` | `38f55e0fb8eb963cc994b0110f387f53a4b9573328a264a26e13f8d52369347b` | Deterministic soft derivative, source blur `22px`, `1024 x 602`. |
+| `quest-depth-photo-furniture-soft-v1.webp` | `0b260e863f25d4b041f6b9dd8b51244b0caef33f78c4e1e2ba7be9e47542d943` | Deterministic soft derivative, source blur `22px`, `1024 x 602`. |
+| `quest-depth-photo-foreground-soft-v1.webp` | `9743cba65b2d5cf917d8eddcc117c682ce7663861f976ecb18789ccdd1cae789` | Deterministic soft derivative, source blur `22px`, `1024 x 602`. |
+
+The photo-ready wall's cleared shelf is not a return of keepsakes: it is a
+precise registration repair that keeps an owner-selected photo legible. With
+no photo, the original Writer quest-depth room and its original depth layers
+remain unchanged. The soft photo layers are used only for the existing scroll
+transition and never contain live text or UI.
+
 Visual truth:
 
 - `design/visual-targets/2026-07-30/quest-selected.png`

@@ -1,0 +1,404 @@
+{
+  "schema_version": 1,
+  "brief_id": "polished-build39-2026-09-01",
+  "brief_sha256": "3ce750fa4c9c8a227f560f37730d52f0fe55e30c6c8c94a79954e567448f0feb",
+  "phase": "handoff",
+  "implementation_revision": "worktree:479ac46ec8c1:a0a0c3da5f321618061d2972",
+  "revision_captured_at": "2026-09-01T02:51:15Z",
+  "checks": [
+    {
+      "id": "build39-edge-product",
+      "requirement_id": "edge.product",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Inspect the fresh exact-revision Quests and Goals App Store frames as the ordinary-effort to visible-progress journey.",
+      "input_state": "Production widgets with deterministic release fixtures and the frozen Build 39 room and goal content.",
+      "inspected_by": "Primary agent and independent Terra reviewer",
+      "observation": "Quests names an ordinary job and direct completion action; Goals turns a larger intention into one concrete next action without reintroducing the rejected keepsake system.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "App Store Quests opener",
+          "path": "store-assets/screenshots/app-store/01-quests-1290x2796.png",
+          "generated_at": "2026-09-01T03:04:33.0510736Z",
+          "content_sha256": "8aa62e1f14dffec8103e89c659ce8fe26380ee971937a60959fba99979bfedca",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "App Store Goals next-action frame",
+          "path": "store-assets/screenshots/app-store/03-goals-1290x2796.png",
+          "generated_at": "2026-09-01T03:04:35.7015605Z",
+          "content_sha256": "59cbd9323ffa9f8b4b50c23396ec44f0a5d88ce03856ad72faabd33e464730f3",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "build39-edge-interaction",
+      "requirement_id": "edge.interaction",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Exercise local photo choose, replace, remove, reopen, explicit share, revocation, and cross-owner denial through current widget, state, Functions, Firestore, and Storage tests.",
+      "input_state": "Production RoomPhotoStore and public-room projection paths with deterministic local bytes and emulator identities.",
+      "inspected_by": "Primary agent with independent result review",
+      "observation": "Choosing a photo remains local; public bytes require separate confirmation and the current public revision; remove and revoke paths stay owner-controlled.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Build 39 integrated interaction and privacy audit",
+          "path": "design/execution-mode/active/polished-build39/slice-test-report.md",
+          "generated_at": "2026-09-01T04:11:17.2910585Z",
+          "content_sha256": "8ea35deb09e4a76b62ea73731220886145098b4998e358219f41fc3d9a9094e7",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "build39-edge-visual",
+      "requirement_id": "edge.visual",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Inspect the fresh compact 2x room-photo editor renders and the current authored-room product frame after correcting the independent-review finding.",
+      "input_state": "Production RoomPhotoEditor at 320x568 with 2x text plus the current release room rendering.",
+      "inspected_by": "Primary agent and independent Terra reviewer",
+      "observation": "The compact header and full-width actions are reachable and uncrowded; the room remains warm and perspective-coherent with no visible mantel-keepsake treatment.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Compact 2x editor top after correction",
+          "path": "design/execution-mode/active/polished-build39/visual-evidence/photo-editor-large-text-top.png",
+          "generated_at": "2026-09-01T02:51:19.4496910Z",
+          "content_sha256": "802e8d5f4d16d27d47c033324c5ec30d05d604cd7e642f73b20f41f1433eabbf",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Compact 2x editor actions after correction",
+          "path": "design/execution-mode/active/polished-build39/visual-evidence/photo-editor-large-text-actions.png",
+          "generated_at": "2026-09-01T02:51:19.6041478Z",
+          "content_sha256": "4f7fc191775e795814336c61b43c3c72229505dd591d06a190ceaa9623cb5e42",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "build39-state-legacy-inert",
+      "requirement_id": "state:legacy-inert",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Round-trip non-empty legacy roomKeepsakes data and scan rendering, copy, semantics, Functions projection, and visitor behavior.",
+      "input_state": "Legacy local save and public document fixtures carrying non-empty roomKeepsakes values.",
+      "inspected_by": "Primary agent",
+      "observation": "Legacy data survives compatibility paths but produces no visible object, editor, narration, store claim, or visitor output.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Legacy compatibility and visible-removal audit",
+          "path": "design/execution-mode/active/polished-build39/slice-test-report.md",
+          "generated_at": "2026-09-01T04:11:17.2910585Z",
+          "content_sha256": "8ea35deb09e4a76b62ea73731220886145098b4998e358219f41fc3d9a9094e7",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "build39-state-photo-lifecycle",
+      "requirement_id": "state:photo-private-public-revoked",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Run current local and emulator photo lifecycle checks across private, preview, explicit share, current-revision public read, revoke, stale copy, delete, and cross-owner denial.",
+      "input_state": "Deterministic canonical PNG bytes, current and stale public revisions, owner, visitor, anonymous, and cross-owner identities.",
+      "inspected_by": "Primary agent",
+      "observation": "The tested client and backend contract stays private by default, requires explicit share, and denies stale or cross-owner media after revocation.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Private to public to revoked photo lifecycle",
+          "path": "design/execution-mode/active/polished-build39/slice-test-report.md",
+          "generated_at": "2026-09-01T04:11:17.2910585Z",
+          "content_sha256": "8ea35deb09e4a76b62ea73731220886145098b4998e358219f41fc3d9a9094e7",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "build39-state-compact-accessible",
+      "requirement_id": "state:compact-accessible",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Render and interact with the current room-photo editor at 320x568 with a 2x text scale, including remove and save.",
+      "input_state": "Production editor with a real decoded photo fixture, compact viewport, and system text scaling at 200 percent.",
+      "inspected_by": "Primary agent and independent Terra reviewer",
+      "observation": "The direct privacy header, room preview, crop editor, stacked photo actions, Cancel, and Save remain visible and reachable through scroll.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "Compact large-text editor top",
+          "path": "design/execution-mode/active/polished-build39/visual-evidence/photo-editor-large-text-top.png",
+          "generated_at": "2026-09-01T02:51:19.4496910Z",
+          "content_sha256": "802e8d5f4d16d27d47c033324c5ec30d05d604cd7e642f73b20f41f1433eabbf",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Compact large-text editor actions",
+          "path": "design/execution-mode/active/polished-build39/visual-evidence/photo-editor-large-text-actions.png",
+          "generated_at": "2026-09-01T02:51:19.6041478Z",
+          "content_sha256": "4f7fc191775e795814336c61b43c3c72229505dd591d06a190ceaa9623cb5e42",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "build39-ripple-room-rendering",
+      "requirement_id": "ripple:room-rendering",
+      "phase": "expansion",
+      "evidence_layer": "rendered",
+      "method": "Inspect current shared room rendering and compact photo editor evidence after the Writer wall registration correction.",
+      "input_state": "Writer photo path, no-photo fallback, soft transition layers, six authored room plates, and legacy inert field fixtures.",
+      "inspected_by": "Primary agent and independent Terra reviewer",
+      "observation": "The photo-ready Writer wall is registered, no-photo immediately restores the original room, and the removed mantel treatment has no asset or rendering dependency.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Shared room rendering regression audit",
+          "path": "design/execution-mode/active/polished-build39/slice-test-report.md",
+          "generated_at": "2026-09-01T04:11:17.2910585Z",
+          "content_sha256": "8ea35deb09e4a76b62ea73731220886145098b4998e358219f41fc3d9a9094e7",
+          "data_source": "test_output"
+        }
+      ]
+    },
+    {
+      "id": "build39-ripple-public-copy",
+      "requirement_id": "ripple:public-room-copy",
+      "phase": "expansion",
+      "evidence_layer": "rendered",
+      "method": "Inspect the current My Space and Discover store frames with the corresponding privacy and projection tests.",
+      "input_state": "Production private-page and optional-discovery surfaces using deterministic release profiles.",
+      "inspected_by": "Primary agent",
+      "observation": "My Space states the private boundary; Discover is explicitly optional; neither surface names or implies the rejected mantel system or silently publishes a local photo.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "My Space private page",
+          "path": "store-assets/screenshots/app-store/07-my-space-1290x2796.png",
+          "generated_at": "2026-09-01T03:04:40.2342586Z",
+          "content_sha256": "40e953182b36394cac5d8aeb2f96c3424e4464e82f767747ca0462ef8f6601ca",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "Discover optional listing boundary",
+          "path": "store-assets/screenshots/app-store/10-discover-1290x2796.png",
+          "generated_at": "2026-09-01T03:04:43.8506599Z",
+          "content_sha256": "342a97e1acbc585f7fc39a7f125e15a40eda501d52e110434d87986fac869f81",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "build39-ripple-store-story",
+      "requirement_id": "ripple:store-story",
+      "phase": "expansion",
+      "evidence_layer": "rendered",
+      "method": "Read the first three fresh App Store frames in search-result order and verify listing limits and truthful claims.",
+      "input_state": "Exact 1290x2796 Build 39 Quests, Reward, and Goals exports plus the revised listing draft.",
+      "inspected_by": "Primary agent and independent Terra reviewer",
+      "observation": "The sequence explains the concrete job, the visible reward, and the bridge from a larger goal to a next action before secondary room or social features.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "render",
+          "state": "App Store Quests opener",
+          "path": "store-assets/screenshots/app-store/01-quests-1290x2796.png",
+          "generated_at": "2026-09-01T03:04:33.0510736Z",
+          "content_sha256": "8aa62e1f14dffec8103e89c659ce8fe26380ee971937a60959fba99979bfedca",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "App Store completion reward",
+          "path": "store-assets/screenshots/app-store/02-reward-1290x2796.png",
+          "generated_at": "2026-09-01T03:04:34.2704404Z",
+          "content_sha256": "9ec37f399610130f1ae0f42e34268a7fc3b4e128f320d56d1506e34d2c7f56f6",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "render",
+          "state": "App Store Goals next-action frame",
+          "path": "store-assets/screenshots/app-store/03-goals-1290x2796.png",
+          "generated_at": "2026-09-01T03:04:35.7015605Z",
+          "content_sha256": "59cbd9323ffa9f8b4b50c23396ec44f0a5d88ce03856ad72faabd33e464730f3",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "build39-final-comparison",
+      "requirement_id": "final:comparison",
+      "phase": "handoff",
+      "evidence_layer": "rendered",
+      "method": "Compare the final exact-revision store opener and compact photo states with the accepted direction and the superseded keepsake treatment.",
+      "input_state": "Fresh Build 39 exports and compact 2x editor renders generated after the final source correction.",
+      "inspected_by": "Primary agent and independent Terra reviewer",
+      "observation": "The final build preserves the warm authored product, communicates ordinary effort and visible progress quickly, removes the rejected visible keepsake layer, and makes the photo privacy boundary reachable at compact large text.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "comparison",
+          "state": "Final Quests opener against locked product direction",
+          "path": "store-assets/screenshots/app-store/01-quests-1290x2796.png",
+          "generated_at": "2026-09-01T03:04:33.0510736Z",
+          "content_sha256": "8aa62e1f14dffec8103e89c659ce8fe26380ee971937a60959fba99979bfedca",
+          "data_source": "deterministic_fixture"
+        },
+        {
+          "kind": "comparison",
+          "state": "Final compact editor against accessibility contract",
+          "path": "design/execution-mode/active/polished-build39/visual-evidence/photo-editor-large-text-actions.png",
+          "generated_at": "2026-09-01T02:51:19.6041478Z",
+          "content_sha256": "4f7fc191775e795814336c61b43c3c72229505dd591d06a190ceaa9623cb5e42",
+          "data_source": "deterministic_fixture"
+        }
+      ]
+    },
+    {
+      "id": "build39-final-code-complete",
+      "requirement_id": "final:code-complete",
+      "phase": "handoff",
+      "evidence_layer": "automated",
+      "method": "Run static analysis, 1074 Flutter checks, focused editor checks, screenshot captures, Functions tests and emulators, web release build, and Android debug assembly.",
+      "input_state": "The final Build 39 implementation revision with production code, release fixtures, rules, Functions, and store exports.",
+      "inspected_by": "Primary agent",
+      "observation": "Every current local automated and rendered check passed; signing, deployment, account, Apple processing, and physical-device properties remain named external gates.",
+      "production_equivalent_input": true,
+      "result": "pass",
+      "artifacts": [
+        {
+          "kind": "test_report",
+          "state": "Final Build 39 deterministic validation report",
+          "path": "design/execution-mode/active/polished-build39/slice-test-report.md",
+          "generated_at": "2026-09-01T04:11:17.2910585Z",
+          "content_sha256": "8ea35deb09e4a76b62ea73731220886145098b4998e358219f41fc3d9a9094e7",
+          "data_source": "test_output"
+        }
+      ]
+    }
+  ],
+  "independent_critique": {
+    "reviewer": "Terra task build39_final_independent_review",
+    "authored_implementation": false,
+    "reviewed_revision": "worktree:479ac46ec8c1:a0a0c3da5f321618061d2972",
+    "reviewed_check_ids": [
+      "build39-edge-product",
+      "build39-edge-interaction",
+      "build39-edge-visual"
+    ],
+    "reviewed_artifacts": [
+      "store-assets/screenshots/app-store/01-quests-1290x2796.png",
+      "store-assets/screenshots/app-store/03-goals-1290x2796.png",
+      "design/execution-mode/active/polished-build39/slice-test-report.md",
+      "design/execution-mode/active/polished-build39/visual-evidence/photo-editor-large-text-top.png",
+      "design/execution-mode/active/polished-build39/visual-evidence/photo-editor-large-text-actions.png"
+    ],
+    "result": "pass",
+    "findings": [
+      {
+        "finding": "At 320x568 with 2x text, the full photo-editor header consumed too much height and adjacent Replace and Remove actions became crowded.",
+        "disposition": "resolved",
+        "evidence": "The compact state now uses a direct privacy header and vertically stacked full-width actions; fresh top and action renders plus a real remove-and-save test were re-reviewed and passed."
+      }
+    ],
+    "no_material_findings_observation": "After the compact correction, the reviewer reported no remaining material UI finding in the reviewed scope."
+  },
+  "owner_checkpoint": {
+    "required": true,
+    "requested_at": "",
+    "decided_at": "",
+    "reviewed_revision": "",
+    "reviewed_brief_sha256": "3ce750fa4c9c8a227f560f37730d52f0fe55e30c6c8c94a79954e567448f0feb",
+    "reviewed_check_ids": [],
+    "reviewed_artifacts": [],
+    "decision": "pending",
+    "exact_feedback_or_waiver_reason": "The owner requested the integrated polish and App Store pass. Acceptance of the frozen rendered and physical-device candidate remains pending."
+  },
+  "deviations": [],
+  "verdicts": {
+    "code_complete": "pass",
+    "visual_evidence_ready": "pass",
+    "owner_device_accepted": "pending"
+  },
+  "owner_device_acceptance": {
+    "owner": {
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "exact_feedback": ""
+    },
+    "device": {
+      "required": true,
+      "decision": "pending",
+      "decided_at": "",
+      "accepted_revision": "",
+      "accepted_brief_sha256": "",
+      "evidence_check_ids": [],
+      "observation_or_reason": "Desktop tests and simulator renders cannot establish physical iPhone readability, frame pacing, photo-picker behavior, haptic and audio feel, or owner judgment."
+    }
+  },
+  "remaining_gates": [
+    {
+      "id": "frozen-rendered-owner-checkpoint",
+      "gate": "Owner accepts the frozen integrated product and App Store story",
+      "why": "The current request authorizes the pass but does not pre-accept unseen final renders or messaging.",
+      "owner_or_system": "Product owner",
+      "next_action": "Inspect the final candidate-bound renders and then use the exact TestFlight candidate.",
+      "blocking": true
+    },
+    {
+      "id": "physical-iphone-gauntlet",
+      "gate": "Physical iPhone upgrade, fresh install, accessibility, sound, haptic, photo-picker, lifecycle, and performance acceptance",
+      "why": "These sensory and native properties cannot be certified by local automated evidence.",
+      "owner_or_system": "Owner on the exact signed candidate",
+      "next_action": "Run the documented phone checklist on Build 39 after Apple processing completes.",
+      "blocking": true
+    },
+    {
+      "id": "deployed-two-account-privacy",
+      "gate": "Deploy the exact rules and Functions and verify private, mutual, public, block, revocation, deletion, and photo lifecycle with two real accounts",
+      "why": "Local rules tests do not prove deployed App Check, Storage, Firestore, cleanup, and account behavior.",
+      "owner_or_system": "Release operator and deployed Firebase environment",
+      "next_action": "Deploy only after the frozen candidate passes local validation, then run the two-account gauntlet before public App Store submission.",
+      "blocking": true
+    },
+    {
+      "id": "apple-public-release",
+      "gate": "App Store Connect public submission and final Apple account state",
+      "why": "This task authorizes an internal candidate and draft preparation, not public submission.",
+      "owner_or_system": "Owner and Apple",
+      "next_action": "Approve the final listing and release evidence before any public submission.",
+      "blocking": true
+    }
+  ]
+}

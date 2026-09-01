@@ -21,8 +21,7 @@ abstract final class Storage {
   /// Save-format version. BUMP whenever new persisted fields are added so the
   /// cloud-merge can refuse to adopt an OLDER build's save that would have
   /// silently stripped fields it doesn't know about (bug-hunt §5).
-  static const schema =
-      27; // optional music preference alongside structured goal routes
+  static const schema = 28; // retains the bounded legacy room field
 
   /// Where an unparseable save is quarantined before a fresh start, so a
   /// corrupt blob is never silently destroyed (it may be hand-recoverable).
@@ -34,7 +33,11 @@ abstract final class Storage {
 
   /// Returns false when the platform declined the write. Callers must not
   /// publish or export an older blob as though this state had been saved.
-  static Future<bool> save(GameState state, List<Quest> quests) async {
+  static Future<bool> save(
+    GameState state,
+    List<Quest> quests, {
+    bool freshBootstrap = false,
+  }) async {
     try {
       // Capture synchronously. The live state may mutate while the preferences
       // plugin resolves, and a save request must represent one coherent frame.
@@ -43,6 +46,7 @@ abstract final class Storage {
         'schema': schema,
         'state': state.toJson(),
         'quests': [for (final q in quests) q.toJson()],
+        if (freshBootstrap) 'freshBootstrap': true,
       });
       final prefs = await SharedPreferences.getInstance();
       return await prefs.setString(_key, raw);
@@ -62,6 +66,9 @@ abstract final class Storage {
       if (raw == null) return null;
       try {
         final j = (jsonDecode(raw) as Map).cast<String, dynamic>();
+        if (!_hasRequiredStateFields(j)) {
+          throw const FormatException('save is missing required state fields');
+        }
         final state = GameState.fromJson(
           (j['state'] as Map).cast<String, dynamic>(),
         );
@@ -120,8 +127,8 @@ abstract final class Storage {
           (encodedSchema is! int || encodedSchema < 0)) {
         return false;
       }
-      final state = (j['state'] as Map?)?.cast<String, dynamic>();
-      if (state == null || state['stats'] is! List) return false;
+      if (!_hasRequiredStateFields(j)) return false;
+      final state = (j['state'] as Map).cast<String, dynamic>();
       GameState.fromJson(state);
       for (final q in (j['quests'] as List? ?? const [])) {
         Quest.fromJson((q as Map).cast<String, dynamic>());
@@ -166,6 +173,37 @@ abstract final class Storage {
         : CloudMergeDecision.hold;
   }
 
+  /// A fresh installation writes a syntactically valid bootstrap save before
+  /// cloud startup. It has no user history, so a valid remote is allowed to
+  /// win even when it predates this schema. Once any ordinary local save lands,
+  /// the marker disappears and [decideCloudMerge] again protects local work.
+  static CloudMergeDecision decideInitialCloudMerge({
+    required String? localRaw,
+    required String? remoteRaw,
+  }) {
+    if (!isFreshBootstrapSave(localRaw)) {
+      return decideCloudMerge(localRaw: localRaw, remoteRaw: remoteRaw);
+    }
+    if (remoteRaw == null) return CloudMergeDecision.pushLocal;
+    if (!isValidSave(remoteRaw) || schemaOf(remoteRaw) > schema) {
+      return CloudMergeDecision.hold;
+    }
+    return CloudMergeDecision.adoptRemote;
+  }
+
+  /// True only for the one local placeholder created before first cloud pull.
+  /// Imported saves are normalized to remove this marker, so a backup can
+  /// never make a later cloud pull discard deliberate local work.
+  static bool isFreshBootstrapSave(String? raw) {
+    if (raw == null || !isValidSave(raw)) return false;
+    try {
+      final j = (jsonDecode(raw) as Map).cast<String, dynamic>();
+      return j['freshBootstrap'] == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Clears a quarantined corrupt save once the user has dealt with it.
   static Future<bool> clearCorruptBackup() async {
     try {
@@ -198,6 +236,16 @@ abstract final class Storage {
     } catch (_) {
       return 0;
     }
+  }
+
+  static bool _hasRequiredStateFields(Map<String, dynamic> save) {
+    final state = (save['state'] as Map?)?.cast<String, dynamic>();
+    if (state == null || state['stats'] is! List) return false;
+    final encodedSchema = save['schema'];
+    final saveSchema = encodedSchema is int ? encodedSchema : 0;
+    // Schema 28 distinguishes an explicit legacy field from a truncated state
+    // map. Earlier backups predate it and migrate to an empty list.
+    return saveSchema < 28 || state['roomKeepsakes'] is List;
   }
 
   /// The raw save blob, for user-held backups (round-8: your data is yours).
@@ -237,18 +285,22 @@ abstract final class Storage {
       }
       // gate 2: the state must actually carry a save (a real character has
       // a stats array; an empty {} does not)
-      final state = (j['state'] as Map?)?.cast<String, dynamic>();
-      if (state == null || state['stats'] is! List) {
+      if (!_hasRequiredStateFields(j)) {
         debugPrint('Storage.importRaw rejected: missing state');
         return false;
       }
+      final state = (j['state'] as Map).cast<String, dynamic>();
       // gate 3: full decode must succeed for every quest, or reject wholesale
       GameState.fromJson(state);
       for (final q in (j['quests'] as List? ?? const [])) {
         Quest.fromJson((q as Map).cast<String, dynamic>());
       }
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_key, raw);
+      // A hand-held backup is a deliberate local choice, never a fresh-device
+      // placeholder. Strip the internal marker before it can reach cloud
+      // merge on the next launch.
+      final normalized = Map<String, dynamic>.from(j)..remove('freshBootstrap');
+      await prefs.setString(_key, jsonEncode(normalized));
       return true;
     } catch (e) {
       debugPrint('Storage.importRaw rejected: $e');

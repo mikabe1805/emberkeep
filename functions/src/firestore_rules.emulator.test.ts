@@ -30,9 +30,9 @@ const ownerKey = stableOwnerKey("owner");
 const readerKey = stableOwnerKey("reader");
 const roomGeneration = Timestamp.fromMillis(1724500800000);
 
-const room = (key = ownerKey, generation = roomGeneration) => ({
+const room = (key = ownerKey, generation = roomGeneration, version = 7) => ({
   ownerKey: key,
-  v: 6,
+  v: version,
   profileVisible: false,
   updatedAt: generation,
 });
@@ -43,12 +43,13 @@ const roomOwner = (uid = "owner", key = ownerKey, generation = roomGeneration) =
   updatedAt: generation,
 });
 
-const generatedRoomWrite = (key: string, version = 6) => ({
+const generatedRoomWrite = (key: string, version = 7) => ({
   ownerKey: key,
   name: "Fellow keeper",
   title: "KEEPER",
   level: 1,
   furniture: [],
+  ...(version >= 7 ? {roomKeepsakes: []} : {}),
   wall: "wall_walnut",
   floor: "floor_oak",
   skin: "ember_amber",
@@ -69,17 +70,26 @@ const generatedRoomWrite = (key: string, version = 6) => ({
   v: version,
   profilePhotoPath: "",
   seasonPhotoPath: "",
+  ...(version === 8 ? {
+    roomPhotoPath: "",
+    roomPhotoFill: false,
+    roomPhotoX: 0,
+    roomPhotoY: 0,
+    roomPhotoWidth: 1,
+    roomPhotoHeight: 1,
+  } : {}),
   updatedAt: serverTimestamp(),
 });
 
 const projection = (bucket: number, key = ownerKey) => ({
-  v: 3,
+  v: 4,
   title: "KEEPER",
   level: 4,
   wall: "wall_conservatory",
   floor: "floor_oak",
   skin: "ember_amber",
   window: "moon",
+  roomKeepsakes: [],
   bucket,
   publicName: "",
   ownerKey: key,
@@ -215,6 +225,67 @@ describeWithEmulator("discoverableSpaces Firestore rules", () => {
     await assertSucceeds(getDoc(doc(database, "discoverableSpaces", "XYZ234")));
   });
 
+  test("accepts the listening room in both public schemas and rejects unknown walls", async () => {
+    const owner = environment.authenticatedContext("owner").firestore();
+    const freshExpiry = Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const listeningRoom = writeBatch(owner);
+
+    listeningRoom.set(doc(owner, "rooms", "NEW234"), {
+      ...generatedRoomWrite(ownerKey),
+      wall: "wall_listening",
+      roomKeepsakes: ["keepsake_books", "keepsake_record"],
+      updatedAt: serverTimestamp(),
+    });
+    listeningRoom.set(doc(owner, "roomOwners", "NEW234"), {
+      uid: "owner",
+      ownerKey,
+      updatedAt: serverTimestamp(),
+    });
+    await assertSucceeds(listeningRoom.commit());
+    await assertSucceeds(setDoc(doc(owner, "discoverableSpaces", "NEW234"), {
+      ...projection(100000),
+      wall: "wall_listening",
+      updatedAt: serverTimestamp(),
+      expiresAt: freshExpiry,
+    }));
+
+    const invalidRoom = writeBatch(owner);
+    invalidRoom.set(doc(owner, "rooms", "HJK234"), {
+      ...generatedRoomWrite(ownerKey),
+      wall: "wall_unknown",
+      updatedAt: serverTimestamp(),
+    });
+    invalidRoom.set(doc(owner, "roomOwners", "HJK234"), {
+      uid: "owner",
+      ownerKey,
+      updatedAt: serverTimestamp(),
+    });
+    await assertFails(invalidRoom.commit());
+    await assertFails(setDoc(doc(owner, "discoverableSpaces", "NEW234"), {
+      ...projection(100000),
+      wall: "wall_unknown",
+      updatedAt: serverTimestamp(),
+      expiresAt: freshExpiry,
+    }));
+    await assertFails(setDoc(doc(owner, "discoverableSpaces", "NEW234"), {
+      ...projection(100000),
+      roomKeepsakes: ["keepsake_books", "keepsake_books"],
+      updatedAt: serverTimestamp(),
+      expiresAt: freshExpiry,
+    }));
+    await assertFails(setDoc(doc(owner, "discoverableSpaces", "NEW234"), {
+      ...projection(100000),
+      roomKeepsakes: ["keepsake_books", "keepsake_private"],
+      updatedAt: serverTimestamp(),
+      expiresAt: freshExpiry,
+    }));
+    await assertFails(setDoc(doc(owner, "rooms", "NEW234"), {
+      ...generatedRoomWrite(ownerKey),
+      roomKeepsakes: ["keepsake_books", "keepsake_sprout", "keepsake_camera"],
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
   test("lets only the owner read the absent directory entry needed for first opt-in", async () => {
     await environment.withSecurityRulesDisabled(async (context) => {
       const database = context.firestore();
@@ -257,7 +328,7 @@ describeWithEmulator("discoverableSpaces Firestore rules", () => {
     }));
   });
 
-  test("an owner can atomically create a strict v6 room and private registry", async () => {
+  test("an owner can atomically create a strict v7 room and private registry", async () => {
     const owner = environment.authenticatedContext("owner").firestore();
     const batch = writeBatch(owner);
     batch.set(doc(owner, "rooms", "NEW234"), generatedRoomWrite(ownerKey));
@@ -269,7 +340,7 @@ describeWithEmulator("discoverableSpaces Firestore rules", () => {
     await assertSucceeds(batch.commit());
   });
 
-  test("only the Build 31 owner can migrate v5 to v6 without rotating its code", async () => {
+  test("only the Build 31 owner can migrate v5 to v7 without rotating its code", async () => {
     await environment.withSecurityRulesDisabled(async (context) => {
       const legacyRoom: Record<string, unknown> = {
         ...generatedRoomWrite(ownerKey, 5),
@@ -301,6 +372,106 @@ describeWithEmulator("discoverableSpaces Firestore rules", () => {
     await assertSucceeds(getDoc(doc(owner, "roomOwners", "BEG234")));
   });
 
+  test("accepts strict legacy v6/v3 first creation, permits upgrade, and rejects downgrade or keepsakes in v6/v3", async () => {
+    const owner = environment.authenticatedContext("owner").firestore();
+    const code = "V6A234";
+    const create = writeBatch(owner);
+    create.set(doc(owner, "rooms", code), generatedRoomWrite(ownerKey, 6));
+    create.set(doc(owner, "roomOwners", code), {
+      uid: "owner",
+      ownerKey,
+      updatedAt: serverTimestamp(),
+    });
+    await assertSucceeds(create.commit());
+
+    const legacyDirectory = {...projection(400000), v: 3};
+    delete (legacyDirectory as {roomKeepsakes?: unknown}).roomKeepsakes;
+    await assertSucceeds(setDoc(doc(owner, "discoverableSpaces", code), {
+      ...legacyDirectory,
+      updatedAt: serverTimestamp(),
+    }));
+
+    await assertSucceeds(setDoc(doc(owner, "rooms", code), {
+      ...generatedRoomWrite(ownerKey, 7),
+      roomKeepsakes: ["keepsake_books", "keepsake_record"],
+      updatedAt: serverTimestamp(),
+    }));
+    await assertSucceeds(setDoc(doc(owner, "discoverableSpaces", code), {
+      ...projection(400000),
+      roomKeepsakes: ["keepsake_books", "keepsake_record"],
+      updatedAt: serverTimestamp(),
+    }));
+
+    await assertFails(setDoc(doc(owner, "rooms", code), {
+      ...generatedRoomWrite(ownerKey, 6),
+      updatedAt: serverTimestamp(),
+    }));
+    await assertFails(setDoc(doc(owner, "discoverableSpaces", code), {
+      ...legacyDirectory,
+      updatedAt: serverTimestamp(),
+    }));
+
+    const invalidLegacy = writeBatch(owner);
+    invalidLegacy.set(doc(owner, "rooms", "V6B234"), {
+      ...generatedRoomWrite(ownerKey, 6),
+      roomKeepsakes: [],
+      updatedAt: serverTimestamp(),
+    });
+    invalidLegacy.set(doc(owner, "roomOwners", "V6B234"), {
+      uid: "owner",
+      ownerKey,
+      updatedAt: serverTimestamp(),
+    });
+    await assertFails(invalidLegacy.commit());
+    await assertFails(setDoc(doc(owner, "discoverableSpaces", "V6A234"), {
+      ...legacyDirectory,
+      roomKeepsakes: [],
+      updatedAt: serverTimestamp(),
+    }));
+  });
+
+  test("an owner can publish an opaque v8 room-photo path and cannot downgrade it", async () => {
+    const owner = environment.authenticatedContext("owner").firestore();
+    const code = "PHA234";
+    const path = `shared_rooms/${ownerKey}/${code}/room/ABCDEFGHIJKLMNOPQRSTUV`;
+    const create = writeBatch(owner);
+    create.set(doc(owner, "rooms", code), {
+      ...generatedRoomWrite(ownerKey, 8),
+      updatedAt: serverTimestamp(),
+    });
+    create.set(doc(owner, "roomOwners", code), {
+      uid: "owner",
+      ownerKey,
+      updatedAt: serverTimestamp(),
+    });
+    await assertSucceeds(create.commit());
+
+    await assertSucceeds(setDoc(doc(owner, "rooms", code), {
+      ...generatedRoomWrite(ownerKey, 8),
+      roomPhotoPath: path,
+      roomPhotoFill: true,
+      roomPhotoX: -0.25,
+      roomPhotoY: 0.5,
+      roomPhotoWidth: 1200,
+      roomPhotoHeight: 800,
+      updatedAt: serverTimestamp(),
+    }));
+
+    const reader = environment.unauthenticatedContext().firestore();
+    await assertSucceeds(getDoc(doc(reader, "rooms", code)));
+    await assertFails(setDoc(doc(owner, "rooms", code), {
+      ...generatedRoomWrite(ownerKey, 7),
+      updatedAt: serverTimestamp(),
+    }));
+    await assertFails(setDoc(doc(owner, "rooms", code), {
+      ...generatedRoomWrite(ownerKey, 8),
+      roomPhotoPath: "shared_rooms/owner/PHA234/room/ABCDEFGHIJKLMNOPQRSTUV",
+      roomPhotoFill: true,
+      roomPhotoWidth: 1200,
+      roomPhotoHeight: 800,
+      updatedAt: serverTimestamp(),
+    }));
+  });
   test("public profiles are exact-read only and must match a live generated room", async () => {
     const anonymous = environment.unauthenticatedContext().firestore();
     const reader = environment.authenticatedContext("reader").firestore();
@@ -363,6 +534,20 @@ describeWithEmulator("discoverableSpaces Firestore rules", () => {
       await assertFails(getDoc(doc(anonymous, "publicSpaceProfiles", code)));
       await assertFails(getDoc(doc(reader, "mutualSpaceProfiles", code)));
     }
+  });
+
+  test("public profile remains readable when its live room has upgraded to v8", async () => {
+    await environment.withSecurityRulesDisabled(async (context) => {
+      const database = context.firestore();
+      await setDoc(doc(database, "rooms", "V8P234"), {
+        ...room(),
+        v: 8,
+      });
+      await setDoc(doc(database, "roomOwners", "V8P234"), roomOwner());
+      await setDoc(doc(database, "publicSpaceProfiles", "V8P234"), profile());
+    });
+    const anonymous = environment.unauthenticatedContext().firestore();
+    await assertSucceeds(getDoc(doc(anonymous, "publicSpaceProfiles", "V8P234")));
   });
 
   test("mutual profiles require reciprocal Circle edges and no block", async () => {

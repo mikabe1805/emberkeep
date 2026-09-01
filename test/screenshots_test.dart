@@ -4,13 +4,15 @@
 //   flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true \
 //     --dart-define=CAPTURE_STORE=true test/screenshots_test.dart
 // then open test/goldens/*.png. Not a pass/fail guard — purely a render dump.
-// BOTH flags are needed: CAPTURE_GOLDENS gates the widget dumps, CAPTURE_STORE
-// gates the full-screen store_* shots. With only the first, the tests still
-// report "All tests passed" while every store_*.png silently stays stale.
+// CAPTURE_GOLDENS gates the widget dumps; CAPTURE_STORE gates the full-screen
+// store_* shots. Run once with both flags for the main story, then once with
+// CAPTURE_STORE alone for the Goals frames whose native-density setup is kept
+// separate from the broader audit dump. With only CAPTURE_GOLDENS, the tests
+// still pass while every store_*.png remains stale.
 // Add CAPTURE_PLAY=true to render the five submission frames again at a native
 // 1080×1920 Play Store viewport. Google Play rejects the taller 1290×2796
 // iPhone class because its long edge is more than twice its short edge.
-// (round-62 pivot: the creature is gone; the keep + its hearth are the star.)
+// The room itself remains the authored visual anchor in every store frame.
 import 'dart:convert';
 import 'dart:math';
 
@@ -64,7 +66,8 @@ import 'package:emberkeep/widgets/quest_depth_room.dart';
 import 'package:emberkeep/widgets/quest_desk.dart';
 import 'package:emberkeep/widgets/top_three_wizard.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show FontLoader, rootBundle;
+import 'package:flutter/services.dart'
+    show FontLoader, MethodChannel, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -301,6 +304,12 @@ void _activateDock(WidgetTester tester, IconData icon) {
 }
 
 void main() {
+  const audioChannels = [
+    MethodChannel('xyz.luan/audioplayers.global'),
+    MethodChannel('xyz.luan/audioplayers.global/events'),
+    MethodChannel('xyz.luan/audioplayers'),
+    MethodChannel('xyz.luan/audioplayers/events/room-of-days-background-music'),
+  ];
   // Load the icon font. Without this the test binding has no MaterialIcons
   // glyphs, so EVERY `Icon` in a screenshot renders as a tofu box — and a
   // dump full of unreadable squares covering the UI is worse than no dump,
@@ -313,6 +322,13 @@ void main() {
     WidgetController.hitTestWarningShouldBeFatal = true;
     GameState.debugRandomFactory = () => Random(20260808);
     TestWidgetsFlutterBinding.ensureInitialized();
+    // A visual fixture has no native audio plugin. Acknowledge the optional
+    // music player's setup even when this is the first AppShell test in a
+    // filtered run. This neither plays nor validates music.
+    for (final channel in audioChannels) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (_) async => null);
+    }
     final loader = FontLoader('MaterialIcons')
       ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
     await loader.load();
@@ -356,6 +372,10 @@ void main() {
     GoogleFonts.config.allowRuntimeFetching = false; // no network in tests
   });
   tearDownAll(() {
+    for (final channel in audioChannels) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    }
     WidgetController.hitTestWarningShouldBeFatal = false;
     GameState.debugRandomFactory = null;
   });
@@ -1170,8 +1190,17 @@ void main() {
     await tester.tap(find.text('0 GLIMMERS'));
     await tester.pump(const Duration(milliseconds: 500));
     await _storeShot(tester, 'audit_11_space_themes_1290x2796');
+    final roomChoices = find.descendant(
+      of: find.byKey(const ValueKey('space-theme-list')),
+      matching: find.byType(Scrollable),
+    );
     final conservatory = find.text('The Living Conservatory');
-    await tester.ensureVisible(conservatory);
+    await tester.scrollUntilVisible(
+      conservatory,
+      260,
+      scrollable: roomChoices,
+      maxScrolls: 40,
+    );
     await tester.pump(const Duration(milliseconds: 300));
     await _storeShot(tester, 'audit_11a_conservatory_choice_1290x2796');
     await tester.tap(conservatory);
@@ -1185,7 +1214,12 @@ void main() {
     await tester.tap(find.byTooltip('Close'));
     await tester.pump(const Duration(milliseconds: 350));
     final archive = find.text('The Moonlit Archive');
-    await tester.ensureVisible(archive);
+    await tester.scrollUntilVisible(
+      archive,
+      260,
+      scrollable: roomChoices,
+      maxScrolls: 40,
+    );
     await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(archive);
     await tester.runAsync(
@@ -1581,7 +1615,7 @@ void main() {
     await tester.tap(find.byType(QuestDeskStyleButton));
     await tester.pump(const Duration(milliseconds: 450));
     await _storeShot(tester, '01b_quest_desk_1290x2796');
-    Navigator.of(tester.element(find.text('QUEST DESK'))).pop();
+    Navigator.of(tester.element(find.text('YOUR ROOM'))).pop();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 450));
 
@@ -1754,7 +1788,7 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('store screenshot story: keepsakes and sharing', (tester) async {
+  testWidgets('store screenshot story: memories and sharing', (tester) async {
     tester.view.devicePixelRatio = 3;
     await tester.binding.setSurfaceSize(const Size(430, 932));
     addTearDown(() {

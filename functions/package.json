@@ -9,7 +9,8 @@
     "lint": "eslint src --max-warnings=0",
     "build": "tsc --project tsconfig.json",
     "test": "jest",
-    "test:rules": "jest --runInBand src/firestore_rules.emulator.test.ts"
+    "test:rules": "jest --runInBand src/firestore_rules.emulator.test.ts",
+    "test:storage-rules": "firebase emulators:exec --only firestore,storage \"npm test -- --runInBand src/storage_rules.emulator.test.ts\""
   },
   "dependencies": {
     "firebase-admin": "^13.7.0",

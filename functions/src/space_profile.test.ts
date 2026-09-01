@@ -72,6 +72,11 @@ const visitorRoom = {
   profileVisible: false,
   updatedAt: new Date("2026-08-24T12:00:00.000Z"),
 };
+const v7Room = (room: Doc, keepsakes: unknown = ["keepsake_books", "keepsake_record"]): Doc => ({
+  ...room,
+  v: 7,
+  roomKeepsakes: keepsakes,
+});
 const profile = (overrides: Record<string, unknown> = {}) => ({
   displayName: "Mika",
   cardOrder: ["about", "rightNow"],
@@ -102,6 +107,53 @@ describe("space profile callables", () => {
       v: 2, ownerKey: ownerKeyForSpaceUid("owner"),
       roomUpdatedAt: ownerRoom.updatedAt, ...mutualProfile,
     });
+  });
+
+  test("accepts a bounded v7 room for profile publishing, Circle, and block targets", async () => {
+    const publicProfile = profile({cardOrder: ["about"], featuredGoals: []});
+    const mutualProfile = profile({cardOrder: ["about"], featuredGoals: []});
+    const owner = makeStore({"rooms/ABC234": v7Room(ownerRoom)});
+    await expect(publishSpaceProfileHandler(
+      request({code: "ABC234", publicProfile, mutualProfile}),
+      {store: owner.store},
+    )).resolves.toEqual({published: true, publicProfile: true, mutualProfile: true});
+
+    const circle = makeStore({"rooms/ABC234": v7Room(visitorRoom)});
+    const visitorKey = ownerKeyForSpaceUid("visitor");
+    await expect(setCircleRelationshipHandler(
+      request({code: "ABC234", ownerKey: visitorKey, active: true}),
+      {store: circle.store},
+    )).resolves.toEqual({active: true, ownerKey: visitorKey});
+
+    const block = makeStore({"rooms/ABC234": v7Room(visitorRoom)});
+    await expect(setSpaceBlockHandler(
+      request({code: "ABC234", ownerKey: visitorKey, blocked: true}),
+      {store: block.store},
+    )).resolves.toEqual({blocked: true, ownerKey: visitorKey});
+  });
+
+  test.each([
+    ["unknown keepsake", ["keepsake_private"]],
+    ["duplicate keepsake", ["keepsake_books", "keepsake_books"]],
+    ["too many keepsakes", ["keepsake_books", "keepsake_sprout", "keepsake_camera"]],
+    ["future version", ["keepsake_books"]],
+  ])("rejects malformed or future v7 room targets: %s", async (label, keepsakes) => {
+    const room = label === "future version" ?
+      {...v7Room(visitorRoom, keepsakes), v: 8} :
+      v7Room(visitorRoom, keepsakes);
+    const store = makeStore({"rooms/ABC234": room});
+    await expect(setCircleRelationshipHandler(
+      request({code: "ABC234", ownerKey: ownerKeyForSpaceUid("visitor"), active: true}),
+      {store: store.store},
+    )).rejects.toMatchObject({code: "not-found"});
+    await expect(setSpaceBlockHandler(
+      request({code: "ABC234", ownerKey: ownerKeyForSpaceUid("visitor"), blocked: true}),
+      {store: store.store},
+    )).rejects.toMatchObject({code: "not-found"});
+    await expect(publishSpaceProfileHandler(
+      request({code: "ABC234", publicProfile: null, mutualProfile: null}, "visitor"),
+      {store: store.store},
+    )).rejects.toMatchObject({code: "permission-denied"});
   });
 
   test("deleting both profiles leaves Only me content nowhere in Firestore", async () => {
@@ -150,7 +202,7 @@ describe("space profile callables", () => {
     expect(docs.get("mutualSpaceProfiles/ABC234")?.displayName).toBe("Mika");
   });
 
-  test("rejects profile publishing from another person or a non-v5 room", async () => {
+  test("rejects profile publishing from another person or an unsupported room", async () => {
     const intruder = makeStore({"rooms/ABC234": ownerRoom});
     await expect(publishSpaceProfileHandler(request({code: "ABC234", publicProfile: null, mutualProfile: profile()}, "intruder"), {store: intruder.store}))
       .rejects.toMatchObject({code: "permission-denied"});

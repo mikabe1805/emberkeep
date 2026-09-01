@@ -1,10 +1,13 @@
 import 'package:emberkeep/engine.dart';
+import 'package:emberkeep/audio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:emberkeep/models.dart';
 import 'package:emberkeep/content/quest_desk_styles.dart';
 import 'package:emberkeep/screens/quests.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/morrow_tapestry_glyph.dart';
 import 'package:emberkeep/widgets/quest_desk.dart';
+import 'package:emberkeep/widgets/home_room.dart';
 import 'package:emberkeep/widgets/stat_chips.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,7 +29,8 @@ void main() {
     expect(oldSave.questDeskStyle, 'wall_walnut');
 
     final state = GameState()
-      ..ownedStyles.add('wall_indigo')
+      ..ownedStyles.add('wall_archive')
+      ..wallStyle = 'wall_archive'
       ..setQuestDeskStyle('wall_indigo');
     final restored = GameState.fromJson(state.toJson());
 
@@ -46,6 +50,10 @@ void main() {
       ..reduceMotion = true
       ..ownedStyles.add('wall_archive');
     var saves = 0;
+    SharedPreferences.setMockInitialValues({});
+    Sfx.instance.soundEnabled = false;
+    addTearDown(() => Sfx.instance.soundEnabled = true);
+    await tester.runAsync(() => preloadSpaceTheme('wall_archive'));
 
     await tester.pumpWidget(
       MaterialApp(
@@ -72,7 +80,7 @@ void main() {
 
     await tester.tap(find.byType(QuestDeskStyleButton));
     await tester.pumpAndSettle();
-    expect(find.text('QUEST DESK'), findsOneWidget);
+    expect(find.text('YOUR ROOM'), findsOneWidget);
 
     final midnight = find.text('ARCHIVE LEDGER');
     await tester.scrollUntilVisible(
@@ -80,7 +88,10 @@ void main() {
       220,
       scrollable: find.byType(Scrollable).last,
     );
+    await tester.pumpAndSettle();
+    expect(midnight.hitTestable(), findsOneWidget);
     await tester.tap(midnight);
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 30)));
     await tester.pumpAndSettle();
 
     expect(state.questDeskStyle, 'wall_archive');

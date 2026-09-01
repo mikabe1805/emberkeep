@@ -20,10 +20,12 @@ import '../engine.dart';
 import '../goal_planner.dart';
 import '../haptics.dart';
 import '../journal_media.dart' as media;
+import '../media_picker_intent.dart';
 import '../models.dart';
 import '../notifications.dart';
 import '../release_features.dart';
 import '../release_notes_preferences.dart';
+import '../room_photo.dart';
 import '../storage.dart';
 import '../social.dart';
 import '../tokens.dart';
@@ -198,6 +200,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   final AppSessionIgnitionGate _sessionIgnition = AppSessionIgnitionGate();
   bool _roomIgniting = false;
   bool _roomHearthLit = false;
+  String? _roomPhotoOwnerActivation;
+  int _roomPhotoOwnerEpoch = 0;
 
   /// Bound by QuestsPage so pause-path saves always flush a pending
   /// deferred commit before writing (bug-hunt §1 — observer order alone
@@ -226,6 +230,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     Sfx.instance.setInteractionScreen(_soundTabScopes[_tab]);
     WidgetsBinding.instance.addObserver(this);
     widget.roomLinks?.addListener(_onIncomingRoomLink);
+    CloudSync.instance.addListener(_onCloudAccountChanged);
     _load();
   }
 
@@ -233,6 +238,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.roomLinks?.removeListener(_onIncomingRoomLink);
+    CloudSync.instance.removeListener(_onCloudAccountChanged);
     _midnight?.cancel();
     _ignitionClearTimer?.cancel();
     _luxeMotion.dispose();
@@ -251,6 +257,121 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   void _onIncomingRoomLink() {
     if (_startupSettled) unawaited(_drainPendingRoomLinks());
+  }
+
+  /// Firebase account changes are the privacy boundary for the room photo.
+  /// CloudSync already observes its cached Firebase actor during its ordinary
+  /// init/sign-in/sign-out flow; this listener starts no authentication or
+  /// network request of its own.
+  void _onCloudAccountChanged() => unawaited(_refreshRoomPhotoOwner());
+
+  Future<void> _refreshRoomPhotoOwner() =>
+      _syncRoomPhotoOwner(++_roomPhotoOwnerEpoch);
+
+  Future<void> _syncRoomPhotoOwner(int epoch) async {
+    if (!mounted || epoch != _roomPhotoOwnerEpoch) return;
+    final store = RoomPhotoStore.instance;
+    final uid = CloudSync.instance.socialUid;
+    final directOwner = uid == null || uid.trim().isEmpty
+        ? null
+        : 'firebase:$uid';
+    if (directOwner != null) {
+      if (!mounted || epoch != _roomPhotoOwnerEpoch) return;
+      if (_roomPhotoOwnerActivation == directOwner &&
+          store.ownerKey == directOwner) {
+        await MediaPickerIntentCoordinator.instance
+            .discardRecoveredRoomPhotoForOtherOwner(
+              directOwner,
+              stillActive: () =>
+                  epoch == _roomPhotoOwnerEpoch &&
+                  mounted &&
+                  CloudSync.instance.socialUid == uid &&
+                  store.ownerKey == directOwner,
+            );
+        return;
+      }
+      _roomPhotoOwnerActivation = directOwner;
+      await store.activateOwner(directOwner);
+      if (epoch != _roomPhotoOwnerEpoch ||
+          CloudSync.instance.socialUid != uid ||
+          store.ownerKey != directOwner) {
+        return;
+      }
+      await MediaPickerIntentCoordinator.instance
+          .discardRecoveredRoomPhotoForOtherOwner(
+            directOwner,
+            stillActive: () =>
+                epoch == _roomPhotoOwnerEpoch &&
+                mounted &&
+                CloudSync.instance.socialUid == uid &&
+                store.ownerKey == directOwner,
+          );
+      return;
+    }
+
+    // A null Firebase uid is also CloudSync's ordinary local-only status. If
+    // this State already owns the stable device scope, do not briefly hide and
+    // reload it on every status notification: that would flicker the photo and
+    // eject the open editor without any identity change.
+    final rememberedOwner = _roomPhotoOwnerActivation;
+    if (rememberedOwner != null &&
+        rememberedOwner.startsWith('device:') &&
+        store.ownerKey == rememberedOwner) {
+      await MediaPickerIntentCoordinator.instance
+          .discardRecoveredRoomPhotoForOtherOwner(
+            rememberedOwner,
+            stillActive: () =>
+                mounted &&
+                epoch == _roomPhotoOwnerEpoch &&
+                CloudSync.instance.socialUid == null &&
+                store.ownerKey == rememberedOwner,
+          );
+      return;
+    }
+
+    // Do not leave the previous identity's image visible while the local-only
+    // owner key is read. The Store hides synchronously before its async read.
+    const transitionOwner = 'room-photo-owner-transition';
+    if (store.ownerKey != transitionOwner) {
+      unawaited(store.activateOwner(transitionOwner));
+    }
+    final localOwner = await MediaPickerIntentCoordinator.instance
+        .roomPhotoOwnerKey(firebaseUid: null);
+    if (!mounted ||
+        epoch != _roomPhotoOwnerEpoch ||
+        CloudSync.instance.socialUid != null) {
+      return;
+    }
+    if (_roomPhotoOwnerActivation == localOwner &&
+        store.ownerKey == localOwner) {
+      await MediaPickerIntentCoordinator.instance
+          .discardRecoveredRoomPhotoForOtherOwner(
+            localOwner,
+            stillActive: () =>
+                epoch == _roomPhotoOwnerEpoch &&
+                mounted &&
+                CloudSync.instance.socialUid == null &&
+                store.ownerKey == localOwner,
+          );
+      return;
+    }
+    _roomPhotoOwnerActivation = localOwner;
+    await store.activateOwner(localOwner);
+    if (epoch != _roomPhotoOwnerEpoch ||
+        !mounted ||
+        CloudSync.instance.socialUid != null ||
+        store.ownerKey != localOwner) {
+      return;
+    }
+    await MediaPickerIntentCoordinator.instance
+        .discardRecoveredRoomPhotoForOtherOwner(
+          localOwner,
+          stillActive: () =>
+              epoch == _roomPhotoOwnerEpoch &&
+              mounted &&
+              CloudSync.instance.socialUid == null &&
+              store.ownerKey == localOwner,
+        );
   }
 
   /// Arm a one-shot timer for the next local midnight so a device left
@@ -442,6 +563,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       target,
       current: current,
       code: code,
+      roomPhoto: RoomPhotoStore.instance.photo,
+      syncRoomPhoto:
+          target.shareRoomPhoto &&
+          (!current.shareRoomPhoto || target.spaceRoomPhotoPath.isEmpty),
     );
     final publishedCode = result.code;
     if (publishedCode != null &&
@@ -632,19 +757,24 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // write the fresh state now so the local store holds valid bytes — never
     // leave a corrupt blob sitting in _key to be read by a later push.
     if (saved == null || releaseCapabilitiesChanged) {
-      await Storage.save(state, quests);
+      await Storage.save(
+        state,
+        quests,
+        // This marker lasts only until an ordinary save or an import. It lets
+        // first cloud pull recover a valid pre-schema-28 save instead of
+        // treating this just-created empty room as competing user history.
+        freshBootstrap: saved == null,
+      );
     }
     if (!mounted) return;
     Haptics.reduceMotion = state.reduceMotion;
     Sfx.instance.soundEnabled = state.soundEnabled;
     unawaited(_music.setEnabled(state.musicEnabled));
     unawaited(_music.setForeground(_musicForeground));
-    // Decode the selected complete room while the Quest home is appearing, so
-    // opening Me never flashes the procedural legacy fallback.
+    // Prepare only the selected room. Art decoding must never delay saved
+    // state, onboarding or the morning flow; HomeRoom holds a quiet loading
+    // canvas instead of flashing a different procedural room until ready.
     unawaited(preloadSpaceTheme(state.wallStyle));
-    // The room plate can be large; the shared three-frame fire is small enough
-    // to warm in parallel so the very first hearth is already lit when Me
-    // opens, without paying to decode every cosmetic room at launch.
     unawaited(preloadHearthFireFrames());
     setState(() {
       _state = state;
@@ -663,6 +793,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // have not inspected yet.
     cloud.holdSavePushes(report: false);
     await cloud.init();
+    // Owner activation hides a prior scope synchronously, but opening and
+    // decoding this optional device-local photo must never hold the launch
+    // gate for onboarding, Morning, or Quests. In particular a singleton
+    // store can still be settling an earlier widget-test fake zone.
+    unawaited(_refreshRoomPhotoOwner());
     if (!mounted) return;
     if (!cloud.ready) {
       cloud.releaseSavePushes();
@@ -702,7 +837,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       return;
     }
 
-    switch (Storage.decideCloudMerge(
+    switch (Storage.decideInitialCloudMerge(
       localRaw: localRawBefore,
       remoteRaw: cloudRaw,
     )) {
@@ -1119,11 +1254,24 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     final oldRoomCode = old.roomCode;
     CloudSync.instance.cancelPending(); // drop any stale pre-reset push
 
+    // A reset cannot present a fresh local room while an older public room is
+    // still reachable. Leave the current keep intact on a remote failure so
+    // the owner can retry with the credential that is allowed to revoke it.
+    if (!await _finishResetRemoteCleanup(oldRoomCode)) {
+      return 'Couldn’t confirm that your old shared room was removed. Your '
+          'room was left in place; reconnect and try Start over again.';
+    }
+
     // Confirm local privacy cleanup before presenting a fresh room. In
     // particular, do not fire-and-forget journal deletion: a process kill just
     // after the tap must not leave old photos behind while the UI says reset.
-    if (!await media.clearAll()) {
-      return 'Couldn’t confirm that journal photos were erased. Your progress '
+    final photosCleared = await Future.wait([
+      media.clearAll(),
+      RoomPhotoStore.instance.clearAll(),
+      MediaPickerIntentCoordinator.instance.clearPendingRoomPhotoIntent(),
+    ]);
+    if (photosCleared.any((cleared) => !cleared)) {
+      return 'Couldn’t confirm that private photos were erased. Your progress '
           'was left in place; try again.';
     }
     final localMetadataCleared = await Future.wait([
@@ -1157,30 +1305,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _quests = freshQuests;
     });
     _maybeOnboard();
-    // Erase the cloud copy and published room too. Guest profiles also delete
-    // their anonymous Firebase identity before a fresh one is created, so a
-    // reset cannot leave an unreachable backend account behind.
-    unawaited(_finishResetRemoteCleanup(oldRoomCode));
+    _persist();
     return null;
   }
 
-  Future<void> _finishResetRemoteCleanup(String? oldRoomCode) async {
+  Future<bool> _finishResetRemoteCleanup(String? oldRoomCode) async {
     final fullyErased = await CloudSync.instance.resetProfile(
       roomCode: oldRoomCode,
     );
-    _persist();
-    if (!mounted || fullyErased) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final messenger = ScaffoldMessenger.maybeOf(context);
-      messenger?.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Your new room is ready, but the old shared room could not be confirmed removed. Keep the app online so it can retry.',
-          ),
-        ),
-      );
-    });
+    return fullyErased;
   }
 
   /// Non-destructive refresh of the quest board: re-run the day's rollover
@@ -1370,6 +1503,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       Storage.clearCorruptBackup(),
       Storage.clearUsage(),
       media.clearAll(),
+      RoomPhotoStore.instance.clearAll(),
+      MediaPickerIntentCoordinator.instance.clearPendingRoomPhotoIntent(),
     ]);
     final fresh = GameState()..rollover([]);
     fresh.addListener(_persist);

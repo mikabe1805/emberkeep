@@ -16,6 +16,14 @@ service firebase.storage {
       return slot == 'profile' || slot == 'season';
     }
 
+    function validPublicRoomSlot(slot) {
+      return slot == 'room';
+    }
+
+    function validOwnerKey(ownerKey) {
+      return ownerKey.matches('^[a-f0-9]{64}$');
+    }
+
     function validGeneration(generation) {
       return generation.matches('^[A-Za-z0-9_-]{22}$');
     }
@@ -30,6 +38,28 @@ service firebase.storage {
         && request.resource.size > 0
         && request.resource.size <= 3 * 1024 * 1024
         && request.resource.contentType.matches('^image/(jpeg|png|webp)$');
+    }
+
+    function validPublicRoomWrite(ownerKey, roomCode, slot) {
+      return request.auth != null
+        && validOwnerKey(ownerKey)
+        && validRoomCode(roomCode)
+        && validPublicRoomSlot(slot)
+        && !firestore.exists(/databases/(default)/documents/serviceIdentityDeletionTombstones/$(request.auth.uid))
+        && firestore.exists(/databases/(default)/documents/roomOwners/$(roomCode))
+        && firestore.get(/databases/(default)/documents/roomOwners/$(roomCode)).data.uid == request.auth.uid
+        && firestore.get(/databases/(default)/documents/roomOwners/$(roomCode)).data.ownerKey == ownerKey
+        && request.resource.size > 0
+        && request.resource.size <= 800 * 1024
+        && request.resource.contentType == 'image/png';
+    }
+
+    function livePublicRoomReferencesPhoto(ownerKey, roomCode, slot, generation) {
+      return firestore.exists(/databases/(default)/documents/rooms/$(roomCode))
+        && firestore.get(/databases/(default)/documents/rooms/$(roomCode)).data.v == 8
+        && firestore.get(/databases/(default)/documents/rooms/$(roomCode)).data.ownerKey == ownerKey
+        && firestore.get(/databases/(default)/documents/rooms/$(roomCode)).data.roomPhotoPath
+          == 'shared_rooms/' + ownerKey + '/' + roomCode + '/' + slot + '/' + generation;
     }
 
     match /shared_rooms/{ownerUid}/{roomCode}/{slot} {
@@ -70,6 +100,31 @@ service firebase.storage {
         && validRoomCode(roomCode)
         && validSlot(slot)
         && validGeneration(generation);
+    }
+
+    // Public room photographs use the opaque owner key in their object path.
+    // Firestore's private owner registry proves that only the matching
+    // Firebase identity may create or remove the exact revision.
+    match /shared_rooms/{ownerKey}/{roomCode}/{slot}/{generation} {
+      allow get: if validOwnerKey(ownerKey)
+        && validRoomCode(roomCode)
+        && validPublicRoomSlot(slot)
+        && validGeneration(generation)
+        && livePublicRoomReferencesPhoto(ownerKey, roomCode, slot, generation);
+      allow list: if false;
+
+      allow create: if validGeneration(generation)
+        && validPublicRoomWrite(ownerKey, roomCode, slot);
+      allow update: if false;
+
+      allow delete: if request.auth != null
+        && validOwnerKey(ownerKey)
+        && validRoomCode(roomCode)
+        && validPublicRoomSlot(slot)
+        && validGeneration(generation)
+        && firestore.exists(/databases/(default)/documents/roomOwners/$(roomCode))
+        && firestore.get(/databases/(default)/documents/roomOwners/$(roomCode)).data.uid == request.auth.uid
+        && firestore.get(/databases/(default)/documents/roomOwners/$(roomCode)).data.ownerKey == ownerKey;
     }
 
     // No other objects, including parent collection listings, are public.

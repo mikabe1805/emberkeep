@@ -19,12 +19,14 @@ import '../content/creature_skins.dart';
 import '../content/links.dart';
 import '../content/memories.dart';
 import '../content/room_styles.dart';
+import '../content/space_themes.dart';
 import '../content/stat_ranks.dart';
 import '../content/themes.dart';
 import '../daybook/services/place_search_identity_removal.dart';
 import '../engine.dart';
 import '../notifications.dart';
 import '../release_features.dart';
+import '../room_photo.dart';
 import '../storage.dart';
 import '../tokens.dart';
 import '../a11y.dart';
@@ -49,6 +51,7 @@ import 'discover_spaces.dart';
 import 'hearth_circle.dart';
 import 'about.dart';
 import 'room_guide.dart';
+import 'room_photo.dart';
 import 'shop.dart';
 import 'whats_new.dart';
 
@@ -304,6 +307,8 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
   String? _seasonPhotoNoteId;
   late bool _shareProfilePhoto;
   late bool _shareSeasonPhoto;
+  late bool _shareRoomPhoto;
+  bool _refreshSharedRoomPhoto = false;
   late bool _shared;
   bool _saving = false;
   String? _saveError;
@@ -336,6 +341,7 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
         widget.visitorProfileSharingEnabled &&
         widget.visitorPhotoSharingEnabled &&
         widget.state.shareSpaceSeasonPhoto;
+    _shareRoomPhoto = widget.state.shareRoomPhoto;
     _shared =
         widget.visitorProfileSharingEnabled && widget.state.shareSpaceProfile;
   }
@@ -378,6 +384,12 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
           _shareSeasonPhoto,
       shareProfile: widget.visitorProfileSharingEnabled && _shared,
     );
+    target.setRoomPhotoSharing(_shareRoomPhoto);
+    if (_refreshSharedRoomPhoto && _shareRoomPhoto) {
+      // An empty acknowledged handle asks the explicit publisher to replace
+      // the shared copy from the still-private local source on Save.
+      target.clearSharedRoomPhotoProjection();
+    }
     if (!widget.visitorProfileSharingEnabled) {
       target.disableVisitorProfileSharing();
     } else if (!widget.visitorPhotoSharingEnabled) {
@@ -409,6 +421,150 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       profilePath: draft.spaceProfilePhotoPath,
       seasonPath: draft.spaceSeasonPhotoPath,
     );
+    widget.state.setRoomPhotoSharing(draft.shareRoomPhoto);
+    if (draft.spaceRoomPhotoPath.isEmpty) {
+      widget.state.clearSharedRoomPhotoProjection(
+        disableSharing: !draft.shareRoomPhoto,
+      );
+    } else {
+      widget.state.setSharedRoomPhotoProjection(
+        path: draft.spaceRoomPhotoPath,
+        fillFrame: draft.spaceRoomPhotoFill,
+        alignmentX: draft.spaceRoomPhotoX,
+        alignmentY: draft.spaceRoomPhotoY,
+        pixelWidth: draft.spaceRoomPhotoWidth,
+        pixelHeight: draft.spaceRoomPhotoHeight,
+      );
+    }
+  }
+
+  Future<void> _changeRoomPhotoSharing(bool value) async {
+    if (!value) {
+      setState(() {
+        _shareRoomPhoto = false;
+        _refreshSharedRoomPhoto = false;
+      });
+      return;
+    }
+    if (RoomPhotoStore.instance.photo == null &&
+        widget.state.spaceRoomPhotoPath.isEmpty) {
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierColor: Palette.dialogBarrier,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          child: GlassPanel(
+            tint: Palette.dialogSurface,
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.visibility_outlined,
+                      size: 20,
+                      color: Palette.xpLight,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'A SHARED ROOM CHOICE',
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        letterSpacing: 1.1,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Show this photo in your shared room?',
+                  style: Type.display.copyWith(
+                    fontSize: 22,
+                    height: 1.08,
+                    color: Palette.textHi,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Anyone who opens your room from a code, link, or Discover can see '
+                  'the photo above the fireplace. Discover cards do not show it. A '
+                  'copy is uploaded only when you save, and someone who already '
+                  'downloaded it may keep a copy.',
+                  style: Type.body.copyWith(
+                    fontSize: 13.5,
+                    height: 1.42,
+                    color: Palette.textMid,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(false),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Palette.textMid,
+                        minimumSize: const Size(48, 48),
+                      ),
+                      child: Text(
+                        'KEEP PRIVATE',
+                        style: Type.label.copyWith(
+                          fontSize: Type.minLabel,
+                          color: Palette.textMid,
+                        ),
+                      ),
+                    ),
+                    Semantics(
+                      button: true,
+                      label: 'Add to shared room',
+                      child: GestureDetector(
+                        key: const ValueKey('confirm-share-room-photo'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => Navigator.of(dialogContext).pop(true),
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 48),
+                          alignment: Alignment.center,
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          decoration: facetedDecoration(
+                            cut: 8,
+                            gradient: Palette.honeyGradient,
+                            borderColor: Palette.brassLit.withValues(
+                              alpha: 0.75,
+                            ),
+                          ),
+                          child: Text(
+                            'ADD TO SHARED ROOM',
+                            style: Type.label.copyWith(
+                              fontSize: Type.minLabel,
+                              color: Palette.onHoney,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (!mounted || confirmed != true) return;
+    setState(() {
+      _shareRoomPhoto = true;
+      _refreshSharedRoomPhoto = false;
+    });
   }
 
   Future<void> _save() async {
@@ -436,12 +592,22 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
       ).entries)
         entry.key.name: entry.value,
     });
+    String roomPhotoIntent(GameState state) => jsonEncode({
+      'share': state.shareRoomPhoto,
+      'path': state.spaceRoomPhotoPath,
+      'fill': state.spaceRoomPhotoFill,
+      'x': state.spaceRoomPhotoX,
+      'y': state.spaceRoomPhotoY,
+      'width': state.spaceRoomPhotoWidth,
+      'height': state.spaceRoomPhotoHeight,
+    });
     final code = widget.state.roomCode;
     RoomPublishResult? published;
 
     if (code != null &&
         (profileIntent(widget.state) != profileIntent(draft) ||
-            photoIntent(widget.state) != photoIntent(draft))) {
+            photoIntent(widget.state) != photoIntent(draft) ||
+            roomPhotoIntent(widget.state) != roomPhotoIntent(draft))) {
       setState(() {
         _saving = true;
         _saveError = null;
@@ -457,8 +623,8 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
           _saving = false;
           _saveError = switch (published?.failure) {
             RoomPublishFailure.media =>
-              'Couldn\u2019t share that photo. Choose another JPEG, PNG, or '
-                  'WebP under 3 MB, then try again.',
+              'Couldn\u2019t add the fireplace photo to your shared room. Your '
+                  'private copy is unchanged. Reconnect and try again.',
             RoomPublishFailure.profileRejected =>
               'A card marked Anyone or Mutuals contains a link, contact detail, or wording that can\u2019t be published. Your saved page is unchanged.',
             _ =>
@@ -600,13 +766,33 @@ class _SpacePageArrangerState extends State<_SpacePageArranger> {
                       parent: AlwaysScrollableScrollPhysics(),
                     ),
                     padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
-                    header: widget.visitorProfileSharingEnabled
-                        ? _SpaceSharingPanel(
+                    header: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (widget.visitorProfileSharingEnabled)
+                          _SpaceSharingPanel(
                             shared: _shared,
                             onChanged: (value) =>
                                 setState(() => _shared = value),
                           )
-                        : const _PrivateSpaceReleaseNote(),
+                        else
+                          const _PrivateSpaceReleaseNote(),
+                        AnimatedBuilder(
+                          animation: RoomPhotoStore.instance,
+                          builder: (context, _) => _RoomPhotoSharingPanel(
+                            shared: _shareRoomPhoto,
+                            hasPrivatePhoto:
+                                RoomPhotoStore.instance.photo != null,
+                            hasPublishedCopy:
+                                widget.state.spaceRoomPhotoPath.isNotEmpty,
+                            updatePending: _refreshSharedRoomPhoto,
+                            onChanged: _changeRoomPhotoSharing,
+                            onUpdate: () =>
+                                setState(() => _refreshSharedRoomPhoto = true),
+                          ),
+                        ),
+                      ],
+                    ),
                     itemCount: _order.length,
                     onReorderItem: _reorder,
                     proxyDecorator: (child, _, animation) => AnimatedBuilder(
@@ -780,8 +966,8 @@ class _SpaceSharingPanel extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
               shared
-                  ? 'The eye controls your own page only. The audience controls who sees a card when they visit. Mutuals means you both keep each other in Circle; Anyone includes code and Discover visitors. Photos stay private in this release. Drag the brass grips to set the order.'
-                  : 'Choose audiences now if you like—they are saved for later. Nobody can see any card until you publish this page. The eye only hides a card from your own page. Photos stay private in this release.',
+                  ? 'The eye controls your own page only. The audience controls who sees a card when they visit. Mutuals means you both keep each other in Circle; Anyone includes code and Discover visitors. The fireplace photo has its own choice below. Drag the brass grips to set the order.'
+                  : 'Choose audiences now if you like—they are saved for later. Nobody can see any card until you publish this page. The eye only hides a card from your own page. The fireplace photo has its own choice below.',
               style: Type.body.copyWith(
                 fontSize: 11.5,
                 height: 1.35,
@@ -790,6 +976,179 @@ class _SpaceSharingPanel extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RoomPhotoSharingPanel extends StatelessWidget {
+  const _RoomPhotoSharingPanel({
+    required this.shared,
+    required this.hasPrivatePhoto,
+    required this.hasPublishedCopy,
+    required this.updatePending,
+    required this.onChanged,
+    required this.onUpdate,
+  });
+
+  final bool shared;
+  final bool hasPrivatePhoto;
+  final bool hasPublishedCopy;
+  final bool updatePending;
+  final ValueChanged<bool> onChanged;
+  final VoidCallback onUpdate;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = !shared
+        ? hasPublishedCopy
+              ? 'REMOVE ON SAVE'
+              : 'PRIVATE'
+        : updatePending
+        ? 'READY TO UPDATE'
+        : hasPublishedCopy
+        ? 'SHARED IN YOUR ROOM'
+        : 'READY TO PUBLISH';
+    final copy = !hasPrivatePhoto && hasPublishedCopy
+        ? shared
+              ? 'Your shared room still shows the earlier uploaded copy. '
+                    'Turn this off and save to remove it.'
+              : 'The earlier uploaded copy will be removed when you save. '
+                    'Nothing is erased from this device.'
+        : !hasPrivatePhoto
+        ? 'Choose a room photo first. It will start private on this device.'
+        : !shared
+        ? hasPublishedCopy
+              ? 'The public copy will be removed when you save. Your private '
+                    'photo stays above your fireplace.'
+              : 'Private on this device. Add it to the room you share only if '
+                    'you choose.'
+        : updatePending
+        ? 'Your current private photo will replace the uploaded copy when you '
+              'save.'
+        : hasPublishedCopy
+        ? 'Visitors see the uploaded copy. A private replacement stays '
+              'private until you choose Update shared copy.'
+        : 'A copy uploads when you save. Directory cards in Discover stay '
+              'photo-free.';
+    final canToggle = hasPrivatePhoto || hasPublishedCopy || shared;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        key: const ValueKey('room-photo-sharing-panel'),
+        decoration: facetedDecoration(
+          cut: 10,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: shared
+                ? const [Color(0xFF35291D), Color(0xFF202019)]
+                : const [Color(0xFF291F1B), Color(0xFF1E1714)],
+          ),
+          borderColor: shared
+              ? Palette.xp.withValues(alpha: 0.46)
+              : Palette.glassEdge,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(13, 11, 8, 11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'PHOTO ABOVE YOUR FIREPLACE',
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        letterSpacing: 1.05,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: facetedDecoration(
+                      cut: 5,
+                      color: shared
+                          ? Palette.xp.withValues(alpha: 0.12)
+                          : Palette.glassFill,
+                      borderColor: shared
+                          ? Palette.xp.withValues(alpha: 0.35)
+                          : Palette.glassEdge,
+                    ),
+                    child: Text(
+                      status,
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        color: shared ? Palette.xpLight : Palette.textLo,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SwitchListTile.adaptive(
+                key: const ValueKey('room-photo-share-toggle'),
+                contentPadding: EdgeInsets.zero,
+                minTileHeight: 58,
+                value: shared,
+                activeTrackColor: Palette.xp.withValues(alpha: 0.72),
+                onChanged: canToggle ? onChanged : null,
+                title: Text(
+                  'Show in my shared room',
+                  style: Type.body.copyWith(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    color: Palette.textHi,
+                  ),
+                ),
+                subtitle: Text(
+                  shared
+                      ? hasPublishedCopy
+                            ? 'Room visitors can see the shared copy.'
+                            : 'Room visitors cannot see it until you save.'
+                      : hasPublishedCopy
+                      ? 'Room visitors can still see it until you save.'
+                      : 'Room visitors cannot see it.',
+                  style: Type.body.copyWith(
+                    fontSize: 11.5,
+                    color: Palette.textLo,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(right: 5),
+                child: Text(
+                  copy,
+                  style: Type.body.copyWith(
+                    fontSize: 11.5,
+                    height: 1.4,
+                    color: Palette.textMid,
+                  ),
+                ),
+              ),
+              if (shared &&
+                  hasPrivatePhoto &&
+                  hasPublishedCopy &&
+                  !updatePending) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const ValueKey('update-shared-room-photo'),
+                    onPressed: onUpdate,
+                    icon: const Icon(Icons.sync_rounded, size: 17),
+                    label: const Text('UPDATE SHARED COPY'),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2063,24 +2422,37 @@ class MePage extends StatelessWidget {
       listenable: state,
       builder: (context, _) => LuxeCustomPageList(
         ambientThemeId: state.canvasTheme,
-        heroAspect: 1.5,
-        hero: HomeRoom(
-          aspect: 1.5,
-          lively: !state.reduceMotion,
-          unlocked: const {},
-          wall: wallColorsFor(state),
-          plateId: state.wallStyle,
-          floor: floorColorsFor(state),
-          window: state.windowScene,
-          petAwake: state.streakDays > 0,
-          emberGlow: flameHueFor(state),
-          heirloomFlame: heirloomFlameFor(state),
-          level: state.level,
-          memoryArtifacts: memoryArtifactCount(state, quests),
-          parallax: state.reduceMotion ? null : parallax,
+        // Keep the established Quest camera for the shared Writer room. The
+        // wider crop preserves the room's full authored composition.
+        heroAspect: state.wallStyle == 'wall_walnut' ? 1.7 : 1.5,
+        heroHeight:
+            (MediaQuery.sizeOf(context).width /
+                    (state.wallStyle == 'wall_walnut' ? 1.7 : 1.5))
+                .clamp(state.wallStyle == 'wall_walnut' ? 180.0 : 205.0, 460.0),
+        presentWholeRoom: true,
+        hero: AnimatedBuilder(
+          animation: RoomPhotoStore.instance,
+          builder: (context, _) => HomeRoom(
+            key: const Key('me-room'),
+            aspect: state.wallStyle == 'wall_walnut' ? 1.7 : 1.5,
+            lively: !state.reduceMotion,
+            unlocked: const {},
+            wall: wallColorsFor(state),
+            plateId: state.wallStyle,
+            floor: floorColorsFor(state),
+            window: state.windowScene,
+            petAwake: state.streakDays > 0,
+            emberGlow: flameHueFor(state),
+            heirloomFlame: heirloomFlameFor(state),
+            level: state.level,
+            memoryArtifacts: memoryArtifactCount(state, quests),
+            roomPhoto: RoomPhotoStore.instance.photo,
+            parallax: state.reduceMotion ? null : parallax,
+          ),
         ),
-        title: 'Me',
-        subtitle: 'your space, already yours',
+        title: 'Your room',
+        subtitle:
+            spaceThemeById(state.wallStyle)?.name ?? 'The Writer’s Hearth',
         icon: Icons.emoji_emotions_outlined,
         reduceMotion: state.reduceMotion,
         trailing: compactHeading ? null : levelSummary(),
@@ -2109,11 +2481,47 @@ class MePage extends StatelessWidget {
             },
           ),
           const SizedBox(height: 12),
+          AnimatedBuilder(
+            animation: RoomPhotoStore.instance,
+            builder: (context, _) {
+              final ownerKey = RoomPhotoStore.instance.ownerKey;
+              return RoomPhotoEntry(
+                state: state,
+                onTap:
+                    ownerKey == null ||
+                        ownerKey == 'room-photo-owner-transition' ||
+                        !RoomPhotoStore.instance.loaded
+                    ? null
+                    : () => Navigator.of(context).push<bool>(
+                        MaterialPageRoute(
+                          builder: (_) => RoomPhotoScreen(
+                            state: state,
+                            ownerKey: ownerKey,
+                            parallax: parallax,
+                          ),
+                        ),
+                      ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
           Wrap(
             alignment: WrapAlignment.center,
             spacing: 8,
             runSpacing: 8,
             children: [
+              _SpaceLink(
+                key: const Key('preview-public-space'),
+                icon: Icons.visibility_outlined,
+                label: 'Public preview',
+                onTap: () => previewPublicSpace(
+                  context,
+                  state,
+                  visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+                  parallax: parallax,
+                  roomPhoto: RoomPhotoStore.instance.photo,
+                ),
+              ),
               _SpaceLink(
                 icon: Icons.ios_share,
                 label: state.roomCode == null
@@ -2167,6 +2575,37 @@ class MePage extends StatelessWidget {
                       },
               ),
             ],
+          ),
+          const SizedBox(height: 14),
+
+          _PersonalSpacePanel(
+            state: state,
+            discoveryEnabled: spaceDiscoveryEnabled,
+            directoryListed: spaceDiscoveryEnabled && state.roomDiscoverable,
+            discoveryClosing:
+                state.roomCode != null &&
+                state.roomDiscoveryRemovalCodes.contains(state.roomCode),
+            visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
+            visitorProfileSharingEnabled: visitorProfileSharingEnabled,
+            onManageDiscovery: spaceDiscoveryEnabled
+                ? () => onManageDiscovery != null
+                      ? onManageDiscovery!()
+                      : shareSpace(
+                          context,
+                          state,
+                          onPersist,
+                          spaceDiscoveryEnabled: true,
+                          discoveryFirst: true,
+                        )
+                : null,
+            onEdit: () => _personalizeSpace(
+              context,
+              state,
+              onPersist,
+              onPublishRoom,
+              visitorPhotoSharingEnabled,
+              visitorProfileSharingEnabled,
+            ),
           ),
           const SizedBox(height: 14),
 
@@ -2307,37 +2746,6 @@ class MePage extends StatelessWidget {
                   },
                 ),
               ],
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          _PersonalSpacePanel(
-            state: state,
-            discoveryEnabled: spaceDiscoveryEnabled,
-            directoryListed: spaceDiscoveryEnabled && state.roomDiscoverable,
-            discoveryClosing:
-                state.roomCode != null &&
-                state.roomDiscoveryRemovalCodes.contains(state.roomCode),
-            visitorPhotoSharingEnabled: visitorPhotoSharingEnabled,
-            visitorProfileSharingEnabled: visitorProfileSharingEnabled,
-            onManageDiscovery: spaceDiscoveryEnabled
-                ? () => onManageDiscovery != null
-                      ? onManageDiscovery!()
-                      : shareSpace(
-                          context,
-                          state,
-                          onPersist,
-                          spaceDiscoveryEnabled: true,
-                          discoveryFirst: true,
-                        )
-                : null,
-            onEdit: () => _personalizeSpace(
-              context,
-              state,
-              onPersist,
-              onPublishRoom,
-              visitorPhotoSharingEnabled,
-              visitorProfileSharingEnabled,
             ),
           ),
           const SizedBox(height: 14),
@@ -4088,7 +4496,7 @@ class _SpaceDeckHeading extends StatelessWidget {
                       : directoryListed
                       ? 'IN DISCOVER\nMANAGE LISTING'
                       : discoveryEnabled
-                      ? 'PRIVATE PAGE\nOPEN TO DISCOVER'
+                      ? 'PRIVATE PAGE\nSHARING SETTINGS'
                       : visitorPageOpen
                       ? '$sharedCount SHARED'
                       : 'PRIVATE PAGE',
@@ -4812,6 +5220,7 @@ class _SpacePhotoVisibilityMark extends StatelessWidget {
 /// A clear icon+label button for the Share / Visit space actions.
 class _SpaceLink extends StatelessWidget {
   const _SpaceLink({
+    super.key,
     required this.icon,
     required this.label,
     required this.onTap,

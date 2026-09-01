@@ -14,8 +14,79 @@ export type SpaceCleanupTransaction = {
 };
 
 export type DeletedRoomAnchor = {
+  v?: unknown;
   ownerKey?: unknown;
   updatedAt?: unknown;
+  profilePhotoPath?: unknown;
+  seasonPhotoPath?: unknown;
+  roomPhotoPath?: unknown;
+};
+
+export type PublicRoomPhotoStorage = {
+  deleteObject(path: string): Promise<void>;
+};
+
+const ROOM_CODE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
+const OWNER_KEY = /^[a-f0-9]{64}$/;
+const GENERATION = /^[A-Za-z0-9_-]{22}$/;
+
+/// Returns only the deleted v8 room's own opaque Storage path. A malformed
+/// snapshot must never turn a deletion trigger into authority over an
+/// arbitrary Storage object.
+export const deletedPublicRoomPhotoPath = (
+  code: string,
+  deletedRoom: DeletedRoomAnchor,
+): string | null => {
+  const ownerKey = deletedRoom.ownerKey;
+  const path = deletedRoom.roomPhotoPath;
+  if (!ROOM_CODE.test(code) || typeof ownerKey !== "string" || !OWNER_KEY.test(ownerKey)) {
+    return null;
+  }
+  if (path === "") return null;
+  if (typeof path !== "string") return null;
+  const parts = path.split("/");
+  if (parts.length !== 5 || parts[0] !== "shared_rooms" ||
+      parts[1] !== ownerKey || parts[2] !== code || parts[3] !== "room" ||
+      !GENERATION.test(parts[4] ?? "")) {
+    return null;
+  }
+  return path;
+};
+
+/// Legacy generated rooms could expose selected profile/season media through
+/// their bearer room document. Their paths use the same opaque owner key that
+/// the room snapshot carries, so the deletion trigger can validate exact
+/// snapshot-owned objects after the parent has been removed. Never derive a
+/// delete from a v8 document: those fields are required to be empty.
+export const deletedLegacyRoomMediaPaths = (
+  code: string,
+  deletedRoom: DeletedRoomAnchor,
+): string[] => {
+  if ((deletedRoom.v !== 6 && deletedRoom.v !== 7) ||
+      !ROOM_CODE.test(code) ||
+      typeof deletedRoom.ownerKey !== "string" ||
+      !OWNER_KEY.test(deletedRoom.ownerKey)) {
+    return [];
+  }
+  const paths: string[] = [];
+  for (const [key, slot] of [
+    ["profilePhotoPath", "profile"],
+    ["seasonPhotoPath", "season"],
+  ] as const) {
+    const path = deletedRoom[key];
+    if (typeof path !== "string" || path === "") continue;
+    const parts = path.split("/");
+    const deterministic = parts.length === 4;
+    const revisioned = parts.length === 5 && GENERATION.test(parts[4] ?? "");
+    if ((deterministic || revisioned) &&
+        parts[0] === "shared_rooms" &&
+        parts[1] === deletedRoom.ownerKey &&
+        parts[2] === code &&
+        parts[3] === slot) {
+      paths.push(path);
+    }
+  }
+  return paths;
 };
 
 const sameMoment = (left: unknown, right: unknown): boolean => {
@@ -34,6 +105,23 @@ const sameMoment = (left: unknown, right: unknown): boolean => {
     leftMillis === rightMillis;
 };
 
+// Retries and out-of-order events can make an older immutable revision live
+// again. Admin cleanup must defer to the room document that is live now.
+const liveRoomStillReferencesSharedMedia = async (
+  code: string,
+  store: SpaceCleanupStore,
+  path: string,
+): Promise<boolean> => {
+  const roomRef = store.collection("rooms").doc(code);
+  const currentRoom = await store.runTransaction(
+    async (transaction) => transaction.get(roomRef),
+  );
+  const current = currentRoom.data();
+  if (!currentRoom.exists || current === undefined) return false;
+  return (current.v === 8 && deletedPublicRoomPhotoPath(code, current) === path) ||
+    deletedLegacyRoomMediaPaths(code, current).includes(path);
+};
+
 /**
  * Removes projections only when they still belong to the deleted room
  * generation. If a short code has already been reused, the current room is
@@ -44,6 +132,7 @@ export const cleanupDeletedSpaceHandler = async (
   code: string,
   store: SpaceCleanupStore,
   deletedRoom: DeletedRoomAnchor,
+  publicRoomPhotoStorage?: PublicRoomPhotoStorage,
 ): Promise<void> => {
   const deletedOwnerKey = typeof deletedRoom.ownerKey === "string" ? deletedRoom.ownerKey : undefined;
   const deletedGeneration = deletedRoom.updatedAt;
@@ -97,4 +186,41 @@ export const cleanupDeletedSpaceHandler = async (
     if (ownerRegistryBelongsToDeletedGeneration()) transaction.delete(ownerRef);
 
   });
+
+  // The Firestore pointer has already been deleted before this trigger runs.
+  // Delete only exact snapshot-owned media after public availability is gone.
+  // Let a Storage failure retry the event; silently retaining public bytes
+  // would defeat account/unshare cleanup.
+  const mediaPaths = [
+    ...deletedLegacyRoomMediaPaths(code, deletedRoom),
+    ...[deletedPublicRoomPhotoPath(code, deletedRoom)].filter(
+      (path): path is string => path !== null,
+    ),
+  ];
+  if (publicRoomPhotoStorage !== undefined) {
+    for (const path of new Set(mediaPaths)) {
+      if (await liveRoomStillReferencesSharedMedia(code, store, path)) continue;
+      await publicRoomPhotoStorage.deleteObject(path);
+    }
+  }
+};
+
+/// Clears an obsolete public room-photo revision after a successful room
+/// update has changed or removed its pointer. The current document is already
+/// authoritative when this runs, so preserving its exact path prevents a
+/// delayed retry from deleting the new revision.
+export const cleanupReplacedPublicRoomPhotoHandler = async (
+  code: string,
+  store: SpaceCleanupStore,
+  previousRoom: DeletedRoomAnchor,
+  currentRoom: DeletedRoomAnchor,
+  publicRoomPhotoStorage: PublicRoomPhotoStorage,
+): Promise<void> => {
+  if (previousRoom.v !== 8) return;
+  const previousPath = deletedPublicRoomPhotoPath(code, previousRoom);
+  if (previousPath === null || currentRoom.roomPhotoPath === previousPath) {
+    return;
+  }
+  if (await liveRoomStillReferencesSharedMedia(code, store, previousPath)) return;
+  await publicRoomPhotoStorage.deleteObject(previousPath);
 };

@@ -645,13 +645,16 @@ void main() {
     // Preview toolbars can sit over the far-right edge on a phone. The whole
     // The whole Glimmers rail remains a real target when phone chrome crowds
     // the trailing button.
+    await tester.scrollUntilVisible(
+      find.text('0 GLIMMERS'),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await settle(tester);
     await tester.tap(find.text('0 GLIMMERS'));
     await settle(tester);
     expect(find.text('Change your space'), findsOneWidget);
-    expect(
-      find.text('three finished rooms, each ready to live in'),
-      findsOneWidget,
-    );
+    expect(find.text('one room, wherever your day takes you'), findsOneWidget);
   });
 
   testWidgets(
@@ -686,14 +689,15 @@ void main() {
 
       final list = find.byKey(const ValueKey('space-theme-list'));
       final conservatory = find.text('The Living Conservatory');
-      for (
-        var attempt = 0;
-        attempt < 8 && !tester.any(conservatory);
-        attempt++
-      ) {
-        await tester.drag(list, const Offset(0, -260));
-        await tester.pump(const Duration(milliseconds: 80));
-      }
+      await tester.scrollUntilVisible(
+        conservatory,
+        260,
+        scrollable: find.descendant(
+          of: list,
+          matching: find.byType(Scrollable),
+        ),
+        maxScrolls: 40,
+      );
       expect(conservatory, findsOneWidget);
       await tester.ensureVisible(conservatory);
       await tester.pump(const Duration(milliseconds: 200));
@@ -748,6 +752,11 @@ void main() {
     // The seal carries the milestone's NAME whether or not it is earned; the
     // padlock carries its state and the sheet behind it carries the numbers.
     final milestone = find.text('FIRST FIVE');
+    await tester.scrollUntilVisible(
+      milestone,
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.ensureVisible(milestone);
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(milestone);

@@ -449,7 +449,17 @@ void main() {
           'CloudSync must reject the destructive call at its own public boundary',
     );
     expect(feature, contains('timely human moderation'));
-    expect(plist, contains('They stay on this device.'));
+    expect(
+      plist,
+      contains(
+        'Room photos stay on this device unless you explicitly choose to upload one to your shared room;',
+      ),
+    );
+    expect(
+      plist,
+      contains('removing it from sharing keeps your private device copy.'),
+    );
+    expect(plist, isNot(contains('They stay on this device.')));
     expect(plist, isNot(contains('shared space')));
   });
 
@@ -641,7 +651,7 @@ void main() {
     expect(workflow, contains('cocoapods: 1.16.2'));
     expect(workflow, contains('APPLE_TEAM_ID: "D63Z4RBRT8"'));
     expect(workflow, contains('routine source/docs pushes remain inert'));
-    expect(workflow, contains('room-of-days-1.0.4-build-38-candidate'));
+    expect(workflow, contains('room-of-days-1.0.4-build-39-candidate'));
     expect(workflow, contains('CM_CLONE_DEPTH: "2"'));
     expect(workflow, contains('Hydrate and verify immutable receipt identity'));
     expect(
@@ -778,21 +788,22 @@ void main() {
 
       final resetStart = shell.indexOf('Future<String?> _reset() async');
       final resetEnd = shell.indexOf(
-        'Future<void> _finishResetRemoteCleanup',
+        'Future<bool> _finishResetRemoteCleanup',
         resetStart,
       );
       expect(resetStart, greaterThanOrEqualTo(0));
       expect(resetEnd, greaterThan(resetStart));
       final reset = shell.substring(resetStart, resetEnd);
-      expect(reset, contains('if (!await media.clearAll())'));
+      expect(reset, contains('RoomPhotoStore.instance.clearAll()'));
       expect(reset, contains('Storage.clearUsage()'));
       expect(reset, contains('Storage.clearCorruptBackup()'));
       expect(reset, contains('_saveTail = _saveTail.then'));
       expect(reset, contains('if (!await _saveTail)'));
       expect(
-        reset.indexOf('if (!await _saveTail)'),
-        lessThan(reset.indexOf('_finishResetRemoteCleanup(oldRoomCode)')),
+        reset.indexOf('if (!await _finishResetRemoteCleanup(oldRoomCode))'),
+        lessThan(reset.indexOf('RoomPhotoStore.instance.clearAll()')),
       );
+      expect(reset, isNot(contains('unawaited(_finishResetRemoteCleanup')));
     },
   );
 
@@ -807,7 +818,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+38'));
+    expect(pubspec, contains('version: 1.0.4+39'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

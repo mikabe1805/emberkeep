@@ -56,15 +56,16 @@ void main() {
 
     expect(find.text('A few new things'), findsOneWidget);
     expect(
-      find.text('A few things for today. Room for the rest.'),
+      find.text('A room that follows your day.'),
       findsOneWidget,
     );
+    expect(find.text('ONE ROOM, WHEREVER YOU ARE'), findsOneWidget);
+    expect(find.text('A PHOTO, ON YOUR TERMS'), findsOneWidget);
     expect(find.text('CHOOSE WHAT FITS TODAY'), findsOneWidget);
-    expect(find.text('GOALS YOU CAN ACT ON'), findsOneWidget);
-    expect(find.text('STAY FOR A CONVERSATION'), findsOneWidget);
+    expect(find.text('MUSIC, IF YOU WANT IT'), findsOneWidget);
     expect(find.text('KEEP GOING'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+38')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+39')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);

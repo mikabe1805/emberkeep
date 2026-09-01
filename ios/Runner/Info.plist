@@ -67,7 +67,7 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Room of Days adds photos you choose to journal entries. They stay on this device.</string>
+	<string>Room of Days lets you choose a photo for a journal entry or your private room. Room photos stay on this device unless you explicitly choose to upload one to your shared room; removing it from sharing keeps your private device copy.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Room of Days lets you snap a photo into a journal entry. It stays on this device.</string>
 	<key>NSMotionUsageDescription</key>

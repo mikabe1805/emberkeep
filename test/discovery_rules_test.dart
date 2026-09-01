@@ -33,6 +33,7 @@ void main() {
       'floor',
       'skin',
       'window',
+      'roomKeepsakes',
       'bucket',
       'publicName',
       'ownerKey',
@@ -43,6 +44,12 @@ void main() {
     }
     expect(schema, contains('d.keys().hasOnly(['));
     expect(schema, contains('d.v == 3'));
+    expect(schema, contains('d.v == 4'));
+    expect(schema, contains('validRoomKeepsakes(d.roomKeepsakes)'));
+    expect(rules, contains('function validRoomKeepsakes(keepsakes)'));
+    expect(schema, contains("'wall_rain'"));
+    expect(schema, contains("'wall_atelier'"));
+    expect(schema, contains("'wall_listening'"));
     expect(schema, contains('validBuildTitle(d.title)'));
     expect(
       schema,
@@ -82,6 +89,12 @@ void main() {
       'pinnedMoments',
       'profilePhotoPath',
       'seasonPhotoPath',
+      'roomPhotoPath',
+      'roomPhotoFill',
+      'roomPhotoX',
+      'roomPhotoY',
+      'roomPhotoWidth',
+      'roomPhotoHeight',
     ]) {
       expect(schema, isNot(contains("'$privateField'")));
     }
@@ -205,7 +218,17 @@ void main() {
       'match /roomDeletionLocks/{code}',
     );
 
-    expect(rooms, contains('resource.data.v == 6'));
+    expect(rooms, contains('resource.data.v in [6, 7, 8]'));
+    expect(rooms, contains('request.resource.data.v in [6, 7, 8]'));
+    expect(rooms, contains('request.resource.data.v == 8'));
+    expect(
+      rooms,
+      contains('resource.data.v == 7 && request.resource.data.v in [7, 8]'),
+    );
+    expect(
+      rooms,
+      contains('resource.data.v == 8 && request.resource.data.v == 8'),
+    );
     expect(rooms, contains('resource.data.profileVisible == false'));
     expect(rooms, contains('request.auth != null'));
     expect(rooms, contains('resource.data.v == 5'));

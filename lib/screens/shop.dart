@@ -15,7 +15,7 @@ import '../widgets/glass.dart';
 import '../widgets/home_room.dart';
 import '../widgets/honey_button.dart';
 
-/// Three complete places, not a catalogue of chores. Every player begins in a
+/// Complete places, not a catalogue of chores. Every player begins in a
 /// finished room; Glimmers unlock large authored transformations that can be
 /// previewed before anything is spent.
 class ShopScreen extends StatefulWidget {
@@ -278,7 +278,7 @@ class _ShopScreenState extends State<ShopScreen> {
                   DetailHeader(
                     title: 'Change your space',
                     accent: current.accent,
-                    subtitle: 'three finished rooms, each ready to live in',
+                    subtitle: 'one room, wherever your day takes you',
                     pill: '${state.embers} GLIMMERS',
                   ),
                   Expanded(
@@ -303,7 +303,7 @@ class _ShopScreenState extends State<ShopScreen> {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          'Your first room is already lived in. Each key changes the whole atmosphere—furniture, materials, and light.',
+                          'Choose a place that feels like you. It follows you into Quests and into the room visitors see.',
                           style: Type.body.copyWith(
                             fontSize: 12.5,
                             color: Palette.textLo,
@@ -311,7 +311,10 @@ class _ShopScreenState extends State<ShopScreen> {
                           ),
                         ),
                         const SizedBox(height: 14),
-                        for (final theme in spaceThemes) ...[
+                        for (final theme in [
+                          ...spaceThemes.where((theme) => theme.price == 0),
+                          ...spaceThemes.where((theme) => theme.price > 0),
+                        ]) ...[
                           _ThemeCard(
                             state: state,
                             theme: theme,
@@ -325,7 +328,6 @@ class _ShopScreenState extends State<ShopScreen> {
                           const SizedBox(height: 14),
                         ],
                         const SizedBox(height: 4),
-                        const _KeepsakeNote(),
                       ],
                     ),
                   ),
@@ -474,7 +476,7 @@ class _ThemeCard extends StatelessWidget {
                   HomeRoom(
                     key: ValueKey('space-choice-${theme.id}'),
                     aspect: 1.5,
-                    // All three chooser cards stay mounted in the scroll view.
+                    // The chooser cards stay mounted in the scroll view.
                     // Their shared hand-driven camera/light response supplies
                     // depth without also running three autonomous fire loops.
                     // The full preview and applied room remain genuinely live.
@@ -683,37 +685,6 @@ class _StatusPill extends StatelessWidget {
     child: Text(
       label,
       style: Type.label.copyWith(fontSize: Type.minLabel, color: color),
-    ),
-  );
-}
-
-class _KeepsakeNote extends StatelessWidget {
-  const _KeepsakeNote();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(13, 11, 13, 12),
-    decoration: facetedDecoration(
-      cut: 9,
-      color: Palette.xp.withValues(alpha: 0.06),
-      borderColor: Palette.brass.withValues(alpha: 0.26),
-    ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(Icons.bookmark_outline, size: 17, color: Palette.brass),
-        const SizedBox(width: 9),
-        Expanded(
-          child: Text(
-            'Your room is whole from the beginning. Milestones may leave a quiet keepsake behind.',
-            style: Type.body.copyWith(
-              fontSize: 11.5,
-              color: Palette.textLo,
-              height: 1.35,
-            ),
-          ),
-        ),
-      ],
     ),
   );
 }

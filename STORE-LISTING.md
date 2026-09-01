@@ -7,50 +7,39 @@ productivity language.
 ## Public positioning
 
 - **App name:** Room of Days
-- **Apple subtitle (30 characters):** A life RPG for real days
-- **Apple promotional text (170 characters max):** Choose a few Quests for today, keep the rest for when you have room, and turn everyday effort into XP, character growth, and a warm space of your own.
-- **Apple keywords (100 characters max):** habits,goals,routines,life RPG,self care,focus,planner,journal,motivation,wellness
+- **Apple subtitle (30 characters):** Everyday quests, real progress
+- **Apple promotional text (170 characters max):** Make chores a little more bearable. Turn everyday effort into Quests, earn XP, grow a room of your own, and let the plan bend when the day does.
+- **Apple keywords (100 characters max):** chores,quests,life RPG,habits,routines,goals,planner,journal,motivation,self care,focus
 - **Primary category:** Productivity
 - **Secondary category:** Lifestyle
-- **Google Play short description (80 characters max):** A warm life RPG for goals, honest quests, and progress that never punishes.
+- **Google Play short description (80 characters max):** Make chores more bearable with Quests, XP, and a room that grows with you.
 - **Privacy policy:** `https://roomofdays.com/privacy`
 - **Account deletion:** `https://roomofdays.com/delete-account`
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 38)
+## App Store What's New — Version 1.0.4 (Build 39)
 
-Your Quest board can hold possibilities, not just obligations.
+Your day can change. Your plan can too. Choose a few Quests, keep the rest
+nearby, and let everyday effort grow a room of your own.
 
-If you want the room to have a little more atmosphere, Background music is
-now available in Me. It begins off, stays separate from interaction sounds,
-and keeps your choice when you come back.
+Choose up to three Quests for Today's Field; the rest wait in Open if it fits,
+without turning a full board into a debt. Your goals, progress, and room stay
+with you as you adjust the next move.
 
-Choose up to three Quests for Today's Field. The rest stay in Open if it fits,
-ready for extra time or energy. You don't have to clear the whole board to
-have a good day.
+You can now make one room your own everywhere you play, with an optional photo
+from your device. That photo stays private unless you separately choose to
+share it. Background music remains off until you turn it on.
 
-Goals now helps you choose what to work on today, open the right Quest, or
-adjust a route at the Workshop. Your existing plans and progress stay with you.
-
-The Steward has a little more to say. Stop by for a short, optional
-conversation, choose your replies, and pick up where you left off.
-
-We've also made supporting text easier to read across the app and improved
-crowded boards and smaller screens.
-
-This update includes the recent Workshop planning, Quest mastery, class
-schedule import, and Circle improvements: clearer retry states, confirmed
-removal, optional Discover listing, and separate Anyone and Mutuals audiences.
+We've also improved supporting-text readability across crowded boards and
+smaller screens.
 
 ## Full description
 
 Make chores a little more bearable, and give everyday effort a visible reward.
-
-Room of Days is a life RPG where reading a chapter, clearing the counter,
-going for a walk, or doing the thing you've been putting off becomes a Quest.
-Complete it to earn XP, grow your character, and make a warm personal room
-your own.
+Room of Days turns reading a chapter, clearing the counter, going for a walk,
+or the thing you have been putting off into a Quest. Complete it to earn XP,
+grow your character, and make a warm personal room your own.
 
 A BOARD OF POSSIBILITIES
 Keep plenty of Quests for inspiration without treating them all as today's
@@ -81,12 +70,13 @@ reciprocal Mutuals. Discover is optional and uses a separate public name.
 Your private quests, journal photos, email, and account details stay out of
 shared rooms.
 
+Photos stay on your device unless you separately choose to share one. Music, cloud backup, Circle, and Discover all begin off or private; you turn them on only if you want them.
+
 You can also stop by the Workshop just to talk with the Steward. There is no
 Quest to complete or reward to chase in the conversation.
 
 Room of Days works without an account. Your device is the source of truth,
-cloud backup is optional, and manual export is always available. There are no
-ads, subscriptions, paywalls, or paid cosmetics.
+cloud backup is optional, and manual export is always available. There are no ads, subscriptions, paywalls, or paid cosmetics.
 
 Room of Days offers general fitness and wellness guidance. It is not a medical
 device and does not diagnose, treat, cure, or prevent any medical condition.
@@ -99,8 +89,8 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 38 is an internal music test candidate. It includes the latest
-owner-feedback changes:
+Build 39 is an internal candidate for the room-continuity, optional photo, and
+privacy-defaults pass. It includes the latest owner-feedback changes:
 
 - Choose up to three Quests for Today's Field while keeping the rest in
   Open if it fits. A full board can be inspiration, not a daily obligation.
@@ -108,6 +98,9 @@ owner-feedback changes:
   at the Workshop.
 - Talk with the Steward in a short optional scene with reply choices,
   saved progress, and a remembered response when you return.
+- Keep one room across the app and add an optional device photo. Confirm the
+  original room stays intact without a photo, and that a photo remains private
+  unless you separately choose to share it.
 - Turn on optional Background music in Me. Confirm it remains off by default,
   persists only when you choose it, pauses in the background, and resumes
   without restarting when you return.
@@ -124,11 +117,12 @@ Mutuals visitor-card audiences are separate; Only me cards are never sent.
 Journal photos and private quests stay out of shared rooms. Protected Google
 place search remains off.
 
-Please focus on upgrade persistence, the optional music control and return
-from background, today's selections versus optional Quests, the Steward's
-reading flow, and the complete two-person Circle journey. Physical-phone
-accessibility, listening taste, and signed social checks still need
-confirmation before any public release.
+Please focus on upgrade persistence, room continuity, the optional photo's
+private default and deliberate sharing choice, optional music and return from
+background, today's selections versus optional Quests, the Steward's reading
+flow, and the complete two-person Circle journey. Physical-phone accessibility,
+listening taste, and signed social checks still need confirmation before any
+public release.
 
 ## What to Test
 
@@ -149,6 +143,10 @@ confirmation before any public release.
   away and return. Confirm music does not start without choosing it, pauses
   while away, resumes where it left off, and does not replace interaction
   sounds.
+
+- Add a room photo, leave sharing off, and visit My Space from another signed-in
+  identity. Confirm the photo is absent. Then make the deliberate sharing
+  choice, confirm the intended audience sees it, and revoke that choice again.
 
 - Install over the previous TestFlight build and also try a fresh install.
   Confirm quests, goals, Journal entries, Plans, room choices, Circle, and
@@ -191,10 +189,14 @@ that makes returning after a break feel harder than it should.
 
 ## Reviewer notes
 
-- **Build 37 additions:** Quests → Choose today selects up to three Quests;
-  other Quests remain optional. Goals → Workshop → Talk with the Steward opens
-  an authored, offline conversation with preset replies. It is not AI chat or
-  messaging with another person and has no reward or purchase requirement.
+- **Build 39 additions:** Quests → Choose today selects up to three Quests;
+  other Quests remain optional. One authored room follows the user across the
+  app. An optional device photo is private by default and is not exposed to
+  visitors unless the owner separately chooses to share it. Background music
+  remains off until explicitly enabled. Goals → Workshop → Talk with the
+  Steward opens an authored, offline conversation with preset replies. It is
+  not AI chat or messaging with another person and has no reward or purchase
+  requirement.
 - **Sign-in required:** No. The complete guest experience works immediately.
 - **Network required:** No for core quests, goals, journal, Daybook, tapestry
   and room progression, shop, and insights. Network is required for optional

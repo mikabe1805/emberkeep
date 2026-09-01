@@ -7,6 +7,7 @@ import 'content/achievements.dart';
 import 'content/cosmetics.dart';
 import 'content/evidence.dart';
 import 'content/messages.dart';
+import 'content/room_keepsakes.dart';
 import 'content/space_themes.dart';
 import 'content/stat_ranks.dart';
 import 'content/themes.dart';
@@ -130,6 +131,7 @@ class GameState extends ChangeNotifier {
         (code != null ||
             (spaceProfilePhotoPath.isEmpty &&
                 spaceSeasonPhotoPath.isEmpty &&
+                spaceRoomPhotoPath.isEmpty &&
                 !roomDiscoverable))) {
       return;
     }
@@ -139,6 +141,12 @@ class GameState extends ChangeNotifier {
     if (code == null) {
       spaceProfilePhotoPath = '';
       spaceSeasonPhotoPath = '';
+      spaceRoomPhotoPath = '';
+      spaceRoomPhotoFill = false;
+      spaceRoomPhotoX = 0;
+      spaceRoomPhotoY = 0;
+      spaceRoomPhotoWidth = 1;
+      spaceRoomPhotoHeight = 1;
       roomDiscoverable = false;
       roomDiscoveryName = '';
       if (previousCode != null) {
@@ -418,6 +426,20 @@ class GameState extends ChangeNotifier {
   String spaceProfilePhotoPath = '';
   String spaceSeasonPhotoPath = '';
 
+  /// An explicit opt-in to place the private room photograph in the shared
+  /// visitor room. The source bytes remain outside GameState; this state holds
+  /// only the consent and a server-acknowledged public projection.
+  bool shareRoomPhoto = false;
+
+  /// Exact public Storage revision acknowledged by the current room document.
+  /// It is never a local gallery path or download URL.
+  String spaceRoomPhotoPath = '';
+  bool spaceRoomPhotoFill = false;
+  double spaceRoomPhotoX = 0;
+  double spaceRoomPhotoY = 0;
+  int spaceRoomPhotoWidth = 1;
+  int spaceRoomPhotoHeight = 1;
+
   /// The Journal pages supplying the two deliberately selectable visitor
   /// photos. Selecting a local source and sharing it are separate choices;
   /// neither photo is public unless its own consent bit is also on.
@@ -644,6 +666,98 @@ class GameState extends ChangeNotifier {
     return clean.length <= 192 ? clean : '';
   }
 
+  static String _cleanPublicRoomPhotoPath(Object? value) {
+    if (value is! String) return '';
+    final clean = value.trim();
+    return RegExp(
+          r'^shared_rooms/[a-f0-9]{64}/[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}/room/[A-Za-z0-9_-]{22}$',
+        ).hasMatch(clean)
+        ? clean
+        : '';
+  }
+
+  static double _cleanRoomPhotoAlignment(Object? value) {
+    if (value is! num) return 0;
+    final clean = value.toDouble();
+    return clean.isFinite && clean >= -1 && clean <= 1 ? clean : 0;
+  }
+
+  static int _cleanRoomPhotoDimension(Object? value) {
+    if (value is! int || value < 1 || value > 1200) return 1;
+    return value;
+  }
+
+  /// Commits the deliberate share choice while retaining the last
+  /// acknowledged projection until an external unpublish has completed.
+  void setRoomPhotoSharing(bool enabled) {
+    if (shareRoomPhoto == enabled) return;
+    shareRoomPhoto = enabled;
+    notifyListeners();
+  }
+
+  /// Records only a projection that the public room document has acknowledged.
+  /// An empty or invalid path always discards its display metadata too.
+  void setSharedRoomPhotoProjection({
+    required String path,
+    required bool fillFrame,
+    required double alignmentX,
+    required double alignmentY,
+    required int pixelWidth,
+    required int pixelHeight,
+  }) {
+    final cleanPath = _cleanPublicRoomPhotoPath(path);
+    final cleanFill = cleanPath.isNotEmpty && fillFrame;
+    final cleanX = cleanPath.isEmpty
+        ? 0.0
+        : _cleanRoomPhotoAlignment(alignmentX);
+    final cleanY = cleanPath.isEmpty
+        ? 0.0
+        : _cleanRoomPhotoAlignment(alignmentY);
+    final cleanWidth = cleanPath.isEmpty
+        ? 1
+        : _cleanRoomPhotoDimension(pixelWidth);
+    final cleanHeight = cleanPath.isEmpty
+        ? 1
+        : _cleanRoomPhotoDimension(pixelHeight);
+    if (spaceRoomPhotoPath == cleanPath &&
+        spaceRoomPhotoFill == cleanFill &&
+        spaceRoomPhotoX == cleanX &&
+        spaceRoomPhotoY == cleanY &&
+        spaceRoomPhotoWidth == cleanWidth &&
+        spaceRoomPhotoHeight == cleanHeight) {
+      return;
+    }
+    spaceRoomPhotoPath = cleanPath;
+    spaceRoomPhotoFill = cleanFill;
+    spaceRoomPhotoX = cleanX;
+    spaceRoomPhotoY = cleanY;
+    spaceRoomPhotoWidth = cleanWidth;
+    spaceRoomPhotoHeight = cleanHeight;
+    notifyListeners();
+  }
+
+  /// Drops the acknowledged public handle. Set [disableSharing] after a
+  /// confirmed unpublish or reset; the source bytes remain device-local.
+  void clearSharedRoomPhotoProjection({bool disableSharing = false}) {
+    final changed =
+        (disableSharing && shareRoomPhoto) ||
+        spaceRoomPhotoPath.isNotEmpty ||
+        spaceRoomPhotoFill ||
+        spaceRoomPhotoX != 0 ||
+        spaceRoomPhotoY != 0 ||
+        spaceRoomPhotoWidth != 1 ||
+        spaceRoomPhotoHeight != 1;
+    if (!changed) return;
+    if (disableSharing) shareRoomPhoto = false;
+    spaceRoomPhotoPath = '';
+    spaceRoomPhotoFill = false;
+    spaceRoomPhotoX = 0;
+    spaceRoomPhotoY = 0;
+    spaceRoomPhotoWidth = 1;
+    spaceRoomPhotoHeight = 1;
+    notifyListeners();
+  }
+
   void setMemoryPinned(String noteId, bool pinned) {
     final changed = pinned ? memoryPins.add(noteId) : memoryPins.remove(noteId);
     if (changed) notifyListeners();
@@ -727,6 +841,21 @@ class GameState extends ChangeNotifier {
   /// room payloads. Current complete room identities do not render this set.
   final Set<String> ownedFurniture = {};
 
+  /// Inert legacy wire values retained for schema-28 save compatibility.
+  /// They are bounded catalog ids only and have no visible product effect.
+  final List<String> roomKeepsakes = [];
+
+  /// Preserves the historical bounded field. Unknown, duplicate, and excess
+  /// ids are discarded; the result is never rendered or narrated.
+  void setRoomKeepsakes(Iterable<String> value) {
+    final next = sanitizeRoomKeepsakes(value.toList());
+    if (listEquals(roomKeepsakes, next)) return;
+    roomKeepsakes
+      ..clear()
+      ..addAll(next);
+    notifyListeners();
+  }
+
   /// Buy a piece if affordable and allowed (the caller resolves any
   /// achievement gate). Returns true on success.
   bool buyFurniture(String id, int price, {bool allowed = true}) {
@@ -762,10 +891,12 @@ class GameState extends ChangeNotifier {
   /// — deep link, sync merge, a future UI slip — can't equip paid content for
   /// free). The free defaults are always allowed.
   void applyStyle(String id, RoomStyleKind kind) {
-    const freeWall = 'wall_walnut', freeFloor = 'floor_oak';
+    const freeFloor = 'floor_oak';
     if (kind == RoomStyleKind.wall) {
-      if (id != freeWall && !ownedStyles.contains(id)) return;
+      final theme = spaceThemeById(id);
+      if (theme?.price != 0 && !ownedStyles.contains(id)) return;
       wallStyle = id;
+      questDeskStyle = id;
     } else {
       if (id != freeFloor && !ownedStyles.contains(id)) return;
       floorStyle = id;
@@ -1146,10 +1277,8 @@ class GameState extends ChangeNotifier {
 
   /// The wall-style id whose material language dresses the Quests HUD.
   ///
-  /// This is deliberately independent from [wallStyle]: a player can keep a
-  /// walnut room and still carry an owned Midnight look to their Quest Desk.
-  /// The UI validates ownership before applying a look. Older saves simply
-  /// fall back to the free Walnut Desk.
+  /// Retained for old backup compatibility. Current rendering follows
+  /// [wallStyle], so the room and its board materials stay together.
   String questDeskStyle = 'wall_walnut';
 
   void setQuestDeskStyle(String id) {
@@ -2118,6 +2247,7 @@ class GameState extends ChangeNotifier {
     'totalXp': totalXp,
     'embers': embers,
     'ownedFurniture': ownedFurniture.toList(),
+    'roomKeepsakes': roomKeepsakes.toList(),
     'ownedStyles': ownedStyles.toList(),
     'wallStyle': wallStyle,
     'floorStyle': floorStyle,
@@ -2174,6 +2304,15 @@ class GameState extends ChangeNotifier {
       'spaceProfilePhotoPath': spaceProfilePhotoPath,
     if (spaceSeasonPhotoPath.isNotEmpty)
       'spaceSeasonPhotoPath': spaceSeasonPhotoPath,
+    'shareRoomPhoto': shareRoomPhoto,
+    if (spaceRoomPhotoPath.isNotEmpty) ...{
+      'spaceRoomPhotoPath': spaceRoomPhotoPath,
+      'spaceRoomPhotoFill': spaceRoomPhotoFill,
+      'spaceRoomPhotoX': spaceRoomPhotoX,
+      'spaceRoomPhotoY': spaceRoomPhotoY,
+      'spaceRoomPhotoWidth': spaceRoomPhotoWidth,
+      'spaceRoomPhotoHeight': spaceRoomPhotoHeight,
+    },
     'quietCompanyKind': quietCompanyKind,
     'quietCompanyUntil': quietCompanyUntil,
     'stats': [for (final s in Stat.values) stats[s] ?? 0],
@@ -2267,6 +2406,7 @@ class GameState extends ChangeNotifier {
     s.ownedFurniture.addAll(
       ((j['ownedFurniture'] as List?) ?? const []).cast(),
     );
+    s.roomKeepsakes.addAll(sanitizeRoomKeepsakes(j['roomKeepsakes']));
     // Preserve legacy starter-piece flags for existing TestFlight backups.
     if (s.level >= 2) s.ownedFurniture.add('rug');
     if (s.level >= 3) s.ownedFurniture.add('plant');
@@ -2467,6 +2607,20 @@ class GameState extends ChangeNotifier {
     s.spaceSeasonPhotoPath = _cleanSharedRoomPhotoPath(
       j['spaceSeasonPhotoPath'],
     );
+    s.shareRoomPhoto = j['shareRoomPhoto'] == true;
+    final roomPhotoPath = _cleanPublicRoomPhotoPath(j['spaceRoomPhotoPath']);
+    s.spaceRoomPhotoPath = roomPhotoPath;
+    if (roomPhotoPath.isNotEmpty) {
+      s.spaceRoomPhotoFill = j['spaceRoomPhotoFill'] == true;
+      s.spaceRoomPhotoX = _cleanRoomPhotoAlignment(j['spaceRoomPhotoX']);
+      s.spaceRoomPhotoY = _cleanRoomPhotoAlignment(j['spaceRoomPhotoY']);
+      s.spaceRoomPhotoWidth = _cleanRoomPhotoDimension(
+        j['spaceRoomPhotoWidth'],
+      );
+      s.spaceRoomPhotoHeight = _cleanRoomPhotoDimension(
+        j['spaceRoomPhotoHeight'],
+      );
+    }
     final quietKind = j['quietCompanyKind'] as String? ?? 'none';
     s.quietCompanyKind =
         const {'none', 'study', 'making', 'reset', 'quiet'}.contains(quietKind)
@@ -2539,17 +2693,15 @@ class GameState extends ChangeNotifier {
             (!savedCanvasChoice.locked || s.level >= 5)
         ? savedCanvasTheme!
         : 'walnut';
-    final savedDesk = j['questDeskStyle'] as String? ?? 'wall_walnut';
-    s.questDeskStyle = switch (savedDesk) {
-      'wall_sage' => 'wall_conservatory',
-      'wall_plum' || 'wall_indigo' || 'wall_berry' => 'wall_archive',
-      _ when isSpaceThemeId(savedDesk) => savedDesk,
-      _ => 'wall_walnut',
-    };
-    if (s.questDeskStyle != 'wall_walnut' &&
-        !s.ownedStyles.contains(s.questDeskStyle)) {
-      s.questDeskStyle = 'wall_walnut';
+    // Complete room themes are the single appearance authority. Older saves
+    // may carry a separate desk id, but it must never split Me and Quests or
+    // grant a paid room that is not owned.
+    final activeTheme = spaceThemeById(s.wallStyle);
+    if (activeTheme == null ||
+        (activeTheme.price > 0 && !s.ownedStyles.contains(s.wallStyle))) {
+      s.wallStyle = 'wall_walnut';
     }
+    s.questDeskStyle = s.wallStyle;
     s.unlockedAchievements.addAll(
       ((j['unlockedAchievements'] as List?) ?? const []).cast(),
     );

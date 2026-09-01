@@ -39,16 +39,20 @@ void main() {
       ),
     );
     await tester.pump();
-    final paintFinder = find.descendant(
-      of: find.byType(HomeRoom),
-      matching: find.byType(CustomPaint),
-    );
-    final before =
-        (tester.widget<CustomPaint>(paintFinder).painter as dynamic).t;
+    List<String> visibleFireFrames() => tester
+        .widgetList<RecoloredHearthFireFrame>(
+          find.descendant(
+            of: find.byType(HomeRoom),
+            matching: find.byType(RecoloredHearthFireFrame),
+          ),
+        )
+        .map((frame) => frame.asset)
+        .toList();
+    final before = visibleFireFrames();
+    expect(before, hasLength(2));
 
-    await tester.pump(const Duration(milliseconds: 180));
-    final after =
-        (tester.widget<CustomPaint>(paintFinder).painter as dynamic).t;
+    await tester.pump(const Duration(milliseconds: 600));
+    final after = visibleFireFrames();
 
     expect(after, isNot(before));
     expect(tester.takeException(), isNull);

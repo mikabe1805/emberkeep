@@ -1,7 +1,8 @@
 import {getApps, initializeApp} from "firebase-admin/app";
 import {getFirestore} from "firebase-admin/firestore";
+import {getStorage} from "firebase-admin/storage";
 import {defineBoolean, defineSecret} from "firebase-functions/params";
-import {onDocumentDeleted} from "firebase-functions/v2/firestore";
+import {onDocumentDeleted, onDocumentUpdated} from "firebase-functions/v2/firestore";
 import {onCall} from "firebase-functions/v2/https";
 import {user} from "firebase-functions/v1/auth";
 import {
@@ -17,6 +18,7 @@ import {
 } from "./space_profile";
 import {
   cleanupDeletedSpaceHandler,
+  cleanupReplacedPublicRoomPhotoHandler,
   type SpaceCleanupStore,
 } from "./space_cleanup";
 import {
@@ -58,6 +60,22 @@ const discoveryPublicNamesEnabled = defineBoolean(
   },
 );
 const firestore = getFirestore();
+const publicRoomPhotoStorage = {
+  deleteObject: async (path: string): Promise<void> => {
+    try {
+      await getStorage().bucket().file(path).delete();
+    } catch (error) {
+      // Client cleanup and this retryable trigger can race. An already-absent
+      // immutable object satisfies the privacy contract and must not leave an
+      // event retrying forever.
+      const code = (error as {code?: unknown})?.code;
+      if (code === 404 || code === "404" || code === "storage/object-not-found") {
+        return;
+      }
+      throw error;
+    }
+  },
+};
 const productionDependencies: PlacesDependencies = {
   guard: new FirestoreCostGuard(firestore),
   identityDeletion: new FirestoreIdentityDeletionGuard(firestore),
@@ -133,12 +151,29 @@ export const setSpaceBlock = onCall(
 // deletion, or older build deletes the room without first calling the profile
 // publisher.
 export const cleanupDeletedSpace = onDocumentDeleted(
-  "rooms/{code}",
+  {document: "rooms/{code}", retry: true},
   async (event) => {
     await cleanupDeletedSpaceHandler(
       event.params.code,
       firestore as unknown as SpaceCleanupStore,
       event.data?.data() ?? {},
+      publicRoomPhotoStorage,
+    );
+  },
+);
+
+// A replacement or opt-out first commits the new/empty room pointer. This
+// separate trigger then removes only the previous immutable object; it never
+// observes or deletes the current path.
+export const cleanupReplacedPublicRoomPhoto = onDocumentUpdated(
+  {document: "rooms/{code}", retry: true},
+  async (event) => {
+    await cleanupReplacedPublicRoomPhotoHandler(
+      event.params.code,
+      firestore as unknown as SpaceCleanupStore,
+      event.data?.before.data() ?? {},
+      event.data?.after.data() ?? {},
+      publicRoomPhotoStorage,
     );
   },
 );

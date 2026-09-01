@@ -227,7 +227,13 @@ void main() {
         expect(payload['wall'], theme.id, reason: theme.name);
         expect(allowedWalls, contains(theme.id), reason: theme.name);
         expect(payload.keys.toSet(), payloadKeys, reason: theme.name);
-        expect(payload['v'], 6, reason: theme.name);
+        expect(payload['v'], 8, reason: theme.name);
+        expect(
+          payload['roomKeepsakes'],
+          isA<List<dynamic>>(),
+          reason: theme.name,
+        );
+        expect(payload['roomKeepsakes'], isEmpty, reason: theme.name);
       }
     });
 
@@ -266,7 +272,9 @@ void main() {
         final payload = roomDisplay(state);
         final encoded = jsonEncode(payload);
 
-        expect(payload['v'], 6);
+        expect(payload['v'], 8);
+        expect(payload['roomKeepsakes'], isA<List<dynamic>>());
+        expect(payload['roomKeepsakes'], isEmpty);
         expect(payload['name'], 'Fellow keeper');
         expect(payload['profileVisible'], isFalse);
         expect(payload['displayName'], isEmpty);
@@ -605,14 +613,34 @@ void main() {
       },
     );
 
-    test('legacy schemas stay documented but only generated v6 is writable', () {
+    test('legacy schemas stay documented and room writes are monotonic', () {
       final rules = _firestoreRules();
 
-      expect(rules, contains('(d.v == 1'));
-      expect(rules, contains('(d.v == 2'));
-      expect(rules, contains('(d.v == 3'));
-      expect(rules, contains('(d.v == 4'));
       expect(rules, contains('(d.v == 6'));
+      expect(rules, contains('(d.v == 7'));
+      expect(rules, contains('function validV8GeneratedRoom(d, code)'));
+      expect(rules, contains('d.v == 8'));
+      expect(rules, contains('validPublicRoomPhoto(d, code)'));
+      expect(
+        rules,
+        contains("validSharedPhotoPath(d.roomPhotoPath, d.ownerKey, code, 'room')"),
+      );
+      expect(
+        rules,
+        matches(
+          RegExp(
+            r"\(d\.v == 6\s+&& !d\.keys\(\)\.hasAny\(\['roomKeepsakes'\]\)",
+          ),
+        ),
+      );
+      expect(
+        rules,
+        matches(
+          RegExp(
+            r"\(d\.v == 7\s+&& d\.keys\(\)\.hasAll\(\['roomKeepsakes'\]\)",
+          ),
+        ),
+      );
       expect(rules, contains('d.profileVisible is bool'));
       expect(rules, contains('d.displayName.size() <= 40'));
       expect(rules, contains('d.about.size() <= 180'));
@@ -636,16 +664,21 @@ void main() {
       );
       expect(rules, contains("parts[4].matches('^[A-Za-z0-9_-]{22}\$')"));
       expect(rules, contains('d.profileVisible == false'));
-      expect(
-        RegExp(r'request\.resource\.data\.v\s*==\s*6').allMatches(rules),
-        hasLength(2),
-      );
+      expect(rules, contains('request.resource.data.v in [6, 7, 8]'));
       expect(rules, contains('request.resource.data.v >= resource.data.v'));
+      expect(
+        rules,
+        contains("(resource.data.v == 8 && request.resource.data.v == 8)"),
+      );
+      expect(
+        rules,
+        contains("(resource.data.v == 7 && request.resource.data.v in [7, 8])"),
+      );
       expect(
         rules,
         matches(
           RegExp(
-            r'allow\s+get:\s*if\s*\(\s*resource\.data\.v\s*==\s*6\s*'
+            r'allow\s+get:\s*if\s*\(\s*resource\.data\.v\s+in\s+\[6,\s*7,\s*8\]\s*'
             r'&&\s*resource\.data\.profileVisible\s*==\s*false',
           ),
         ),
@@ -772,7 +805,7 @@ void main() {
       roomRules,
       matches(
         RegExp(
-          r'allow\s+get:\s*if\s*\(\s*resource\.data\.v\s*==\s*6\s*'
+          r'allow\s+get:\s*if\s*\(\s*resource\.data\.v\s+in\s+\[6,\s*7,\s*8\]\s*'
           r'&&\s*resource\.data\.profileVisible\s*==\s*false',
         ),
       ),
@@ -939,6 +972,13 @@ void main() {
       lessThan(ownerDelete.indexOf('..delete(_discoverableSpaces.doc(clean))')),
     );
     expect(
+      ownerDelete,
+      isNot(contains('deleteObjectPaths(')),
+      reason:
+          'room deletion must revoke the Firestore pointer before retrying '
+          'server cleanup touches public room-photo bytes',
+    );
+    expect(
       ownerDelete.indexOf('..delete(_discoverableSpaces.doc(clean))'),
       lessThan(ownerDelete.indexOf('batch.commit()')),
     );
@@ -956,6 +996,11 @@ void main() {
       contains('..delete(_cloud._discoverableSpaces.doc(room.id))'),
     );
     expect(cloud, contains('..delete(_lock)'));
+    final fencedDrain = cloud.substring(
+      cloud.indexOf('Future<void> drainPrivateChildren() async'),
+      cloud.indexOf('Future<void> deleteParentAndFenceAtomically() async'),
+    );
+    expect(fencedDrain, isNot(contains('deleteObjectPaths(')));
     expect(cloud, contains('await _deleteOwnedRoom(cleanRoomCode);'));
     expect(cloud, contains('await _deleteOwnedRoom(code);'));
     expect(cloud, contains('removed == _OwnedRoomDeleteResult.deleted ||'));

@@ -3,6 +3,7 @@ import 'package:emberkeep/content/space_themes.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/screens/shop.dart';
 import 'package:emberkeep/widgets/home_room.dart';
+import 'package:emberkeep/widgets/quest_depth_room.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -49,26 +50,48 @@ void main() {
               ),
             );
             await tester.pump();
-            final paintFinder = find.descendant(
-              of: find.byKey(roomKey),
-              matching: find.byType(CustomPaint),
-            );
-            final parked = tester.widget<CustomPaint>(paintFinder).painter;
-            expect((parked as dynamic).plate, isNotNull);
-            expect((parked as dynamic).parallax, Offset.zero);
+            if (theme.id == 'wall_walnut') {
+              expect(find.byType(QuestDepthRoom), findsOneWidget);
+              final farPlane = find.descendant(
+                of: find.byKey(roomKey),
+                matching: find.byKey(const ValueKey('quest-depth-far-plane')),
+              );
+              final parked = tester.widget<Transform>(farPlane);
+              final parkedTranslation = parked.transform.getTranslation();
 
-            parallax.value = const Offset(0.82, -0.68);
-            await tester.pump();
-            final tilted = tester.widget<CustomPaint>(paintFinder).painter;
+              parallax.value = const Offset(0.82, -0.68);
+              await tester.pump();
+              final tilted = tester.widget<Transform>(farPlane);
+              final tiltedTranslation = tilted.transform.getTranslation();
+              expect(
+                Offset(tiltedTranslation.x, tiltedTranslation.y),
+                isNot(Offset(parkedTranslation.x, parkedTranslation.y)),
+                reason:
+                    'Writer ${lightweight ? 'chooser' : 'full room'} must '
+                    'keep its real far-plane camera response at ${size.width} px',
+              );
+            } else {
+              final paintFinder = find.descendant(
+                of: find.byKey(roomKey),
+                matching: find.byType(CustomPaint),
+              );
+              final parked = tester.widget<CustomPaint>(paintFinder).painter;
+              expect((parked as dynamic).plate, isNotNull);
+              expect((parked as dynamic).parallax, Offset.zero);
 
-            expect(
-              tilted,
-              isNot(same(parked)),
-              reason:
-                  '${theme.name} ${lightweight ? 'chooser' : 'full room'} '
-                  'must answer the shared camera/light field at ${size.width} px',
-            );
-            expect((tilted as dynamic).parallax, const Offset(0.82, -0.68));
+              parallax.value = const Offset(0.82, -0.68);
+              await tester.pump();
+              final tilted = tester.widget<CustomPaint>(paintFinder).painter;
+
+              expect(
+                tilted,
+                isNot(same(parked)),
+                reason:
+                    '${theme.name} ${lightweight ? 'chooser' : 'full room'} '
+                    'must answer the shared camera/light field at ${size.width} px',
+              );
+              expect((tilted as dynamic).parallax, const Offset(0.82, -0.68));
+            }
             expect(tester.takeException(), isNull);
           }
         }
@@ -173,12 +196,22 @@ void main() {
       expect(current.lively, isFalse);
 
       final list = find.byKey(const ValueKey('space-theme-list'));
+      final scrollable = find.descendant(
+        of: list,
+        matching: find.byType(Scrollable),
+      );
       for (final theme in spaceThemes) {
         final target = find.byKey(ValueKey('space-choice-${theme.id}'));
-        for (var attempt = 0; attempt < 12 && !tester.any(target); attempt++) {
-          await tester.drag(list, const Offset(0, -220));
-          await tester.pump(const Duration(milliseconds: 60));
-        }
+        // The catalog order is not the chooser order: free rooms lead. Start
+        // each reachability check at the top instead of assuming their order.
+        tester.state<ScrollableState>(scrollable).position.jumpTo(0);
+        await tester.pump();
+        await tester.scrollUntilVisible(
+          target,
+          220,
+          scrollable: scrollable,
+          maxScrolls: 40,
+        );
         expect(target, findsOneWidget);
         final room = tester.widget<HomeRoom>(target);
         expect(room.plateId, theme.id);
@@ -187,7 +220,6 @@ void main() {
         expect(room.lively, isFalse);
       }
 
-      expect(find.text('The Moonlit Archive'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

@@ -1,13 +1,16 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:emberkeep/audio.dart';
 import 'package:emberkeep/cloud.dart';
+import 'package:emberkeep/content/creature_skins.dart';
 import 'package:emberkeep/discovery.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/screens/discover_spaces.dart';
 import 'package:emberkeep/screens/visit_room.dart';
 import 'package:emberkeep/social.dart';
 import 'package:emberkeep/widgets/glass_switch.dart';
+import 'package:emberkeep/widgets/home_room.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,6 +20,7 @@ DiscoverableSpaceSummary _space(
   String title = 'STEADY HAND',
   int level = 12,
   String wall = 'wall_walnut',
+  String skin = 'ember_amber',
   String publicName = '',
   String? ownerKey,
 }) => DiscoverableSpaceSummary(
@@ -25,7 +29,7 @@ DiscoverableSpaceSummary _space(
   level: level,
   wall: wall,
   floor: 'floor_oak',
-  skin: 'ember_amber',
+  skin: skin,
   window: 'moon',
   bucket: 1,
   ownerKey: ownerKey ?? discoveryOwnerKey('owner-$code'),
@@ -92,6 +96,42 @@ void main() {
       find.byKey(const ValueKey('discover-community-rules')),
       findsOneWidget,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a parsed found flame reaches the Discover room preview', (
+    tester,
+  ) async {
+    final now = DateTime.utc(2026, 8, 31);
+    final summary = DiscoverableSpaceSummary.fromDocument('DEF234', {
+      'v': 3,
+      'title': 'MOSS HEARTH',
+      'level': 12,
+      'wall': 'wall_listening',
+      'floor': 'floor_oak',
+      'skin': 'found_moss',
+      'window': 'moon',
+      'bucket': 1,
+      'ownerKey': discoveryOwnerKey('owner-DEF234'),
+      'publicName': '',
+      'expiresAt': Timestamp.fromDate(now.add(const Duration(days: 30))),
+    }, now: now)!;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: DiscoverSpacesScreen(
+          state: GameState()..reduceMotion = true,
+          onPersist: () {},
+          fetchSpaces: () async => [summary],
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final room = tester.widget<HomeRoom>(find.byType(HomeRoom));
+    expect(room.emberGlow, flameHueById('found_moss'));
+    expect(room.emberGlow, isNot(flameHueById('ember_amber')));
     expect(tester.takeException(), isNull);
   });
 

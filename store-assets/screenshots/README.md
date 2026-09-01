@@ -3,8 +3,8 @@
 These are direct production-UI captures from one deterministic account. They
 have no device frame, overlay copy, alpha channel, or transparency.
 
-The ten-frame iOS set was regenerated from the feature-on `1.0.4+37`
-working candidate and visually inspected on August 30, 2026. It
+The ten-frame iOS set was regenerated from the feature-on `1.0.4+39`
+working candidate and visually inspected on September 1, 2026. It
 becomes immutable release evidence only after the manifest-only binding commit
 described below is complete.
 
@@ -34,11 +34,12 @@ The App Store sequence is:
 4. Workshop — owned routes and the optional Talk with the Steward entrance.
 5. Recovery — smaller, prepare the return, or leave today alone without guilt.
 6. Plans — the Daybook, next class, and calendar sharing one warm desk.
-7. My Space — the authored visitor page with explicit Anyone, Mutuals, and
-   Only me audiences.
+7. My Space — the private-by-default visitor page, with explicit Anyone,
+   Mutuals, and Only me audiences.
 8. Change Space — a full-room preview and the no-cost room-switching promise.
 9. Journal — a private local entry shown in its then-and-now context.
-10. Discover — a finite, opt-in directory of rooms with optional public names.
+10. Discover — a finite, opt-in directory; room photos remain private unless
+    separately shared.
 
 Google Play remains the earlier five-image core story without the Plans frame;
 Android publication is deferred, so those files stay unchanged in this iOS pass.

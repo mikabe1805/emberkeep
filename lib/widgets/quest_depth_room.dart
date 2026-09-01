@@ -6,6 +6,22 @@ import 'package:flutter/material.dart';
 
 import 'living_hearth_fire.dart';
 
+/// Raster layers registered to one Quest-room camera. A softened derivative
+/// keeps this same four-plane structure rather than flattening it at runtime.
+class QuestRoomLayers {
+  const QuestRoomLayers({
+    required this.base,
+    required this.wall,
+    required this.furniture,
+    required this.foreground,
+  });
+
+  final String base;
+  final String wall;
+  final String furniture;
+  final String foreground;
+}
+
 /// The Quest board's authored room, rebuilt as a true multi-plane painting.
 ///
 /// Every raster was generated against one registered camera. Nothing here
@@ -21,23 +37,55 @@ class QuestDepthRoom extends StatefulWidget {
     required this.scrollPosition,
     required this.flameHue,
     required this.lively,
+    this.animateFire,
     this.igniting = false,
     this.hearthLit = true,
     this.reduceMotion = false,
+    this.farOverlay,
+    this.wallAssetOverride,
+    this.layers,
+    this.flattenedAsset,
   });
 
   static const baseAsset = 'assets/rooms/quest-depth-base-v2.webp';
   static const wallAsset = 'assets/rooms/quest-depth-wall-v4.png';
+  static const photoReadyWallAsset =
+      'assets/rooms/quest-depth-wall-photo-ready-v1.png';
+  static const photoSoftBaseAsset =
+      'assets/rooms/quest-depth-photo-base-soft-v1.webp';
+  static const photoSoftWallAsset =
+      'assets/rooms/quest-depth-photo-wall-soft-v1.webp';
+  static const photoSoftFurnitureAsset =
+      'assets/rooms/quest-depth-photo-furniture-soft-v1.webp';
+  static const photoSoftForegroundAsset =
+      'assets/rooms/quest-depth-photo-foreground-soft-v1.webp';
   static const furnitureAsset = 'assets/rooms/quest-depth-furniture-v1.png';
   static const foregroundAsset = 'assets/rooms/quest-depth-foreground-v1.png';
   static const scrollSoftAsset = 'assets/rooms/quest-depth-scroll-soft-v1.webp';
+  static const photoSoftLayers = QuestRoomLayers(
+    base: photoSoftBaseAsset,
+    wall: photoSoftWallAsset,
+    furniture: photoSoftFurnitureAsset,
+    foreground: photoSoftForegroundAsset,
+  );
+  static const originalLayers = QuestRoomLayers(
+    base: baseAsset,
+    wall: wallAsset,
+    furniture: furnitureAsset,
+    foreground: foregroundAsset,
+  );
   static const fireAssets = hearthFireAssets;
   static const assets = <String>[
     baseAsset,
     wallAsset,
+    photoReadyWallAsset,
     furnitureAsset,
     foregroundAsset,
     scrollSoftAsset,
+    photoSoftBaseAsset,
+    photoSoftWallAsset,
+    photoSoftFurnitureAsset,
+    photoSoftForegroundAsset,
     ...fireAssets,
   ];
 
@@ -45,25 +93,72 @@ class QuestDepthRoom extends StatefulWidget {
   final ValueListenable<double> scrollPosition;
   final Color flameHue;
   final bool lively;
+
+  /// Optional ambient-fire control for camera-responsive lightweight previews.
+  /// Existing callers inherit [lively].
+  final bool? animateFire;
   final bool igniting;
   final bool hearthLit;
   final bool reduceMotion;
+
+  /// A source-registered room object that belongs to the architecture plane.
+  /// The caller supplies its full-camera layout; this widget gives it the same
+  /// overscale and far-plane travel as the fireplace and base painting.
+  final Widget? farOverlay;
+
+  /// Optional replacement for the transparent wall layer. This keeps an
+  /// authored room edit registered to the same camera and depth treatment when
+  /// the default layers are in use.
+  final String? wallAssetOverride;
+
+  /// Optional registered layer set, for example the matching pre-softened
+  /// derivatives used while the Quest board scrolls.
+  final QuestRoomLayers? layers;
+
+  /// A registered, precomposed room raster for inexpensive static previews. It
+  /// replaces the base/wall/furniture/foreground stack, while the live hearth
+  /// and optional far overlay keep their normal placement.
+  final String? flattenedAsset;
 
   @override
   State<QuestDepthRoom> createState() => _QuestDepthRoomState();
 }
 
 class _QuestDepthRoomState extends State<QuestDepthRoom> {
-  var _precacheStarted = false;
+  QuestRoomLayers get _layers => widget.layers ?? QuestDepthRoom.originalLayers;
+
+  String get _wallAsset =>
+      widget.layers?.wall ?? widget.wallAssetOverride ?? _layers.wall;
+
+  Iterable<String> get _assetsToPrecache sync* {
+    final flat = widget.flattenedAsset;
+    if (flat != null) {
+      yield flat;
+    } else {
+      yield _layers.base;
+      yield _wallAsset;
+      yield _layers.furniture;
+      yield _layers.foreground;
+    }
+    yield* QuestDepthRoom.fireAssets;
+  }
+
+  void _precacheCurrentAssets() {
+    for (final asset in _assetsToPrecache) {
+      unawaited(precacheImage(AssetImage(asset), context));
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_precacheStarted) return;
-    _precacheStarted = true;
-    for (final asset in QuestDepthRoom.assets) {
-      unawaited(precacheImage(AssetImage(asset), context));
-    }
+    _precacheCurrentAssets();
+  }
+
+  @override
+  void didUpdateWidget(QuestDepthRoom oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _precacheCurrentAssets();
   }
 
   @override
@@ -77,13 +172,14 @@ class _QuestDepthRoomState extends State<QuestDepthRoom> {
           animation: roomMotion,
           child: _QuestLivingFire(
             hue: widget.flameHue,
-            lively: widget.lively,
+            lively: widget.animateFire ?? widget.lively,
             scrollPosition: widget.scrollPosition,
             igniting: widget.igniting,
             hearthLit: widget.hearthLit,
             reduceMotion: widget.reduceMotion,
           ),
           builder: (context, fire) {
+            final layers = _layers;
             final tilt = widget.lively ? widget.parallax.value : Offset.zero;
             // Reduce Motion means the room is a parked illustration. Scrolling
             // content remains usable, but it must not counter-slide the room
@@ -114,33 +210,46 @@ class _QuestDepthRoomState extends State<QuestDepthRoom> {
             return Stack(
               fit: StackFit.expand,
               children: [
-                _DepthPlane(
-                  offset: far,
-                  motionKey: const ValueKey('quest-depth-far-plane'),
-                  child: const _RoomRaster(
-                    QuestDepthRoom.baseAsset,
-                    opaque: true,
+                if (widget.flattenedAsset case final flattened?)
+                  _DepthPlane(
+                    offset: far,
+                    motionKey: const ValueKey('quest-depth-far-plane'),
+                    child: _RoomRaster(flattened, opaque: true),
+                  )
+                else ...[
+                  _DepthPlane(
+                    offset: far,
+                    motionKey: const ValueKey('quest-depth-far-plane'),
+                    child: _RoomRaster(layers.base, opaque: true),
                   ),
-                ),
+                ],
                 // Fire belongs inside the architectural firebox, so its
                 // independent life follows the far plane rather than drifting
                 // with furniture.
                 _DepthPlane(offset: far, child: fire!),
-                _DepthPlane(
-                  offset: wall,
-                  motionKey: const ValueKey('quest-depth-wall-plane'),
-                  child: const _RoomRaster(QuestDepthRoom.wallAsset),
-                ),
-                _DepthPlane(
-                  offset: furniture,
-                  motionKey: const ValueKey('quest-depth-furniture-plane'),
-                  child: const _RoomRaster(QuestDepthRoom.furnitureAsset),
-                ),
-                _DepthPlane(
-                  offset: foreground,
-                  motionKey: const ValueKey('quest-depth-foreground-plane'),
-                  child: const _RoomRaster(QuestDepthRoom.foregroundAsset),
-                ),
+                if (widget.farOverlay != null)
+                  _DepthPlane(
+                    offset: far,
+                    motionKey: const ValueKey('quest-depth-overlay-plane'),
+                    child: widget.farOverlay!,
+                  ),
+                if (widget.flattenedAsset == null) ...[
+                  _DepthPlane(
+                    offset: wall,
+                    motionKey: const ValueKey('quest-depth-wall-plane'),
+                    child: _RoomRaster(_wallAsset),
+                  ),
+                  _DepthPlane(
+                    offset: furniture,
+                    motionKey: const ValueKey('quest-depth-furniture-plane'),
+                    child: _RoomRaster(layers.furniture),
+                  ),
+                  _DepthPlane(
+                    offset: foreground,
+                    motionKey: const ValueKey('quest-depth-foreground-plane'),
+                    child: _RoomRaster(layers.foreground),
+                  ),
+                ],
               ],
             );
           },
@@ -304,6 +413,7 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
         _ignition.forward(from: 0);
       }
     }
+    if (widget.hearthLit != oldWidget.hearthLit) _syncLife();
   }
 
   void _syncLife() {
@@ -312,6 +422,7 @@ class _QuestLivingFireState extends State<_QuestLivingFire>
     // repaint from stealing the same frames as touch/scroll.
     final shouldLive =
         widget.lively &&
+        widget.hearthLit &&
         _tickerModeEnabled &&
         (!kIsWeb || widget.scrollPosition.value <= 1.0);
     if (kIsWeb) {

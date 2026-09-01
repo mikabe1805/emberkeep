@@ -121,6 +121,8 @@ Future<void> _collapseAbout(WidgetTester tester) async {
     of: _arrangerCard(SpaceCardKind.about),
     matching: find.text('About'),
   );
+  await tester.ensureVisible(title);
+  await tester.pumpAndSettle();
   await tester.tap(title);
   await tester.pumpAndSettle();
   expect(find.byKey(const ValueKey('space-card-editor-about')), findsNothing);
@@ -216,6 +218,72 @@ void main() {
     Clock.reset();
   });
 
+  testWidgets('fireplace photo is private and disabled before one is chosen', (
+    tester,
+  ) async {
+    final state = GameState()..reduceMotion = true;
+
+    await _pumpMe(tester, state, () {});
+    await _openArranger(tester);
+
+    final toggle = find.byKey(const ValueKey('room-photo-share-toggle'));
+    expect(toggle, findsOneWidget);
+    final tile = tester.widget<SwitchListTile>(toggle);
+    expect(tile.value, isFalse);
+    expect(tile.onChanged, isNull);
+    expect(find.text('PRIVATE'), findsOneWidget);
+    expect(
+      find.text(
+        'Choose a room photo first. It will start private on this device.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('an existing fireplace copy needs confirmation to share again', (
+    tester,
+  ) async {
+    final state = GameState()
+      ..reduceMotion = true
+      ..spaceRoomPhotoPath =
+          'shared_rooms/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/ABC234/room/ABCDEFGHIJKLMNOPQRSTUV';
+    var persists = 0;
+
+    await _pumpMe(tester, state, () => persists++);
+    await _openArranger(tester);
+
+    final toggle = find.byKey(const ValueKey('room-photo-share-toggle'));
+    await tester.ensureVisible(toggle);
+    expect(
+      find.text('Room visitors can still see it until you save.'),
+      findsOneWidget,
+    );
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(state.shareRoomPhoto, isFalse);
+    expect(find.text('Show this photo in your shared room?'), findsOneWidget);
+    expect(find.textContaining('code, link, or Discover'), findsOneWidget);
+    await tester.tap(find.text('KEEP PRIVATE'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('confirm-share-room-photo')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    expect(find.text('Room visitors can see the shared copy.'), findsOneWidget);
+    expect(state.shareRoomPhoto, isFalse);
+
+    await tester.tap(find.byKey(const ValueKey('space-arranger-save')));
+    await tester.pumpAndSettle();
+
+    expect(state.shareRoomPhoto, isTrue);
+    expect(state.spaceRoomPhotoPath, isNotEmpty);
+    expect(persists, 1);
+  });
+
   testWidgets('legacy My Space omits an empty This season card', (
     tester,
   ) async {
@@ -255,7 +323,7 @@ void main() {
     await tester.ensureVisible(manage);
     await tester.pump();
     expect(manage, findsOneWidget);
-    expect(find.text('PRIVATE PAGE\nOPEN TO DISCOVER'), findsOneWidget);
+    expect(find.text('PRIVATE PAGE\nSHARING SETTINGS'), findsOneWidget);
 
     await tester.tap(manage);
     await tester.pump();
@@ -338,7 +406,7 @@ void main() {
     expect(seaColors.colors, const [Color(0xFF101A1C), Color(0xFF162428)]);
     expect(seaColors.colors, isNot(walnutColors.colors));
 
-    final expectedHeroFade = const Color(0xFF162428).withValues(alpha: 0.97);
+    final expectedHeroFade = const Color(0xFF162428).withValues(alpha: 0.30);
     final heroFades = tester
         .widgetList<DecoratedBox>(
           find.descendant(
@@ -620,6 +688,7 @@ void main() {
       const ValueKey('space-profile-photo-local-profile-photo'),
     );
     await tester.ensureVisible(choice);
+    await tester.pumpAndSettle();
     await tester.tap(choice);
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('space-arranger-save')));
@@ -868,6 +937,12 @@ void main() {
       },
     );
 
+    await tester.scrollUntilVisible(
+      find.byTooltip('Change your name'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Change your name'));
     await tester.pumpAndSettle();
     expect(
