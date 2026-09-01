@@ -393,8 +393,12 @@ String _underRoot(Directory root, String relative) =>
     '${relative.replaceAll('/', Platform.pathSeparator)}';
 
 String _relativeToRoot(Directory root, File file) {
-  final rootPrefix = '${root.path}${Platform.pathSeparator}'.toLowerCase();
-  final absolute = file.absolute.path;
+  // macOS exposes the temporary directory through /var while resolving it to
+  // /private/var. Canonicalize both sides before deciding whether a source is
+  // inside the app root so manifests never retain a machine-local temp path.
+  final canonicalRoot = root.resolveSymbolicLinksSync();
+  final rootPrefix = '$canonicalRoot${Platform.pathSeparator}'.toLowerCase();
+  final absolute = file.resolveSymbolicLinksSync();
   if (!absolute.toLowerCase().startsWith(rootPrefix)) {
     return absolute.replaceAll('\\', '/');
   }

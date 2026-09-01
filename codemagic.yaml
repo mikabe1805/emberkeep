@@ -3,11 +3,13 @@
 # REPO LAYOUT: this file sits at the ROOT of the app's git repo (the `app/` folder
 # IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
 #
-# TRIGGERING: routine source/docs pushes remain inert. This candidate permits one
-# exact, owner-authorized Build 40 internal-TestFlight tag so the signed device
-# evidence build can start without broadening the release channel. No other tag
-# or branch push matches. The final App Store screenshot receipt remains a
-# separate, non-binary gate after the installed widget has been photographed.
+# TRIGGERING: routine source/docs pushes remain inert. The original Build 40 tag
+# stopped in regression tests before signing, IPA creation, or Apple upload and
+# remains immutable. This candidate permits one exact, owner-authorized retry tag
+# so the signed device evidence build can start without broadening the release
+# channel. No other tag or branch push matches. The final App Store screenshot
+# receipt remains a separate, non-binary gate after the installed widget has been
+# photographed.
 # See ../NATIVE-iOS.md for the normal manual workflow.
 #
 # SIGNING: EXPLICIT App Store Connect CLI signing (NOT the automatic ios_signing
@@ -52,7 +54,7 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - pattern: "room-of-days-1.0.4-build-40-internal-candidate"
+        - pattern: "room-of-days-1.0.4-build-40-internal-candidate-retry-1"
           include: true
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name
@@ -84,7 +86,7 @@ workflows:
           CANDIDATE_REVISION=$(git rev-parse HEAD^)
           MANIFEST=release-evidence/internal-testflight/1.0.4+40/CANDIDATE-MANIFEST.json
           SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' "$MANIFEST")
-          test "$CM_TAG" = "room-of-days-1.0.4-build-40-internal-candidate"
+          test "$CM_TAG" = "room-of-days-1.0.4-build-40-internal-candidate-retry-1"
           test "$(jq -er '.candidate.tag' "$MANIFEST")" = "$CM_TAG"
           test "$(jq -er '.candidate.version' "$MANIFEST")" = "1.0.4+40"
           test "$(jq -er '.purpose' "$MANIFEST")" = "internal_testflight_device_evidence"

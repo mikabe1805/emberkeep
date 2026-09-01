@@ -44,10 +44,20 @@ widget language. `pubspec.yaml` is `1.0.4+40`.
   WidgetKit App IDs. Completed September 1, 2026 under Team `D63Z4RBRT8`;
   Apple confirmed the capability change invalidated the older profiles, so the
   candidate workflow must fetch and prove fresh exact profiles for both targets.
-- [ ] Commit the complete Build 40 source, add one manifest-only internal
-  TestFlight receipt as its child, and push the exact
-  `room-of-days-1.0.4-build-40-internal-candidate` tag once. Ordinary branch
-  pushes remain inert; do not also start a manual Codemagic run.
+- [x] Freeze source `bd66e14`, bind it with receipt `bcec9d3`, and push
+  `room-of-days-1.0.4-build-40-internal-candidate` once. Codemagic build
+  `6a97023e3cf4759eab7052a4` stopped at Step 8 because macOS exposed the same
+  temporary icon source through `/var` and `/private/var`. It never reached
+  signing, IPA creation, or Apple upload; App Store Connect remained at Build 39.
+  Preserve that tag as terminal evidence.
+- [x] Repair the macOS alias mismatch, assert exact relative icon-source paths,
+  rerun all 1,095 tests and analysis, and confirm App Store Connect still ends at
+  Build 39. An independent retry-source audit found no release blocker.
+- [ ] Freeze that narrow retry source, add one new manifest-only internal
+  TestFlight receipt as its immediate child, and push
+  `room-of-days-1.0.4-build-40-internal-candidate-retry-1` once. Ordinary branch
+  pushes remain inert; do not also start a manual Codemagic run or move the
+  original tag.
 - [ ] Confirm Codemagic validates the receipt, metadata, analyzer, all tests,
   both provisioning profiles, both signed bundles, IPA contents, and publishing
   from the exact receipt commit. Preserve IPA, all dSYMs, logs, hashes, and

@@ -589,7 +589,7 @@ void main() {
       'room-of-days-1.0.0+12-android.apk',
       '9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12',
       'ee091db079a54c982946aa6ab7e7b61546b3354f',
-      'room-of-days-1.0.4-build-40-internal-candidate',
+      'room-of-days-1.0.4-build-40-internal-candidate-retry-1',
       'Codemagic `ios-testflight` workflow',
       'Team ID `D63Z4RBRT8`',
       'private content in a visitor room',
@@ -657,7 +657,7 @@ void main() {
     expect(workflow, contains('routine source/docs pushes remain inert'));
     expect(
       workflow,
-      contains('room-of-days-1.0.4-build-40-internal-candidate'),
+      contains('room-of-days-1.0.4-build-40-internal-candidate-retry-1'),
     );
     expect(workflow, contains('CM_CLONE_DEPTH: "2"'));
     expect(workflow, contains('Hydrate and verify immutable receipt identity'));

@@ -26,7 +26,7 @@ void main(List<String> arguments) {
     }
     final expectedTag =
         'room-of-days-${versionMatch.group(1)}-build-'
-        '${versionMatch.group(2)}-internal-candidate';
+        '${versionMatch.group(2)}-internal-candidate-retry-1';
     final receiptPath =
         'release-evidence/internal-testflight/$version/'
         'CANDIDATE-MANIFEST.json';

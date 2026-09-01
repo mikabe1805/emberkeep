@@ -17,6 +17,7 @@ void main() {
     );
     expect(verifier, contains('internal_testflight_device_evidence'));
     expect(verifier, contains('sourceRevision'));
+    expect(verifier, contains('internal-candidate-retry-1'));
     expect(verifier, contains("const ['rev-parse', 'HEAD^']"));
     expect(verifier, contains("'--name-only'"));
     expect(verifier, contains('receipt commit may change only'));

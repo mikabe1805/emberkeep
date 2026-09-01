@@ -55,7 +55,12 @@ void main() {
     final manifest = jsonDecode(result.manifestFile.readAsStringSync());
     expect(manifest['identity'], 'Room of Days - Open Door of Light');
     expect(manifest['sources'], hasLength(2));
-    for (final source in (manifest['sources'] as List).cast<Map>()) {
+    final sources = (manifest['sources'] as List).cast<Map>();
+    expect(sources.map((source) => source['path']), <String>[
+      'master.png',
+      'chroma.png',
+    ]);
+    for (final source in sources) {
       expect(source['path'], isNot(startsWith(temporary.path)));
       expect(source['path'], isNot(matches(RegExp(r'^[A-Za-z]:[/\\]'))));
     }

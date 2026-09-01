@@ -22,9 +22,10 @@ journal.
 
 - Install only the processed Room of Days `1.0.4` (Build 40) from TestFlight.
   It must come from the exact
-  `room-of-days-1.0.4-build-40-internal-candidate` receipt through the
+  `room-of-days-1.0.4-build-40-internal-candidate-retry-1` receipt through the
   Codemagic `ios-testflight` workflow; do not substitute a local debug/profile
-  build.
+  build. The unsuffixed Build 40 tag is preserved as a terminal failed attempt
+  that stopped before signing and is not an installable candidate.
 - Keep the emitted IPA, matching Runner dSYM, Codemagic log, and
   `release-evidence.txt` together. Record the IPA SHA-256 after the signed build
   exists; do not copy Build 19's hash into the new receipt.
