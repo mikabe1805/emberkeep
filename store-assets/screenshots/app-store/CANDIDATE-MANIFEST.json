@@ -1,15 +1,15 @@
 {
   "schema": 1,
   "candidate": {
-    "version": "1.0.4+38",
-    "sourceRevision": "a53c57076c72d872abb031849354bf6ba442e7f7"
+    "version": "1.0.4+39",
+    "sourceRevision": "0d0f5d602eafa7a53c671e8bc7c102c7cb382d72"
   },
   "screenshots": {
     "01-quests-1290x2796.png": {
-      "sha256": "23f435a05c1f5c517343d93bca3834d8e47a77fc39ccd28f1e9b5563abdf2e51"
+      "sha256": "8aa62e1f14dffec8103e89c659ce8fe26380ee971937a60959fba99979bfedca"
     },
     "02-reward-1290x2796.png": {
-      "sha256": "3aaad09929b785c1ef72ff53a3cb0f9f908facf5274e7d0b16412e82323475c0"
+      "sha256": "9ec37f399610130f1ae0f42e34268a7fc3b4e128f320d56d1506e34d2c7f56f6"
     },
     "03-goals-1290x2796.png": {
       "sha256": "59cbd9323ffa9f8b4b50c23396ec44f0a5d88ce03856ad72faabd33e464730f3"
@@ -24,16 +24,16 @@
       "sha256": "f1c9a565ec069143c05d93b40bc3f04f49f9d2bb729e93be613bbf4cedbff0e9"
     },
     "07-my-space-1290x2796.png": {
-      "sha256": "563ebc2c98af584d23764b706f703eb37261827162a1734eafd8be56a21e54b8"
+      "sha256": "40e953182b36394cac5d8aeb2f96c3424e4464e82f767747ca0462ef8f6601ca"
     },
     "08-change-space-1290x2796.png": {
-      "sha256": "702c9625ffdd7f6f73df0a2006356b170a71c940a11f72ba3a6e8b235b536472"
+      "sha256": "c81bab3a050ce871ea0f523146e8a6705b303de92707f3b51c7244df3035c563"
     },
     "09-journal-1290x2796.png": {
       "sha256": "0fb4da88b97bb775bb71d2bf33ff0b621c1cc7b7e0ef74bfa19bee763e435c87"
     },
     "10-discover-1290x2796.png": {
-      "sha256": "a9079c6bfe1835e88010bf1579a14d68194b87002f180eb35391730ba591f422"
+      "sha256": "342a97e1acbc585f7fc39a7f125e15a40eda501d52e110434d87986fac869f81"
     }
   }
 }
