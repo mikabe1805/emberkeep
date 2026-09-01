@@ -20,16 +20,20 @@ journal.
 
 ### iPhone
 
-- Install only the processed Room of Days `1.0.4` (Build 37) from TestFlight.
-  It must come from the final release commit through the manual Codemagic
-  `ios-testflight` workflow; do not substitute a local debug/profile build.
+- Install only the processed Room of Days `1.0.4` (Build 40) from TestFlight.
+  It must come from the exact
+  `room-of-days-1.0.4-build-40-internal-candidate` receipt through the
+  Codemagic `ios-testflight` workflow; do not substitute a local debug/profile
+  build.
 - Keep the emitted IPA, matching Runner dSYM, Codemagic log, and
   `release-evidence.txt` together. Record the IPA SHA-256 after the signed build
   exists; do not copy Build 19's hash into the new receipt.
 - Confirm the installed version/build match that evidence, which must name the
   final release commit and Team ID `D63Z4RBRT8`.
-- Keep processed Build 36 installed long enough to perform the
-  upgrade-preservation pass before the separate fresh-install pass.
+- Keep the newest processed Room of Days TestFlight build already installed
+  long enough to perform the upgrade-preservation pass before the separate
+  fresh-install pass. Record that prior build number; do not delete owner data
+  merely to force a particular baseline.
 
 Record before testing:
 
@@ -63,22 +67,24 @@ Run the upgrade check before uninstalling anything:
 - [ ] Uninstall Room of Days, then install the verified Build 12 APK fresh.
   Confirm the old test data is gone and onboarding begins normally.
 
-For iPhone, first install Build 37 over processed Build 36 without
-deleting Room of Days. Confirm the save, journal, room, Daybook, settings, and
-account state remain and What's New appears once. Separately, use a disposable
-test device or installation for the uninstall/reinstall check: install Build 37
-fresh and confirm onboarding starts with no prior test data. Never delete the
-owner's personal app data for this check.
+For iPhone, first install Build 40 over the newest processed TestFlight build
+already on the phone without deleting Room of Days. Confirm the save, journal,
+room, Daybook, settings, and account state remain and What's New appears once.
+Separately, use a disposable test device or installation for the
+uninstall/reinstall check: install Build 40 fresh and confirm onboarding starts
+with no prior test data. Never delete the owner's personal app data for this
+check.
 
 ## 2. First launch and core story
 
 Repeat on both phones:
 
-- [ ] Launch from a fully stopped state. The Home Screen shows the Day Ledger,
+- [ ] Launch from a fully stopped state. The Home Screen shows Open Door of Light,
   the app-switcher label says Room of Days, and the launch canvas stays dark and
   visually continuous with the first screen.
-- [ ] At App Library size, the Day Ledger remains recognizable and its completed
-  honey mark reads as a crisp point of light rather than a blurry halo.
+- [ ] At App Library size, the angular threshold remains recognizable, the door
+  stays visibly ajar, and the honey path reads as one contained invitation rather
+  than a blurry halo or a generic house glyph.
 - [ ] On the first unobscured Quests view of the process, the hearth begins
   dark, one magic ignition sound lands with one visible bloom, and the flame
   stays lit. Switching tabs or resuming does not replay it; a fully new process
@@ -223,7 +229,46 @@ APK chooser during the earlier smoke as provisional and repeat after that step.
 - [ ] On Android, system notification settings show the user-facing channel as
   `Reminders`, with no Emberkeep or Life RPG label.
 
-## 8. Accessibility and readable layout
+## 8. Build 40 classes, widgets, and Focus
+
+- [ ] Download the checked-in class-schedule starter, edit its documented
+  fields and a comma-separated recurrence such as `BYDAY=MO,WE,FR`, then share
+  the resulting `.ics` from Files into Room of Days. The app appears in the
+  share/Open In sheet and always shows review before saving.
+- [ ] Repeat `.ics` handoff from Mail or another provider both while Room of
+  Days is closed and while it is already open. Import two valid files in quick
+  succession, reject one from review, and confirm neither is silently saved or
+  lost. Invalid, non-UTF-8, and oversized files fail safely.
+- [ ] Import a representative class schedule with reminders untouched. Confirm
+  reminders stay off and no notification permission appears. Re-import it and
+  confirm that decision remains off.
+- [ ] Deliberately enable one class reminder, choose each supported lead time,
+  and grant permission only after that action. Re-import without changing the
+  reminder choice and confirm it remains enabled. Repeat permission denial and
+  later Settings recovery without losing the class schedule.
+- [ ] Add the small Day Ledger widget. With classes present it shows the next
+  class without its room, notes, account, or Journal content; with no upcoming
+  class it shows the authored open-day state.
+- [ ] Add the medium Day Ledger widget. Confirm it shows the same next class
+  plus no more than three unfinished Quest titles. Complete one of those
+  Quests, return to the Home Screen, and confirm the projection updates without
+  revealing completed or private content.
+- [ ] Leave both widgets on the Home Screen across a class end boundary,
+  background/resume, force-quit/relaunch, locale change, and device restart.
+  Confirm the next class advances, the extension never displays malformed or
+  stale private text, and lock-screen/app-switcher privacy treatment is
+  acceptable.
+- [ ] Start Focus with global room music off, opt into the Fable atmosphere for
+  that session, make it quiet in one tap, and close the timer. The global music
+  preference remains off. Repeat with global music on and confirm the saved
+  preference returns after Focus closes.
+- [ ] Listen to the Focus track on the phone speaker and headphones at low and
+  ordinary volume. Exercise pause/resume, background/foreground, an incoming
+  audio interruption, Ring/Silent, and another audio app already playing. The
+  timer stays coherent, quiet remains easy, and the mix never feels coercive or
+  tiring.
+
+## 9. Accessibility and readable layout
 
 Use the platform's screen reader and system display settings, not screenshots
 alone:
@@ -245,7 +290,7 @@ alone:
 Only after these checks may matching App Store Accessibility Nutrition Labels
 be claimed. An automated semantics test is supporting evidence, not this pass.
 
-## 9. Performance, power, and audio
+## 10. Performance, power, and audio
 
 On the physical iPhone, then on the lower-memory Android test phone:
 
@@ -262,7 +307,7 @@ On the physical iPhone, then on the lower-memory Android test phone:
   Xcode/Instruments before accepting it. Do not infer a pass from desktop or
   screenshot performance.
 
-## 10. Final record
+## 11. Final record
 
 | Gate | Android result | iPhone result | Evidence / issue link |
 | --- | --- | --- | --- |
@@ -272,6 +317,9 @@ On the physical iPhone, then on the lower-memory Android test phone:
 | Cloud/account deletion |  |  |  |
 | Sharing/privacy/native links |  |  |  |
 | Reminders |  |  |  |
+| Class file handoff and per-class reminders |  |  |  |
+| Small and medium Day Ledger widgets |  |  |  |
+| Focus and Fable listening |  |  |  |
 | Large text/screen reader/motion |  |  |  |
 | Warm-device performance/audio |  |  |  |
 

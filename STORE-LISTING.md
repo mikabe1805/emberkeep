@@ -18,21 +18,27 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 39)
+## App Store What's New — Version 1.0.4 (Build 40)
 
-Your day can change. Your plan can too. Choose a few Quests, keep the rest
-nearby, and let everyday effort grow a room of your own.
+> Submission hold: paste this only after the signed iPhone archive, real Home
+> Screen widget, `.ics` Open In, reminder, lock-screen redaction, and class-
+> boundary refresh checks pass. Remove any sentence whose device gate fails.
 
-Choose up to three Quests for Today's Field; the rest wait in Open if it fits,
-without turning a full board into a debt. Your goals, progress, and room stay
-with you as you adjust the next move.
+Plans now makes room for school too. Review and import a class `.ics` schedule,
+choose a reminder only when you want one, and keep the next class beside the
+rest of your day.
 
-You can now make one room your own everywhere you play, with an optional photo
-from your device. That photo stays private unless you separately choose to
-share it. Background music remains off until you turn it on.
+On iPhone, the Day Ledger widget can keep your next class and up to three
+unfinished Quests close at hand. It advances through the classes you imported
+without putting rooms, locations, or notes in the widget.
 
-We've also improved supporting-text readability across crowded boards and
-smaller screens.
+Focus sessions now put the room's optional music within reach and let you make
+the session quiet again in one tap. Your ordinary music preference stays
+yours.
+
+There is also an editable class-schedule starter for people who would rather
+set up the exact `.ics` text themselves, including comma-separated meeting
+days.
 
 ## Full description
 
@@ -59,9 +65,13 @@ windows, fireplace colors, and furnishings through play. Your progress
 doesn't disappear when you take a break.
 
 PLANS AND A PRIVATE JOURNAL
-Plan ordinary days, import a class schedule, and keep a private journal with
-optional on-device photos. Save a quick line after a Quest, or take time for a
-longer entry. Earlier entries sit beside the progress you've made since.
+Plan ordinary days, review and import a class `.ics` schedule, and choose local
+class reminders only when you want them. An editable starter keeps the format
+approachable for people who prefer to set up the file themselves. On iPhone,
+the Day Ledger widget can show the next class and up to three unfinished
+Quests. Keep a private journal with optional on-device photos, save a quick
+line after a Quest, or take time for a longer entry. Earlier entries sit beside
+the progress you've made since.
 
 A ROOM YOU CAN SHARE
 Invite a friend with a six-character room code and keep their room in your
@@ -89,8 +99,19 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 39 is an internal candidate for the room-continuity, optional photo, and
-privacy-defaults pass. It includes the latest owner-feedback changes:
+Build 40 is an internal candidate for the class-plan, Day Ledger widget, and
+Focus-room pass. It includes the latest owner-feedback changes:
+
+- Get an editable `.ics` starter, keep comma-separated meeting days, and open
+  or share a compatible class file into the same review-first import flow.
+- Keep class reminders off by default or deliberately choose a 10, 15, or
+  30-minute reminder during review. Re-import preserves an existing choice
+  unless the person changes it.
+- On iPhone, use a small Day Ledger widget for the next class or a medium one
+  for the next class plus up to three unfinished Quests. The widget handoff
+  excludes rooms, locations, and notes and is marked privacy-sensitive.
+- In a Focus session, start the optional room theme or make the session quiet
+  in one tap without changing the saved app-wide music preference.
 
 - Choose up to three Quests for Today's Field while keeping the rest in
   Open if it fits. A full board can be inspiration, not a daily obligation.
@@ -117,12 +138,14 @@ Mutuals visitor-card audiences are separate; Only me cards are never sent.
 Journal photos and private quests stay out of shared rooms. Protected Google
 place search remains off.
 
-Please focus on upgrade persistence, room continuity, the optional photo's
-private default and deliberate sharing choice, optional music and return from
-background, today's selections versus optional Quests, the Steward's reading
-flow, and the complete two-person Circle journey. Physical-phone accessibility,
-listening taste, and signed social checks still need confirmation before any
-public release.
+Please focus first on cold and warm `.ics` handoff, review-before-save,
+reminder permission timing, the two iPhone widget sizes across a class ending,
+and Focus music's one-tap quiet path. Then recheck upgrade persistence, room
+continuity, the optional photo's private default and deliberate sharing choice,
+today's selections versus optional Quests, the Steward's reading flow, and the
+complete two-person Circle journey. Physical-phone accessibility, listening
+taste, signed widget/App Group, and signed social checks still need confirmation
+before any public release.
 
 ## What to Test
 
@@ -143,6 +166,24 @@ public release.
   away and return. Confirm music does not start without choosing it, pauses
   while away, resumes where it left off, and does not replace interaction
   sounds.
+
+- In Plans, share the editable class starter, edit its course fields and the
+  comma-separated `BYDAY=MO,WE,FR` example, then save it as `.ics`. Open it from
+  Files or Mail on iPhone and share it from representative Files/Drive apps on
+  Android, both from a cold launch and while Room of Days is already open.
+  Confirm the same review appears and nothing is saved before Import schedule.
+- Import once with class reminders untouched, once with 10 minutes selected,
+  and once with reminders explicitly off. Notification permission must appear
+  only after the reminder switch is turned on. Re-import without changing the
+  switch and confirm the existing choice remains intact.
+- Add both Day Ledger widget sizes on a real iPhone. Confirm the small widget
+  shows the next class, the medium widget adds no more than three unfinished
+  Quests, completed Quests leave the list, an ended class advances without
+  reopening the app, empty states are honest, and lock-screen redaction works.
+- Start Focus while global music is off, turn Room music on, make it quiet in
+  one tap, and close Focus. Repeat with global music already on. Confirm the
+  session never silently changes the saved global choice, and listen on phone
+  speaker plus headphones before accepting the mix.
 
 - Add a room photo, leave sharing off, and visit My Space from another signed-in
   identity. Confirm the photo is absent. Then make the deliberate sharing
@@ -189,7 +230,15 @@ that makes returning after a break feel harder than it should.
 
 ## Reviewer notes
 
-- **Build 39 additions:** Quests → Choose today selects up to three Quests;
+- **Build 40 additions:** Plans can review and locally import a compatible
+  class `.ics` file received through the picker or system Open In/share flow.
+  The editable starter documents comma-separated meeting days. Class reminders
+  are off unless explicitly enabled during review. The iPhone widget reads a
+  device-only App Group projection containing a bounded upcoming-class list
+  and up to three unfinished Quest titles; it excludes rooms, locations, and
+  notes and is privacy-sensitive. Focus has a one-tap session music control
+  that does not overwrite the saved app-wide preference. Quests → Choose today
+  selects up to three Quests;
   other Quests remain optional. One authored room follows the user across the
   app. An optional device photo is private by default and is not exposed to
   visitors unless the owner separately chooses to share it. Background music
@@ -603,28 +652,37 @@ and [label management](https://developer.apple.com/help/app-store-connect/manage
 
 ## Screenshot story
 
-Use real production UI with no device frame required. The iOS sequence tells
-these ten moments with one consistent visual language:
+The checked-in ten-frame set is Build 39 evidence. Do not relabel it as Build
+40. After the signed iPhone/device pass, recapture real production UI with no
+device frame and tell these ten moments in one consistent visual language:
 
-1. **Your day, as quests** — a welcoming board with achievable actions.
-2. **A real win becomes progress** — the reward receipt with XP and Glimmers.
-3. **A goal becomes inhabitable** — one grounded move in the living Goals room.
-4. **The steward has a real place** — the Workshop and its routes, not a form.
-5. **A changed day is not failure** — smaller, prepare, or leave today alone.
-6. **The day has a shape** — Plans, the next class, and the calendar together.
-7. **Sharing stays authored** — My Space with explicit card audiences.
-8. **The room can change completely** — a no-cost full-room preview.
-9. **What happened can be kept** — a private Journal note in context.
-10. **Other rooms are optional** — a finite, opt-in Discover directory.
+1. **Your day, as kinder quests** — one achievable action, not a dashboard.
+2. **School joins the day gently** — the class import review with reminders in
+   the first screen and no save before confirmation.
+3. **The next right thing stays close** — a real iPhone Home Screen with the
+   medium Day Ledger widget; never manufacture this frame in a test harness.
+4. **The day has a shape** — Plans, the next class, and the calendar together.
+5. **A real win becomes progress** — the reward receipt with XP and Glimmers.
+6. **A goal becomes inhabitable** — one grounded move in the living Goals room.
+7. **A changed day is not failure** — smaller, prepare, or leave today alone.
+8. **Sharing stays authored** — My Space with explicit card audiences.
+9. **The room can change completely** — a no-cost full-room preview.
+10. **What happened can be kept** — a private Journal note in context.
 
 ## Store asset checklist
 
 - App Store icon: `web/icons/Icon-1024.png`.
+- Launcher identity: owner-selected **Open Door of Light**, with one angular
+  walnut threshold and one contained honey path into the room.
 - Google Play icon: `web/icons/Icon-512.png` (512×512 PNG).
 - Google Play feature graphic: `store-assets/google-play-feature-graphic-1024x500.png`.
 - App Store phone screenshots: ten opaque 24-bit RGB PNGs at Apple's accepted
   1290×2796 iPhone 6.9-inch class are in
   `store-assets/screenshots/app-store/`.
+- Those phone screenshots and `CANDIDATE-MANIFEST.json` are bound to Build 39.
+  A Build 40 submission requires a fresh capture, visual inspection, export,
+  and final manifest-only binding commit after the signed-device gates above;
+  the real Home Screen frame must show the new launcher icon and signed widget.
 - The App Store sequence adds three production Goals frames before Plans so the
   Workshop and recovery contract are visible without overlay copy.
 - Google Play phone screenshots: the earlier five-state core story is independently

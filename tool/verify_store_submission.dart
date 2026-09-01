@@ -39,7 +39,9 @@ const _legacyScreenshots = <String>[
 
 Future<void> main(List<String> arguments) async {
   try {
-    final iosOnly = _parseIosOnly(arguments);
+    final mode = _parseMode(arguments);
+    final iosOnly = mode != _VerificationMode.full;
+    final testFlightOnly = mode == _VerificationMode.iosTestFlight;
     if (!File('pubspec.yaml').existsSync()) {
       throw StateError('Run this command from the app repository root.');
     }
@@ -311,13 +313,15 @@ Future<void> main(List<String> arguments) async {
 
     _section('Submission artwork');
     _verifyRgbPng('web/icons/Icon-1024.png', 1024, 1024);
-    _verifyScreenshotDirectory(
-      'store-assets/screenshots/app-store',
-      _appStoreScreenshots,
-      1290,
-      2796,
-    );
-    _verifyAppStoreScreenshotManifest(pubspecVersion);
+    if (!testFlightOnly) {
+      _verifyScreenshotDirectory(
+        'store-assets/screenshots/app-store',
+        _appStoreScreenshots,
+        1290,
+        2796,
+      );
+      _verifyAppStoreScreenshotManifest(pubspecVersion);
+    }
     if (!iosOnly) {
       _verifyRgbPng('web/icons/Icon-512.png', 512, 512);
       _verifyRgbPng(
@@ -332,48 +336,56 @@ Future<void> main(List<String> arguments) async {
         1920,
       );
     }
-    for (final path in _legacyScreenshots) {
-      if (File(path).existsSync()) {
-        throw StateError('Retired store screenshot still exists: $path');
+    if (!testFlightOnly) {
+      for (final path in _legacyScreenshots) {
+        if (File(path).existsSync()) {
+          throw StateError('Retired store screenshot still exists: $path');
+        }
       }
-    }
-    final screenshotReadme = await File(
-      'store-assets/screenshots/README.md',
-    ).readAsString();
-    _expectContains(
-      'screenshot README',
-      screenshotReadme,
-      'The App Store sequence is:',
-    );
-    for (final item in const [
-      '1. Quests',
-      '2. Reward',
-      '3. Goals',
-      '4. Workshop',
-      '5. Recovery',
-      '6. Plans',
-      '7. My Space',
-      '8. Change Space',
-      '9. Journal',
-      '10. Discover',
-    ]) {
-      _expectContains('screenshot README', screenshotReadme, item);
-    }
-    if (!iosOnly) {
+      final screenshotReadme = await File(
+        'store-assets/screenshots/README.md',
+      ).readAsString();
       _expectContains(
         'screenshot README',
         screenshotReadme,
-        'Google Play remains the earlier five-image core story',
+        'The App Store sequence is:',
       );
+      for (final item in const [
+        '1. Quests',
+        '2. Reward',
+        '3. Goals',
+        '4. Workshop',
+        '5. Recovery',
+        '6. Plans',
+        '7. My Space',
+        '8. Change Space',
+        '9. Journal',
+        '10. Discover',
+      ]) {
+        _expectContains('screenshot README', screenshotReadme, item);
+      }
+      if (!iosOnly) {
+        _expectContains(
+          'screenshot README',
+          screenshotReadme,
+          'Google Play remains the earlier five-image core story',
+        );
+      }
     }
     _pass(
-      iosOnly
+      testFlightOnly
+          ? 'App Store icon is RGB; final screenshots and their strict receipt are deliberately excluded from the internal TestFlight candidate'
+          : iosOnly
           ? 'App Store icon and ten-image screenshot set are RGB and candidate-bound'
           : 'icons, feature graphic, and both five-image screenshot sets are RGB',
     );
 
     stdout.writeln();
-    stdout.writeln('PASS: store submission packet is internally consistent.');
+    stdout.writeln(
+      testFlightOnly
+          ? 'PASS: internal TestFlight metadata packet is internally consistent; App Store screenshot readiness is not claimed.'
+          : 'PASS: store submission packet is internally consistent.',
+    );
   } catch (error, stackTrace) {
     stderr.writeln('Store submission verification failed: $error');
     if (Platform.environment['ROOM_OF_DAYS_VERIFY_TRACE'] == '1') {
@@ -383,13 +395,21 @@ Future<void> main(List<String> arguments) async {
   }
 }
 
-bool _parseIosOnly(List<String> arguments) {
-  if (arguments.isEmpty) return false;
-  if (arguments.length == 1 && arguments.single == '--ios-only') return true;
+_VerificationMode _parseMode(List<String> arguments) {
+  if (arguments.isEmpty) return _VerificationMode.full;
+  if (arguments.length == 1 && arguments.single == '--ios-only') {
+    return _VerificationMode.iosSubmission;
+  }
+  if (arguments.length == 1 && arguments.single == '--ios-testflight') {
+    return _VerificationMode.iosTestFlight;
+  }
   throw ArgumentError(
-    'Usage: dart run tool/verify_store_submission.dart [--ios-only]',
+    'Usage: dart run tool/verify_store_submission.dart '
+    '[--ios-only|--ios-testflight]',
   );
 }
+
+enum _VerificationMode { full, iosSubmission, iosTestFlight }
 
 void _verifyCurrentInAppReleaseNotes(String? pubspecVersion) {
   if (pubspecVersion == null) {

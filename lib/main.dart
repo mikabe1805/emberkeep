@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'a11y.dart';
+import 'academic_calendar/import/academic_schedule_file_inbox.dart';
 import 'audio.dart';
 import 'social.dart';
 import 'storage.dart';
@@ -121,6 +124,7 @@ class LifeRpgApp extends StatefulWidget {
 
 class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
   late final RoomLinkInbox _roomLinks;
+  late final AcademicScheduleFileInbox _academicScheduleFiles;
 
   @override
   void initState() {
@@ -130,6 +134,8 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
     // instead of becoming an unknown Navigator route.
     WidgetsBinding.instance.addObserver(this);
     _roomLinks = RoomLinkInbox();
+    _academicScheduleFiles = AcademicScheduleFileInbox();
+    unawaited(_academicScheduleFiles.initialize());
     String? seededCode;
 
     void seed(Uri uri) {
@@ -157,6 +163,7 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _roomLinks.dispose();
+    _academicScheduleFiles.dispose();
     super.dispose();
   }
 
@@ -216,7 +223,10 @@ class _LifeRpgAppState extends State<LifeRpgApp> with WidgetsBindingObserver {
           );
         },
       ),
-      home: AppShell(roomLinks: _roomLinks),
+      home: AppShell(
+        roomLinks: _roomLinks,
+        academicScheduleFiles: _academicScheduleFiles,
+      ),
     );
   }
 }

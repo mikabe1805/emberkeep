@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:ui' show Rect;
 
@@ -14,6 +15,29 @@ Future<bool> sharePng(Uint8List bytes, String filename, String text) async {
       ShareParams(
         files: [XFile.fromData(bytes, mimeType: 'image/png', name: filename)],
         text: text,
+      ),
+    );
+    return result.status != ShareResultStatus.dismissed;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Shares an editable UTF-8 iCalendar file through the native share sheet.
+Future<bool> shareCalendarFile(String contents, String filename) async {
+  try {
+    final result = await SharePlus.instance.share(
+      ShareParams(
+        files: [
+          XFile.fromData(
+            Uint8List.fromList(utf8.encode(contents)),
+            mimeType: 'text/calendar',
+            name: filename,
+          ),
+        ],
+        subject: 'Room of Days class schedule starter',
+        text:
+            'Edit the class details, keep the iCalendar formatting, then open the file in Room of Days to review it.',
       ),
     );
     return result.status != ShareResultStatus.dismissed;

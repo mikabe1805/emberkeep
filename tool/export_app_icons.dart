@@ -21,8 +21,9 @@ AppIconExportResult exportAppIcons({
   required String selectedMasterPath,
   required String adaptiveChromaPath,
 }) {
-  final appRoot = Directory(appRootPath).absolute;
-  _validateAppRoot(appRoot);
+  final requestedRoot = Directory(appRootPath).absolute;
+  _validateAppRoot(requestedRoot);
+  final appRoot = Directory(requestedRoot.resolveSymbolicLinksSync());
   final masterFile = File(selectedMasterPath).absolute;
   final chromaFile = File(adaptiveChromaPath).absolute;
   final master = _loadSquare(masterFile, requireOpaque: true);
@@ -311,8 +312,8 @@ Map<String, Object> _buildManifest({
     ..sort((a, b) => a.path.compareTo(b.path));
   return <String, Object>{
     'schemaVersion': 1,
-    'selectionDate': '2026-08-19',
-    'identity': 'Room of Days - Day Ledger',
+    'selectionDate': '2026-09-01',
+    'identity': 'Room of Days - Open Door of Light',
     'sources': <Map<String, Object>>[
       _sourceRecord(appRoot, selectedMaster, 'selected opaque icon artwork'),
       _sourceRecord(

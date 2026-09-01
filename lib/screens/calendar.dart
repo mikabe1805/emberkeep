@@ -8,6 +8,7 @@ import '../academic_calendar/data/academic_calendar_preferences.dart';
 import '../academic_calendar/data/academic_schedule_repository.dart';
 import '../academic_calendar/domain/academic_schedule.dart';
 import '../academic_calendar/import/academic_schedule_file_picker.dart';
+import '../academic_calendar/import/academic_schedule_file_inbox.dart';
 import '../academic_calendar/import/academic_schedule_ics_import.dart';
 import '../academic_calendar/services/notebook_handoff.dart';
 import '../academic_calendar/widgets/academic_calendar_sections.dart';
@@ -81,6 +82,9 @@ class CalendarPage extends StatefulWidget {
     this.daybookPreferences,
     this.timeZoneIdProvider,
     this.academicScheduleFilePicker,
+    this.academicScheduleFileInbox,
+    this.requestReminderPermission,
+    this.onScheduleChanged,
     this.placeSearchFactory = const ProductionDaybookPlaceSearchFactory(),
   });
 
@@ -97,6 +101,12 @@ class CalendarPage extends StatefulWidget {
   final DaybookPreferences? daybookPreferences;
   final TimeZoneIdProvider? timeZoneIdProvider;
   final AcademicScheduleFilePicker? academicScheduleFilePicker;
+  final AcademicScheduleFileInbox? academicScheduleFileInbox;
+
+  /// Notification permission is requested only from the review's explicit
+  /// class-reminder switch.
+  final Future<bool> Function()? requestReminderPermission;
+  final ValueChanged<AcademicSchedule>? onScheduleChanged;
   final DaybookPlaceSearchFactory placeSearchFactory;
 
   @override
@@ -117,6 +127,7 @@ class _CalendarPageState extends State<CalendarPage> {
   AcademicSchedule _academicSchedule = AcademicSchedule.empty();
   AcademicCalendarMode _academicMode = AcademicCalendarMode.month;
   bool _academicLoading = true;
+  bool _academicImportOpen = false;
   int _viewInteractionRevision = 0;
   Future<void> _viewSaveTail = Future<void>.value();
 
@@ -140,7 +151,26 @@ class _CalendarPageState extends State<CalendarPage> {
     _academicScheduleFilePicker =
         widget.academicScheduleFilePicker ??
         const PlatformAcademicScheduleFilePicker();
+    widget.academicScheduleFileInbox?.addListener(
+      _onIncomingAcademicScheduleFile,
+    );
     unawaited(_loadAcademicCalendar());
+  }
+
+  @override
+  void didUpdateWidget(covariant CalendarPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.academicScheduleFileInbox ==
+        widget.academicScheduleFileInbox) {
+      return;
+    }
+    oldWidget.academicScheduleFileInbox?.removeListener(
+      _onIncomingAcademicScheduleFile,
+    );
+    widget.academicScheduleFileInbox?.addListener(
+      _onIncomingAcademicScheduleFile,
+    );
+    _onIncomingAcademicScheduleFile();
   }
 
   Future<void> _loadAcademicCalendar() async {
@@ -190,6 +220,28 @@ class _CalendarPageState extends State<CalendarPage> {
       }
       _academicLoading = false;
     });
+    widget.onScheduleChanged?.call(schedule);
+    _onIncomingAcademicScheduleFile();
+  }
+
+  void _onIncomingAcademicScheduleFile() {
+    if (!mounted || _academicLoading || _academicImportOpen) return;
+    final inbox = widget.academicScheduleFileInbox;
+    if (inbox == null || !inbox.isNotEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_drainAcademicScheduleFiles());
+    });
+  }
+
+  Future<void> _drainAcademicScheduleFiles() async {
+    if (_academicImportOpen || !mounted) return;
+    final inbox = widget.academicScheduleFileInbox;
+    final source = inbox?.takeNext();
+    if (source == null) return;
+    await _showAcademicScheduleImport(initialSource: source);
+    if (mounted && (inbox?.isNotEmpty ?? false)) {
+      _onIncomingAcademicScheduleFile();
+    }
   }
 
   void _persistAcademicView() {
@@ -317,8 +369,15 @@ class _CalendarPageState extends State<CalendarPage> {
 
   @override
   void dispose() {
+    widget.academicScheduleFileInbox?.removeListener(
+      _onIncomingAcademicScheduleFile,
+    );
     _calendarScroll.dispose();
     super.dispose();
+  }
+
+  void _reportScheduleChange(AcademicSchedule schedule) {
+    widget.onScheduleChanged?.call(schedule);
   }
 
   Future<bool> _saveDaybookEvent(DaybookEvent event) async {
@@ -329,6 +388,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!await _scheduleRepository.save(next)) return false;
+    _reportScheduleChange(next);
     if (mounted) setState(() => _academicSchedule = next);
     return true;
   }
@@ -341,6 +401,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!await _scheduleRepository.save(next)) return false;
+    _reportScheduleChange(next);
     if (mounted) setState(() => _academicSchedule = next);
     return true;
   }
@@ -355,6 +416,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!await _scheduleRepository.save(next)) return false;
+    _reportScheduleChange(next);
     if (mounted) setState(() => _academicSchedule = next);
     return true;
   }
@@ -429,6 +491,7 @@ class _CalendarPageState extends State<CalendarPage> {
       );
       return;
     }
+    _reportScheduleChange(next);
     if (!mounted) return;
     Sfx.instance.playInteraction(InteractionSound.place);
     setState(() => _academicSchedule = next);
@@ -451,6 +514,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!await _scheduleRepository.save(next)) return false;
+    _reportScheduleChange(next);
     if (mounted) {
       setState(() => _academicSchedule = next);
       _persistAcademicView();
@@ -470,6 +534,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!await _scheduleRepository.save(next)) return false;
+    _reportScheduleChange(next);
     if (!mounted) return true;
 
     final selected = CivilDate.fromDateTime(_selected);
@@ -493,6 +558,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!await _scheduleRepository.save(next)) return false;
+    _reportScheduleChange(next);
     if (mounted) setState(() => _academicSchedule = next);
     return true;
   }
@@ -508,6 +574,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!await _scheduleRepository.save(next)) return false;
+    _reportScheduleChange(next);
     if (mounted) setState(() => _academicSchedule = next);
     return true;
   }
@@ -537,6 +604,7 @@ class _CalendarPageState extends State<CalendarPage> {
       );
       return;
     }
+    _reportScheduleChange(next);
     if (!mounted) return;
     Sfx.instance.playInteraction(InteractionSound.place);
     setState(() => _academicSchedule = next);
@@ -596,6 +664,7 @@ class _CalendarPageState extends State<CalendarPage> {
       return false;
     }
     if (!await _scheduleRepository.save(next)) return false;
+    _reportScheduleChange(next);
     if (mounted) setState(() => _academicSchedule = next);
     return true;
   }
@@ -671,6 +740,7 @@ class _CalendarPageState extends State<CalendarPage> {
       );
       return false;
     }
+    _reportScheduleChange(next);
     if (!mounted) return false;
     Sfx.instance.playInteraction(InteractionSound.place);
     setState(() => _academicSchedule = next);
@@ -702,6 +772,7 @@ class _CalendarPageState extends State<CalendarPage> {
       );
       return;
     }
+    _reportScheduleChange(next);
     if (!mounted) return;
     Sfx.instance.playInteraction(InteractionSound.place);
     setState(() => _academicSchedule = next);
@@ -1221,6 +1292,28 @@ class _CalendarPageState extends State<CalendarPage> {
     );
   }
 
+  Future<void> _showAcademicScheduleImport({
+    AcademicScheduleImportSource? initialSource,
+  }) async {
+    if (_academicImportOpen || !mounted) return;
+    _academicImportOpen = true;
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierColor: Palette.dialogBarrier,
+        builder: (_) => AcademicScheduleImportDialog(
+          filePicker: _academicScheduleFilePicker,
+          initialSource: initialSource,
+          requestReminderPermission: widget.requestReminderPermission,
+          onImport: _saveAcademicScheduleImport,
+        ),
+      );
+    } finally {
+      _academicImportOpen = false;
+    }
+    _onIncomingAcademicScheduleFile();
+  }
+
   Future<void> _showAddDaybook(BuildContext context) async {
     Sfx.instance.playMaterial(MaterialSound.glass);
     final target = await showDialog<DaybookAddTarget>(
@@ -1264,14 +1357,7 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
         );
       case DaybookAddTarget.importClasses:
-        await showDialog<void>(
-          context: context,
-          barrierColor: Palette.dialogBarrier,
-          builder: (_) => AcademicScheduleImportDialog(
-            filePicker: _academicScheduleFilePicker,
-            onImport: _saveAcademicScheduleImport,
-          ),
-        );
+        await _showAcademicScheduleImport();
       case DaybookAddTarget.assignment || DaybookAddTarget.exam:
         await showDialog<void>(
           context: context,

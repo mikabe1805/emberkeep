@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "id": "polished-build40-2026-09-01",
+  "project": "Room of Days",
+  "change_class": "approved_direction_execution",
+  "status": "local_candidate_ready_for_device_and_store_capture",
+  "locked_at": "2026-09-01T01:40:04-04:00",
+  "surface": "Build 40 class import, reminders, iPhone Day Ledger widgets, Focus room music, release copy, and the Open Door of Light launcher identity",
+  "scope": "Make the existing academic calendar import easier to receive and edit, add deliberate class reminders, bring next-class and unfinished-Quest context to iPhone widgets, place the Fable room theme inside Focus with a one-tap quiet path, and prepare truthful App Store copy without submitting it.",
+  "user_job": "Bring a semester into Plans without rebuilding it by hand, see the next useful thing without opening the app, and enter or leave a quiet focus atmosphere without surrendering control.",
+  "active_sources": [
+    {
+      "id": "build40-owner-request",
+      "kind": "owner_direction",
+      "judged_state": "The owner explicitly requested easier class reminders, a programmer-editable ICS starter, native file handoff, widgets for schedule and the top three unfinished Quests, a more professional icon, and Fable meditation music inside a focus timer with an easy off control.",
+      "viewport": "430x932, 320x568 at 1.3x and 2x, and final physical iPhone",
+      "priority": 1
+    }
+  ],
+  "edge_contract": {
+    "product": {
+      "decision": "Plans remains the source of truth. An incoming ICS file always opens the existing review flow, class reminders remain opt-in, and the widget is a glance rather than a second planner.",
+      "proof": "Open a compatible file cold and warm, inspect the review before saving, import with each reminder state, and compare the widget projection with current classes and Quests."
+    },
+    "interaction": {
+      "decision": "Focus music is session-scoped and reversible in one tap. Leaving Focus restores the saved app-wide preference instead of silently changing it.",
+      "proof": "Exercise Focus with global music both off and on, toggle session music, make it quiet, close the timer, and verify the saved global choice is unchanged."
+    },
+    "visual": {
+      "decision": "New controls reuse the warm glass, brass, paper, mono-label, and authored-room system, remain readable on a narrow large-text phone, and do not turn the app into a generic dashboard.",
+      "proof": "Inspect import, Focus, and What's New renders beside the current Plans, Quests, and release surfaces at normal and compact text sizes."
+    }
+  },
+  "anti_fallbacks": [
+    {
+      "fallback": "Auto-import a shared calendar file or auto-enable notifications",
+      "why": "Both actions would cross a review and consent boundary."
+    },
+    {
+      "fallback": "Put locations, notes, room identity, or a large schedule database in the widget payload",
+      "why": "The widget should remain bounded, glanceable, and private."
+    },
+    {
+      "fallback": "Let the Focus mute control overwrite the global music preference",
+      "why": "A temporary session decision must not become a hidden permanent setting."
+    },
+    {
+      "fallback": "Reinterpret or regenerate the owner-selected icon while propagating platform assets",
+      "why": "Open Door of Light is an approved source. Platform export may adapt crop and transparency, but it must not redesign the mark."
+    },
+    {
+      "fallback": "Manufacture an App Store widget screenshot from a test harness",
+      "why": "The store claim needs a real signed iPhone Home Screen receipt."
+    }
+  ],
+  "unverified_property": "Whether the iOS extension compiles and signs with the production App Group, whether cold and warm document handoff works across real source apps, whether widget redaction and class-boundary refresh behave on device, whether the music mix feels right on speaker and headphones, and whether the exact exported icon feels clear and distinctive on real launchers.",
+  "decisive_check": {
+    "method": "Build and sign the exact candidate on macOS, install it on the owner's iPhone, exercise the ICS, reminder, widget, Focus, accessibility, background, and upgrade journeys, then capture the real widget frame and bind the final store packet.",
+    "pass_condition": "The class flow remains review-first, reminders ask only after explicit intent, both widgets stay current and private, Focus music is easy to leave, Open Door of Light reads at real launcher size, and the owner says the exact signed build looks and feels cohesive."
+  }
+}

@@ -4,8 +4,10 @@
 # IS the repo root). Codemagic auto-discovers codemagic.yaml at the root.
 #
 # TRIGGERING: routine source/docs pushes remain inert. This candidate permits one
-# exact, owner-authorized Build 39 tag so the internal phone-test build can start
-# without broadening the release channel. No other tag or branch push matches.
+# exact, owner-authorized Build 40 internal-TestFlight tag so the signed device
+# evidence build can start without broadening the release channel. No other tag
+# or branch push matches. The final App Store screenshot receipt remains a
+# separate, non-binary gate after the installed widget has been photographed.
 # See ../NATIVE-iOS.md for the normal manual workflow.
 #
 # SIGNING: EXPLICIT App Store Connect CLI signing (NOT the automatic ios_signing
@@ -18,9 +20,10 @@
 #      VM (Apple never stores private keys) → "No development certificates". Pinning
 #      the PERSISTED Distribution cert's private key with `--certificate-key
 #      @env:CERTIFICATE_PRIVATE_KEY` makes --create reuse the existing cert.
-#   3. The workflow verifies that the App ID has Associated Domains enabled and
-#      verifies the fetched profile contains both the corresponding entitlement
-#      and production App Attest before spending time on an archive.
+#   3. The workflow verifies both the Runner and WidgetKit App IDs, fetches one
+#      exact App Store profile for each, and refuses to archive unless both
+#      profiles carry the shared App Group. It also verifies Associated Domains
+#      and production App Attest on Runner.
 #   Do NOT also add an `environment.ios_signing` block — mixing the two re-triggers
 #   "No matching profiles found".
 #
@@ -29,7 +32,11 @@
 #   * A secret env var `CERTIFICATE_PRIVATE_KEY` in group `emberkeep_signing`,
 #     holding the FULL PEM (BEGIN/END lines) of the private key that pairs with the
 #     persisted Apple Distribution certificate.
-#   * App ID `com.mikabe.emberkeep` registered + app record (Apple ID 6781401469).
+#   * App IDs `com.mikabe.emberkeep` and
+#     `com.mikabe.emberkeep.DayLedgerWidget` registered under Team D63Z4RBRT8.
+#   * App Group `group.com.mikabe.emberkeep` assigned to BOTH App IDs in Apple
+#     Developer. Codemagic can verify profiles but cannot assign an App Group.
+#   * App record for `com.mikabe.emberkeep` (Apple ID 6781401469).
 #
 # MIXED PLUGIN INTEGRATION: Firebase resolves through Flutter's generated Swift
 # package, while notification/timezone plugins still use CocoaPods. Flutter owns
@@ -45,7 +52,7 @@ workflows:
       events:
         - tag
       tag_patterns:
-        - pattern: "room-of-days-1.0.4-build-39-candidate"
+        - pattern: "room-of-days-1.0.4-build-40-internal-candidate"
           include: true
     integrations:
       app_store_connect: CodemagicASC # ← your App Store Connect integration name
@@ -57,10 +64,11 @@ workflows:
       groups:
         - emberkeep_signing # ← MUST contain the secret var CERTIFICATE_PRIVATE_KEY
       vars:
-        # Tag builds default to one commit; the store receipt verifies HEAD^.
+        # Tag builds default to one commit; the internal receipt verifies HEAD^.
         CM_CLONE_DEPTH: "2"
         BUNDLE_ID: "com.mikabe.emberkeep"
-        BUNDLE_ID_RESOURCE_ID: "ZV438Q53TS"
+        WIDGET_BUNDLE_ID: "com.mikabe.emberkeep.DayLedgerWidget"
+        APP_GROUP_ID: "group.com.mikabe.emberkeep"
         APPLE_TEAM_ID: "D63Z4RBRT8"
         # numeric Apple ID of the app record (App Store Connect → App Information)
         APP_STORE_APPLE_ID: 6781401469
@@ -74,9 +82,12 @@ workflows:
             git fetch --no-tags --depth=2 origin "$CM_COMMIT"
           RECEIPT_REVISION=$(git rev-parse HEAD)
           CANDIDATE_REVISION=$(git rev-parse HEAD^)
-          MANIFEST=store-assets/screenshots/app-store/CANDIDATE-MANIFEST.json
+          MANIFEST=release-evidence/internal-testflight/1.0.4+40/CANDIDATE-MANIFEST.json
           SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' "$MANIFEST")
-          test "$CM_TAG" = "room-of-days-1.0.4-build-39-candidate"
+          test "$CM_TAG" = "room-of-days-1.0.4-build-40-internal-candidate"
+          test "$(jq -er '.candidate.tag' "$MANIFEST")" = "$CM_TAG"
+          test "$(jq -er '.candidate.version' "$MANIFEST")" = "1.0.4+40"
+          test "$(jq -er '.purpose' "$MANIFEST")" = "internal_testflight_device_evidence"
           test "$RECEIPT_REVISION" = "$CM_COMMIT"
           test "$SOURCE_REVISION" = "$CANDIDATE_REVISION"
           test "$(git diff --name-only "$CANDIDATE_REVISION..$RECEIPT_REVISION")" = "$MANIFEST"
@@ -95,10 +106,10 @@ workflows:
             printf '%s\n' "$STATUS" >&2
             exit 1
           fi
-      - name: Verify the iOS submission packet
+      - name: Verify the internal TestFlight candidate
         script: |
           set -euo pipefail
-          dart run tool/verify_store_submission.dart --ios-only
+          dart run tool/verify_internal_testflight_candidate.dart
       - name: Analyze Dart
         script: |
           set -euo pipefail
@@ -127,58 +138,120 @@ workflows:
             printf '%s\n' "$STATUS" >&2
             exit 1
           fi
-          dart run tool/verify_store_submission.dart --ios-only
-      - name: Set up code signing (fetch + create App Store profile, key-safe)
+          dart run tool/verify_internal_testflight_candidate.dart
+      - name: Set up Runner and WidgetKit signing, key-safe
         script: |
           set -euo pipefail
           keychain initialize
 
-          # The checked-in Runner entitlement requires this App ID capability.
-          # Keep the operation idempotent so later builds only verify it.
+          lookup_bundle_id_resource() {
+            IDENTIFIER=$1
+            MATCHES=$(app-store-connect bundle-ids list \
+              --bundle-id-identifier "$IDENTIFIER" \
+              --strict-match-identifier \
+              --json)
+            test "$(jq -er 'length' <<< "$MATCHES")" = "1"
+            jq -er '.[0].id' <<< "$MATCHES"
+          }
+
+          BUNDLE_ID_RESOURCE_ID=$(lookup_bundle_id_resource "$BUNDLE_ID")
+          WIDGET_BUNDLE_ID_RESOURCE_ID=$(lookup_bundle_id_resource "$WIDGET_BUNDLE_ID")
+
+          # Associated Domains may be enabled idempotently. App Group assignment
+          # is intentionally portal-owned: the CLI can toggle the capability bit,
+          # but cannot select the actual group. Require that one-time account state
+          # instead of producing a profile that only looks configured.
           CAPABILITIES=$(app-store-connect bundle-ids capabilities \
             "$BUNDLE_ID_RESOURCE_ID" --json)
-          if jq -e \
+          if ! jq -e \
             'any(.[]; .attributes.capabilityType == "ASSOCIATED_DOMAINS")' \
             <<< "$CAPABILITIES" >/dev/null; then
-            echo "Associated Domains is already enabled for $BUNDLE_ID"
-          else
             app-store-connect bundle-ids enable-capabilities \
               "$BUNDLE_ID_RESOURCE_ID" \
               --capability "Associated Domains"
+            CAPABILITIES=$(app-store-connect bundle-ids capabilities \
+              "$BUNDLE_ID_RESOURCE_ID" --json)
           fi
+          jq -e \
+            'any(.[]; .attributes.capabilityType == "ASSOCIATED_DOMAINS")' \
+            <<< "$CAPABILITIES" >/dev/null
 
-          # --create makes the App Store profile if missing; --certificate-key pins
-          # the PERSISTED Distribution cert's private key so the CLI reuses the
-          # existing cert instead of minting a key-less one. API auth = CodemagicASC.
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE \
-            --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
-            --create
+          for RESOURCE_ID in "$BUNDLE_ID_RESOURCE_ID" "$WIDGET_BUNDLE_ID_RESOURCE_ID"; do
+            RESOURCE_CAPABILITIES=$(app-store-connect bundle-ids capabilities \
+              "$RESOURCE_ID" --json)
+            if ! jq -e \
+              'any(.[]; .attributes.capabilityType == "APP_GROUPS")' \
+              <<< "$RESOURCE_CAPABILITIES" >/dev/null; then
+              echo "Apple Developer must assign $APP_GROUP_ID to both Room of Days App IDs before archive" >&2
+              exit 1
+            fi
+          done
 
-          PROFILE=$(find \
-            "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles" \
-            -maxdepth 1 -name '*.mobileprovision' -type f -print -quit)
-          test -n "$PROFILE"
-          PROFILE_PLIST=$(mktemp)
-          trap 'rm -f "$PROFILE_PLIST"' EXIT
-          security cms -D -i "$PROFILE" > "$PROFILE_PLIST"
+          # Fetch/create exact profiles for BOTH targets. Strict matching prevents
+          # the host lookup from accidentally accepting its extension profile.
+          for IDENTIFIER in "$BUNDLE_ID" "$WIDGET_BUNDLE_ID"; do
+            app-store-connect fetch-signing-files "$IDENTIFIER" \
+              --type IOS_APP_STORE \
+              --strict-match-identifier \
+              --certificate-key @env:CERTIFICATE_PRIVATE_KEY \
+              --create
+          done
+
+          PROFILE_DIRECTORY="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          profile_for_identifier() {
+            IDENTIFIER=$1
+            for PROFILE_PATH in "$PROFILE_DIRECTORY"/*.mobileprovision; do
+              test -f "$PROFILE_PATH" || continue
+              PROFILE_PLIST=$(mktemp)
+              if ! security cms -D -i "$PROFILE_PATH" > "$PROFILE_PLIST" 2>/dev/null; then
+                rm -f "$PROFILE_PLIST"
+                continue
+              fi
+              PROFILE_APP_ID=$(/usr/libexec/PlistBuddy -c \
+                'Print :Entitlements:application-identifier' \
+                "$PROFILE_PLIST" 2>/dev/null || true)
+              if [ "$PROFILE_APP_ID" = "$APPLE_TEAM_ID.$IDENTIFIER" ] && \
+                /usr/libexec/PlistBuddy -c \
+                  'Print :Entitlements:com.apple.security.application-groups' \
+                  "$PROFILE_PLIST" 2>/dev/null | grep -q "$APP_GROUP_ID"; then
+                rm -f "$PROFILE_PLIST"
+                printf '%s\n' "$PROFILE_PATH"
+                return 0
+              fi
+              rm -f "$PROFILE_PLIST"
+            done
+            echo "No exact App Store profile for $IDENTIFIER contains $APP_GROUP_ID" >&2
+            return 1
+          }
+
+          HOST_PROFILE=$(profile_for_identifier "$BUNDLE_ID")
+          WIDGET_PROFILE=$(profile_for_identifier "$WIDGET_BUNDLE_ID")
+          test "$HOST_PROFILE" != "$WIDGET_PROFILE"
+
+          HOST_PROFILE_PLIST=$(mktemp)
+          WIDGET_PROFILE_PLIST=$(mktemp)
+          trap 'rm -f "$HOST_PROFILE_PLIST" "$WIDGET_PROFILE_PLIST"' EXIT
+          security cms -D -i "$HOST_PROFILE" > "$HOST_PROFILE_PLIST"
+          security cms -D -i "$WIDGET_PROFILE" > "$WIDGET_PROFILE_PLIST"
           /usr/libexec/PlistBuddy -c \
             'Print :Entitlements:com.apple.developer.associated-domains' \
-            "$PROFILE_PLIST" >/dev/null
+            "$HOST_PROFILE_PLIST" >/dev/null
           PROFILE_APP_ATTEST=$(/usr/libexec/PlistBuddy -c \
             'Print :Entitlements:com.apple.developer.devicecheck.appattest-environment' \
-            "$PROFILE_PLIST")
+            "$HOST_PROFILE_PLIST")
           # Apple profiles encode this allowlist as either the scalar
           # "production" or an array containing both environments.
           grep -Eq '(^|[[:space:]])production([[:space:]]|$)' \
             <<< "$PROFILE_APP_ATTEST"
 
           keychain add-certificates
-          # use-profiles wires the fetched profile into the Runner target AND writes
-          # the export options plist to its default $HOME/export_options.plist.
-          # (Under explicit signing $CM_EXPORT_OPTIONS_PLIST is NOT set — only the
-          # automatic ios_signing block populates it — so we reference $HOME.)
+          # With both exact profiles present, use-profiles configures Runner and
+          # the WidgetKit extension, then writes the shared export options plist.
+          # Under explicit signing $CM_EXPORT_OPTIONS_PLIST is not populated.
           xcode-project use-profiles \
+            --project ios/Runner.xcodeproj \
+            --profile "$HOST_PROFILE" "$WIDGET_PROFILE" \
+            --archive-method app-store \
             --export-options-plist="$HOME/export_options.plist"
       - name: Flutter build ipa
         script: |
@@ -230,6 +303,8 @@ workflows:
           ditto -x -k "$IPA" "$VERIFY_DIR"
           APP=$(find "$VERIFY_DIR/Payload" -maxdepth 1 -name '*.app' -type d -print -quit)
           test -n "$APP"
+          WIDGET="$APP/PlugIns/RoomOfDaysWidgets.appex"
+          test -d "$WIDGET"
 
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = "$BUNDLE_ID"
           PUBSPEC_VERSION=$(sed -nE \
@@ -242,12 +317,20 @@ workflows:
             's/^version:[[:space:]]*[^+]+\+([0-9]+)[[:space:]]*$/\1/p' \
             pubspec.yaml)
           test "$BUILD_NUMBER" = "$PUBSPEC_BUILD"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$WIDGET/Info.plist")" = "$WIDGET_BUNDLE_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$WIDGET/Info.plist")" = "$PUBSPEC_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$WIDGET/Info.plist")" = "$PUBSPEC_BUILD"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$WIDGET/Info.plist")" = "Room of Days"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundlePackageType' "$WIDGET/Info.plist")" = "XPC!"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$WIDGET/Info.plist")" = "com.apple.widgetkit-extension"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$WIDGET/Info.plist")" = "15.0"
           test "$(/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$APP/Info.plist")" = "false"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist")" = "Room of Days"
           test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist")" = "15.0"
           SDK_NAME=$(/usr/libexec/PlistBuddy -c 'Print :DTSDKName' "$APP/Info.plist")
           case "$SDK_NAME" in iphoneos26*) ;; *) echo "Unexpected SDK: $SDK_NAME" >&2; exit 1 ;; esac
           plutil -extract UIDeviceFamily json -o - "$APP/Info.plist" | jq -e '. == [1]'
+          plutil -extract UIDeviceFamily json -o - "$WIDGET/Info.plist" | jq -e '. == [1]'
           plutil -extract UISupportedInterfaceOrientations json -o - "$APP/Info.plist" | \
             jq -e '. == ["UIInterfaceOrientationPortrait"]'
           for KEY in NSCameraUsageDescription NSPhotoLibraryUsageDescription NSMotionUsageDescription; do
@@ -276,10 +359,14 @@ workflows:
           jq -e 'any(.NSPrivacyAccessedAPITypes[]; .NSPrivacyAccessedAPIType == "NSPrivacyAccessedAPICategoryUserDefaults" and (.NSPrivacyAccessedAPITypeReasons | index("CA92.1")))' \
             "$VERIFY_DIR/privacy.json"
 
+          codesign --verify --strict --verbose=2 "$WIDGET"
           codesign --verify --deep --strict --verbose=2 "$APP"
           codesign -d --entitlements :- "$APP" > "$VERIFY_DIR/entitlements.plist" 2>/dev/null
           plutil -lint "$VERIFY_DIR/entitlements.plist"
           grep -q 'applinks:roomofdays.com' "$VERIFY_DIR/entitlements.plist"
+          /usr/libexec/PlistBuddy -c \
+            'Print :com.apple.security.application-groups' \
+            "$VERIFY_DIR/entitlements.plist" | grep -q "$APP_GROUP_ID"
           test "$(/usr/libexec/PlistBuddy -c \
             'Print :com.apple.developer.devicecheck.appattest-environment' \
             "$VERIFY_DIR/entitlements.plist")" = "production"
@@ -288,6 +375,17 @@ workflows:
             'Print :com.apple.developer.team-identifier' "$VERIFY_DIR/entitlements.plist")" = "$APPLE_TEAM_ID"
           test "$(/usr/libexec/PlistBuddy -c \
             'Print :application-identifier' "$VERIFY_DIR/entitlements.plist")" = "$APPLE_TEAM_ID.$BUNDLE_ID"
+
+          codesign -d --entitlements :- "$WIDGET" > "$VERIFY_DIR/widget-entitlements.plist" 2>/dev/null
+          plutil -lint "$VERIFY_DIR/widget-entitlements.plist"
+          /usr/libexec/PlistBuddy -c \
+            'Print :com.apple.security.application-groups' \
+            "$VERIFY_DIR/widget-entitlements.plist" | grep -q "$APP_GROUP_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :get-task-allow' "$VERIFY_DIR/widget-entitlements.plist")" = "false"
+          test "$(/usr/libexec/PlistBuddy -c \
+            'Print :com.apple.developer.team-identifier' "$VERIFY_DIR/widget-entitlements.plist")" = "$APPLE_TEAM_ID"
+          test "$(/usr/libexec/PlistBuddy -c \
+            'Print :application-identifier' "$VERIFY_DIR/widget-entitlements.plist")" = "$APPLE_TEAM_ID.$WIDGET_BUNDLE_ID"
 
           test -f "$APP/embedded.mobileprovision"
           security cms -D -i "$APP/embedded.mobileprovision" > "$VERIFY_DIR/profile.plist"
@@ -302,6 +400,9 @@ workflows:
           /usr/libexec/PlistBuddy -c \
             'Print :Entitlements:com.apple.developer.associated-domains' \
             "$VERIFY_DIR/profile.plist" >/dev/null
+          /usr/libexec/PlistBuddy -c \
+            'Print :Entitlements:com.apple.security.application-groups' \
+            "$VERIFY_DIR/profile.plist" | grep -q "$APP_GROUP_ID"
           PROFILE_APP_ATTEST=$(/usr/libexec/PlistBuddy -c \
             'Print :Entitlements:com.apple.developer.devicecheck.appattest-environment' \
             "$VERIFY_DIR/profile.plist")
@@ -310,8 +411,23 @@ workflows:
           grep -q "$APPLE_TEAM_ID.$BUNDLE_ID" \
             web/.well-known/apple-app-site-association
 
+          test -f "$WIDGET/embedded.mobileprovision"
+          security cms -D -i "$WIDGET/embedded.mobileprovision" > "$VERIFY_DIR/widget-profile.plist"
+          plutil -lint "$VERIFY_DIR/widget-profile.plist"
+          test "$(/usr/libexec/PlistBuddy -c \
+            'Print :Entitlements:application-identifier' "$VERIFY_DIR/widget-profile.plist")" = "$APPLE_TEAM_ID.$WIDGET_BUNDLE_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' \
+            "$VERIFY_DIR/widget-profile.plist")" = "$APPLE_TEAM_ID"
+          test "$(/usr/libexec/PlistBuddy -c \
+            'Print :Entitlements:get-task-allow' "$VERIFY_DIR/widget-profile.plist")" = "false"
+          /usr/libexec/PlistBuddy -c \
+            'Print :Entitlements:com.apple.security.application-groups' \
+            "$VERIFY_DIR/widget-profile.plist" | grep -q "$APP_GROUP_ID"
+
           EXECUTABLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")
           lipo -info "$APP/$EXECUTABLE" | grep -q 'arm64'
+          WIDGET_EXECUTABLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$WIDGET/Info.plist")
+          lipo -info "$WIDGET/$WIDGET_EXECUTABLE" | grep -q 'arm64'
 
           # Persist a secret-free, downloadable evidence record beside the IPA.
           EVIDENCE=build/ios/ipa/release-evidence.txt
@@ -319,6 +435,8 @@ workflows:
           TEAM_ID=$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$VERIFY_DIR/profile.plist")
           PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$VERIFY_DIR/profile.plist")
           PROFILE_EXPIRATION=$(/usr/libexec/PlistBuddy -c 'Print :ExpirationDate' "$VERIFY_DIR/profile.plist")
+          WIDGET_PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$VERIFY_DIR/widget-profile.plist")
+          WIDGET_PROFILE_EXPIRATION=$(/usr/libexec/PlistBuddy -c 'Print :ExpirationDate' "$VERIFY_DIR/widget-profile.plist")
           XCODE_BUILD=$(/usr/libexec/PlistBuddy -c 'Print :DTXcodeBuild' "$APP/Info.plist")
           CODESIGN_DETAILS=$(codesign -dv --verbose=4 "$APP" 2>&1)
           SIGNING_AUTHORITY=
@@ -328,10 +446,15 @@ workflows:
             esac
           done <<< "$CODESIGN_DETAILS"
           test -n "$SIGNING_AUTHORITY"
+          SOURCE_REVISION=$(jq -er '.candidate.sourceRevision' \
+            release-evidence/internal-testflight/1.0.4+40/CANDIDATE-MANIFEST.json)
           {
-            echo "source_commit=${CM_COMMIT:-$(git rev-parse HEAD)}"
+            echo "source_commit=$SOURCE_REVISION"
+            echo "receipt_commit=${CM_COMMIT:-$(git rev-parse HEAD)}"
             echo "ipa_sha256=$IPA_SHA256"
             echo "bundle_id=$BUNDLE_ID"
+            echo "widget_bundle_id=$WIDGET_BUNDLE_ID"
+            echo "app_group_id=$APP_GROUP_ID"
             echo "marketing_version=$MARKETING_VERSION"
             echo "build_number=$BUILD_NUMBER"
             echo "sdk_name=$SDK_NAME"
@@ -340,6 +463,8 @@ workflows:
             echo "team_id=$TEAM_ID"
             echo "profile_name=$PROFILE_NAME"
             echo "profile_expiration=$PROFILE_EXPIRATION"
+            echo "widget_profile_name=$WIDGET_PROFILE_NAME"
+            echo "widget_profile_expiration=$WIDGET_PROFILE_EXPIRATION"
             echo "signing_authority=$SIGNING_AUTHORITY"
             echo "associated_domain=applinks:roomofdays.com"
             echo "app_attest_environment=production"
@@ -357,5 +482,5 @@ workflows:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
-        # beta_groups:
-        #   - Internal
+        beta_groups:
+          - Me

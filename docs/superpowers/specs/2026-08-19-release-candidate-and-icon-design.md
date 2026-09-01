@@ -1,5 +1,10 @@
 # Room of Days Release Candidate and App Icon Design
 
+> Historical icon decision: the Day Ledger direction in this document was
+> superseded by the owner-selected Open Door of Light launcher mark on
+> 2026-09-01. The release-quality and small-size verification requirements
+> remain current.
+
 Status: the direction was approved in conversation on 2026-08-19. This written
 specification is awaiting owner review before implementation begins.
 

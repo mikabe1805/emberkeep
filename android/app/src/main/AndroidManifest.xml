@@ -54,6 +54,28 @@
                     android:host="roomofdays.com"
                     android:pathPrefix="/room/"/>
             </intent-filter>
+            <!-- Opening or sharing a real .ics file enters the same Flutter
+                 review screen as Plans > Import classes. No native intent
+                 ever writes a schedule directly. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/calendar"/>
+                <data android:mimeType="application/ics"/>
+                <data android:mimeType="text/x-vcalendar"/>
+                <!-- Some file providers label .ics as generic binary data.
+                     MainActivity still requires an .ics display name and
+                     validates UTF-8 plus the 2 MB ceiling before delivery. -->
+                <data android:mimeType="application/octet-stream"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="text/calendar"/>
+                <data android:mimeType="application/ics"/>
+                <data android:mimeType="text/x-vcalendar"/>
+                <data android:mimeType="application/octet-stream"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

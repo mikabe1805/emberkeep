@@ -22,15 +22,16 @@
 <body>
 <main>
   <h1>Privacy at Room of Days</h1>
-  <p>Last updated August 23, 2026</p>
+  <p>Last updated September 1, 2026</p>
   <div class="card"><strong>Your device is the source of truth.</strong>
     Room of Days works without an account, advertising, or analytics.</div>
 
   <h2>Data on your device</h2>
-  <p>Your quests, goals, progress, journal text, preferences, and space are stored
-    locally. Room of Days does not upload journal photos to its cloud backup or
-    shared spaces. Your operating system may include local app data in device
-    backups you choose to enable.</p>
+  <p>Your quests, goals, progress, journal text, class schedule, preferences,
+    and space are stored locally. Room of Days does not upload journal photos
+    or imported class schedules to its cloud backup or shared spaces. Your
+    operating system may include local app data in device backups you choose
+    to enable.</p>
 
   <h2>Cloud backup and optional account</h2>
   <p>Cloud backup is off by default. If you turn it on, Room of Days creates an
@@ -63,6 +64,18 @@
     schedule and location details stay on your device and remain outside Cloud
     Firestore, including saved names, routing text, buildings, and room
     numbers.</p>
+
+  <p>If you choose a class <code>.ics</code> file, Room of Days reads it locally,
+    shows the term, courses, meeting pattern, exceptions, and reminder choice
+    for review, and changes the saved schedule only after you confirm the
+    import. The source file is not uploaded by Room of Days.</p>
+
+  <p>On iPhone, if you add the Day Ledger widget, Room of Days copies a bounded
+    list of upcoming class codes, titles, and times plus up to three unfinished
+    Quest titles into its device-only App Group so iOS can draw the widget. It
+    does not include class rooms, locations, schedule notes, journal content,
+    or account details. The widget is marked privacy-sensitive so the operating
+    system can redact it in protected contexts.</p>
 
   <p>Place search is optional, off by default, and starts only after you choose
     <em>Search places with Google</em> and accept its local consent prompt. For
@@ -211,8 +224,10 @@
 
   <h2>Permissions</h2>
   <p>Photo and camera access is used only when you choose to attach media to a
-    journal entry. Notification permission is used only when you enable local
-    reminders. Room of Days does not track you across apps or websites.</p>
+    journal entry. Notification permission is requested only after you
+    explicitly enable local reminders, including the reminder switch in a
+    reviewed class import. Room of Days does not track you across apps or
+    websites.</p>
 
   <p><a href="/support">Get support</a>.</p>
   <p><a href="/terms">Terms of use</a>.</p>

@@ -1,0 +1,143 @@
+{
+  "format": "sonic-system/v1",
+  "product": {
+    "name": "Room of Days",
+    "promise": "Focus can borrow the room's quiet musical bed when chosen, while silence stays one obvious tap away.",
+    "owner_quotes": [
+      "and make sure the new music fable added in is well incorporated too. i was thinking of adding the meditation music it generated to a meditation/focus timer stuff (and then allow the user to easily turn it off too)"
+    ]
+  },
+  "world": {
+    "sensory_words": ["candlelit", "tactile", "unhurried"],
+    "avoid": [
+      "spa preset",
+      "notification jingle",
+      "forced playback",
+      "music that masks interaction outcomes"
+    ],
+    "shared_dna": {
+      "transient": "No new transient; the continuous bed never voices a tap.",
+      "body": "The existing Room modal voice and detuned-sine air remain the only musical body.",
+      "harmonic_field": "The existing 28-bar, 60 BPM Room phrase is unchanged.",
+      "texture": "Quiet synthesized air with no imported samples.",
+      "space": "The existing Room bus and restrained tail remain unchanged.",
+      "dynamics": "The bed stays below conversation and event sounds at the shipped 0.35 player gain."
+    }
+  },
+  "mix": {
+    "priority_order": ["ceremony", "outcome", "navigation", "contact", "focus-bed"],
+    "priority_map": {
+      "focus-bed": 0,
+      "contact": 1,
+      "navigation": 2,
+      "outcome": 3,
+      "ceremony": 4
+    },
+    "voice_cap": 2,
+    "rapid_policy": "Focus music has one looping voice and cannot retrigger or stack.",
+    "ducking_policy": "The focus bed remains the lowest-priority voice and never replaces completion or reminder meaning.",
+    "silence_policy": [
+      "Focus opens silent unless the saved global preference is already on.",
+      "The visible Focus control can quiet the bed for this session without rewriting the saved preference.",
+      "Backgrounding pauses the bed and restoring the app resumes only if the current choice still wants music."
+    ],
+    "compound_outcome_rule": "Music state changes are continuous mix changes; accepted taps keep the existing interaction cue family.",
+    "voice_stealing_rule": "Only one background-music transport exists; newer session and lifecycle intent serializes after older starts.",
+    "state_dedupe_rule": "Repeated on or off requests reconcile to the current combined global, session, mute, and foreground state.",
+    "settings_rule": "Music is optional and defaults off until chosen. Focus opt-in and Focus quiet are ephemeral; global preference is preserved. SFX and music remain independent."
+  },
+  "render_contract": {
+    "version": "steward-supper-author-v1",
+    "shared_sources": {
+      "contact": {
+        "id": "existing-interaction-family",
+        "recipe": "No new contact asset; use the shipped Room interaction sound system."
+      },
+      "body": {
+        "id": "steward-supper-theme-master",
+        "recipe": "Deterministic project-authored synthesis documented in the steward-supper-music-v1 manifest."
+      },
+      "space": {
+        "id": "room-shared-space",
+        "recipe": "Existing Room bus and encoded room-theme.m4a loop."
+      },
+      "signature": {
+        "id": "room-modal-air",
+        "recipe": "Existing modal voice plus detuned-sine air; no additional layer."
+      }
+    },
+    "variant_axis": "No variants; one approved technical master with state-controlled gain."
+  },
+  "cues": [
+    {
+      "id": "focus-bed",
+      "verb": "settle",
+      "meaning": "Support a chosen period of focused or meditative time without demanding attention.",
+      "representative_actions": [
+        "Turn Room music on inside a timer-verified Focus session"
+      ],
+      "frequency": "continuous",
+      "priority": 0,
+      "priority_class": "focus-bed",
+      "timing": "Fade in after the explicit choice and fade or pause when quiet is chosen.",
+      "timing_class": "sustained",
+      "gesture": "One quiet continuous room bed, never a confirmation sound.",
+      "shared_traits": ["harmonic_field", "texture", "space"],
+      "distinctive_traits": ["continuous", "lowest-priority", "explicitly optional"],
+      "layer_plan": {
+        "contact_master_id": null,
+        "body_master_id": "steward-supper-theme-master",
+        "space_fingerprint_id": "room-shared-space",
+        "signature_source_id": "room-modal-air",
+        "layers": ["body", "signature", "space"],
+        "pitch_token": "existing Room modal phrase",
+        "variant_axis": "none",
+        "derivation": "Use the shipped room-theme.m4a unchanged through the single BackgroundMusicController."
+      },
+      "variant_count": 1,
+      "no_immediate_repeat": true,
+      "motion": "The visible Room music row changes state with the existing quick response curve.",
+      "haptic": "Existing accepted-tap behavior only.",
+      "cooldown_ms": 0,
+      "silent_when": [
+        "Neither the global preference nor Focus session opts in",
+        "Focus quiet is selected",
+        "The app is not foregrounded",
+        "Playback cannot start"
+      ]
+    }
+  ],
+  "auditions": [
+    {
+      "id": "focus-phone-and-headphones",
+      "context": "Run a 25-minute Focus timer with ordinary taps, completion, backgrounding, and session quiet.",
+      "sequence": ["focus-bed", "contact", "outcome", "focus-bed-off"],
+      "question": "Does the bed belong to the same room, stay beneath actions, loop cleanly, and become genuinely silent in one tap?",
+      "comparison": {
+        "control": "assets/music/room-theme.m4a with no Focus routing",
+        "candidate": "assets/music/room-theme.m4a through Focus session routing",
+        "timings_ms": [0, 2000, 5000, 8000],
+        "order": "natural journey order",
+        "natural_mix": true,
+        "level_control": {
+          "control": "0.35 player gain",
+          "candidate": "0.35 player gain"
+        },
+        "verdicts": ["control", "candidate", "both", "neither"]
+      }
+    }
+  ],
+  "provenance": {
+    "policy": "Original project synthesis only; preserve the existing manifest and asset hash.",
+    "records": [
+      "design/audits/2026-08-31/steward-supper/audio/steward-supper-music-v1/manifest.json",
+      "assets/music/README.md"
+    ]
+  },
+  "approval": {
+    "technical": "pass",
+    "semantic": "pending",
+    "cohesion": "pending",
+    "physical_device": "pending"
+  }
+}

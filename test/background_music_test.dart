@@ -59,6 +59,91 @@ void main() {
   );
 
   test(
+    'global preference and focus-session opt-in remain independent',
+    () async {
+      final transport = _Transport();
+      final music = BackgroundMusicController(transport: transport);
+
+      await music.setEnabled(true);
+      expect(music.enabled, isTrue);
+      expect(music.sessionEnabled, isFalse);
+      expect(music.shouldPlay, isTrue);
+
+      await music.setEnabled(false);
+      expect(music.enabled, isFalse);
+      expect(music.isPlaying, isFalse);
+
+      await music.setSessionEnabled(true);
+      expect(music.enabled, isFalse);
+      expect(music.sessionEnabled, isTrue);
+      expect(music.isPlaying, isTrue);
+      expect(music.shouldPlay, isTrue);
+    },
+  );
+
+  test(
+    'focus-session mute stops music without changing the saved preference',
+    () async {
+      final transport = _Transport();
+      final music = BackgroundMusicController(transport: transport);
+
+      await music.setSessionEnabled(true);
+      expect(music.isPlaying, isTrue);
+
+      await music.setSessionEnabled(false);
+      expect(music.sessionEnabled, isFalse);
+      expect(music.enabled, isFalse);
+      expect(music.isPlaying, isFalse);
+      expect(transport.calls, ['start:music/room-theme.m4a:0.0', 'pause']);
+    },
+  );
+
+  test(
+    'focus-session quiet can suppress and restore a global choice',
+    () async {
+      final transport = _Transport();
+      final music = BackgroundMusicController(transport: transport);
+
+      await music.setEnabled(true);
+      await music.setSessionMuted(true);
+
+      expect(music.enabled, isTrue);
+      expect(music.sessionMuted, isTrue);
+      expect(music.shouldPlay, isFalse);
+      expect(music.isPlaying, isFalse);
+
+      await music.setSessionMuted(false);
+      expect(music.enabled, isTrue);
+      expect(music.sessionMuted, isFalse);
+      expect(music.shouldPlay, isTrue);
+      expect(music.isPlaying, isTrue);
+      expect(transport.calls, [
+        'start:music/room-theme.m4a:0.0',
+        'pause',
+        'resume:0.0',
+      ]);
+    },
+  );
+
+  test(
+    'a foreground session can play while the global preference stays off',
+    () async {
+      final transport = _Transport();
+      final music = BackgroundMusicController(transport: transport);
+
+      await music.setForeground(false);
+      await music.setSessionEnabled(true);
+      expect(music.enabled, isFalse);
+      expect(music.isPlaying, isFalse);
+      expect(music.shouldPlay, isFalse);
+
+      await music.setForeground(true);
+      expect(music.enabled, isFalse);
+      expect(music.isPlaying, isTrue);
+    },
+  );
+
+  test(
     'backgrounding pauses and foregrounding resumes only a chosen track',
     () async {
       final transport = _Transport();
@@ -105,6 +190,23 @@ void main() {
 
     expect(transport.calls, ['start:music/room-theme.m4a:0.0', 'pause']);
     expect(music.isPlaying, isFalse);
+  });
+
+  test('a session mute behind an in-flight start always wins', () async {
+    final transport = _Transport()..startGate = Completer<void>();
+    final music = BackgroundMusicController(transport: transport);
+
+    final started = music.setSessionEnabled(true);
+    await Future<void>.delayed(Duration.zero);
+    expect(transport.calls, ['start:music/room-theme.m4a:0.0']);
+    final stopped = music.setSessionEnabled(false);
+    transport.startGate!.complete();
+    await Future.wait([started, stopped]);
+
+    expect(music.enabled, isFalse);
+    expect(music.sessionEnabled, isFalse);
+    expect(music.isPlaying, isFalse);
+    expect(transport.calls, ['start:music/room-theme.m4a:0.0', 'pause']);
   });
 
   test('dispose is terminal and cannot leave a later loop behind', () async {

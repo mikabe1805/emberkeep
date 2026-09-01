@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "selectionDate": "2026-08-19",
-  "identity": "Room of Days - Day Ledger",
+  "selectionDate": "2026-09-01",
+  "identity": "Room of Days - Open Door of Light",
   "sources": [
     {
-      "path": "design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-source-v2.png",
-      "sha256": "DBB4936D2D6E4BD430C19B51E6F2E99D42F125C05AD79A16F287E4659E2F0ABB",
+      "path": "design/source-assets/runtime-originals/assets/brand/room-of-days-open-door-source-v1.png",
+      "sha256": "2ABAC214582901D4456642D5D49CCA8E68DEA943C5B7E69C34F9AD13E1ED4524",
       "width": 1254,
       "height": 1254,
       "channels": 3,
       "role": "selected opaque icon artwork"
     },
     {
-      "path": "design/source-assets/runtime-originals/assets/brand/room-of-days-day-ledger-chroma-v2.png",
-      "sha256": "EEB69A16749A1AA0A8FA2AD1BB0DCD6B7A4551F5C31F679D0396D827C7091700",
+      "path": "design/source-assets/runtime-originals/assets/brand/room-of-days-open-door-chroma-v1.png",
+      "sha256": "9CB20A12FC163EC1AEDD073C647A30CAE089CF57D0286C5EA2047310DD4A83CE",
       "width": 1254,
       "height": 1254,
       "channels": 3,
@@ -31,322 +31,322 @@
   "outputs": [
     {
       "path": "android/app/src/main/res/drawable-hdpi/ic_launcher_foreground.png",
-      "sha256": "FF21827B161DF5819D44CB7FBA580705B21A3F012EC49C2859252CE243C131EF",
+      "sha256": "2FCB09613CCDBFE9C862A679A7F30A8B7F70C02C47FF961B2B3543E10F6F55C0",
       "width": 162,
       "height": 162,
       "channels": 4
     },
     {
       "path": "android/app/src/main/res/drawable-hdpi/ic_launcher_monochrome.png",
-      "sha256": "25D657BC2B14D302820C8D31824D1075C03F86CB5C32339D137148F6E7667419",
+      "sha256": "03C0EC78F117734E2162A0682531C72D2B1C73CE5E47BDB618979215CD324099",
       "width": 162,
       "height": 162,
       "channels": 4
     },
     {
       "path": "android/app/src/main/res/drawable-mdpi/ic_launcher_foreground.png",
-      "sha256": "987BBE97D5DAD1E1D0618016A04111FF2B14A6B00E82E84F3E039AD4B438572B",
+      "sha256": "6A72ACDEEC6D50F9B9BA622DF725680849CF1CB241446480DA25484340C0F1CE",
       "width": 108,
       "height": 108,
       "channels": 4
     },
     {
       "path": "android/app/src/main/res/drawable-mdpi/ic_launcher_monochrome.png",
-      "sha256": "2176C3D332ED3FB552FE3BB61ECB9BC69FB1C0CF79F49004B0A844D1106B79B1",
+      "sha256": "1FCE551D90F733720C58E47337A049C0581887640D0BC588D39820567679F4D3",
       "width": 108,
       "height": 108,
       "channels": 4
     },
     {
       "path": "android/app/src/main/res/drawable-xhdpi/ic_launcher_foreground.png",
-      "sha256": "3E53392370A26C6F959DEE65EE81D1BE8CA231E19E1F955DE39880F08F82352E",
+      "sha256": "7C2FBA0270E810FC379FC9519FED733AA16A26C0E4ABEEDB82AB8C1851BE4ED7",
       "width": 216,
       "height": 216,
       "channels": 4
     },
     {
       "path": "android/app/src/main/res/drawable-xhdpi/ic_launcher_monochrome.png",
-      "sha256": "23167B9088D530F3A120928D39E995445D291A3262EE17FEA1162B2AB54A7130",
+      "sha256": "03CD8A91C0F7AB9C65DC8673C6E3B378E5D1FCED7AC512E71E544AFA69D16EEF",
       "width": 216,
       "height": 216,
       "channels": 4
     },
     {
       "path": "android/app/src/main/res/drawable-xxhdpi/ic_launcher_foreground.png",
-      "sha256": "734C3F2060793F323E81DFE9199B4B7E7684910F29979490879655D842180671",
+      "sha256": "3207863098537B94D23B1049390EF572A93A1E40B73F744C2C9FEC2B644C5450",
       "width": 324,
       "height": 324,
       "channels": 4
     },
     {
       "path": "android/app/src/main/res/drawable-xxhdpi/ic_launcher_monochrome.png",
-      "sha256": "4C46E0053D21E3D2CEC08C38E359227028725159CF9307DCEC933E34B1AE479C",
+      "sha256": "CD116B8210C21BF08535803D36A6196DC5AF5EC002A79724F4AA6F804CD0D5AD",
       "width": 324,
       "height": 324,
       "channels": 4
     },
     {
       "path": "android/app/src/main/res/drawable-xxxhdpi/ic_launcher_foreground.png",
-      "sha256": "B75E4A154CE8003DA0D38632F5951AEF09AC4E32135BB97F6C101CFE6EC499F2",
+      "sha256": "6AAE0B7AF3425A9DB72E5AEEFEC6F44977F24B3B50A6581BD44805FEFAE0B27C",
       "width": 432,
       "height": 432,
       "channels": 4
     },
     {
       "path": "android/app/src/main/res/drawable-xxxhdpi/ic_launcher_monochrome.png",
-      "sha256": "1CCD2E4EBBA07DA99D7F5C80129F318E90774ACACDB150F5EC8678787885C697",
+      "sha256": "1935FA22E96505AE46ED7D96677C41BA904A729A0810558A86E851C54494F927",
       "width": 432,
       "height": 432,
       "channels": 4
     },
     {
       "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
-      "sha256": "74F4EAC4BF634A4AF4A4185CF5F3C89F0B1176F0C3DBA301675F4E9714EF8581",
+      "sha256": "84B97B77AA386DF684D4DDBF3F932F98E1AE5B0418C218C7009704EFF5604EBB",
       "width": 72,
       "height": 72,
       "channels": 3
     },
     {
       "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
-      "sha256": "4CDE299B83ABE44611C9C6A3B1FCA505CDB84EB043E8EC9F11E97158425DCE8F",
+      "sha256": "4C1B961A69E35405D531973CB53501859A43F143E6EB50A1ED2AD939BBC55EDE",
       "width": 48,
       "height": 48,
       "channels": 3
     },
     {
       "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
-      "sha256": "24BC11489D9C5C1C43B49C33B19936BAC36D53F5A9525C245A0B5DF21E371B4D",
+      "sha256": "E652940353472D6D61002591C243A0069A0399BFB15E72B745549394F66A950A",
       "width": 96,
       "height": 96,
       "channels": 3
     },
     {
       "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
-      "sha256": "6B666C78995431F5CA2DFC01C533072E362F3AF39C3E55BB7CB6D4B829DECBA7",
+      "sha256": "7C0ABF36D3D77F2344B81035EBDD117134D7F7B3EE812875E7637BCE8DF8B333",
       "width": 144,
       "height": 144,
       "channels": 3
     },
     {
       "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
-      "sha256": "71D827861E9435B4597FDD9A29DDCA172367090BEEA16104061465BEECCA197E",
+      "sha256": "F582B7F462FD974F7F0EB75EB5342AA508582EF33B5913F2683E417C32C96A6E",
       "width": 192,
       "height": 192,
       "channels": 3
     },
     {
       "path": "assets/brand/room-of-days-adaptive-foreground-v1.png",
-      "sha256": "6A98208FBB550DAF0825361F164591AF37F187D7A6B06E01CAD2752773ACED86",
+      "sha256": "6641FC68EA85BF5F5F014703BCF797EB82B98E0803F2431D949ADBE76D54BEF6",
       "width": 1024,
       "height": 1024,
       "channels": 4
     },
     {
       "path": "assets/brand/room-of-days-monochrome-v2.png",
-      "sha256": "14C74D4A798C9563B5B9639F5607CAE932E3DA8D8FE90117A97CD788B37E38E1",
+      "sha256": "655EB6B964AE65D541E57E5B6608ED226586BE18297AAA011B60FD28D39A0BE1",
       "width": 1024,
       "height": 1024,
       "channels": 4
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-1024x1024@1x.png",
-      "sha256": "0FEED5159105C92C3F7E123BFD057EB5255A3D8FA5DEDF9608E38163463B8B50",
+      "sha256": "8241E616FBF50143EC6953E102E68228832A85E89AADA4836AD115C7EF7CD155",
       "width": 1024,
       "height": 1024,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@1x.png",
-      "sha256": "9C5B6D79059B962D759E64C899B779B7539E38A30671625CA3A3FEFB9BC1FF9C",
+      "sha256": "31EE80B96CDC9C6C64E45E69D62722CB94E30D00424CE08D86EFBB24B0D02F38",
       "width": 20,
       "height": 20,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@2x.png",
-      "sha256": "157A36F10B52001B234E40231547269BD3B87BAA953ECAE8D4721B25877FCAE8",
+      "sha256": "D183FBB63EAAE716466519BAB4B902E784F626B8558BEA6599791FA264073F2F",
       "width": 40,
       "height": 40,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-20x20@3x.png",
-      "sha256": "85BBA21088A73A90E4411839ADB73D56013F7FFE378ED9F65C27D8B98DD3A3C2",
+      "sha256": "0B457EED308BC34DEB8ABD6705C83740AB1976046601D1EB9D7687EC0118358A",
       "width": 60,
       "height": 60,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@1x.png",
-      "sha256": "6E897B593A5303B11949D4A0F16F76826CA3490206E0FCD813780B1DB9A243A9",
+      "sha256": "6018DC7FD37013A94A9226DFB1F5054289629835D7FE4CEC12463B8C2A304000",
       "width": 29,
       "height": 29,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@2x.png",
-      "sha256": "8E812A2A371FCA126D0EAEBD41A0F70EB74A087F8EB364C5630BFB010E09A340",
+      "sha256": "4A03ED96E040F1576D3153EB7CD1F9886F09DB324FED429ACADAE1ED3A9757B4",
       "width": 58,
       "height": 58,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-29x29@3x.png",
-      "sha256": "0DE906927001D6C80B37DDB47BD95F2E686AAD0C212DA5A453870D87682B062B",
+      "sha256": "B7E593F48024FAA3B7F2AA8EF7B6C1CCB8DF183DBB3C2699844AEDE117A7C24D",
       "width": 87,
       "height": 87,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@1x.png",
-      "sha256": "157A36F10B52001B234E40231547269BD3B87BAA953ECAE8D4721B25877FCAE8",
+      "sha256": "D183FBB63EAAE716466519BAB4B902E784F626B8558BEA6599791FA264073F2F",
       "width": 40,
       "height": 40,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@2x.png",
-      "sha256": "B9BC93491FBF7392487D22C442DC8387DADF0C43914E423ED5EF87D9EA49806C",
+      "sha256": "7F8E28516CD00A0911889634DF3DF4E38896ACA781B64B43B827B28A49E4AAEA",
       "width": 80,
       "height": 80,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-40x40@3x.png",
-      "sha256": "817D3587B57D071A551438A40B6838AA068E96836F8D92909C5AE744E89BEA4E",
+      "sha256": "073D63EBC27D66726F98AE5F3567FCDF9A769A95F59581196ABD7EBFFF4C4AED",
       "width": 120,
       "height": 120,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-50x50@1x.png",
-      "sha256": "6C329C6B98AB27BA358653025800009396AC27174540A8A06F392EA60D382ABE",
+      "sha256": "BD7746B5938B3DF9AC6851183D88C88CED63F0A3FDBCACE5C288062D285A44D1",
       "width": 50,
       "height": 50,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-50x50@2x.png",
-      "sha256": "FB6A25E982EE1A45FA8663F0045795832B37EE26616E2C7B6726F23DC4576602",
+      "sha256": "AB0984F5ABFA15A1DB46C0FCB6DF46D5211382F78040EE7EA825A818FA298EAA",
       "width": 100,
       "height": 100,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-57x57@1x.png",
-      "sha256": "46ADA6E3B8B8E35937EAAFB39FE62831DBB51F78F075CA3F38BF9FD9F521AFD2",
+      "sha256": "FF7F3FD3C64D28151F441D727374EFB29B95A4D4781D5E7D6D7410E26EE501D1",
       "width": 57,
       "height": 57,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-57x57@2x.png",
-      "sha256": "BBB333EDCD5409F1A5F2F0A1D97D7494847D289464AA62301FC31F72B442FD42",
+      "sha256": "09F95DC76C9114D704CC76B4252B6FC8F681DF3A095B8B5B5335033498C9582D",
       "width": 114,
       "height": 114,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@2x.png",
-      "sha256": "817D3587B57D071A551438A40B6838AA068E96836F8D92909C5AE744E89BEA4E",
+      "sha256": "073D63EBC27D66726F98AE5F3567FCDF9A769A95F59581196ABD7EBFFF4C4AED",
       "width": 120,
       "height": 120,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-60x60@3x.png",
-      "sha256": "880EBB8241625963E0B87A6CF6400D558FC8C02A05D6775AF35573C2CCC1EC0C",
+      "sha256": "F128AE8650170FE4DCB8173A7A9AEDBD611F0D8A9836F3AD16B354D30B4F6910",
       "width": 180,
       "height": 180,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-72x72@1x.png",
-      "sha256": "74F4EAC4BF634A4AF4A4185CF5F3C89F0B1176F0C3DBA301675F4E9714EF8581",
+      "sha256": "84B97B77AA386DF684D4DDBF3F932F98E1AE5B0418C218C7009704EFF5604EBB",
       "width": 72,
       "height": 72,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-72x72@2x.png",
-      "sha256": "6B666C78995431F5CA2DFC01C533072E362F3AF39C3E55BB7CB6D4B829DECBA7",
+      "sha256": "7C0ABF36D3D77F2344B81035EBDD117134D7F7B3EE812875E7637BCE8DF8B333",
       "width": 144,
       "height": 144,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@1x.png",
-      "sha256": "AD72A66438F7B9E5A71FB5C46F0C00285B59BB4D65479A9A4461C3C7ADAD6199",
+      "sha256": "9F828C777BF899F0BBDCDE28A008A911062FFA3D84116D9C4784E87E785E1344",
       "width": 76,
       "height": 76,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-76x76@2x.png",
-      "sha256": "37BFC114B668BE4AA56DB3BECFCF46208B35535FD0666916B94469E6B9E0BEF9",
+      "sha256": "450D540F054944747C4A58B78750630DA87921F50303D0623A9A5B586B92AB8D",
       "width": 152,
       "height": 152,
       "channels": 3
     },
     {
       "path": "ios/Runner/Assets.xcassets/AppIcon.appiconset/Icon-App-83.5x83.5@2x.png",
-      "sha256": "135C0E656919663BE55328AAE3CFF122117D531BBF4B06269764C15BCA5E38E7",
+      "sha256": "D91BBEFDA3F1A0C0991CBAA5CF54B33F2C5712139C0D3567326B7D7502F5097B",
       "width": 167,
       "height": 167,
       "channels": 3
     },
     {
       "path": "web/favicon.png",
-      "sha256": "02B3BA2874A045D8C83D7749C295769B298F4099E7431C9196AFC980926EE1C1",
+      "sha256": "AC574336CFDEB8B8D1F8FD4BBD243EA80D4D4C224F11E844428FF4E6880CEE1C",
       "width": 48,
       "height": 48,
       "channels": 3
     },
     {
       "path": "web/icons/Icon-1024.png",
-      "sha256": "9485E7C9ED54693323ED8CA9599D1170D9BECFB7C029E444D9BF7DC12F4D50BE",
+      "sha256": "EA11591B5B1B24516F1C1FAF538EB1C7CC7476FB3D42C2F74A426F32D8B5D6B3",
       "width": 1024,
       "height": 1024,
       "channels": 3
     },
     {
       "path": "web/icons/Icon-192.png",
-      "sha256": "E3C172635638C33169955ADBF02D79B26F1E8B8444A8219AF30BECCDE04E7691",
+      "sha256": "C16CA9F39226B6B5448AFA291E59851AA2D245FE96BC5C694A00684B04C486ED",
       "width": 192,
       "height": 192,
       "channels": 3
     },
     {
       "path": "web/icons/Icon-512.png",
-      "sha256": "8F5524605A8D310C0F075E83C494BC10BBE2E9B5DD2D1E2158EE296705A1BC18",
+      "sha256": "47026213840A418867F617FB7DC4E509A35E34D140BD6CF53125967D6FB9A453",
       "width": 512,
       "height": 512,
       "channels": 3
     },
     {
       "path": "web/icons/Icon-maskable-192.png",
-      "sha256": "117B9846980539B3BC13E2AE618B40A07AA61E1BAECD7ED69FFEE4C75E3B77CC",
+      "sha256": "960A075E3A24AC950259BFACC751174F9F1086DD31F654CDB36B9E441AEA25E0",
       "width": 192,
       "height": 192,
       "channels": 3
     },
     {
       "path": "web/icons/Icon-maskable-512.png",
-      "sha256": "26B20125FE591D43B29E00174C2866893B84378193D7D2D0835F39ADDCD8B2E1",
+      "sha256": "86A9171F6C6B59B155FC944F444DE192E7AAC164AC6C45CCAA669A8C15623B3B",
       "width": 512,
       "height": 512,
       "channels": 3
     },
     {
       "path": "web/icons/apple-touch-icon.png",
-      "sha256": "645525ACF0F4DA9F50F5F284606B0A071BC1D637CCF9F74AB41FC1F9170D0206",
+      "sha256": "27FDF9E513E0CEE1C586B1860CDF91EF14C222422A2A49FB11AA2795D63880B1",
       "width": 180,
       "height": 180,
       "channels": 3
     },
     {
       "path": "windows/runner/resources/app_icon.ico",
-      "sha256": "6343A04C9B33F26B94310C312EDC2D27F244624DCA8BD6A52B2C8BBD52B286A6",
+      "sha256": "0304769131AA6A1DFB11739E7358B342E27330CD84E52C241690AF038C87CEF0",
       "format": "ico",
       "frames": 7
     }

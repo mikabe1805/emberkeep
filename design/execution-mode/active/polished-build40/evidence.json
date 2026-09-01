@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "brief_id": "polished-build40-2026-09-01",
+  "phase": "local_handoff",
+  "implementation_revision": "worktree:9defeba68894f1817ad0efd56f2b8f3cc973c368+uncommitted-build40",
+  "revision_captured_at": "2026-09-01T01:40:04-04:00",
+  "checks": [
+    {
+      "id": "build40-class-handoff-reminders",
+      "evidence_layer": "automated_and_rendered",
+      "result": "pass_local",
+      "observation": "The starter is valid editable ICS with comma-separated BYDAY values; incoming files use a bounded UTF-8 review queue; reminders are off until explicitly enabled and re-import preserves an existing choice.",
+      "artifacts": [
+        "test/goldens/academic_schedule_import_review_430x932.png",
+        "test/goldens/academic_schedule_import_review_320x568_1_3x.png"
+      ]
+    },
+    {
+      "id": "build40-widget-projection",
+      "evidence_layer": "automated_and_native_source",
+      "result": "pass_local_pending_signed_ios",
+      "observation": "The device-only versioned projection is bounded to upcoming class glances and at most three actionable unfinished Quest titles, excludes locations and notes, and supplies future class-end refresh boundaries. The small and medium WidgetKit surfaces are privacy-sensitive.",
+      "artifacts": [
+        "lib/home_widgets/widget_snapshot.dart",
+        "ios/RoomOfDaysWidgets/RoomOfDaysWidgets.swift"
+      ]
+    },
+    {
+      "id": "build40-focus-room-music",
+      "evidence_layer": "automated_rendered_and_technical_audio",
+      "result": "pass_local_pending_listening",
+      "observation": "Focus exposes an optional session control, can become quiet in one tap, never overwrites the saved global preference, and remains usable at 320x568 with 1.3x text.",
+      "artifacts": [
+        "test/goldens/focus_room_music_430x932.png",
+        "test/goldens/focus_room_music_320x568_1_3x.png",
+        "design/audits/2026-09-01/focus-room-music-v1/sonic-system.json"
+      ]
+    },
+    {
+      "id": "build40-release-story",
+      "evidence_layer": "rendered_and_metadata",
+      "result": "pass_draft_pending_device_store_receipt",
+      "observation": "The in-app release note and store copy explain classes, optional reminders, the iPhone glance, and Focus without overstating device proof. Character limits and release identity pass; the verifier intentionally stops at the still-Build-39 screenshot manifest.",
+      "artifacts": [
+        "design/audits/2026-09-01/build40/whats-new/whats_new_430x932.png",
+        "design/audits/2026-09-01/build40/whats-new/whats_new_320x568_text_2x.png",
+        "STORE-LISTING.md"
+      ]
+    },
+    {
+      "id": "build40-icon-review",
+      "evidence_layer": "generated_options_and_deterministic_review",
+      "result": "pass_owner_selected_virtual_android_launcher_pending_physical_device",
+      "observation": "The owner selected Open Door of Light. The approved opaque master was preserved unchanged, reviewed at 32, 60, 180, and 1024 pixels plus platform masks, then propagated through the deterministic iOS, Android, web, Windows, maskable, and themed-icon pipeline. The final shipping sheet remains clear at 32 pixels. A fresh debug APK was installed on an Android emulator and the labeled adaptive icon was inspected beside Room Notes in the launcher; physical iPhone and Android feel remain open.",
+      "artifacts": [
+        "design/icon-exploration/2026-09-01/build40-review/contact-sheet-32-60-180-1024.png",
+        "design/icon-exploration/2026-09-01/build40-review/contact-sheet-platform-masks.png",
+        "design/icon-review/2026-09-01/open-door-of-light/contact-sheet-32-60-180-1024.png",
+        "design/icon-review/2026-09-01/open-door-of-light/contact-sheet-platform-masks.png",
+        "design/icon-exploration/2026-09-01/open-door-of-light/shipping/shipping-platform-review.png",
+        "design/icon-exploration/2026-09-01/open-door-of-light/device-evidence/android-emulator/home-screen.png",
+        "design/icon-exploration/2026-09-01/open-door-of-light/device-evidence/android-emulator/app-drawer.png"
+      ]
+    }
+  ],
+  "validation": {
+    "flutter_tests": "1093 passed",
+    "flutter_analyze": "pass, no issues",
+    "android_debug_build": "pass",
+    "web_release_build": "pass; Wasm dry run passed",
+    "store_metadata": "field limits, URLs, privacy claims, release identity, and in-app notes pass; screenshot manifest correctly blocks because it remains 1.0.4+39",
+    "git_diff_check": "pass; only repository line-ending notices",
+    "icon_pipeline": "14 focused export, manifest, review, and platform-asset tests passed; final shipping sheet inspected at original resolution; fresh Android debug APK installed and labeled adaptive launcher output inspected on an emulator"
+  },
+  "verdicts": {
+    "code_complete": "pass for Dart, Android, web, and reviewed iOS source; signed iOS compile remains open",
+    "visual_evidence_ready": "pass for import, Focus, What's New, and the selected shipping icon; final store screenshots remain open",
+    "owner_device_accepted": "pending"
+  }
+}

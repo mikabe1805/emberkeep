@@ -589,12 +589,16 @@ void main() {
       'room-of-days-1.0.0+12-android.apk',
       '9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12',
       'ee091db079a54c982946aa6ab7e7b61546b3354f',
-      'manual Codemagic `ios-testflight` workflow',
+      'room-of-days-1.0.4-build-40-internal-candidate',
+      'Codemagic `ios-testflight` workflow',
       'Team ID `D63Z4RBRT8`',
       'private content in a visitor room',
       'Low Power/Battery Saver',
       'VoiceOver/TalkBack',
       'Android Settings Force stop deliberately suppresses alarms',
+      'BYDAY=MO,WE,FR',
+      'small Day Ledger widget',
+      'Focus track on the phone speaker and headphones',
       '| Final decision | **PASS / FAIL** |',
     ]) {
       expect(runbook, contains(expected));
@@ -651,7 +655,10 @@ void main() {
     expect(workflow, contains('cocoapods: 1.16.2'));
     expect(workflow, contains('APPLE_TEAM_ID: "D63Z4RBRT8"'));
     expect(workflow, contains('routine source/docs pushes remain inert'));
-    expect(workflow, contains('room-of-days-1.0.4-build-39-candidate'));
+    expect(
+      workflow,
+      contains('room-of-days-1.0.4-build-40-internal-candidate'),
+    );
     expect(workflow, contains('CM_CLONE_DEPTH: "2"'));
     expect(workflow, contains('Hydrate and verify immutable receipt identity'));
     expect(
@@ -663,17 +670,25 @@ void main() {
       contains('Confirm Flutter packages left the receipt checkout clean'),
     );
     expect(workflow, contains('Run the complete app regression suite'));
+    expect(workflow, contains('beta_groups:\n          - Me'));
     expect(
       workflow,
       contains('Run the feature-on friends and discovery packet'),
     );
-    expect(workflow, contains('Verify the iOS submission packet'));
+    expect(workflow, contains('Verify the internal TestFlight candidate'));
+    expect(workflow, contains('verify_internal_testflight_candidate.dart'));
+    expect(
+      workflow,
+      contains(
+        'release-evidence/internal-testflight/1.0.4+40/CANDIDATE-MANIFEST.json',
+      ),
+    );
     expect(
       workflow,
       contains('Confirm validation left tracked sources unchanged'),
     );
     expect(
-      workflow.indexOf('Verify the iOS submission packet'),
+      workflow.indexOf('Verify the internal TestFlight candidate'),
       lessThan(workflow.indexOf('Analyze Dart')),
     );
     expect(
@@ -684,9 +699,13 @@ void main() {
     );
     expect(
       RegExp(
-        r'dart run tool/verify_store_submission\.dart --ios-only',
+        r'dart run tool/verify_internal_testflight_candidate\.dart',
       ).allMatches(workflow),
       hasLength(2),
+    );
+    expect(
+      workflow,
+      isNot(contains('dart run tool/verify_store_submission.dart --ios-only')),
     );
     expect(podfile, contains("platform :ios, '15.0'"));
     expect(podfile, contains('flutter_ios_podfile_setup'));
@@ -707,6 +726,24 @@ void main() {
     expect(workflow, isNot(contains('room-of-days-1.0.4-build-35-candidate')));
     expect(workflow, isNot(contains('PURE SPM')));
     expect(workflow, contains('Verify signed IPA contents'));
+    expect(workflow, contains('WIDGET_BUNDLE_ID'));
+    expect(workflow, contains('com.mikabe.emberkeep.DayLedgerWidget'));
+    expect(workflow, contains('APP_GROUP_ID'));
+    expect(workflow, contains('group.com.mikabe.emberkeep'));
+    expect(workflow, contains('--strict-match-identifier'));
+    expect(
+      RegExp(
+        r'app-store-connect fetch-signing-files "\$IDENTIFIER"',
+      ).allMatches(workflow),
+      hasLength(1),
+    );
+    expect(workflow, contains(r'"$BUNDLE_ID" "$WIDGET_BUNDLE_ID"'));
+    expect(workflow, contains('APP_GROUPS'));
+    expect(workflow, contains('RoomOfDaysWidgets.appex'));
+    expect(workflow, contains('widget-entitlements.plist'));
+    expect(workflow, contains('widget-profile.plist'));
+    expect(workflow, contains(r'widget_bundle_id=$WIDGET_BUNDLE_ID'));
+    expect(workflow, contains(r'app_group_id=$APP_GROUP_ID'));
     expect(workflow, contains('PUBSPEC_BUILD'));
     expect(workflow, contains('PUBSPEC_VERSION'));
     expect(workflow, contains('Keep the checked-in version+build exact.'));
@@ -751,6 +788,25 @@ void main() {
     expect(workflow, contains('app_attest_environment=production'));
     expect(workflow, contains('release-evidence.txt'));
     expect(workflow, contains('Runner.xcarchive/dSYMs/*.dSYM'));
+    final runnerEntitlements = _source('ios/Runner/Runner.entitlements');
+    final widgetEntitlements = _source(
+      'ios/RoomOfDaysWidgets/RoomOfDaysWidgets.entitlements',
+    );
+    final widgetInfo = _source('ios/RoomOfDaysWidgets/Info.plist');
+    final project = _source('ios/Runner.xcodeproj/project.pbxproj');
+    expect(runnerEntitlements, contains('group.com.mikabe.emberkeep'));
+    expect(widgetEntitlements, contains('group.com.mikabe.emberkeep'));
+    expect(widgetInfo, contains(r'$(PRODUCT_BUNDLE_IDENTIFIER)'));
+    expect(widgetInfo, contains(r'$(MARKETING_VERSION)'));
+    expect(widgetInfo, contains(r'$(CURRENT_PROJECT_VERSION)'));
+    expect(widgetInfo, contains('com.apple.widgetkit-extension'));
+    expect(
+      RegExp(
+        r'PRODUCT_BUNDLE_IDENTIFIER = com\.mikabe\.emberkeep\.DayLedgerWidget;',
+      ).allMatches(project),
+      hasLength(3),
+    );
+    expect(project, isNot(contains('TARGETED_DEVICE_FAMILY = "1,2";')));
     expect(appDelegate, contains('import UserNotifications'));
     expect(
       appDelegate,
@@ -818,7 +874,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+39'));
+    expect(pubspec, contains('version: 1.0.4+40'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

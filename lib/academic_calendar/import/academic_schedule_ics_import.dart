@@ -6,6 +6,51 @@ import 'package:emberkeep/academic_calendar/domain/academic_schedule.dart';
 
 const _rutgersTimeZone = 'America/New_York';
 
+/// A small, editable starting point for a Room of Days class import.
+///
+/// Keep the commas in `BYDAY` when a class meets on more than one day. The
+/// template deliberately uses CRLF line endings: that is the iCalendar line
+/// ending required by RFC 5545, whether it is shared as a file or pasted into
+/// another calendar tool.
+const roomOfDaysAcademicScheduleTemplate =
+    'BEGIN:VCALENDAR\r\n'
+    'VERSION:2.0\r\n'
+    'PRODID:-//Room of Days//Academic Schedule Template//EN\r\n'
+    'CALSCALE:GREGORIAN\r\n'
+    'BEGIN:VEVENT\r\n'
+    'UID:replace-with-a-stable-class-meeting-id@roomofdays\r\n'
+    'DTSTAMP:20260901T000000Z\r\n'
+    'DTSTART;TZID=America/New_York:20260908T083000\r\n'
+    'DTEND;TZID=America/New_York:20260908T092000\r\n'
+    'RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR;UNTIL=20261214T235900\r\n'
+    'SUMMARY:ECE 345 — Replace with your class title\r\n'
+    'LOCATION:Engineering Building 101\r\n'
+    'X-ROOM-OF-DAYS-NOTE:Replace the example values before importing.\r\n'
+    'X-ROOM-OF-DAYS-NOTE:Keep commas in BYDAY for classes meeting multiple days.\r\n'
+    'X-ROOM-OF-DAYS-TERM:Fall 2026\r\n'
+    'X-ROOM-OF-DAYS-TERM-START:20260901\r\n'
+    'X-ROOM-OF-DAYS-TERM-END:20261223\r\n'
+    'X-ROOM-OF-DAYS-COURSE-CODE:ECE 345\r\n'
+    'X-ROOM-OF-DAYS-COURSE-TITLE:Replace with your class title\r\n'
+    'X-ROOM-OF-DAYS-SECTION:01\r\n'
+    'X-ROOM-OF-DAYS-MEETING-KIND:LECTURE\r\n'
+    'X-ROOM-OF-DAYS-CAMPUS:BUSCH\r\n'
+    'X-ROOM-OF-DAYS-BUILDING:Engineering Building\r\n'
+    'X-ROOM-OF-DAYS-ROOM:101\r\n'
+    'END:VEVENT\r\n'
+    'END:VCALENDAR\r\n';
+
+/// Produces the shareable UTF-8 contents for the editable class-file starter.
+String buildRoomOfDaysAcademicScheduleTemplate() =>
+    roomOfDaysAcademicScheduleTemplate;
+
+/// What an accepted import should do with its recurring class reminders.
+///
+/// The review intentionally starts [unchanged]. This means a first import has
+/// no reminders, while a later re-import cannot silently erase a class
+/// reminder the owner already chose.
+enum AcademicScheduleImportReminderChoice { unchanged, off, on }
+
 /// The review-level information a UI needs before committing an import.
 final class AcademicScheduleImportCourse {
   const AcademicScheduleImportCourse({
@@ -32,6 +77,8 @@ final class AcademicScheduleImportDraft {
     required this.warnings,
     required List<_IcsMaster> masters,
     required Map<String, List<_IcsOverride>> overridesByUid,
+    this.reminderChoice = AcademicScheduleImportReminderChoice.unchanged,
+    this.reminderOffsetMinutes = 10,
   }) : _masters = List.unmodifiable(masters),
        _overridesByUid = overridesByUid.map(
          (key, value) => MapEntry(key, List.unmodifiable(value)),
@@ -42,8 +89,32 @@ final class AcademicScheduleImportDraft {
   final int meetingSeriesCount;
   final int projectedOccurrenceCount;
   final List<String> warnings;
+  final AcademicScheduleImportReminderChoice reminderChoice;
+  final int reminderOffsetMinutes;
   final List<_IcsMaster> _masters;
   final Map<String, List<_IcsOverride>> _overridesByUid;
+
+  /// Returns another still-uncommitted review draft. It never changes the
+  /// schedule by itself.
+  AcademicScheduleImportDraft withReminderChoice(
+    AcademicScheduleImportReminderChoice choice, {
+    int offsetMinutes = 10,
+  }) {
+    if (offsetMinutes != 10 && offsetMinutes != 15 && offsetMinutes != 30) {
+      throw ArgumentError.value(offsetMinutes, 'offsetMinutes');
+    }
+    return AcademicScheduleImportDraft._(
+      term: term,
+      courses: courses,
+      meetingSeriesCount: meetingSeriesCount,
+      projectedOccurrenceCount: projectedOccurrenceCount,
+      warnings: warnings,
+      masters: _masters,
+      overridesByUid: _overridesByUid,
+      reminderChoice: choice,
+      reminderOffsetMinutes: offsetMinutes,
+    );
+  }
 
   /// Adds the deterministic records in this import and refreshes their recurring
   /// meeting details. Existing user-adjusted occurrences and other schedule
@@ -89,6 +160,10 @@ final class AcademicScheduleImportDraft {
           building: master.building,
           room: master.room,
           campusCode: master.campus,
+        ),
+        reminders: _remindersFor(
+          prior: next.meetingSeriesById(_stableId('meeting', master.uid)),
+          meetingSeriesId: _stableId('meeting', master.uid),
         ),
         updatedAt: updatedAt.toUtc(),
       );
@@ -144,6 +219,27 @@ final class AcademicScheduleImportDraft {
       }
     }
     return next;
+  }
+
+  List<AcademicReminder> _remindersFor({
+    required MeetingSeries? prior,
+    required String meetingSeriesId,
+  }) {
+    return switch (reminderChoice) {
+      AcademicScheduleImportReminderChoice.unchanged =>
+        prior?.reminders ?? const <AcademicReminder>[],
+      AcademicScheduleImportReminderChoice.off => const <AcademicReminder>[],
+      AcademicScheduleImportReminderChoice.on => [
+        AcademicReminder(
+          reminderId: _stableId(
+            'reminder',
+            '$meetingSeriesId|$reminderOffsetMinutes',
+          ),
+          enabled: true,
+          offsetMinutes: reminderOffsetMinutes,
+        ),
+      ],
+    };
   }
 }
 

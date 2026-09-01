@@ -1,8 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../platform/share_stub.dart'
+    if (dart.library.js_interop) '../../platform/share_web.dart';
 import '../../tokens.dart';
 import '../../widgets/facets.dart';
 import '../../widgets/glass.dart';
+import '../../widgets/glass_switch.dart';
 import '../../widgets/honey_button.dart';
 import '../domain/academic_schedule.dart';
 import '../import/academic_schedule_file_picker.dart';
@@ -16,10 +21,16 @@ final class AcademicScheduleImportDialog extends StatefulWidget {
     super.key,
     required this.filePicker,
     required this.onImport,
+    this.initialSource,
+    this.requestReminderPermission,
   });
 
   final AcademicScheduleFilePicker filePicker;
   final SaveAcademicScheduleImport onImport;
+  final AcademicScheduleImportSource? initialSource;
+
+  /// Called only after the person explicitly turns class reminders on.
+  final Future<bool> Function()? requestReminderPermission;
 
   @override
   State<AcademicScheduleImportDialog> createState() =>
@@ -34,6 +45,35 @@ class _AcademicScheduleImportDialogState
   String? _error;
   bool _reading = false;
   bool _saving = false;
+  bool _requestingReminderPermission = false;
+  AcademicScheduleImportReminderChoice _reminderChoice =
+      AcademicScheduleImportReminderChoice.unchanged;
+  int _reminderOffsetMinutes = 10;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialSource case final source?) {
+      try {
+        _acceptSource(source);
+      } on FormatException {
+        _error =
+            'That file isn’t a Room of Days class schedule yet. Start with the editable .ics file or choose another.';
+      }
+    }
+  }
+
+  void _acceptSource(AcademicScheduleImportSource source) {
+    final draft = AcademicScheduleIcsImporter.parse(
+      source.contents,
+      sourceName: source.name,
+    );
+    _sourceName = source.name;
+    _draft = draft;
+    _reading = false;
+    _reminderChoice = AcademicScheduleImportReminderChoice.unchanged;
+    _reminderOffsetMinutes = 10;
+  }
 
   Future<void> _pickFile() async {
     if (_reading || _saving) return;
@@ -49,14 +89,8 @@ class _AcademicScheduleImportDialogState
         setState(() => _reading = false);
         return;
       }
-      final draft = AcademicScheduleIcsImporter.parse(
-        source.contents,
-        sourceName: source.name,
-      );
       setState(() {
-        _sourceName = source.name;
-        _draft = draft;
-        _reading = false;
+        _acceptSource(source);
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) _scrollController.jumpTo(0);
@@ -81,6 +115,60 @@ class _AcademicScheduleImportDialogState
     }
   }
 
+  Future<void> _shareStarter() async {
+    final shared = await shareCalendarFile(
+      buildRoomOfDaysAcademicScheduleTemplate(),
+      'room-of-days-class-schedule-starter.ics',
+    );
+    if (!mounted) return;
+    if (!shared) {
+      setState(() {
+        _error = 'Couldn’t share the starter file on this device.';
+      });
+      return;
+    }
+    ScaffoldMessenger.maybeOf(context)
+      ?..clearSnackBars()
+      ..showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Palette.card,
+          content: Text(
+            'Starter file ready — edit it, save it as .ics, then open it in Room of Days.',
+          ),
+        ),
+      );
+  }
+
+  Future<void> _setReminderChoice(
+    AcademicScheduleImportReminderChoice choice,
+  ) async {
+    if (_saving || _requestingReminderPermission) return;
+    if (choice != AcademicScheduleImportReminderChoice.on) {
+      setState(() {
+        _reminderChoice = choice;
+        _error = null;
+      });
+      return;
+    }
+    setState(() {
+      _requestingReminderPermission = true;
+      _error = null;
+    });
+    final granted = await widget.requestReminderPermission?.call() ?? true;
+    if (!mounted) return;
+    setState(() {
+      _requestingReminderPermission = false;
+      if (granted) {
+        _reminderChoice = AcademicScheduleImportReminderChoice.on;
+      } else {
+        _reminderChoice = AcademicScheduleImportReminderChoice.off;
+        _error =
+            'Class reminders stayed off — allow notifications in system settings when you’re ready.';
+      }
+    });
+  }
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -94,7 +182,12 @@ class _AcademicScheduleImportDialogState
       _saving = true;
       _error = null;
     });
-    final saved = await widget.onImport(draft);
+    final saved = await widget.onImport(
+      draft.withReminderChoice(
+        _reminderChoice,
+        offsetMinutes: _reminderOffsetMinutes,
+      ),
+    );
     if (!mounted) return;
     if (!saved) {
       setState(() {
@@ -165,12 +258,22 @@ class _AcademicScheduleImportDialogState
                 ),
                 const SizedBox(height: 14),
                 if (draft == null)
-                  _ImportEmptyState(reading: _reading, onChoose: _pickFile)
+                  _ImportEmptyState(
+                    reading: _reading,
+                    onChoose: _pickFile,
+                    onShareStarter: _shareStarter,
+                  )
                 else
                   _ImportReview(
                     sourceName: _sourceName ?? 'class-schedule.ics',
                     draft: draft,
-                    saving: _saving,
+                    saving: _saving || _requestingReminderPermission,
+                    reminderChoice: _reminderChoice,
+                    reminderOffsetMinutes: _reminderOffsetMinutes,
+                    onReminderChoiceChanged: (choice) =>
+                        unawaited(_setReminderChoice(choice)),
+                    onReminderOffsetChanged: (offset) =>
+                        setState(() => _reminderOffsetMinutes = offset),
                     onChooseAnother: _pickFile,
                     onImport: _import,
                   ),
@@ -198,10 +301,15 @@ class _AcademicScheduleImportDialogState
 }
 
 class _ImportEmptyState extends StatelessWidget {
-  const _ImportEmptyState({required this.reading, required this.onChoose});
+  const _ImportEmptyState({
+    required this.reading,
+    required this.onChoose,
+    required this.onShareStarter,
+  });
 
   final bool reading;
   final VoidCallback onChoose;
+  final VoidCallback onShareStarter;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -258,6 +366,53 @@ class _ImportEmptyState extends StatelessWidget {
         glow: false,
         onTap: onChoose,
       ),
+      const SizedBox(height: 8),
+      Semantics(
+        button: true,
+        label: 'Get an editable Room of Days class schedule starter file',
+        child: InkWell(
+          key: const ValueKey('academic-import-share-starter'),
+          onTap: reading ? null : onShareStarter,
+          borderRadius: BorderRadius.circular(10),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.code_rounded,
+                    size: 18,
+                    color: Palette.xpLight,
+                  ),
+                  const SizedBox(width: 7),
+                  Flexible(
+                    child: Text(
+                      'GET EDITABLE STARTER FILE',
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      style: Type.label.copyWith(
+                        fontSize: 11,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      Text(
+        'For a class that meets more than once a week, keep the commas in BYDAY=MO,WE,FR.',
+        textAlign: TextAlign.center,
+        style: Type.body.copyWith(
+          fontSize: 11,
+          height: 1.3,
+          color: Palette.textLo,
+        ),
+      ),
     ],
   );
 }
@@ -267,6 +422,10 @@ class _ImportReview extends StatelessWidget {
     required this.sourceName,
     required this.draft,
     required this.saving,
+    required this.reminderChoice,
+    required this.reminderOffsetMinutes,
+    required this.onReminderChoiceChanged,
+    required this.onReminderOffsetChanged,
     required this.onChooseAnother,
     required this.onImport,
   });
@@ -274,6 +433,11 @@ class _ImportReview extends StatelessWidget {
   final String sourceName;
   final AcademicScheduleImportDraft draft;
   final bool saving;
+  final AcademicScheduleImportReminderChoice reminderChoice;
+  final int reminderOffsetMinutes;
+  final ValueChanged<AcademicScheduleImportReminderChoice>
+  onReminderChoiceChanged;
+  final ValueChanged<int> onReminderOffsetChanged;
   final VoidCallback onChooseAnother;
   final VoidCallback onImport;
 
@@ -304,6 +468,14 @@ class _ImportReview extends StatelessWidget {
           letterSpacing: 1.2,
           color: Palette.textMid,
         ),
+      ),
+      const SizedBox(height: 11),
+      _ClassReminderChoice(
+        choice: reminderChoice,
+        offsetMinutes: reminderOffsetMinutes,
+        enabled: !saving,
+        onChoiceChanged: onReminderChoiceChanged,
+        onOffsetChanged: onReminderOffsetChanged,
       ),
       const SizedBox(height: 11),
       Container(
@@ -399,15 +571,22 @@ class _ImportReview extends StatelessWidget {
       const SizedBox(height: 8),
       Align(
         alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          key: const ValueKey('academic-import-choose-another'),
-          onPressed: saving ? null : onChooseAnother,
-          icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-          label: const Text('CHOOSE ANOTHER FILE'),
-          style: TextButton.styleFrom(
-            foregroundColor: Palette.textMid,
-            minimumSize: const Size(44, 44),
-            textStyle: Type.label.copyWith(fontSize: Type.minLabel),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: TextButton.icon(
+            key: const ValueKey('academic-import-choose-another'),
+            onPressed: saving ? null : onChooseAnother,
+            icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+            label: const Text(
+              'CHOOSE ANOTHER FILE',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            style: TextButton.styleFrom(
+              foregroundColor: Palette.textMid,
+              minimumSize: const Size(44, 44),
+              textStyle: Type.label.copyWith(fontSize: Type.minLabel),
+            ),
           ),
         ),
       ),
@@ -422,6 +601,127 @@ class _ImportReview extends StatelessWidget {
       ),
     ],
   );
+}
+
+class _ClassReminderChoice extends StatelessWidget {
+  const _ClassReminderChoice({
+    required this.choice,
+    required this.offsetMinutes,
+    required this.enabled,
+    required this.onChoiceChanged,
+    required this.onOffsetChanged,
+  });
+
+  final AcademicScheduleImportReminderChoice choice;
+  final int offsetMinutes;
+  final bool enabled;
+  final ValueChanged<AcademicScheduleImportReminderChoice> onChoiceChanged;
+  final ValueChanged<int> onOffsetChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final remindersOn = choice == AcademicScheduleImportReminderChoice.on;
+    return Container(
+      key: const ValueKey('academic-import-reminders'),
+      padding: const EdgeInsets.fromLTRB(12, 9, 10, 10),
+      decoration: facetedDecoration(
+        cut: 9,
+        color: Palette.cardGlass,
+        borderColor: Palette.brass.withValues(alpha: 0.38),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'CLASS REMINDERS',
+                      style: Type.label.copyWith(
+                        fontSize: Type.minLabel,
+                        color: Palette.xpLight,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      remindersOn
+                          ? 'Room of Days will remind you before each class.'
+                          : choice == AcademicScheduleImportReminderChoice.off
+                          ? 'No class reminders will be added from this import.'
+                          : 'Off unless you turn it on. Re-import keeps reminders you already chose.',
+                      style: Type.body.copyWith(
+                        fontSize: 12.5,
+                        color: Palette.textMid,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IgnorePointer(
+                ignoring: !enabled,
+                child: Opacity(
+                  opacity: enabled ? 1 : 0.55,
+                  child: GlassSwitch(
+                    key: const ValueKey('academic-import-reminder-switch'),
+                    value: remindersOn,
+                    semanticLabel: 'Class reminders',
+                    onChanged: (value) => onChoiceChanged(
+                      value
+                          ? AcademicScheduleImportReminderChoice.on
+                          : AcademicScheduleImportReminderChoice.off,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (remindersOn) ...[
+            const SizedBox(height: 7),
+            DropdownButtonFormField<int>(
+              key: const ValueKey('academic-import-reminder-offset'),
+              initialValue: offsetMinutes,
+              isExpanded: true,
+              dropdownColor: Palette.dialogSurface,
+              style: Type.body.copyWith(fontSize: 13, color: Palette.textHi),
+              decoration: InputDecoration(
+                labelText: 'REMIND ME',
+                labelStyle: Type.label.copyWith(
+                  fontSize: Type.minLabel,
+                  color: Palette.textLo,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: Palette.brass.withValues(alpha: 0.42),
+                  ),
+                ),
+              ),
+              items: const [10, 15, 30]
+                  .map(
+                    (minutes) => DropdownMenuItem<int>(
+                      value: minutes,
+                      child: Text('$minutes minutes before'),
+                    ),
+                  )
+                  .toList(),
+              onChanged: enabled
+                  ? (minutes) {
+                      if (minutes != null) onOffsetChanged(minutes);
+                    }
+                  : null,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _ImportedCourseRow extends StatelessWidget {

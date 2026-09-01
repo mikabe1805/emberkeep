@@ -86,7 +86,7 @@ ShippingIconReviewResult buildShippingIconReview({
   )..clear(img.ColorRgb8(29, 23, 20));
   _text(
     sheet,
-    'Room of Days - approved Day Ledger shipping outputs',
+    'Room of Days - approved Open Door of Light shipping outputs',
     32,
     28,
     img.arial24,

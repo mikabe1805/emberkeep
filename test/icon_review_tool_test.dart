@@ -111,11 +111,14 @@ void main() {
     final result = review.buildIconReview(
       currentPath: paths.first,
       candidatePaths: <String>[paths.last],
-      candidateLabels: const <String>['Approved - Day Ledger'],
+      candidateLabels: const <String>['Approved - Open Door of Light'],
       outputDirectoryPath: '${temporary.path}${Platform.pathSeparator}review',
     );
 
-    expect(result.rowLabels, <String>['Current', 'Approved - Day Ledger']);
+    expect(result.rowLabels, <String>[
+      'Current',
+      'Approved - Open Door of Light',
+    ]);
     final small = img.decodePng(
       File(result.outputFiles.first).readAsBytesSync(),
     );

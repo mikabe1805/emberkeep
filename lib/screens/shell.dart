@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../academic_calendar/data/academic_schedule_repository.dart';
+import '../academic_calendar/domain/academic_schedule.dart';
+import '../academic_calendar/import/academic_schedule_file_inbox.dart';
+import '../academic_calendar/services/academic_reminder_projection.dart';
 import '../background_music.dart';
 import '../clock.dart';
 import '../cloud.dart';
@@ -22,6 +26,8 @@ import '../haptics.dart';
 import '../journal_media.dart' as media;
 import '../media_picker_intent.dart';
 import '../models.dart';
+import '../home_widgets/widget_snapshot.dart';
+import '../home_widgets/widget_snapshot_writer.dart';
 import '../notifications.dart';
 import '../release_features.dart';
 import '../release_notes_preferences.dart';
@@ -149,11 +155,17 @@ class AppShell extends StatefulWidget {
     super.key,
     this.initialRoomCode,
     this.roomLinks,
+    this.academicScheduleFiles,
+    this.scheduleRepository,
+    this.widgetSnapshotWriter,
     this.releaseNotesGate,
   });
 
   final String? initialRoomCode;
   final RoomLinkInbox? roomLinks;
+  final AcademicScheduleFileInbox? academicScheduleFiles;
+  final AcademicScheduleRepository? scheduleRepository;
+  final WidgetSnapshotWriter? widgetSnapshotWriter;
 
   /// Optional seam for preference-failure and launch-order tests. Production
   /// uses the device-local SharedPreferences implementation.
@@ -179,6 +191,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   );
   late final LuxeMotionController _luxeMotion;
   late final BackgroundMusicController _music;
+  late final AcademicScheduleRepository _academicScheduleRepository;
+  late final WidgetSnapshotWriter _widgetSnapshotWriter;
+  AcademicSchedule _academicSchedule = AcademicSchedule.empty();
+  bool _academicScheduleLoaded = false;
+  Future<void> _widgetWriteTail = Future<void>.value();
   bool _musicForeground = false;
   late final ReleaseNotesGate _releaseNotesGate;
   OverlayEntry? _morningOverlay;
@@ -222,6 +239,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         const ReleaseNotesGate(SharedPreferencesReleaseSeenStore());
     _luxeMotion = LuxeMotionController();
     _music = BackgroundMusicController();
+    _academicScheduleRepository =
+        widget.scheduleRepository ?? LocalAcademicScheduleRepository();
+    _widgetSnapshotWriter =
+        widget.widgetSnapshotWriter ?? const PlatformWidgetSnapshotWriter();
     _musicForeground = musicShouldRunForLifecycle(
       WidgetsBinding.instance.lifecycleState,
     );
@@ -230,14 +251,20 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     Sfx.instance.setInteractionScreen(_soundTabScopes[_tab]);
     WidgetsBinding.instance.addObserver(this);
     widget.roomLinks?.addListener(_onIncomingRoomLink);
+    widget.academicScheduleFiles?.addListener(_onIncomingAcademicScheduleFile);
     CloudSync.instance.addListener(_onCloudAccountChanged);
     _load();
+    unawaited(_loadAcademicScheduleForShell());
+    _onIncomingAcademicScheduleFile();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.roomLinks?.removeListener(_onIncomingRoomLink);
+    widget.academicScheduleFiles?.removeListener(
+      _onIncomingAcademicScheduleFile,
+    );
     CloudSync.instance.removeListener(_onCloudAccountChanged);
     _midnight?.cancel();
     _ignitionClearTimer?.cancel();
@@ -249,10 +276,62 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   @override
   void didUpdateWidget(covariant AppShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.roomLinks == widget.roomLinks) return;
-    oldWidget.roomLinks?.removeListener(_onIncomingRoomLink);
-    widget.roomLinks?.addListener(_onIncomingRoomLink);
-    _onIncomingRoomLink();
+    if (oldWidget.roomLinks != widget.roomLinks) {
+      oldWidget.roomLinks?.removeListener(_onIncomingRoomLink);
+      widget.roomLinks?.addListener(_onIncomingRoomLink);
+      _onIncomingRoomLink();
+    }
+    if (oldWidget.academicScheduleFiles != widget.academicScheduleFiles) {
+      oldWidget.academicScheduleFiles?.removeListener(
+        _onIncomingAcademicScheduleFile,
+      );
+      widget.academicScheduleFiles?.addListener(
+        _onIncomingAcademicScheduleFile,
+      );
+      _onIncomingAcademicScheduleFile();
+    }
+  }
+
+  Future<void> _loadAcademicScheduleForShell() async {
+    final schedule = await _academicScheduleRepository.load();
+    if (!mounted) return;
+    _academicSchedule = schedule;
+    _academicScheduleLoaded = true;
+    unawaited(_rescheduleNotifications());
+    unawaited(_publishWidgetSnapshot());
+  }
+
+  void _onIncomingAcademicScheduleFile() {
+    if (!mounted || !(widget.academicScheduleFiles?.isNotEmpty ?? false)) {
+      return;
+    }
+    _selectTab(3);
+  }
+
+  void _onAcademicScheduleChanged(AcademicSchedule schedule) {
+    _academicSchedule = schedule;
+    _academicScheduleLoaded = true;
+    unawaited(_rescheduleNotifications());
+    unawaited(_publishWidgetSnapshot());
+  }
+
+  Future<void> _publishWidgetSnapshot() {
+    final state = _state;
+    final quests = _quests;
+    if (state == null || quests == null || !_academicScheduleLoaded) {
+      return Future<void>.value();
+    }
+    final snapshot = WidgetSnapshotBuilder.build(
+      quests: quests,
+      schedule: _academicSchedule,
+      now: Clock.now(),
+    );
+    _widgetWriteTail = _widgetWriteTail.catchError((_) {}).then<void>((
+      _,
+    ) async {
+      await _widgetSnapshotWriter.write(snapshot);
+    });
+    return _widgetWriteTail;
   }
 
   void _onIncomingRoomLink() {
@@ -780,6 +859,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _state = state;
       _quests = quests;
     });
+    unawaited(_publishWidgetSnapshot());
   }
 
   /// Connect the cloud mirror. ALWAYS compares the cloud copy's newness
@@ -1145,6 +1225,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           cloud.cancelPending();
           return false;
         }
+        unawaited(_publishWidgetSnapshot());
         if (push) {
           cloud.push();
           final syncProfile =
@@ -1658,20 +1739,26 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     final q = _quests;
     if (s == null || q == null) return;
     if (refreshTimeZone) await Notifications.refreshTimeZone();
+    final now = Clock.now();
+    final classNotices = _academicScheduleLoaded
+        ? projectAcademicReminderNotices(schedule: _academicSchedule, now: now)
+        : const <AcademicReminderNotice>[];
+    var classDeliveryAvailable = true;
     // Restores and system-settings changes can leave a persisted switch on
     // after notification delivery has become impossible. Verify silently:
     // only the explicit switches in Me are allowed to request permission.
     if (Notifications.isSupported &&
-        (s.notifyEnabled || s.nightReminderEnabled)) {
+        (s.notifyEnabled ||
+            s.nightReminderEnabled ||
+            classNotices.isNotEmpty)) {
       final permission = await Notifications.permissionStatus();
       if (permission == ReminderPermissionStatus.denied) {
         s.disableRemindersWithoutPermission();
+        classDeliveryAvailable = false;
       }
     }
-    final now = Clock.now();
-    if (s.notifyEnabled) {
-      await Notifications.scheduleDailyNudge(s.notifyHour, s.notifyMinute);
-      final events = <EventReminder>[
+    final events = <EventReminder>[
+      if (s.notifyEnabled)
         for (final quest in q)
           if (quest.isEvent && quest.dueDate != null && !quest.doneFor(now))
             EventReminder(
@@ -1685,11 +1772,24 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               title: 'Today: ${quest.displayTitle}',
               body: 'A plan you set is due.',
             ),
-      ];
-      await Notifications.scheduleEvents(events);
+      if (classDeliveryAvailable)
+        for (final notice in classNotices)
+          EventReminder(
+            when: notice.whenUtc,
+            title: notice.title,
+            body: notice.body,
+            absolute: true,
+          ),
+    ];
+    if (s.notifyEnabled) {
+      await Notifications.scheduleDailyNudge(s.notifyHour, s.notifyMinute);
     } else {
       await Notifications.cancelDailyNudge();
+    }
+    if (events.isEmpty) {
       await Notifications.cancelEvents();
+    } else {
+      await Notifications.scheduleEvents(events);
     }
     if (s.nightReminderEnabled) {
       await Notifications.scheduleNightRoutine(
@@ -1886,6 +1986,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                           focusQuestTitle: _focusedQuestTitle,
                                           focusRequestId: _questFocusRequest,
                                           workoutRequestId: _workoutRequest,
+                                          musicController: _music,
                                         )
                                       : const SizedBox.shrink(),
                                   _visitedTabs.contains(2)
@@ -1918,6 +2019,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                       ? CalendarPage(
                                           state: state,
                                           quests: quests,
+                                          scheduleRepository:
+                                              _academicScheduleRepository,
+                                          academicScheduleFileInbox:
+                                              widget.academicScheduleFiles,
+                                          requestReminderPermission:
+                                              Notifications.requestPermission,
+                                          onScheduleChanged:
+                                              _onAcademicScheduleChanged,
                                           onAdd: _addQuest,
                                           onCompleteQuest: (quest, anchor) =>
                                               _completeQuest?.call(

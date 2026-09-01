@@ -279,14 +279,16 @@ class Notifications {
       final ordered = [...events]..sort((a, b) => a.when.compareTo(b.when));
       for (final e in ordered) {
         if (slot >= _eventScheduleSlots) break;
-        final when = tz.TZDateTime(
-          tz.local,
-          e.when.year,
-          e.when.month,
-          e.when.day,
-          e.when.hour,
-          e.when.minute,
-        );
+        final when = e.absolute
+            ? tz.TZDateTime.from(e.when.toUtc(), tz.local)
+            : tz.TZDateTime(
+                tz.local,
+                e.when.year,
+                e.when.month,
+                e.when.day,
+                e.when.hour,
+                e.when.minute,
+              );
         if (!when.isAfter(now)) continue;
         await _plugin.zonedSchedule(
           _eventBase + slot,
@@ -332,8 +334,14 @@ class EventReminder {
     required this.when,
     required this.title,
     required this.body,
+    this.absolute = false,
   });
   final DateTime when;
   final String title;
   final String body;
+
+  /// Absolute instants keep class reminders attached to the class even when
+  /// the phone is temporarily in another time zone. Ordinary dated plans use
+  /// local wall-clock construction instead.
+  final bool absolute;
 }

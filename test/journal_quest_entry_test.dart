@@ -373,7 +373,11 @@ void main() {
       final xp = state.totalXp;
       expect(xp, greaterThan(0));
       final card = find.byKey(ValueKey('card-${quest.title}'));
-      if (tester.any(card)) await tester.tap(card);
+      if (tester.any(card)) {
+        await tester.ensureVisible(card);
+        await tester.pumpAndSettle();
+        await tester.tap(card);
+      }
       await tester.pump(const Duration(milliseconds: 1800));
       expect(state.totalXp, xp);
       expect(state.journal, hasLength(1));

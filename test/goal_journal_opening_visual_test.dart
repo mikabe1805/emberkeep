@@ -9,6 +9,7 @@ import 'package:emberkeep/screens/goal_opening.dart';
 import 'package:emberkeep/widgets/goal_primary_button.dart';
 import 'package:emberkeep/widgets/goal_steward.dart';
 import 'package:emberkeep/widgets/goal_world.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FontLoader, rootBundle;
 import 'package:flutter_test/flutter_test.dart';
@@ -53,7 +54,11 @@ void main() {
     Sfx.instance.soundEnabled = false;
     tester.view.devicePixelRatio = 1;
     await tester.binding.setSurfaceSize(const Size(430, 932));
-    addTearDown(() {
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: const Offset(-100, -100));
+    FocusManager.instance.primaryFocus?.unfocus();
+    addTearDown(() async {
+      await mouse.removePointer();
       Clock.reset();
       Sfx.instance.soundEnabled = true;
       tester.view.resetDevicePixelRatio();

@@ -53,8 +53,12 @@ void main() {
     expect(icoBytes[4] | (icoBytes[5] << 8), 7);
 
     final manifest = jsonDecode(result.manifestFile.readAsStringSync());
-    expect(manifest['identity'], 'Room of Days - Day Ledger');
+    expect(manifest['identity'], 'Room of Days - Open Door of Light');
     expect(manifest['sources'], hasLength(2));
+    for (final source in (manifest['sources'] as List).cast<Map>()) {
+      expect(source['path'], isNot(startsWith(temporary.path)));
+      expect(source['path'], isNot(matches(RegExp(r'^[A-Za-z]:[/\\]'))));
+    }
     expect(manifest['outputs'], hasLength(10));
     expect(
       manifest['outputs'][0]['sha256'],

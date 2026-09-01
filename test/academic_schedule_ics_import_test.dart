@@ -120,6 +120,83 @@ void main() {
     expect(keptMove?.localStartMinute, 12 * 60);
     expect(keptMove?.localEndMinute, 13 * 60);
   });
+
+  test(
+    'editable template is CRLF iCalendar and parses its comma-separated days',
+    () {
+      expect(roomOfDaysAcademicScheduleTemplate, endsWith('\r\n'));
+      expect(roomOfDaysAcademicScheduleTemplate, isNot(contains('\n\n')));
+      expect(
+        roomOfDaysAcademicScheduleTemplate,
+        contains('RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR;UNTIL='),
+      );
+      expect(
+        roomOfDaysAcademicScheduleTemplate,
+        contains('X-ROOM-OF-DAYS-NOTE:'),
+      );
+      expect(
+        buildRoomOfDaysAcademicScheduleTemplate(),
+        roomOfDaysAcademicScheduleTemplate,
+      );
+
+      final draft = AcademicScheduleIcsImporter.parse(
+        roomOfDaysAcademicScheduleTemplate,
+      );
+      final schedule = draft.applyTo(
+        AcademicSchedule.empty(),
+        updatedAt: DateTime.utc(2026, 9, 1),
+      );
+      expect(schedule.meetingSeries.single.weekdays, {
+        DateTime.monday,
+        DateTime.wednesday,
+        DateTime.friday,
+      });
+      expect(schedule.meetingSeries.single.reminders, isEmpty);
+    },
+  );
+
+  test(
+    'review reminder choice is opt-in and re-import preserves it untouched',
+    () {
+      final draft = AcademicScheduleIcsImporter.parse(
+        rutgersFall2026IcsFixture(),
+      );
+      final first = draft
+          .withReminderChoice(
+            AcademicScheduleImportReminderChoice.on,
+            offsetMinutes: 15,
+          )
+          .applyTo(
+            AcademicSchedule.empty(),
+            updatedAt: DateTime.utc(2026, 8, 27),
+          );
+
+      expect(first.meetingSeries, isNotEmpty);
+      for (final series in first.meetingSeries) {
+        expect(series.reminders, hasLength(1));
+        expect(series.reminders.single.enabled, isTrue);
+        expect(series.reminders.single.offsetMinutes, 15);
+      }
+
+      final preserved = draft.applyTo(
+        first,
+        updatedAt: DateTime.utc(2026, 8, 28),
+      );
+      for (final series in preserved.meetingSeries) {
+        expect(series.reminders, hasLength(1));
+        expect(series.reminders.single.enabled, isTrue);
+        expect(series.reminders.single.offsetMinutes, 15);
+      }
+
+      final disabled = draft
+          .withReminderChoice(AcademicScheduleImportReminderChoice.off)
+          .applyTo(preserved, updatedAt: DateTime.utc(2026, 8, 29));
+      expect(
+        disabled.meetingSeries.every((series) => series.reminders.isEmpty),
+        isTrue,
+      );
+    },
+  );
 }
 
 List<ClassOccurrence> _on(

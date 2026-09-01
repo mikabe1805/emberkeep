@@ -1,5 +1,9 @@
 # Room of Days app-icon exploration
 
+> Historical selection record: the Day Ledger mark documented here was
+> superseded by the owner-selected Open Door of Light launcher identity on
+> 2026-09-01. Preserve this folder as provenance.
+
 ## Task 1 baseline record
 
 This record locks the visual references and current icon baseline before any candidate generation. No artwork was generated or modified in Task 1, and no shipping icon asset was touched.

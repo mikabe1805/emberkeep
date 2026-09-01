@@ -52,6 +52,45 @@ class RoomReleaseNotes {
 /// is at the front of this list and its id matches the candidate metadata.
 const roomOfDaysReleaseNotes = <RoomReleaseNotes>[
   RoomReleaseNotes(
+    id: '1.0.4+40',
+    versionLabel: 'VERSION 1.0.4 · BUILD 40',
+    dateLabel: 'SEPTEMBER 2026',
+    title: 'Your day, closer at hand.',
+    introduction:
+        'Bring in a class schedule with the reminders you want, see what is '
+        'next from your Home Screen, and settle into Focus with room music.',
+    highlights: <ReleaseHighlight>[
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.academicDaybook,
+        title: 'A CLASS FILE THAT OPENS HERE',
+        body:
+            'Open or share an .ics file with Room of Days, review every class, '
+            'and choose whether reminders should come along.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.calendarViews,
+        title: 'YOUR NEXT THINGS, AT A GLANCE',
+        body:
+            'The iPhone widget keeps your next class and up to three unfinished '
+            'Quests on the Home Screen, without locations or notes.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.flexiblePlans,
+        title: 'A STARTER YOU CAN MAKE YOUR OWN',
+        body:
+            'Share the plain-text class starter, edit its comma-separated days '
+            'and times, then bring it back into Plans.',
+      ),
+      ReleaseHighlight(
+        kind: ReleaseHighlightKind.ambientLight,
+        title: 'FOCUS, WITH AN EASY WAY OUT',
+        body:
+            'Room music can keep you company during a timer. One tap makes '
+            'the session quiet without changing your main music choice.',
+      ),
+    ],
+  ),
+  RoomReleaseNotes(
     id: '1.0.4+39',
     versionLabel: 'VERSION 1.0.4 · BUILD 39',
     dateLabel: 'SEPTEMBER 2026',

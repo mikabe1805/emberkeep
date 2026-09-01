@@ -3,6 +3,68 @@
 Updated September 1, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
+## 1.0.4+40 classes, widgets, Focus, and Open Door internal candidate
+
+Build 40 turns class schedules into an understandable Room of Days workflow:
+editable `.ics` handoff, review-first import, deliberately enabled class
+reminders, a private iPhone glance for the next class and up to three unfinished
+Quests, and optional Fable atmosphere inside Focus. Open Door of Light replaces
+the rejected ledger-as-storefront direction while Day Ledger remains the useful
+widget language. `pubspec.yaml` is `1.0.4+40`.
+
+- [x] Start from the exact Build 39 candidate source in the isolated
+  `build40-classes-widgets-focus` worktree; preserve the dirty shared checkout
+  and unrelated release histories.
+- [x] Route native Files/Mail/Open In `.ics` payloads through the same bounded,
+  review-first importer as the picker. Keep the programmer starter valid and
+  editable, including comma-separated `BYDAY` examples.
+- [x] Keep class reminders off until a person deliberately enables them during
+  review, request permission only after that intent, and preserve the existing
+  decision on an untouched re-import.
+- [x] Project only bounded device-local widget data: upcoming class glances and
+  at most three unfinished Quest titles, excluding locations, notes, Journal,
+  and account content.
+- [x] Add small and medium WidgetKit surfaces plus the shared App Group bridge;
+  keep signed compilation and SpringBoard behavior open until the cloud-Mac and
+  physical-iPhone gates pass.
+- [x] Keep Fable music optional and session-scoped in Focus, provide one-tap
+  quiet, and restore the saved global music preference when the timer closes.
+- [x] Propagate the owner-selected Open Door of Light through iOS, Android
+  legacy/adaptive/themed, web, Windows, and maskable outputs; inspect the final
+  shipping sheet and Android emulator launcher.
+- [x] Pass 1,095 Flutter tests, analysis, Android debug packaging, web release
+  packaging, the focused icon pipeline, rendered compact/large-text checks, and
+  repository integrity checks on Windows.
+- [x] Separate the immutable internal-TestFlight receipt from the strict final
+  App Store screenshot receipt. The signed device build must not pretend that
+  Build 39 screenshots certify Build 40.
+- [x] In Apple Developer, register/confirm
+  `com.mikabe.emberkeep.DayLedgerWidget`, register/confirm
+  `group.com.mikabe.emberkeep`, and assign that group to both the Runner and
+  WidgetKit App IDs. Completed September 1, 2026 under Team `D63Z4RBRT8`;
+  Apple confirmed the capability change invalidated the older profiles, so the
+  candidate workflow must fetch and prove fresh exact profiles for both targets.
+- [ ] Commit the complete Build 40 source, add one manifest-only internal
+  TestFlight receipt as its child, and push the exact
+  `room-of-days-1.0.4-build-40-internal-candidate` tag once. Ordinary branch
+  pushes remain inert; do not also start a manual Codemagic run.
+- [ ] Confirm Codemagic validates the receipt, metadata, analyzer, all tests,
+  both provisioning profiles, both signed bundles, IPA contents, and publishing
+  from the exact receipt commit. Preserve IPA, all dSYMs, logs, hashes, and
+  `release-evidence.txt`.
+- [ ] Confirm Apple processes Build 40 and attaches it to the intended internal
+  TestFlight group `Me` before calling it installable. The exact group is
+  configured in the Codemagic post-processing step and was verified in App
+  Store Connect before the candidate was frozen.
+- [ ] On a physical iPhone, perform upgrade and fresh-install passes plus cold
+  and warm `.ics` sharing, reminder intent/denial/re-import, both widget sizes
+  and refresh/privacy states, Open Door launcher feel, accessibility, warm
+  performance, and Fable listening on speaker and headphones.
+- [ ] Only after that installed pass, capture the genuine Home Screen widget,
+  regenerate and inspect the complete ten-frame App Store story, create the
+  strict screenshot-manifest receipt, update the App Store draft, and decide
+  separately whether to request public review.
+
 ## 1.0.4+39 polished internal candidate
 
 Build 39 is the polished room-continuity, optional-photo, and privacy-defaults

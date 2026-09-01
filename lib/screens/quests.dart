@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../audio.dart';
+import '../background_music.dart';
 import '../clock.dart';
 import '../content/achievements.dart';
 import '../content/cosmetics.dart';
@@ -84,6 +85,7 @@ class QuestsPage extends StatefulWidget {
     this.focusQuestTitle,
     this.focusRequestId = 0,
     this.workoutRequestId = 0,
+    this.musicController,
   });
 
   final GameState state;
@@ -150,6 +152,10 @@ class QuestsPage extends StatefulWidget {
   /// the sole owner of the runner and reward path, even when another room is
   /// the entry point.
   final int workoutRequestId;
+
+  /// The shell's one optional long-lived music voice. Kept optional for
+  /// direct previews; production passes it into timer-verified Focus rooms.
+  final BackgroundMusicController? musicController;
 
   @override
   State<QuestsPage> createState() => _QuestsPageState();
@@ -854,6 +860,7 @@ class _QuestsPageState extends State<QuestsPage> with WidgetsBindingObserver {
         builder: (_) => TimerOverlay(
           questTitle: q.title,
           minutes: q.effectiveTimerMinutes,
+          musicController: widget.musicController,
           onFinished: () {
             timer.remove();
             if (mounted) _runCompletion(q, tapPos, verified: true);

@@ -15,7 +15,7 @@ void main() {
               ).readAsStringSync(),
             )
             as Map<String, dynamic>;
-    expect(manifest['identity'], 'Room of Days - Day Ledger');
+    expect(manifest['identity'], 'Room of Days - Open Door of Light');
     final records = <Map<String, dynamic>>[
       ...(manifest['sources'] as List).cast<Map<String, dynamic>>(),
       ...(manifest['outputs'] as List).cast<Map<String, dynamic>>(),

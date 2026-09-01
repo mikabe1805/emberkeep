@@ -33,8 +33,10 @@ class EventReminder {
     required this.when,
     required this.title,
     required this.body,
+    this.absolute = false,
   });
   final DateTime when;
   final String title;
   final String body;
+  final bool absolute;
 }

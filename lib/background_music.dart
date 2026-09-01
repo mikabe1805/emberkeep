@@ -81,6 +81,14 @@ class BackgroundMusicController {
   final double volume;
 
   bool _enabled = false;
+  // A focus session may opt into the existing bed without changing the
+  // user's persisted preference. This is intentionally ephemeral: callers
+  // should clear it when the session ends or is muted.
+  bool _sessionEnabled = false;
+  // A focus session may also ask for quiet without rewriting the person's
+  // saved preference. Clearing this at the session boundary restores the
+  // ordinary global choice.
+  bool _sessionMuted = false;
   bool _foreground = true;
   bool _playing = false;
   bool _disposed = false;
@@ -88,11 +96,35 @@ class BackgroundMusicController {
   Future<void> _tail = Future<void>.value();
 
   bool get enabled => _enabled;
+  bool get sessionEnabled => _sessionEnabled;
+  bool get sessionMuted => _sessionMuted;
+  bool get foreground => _foreground;
   bool get isPlaying => _playing;
+
+  /// Whether music is currently wanted by either the saved preference or an
+  /// active, explicitly opted-in focus session.
+  bool get shouldPlay =>
+      (_enabled || _sessionEnabled) && !_sessionMuted && _foreground;
 
   Future<void> setEnabled(bool enabled) {
     if (_disposed) return Future<void>.value();
     _enabled = enabled;
+    return _schedule();
+  }
+
+  /// Temporarily opts the current focus session into the music bed. This does
+  /// not mutate [enabled] and is never persisted by the controller.
+  Future<void> setSessionEnabled(bool enabled) {
+    if (_disposed) return Future<void>.value();
+    _sessionEnabled = enabled;
+    return _schedule();
+  }
+
+  /// Temporarily suppresses the bed during a focus session while preserving
+  /// both the saved preference and the session's opt-in choice.
+  Future<void> setSessionMuted(bool muted) {
+    if (_disposed) return Future<void>.value();
+    _sessionMuted = muted;
     return _schedule();
   }
 
@@ -111,7 +143,8 @@ class BackgroundMusicController {
     if (_disposed) return Future<void>.value();
     _tail = _tail.catchError((Object _) {}).then<void>((_) async {
       if (_disposed) return;
-      final shouldPlay = _enabled && _foreground;
+      final shouldPlay =
+          (_enabled || _sessionEnabled) && !_sessionMuted && _foreground;
       if (shouldPlay == _playing) return;
       if (shouldPlay) {
         try {
@@ -119,7 +152,7 @@ class BackgroundMusicController {
           // holding the lifecycle queue behind a cosmetic delay.
           await _transport.startOrResumeLoop(asset, volume: 0);
           if (_disposed) return;
-          if (_enabled && _foreground) {
+          if ((_enabled || _sessionEnabled) && !_sessionMuted && _foreground) {
             _playing = true;
             _fadeIn();
           } else {
@@ -154,7 +187,8 @@ class BackgroundMusicController {
         await Future<void>.delayed(const Duration(milliseconds: 45));
         if (_disposed ||
             !_playing ||
-            !_enabled ||
+            !(_enabled || _sessionEnabled) ||
+            _sessionMuted ||
             !_foreground ||
             epoch != _fadeEpoch) {
           return;

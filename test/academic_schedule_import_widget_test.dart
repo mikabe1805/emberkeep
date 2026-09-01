@@ -9,6 +9,7 @@ import 'package:emberkeep/clock.dart';
 import 'package:emberkeep/engine.dart';
 import 'package:emberkeep/screens/calendar.dart';
 import 'package:emberkeep/tokens.dart';
+import 'package:emberkeep/widgets/glass_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -151,6 +152,51 @@ void main() {
       expect(find.byType(AcademicScheduleImportDialog), findsOneWidget);
     },
   );
+
+  testWidgets('class reminder is off until the review explicitly enables it', (
+    tester,
+  ) async {
+    AcademicScheduleImportDraft? imported;
+    await _pumpDialog(
+      tester,
+      picker: _rutgersPicker(),
+      onImport: (draft) async {
+        imported = draft;
+        return true;
+      },
+    );
+
+    await tester.tap(find.byKey(const ValueKey('academic-import-choose')));
+    await tester.pumpAndSettle();
+
+    final reminderSwitch = find.byKey(
+      const ValueKey('academic-import-reminder-switch'),
+    );
+    expect(reminderSwitch, findsOneWidget);
+    expect(tester.widget<GlassSwitch>(reminderSwitch).value, isFalse);
+    expect(
+      find.byKey(const ValueKey('academic-import-reminder-offset')),
+      findsNothing,
+    );
+
+    await tester.ensureVisible(reminderSwitch);
+    await tester.tap(reminderSwitch);
+    await tester.pumpAndSettle();
+    expect(tester.widget<GlassSwitch>(reminderSwitch).value, isTrue);
+    expect(
+      find.byKey(const ValueKey('academic-import-reminder-offset')),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('academic-import-confirm')),
+    );
+    await tester.tap(find.byKey(const ValueKey('academic-import-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(imported?.reminderChoice, AcademicScheduleImportReminderChoice.on);
+    expect(imported?.reminderOffsetMinutes, 10);
+  });
 
   testWidgets('Daybook import writes the reviewed schedule once', (
     tester,

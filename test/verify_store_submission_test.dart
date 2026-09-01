@@ -11,6 +11,9 @@ void main() {
       ).readAsStringSync();
 
       expect(verifier, contains("arguments.single == '--ios-only'"));
+      expect(verifier, contains("arguments.single == '--ios-testflight'"));
+      expect(verifier, contains('_VerificationMode.iosTestFlight'));
+      expect(verifier, contains('if (!testFlightOnly)'));
       expect(verifier, contains("final listingFile = File(_listingName)"));
       expect(verifier, isNot(contains('_findAncestorFile')));
       expect(
