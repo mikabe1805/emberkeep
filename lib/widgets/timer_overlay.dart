@@ -59,6 +59,10 @@ class _TimerOverlayState extends State<TimerOverlay>
     WidgetsBinding.instance.addObserver(this);
     _end = Clock.now().add(Duration(minutes: widget.minutes));
     _tick = Timer.periodic(const Duration(seconds: 1), (_) => _check());
+    // Focus is a real music-role boundary: a saved Room-music choice moves
+    // from the jazzy umbrella-brush rotation to the peaceful meditation bed
+    // for this overlay, without rewriting the saved preference.
+    unawaited(widget.musicController?.enterFocusSession());
   }
 
   @override
@@ -86,14 +90,9 @@ class _TimerOverlayState extends State<TimerOverlay>
     _tick?.cancel();
     final music = widget.musicController;
     if (music != null) {
-      // Session choices are ephemeral. Restore the person's ordinary music
-      // preference after the Focus room closes, even when the overlay is
-      // dismissed while an asynchronous start is still resolving.
-      unawaited(
-        music
-            .setSessionEnabled(false)
-            .then<void>((_) => music.setSessionMuted(false)),
-      );
+      // Session choices are ephemeral. This also restores the fun normal-room
+      // rotation when the saved global preference is still on.
+      unawaited(music.leaveFocusSession());
     }
     super.dispose();
   }
@@ -237,8 +236,8 @@ class _TimerOverlayState extends State<TimerOverlay>
                                 button: true,
                                 toggled: music.shouldPlay,
                                 label: music.shouldPlay
-                                    ? 'Turn room music off for this focus session'
-                                    : 'Turn room music on for this focus session',
+                                    ? 'Turn meditation music off for this focus session'
+                                    : 'Turn meditation music on for this focus session',
                                 child: GestureDetector(
                                   behavior: HitTestBehavior.opaque,
                                   onTap: _musicBusy ? null : _toggleMusic,
@@ -283,7 +282,7 @@ class _TimerOverlayState extends State<TimerOverlay>
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'ROOM MUSIC',
+                                                'FOCUS MUSIC',
                                                 style: Type.label.copyWith(
                                                   fontSize: 11,
                                                   color: music.shouldPlay
@@ -294,8 +293,8 @@ class _TimerOverlayState extends State<TimerOverlay>
                                               const SizedBox(height: 2),
                                               Text(
                                                 music.shouldPlay
-                                                    ? 'playing softly · tap anytime to quiet'
-                                                    : 'optional · tap for the quiet room theme',
+                                                    ? 'meditation theme · tap anytime to quiet'
+                                                    : 'optional · tap for the peaceful focus theme',
                                                 style: Type.body.copyWith(
                                                   fontSize: 11,
                                                   color: Palette.textLo,

@@ -55,14 +55,14 @@ void main() {
     await tester.pump();
 
     expect(find.text('A few new things'), findsOneWidget);
-    expect(find.text('Your day, closer at hand.'), findsOneWidget);
+    expect(find.text('The room found its rhythm.'), findsOneWidget);
     expect(find.text('A CLASS FILE THAT OPENS HERE'), findsOneWidget);
     expect(find.text('YOUR NEXT THINGS, AT A GLANCE'), findsOneWidget);
     expect(find.text('A STARTER YOU CAN MAKE YOUR OWN'), findsOneWidget);
-    expect(find.text('FOCUS, WITH AN EASY WAY OUT'), findsOneWidget);
+    expect(find.text('TWO KINDS OF ROOM MUSIC'), findsOneWidget);
     expect(find.text('KEEP GOING'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+40')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+41')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -154,7 +154,7 @@ void main() {
     await tester.pump();
 
     final currentTop = tester.getTopLeft(
-      find.byKey(const ValueKey('whats-new-release-1.0.4+40')),
+      find.byKey(const ValueKey('whats-new-release-1.0.4+41')),
     );
     final olderTop = tester.getTopLeft(
       find.byKey(const ValueKey('whats-new-release-1.0.0+12')),
@@ -238,7 +238,7 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          '../design/audits/2026-09-01/build40/whats-new/whats_new_430x932.png',
+          '../design/audits/2026-09-01/build41/whats-new/whats_new_430x932.png',
         ),
       );
     }
@@ -252,7 +252,7 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          '../design/audits/2026-09-01/build40/whats-new/whats_new_320x568_text_2x.png',
+          '../design/audits/2026-09-01/build41/whats-new/whats_new_320x568_text_2x.png',
         ),
       );
       await tester.scrollUntilVisible(
@@ -264,7 +264,7 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile(
-          '../design/audits/2026-09-01/build40/whats-new/whats_new_320x568_text_2x_scrolled.png',
+          '../design/audits/2026-09-01/build41/whats-new/whats_new_320x568_text_2x_scrolled.png',
         ),
       );
     }

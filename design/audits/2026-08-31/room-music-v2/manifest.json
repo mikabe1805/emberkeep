@@ -1,0 +1,104 @@
+{
+  "study": "room-music-v2",
+  "render_version": "room-music-v2-author-v4",
+  "companion_to": "design/audits/2026-08-29/room-music-v1",
+  "world_root": "design/audits/2026-08-20/room-sonic-world-v1",
+  "contact_master": "design/audits/2026-08-20/room-sonic-world-v1/shared/contact-master.wav",
+  "contact_master_sha256": "f9360a3dc476b2bc6764c4165e07908326512b28a8a91603bf623fd908539885",
+  "role_sources": {
+    "navigate": {
+      "path": "design/audits/2026-08-20/room-sonic-world-v1/roles/navigate/1.wav",
+      "sha256": "5e77d912c56c3c19a6eab5bac94b919e7766b61b26fe82b2edad2b8d431c7074"
+    },
+    "open": {
+      "path": "design/audits/2026-08-20/room-sonic-world-v1/roles/open/1.wav",
+      "sha256": "d65524fa80c1f9f23adc0a677a656dcda4fe4a56b0d76863a034c6ff0de13b52"
+    },
+    "select": {
+      "path": "design/audits/2026-08-20/room-sonic-world-v1/roles/select/1.wav",
+      "sha256": "aecdc07653984c0a9c5dd32afe8f6279ab2683c66cea6a62e58521e26d18e4ac"
+    },
+    "place": {
+      "path": "design/audits/2026-08-20/room-sonic-world-v1/roles/place/1.wav",
+      "sha256": "c4f9d9fc9ec086c549f0dc388889c76181d6a349b9d1cc3bf851bcbfc20a4459"
+    }
+  },
+  "harmony": {
+    "center": "B minor inside the D-major field (all pitches diatonic to D major)",
+    "loop": "| Bm9 | Bm9 | F#m7(11) | F#m7(11) | A9sus | A9sus | Em9 | Em9 |",
+    "bridge": "Gmaj9 -> A13 -> Dmaj9 -> Em9 (once per render where the candidate calls for it)",
+    "tap_field": "D E F# A B \u2014 a subset of the harmony's scale; consonance by construction"
+  },
+  "target_phone_band_dbfs": -36.0,
+  "excitation_gain": {
+    "keys": 0.012,
+    "lead": 0.02
+  },
+  "rain": "Poisson micro-droplet grains, no broadband wash; level -20..-26 dB under the music's phone-band RMS",
+  "seed_block": "13000-13499",
+  "sample_format": "PCM_16",
+  "candidates": {
+    "windowseat": {
+      "bpm": 96.0,
+      "swing": null,
+      "feel": "96 BPM, straight eighths",
+      "bars": 38,
+      "phrase_count": 8,
+      "chord_events": 21,
+      "rain_offset_target_db": -25.0,
+      "rain_under_music_db": -25.0,
+      "sha256": "e354cc5d76bfba1ec541f8c1c708bd61bc19d32273892c77c0545d6c092649ef",
+      "flow_sha256": "23e03bd7f319ea58b20894a77315ecede4cf3a4d8c64a67edc2278aab857de29",
+      "score": "windowseat-score.json",
+      "score_sha256": "dfd9aa2ee326fd672620411d5d6ff593e8176904dd7be555aaf21e5cd4dfdb66",
+      "seconds": 96.0,
+      "peak": 0.12544,
+      "phone_band_rms_dbfs": -36.0,
+      "note_events": 256,
+      "percussion_events": 224
+    },
+    "umbrella": {
+      "bpm": 72.0,
+      "swing": 0.57,
+      "feel": "72 BPM, swung eighths ~57% (light MPC feel)",
+      "bars": 28,
+      "phrase_count": 3,
+      "chord_events": 16,
+      "hat": "rain",
+      "rain_offset_target_db": -21.0,
+      "rain_under_music_db": -21.0,
+      "answers_sha256": "bb0d2e31e528f29a0f98b954a82b72de8155488a6bfc428239933edee95fbc21",
+      "sha256": "1030941200e0d7ed57c24075beadeec153a63436fe633a5d6d7564139d3535ba",
+      "flow_sha256": "81c79af52d491d405ce034fccf9f7f74878c4e2217a6ff53036901ddb250fe7c",
+      "score": "umbrella-score.json",
+      "score_sha256": "959dbe3e118576006578bbded46a57fd6c90691536b22999280f2e99cc148529",
+      "seconds": 96.0,
+      "peak": 0.145495,
+      "phone_band_rms_dbfs": -36.0,
+      "note_events": 213,
+      "percussion_events": 111
+    },
+    "drizzle": {
+      "bpm": 66.0,
+      "swing": null,
+      "feel": "~66 BPM feel, free placement (no grid, no percussion)",
+      "bars": null,
+      "phrase_count": 4,
+      "chord_events": 8,
+      "gmaj9_events": 1,
+      "air_offset_target_db": -12.0,
+      "air_under_music_db": -12.0,
+      "rain_offset_target_db": -24.0,
+      "rain_under_music_db": -24.0,
+      "sha256": "b00a44df3a65911c0f5b77b2b7ddd908e7e72ab18ee6c58d1ce48541d5c07a0b",
+      "flow_sha256": "68f23bb69d2d0449a01291493ec271ba3be093d3ab06ea5dc746776b85cb2c48",
+      "score": "drizzle-score.json",
+      "score_sha256": "413ac4cdf54aad0e7749f2869ae2ec64fc465aa5300f65c25a1d32b85aa0e4b2",
+      "seconds": 96.0,
+      "peak": 0.156842,
+      "phone_band_rms_dbfs": -36.0,
+      "note_events": 35,
+      "percussion_events": 0
+    }
+  }
+}

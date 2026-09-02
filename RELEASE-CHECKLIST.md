@@ -3,14 +3,49 @@
 Updated September 1, 2026. “Repository-ready” means the source is prepared; it does
 not replace a signed device build or store-console review.
 
-## 1.0.4+40 classes, widgets, Focus, and Open Door internal candidate
+## 1.0.4+41 corrected music roles internal candidate
 
-Build 40 turns class schedules into an understandable Room of Days workflow:
+Build 41 preserves the Build 40 class import, reminders, widgets, and Open Door
+work while correcting the long-form music assignment. The normal room now owns
+the lively, owner-selected umbrella-brush rotation; Focus alone owns the
+peaceful meditation theme. `pubspec.yaml` is `1.0.4+41`.
+
+- [x] Recover the approved umbrella-brush source study and eight deterministic
+  96-second performances, pin every shipped digest, and keep the peaceful
+  Steward-supper master as a distinctly named Focus asset.
+- [x] Model normal Room and Focus as separate playback roles. Entering Focus
+  waits for normal music to fade silent; leaving waits for Focus to pause before
+  restoring jazz only when the saved global preference remains on.
+- [x] Keep both roles optional, mix with other audio, pause in the background,
+  retry safely after a browser gesture, duck normal music under earned sounds,
+  and prevent quick toggles or shell recreation from stranding playback.
+- [x] Update the Focus control, Me copy, in-app release note, store packet,
+  device runbook, web offline manifest, and exact asset-role regressions.
+- [x] Pass analysis, all 1,104 Flutter tests, store metadata verification,
+  asset/provenance checks, and fresh Focus/What's New rendered-state review.
+- [ ] From the clean receipt child, pass the immutable-candidate verifier.
+- [ ] Freeze all Build 41 source and CI identity in one commit. Add exactly one
+  manifest-only receipt child for
+  `room-of-days-1.0.4-build-41-internal-candidate-retry-1`; do not alter either
+  Build 40 tag or receipt.
+- [ ] Push only the exact Build 41 branch and receipt tag. Confirm Codemagic
+  proves both signed targets, uploads the IPA, and Apple processes Build 41 into
+  the internal TestFlight group `Me`. Do not request public App Review.
+- [ ] On the exact physical-iPhone candidate, verify normal Room jazz, Focus
+  meditation, one-tap quiet, both global-preference paths, clean transitions,
+  background/resume, speaker/headphones, and coexistence with other audio.
+- [ ] Complete the remaining `.ics`, reminder, widget, upgrade, accessibility,
+  privacy, performance, and screenshot gates before any public submission.
+
+## 1.0.4+40 classes, widgets, Focus, and Open Door — superseded
+
+Build 40 turned class schedules into an understandable Room of Days workflow:
 editable `.ics` handoff, review-first import, deliberately enabled class
 reminders, a private iPhone glance for the next class and up to three unfinished
 Quests, and optional Fable atmosphere inside Focus. Open Door of Light replaces
 the rejected ledger-as-storefront direction while Day Ledger remains the useful
-widget language. `pubspec.yaml` is `1.0.4+40`.
+widget language. Its processed TestFlight binary is superseded by Build 41
+because the peaceful Focus theme was also used as normal Room music.
 
 - [x] Start from the exact Build 39 candidate source in the isolated
   `build40-classes-widgets-focus` worktree; preserve the dirty shared checkout
@@ -53,20 +88,22 @@ widget language. `pubspec.yaml` is `1.0.4+40`.
 - [x] Repair the macOS alias mismatch, assert exact relative icon-source paths,
   rerun all 1,095 tests and analysis, and confirm App Store Connect still ends at
   Build 39. An independent retry-source audit found no release blocker.
-- [ ] Freeze that narrow retry source, add one new manifest-only internal
+- [x] Freeze that narrow retry source, add one new manifest-only internal
   TestFlight receipt as its immediate child, and push
   `room-of-days-1.0.4-build-40-internal-candidate-retry-1` once. Ordinary branch
   pushes remain inert; do not also start a manual Codemagic run or move the
   original tag.
-- [ ] Confirm Codemagic validates the receipt, metadata, analyzer, all tests,
+- [x] Confirm Codemagic validates the receipt, metadata, analyzer, all tests,
   both provisioning profiles, both signed bundles, IPA contents, and publishing
   from the exact receipt commit. Preserve IPA, all dSYMs, logs, hashes, and
   `release-evidence.txt`.
-- [ ] Confirm Apple processes Build 40 and attaches it to the intended internal
+- [x] Confirm Apple processes Build 40 and attaches it to the intended internal
   TestFlight group `Me` before calling it installable. The exact group is
   configured in the Codemagic post-processing step and was verified in App
   Store Connect before the candidate was frozen.
-- [ ] On a physical iPhone, perform upgrade and fresh-install passes plus cold
+- [ ] Do not accept Build 40 on a physical iPhone. Its class/widget work remains
+  the Build 41 test baseline, but its wrong normal-music role is a known blocker.
+- [ ] On Build 41, perform upgrade and fresh-install passes plus cold
   and warm `.ics` sharing, reminder intent/denial/re-import, both widget sizes
   and refresh/privacy states, Open Door launcher feel, accessibility, warm
   performance, and Fable listening on speaker and headphones.

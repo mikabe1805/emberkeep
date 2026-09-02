@@ -20,12 +20,12 @@ journal.
 
 ### iPhone
 
-- Install only the processed Room of Days `1.0.4` (Build 40) from TestFlight.
+- Install only the processed Room of Days `1.0.4` (Build 41) from TestFlight.
   It must come from the exact
-  `room-of-days-1.0.4-build-40-internal-candidate-retry-1` receipt through the
+  `room-of-days-1.0.4-build-41-internal-candidate-retry-1` receipt through the
   Codemagic `ios-testflight` workflow; do not substitute a local debug/profile
-  build. The unsuffixed Build 40 tag is preserved as a terminal failed attempt
-  that stopped before signing and is not an installable candidate.
+  build. Both Build 40 tags remain immutable history; Build 40 is superseded
+  because it assigned the peaceful Focus track to the normal room too.
 - Keep the emitted IPA, matching Runner dSYM, Codemagic log, and
   `release-evidence.txt` together. Record the IPA SHA-256 after the signed build
   exists; do not copy Build 19's hash into the new receipt.
@@ -68,11 +68,11 @@ Run the upgrade check before uninstalling anything:
 - [ ] Uninstall Room of Days, then install the verified Build 12 APK fresh.
   Confirm the old test data is gone and onboarding begins normally.
 
-For iPhone, first install Build 40 over the newest processed TestFlight build
+For iPhone, first install Build 41 over the newest processed TestFlight build
 already on the phone without deleting Room of Days. Confirm the save, journal,
 room, Daybook, settings, and account state remain and What's New appears once.
 Separately, use a disposable test device or installation for the
-uninstall/reinstall check: install Build 40 fresh and confirm onboarding starts
+uninstall/reinstall check: install Build 41 fresh and confirm onboarding starts
 with no prior test data. Never delete the owner's personal app data for this
 check.
 
@@ -230,7 +230,7 @@ APK chooser during the earlier smoke as provisional and repeat after that step.
 - [ ] On Android, system notification settings show the user-facing channel as
   `Reminders`, with no Emberkeep or Life RPG label.
 
-## 8. Build 40 classes, widgets, and Focus
+## 8. Build 41 classes, widgets, and music roles
 
 - [ ] Download the checked-in class-schedule starter, edit its documented
   fields and a comma-separated recurrence such as `BYDAY=MO,WE,FR`, then share
@@ -259,15 +259,19 @@ APK chooser during the earlier smoke as provisional and repeat after that step.
   Confirm the next class advances, the extension never displays malformed or
   stale private text, and lock-screen/app-switcher privacy treatment is
   acceptable.
-- [ ] Start Focus with global room music off, opt into the Fable atmosphere for
-  that session, make it quiet in one tap, and close the timer. The global music
-  preference remains off. Repeat with global music on and confirm the saved
-  preference returns after Focus closes.
-- [ ] Listen to the Focus track on the phone speaker and headphones at low and
-  ordinary volume. Exercise pause/resume, background/foreground, an incoming
-  audio interruption, Ring/Silent, and another audio app already playing. The
-  timer stays coherent, quiet remains easy, and the mix never feels coercive or
-  tiring.
+- [ ] Leave global Background music off, then turn it on in Me. The normal room
+  must play the lively jazzy umbrella-brush rotation, never the peaceful
+  meditation theme. Toggle it quickly and background/resume; it must not get
+  stuck silent or overlap another long-form track.
+- [ ] Start Focus with global music off, turn Focus Music on, and confirm the
+  peaceful meditation theme. Make it quiet in one tap and close the timer; the
+  normal room must remain silent. Repeat with global music on and verify the
+  complete handoff: normal Room jazz → Focus meditation → normal Room jazz.
+- [ ] Listen to both roles and their transitions on the phone speaker and
+  headphones at low and ordinary volume. Exercise pause/resume,
+  background/foreground, an incoming audio interruption, Ring/Silent, and
+  another audio app already playing. There must be no overlap, crackle, stuck
+  silence, coercive level, or tiring mix.
 
 ## 9. Accessibility and readable layout
 

@@ -1,11 +1,19 @@
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 
-/// The one optional long-lived music voice. It is deliberately separate from
-/// [Sfx]: interaction sound remains available whether music is on or off.
+import 'main_room_music.dart';
+import 'platform/audio_support_stub.dart'
+    if (dart.library.js_interop) 'platform/audio_support_web.dart';
+
+/// The two intentionally different long-form music roles.
+enum RoomMusicRole { main, focus }
+
+/// Transport for the single peaceful Focus loop. The normal room uses
+/// [MainRoomMusicPlayback], whose approved eight-take rotation has different
+/// playback and crossfade needs.
 abstract interface class BackgroundMusicTransport {
-  /// Starts [asset] once, then resumes that same looping source after pauses.
   Future<void> startOrResumeLoop(String asset, {required double volume});
   Future<void> setVolume(double volume);
   Future<void> pause();
@@ -14,8 +22,7 @@ abstract interface class BackgroundMusicTransport {
 
 class AudioplayersBackgroundMusicTransport implements BackgroundMusicTransport {
   AudioplayersBackgroundMusicTransport({AudioPlayer? player})
-    : _player =
-          player ?? AudioPlayer(playerId: 'room-of-days-background-music');
+    : _player = player ?? AudioPlayer(playerId: 'room-of-days-focus-music');
 
   final AudioPlayer _player;
   bool _configured = false;
@@ -24,8 +31,6 @@ class AudioplayersBackgroundMusicTransport implements BackgroundMusicTransport {
   @override
   Future<void> startOrResumeLoop(String asset, {required double volume}) async {
     if (!_configured) {
-      // Match the event-sound contract explicitly. Music remains optional and
-      // must mix with a person's own audio rather than taking focus from it.
       await _player.setAudioContext(
         AudioContext(
           iOS: AudioContextIOS(
@@ -63,48 +68,79 @@ class AudioplayersBackgroundMusicTransport implements BackgroundMusicTransport {
   Future<void> dispose() => _player.dispose();
 }
 
-/// Serializes background-music intent across settings, lifecycle, and browser
-/// gesture retries. A stale asynchronous start can therefore only be followed
-/// by the newer requested pause; it cannot resurrect music after it was off.
+/// Owns the semantic boundary between normal Room music and Focus music.
+///
+/// - The saved global preference controls the approved umbrella-brush main
+///   rotation outside Focus.
+/// - Entering Focus temporarily replaces that bed with the peaceful
+///   meditation loop when music is wanted.
+/// - Focus opt-in and quiet are ephemeral and never rewrite the saved global
+///   preference.
+/// - Leaving Focus restores the main rotation only when the global preference
+///   is still on.
 class BackgroundMusicController {
+  static int _latestSharedMainLease = 0;
+
+  static int _claimSharedMainLease() => ++_latestSharedMainLease;
+
   BackgroundMusicController({
     BackgroundMusicTransport? transport,
-    this.asset = 'music/room-theme.m4a',
-    // Fable master: -24 LUFS / -26.7 dBFS phone-band RMS. This 0.35 gain
-    // lands near -35.8 dBFS phone-band RMS: a quiet bed below conversation
-    // and the approved event sounds, while still audible when chosen.
-    this.volume = 0.35,
-  }) : _transport = transport ?? AudioplayersBackgroundMusicTransport();
+    MainRoomMusicPlayback? mainMusic,
+    this.focusAsset = 'music/focus-meditation.m4a',
+    // The meditation master is -24 LUFS. This gain keeps it below speech and
+    // the approved interaction cues while remaining audible when chosen.
+    this.focusVolume = 0.35,
+  }) : _focusTransport = transport ?? AudioplayersBackgroundMusicTransport(),
+       _mainMusic = mainMusic ?? MainRoomMusic.instance,
+       _ownsMainMusic = mainMusic != null,
+       _sharedMainLease = mainMusic == null ? _claimSharedMainLease() : null;
 
-  final BackgroundMusicTransport _transport;
-  final String asset;
-  final double volume;
+  final BackgroundMusicTransport _focusTransport;
+  final MainRoomMusicPlayback _mainMusic;
+  // The production instance is shared with Sfx for gesture retries and
+  // ducking. An AppShell can be recreated in the same process, so disposing
+  // that singleton here would make every later shell permanently silent.
+  // Injected transports remain controller-owned for deterministic tests.
+  final bool _ownsMainMusic;
+  final int? _sharedMainLease;
+  final String focusAsset;
+  final double focusVolume;
 
   bool _enabled = false;
-  // A focus session may opt into the existing bed without changing the
-  // user's persisted preference. This is intentionally ephemeral: callers
-  // should clear it when the session ends or is muted.
+  bool _sessionActive = false;
   bool _sessionEnabled = false;
-  // A focus session may also ask for quiet without rewriting the person's
-  // saved preference. Clearing this at the session boundary restores the
-  // ordinary global choice.
   bool _sessionMuted = false;
   bool _foreground = true;
-  bool _playing = false;
+  bool _focusPlaying = false;
   bool _disposed = false;
   int _fadeEpoch = 0;
+  RoomMusicRole? _currentRole;
   Future<void> _tail = Future<void>.value();
 
   bool get enabled => _enabled;
+  bool get sessionActive => _sessionActive;
   bool get sessionEnabled => _sessionEnabled;
   bool get sessionMuted => _sessionMuted;
   bool get foreground => _foreground;
-  bool get isPlaying => _playing;
+  RoomMusicRole? get currentRole => _currentRole;
+  bool get isPlaying => switch (_currentRole) {
+    RoomMusicRole.main => _mainMusic.isPlaying,
+    RoomMusicRole.focus => _focusPlaying,
+    null => false,
+  };
 
-  /// Whether music is currently wanted by either the saved preference or an
-  /// active, explicitly opted-in focus session.
-  bool get shouldPlay =>
-      (_enabled || _sessionEnabled) && !_sessionMuted && _foreground;
+  RoomMusicRole? get _desiredRole {
+    if (!_foreground) return null;
+    if (_sessionActive) {
+      final focusWanted = (_enabled || _sessionEnabled) && !_sessionMuted;
+      return focusWanted ? RoomMusicRole.focus : null;
+    }
+    return _enabled ? RoomMusicRole.main : null;
+  }
+
+  /// Logical music intent. This can remain true while a browser is waiting
+  /// for a user gesture or while a failed audio start remains retryable.
+  bool get shouldPlay => _desiredRole != null;
 
   Future<void> setEnabled(bool enabled) {
     if (_disposed) return Future<void>.value();
@@ -112,16 +148,31 @@ class BackgroundMusicController {
     return _schedule();
   }
 
-  /// Temporarily opts the current focus session into the music bed. This does
-  /// not mutate [enabled] and is never persisted by the controller.
+  /// Marks the TimerOverlay boundary. A globally enabled room moves from the
+  /// fun rotation to the meditation loop here, not when a setting changes.
+  Future<void> enterFocusSession() {
+    if (_disposed) return Future<void>.value();
+    _sessionActive = true;
+    _sessionEnabled = false;
+    _sessionMuted = false;
+    return _schedule();
+  }
+
+  /// Clears every ephemeral Focus choice and restores the global role.
+  Future<void> leaveFocusSession() {
+    if (_disposed) return Future<void>.value();
+    _sessionActive = false;
+    _sessionEnabled = false;
+    _sessionMuted = false;
+    return _schedule();
+  }
+
   Future<void> setSessionEnabled(bool enabled) {
     if (_disposed) return Future<void>.value();
     _sessionEnabled = enabled;
     return _schedule();
   }
 
-  /// Temporarily suppresses the bed during a focus session while preserving
-  /// both the saved preference and the session's opt-in choice.
   Future<void> setSessionMuted(bool muted) {
     if (_disposed) return Future<void>.value();
     _sessionMuted = muted;
@@ -134,67 +185,100 @@ class BackgroundMusicController {
     return _schedule();
   }
 
-  /// Browsers may reject a restored opt-in before a user gesture. A pointer
-  /// can call this safely: it only starts when enabled, foregrounded, and not
-  /// already playing.
-  Future<void> retryAfterUserGesture() => _schedule();
-
-  Future<void> _schedule() {
+  Future<void> retryAfterUserGesture() {
     if (_disposed) return Future<void>.value();
     _tail = _tail.catchError((Object _) {}).then<void>((_) async {
-      if (_disposed) return;
-      final shouldPlay =
-          (_enabled || _sessionEnabled) && !_sessionMuted && _foreground;
-      if (shouldPlay == _playing) return;
-      if (shouldPlay) {
-        try {
-          // Start/resume at silence, then fade the optional bed in without
-          // holding the lifecycle queue behind a cosmetic delay.
-          await _transport.startOrResumeLoop(asset, volume: 0);
-          if (_disposed) return;
-          if ((_enabled || _sessionEnabled) && !_sessionMuted && _foreground) {
-            _playing = true;
-            _fadeIn();
-          } else {
-            await _transport.pause();
-            _playing = false;
-          }
-        } catch (_) {
-          // A WebAudio unlock or asset-load failure stays retryable on a real
-          // gesture or later foreground event.
-          _playing = false;
-        }
-      } else {
-        _fadeEpoch++;
-        try {
-          await _transport.pause();
-          _playing = false;
-        } catch (_) {
-          // Keep the last known playing state. A later lifecycle/settings
-          // reconciliation will make another pause attempt instead of starting
-          // a duplicate loop.
-        }
+      if (_disposed || _desiredRole == null) return;
+      if (_desiredRole == RoomMusicRole.main) {
+        await _mainMusic.retryAfterUserGesture();
+      } else if (!_focusPlaying) {
+        await _startFocus();
       }
     });
     return _tail;
   }
 
-  void _fadeIn() {
+  Future<void> _schedule() {
+    if (_disposed) return Future<void>.value();
+    _tail = _tail.catchError((Object _) {}).then<void>((_) async {
+      if (_disposed) return;
+      await _mainMusic.setForeground(_foreground);
+      final desired = _desiredRole;
+
+      if (_currentRole == desired) {
+        if (desired == RoomMusicRole.main && !_mainMusic.isPlaying) {
+          await _mainMusic.setEnabled(true);
+        } else if (desired == RoomMusicRole.focus && !_focusPlaying) {
+          await _startFocus();
+        }
+        return;
+      }
+
+      _fadeEpoch++;
+      if (_currentRole == RoomMusicRole.main || desired != RoomMusicRole.main) {
+        await _mainMusic.setEnabled(false);
+      }
+      if (_currentRole == RoomMusicRole.focus) {
+        try {
+          await _focusTransport.pause();
+          _focusPlaying = false;
+        } catch (_) {
+          // Keep the known playing state so the next reconciliation retries
+          // the pause instead of starting another role over a loop that may
+          // still be audible.
+          return;
+        }
+      }
+
+      _currentRole = null;
+      if (desired == RoomMusicRole.main) {
+        await _mainMusic.setEnabled(true);
+        _currentRole = RoomMusicRole.main;
+      } else if (desired == RoomMusicRole.focus) {
+        await _startFocus();
+      }
+    });
+    return _tail;
+  }
+
+  Future<void> _startFocus() async {
+    try {
+      await _mainMusic.setEnabled(false);
+      if (kIsWeb && !browserAudioAvailable) {
+        _focusPlaying = false;
+        _currentRole = null;
+        return;
+      }
+      await _focusTransport.startOrResumeLoop(focusAsset, volume: 0);
+      if (_disposed || _desiredRole != RoomMusicRole.focus) {
+        await _focusTransport.pause();
+        _focusPlaying = false;
+        _currentRole = null;
+        return;
+      }
+      _focusPlaying = true;
+      _currentRole = RoomMusicRole.focus;
+      _fadeInFocus();
+    } catch (_) {
+      _focusPlaying = false;
+      _currentRole = null;
+    }
+  }
+
+  void _fadeInFocus() {
     final epoch = ++_fadeEpoch;
     unawaited(() async {
       const steps = 5;
       for (var step = 1; step <= steps; step++) {
         await Future<void>.delayed(const Duration(milliseconds: 45));
         if (_disposed ||
-            !_playing ||
-            !(_enabled || _sessionEnabled) ||
-            _sessionMuted ||
-            !_foreground ||
+            !_focusPlaying ||
+            _desiredRole != RoomMusicRole.focus ||
             epoch != _fadeEpoch) {
           return;
         }
         try {
-          await _transport.setVolume(volume * step / steps);
+          await _focusTransport.setVolume(focusVolume * step / steps);
         } catch (_) {
           return;
         }
@@ -206,9 +290,22 @@ class BackgroundMusicController {
     if (_disposed) return _tail;
     _disposed = true;
     _fadeEpoch++;
-    _tail = _tail
-        .catchError((Object _) {})
-        .then<void>((_) => _transport.dispose());
+    _tail = _tail.catchError((Object _) {}).then<void>((_) async {
+      if (_ownsMainMusic) {
+        await _mainMusic.setEnabled(false);
+        await _mainMusic.setForeground(false);
+        await _mainMusic.dispose();
+      } else if (_sharedMainLease == _latestSharedMainLease) {
+        // The shell owns the latest lease on the Sfx-shared singleton. Check
+        // again after each await so a replacement shell can take authority
+        // while this unawaited teardown is draining an old voice.
+        await _mainMusic.setEnabled(false);
+        if (_sharedMainLease == _latestSharedMainLease) {
+          await _mainMusic.setForeground(false);
+        }
+      }
+      await _focusTransport.dispose();
+    });
     return _tail;
   }
 }

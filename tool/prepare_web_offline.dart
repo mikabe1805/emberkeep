@@ -253,7 +253,22 @@ Future<_ReleaseManifest> _releaseManifest(Directory root) async {
   );
 }
 
+/// Long-form music is optional and totals roughly 11 MB. Keep it available
+/// offline without making first-frame readiness wait for the music library.
+const _musicDeferred = <String>{
+  'assets/assets/music/focus-meditation.m4a',
+  'assets/assets/music/take_01.m4a',
+  'assets/assets/music/take_02.m4a',
+  'assets/assets/music/take_03.m4a',
+  'assets/assets/music/take_04.m4a',
+  'assets/assets/music/take_05.m4a',
+  'assets/assets/music/take_06.m4a',
+  'assets/assets/music/take_07.m4a',
+  'assets/assets/music/take_08.m4a',
+};
+
 bool _sharedCore(String relative) {
+  if (_musicDeferred.contains(relative)) return false;
   if (relative == 'assets/NOTICES') return false;
   if (!relative.startsWith('assets/assets/')) return true;
   if (relative.startsWith('assets/assets/google_fonts/')) return true;

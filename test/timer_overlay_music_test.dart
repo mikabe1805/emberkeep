@@ -1,5 +1,6 @@
 import 'package:emberkeep/background_music.dart';
 import 'package:emberkeep/clock.dart';
+import 'package:emberkeep/main_room_music.dart';
 import 'package:emberkeep/tokens.dart';
 import 'package:emberkeep/widgets/timer_overlay.dart';
 import 'package:flutter/material.dart';
@@ -23,10 +24,33 @@ final class _MusicTransport implements BackgroundMusicTransport {
 
   @override
   Future<void> startOrResumeLoop(String asset, {required double volume}) async {
-    calls.add(started ? 'resume' : 'start');
+    calls.add('${started ? 'resume' : 'start'}:$asset');
     started = true;
   }
 }
+
+final class _MainMusic implements MainRoomMusicPlayback {
+  bool enabled = false;
+  bool foreground = true;
+
+  @override
+  bool get isPlaying => enabled && foreground;
+
+  @override
+  Future<void> dispose() async => enabled = false;
+
+  @override
+  Future<void> retryAfterUserGesture() async {}
+
+  @override
+  Future<void> setEnabled(bool value) async => enabled = value;
+
+  @override
+  Future<void> setForeground(bool value) async => foreground = value;
+}
+
+BackgroundMusicController _music(_MusicTransport transport) =>
+    BackgroundMusicController(transport: transport, mainMusic: _MainMusic());
 
 void main() {
   setUpAll(() async {
@@ -61,7 +85,7 @@ void main() {
     tester,
   ) async {
     final transport = _MusicTransport();
-    final music = BackgroundMusicController(transport: transport);
+    final music = _music(transport);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -79,18 +103,22 @@ void main() {
     expect(music.enabled, isFalse);
     expect(music.shouldPlay, isFalse);
     expect(
-      find.text('optional · tap for the quiet room theme'),
+      find.text('optional · tap for the peaceful focus theme'),
       findsOneWidget,
     );
 
-    await tester.tap(find.text('ROOM MUSIC'));
+    await tester.tap(find.text('FOCUS MUSIC'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(music.enabled, isFalse);
     expect(music.sessionEnabled, isTrue);
     expect(music.shouldPlay, isTrue);
-    expect(find.text('playing softly · tap anytime to quiet'), findsOneWidget);
+    expect(
+      find.text('meditation theme · tap anytime to quiet'),
+      findsOneWidget,
+    );
+    expect(transport.calls.single, 'start:music/focus-meditation.m4a');
 
-    await tester.tap(find.text('ROOM MUSIC'));
+    await tester.tap(find.text('FOCUS MUSIC'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(music.enabled, isFalse);
     expect(music.shouldPlay, isFalse);
@@ -107,7 +135,7 @@ void main() {
     tester,
   ) async {
     final transport = _MusicTransport();
-    final music = BackgroundMusicController(transport: transport);
+    final music = _music(transport);
     await music.setEnabled(true);
     await tester.pump(const Duration(milliseconds: 300));
 
@@ -124,7 +152,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('ROOM MUSIC'));
+    await tester.tap(find.text('FOCUS MUSIC'));
     await tester.pump(const Duration(milliseconds: 300));
     expect(music.enabled, isTrue);
     expect(music.sessionMuted, isTrue);
@@ -147,7 +175,7 @@ void main() {
       tester.view.physicalSize = visual.size;
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
-      final music = BackgroundMusicController(transport: _MusicTransport());
+      final music = _music(_MusicTransport());
 
       await tester.pumpWidget(
         MaterialApp(

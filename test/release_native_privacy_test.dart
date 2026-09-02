@@ -589,7 +589,7 @@ void main() {
       'room-of-days-1.0.0+12-android.apk',
       '9C8C924E4C98CEC35175C03508EF5E757940CA8FD9C18627DCE6E4634B4A1B12',
       'ee091db079a54c982946aa6ab7e7b61546b3354f',
-      'room-of-days-1.0.4-build-40-internal-candidate-retry-1',
+      'room-of-days-1.0.4-build-41-internal-candidate-retry-1',
       'Codemagic `ios-testflight` workflow',
       'Team ID `D63Z4RBRT8`',
       'private content in a visitor room',
@@ -598,7 +598,8 @@ void main() {
       'Android Settings Force stop deliberately suppresses alarms',
       'BYDAY=MO,WE,FR',
       'small Day Ledger widget',
-      'Focus track on the phone speaker and headphones',
+      'normal Room jazz → Focus meditation → normal Room jazz',
+      'speaker and headphones',
       '| Final decision | **PASS / FAIL** |',
     ]) {
       expect(runbook, contains(expected));
@@ -657,7 +658,7 @@ void main() {
     expect(workflow, contains('routine source/docs pushes remain inert'));
     expect(
       workflow,
-      contains('room-of-days-1.0.4-build-40-internal-candidate-retry-1'),
+      contains('room-of-days-1.0.4-build-41-internal-candidate-retry-1'),
     );
     expect(workflow, contains('CM_CLONE_DEPTH: "2"'));
     expect(workflow, contains('Hydrate and verify immutable receipt identity'));
@@ -680,7 +681,7 @@ void main() {
     expect(
       workflow,
       contains(
-        'release-evidence/internal-testflight/1.0.4+40/CANDIDATE-MANIFEST.json',
+        'release-evidence/internal-testflight/1.0.4+41/CANDIDATE-MANIFEST.json',
       ),
     );
     expect(
@@ -874,7 +875,7 @@ void main() {
     expect(gradle, contains('minSdk = 24'));
     expect(gradle, contains('targetSdk = 36'));
     expect(gradle, contains('ndkVersion = "28.2.13676358"'));
-    expect(pubspec, contains('version: 1.0.4+40'));
+    expect(pubspec, contains('version: 1.0.4+41'));
     expect(pubspec, contains('enable-swift-package-manager: true'));
   });
 

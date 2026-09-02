@@ -1,0 +1,4267 @@
+{
+  "meta": {
+    "bpm": 72.0,
+    "swing": 0.57,
+    "grid": "swung eighths"
+  },
+  "chords": [
+    {
+      "t": 0.0,
+      "name": "Bm9",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 6.6667,
+      "name": "F#m7(11)",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 13.3333,
+      "name": "A9sus",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 20.0,
+      "name": "Em9",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 26.6667,
+      "name": "Bm9",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 33.3333,
+      "name": "F#m7(11)",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 40.0,
+      "name": "A9sus",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 46.6667,
+      "name": "Em9",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 53.3333,
+      "name": "Gmaj9",
+      "dur_s": 3.3333
+    },
+    {
+      "t": 56.6667,
+      "name": "A13",
+      "dur_s": 3.3333
+    },
+    {
+      "t": 60.0,
+      "name": "Dmaj9",
+      "dur_s": 3.3333
+    },
+    {
+      "t": 63.3333,
+      "name": "Em9",
+      "dur_s": 3.3333
+    },
+    {
+      "t": 66.6667,
+      "name": "Bm9",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 73.3333,
+      "name": "F#m7(11)",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 80.0,
+      "name": "A9sus",
+      "dur_s": 6.6667
+    },
+    {
+      "t": 86.6667,
+      "name": "Em9",
+      "dur_s": 6.6667
+    }
+  ],
+  "events": [
+    {
+      "t": 0.0,
+      "voice": "keys",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.626,
+      "dur_ms": 5752.1
+    },
+    {
+      "t": 0.0101,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.966,
+      "dur_ms": 1919.4
+    },
+    {
+      "t": 0.0126,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.647,
+      "dur_ms": 7733.2
+    },
+    {
+      "t": 0.0273,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.663,
+      "dur_ms": 7997.3
+    },
+    {
+      "t": 1.3234,
+      "voice": "bass",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.628,
+      "dur_ms": 966.4
+    },
+    {
+      "t": 2.5142,
+      "voice": "bass",
+      "hz": 184.997,
+      "midi": 54,
+      "vel": 0.803,
+      "dur_ms": 1360.2
+    },
+    {
+      "t": 3.3393,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.841,
+      "dur_ms": 7041.6
+    },
+    {
+      "t": 3.3476,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.912,
+      "dur_ms": 1779.3
+    },
+    {
+      "t": 3.3727,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.655,
+      "dur_ms": 7702.4
+    },
+    {
+      "t": 4.6608,
+      "voice": "bass",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.618,
+      "dur_ms": 1065.1
+    },
+    {
+      "t": 5.8439,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.711,
+      "dur_ms": 1081.0
+    },
+    {
+      "t": 6.3223,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.76,
+      "dur_ms": 965.8
+    },
+    {
+      "t": 6.6714,
+      "voice": "keys",
+      "hz": 277.183,
+      "midi": 61,
+      "vel": 0.731,
+      "dur_ms": 6462.1
+    },
+    {
+      "t": 6.677,
+      "voice": "bass",
+      "hz": 184.997,
+      "midi": 54,
+      "vel": 0.85,
+      "dur_ms": 1635.0
+    },
+    {
+      "t": 6.6786,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.968,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 6.6834,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.791,
+      "dur_ms": 7501.5
+    },
+    {
+      "t": 6.6865,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.524,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 6.6938,
+      "voice": "keys",
+      "hz": 440.0,
+      "midi": 69,
+      "vel": 0.702,
+      "dur_ms": 5726.7
+    },
+    {
+      "t": 7.1609,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.467,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 7.5121,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.721,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 7.9843,
+      "voice": "bass",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.689,
+      "dur_ms": 1121.6
+    },
+    {
+      "t": 7.9852,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.488,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 8.3439,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.809,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 8.3474,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.625,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 8.8204,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.372,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 9.1752,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.714,
+      "dur_ms": 1562.9
+    },
+    {
+      "t": 9.1843,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.533,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 9.1882,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.757,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 9.6515,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.485,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 9.6554,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.5,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 10.0,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.638,
+      "dur_ms": 6383.1
+    },
+    {
+      "t": 10.0107,
+      "voice": "bass",
+      "hz": 184.997,
+      "midi": 54,
+      "vel": 0.98,
+      "dur_ms": 1550.4
+    },
+    {
+      "t": 10.0165,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.528,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 10.019,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.985,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 10.0221,
+      "voice": "keys",
+      "hz": 440.0,
+      "midi": 69,
+      "vel": 0.93,
+      "dur_ms": 6507.2
+    },
+    {
+      "t": 10.4908,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.403,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 10.8481,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.663,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 10.8553,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.752,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 11.3165,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.883,
+      "dur_ms": 5727.4
+    },
+    {
+      "t": 11.3175,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.455,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 11.3195,
+      "voice": "bass",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.613,
+      "dur_ms": 1207.5
+    },
+    {
+      "t": 11.3334,
+      "voice": "keys",
+      "hz": 440.0,
+      "midi": 69,
+      "vel": 0.937,
+      "dur_ms": 4320.5
+    },
+    {
+      "t": 11.685,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.855,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 12.15,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.395,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 12.5108,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.535,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 12.5161,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.679,
+      "dur_ms": 982.6
+    },
+    {
+      "t": 12.5176,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.752,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 12.9857,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.655,
+      "dur_ms": 809.6
+    },
+    {
+      "t": 12.9922,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.487,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 13.3305,
+      "voice": "keys",
+      "hz": 195.998,
+      "midi": 55,
+      "vel": 0.852,
+      "dur_ms": 5876.1
+    },
+    {
+      "t": 13.3424,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.949,
+      "dur_ms": 7135.2
+    },
+    {
+      "t": 13.3459,
+      "voice": "bass",
+      "hz": 110.0,
+      "midi": 45,
+      "vel": 0.915,
+      "dur_ms": 1738.7
+    },
+    {
+      "t": 13.3529,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.681,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 13.3541,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.974,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 13.3559,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.658,
+      "dur_ms": 6316.0
+    },
+    {
+      "t": 13.8195,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.326,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 14.1817,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.574,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 14.19,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.8,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 14.6396,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.7,
+      "dur_ms": 4623.3
+    },
+    {
+      "t": 14.6505,
+      "voice": "bass",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.68,
+      "dur_ms": 1241.6
+    },
+    {
+      "t": 14.6605,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.34,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 14.6694,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.63,
+      "dur_ms": 4447.3
+    },
+    {
+      "t": 15.0151,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.672,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 15.0184,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.798,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 15.4918,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.451,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 15.8438,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.823,
+      "dur_ms": 1321.3
+    },
+    {
+      "t": 15.8441,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.79,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 15.8504,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.671,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 16.3228,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.44,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 16.6712,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.847,
+      "dur_ms": 6747.4
+    },
+    {
+      "t": 16.6788,
+      "voice": "bass",
+      "hz": 110.0,
+      "midi": 45,
+      "vel": 0.899,
+      "dur_ms": 1711.7
+    },
+    {
+      "t": 16.6842,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.534,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 16.6856,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.859,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 16.6871,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.933,
+      "dur_ms": 7217.6
+    },
+    {
+      "t": 17.1517,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.425,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 17.5093,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.678,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 17.5165,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.717,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 17.5195,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.828,
+      "dur_ms": 4403.2
+    },
+    {
+      "t": 17.9806,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.753,
+      "dur_ms": 4291.6
+    },
+    {
+      "t": 17.9846,
+      "voice": "bass",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.649,
+      "dur_ms": 1278.3
+    },
+    {
+      "t": 17.9903,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.469,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 17.9977,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.724,
+      "dur_ms": 5308.6
+    },
+    {
+      "t": 18.0042,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.612,
+      "dur_ms": 4386.7
+    },
+    {
+      "t": 18.3498,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.58,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 18.3568,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.738,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 18.8256,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.477,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 18.828,
+      "voice": "lead",
+      "hz": 587.33,
+      "midi": 74,
+      "vel": 0.582,
+      "dur_ms": 4663.2
+    },
+    {
+      "t": 19.1721,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.731,
+      "dur_ms": 917.3
+    },
+    {
+      "t": 19.1798,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.615,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 19.1873,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.746,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 19.6549,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.418,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 19.6568,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.604,
+      "dur_ms": 840.0
+    },
+    {
+      "t": 20.0009,
+      "voice": "keys",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.661,
+      "dur_ms": 7293.6
+    },
+    {
+      "t": 20.0115,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.503,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 20.012,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.889,
+      "dur_ms": 7956.4
+    },
+    {
+      "t": 20.0155,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.918,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 20.0174,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.894,
+      "dur_ms": 1574.3
+    },
+    {
+      "t": 20.0229,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.55,
+      "dur_ms": 3977.2
+    },
+    {
+      "t": 20.0254,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.824,
+      "dur_ms": 7978.6
+    },
+    {
+      "t": 20.4881,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.376,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 20.852,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.572,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 20.8545,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.776,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 21.3146,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.781,
+      "dur_ms": 5370.7
+    },
+    {
+      "t": 21.3223,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.385,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 21.3232,
+      "voice": "bass",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.658,
+      "dur_ms": 1193.0
+    },
+    {
+      "t": 21.3357,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.869,
+      "dur_ms": 4337.5
+    },
+    {
+      "t": 21.3378,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.811,
+      "dur_ms": 5366.1
+    },
+    {
+      "t": 21.6849,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.771,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 21.6856,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.546,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 22.1542,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.321,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 22.5116,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.7,
+      "dur_ms": 1632.0
+    },
+    {
+      "t": 22.5196,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.668,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 22.5247,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.711,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 22.985,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.426,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 23.3306,
+      "voice": "keys",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.755,
+      "dur_ms": 5991.0
+    },
+    {
+      "t": 23.3425,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.89,
+      "dur_ms": 6297.8
+    },
+    {
+      "t": 23.3427,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.9,
+      "dur_ms": 1753.2
+    },
+    {
+      "t": 23.3469,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.699,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 23.3522,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.925,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 23.358,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.597,
+      "dur_ms": 6758.3
+    },
+    {
+      "t": 23.8272,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.365,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 24.1787,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.556,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 24.1794,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.752,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 24.6537,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.326,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 24.6577,
+      "voice": "bass",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.658,
+      "dur_ms": 1096.1
+    },
+    {
+      "t": 25.0087,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.621,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 25.0169,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.863,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 25.4918,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.363,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 25.8437,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.634,
+      "dur_ms": 961.1
+    },
+    {
+      "t": 25.8474,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.544,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 25.851,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.753,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 26.3192,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.34,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 26.325,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.678,
+      "dur_ms": 1105.5
+    },
+    {
+      "t": 26.6677,
+      "voice": "keys",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.844,
+      "dur_ms": 6654.5
+    },
+    {
+      "t": 26.6782,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.645,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 26.681,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.986,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 26.6825,
+      "voice": "keys",
+      "hz": 277.183,
+      "midi": 61,
+      "vel": 0.617,
+      "dur_ms": 7231.9
+    },
+    {
+      "t": 26.6905,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.978,
+      "dur_ms": 1778.7
+    },
+    {
+      "t": 26.6996,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.739,
+      "dur_ms": 6433.3
+    },
+    {
+      "t": 27.1612,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.368,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 27.511,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.64,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 27.5216,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.747,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 27.9798,
+      "voice": "keys",
+      "hz": 277.183,
+      "midi": 61,
+      "vel": 0.945,
+      "dur_ms": 5238.8
+    },
+    {
+      "t": 27.9862,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.33,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 27.9957,
+      "voice": "bass",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.57,
+      "dur_ms": 1178.1
+    },
+    {
+      "t": 28.0085,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.78,
+      "dur_ms": 4377.0
+    },
+    {
+      "t": 28.3441,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.578,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 28.3474,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.884,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 28.8244,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.486,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 29.1864,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.74,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 29.1887,
+      "voice": "bass",
+      "hz": 184.997,
+      "midi": 54,
+      "vel": 0.722,
+      "dur_ms": 1389.4
+    },
+    {
+      "t": 29.6579,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.33,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 29.9954,
+      "voice": "keys",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.895,
+      "dur_ms": 5843.6
+    },
+    {
+      "t": 30.0028,
+      "voice": "keys",
+      "hz": 277.183,
+      "midi": 61,
+      "vel": 0.799,
+      "dur_ms": 7457.6
+    },
+    {
+      "t": 30.0113,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.679,
+      "dur_ms": 7788.3
+    },
+    {
+      "t": 30.0115,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.979,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 30.0142,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.938,
+      "dur_ms": 1684.6
+    },
+    {
+      "t": 30.4936,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.373,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 30.8473,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.712,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 30.851,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.589,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 31.3182,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.324,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 31.3183,
+      "voice": "bass",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.697,
+      "dur_ms": 1152.2
+    },
+    {
+      "t": 31.6789,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.571,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 31.6872,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.814,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 32.1517,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.484,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 32.5137,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.714,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 32.5139,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.66,
+      "dur_ms": 949.8
+    },
+    {
+      "t": 32.5153,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.542,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 32.9848,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.401,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 32.9862,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.624,
+      "dur_ms": 846.4
+    },
+    {
+      "t": 33.3379,
+      "voice": "keys",
+      "hz": 277.183,
+      "midi": 61,
+      "vel": 0.736,
+      "dur_ms": 7571.3
+    },
+    {
+      "t": 33.3437,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.862,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 33.3444,
+      "voice": "bass",
+      "hz": 184.997,
+      "midi": 54,
+      "vel": 0.851,
+      "dur_ms": 1627.3
+    },
+    {
+      "t": 33.3509,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.672,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 33.354,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.676,
+      "dur_ms": 6421.8
+    },
+    {
+      "t": 33.3646,
+      "voice": "keys",
+      "hz": 440.0,
+      "midi": 69,
+      "vel": 0.623,
+      "dur_ms": 6141.4
+    },
+    {
+      "t": 33.8231,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.432,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 34.1791,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.733,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 34.1837,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.596,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 34.6462,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.722,
+      "dur_ms": 5693.6
+    },
+    {
+      "t": 34.6504,
+      "voice": "bass",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.605,
+      "dur_ms": 1272.8
+    },
+    {
+      "t": 34.6594,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.42,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 34.6628,
+      "voice": "keys",
+      "hz": 440.0,
+      "midi": 69,
+      "vel": 0.792,
+      "dur_ms": 5984.9
+    },
+    {
+      "t": 35.0105,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.726,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 35.019,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.672,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 35.4869,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.496,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 35.8454,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.806,
+      "dur_ms": 1282.9
+    },
+    {
+      "t": 35.8501,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.687,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 35.8518,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.717,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 36.319,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.5,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 36.3236,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.424,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 36.6737,
+      "voice": "keys",
+      "hz": 277.183,
+      "midi": 61,
+      "vel": 0.762,
+      "dur_ms": 7892.3
+    },
+    {
+      "t": 36.6812,
+      "voice": "bass",
+      "hz": 184.997,
+      "midi": 54,
+      "vel": 0.986,
+      "dur_ms": 1665.5
+    },
+    {
+      "t": 36.683,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.595,
+      "dur_ms": 7376.8
+    },
+    {
+      "t": 36.6866,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.634,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 36.6871,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.877,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 36.6957,
+      "voice": "keys",
+      "hz": 440.0,
+      "midi": 69,
+      "vel": 0.615,
+      "dur_ms": 5789.6
+    },
+    {
+      "t": 37.1569,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.358,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 37.5101,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.534,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 37.5191,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.768,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 37.9895,
+      "voice": "bass",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.551,
+      "dur_ms": 1221.2
+    },
+    {
+      "t": 37.9933,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.447,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 38.3422,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.582,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 38.3461,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.8,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 38.8212,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.343,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 39.1749,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.653,
+      "dur_ms": 840.6
+    },
+    {
+      "t": 39.1844,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.646,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 39.1889,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.759,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 39.656,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.66,
+      "dur_ms": 825.8
+    },
+    {
+      "t": 39.6587,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.407,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 39.6629,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.5,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 39.9966,
+      "voice": "keys",
+      "hz": 195.998,
+      "midi": 55,
+      "vel": 0.927,
+      "dur_ms": 7600.6
+    },
+    {
+      "t": 40.0127,
+      "voice": "bass",
+      "hz": 110.0,
+      "midi": 45,
+      "vel": 0.875,
+      "dur_ms": 1753.7
+    },
+    {
+      "t": 40.015,
+      "voice": "keys",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.944,
+      "dur_ms": 5783.1
+    },
+    {
+      "t": 40.0156,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.616,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 40.0195,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.852,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 40.0302,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.818,
+      "dur_ms": 5737.3
+    },
+    {
+      "t": 40.4844,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.339,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 40.8499,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.663,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 40.857,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.735,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 40.8588,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.689,
+      "dur_ms": 4750.9
+    },
+    {
+      "t": 41.3205,
+      "voice": "bass",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.567,
+      "dur_ms": 1063.2
+    },
+    {
+      "t": 41.3238,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.834,
+      "dur_ms": 4322.3
+    },
+    {
+      "t": 41.3241,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.332,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 41.6839,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.839,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 41.6851,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.685,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 42.1547,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.453,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 42.1641,
+      "voice": "lead",
+      "hz": 587.33,
+      "midi": 74,
+      "vel": 0.624,
+      "dur_ms": 4716.4
+    },
+    {
+      "t": 42.5158,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.515,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 42.5166,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.772,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 42.5174,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.83,
+      "dur_ms": 1567.9
+    },
+    {
+      "t": 42.9919,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.473,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 42.9977,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.5,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 43.3405,
+      "voice": "keys",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.805,
+      "dur_ms": 6626.0
+    },
+    {
+      "t": 43.3488,
+      "voice": "bass",
+      "hz": 110.0,
+      "midi": 45,
+      "vel": 0.868,
+      "dur_ms": 1555.3
+    },
+    {
+      "t": 43.3497,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.706,
+      "dur_ms": 5322.9
+    },
+    {
+      "t": 43.3509,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.54,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 43.3557,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.908,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 43.3629,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.781,
+      "dur_ms": 7682.3
+    },
+    {
+      "t": 43.8241,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.412,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 44.1786,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.78,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 44.1819,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.616,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 44.6514,
+      "voice": "bass",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.683,
+      "dur_ms": 1222.7
+    },
+    {
+      "t": 44.6514,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.382,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 45.0119,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.799,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 45.0162,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.627,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 45.4878,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.47,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 45.8407,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.765,
+      "dur_ms": 902.3
+    },
+    {
+      "t": 45.8459,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.569,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 45.8518,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.783,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 46.3185,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.408,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 46.3204,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.683,
+      "dur_ms": 1022.6
+    },
+    {
+      "t": 46.3317,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.5,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 46.6721,
+      "voice": "keys",
+      "hz": 195.998,
+      "midi": 55,
+      "vel": 0.708,
+      "dur_ms": 5896.0
+    },
+    {
+      "t": 46.6758,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.56,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 46.6839,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.865,
+      "dur_ms": 1828.2
+    },
+    {
+      "t": 46.6852,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.861,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 46.6914,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.601,
+      "dur_ms": 6386.0
+    },
+    {
+      "t": 46.7049,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.623,
+      "dur_ms": 6825.0
+    },
+    {
+      "t": 47.1555,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.437,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 47.5098,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.684,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 47.5112,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.711,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 47.9909,
+      "voice": "bass",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.699,
+      "dur_ms": 1046.0
+    },
+    {
+      "t": 47.991,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.378,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 48.3434,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.529,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 48.3454,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.821,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 48.824,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.343,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 49.1791,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.871,
+      "dur_ms": 1547.3
+    },
+    {
+      "t": 49.1791,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.593,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 49.1878,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.799,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 49.6515,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.41,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 50.0033,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.738,
+      "dur_ms": 7877.0
+    },
+    {
+      "t": 50.0136,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.621,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 50.0146,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.96,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 50.023,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.987,
+      "dur_ms": 1777.5
+    },
+    {
+      "t": 50.0347,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.592,
+      "dur_ms": 5925.1
+    },
+    {
+      "t": 50.4911,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.42,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 50.8466,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.604,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 50.8553,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.776,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 51.3118,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.848,
+      "dur_ms": 4325.7
+    },
+    {
+      "t": 51.3278,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.435,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 51.3298,
+      "voice": "bass",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.559,
+      "dur_ms": 1102.6
+    },
+    {
+      "t": 51.3353,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.647,
+      "dur_ms": 4784.9
+    },
+    {
+      "t": 51.6781,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.797,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 52.1596,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.465,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 52.5138,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.693,
+      "dur_ms": 886.9
+    },
+    {
+      "t": 52.5142,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.729,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 52.5178,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.691,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 52.9937,
+      "voice": "bass",
+      "hz": 184.997,
+      "midi": 54,
+      "vel": 0.625,
+      "dur_ms": 838.9
+    },
+    {
+      "t": 53.3355,
+      "voice": "keys",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.894,
+      "dur_ms": 6598.7
+    },
+    {
+      "t": 53.3453,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.885,
+      "dur_ms": 6404.2
+    },
+    {
+      "t": 53.3493,
+      "voice": "bass",
+      "hz": 195.998,
+      "midi": 55,
+      "vel": 0.868,
+      "dur_ms": 1790.5
+    },
+    {
+      "t": 53.3494,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.5,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 53.351,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.957,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 53.3531,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.685,
+      "dur_ms": 5672.0
+    },
+    {
+      "t": 53.8265,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.373,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 54.187,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.763,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 54.6526,
+      "voice": "bass",
+      "hz": 391.995,
+      "midi": 67,
+      "vel": 0.626,
+      "dur_ms": 1190.2
+    },
+    {
+      "t": 55.0117,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.895,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 55.0176,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.585,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 55.4845,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.392,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 55.8446,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.71,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 55.846,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.699,
+      "dur_ms": 966.8
+    },
+    {
+      "t": 55.8529,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.577,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 56.3219,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.376,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 56.3273,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.667,
+      "dur_ms": 1054.0
+    },
+    {
+      "t": 56.6693,
+      "voice": "keys",
+      "hz": 195.998,
+      "midi": 55,
+      "vel": 0.724,
+      "dur_ms": 7960.0
+    },
+    {
+      "t": 56.6748,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.648,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 56.6846,
+      "voice": "bass",
+      "hz": 110.0,
+      "midi": 45,
+      "vel": 0.902,
+      "dur_ms": 1541.3
+    },
+    {
+      "t": 56.6847,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.901,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 56.6883,
+      "voice": "keys",
+      "hz": 277.183,
+      "midi": 61,
+      "vel": 0.937,
+      "dur_ms": 6676.5
+    },
+    {
+      "t": 56.7054,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.873,
+      "dur_ms": 6065.5
+    },
+    {
+      "t": 57.1571,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.407,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 57.5107,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.565,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 57.5124,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.713,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 57.9889,
+      "voice": "bass",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.582,
+      "dur_ms": 1173.8
+    },
+    {
+      "t": 58.3469,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.629,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 58.3509,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.867,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 58.8205,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.413,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 59.1796,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.753,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 59.1836,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.586,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 59.185,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.735,
+      "dur_ms": 1072.1
+    },
+    {
+      "t": 59.6519,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.655,
+      "dur_ms": 870.7
+    },
+    {
+      "t": 59.6611,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.492,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 59.6654,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.5,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 60.0009,
+      "voice": "keys",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.824,
+      "dur_ms": 7416.6
+    },
+    {
+      "t": 60.0061,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.891,
+      "dur_ms": 1864.0
+    },
+    {
+      "t": 60.0099,
+      "voice": "keys",
+      "hz": 277.183,
+      "midi": 61,
+      "vel": 0.746,
+      "dur_ms": 5604.1
+    },
+    {
+      "t": 60.0176,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.628,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 60.0177,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.699,
+      "dur_ms": 6446.2
+    },
+    {
+      "t": 60.0249,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.975,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 60.4876,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.466,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 60.8448,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.687,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 60.8521,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.743,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 61.3088,
+      "voice": "keys",
+      "hz": 277.183,
+      "midi": 61,
+      "vel": 0.932,
+      "dur_ms": 5970.4
+    },
+    {
+      "t": 61.3201,
+      "voice": "bass",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.576,
+      "dur_ms": 1047.9
+    },
+    {
+      "t": 61.3207,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.371,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 61.3303,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.882,
+      "dur_ms": 5755.0
+    },
+    {
+      "t": 61.681,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.786,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 61.6812,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.676,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 62.1553,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.349,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 62.5122,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.745,
+      "dur_ms": 906.6
+    },
+    {
+      "t": 62.5141,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.548,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 62.516,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.798,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 62.9869,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.718,
+      "dur_ms": 855.2
+    },
+    {
+      "t": 62.992,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.452,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 63.3404,
+      "voice": "keys",
+      "hz": 195.998,
+      "midi": 55,
+      "vel": 0.691,
+      "dur_ms": 5725.2
+    },
+    {
+      "t": 63.3472,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.894,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 63.3494,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.568,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 63.3506,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.93,
+      "dur_ms": 1730.9
+    },
+    {
+      "t": 63.3542,
+      "voice": "keys",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.846,
+      "dur_ms": 5633.5
+    },
+    {
+      "t": 63.3675,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.622,
+      "dur_ms": 7994.0
+    },
+    {
+      "t": 63.8283,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.485,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 64.1835,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.594,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 64.1881,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.786,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 64.6417,
+      "voice": "keys",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.748,
+      "dur_ms": 5873.5
+    },
+    {
+      "t": 64.6597,
+      "voice": "bass",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.65,
+      "dur_ms": 1171.4
+    },
+    {
+      "t": 64.6598,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.59,
+      "dur_ms": 4144.8
+    },
+    {
+      "t": 65.0115,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.813,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 65.018,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.621,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 65.4882,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.438,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 65.8433,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.532,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 65.8508,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.778,
+      "dur_ms": 817.6
+    },
+    {
+      "t": 65.8526,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.744,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 66.3245,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.5,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 66.3252,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.628,
+      "dur_ms": 1037.1
+    },
+    {
+      "t": 66.3259,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.456,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 66.6757,
+      "voice": "keys",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.889,
+      "dur_ms": 5738.0
+    },
+    {
+      "t": 66.6775,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.62,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 66.6799,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.91,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 66.6843,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.765,
+      "dur_ms": 6428.4
+    },
+    {
+      "t": 66.6872,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.939,
+      "dur_ms": 1639.9
+    },
+    {
+      "t": 66.689,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.789,
+      "dur_ms": 6910.2
+    },
+    {
+      "t": 67.5164,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.546,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 67.5199,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.718,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 67.9802,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.716,
+      "dur_ms": 5757.5
+    },
+    {
+      "t": 67.9887,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.42,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 67.9934,
+      "voice": "bass",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.638,
+      "dur_ms": 1211.5
+    },
+    {
+      "t": 68.0078,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.733,
+      "dur_ms": 4303.8
+    },
+    {
+      "t": 68.3426,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.676,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 68.3573,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.741,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 68.8225,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.33,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 69.1801,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.775,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 69.1868,
+      "voice": "bass",
+      "hz": 184.997,
+      "midi": 54,
+      "vel": 0.818,
+      "dur_ms": 1343.9
+    },
+    {
+      "t": 69.9984,
+      "voice": "keys",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.838,
+      "dur_ms": 7881.9
+    },
+    {
+      "t": 70.0141,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.729,
+      "dur_ms": 6096.3
+    },
+    {
+      "t": 70.0144,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.947,
+      "dur_ms": 1839.7
+    },
+    {
+      "t": 70.0155,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.535,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 70.02,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.875,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 70.0285,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.789,
+      "dur_ms": 6654.8
+    },
+    {
+      "t": 70.491,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.321,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 70.8487,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.577,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 70.8564,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.777,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 71.3166,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.362,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 71.3192,
+      "voice": "bass",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.642,
+      "dur_ms": 981.9
+    },
+    {
+      "t": 71.6754,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.599,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 71.6797,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.72,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 72.1535,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.478,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 72.5114,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.625,
+      "dur_ms": 849.2
+    },
+    {
+      "t": 72.5127,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.527,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 72.522,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.797,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 72.9832,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.473,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 72.9924,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.745,
+      "dur_ms": 1003.3
+    },
+    {
+      "t": 73.3417,
+      "voice": "keys",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.684,
+      "dur_ms": 6862.3
+    },
+    {
+      "t": 73.3426,
+      "voice": "bass",
+      "hz": 184.997,
+      "midi": 54,
+      "vel": 0.975,
+      "dur_ms": 1895.8
+    },
+    {
+      "t": 73.3436,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.673,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 73.3466,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.781,
+      "dur_ms": 7766.5
+    },
+    {
+      "t": 73.3491,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.915,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 73.354,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.587,
+      "dur_ms": 7581.2
+    },
+    {
+      "t": 73.8266,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.392,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 74.1814,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.741,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 74.185,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.785,
+      "dur_ms": 3732.1
+    },
+    {
+      "t": 74.1857,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.548,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 74.6452,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.675,
+      "dur_ms": 5874.3
+    },
+    {
+      "t": 74.6484,
+      "voice": "bass",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.683,
+      "dur_ms": 1152.9
+    },
+    {
+      "t": 74.6549,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.434,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 74.6574,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.832,
+      "dur_ms": 3677.5
+    },
+    {
+      "t": 74.6785,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.949,
+      "dur_ms": 4946.4
+    },
+    {
+      "t": 75.0138,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.843,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 75.0155,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.551,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 75.4883,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.461,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 75.4965,
+      "voice": "lead",
+      "hz": 587.33,
+      "midi": 74,
+      "vel": 0.586,
+      "dur_ms": 3571.3
+    },
+    {
+      "t": 75.8412,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.859,
+      "dur_ms": 1571.4
+    },
+    {
+      "t": 75.8454,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.572,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 75.8571,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.777,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 76.3266,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.36,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 76.6685,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.783,
+      "dur_ms": 7402.0
+    },
+    {
+      "t": 76.6772,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.605,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 76.6833,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.571,
+      "dur_ms": 3638.8
+    },
+    {
+      "t": 76.6839,
+      "voice": "bass",
+      "hz": 184.997,
+      "midi": 54,
+      "vel": 0.901,
+      "dur_ms": 1722.7
+    },
+    {
+      "t": 76.687,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.924,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 76.6905,
+      "voice": "keys",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.702,
+      "dur_ms": 6802.6
+    },
+    {
+      "t": 77.1595,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.385,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 77.5081,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.583,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 77.5235,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.75,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 77.9883,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.391,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 77.9942,
+      "voice": "bass",
+      "hz": 369.994,
+      "midi": 66,
+      "vel": 0.592,
+      "dur_ms": 999.7
+    },
+    {
+      "t": 77.9953,
+      "voice": "lead",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.831,
+      "dur_ms": 5354.6
+    },
+    {
+      "t": 78.3467,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.571,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 78.3572,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.802,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 78.8191,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.405,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 79.183,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.68,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 79.1839,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.661,
+      "dur_ms": 913.5
+    },
+    {
+      "t": 79.1878,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.702,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 79.6598,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.486,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 79.6609,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.762,
+      "dur_ms": 1037.4
+    },
+    {
+      "t": 80.0071,
+      "voice": "keys",
+      "hz": 195.998,
+      "midi": 55,
+      "vel": 0.789,
+      "dur_ms": 6380.1
+    },
+    {
+      "t": 80.0101,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.507,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 80.0156,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.972,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 80.0162,
+      "voice": "keys",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.899,
+      "dur_ms": 7199.5
+    },
+    {
+      "t": 80.0186,
+      "voice": "bass",
+      "hz": 110.0,
+      "midi": 45,
+      "vel": 0.863,
+      "dur_ms": 1895.4
+    },
+    {
+      "t": 80.0234,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.641,
+      "dur_ms": 7774.6
+    },
+    {
+      "t": 80.4841,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.372,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 80.8451,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.508,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 80.8573,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.719,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 81.317,
+      "voice": "keys",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.586,
+      "dur_ms": 4429.2
+    },
+    {
+      "t": 81.3197,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.476,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 81.3311,
+      "voice": "bass",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.596,
+      "dur_ms": 1101.7
+    },
+    {
+      "t": 81.3434,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.666,
+      "dur_ms": 4096.3
+    },
+    {
+      "t": 81.6825,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.614,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 81.6902,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.793,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 82.1543,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.478,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 82.5164,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.658,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 82.5173,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.796,
+      "dur_ms": 1672.1
+    },
+    {
+      "t": 82.524,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.766,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 82.9932,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.447,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 83.3396,
+      "voice": "keys",
+      "hz": 246.942,
+      "midi": 59,
+      "vel": 0.634,
+      "dur_ms": 5832.9
+    },
+    {
+      "t": 83.3453,
+      "voice": "bass",
+      "hz": 110.0,
+      "midi": 45,
+      "vel": 0.911,
+      "dur_ms": 1881.7
+    },
+    {
+      "t": 83.3459,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.906,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 83.3477,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.691,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 83.3583,
+      "voice": "keys",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.882,
+      "dur_ms": 7583.9
+    },
+    {
+      "t": 83.8265,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.331,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 84.1825,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.627,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 84.1855,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.712,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 84.6487,
+      "voice": "bass",
+      "hz": 220.0,
+      "midi": 57,
+      "vel": 0.607,
+      "dur_ms": 1174.7
+    },
+    {
+      "t": 84.6581,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.474,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 85.0086,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.617,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 85.0246,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.894,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 85.4857,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.376,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 85.8435,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.746,
+      "dur_ms": 860.2
+    },
+    {
+      "t": 85.853,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.731,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 85.8531,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.672,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 86.3165,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.72,
+      "dur_ms": 807.3
+    },
+    {
+      "t": 86.3229,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.404,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 86.3317,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.5,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 86.6647,
+      "voice": "keys",
+      "hz": 293.665,
+      "midi": 62,
+      "vel": 0.77,
+      "dur_ms": 6316.4
+    },
+    {
+      "t": 86.6761,
+      "voice": "keys",
+      "hz": 391.995,
+      "midi": 67,
+      "vel": 0.647,
+      "dur_ms": 7920.9
+    },
+    {
+      "t": 86.6771,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.901,
+      "dur_ms": 1893.8
+    },
+    {
+      "t": 86.6791,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.651,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 86.686,
+      "voice": "keys",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.674,
+      "dur_ms": 7232.1
+    },
+    {
+      "t": 86.6906,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.948,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 87.1532,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.424,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 87.5117,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.737,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 87.5193,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.549,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 87.9852,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.475,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 87.9885,
+      "voice": "bass",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.617,
+      "dur_ms": 1152.1
+    },
+    {
+      "t": 88.3433,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.564,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 88.3535,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.758,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 88.8268,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.462,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 89.1749,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.589,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 89.1807,
+      "voice": "bass",
+      "hz": 123.471,
+      "midi": 47,
+      "vel": 0.77,
+      "dur_ms": 1454.0
+    },
+    {
+      "t": 89.187,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.705,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 89.6606,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.472,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 90.0082,
+      "voice": "keys",
+      "hz": 391.995,
+      "midi": 67,
+      "vel": 0.918,
+      "dur_ms": 5941.8
+    },
+    {
+      "t": 90.0136,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.601,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 90.0165,
+      "voice": "bass",
+      "hz": 164.814,
+      "midi": 52,
+      "vel": 0.862,
+      "dur_ms": 1739.0
+    },
+    {
+      "t": 90.022,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.887,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 90.0365,
+      "voice": "keys",
+      "hz": 493.883,
+      "midi": 71,
+      "vel": 0.663,
+      "dur_ms": 5913.5
+    },
+    {
+      "t": 90.4868,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.478,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 90.846,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.722,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 90.8481,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.673,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 91.3217,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.473,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 91.3288,
+      "voice": "bass",
+      "hz": 329.628,
+      "midi": 64,
+      "vel": 0.602,
+      "dur_ms": 1102.7
+    },
+    {
+      "t": 91.6777,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.723,
+      "dur_ms": 320.0
+    },
+    {
+      "t": 91.6832,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.537,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 92.158,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.407,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 92.5131,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.579,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 92.5208,
+      "voice": "rim",
+      "hz": null,
+      "midi": null,
+      "vel": 0.756,
+      "dur_ms": 90.0
+    },
+    {
+      "t": 92.5217,
+      "voice": "bass",
+      "hz": 146.832,
+      "midi": 50,
+      "vel": 0.702,
+      "dur_ms": 1042.2
+    },
+    {
+      "t": 92.9847,
+      "voice": "shaker",
+      "hz": null,
+      "midi": null,
+      "vel": 0.445,
+      "dur_ms": 34.0
+    },
+    {
+      "t": 92.9951,
+      "voice": "bass",
+      "hz": 138.591,
+      "midi": 49,
+      "vel": 0.638,
+      "dur_ms": 812.1
+    },
+    {
+      "t": 92.9973,
+      "voice": "thump",
+      "hz": null,
+      "midi": null,
+      "vel": 0.5,
+      "dur_ms": 320.0
+    }
+  ]
+}

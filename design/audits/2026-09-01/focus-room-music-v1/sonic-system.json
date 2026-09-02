@@ -2,7 +2,7 @@
   "format": "sonic-system/v1",
   "product": {
     "name": "Room of Days",
-    "promise": "Focus can borrow the room's quiet musical bed when chosen, while silence stays one obvious tap away.",
+    "promise": "Focus temporarily replaces the jazzy normal-room rotation with the peaceful meditation bed when chosen, while silence stays one obvious tap away.",
     "owner_quotes": [
       "and make sure the new music fable added in is well incorporated too. i was thinking of adding the meditation music it generated to a meditation/focus timer stuff (and then allow the user to easily turn it off too)"
     ]
@@ -33,7 +33,7 @@
       "outcome": 3,
       "ceremony": 4
     },
-    "voice_cap": 2,
+    "voice_cap": 3,
     "rapid_policy": "Focus music has one looping voice and cannot retrigger or stack.",
     "ducking_policy": "The focus bed remains the lowest-priority voice and never replaces completion or reminder meaning.",
     "silence_policy": [
@@ -42,7 +42,7 @@
       "Backgrounding pauses the bed and restoring the app resumes only if the current choice still wants music."
     ],
     "compound_outcome_rule": "Music state changes are continuous mix changes; accepted taps keep the existing interaction cue family.",
-    "voice_stealing_rule": "Only one background-music transport exists; newer session and lifecycle intent serializes after older starts.",
+    "voice_stealing_rule": "Only one semantic music role may be active. The normal role may use two internal voices during its seam crossfade; a role boundary waits for normal silence or Focus pause before starting the other role.",
     "state_dedupe_rule": "Repeated on or off requests reconcile to the current combined global, session, mute, and foreground state.",
     "settings_rule": "Music is optional and defaults off until chosen. Focus opt-in and Focus quiet are ephemeral; global preference is preserved. SFX and music remain independent."
   },
@@ -59,7 +59,7 @@
       },
       "space": {
         "id": "room-shared-space",
-        "recipe": "Existing Room bus and encoded room-theme.m4a loop."
+        "recipe": "Existing Room bus and encoded focus-meditation.m4a loop."
       },
       "signature": {
         "id": "room-modal-air",
@@ -74,7 +74,7 @@
       "verb": "settle",
       "meaning": "Support a chosen period of focused or meditative time without demanding attention.",
       "representative_actions": [
-        "Turn Room music on inside a timer-verified Focus session"
+        "Turn Focus Music on inside a timer-verified Focus session"
       ],
       "frequency": "continuous",
       "priority": 0,
@@ -92,11 +92,11 @@
         "layers": ["body", "signature", "space"],
         "pitch_token": "existing Room modal phrase",
         "variant_axis": "none",
-        "derivation": "Use the shipped room-theme.m4a unchanged through the single BackgroundMusicController."
+        "derivation": "Use the shipped focus-meditation.m4a only while the explicit Focus-session boundary is active; leaving Focus restores the separate umbrella-brush main rotation when globally enabled."
       },
       "variant_count": 1,
       "no_immediate_repeat": true,
-      "motion": "The visible Room music row changes state with the existing quick response curve.",
+      "motion": "The visible Focus Music row changes state with the existing quick response curve.",
       "haptic": "Existing accepted-tap behavior only.",
       "cooldown_ms": 0,
       "silent_when": [
@@ -114,13 +114,13 @@
       "sequence": ["focus-bed", "contact", "outcome", "focus-bed-off"],
       "question": "Does the bed belong to the same room, stay beneath actions, loop cleanly, and become genuinely silent in one tap?",
       "comparison": {
-        "control": "assets/music/room-theme.m4a with no Focus routing",
-        "candidate": "assets/music/room-theme.m4a through Focus session routing",
+        "control": "assets/music/take_01.m4a as the approved normal-room role",
+        "candidate": "assets/music/focus-meditation.m4a through the Focus-only role",
         "timings_ms": [0, 2000, 5000, 8000],
         "order": "natural journey order",
         "natural_mix": true,
         "level_control": {
-          "control": "0.35 player gain",
+          "control": "unity playback; the approved main masters carry their -36 dBFS phone-band level in-file",
           "candidate": "0.35 player gain"
         },
         "verdicts": ["control", "candidate", "both", "neither"]
@@ -136,7 +136,7 @@
   },
   "approval": {
     "technical": "pass",
-    "semantic": "pending",
+    "semantic": "pass — owner explicitly assigned the peaceful track to meditation/Focus and the umbrella-brush set to normal Room music",
     "cohesion": "pending",
     "physical_device": "pending"
   }

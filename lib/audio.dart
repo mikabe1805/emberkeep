@@ -4,6 +4,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import 'main_room_music.dart';
 import 'platform/audio_support_stub.dart'
     if (dart.library.js_interop) 'platform/audio_support_web.dart';
 
@@ -566,6 +567,10 @@ class Sfx {
   /// stat_0..5. [volumeScale] lets ambient echoes reuse a sound without
   /// competing with the user's music; event calls normally leave it at 1.
   void play(String name, {double volumeScale = 1}) {
+    // On web, the first real gesture opens the optional normal-room bed. The
+    // call sits before the SFX mute gate because music and effects are two
+    // independent preferences.
+    unawaited(MainRoomMusic.instance.retryAfterUserGesture());
     // Completion is a state transition even when audio is unavailable. Route
     // it before the mute gate so it always clears an unfinished rare phrase.
     if (name == 'complete') {
@@ -589,9 +594,9 @@ class Sfx {
     }
     try {
       if (suppressesOrdinary) {
-        _ordinarySuppressedUntil = DateTime.now().add(
-          const Duration(milliseconds: 140),
-        );
+        final until = DateTime.now().add(const Duration(milliseconds: 140));
+        _ordinarySuppressedUntil = until;
+        MainRoomMusic.instance.duck(until: until, kind: MusicDuckKind.ordinary);
       }
       final vol = (_volFor(name) * volumeScale).clamp(0.0, 1.0);
       _playAsset(name, volume: vol, eventName: name);
@@ -643,6 +648,7 @@ class Sfx {
     Object? screenId,
     MaterialSound? material,
   }) {
+    unawaited(MainRoomMusic.instance.retryAfterUserGesture());
     if (!soundEnabled || (kIsWeb && !browserAudioAvailable)) return;
     final now = at ?? DateTime.now();
     final suppressedUntil = _ordinarySuppressedUntil;
@@ -701,13 +707,16 @@ class Sfx {
     double volumeScale = 1,
     bool contactAlreadyPlayed = false,
   }) {
+    unawaited(MainRoomMusic.instance.retryAfterUserGesture());
     // The state changed even when the phone is muted. Clear a partially armed
     // return before the availability gate so it cannot resume after unmuting.
     _interactions.resetBurst();
     if (!soundEnabled || (kIsWeb && !browserAudioAvailable)) return;
     final now = DateTime.now();
     if (!_completions.claim(transitionId, at: now)) return;
-    _ordinarySuppressedUntil = now.add(const Duration(milliseconds: 460));
+    final until = now.add(const Duration(milliseconds: 460));
+    _ordinarySuppressedUntil = until;
+    MainRoomMusic.instance.duck(until: until, kind: MusicDuckKind.completion);
     _playAsset(
       contactAlreadyPlayed
           ? 'room/completion/answered-detent-natural'
@@ -774,6 +783,8 @@ class Sfx {
     Duration delay = const Duration(milliseconds: 65),
     double volumeScale = 1,
   }) {
+    // The delayed event lands outside the browser's gesture window.
+    unawaited(MainRoomMusic.instance.retryAfterUserGesture());
     unawaited(
       Future<void>.delayed(delay, () => play(name, volumeScale: volumeScale)),
     );

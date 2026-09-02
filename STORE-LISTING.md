@@ -18,7 +18,7 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 40)
+## App Store What's New — Version 1.0.4 (Build 41)
 
 > Submission hold: paste this only after the signed iPhone archive, real Home
 > Screen widget, `.ics` Open In, reminder, lock-screen redaction, and class-
@@ -32,9 +32,9 @@ On iPhone, the Day Ledger widget can keep your next class and up to three
 unfinished Quests close at hand. It advances through the classes you imported
 without putting rooms, locations, or notes in the widget.
 
-Focus sessions now put the room's optional music within reach and let you make
-the session quiet again in one tap. Your ordinary music preference stays
-yours.
+Background music now has two clear roles: a lively, jazzy rotation around the
+room and a peaceful meditation theme inside Focus. Focus can be made quiet in
+one tap, and closing it restores your ordinary choice.
 
 There is also an editable class-schedule starter for people who would rather
 set up the exact `.ics` text themselves, including comma-separated meeting
@@ -99,8 +99,8 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 40 is an internal candidate for the class-plan, Day Ledger widget, and
-Focus-room pass. It includes the latest owner-feedback changes:
+Build 41 is an internal candidate for the class-plan, Day Ledger widget, and
+corrected music-role pass. It includes the latest owner-feedback changes:
 
 - Get an editable `.ics` starter, keep comma-separated meeting days, and open
   or share a compatible class file into the same review-first import flow.
@@ -110,8 +110,10 @@ Focus-room pass. It includes the latest owner-feedback changes:
 - On iPhone, use a small Day Ledger widget for the next class or a medium one
   for the next class plus up to three unfinished Quests. The widget handoff
   excludes rooms, locations, and notes and is marked privacy-sensitive.
-- In a Focus session, start the optional room theme or make the session quiet
-  in one tap without changing the saved app-wide music preference.
+- Around the room, optional Background music plays the owner-selected lively,
+  jazzy umbrella-brush rotation. Entering Focus changes to the peaceful
+  meditation theme; one tap makes Focus quiet, and closing it restores the
+  saved app-wide choice.
 
 - Choose up to three Quests for Today's Field while keeping the rest in
   Open if it fits. A full board can be inspiration, not a daily obligation.
@@ -162,10 +164,10 @@ before any public release.
   sizes and lower brightness. Make sure the text and every action remain
   reachable without shrinking.
 
-- Leave Background music off, then enable it in Me. Lock the phone or switch
-  away and return. Confirm music does not start without choosing it, pauses
-  while away, resumes where it left off, and does not replace interaction
-  sounds.
+- Leave Background music off, then enable it in Me. Confirm the normal room
+  plays the lively jazzy umbrella-brush rotation rather than the peaceful
+  meditation theme. Lock the phone or switch away and return; it must pause,
+  recover without getting stuck silent, and keep interaction sounds clear.
 
 - In Plans, share the editable class starter, edit its course fields and the
   comma-separated `BYDAY=MO,WE,FR` example, then save it as `.ics`. Open it from
@@ -180,10 +182,12 @@ before any public release.
   shows the next class, the medium widget adds no more than three unfinished
   Quests, completed Quests leave the list, an ended class advances without
   reopening the app, empty states are honest, and lock-screen redaction works.
-- Start Focus while global music is off, turn Room music on, make it quiet in
-  one tap, and close Focus. Repeat with global music already on. Confirm the
-  session never silently changes the saved global choice, and listen on phone
-  speaker plus headphones before accepting the mix.
+- Start Focus while global music is off, turn Focus music on, confirm the
+  peaceful meditation theme, make it quiet in one tap, and close Focus; the
+  app must stay silent outside it. Repeat with global music already on:
+  normal Room jazz → Focus meditation → normal Room jazz, with no overlap or
+  stuck silence. Listen on phone speaker plus headphones before accepting the
+  mix and transitions.
 
 - Add a room photo, leave sharing off, and visit My Space from another signed-in
   identity. Confirm the photo is absent. Then make the deliberate sharing
@@ -230,14 +234,15 @@ that makes returning after a break feel harder than it should.
 
 ## Reviewer notes
 
-- **Build 40 additions:** Plans can review and locally import a compatible
+- **Build 41 additions:** Plans can review and locally import a compatible
   class `.ics` file received through the picker or system Open In/share flow.
   The editable starter documents comma-separated meeting days. Class reminders
   are off unless explicitly enabled during review. The iPhone widget reads a
   device-only App Group projection containing a bounded upcoming-class list
   and up to three unfinished Quest titles; it excludes rooms, locations, and
-  notes and is privacy-sensitive. Focus has a one-tap session music control
-  that does not overwrite the saved app-wide preference. Quests → Choose today
+  notes and is privacy-sensitive. Normal Background music is the lively jazzy
+  rotation; Focus uses the peaceful meditation theme and has a one-tap quiet
+  control that does not overwrite the saved app-wide preference. Quests → Choose today
   selects up to three Quests;
   other Quests remain optional. One authored room follows the user across the
   app. An optional device photo is private by default and is not exposed to
@@ -680,7 +685,7 @@ device frame and tell these ten moments in one consistent visual language:
   1290×2796 iPhone 6.9-inch class are in
   `store-assets/screenshots/app-store/`.
 - Those phone screenshots and `CANDIDATE-MANIFEST.json` are bound to Build 39.
-  A Build 40 submission requires a fresh capture, visual inspection, export,
+  A Build 41 submission requires a fresh capture, visual inspection, export,
   and final manifest-only binding commit after the signed-device gates above;
   the real Home Screen frame must show the new launcher icon and signed widget.
 - The App Store sequence adds three production Goals frames before Plans so the

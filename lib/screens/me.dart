@@ -3422,7 +3422,7 @@ class MePage extends StatelessWidget {
           _toggleRow(
             icon: Icons.music_note_outlined,
             label: 'Background music',
-            subtitle: 'optional · stays off until you choose it',
+            subtitle: 'jazzy room rotation · optional',
             value: state.musicEnabled,
             onChanged: (v) {
               state.setMusic(v);
