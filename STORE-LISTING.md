@@ -20,9 +20,10 @@ productivity language.
 
 ## App Store What's New — Version 1.0.4 (Build 42)
 
-> Submission hold: paste this only after the signed iPhone archive, real Home
-> Screen widget, `.ics` Open In, reminder, lock-screen redaction, and class-
-> boundary refresh checks pass. Remove any sentence whose device gate fails.
+The owner approved Build 42 for public TestFlight and App Store submission on
+September 6, 2026. The submission uses that signed binary with freshly captured
+app screenshots and the matching deployed sharing backend; individual device
+checks are recorded only where observed, not inferred from this approval.
 
 Goals and Quests now keep today’s three close at hand, with suggested next
 steps you can choose to bring into focus. Workshop has a permanent entrance
@@ -105,7 +106,7 @@ Room of Days turns everyday effort into Quests, XP, character growth, and a
 warm personal room. Core play works offline without an account. Progress
 stays with you through days away, and cosmetics are earned through play.
 
-Build 42 is an internal candidate for the updated Goals and Quests experience,
+Build 42 brings the updated Goals and Quests experience,
 Workshop polish, Refined taps, and the new Lamp left on room music. It includes:
 
 - Choose today’s three from Goals or Quests, consider suggested Quests, and
@@ -160,9 +161,8 @@ reminder permission timing, the two iPhone widget sizes across a class ending,
 and Focus music's one-tap quiet path. Then recheck upgrade persistence, room
 continuity, the optional photo's private default and deliberate sharing choice,
 today's selections versus optional Quests, the Steward's reading flow, and the
-complete two-person Circle journey. Physical-phone accessibility, listening
-taste, signed widget/App Group, and signed social checks still need confirmation
-before any public release.
+complete two-person Circle journey. Feedback on accessibility, phone-speaker
+and headphone listening, widget refreshes, and shared-room behavior is welcome.
 
 ## What to Test
 
@@ -672,22 +672,19 @@ and [label management](https://developer.apple.com/help/app-store-connect/manage
 
 ## Screenshot story
 
-The checked-in ten-frame set is Build 39 evidence. Do not relabel it as Build
-40. After the signed iPhone/device pass, recapture real production UI with no
-device frame and tell these ten moments in one consistent visual language:
+The Build 42 set contains ten freshly rendered production app views, without
+device frames or overlay copy:
 
-1. **Your day, as kinder quests** — one achievable action, not a dashboard.
-2. **School joins the day gently** — the class import review with reminders in
-   the first screen and no save before confirmation.
-3. **The next right thing stays close** — a real iPhone Home Screen with the
-   medium Day Ledger widget; never manufacture this frame in a test harness.
-4. **The day has a shape** — Plans, the next class, and the calendar together.
-5. **A real win becomes progress** — the reward receipt with XP and Glimmers.
-6. **A goal becomes inhabitable** — one grounded move in the living Goals room.
-7. **A changed day is not failure** — smaller, prepare, or leave today alone.
-8. **Sharing stays authored** — My Space with explicit card audiences.
-9. **The room can change completely** — a no-cost full-room preview.
-10. **What happened can be kept** — a private Journal note in context.
+1. **Choose today's three** — selected work and one achievable main Quest.
+2. **See the action count** — that Quest becoming XP, Glimmers, and progress.
+3. **Keep your goals close** — today's choices and a practical next step.
+4. **Return to Workshop** — existing work, routes to shape, and the Steward.
+5. **Let the plan bend** — smaller, prepare, or leave today alone.
+6. **Give the day a shape** — Plans, the next class, and the calendar.
+7. **Choose what visitors see** — My Space with explicit card audiences.
+8. **Make the room yours** — a no-cost full-room preview.
+9. **Keep what happened** — a private Journal note in context.
+10. **Find a few open doors** — optional Discover with clear listing controls.
 
 ## Store asset checklist
 
@@ -699,10 +696,10 @@ device frame and tell these ten moments in one consistent visual language:
 - App Store phone screenshots: ten opaque 24-bit RGB PNGs at Apple's accepted
   1290×2796 iPhone 6.9-inch class are in
   `store-assets/screenshots/app-store/`.
-- Those phone screenshots and `CANDIDATE-MANIFEST.json` are bound to Build 39.
-  A Build 42 submission requires a fresh capture, visual inspection, export,
-  and final manifest-only binding commit after the signed-device gates above;
-  the real Home Screen frame must show the new launcher icon and signed widget.
+- The ten phone screenshots were freshly rendered and inspected for Build 42.
+  `CANDIDATE-MANIFEST.json` records their exact hashes and the artifact-source
+  revision in a separate manifest-only commit. These are direct app UI captures;
+  they do not claim to show a physical Home Screen or WidgetKit screenshot.
 - The App Store sequence adds three production Goals frames before Plans so the
   Workshop and recovery contract are visible without overlay copy.
 - Google Play phone screenshots: the earlier five-state core story is independently

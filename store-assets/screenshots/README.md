@@ -3,8 +3,8 @@
 These are direct production-UI captures from one deterministic account. They
 have no device frame, overlay copy, alpha channel, or transparency.
 
-The ten-frame iOS set was regenerated from the feature-on `1.0.4+39`
-working candidate and visually inspected on September 1, 2026. It
+The ten-frame iOS set was regenerated from the feature-on `1.0.4+42`
+production UI and visually inspected on September 6, 2026. It
 becomes immutable release evidence only after the manifest-only binding commit
 described below is complete.
 
@@ -27,7 +27,7 @@ release evidence.
 
 The App Store sequence is:
 
-1. Quests — today's selected work, optional Quests, six life domains, and an achievable main quest.
+1. Quests — today's selected work, six life domains, and an achievable main quest.
 2. Reward — a completed quest becoming XP, Glimmers, a stat gain, and streak
    progress.
 3. Goals — today's chosen work and one clear next action inside the warm Goals room.
@@ -52,7 +52,12 @@ Suggested Google Play alt text (each under 140 characters):
 4. `Living Conservatory room preview with a Move In button and no-cost switching.`
 5. `Private Journal with an earlier note placed beside the progress that followed.`
 
-Regenerate the production screenshot story, inspect every selected frame, then
-run `dart run tool/export_store_screenshots.dart`. The exporter rejects
-transparent pixels, converts Flutter's RGBA captures losslessly to 24-bit RGB
-PNG, verifies dimensions, and removes the retired direct-folder set.
+Regenerate in two passes, inspect every selected frame, then run
+`dart run tool/export_store_screenshots.dart --ios-only`.
+
+1. Full story: `flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true --dart-define=CAPTURE_STORE=true test/screenshots_test.dart`
+2. Selected-day Quests and reward: `flutter test --update-goldens --dart-define=CAPTURE_STORE=true --dart-define=CAPTURE_STORE_DAILY_ONLY=true test/screenshots_test.dart --plain-name "store screenshot story: real production surfaces"`
+
+The exporter rejects transparent pixels, converts Flutter's RGBA captures
+losslessly to 24-bit RGB PNG, verifies dimensions, and removes the retired
+direct-folder set.

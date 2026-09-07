@@ -9,6 +9,8 @@
 // CAPTURE_STORE alone for the Goals frames whose native-density setup is kept
 // separate from the broader audit dump. With only CAPTURE_GOLDENS, the tests
 // still pass while every store_*.png remains stale.
+// CAPTURE_STORE_DAILY_ONLY is a follow-up pass for the first two App Store
+// frames: it seeds the day through applyDailyField and stops after the reward.
 // Add CAPTURE_PLAY=true to render the five submission frames again at a native
 // 1080×1920 Play Store viewport. Google Play rejects the taller 1290×2796
 // iPhone class because its long edge is more than twice its short edge.
@@ -126,6 +128,7 @@ class _FlamePalettePainter extends CustomPainter {
 
 const _capture = bool.fromEnvironment('CAPTURE_GOLDENS');
 const _captureStore = bool.fromEnvironment('CAPTURE_STORE');
+const _captureStoreDailyOnly = bool.fromEnvironment('CAPTURE_STORE_DAILY_ONLY');
 const _capturePlay = bool.fromEnvironment('CAPTURE_PLAY');
 
 Future<void> _shoot(WidgetTester tester, Widget w, String name) async {
@@ -1622,6 +1625,16 @@ void main() {
       ),
       workoutLauncherQuest(),
     ];
+    // A targeted App Store follow-up presents an intentional day. Keep the
+    // normal regression and full capture story untouched; this opt-in uses the
+    // same date-scoped operation as the real planner.
+    if (_captureStoreDailyOnly) {
+      applyDailyField(quests, Clock.now(), [
+        'Read ten pages',
+        'Clear the kitchen counter',
+        'Message someone I miss',
+      ]);
+    }
     SharedPreferences.setMockInitialValues({
       whatsNewSeenReleasePreferenceKey: currentRoomReleaseNotes.id,
       'liferpg_save_v1': jsonEncode({
@@ -1671,6 +1684,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 730));
     await _storeShot(tester, '02_reward_1290x2796');
     await _playStoreShot(tester, '02_reward_1080x1920');
+
+    // The targeted selected-day capture ends at the completion receipt. The
+    // ordinary full story continues into its downstream visual audit journey.
+    if (_captureStoreDailyOnly) {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      return;
+    }
 
     // The optional ten-second Journal door is part of the production reward
     // path, not a disconnected mock. Keep one real line so the later Journal
@@ -3293,9 +3314,7 @@ void main() {
     if (_capture) {
       await expectLater(
         find.byType(MaterialApp),
-        matchesGoldenFile(
-          'goldens/goals_recovery_smaller_review_430x932.png',
-        ),
+        matchesGoldenFile('goldens/goals_recovery_smaller_review_430x932.png'),
       );
     }
     expect(
@@ -3824,7 +3843,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('goals personal index: active exact Quest handoff', (tester) async {
+  testWidgets('goals personal index: active exact Quest handoff', (
+    tester,
+  ) async {
     final storeCapture = _captureStore && !_capture;
     tester.view.devicePixelRatio = storeCapture ? 3 : 1;
     await tester.binding.setSurfaceSize(const Size(430, 932));
@@ -3977,6 +3998,13 @@ void main() {
     }
     if (storeCapture) {
       await _storeShot(tester, 'goals_active_1290x2796');
+      final workshop = find.byKey(const Key('goals-open-workshop'));
+      await tester.ensureVisible(workshop);
+      await tester.tap(workshop);
+      await tester.pumpAndSettle();
+      await _storeShot(tester, 'goals_workshop_1290x2796');
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
     }
     expect(tester.takeException(), isNull);
 
