@@ -52,11 +52,12 @@ Suggested Google Play alt text (each under 140 characters):
 4. `Living Conservatory room preview with a Move In button and no-cost switching.`
 5. `Private Journal with an earlier note placed beside the progress that followed.`
 
-Regenerate in two passes, inspect every selected frame, then run
+Regenerate in three passes, inspect every selected frame, then run
 `dart run tool/export_store_screenshots.dart --ios-only`.
 
 1. Full story: `flutter test --update-goldens --dart-define=CAPTURE_GOLDENS=true --dart-define=CAPTURE_STORE=true test/screenshots_test.dart`
-2. Selected-day Quests and reward: `flutter test --update-goldens --dart-define=CAPTURE_STORE=true --dart-define=CAPTURE_STORE_DAILY_ONLY=true test/screenshots_test.dart --plain-name "store screenshot story: real production surfaces"`
+2. Goals, Workshop, and recovery: `flutter test --update-goldens --dart-define=CAPTURE_STORE=true test/screenshots_test.dart --plain-name "goals personal index: active exact Quest handoff"`
+3. Selected-day Quests and reward: `flutter test --update-goldens --dart-define=CAPTURE_STORE=true --dart-define=CAPTURE_STORE_DAILY_ONLY=true test/screenshots_test.dart --plain-name "store screenshot story: real production surfaces"`
 
 The exporter rejects transparent pixels, converts Flutter's RGBA captures
 losslessly to 24-bit RGB PNG, verifies dimensions, and removes the retired

@@ -18,12 +18,14 @@ productivity language.
 - **Support URL:** `https://roomofdays.com/support`
 - **Marketing URL:** `https://roomofdays.com/`
 
-## App Store What's New — Version 1.0.4 (Build 42)
+## Submission record — Build 42
 
 The owner approved Build 42 for public TestFlight and App Store submission on
 September 6, 2026. The submission uses that signed binary with freshly captured
 app screenshots and the matching deployed sharing backend; individual device
 checks are recorded only where observed, not inferred from this approval.
+
+## App Store What's New — Version 1.0.4 (Build 42)
 
 Goals and Quests now keep today’s three close at hand, with suggested next
 steps you can choose to bring into focus. Workshop has a permanent entrance
