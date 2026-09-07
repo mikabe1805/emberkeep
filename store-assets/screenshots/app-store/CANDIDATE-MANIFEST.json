@@ -1,24 +1,24 @@
 {
   "schema": 1,
   "candidate": {
-    "version": "1.0.4+39",
-    "sourceRevision": "0d0f5d602eafa7a53c671e8bc7c102c7cb382d72"
+    "version": "1.0.4+42",
+    "sourceRevision": "a331a6c424023e9fdc6934dc8f90e6d35473a10d"
   },
   "screenshots": {
     "01-quests-1290x2796.png": {
-      "sha256": "8aa62e1f14dffec8103e89c659ce8fe26380ee971937a60959fba99979bfedca"
+      "sha256": "d9428b4e1d08bb2d9218c5347495fa0f72ffb50e48f70bbbc722ee721aa10d52"
     },
     "02-reward-1290x2796.png": {
-      "sha256": "9ec37f399610130f1ae0f42e34268a7fc3b4e128f320d56d1506e34d2c7f56f6"
+      "sha256": "6dc15507942c2646596a29dc52a9218b3307f27a8069d9b95eea60d72156347b"
     },
     "03-goals-1290x2796.png": {
-      "sha256": "59cbd9323ffa9f8b4b50c23396ec44f0a5d88ce03856ad72faabd33e464730f3"
+      "sha256": "afbb0347e79bc8ad055ce480eb0712350a4d734e06e63be8ebad50e8512a82fb"
     },
     "04-workshop-1290x2796.png": {
-      "sha256": "21ffac6511d5db5d28c78f6d2cf8d91ef4b0752debee65261a0eda3c1dd6846a"
+      "sha256": "88026daf5c54c6d031a77105fc5e5153df0df99004d0e7a988eb116d70f7f52c"
     },
     "05-recovery-1290x2796.png": {
-      "sha256": "84644179b3d25d5f63ff6e856aeba7e8b353c993e9eb53e4cc4f434b653388f6"
+      "sha256": "63e16b1a60a05ca32ddb4b11fa3d0a7453380f7f4ede0e37612d1461b715e9ed"
     },
     "06-plans-1290x2796.png": {
       "sha256": "f1c9a565ec069143c05d93b40bc3f04f49f9d2bb729e93be613bbf4cedbff0e9"
@@ -27,10 +27,10 @@
       "sha256": "40e953182b36394cac5d8aeb2f96c3424e4464e82f767747ca0462ef8f6601ca"
     },
     "08-change-space-1290x2796.png": {
-      "sha256": "c81bab3a050ce871ea0f523146e8a6705b303de92707f3b51c7244df3035c563"
+      "sha256": "953e7aa7106ca3a08a94bd25dcbef7c8fddfb0d6e6fe36887040ad3eb789b86f"
     },
     "09-journal-1290x2796.png": {
-      "sha256": "0fb4da88b97bb775bb71d2bf33ff0b621c1cc7b7e0ef74bfa19bee763e435c87"
+      "sha256": "aa6d3e8d9b8750050255eba129707e65f207b91e6a495e2bbf0af9b3c50368df"
     },
     "10-discover-1290x2796.png": {
       "sha256": "342a97e1acbc585f7fc39a7f125e15a40eda501d52e110434d87986fac869f81"
